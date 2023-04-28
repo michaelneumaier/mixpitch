@@ -1,0 +1,37 @@
+body {
+    background-image: linear-gradient(to bottom right, #1a1a1a, #333333);
+}
+
+
+.container-home {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+.welcome-text {
+    color: #d1d1d1;
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.upload-btn {
+    display: block;
+    width: 100%;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px 0;
+    margin-top: 30px;
+    background-color: #3490dc;
+    color: #ffffff;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+.upload-btn:hover {
+    background-color: #227dc7;
+    text-decoration: none !important;
+    color: #eeeeee;
+}

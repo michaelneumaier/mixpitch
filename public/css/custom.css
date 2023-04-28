@@ -1,0 +1,20 @@
+body {
+    color: #333; /* Set the text color to a dark shade of gray */
+    font-size: 18px; /* Increase the base font size */
+}
+
+.always-show-nav {
+    flex-grow: 1;
+}
+
+
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.navbar-brand .fas {
+    margin-right: 5px;
+}

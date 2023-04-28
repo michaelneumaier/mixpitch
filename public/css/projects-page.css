@@ -1,0 +1,33 @@
+.container-projects {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+.projects-text {
+    color: #ffffff;
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.card-columns {
+    column-count: 3;
+}
+
+.card {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    margin-bottom: 30px;
+    border: none;
+}
+
+.card:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.card-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}

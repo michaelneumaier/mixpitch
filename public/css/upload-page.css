@@ -1,0 +1,40 @@
+.container-upload {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+.upload-text {
+    color: #ffffff;
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.upload-form {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.upload-form label {
+    color: #ffffff;
+}
+
+.upload-form input[type="submit"] {
+    display: block;
+    width: 100%;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px 0;
+    margin-top: 30px;
+    background-color: #3490dc;
+    color: #ffffff;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+.upload-form input[type="submit"]:hover {
+    background-color: #227dc7;
+}

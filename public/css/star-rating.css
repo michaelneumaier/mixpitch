@@ -1,0 +1,22 @@
+.star-rating {
+    font-size: 1.5em;
+    unicode-bidi: bidi-override;
+    direction: rtl;
+    display: inline-block;
+}
+
+.star-rating>span {
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+}
+
+.star-rating>span:before {
+    content: "☆";
+    position: absolute;
+}
+
+.star-rating>span:hover:before,
+.star-rating>span:hover~span:before {
+    content: "★";
+}

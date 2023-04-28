@@ -1,0 +1,43 @@
+.container-project-detail {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+.project-detail-text {
+    color: #ffffff;
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.project-info {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.project-info h2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color:rgb(255, 255, 255)
+}
+
+.project-info p {
+    color: #ffffff;
+}
+
+.delete-btn {
+    background-color: #e3342f;
+    color: #ffffff;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+.delete-btn:hover {
+    background-color: #cc1f1a;
+}
