@@ -23,6 +23,9 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link href="{{ asset('build/assets/app-e8f21799.css') }}" rel="stylesheet">
+    <script src="{{ asset('build/assets/app-919ba201.js') }}" defer></script>
+
 
     <link href="{{ asset('css/homepage.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/star-rating.css') }}">
