@@ -4,7 +4,7 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card text-white">
+            <div class="card">
                 <div class="card-header">Edit Project</div>
 
                 <div class="card-body">
@@ -25,6 +25,9 @@
                                 value="{{ $project->genre }}" required>
                         </div>
 
+
+
+                        <button type="submit" class="btn bg-blue-500 btn-primary mt-3">Update Project</button>
                         <h5>Project Files</h5>
                         <ul class="list-group">
                             @foreach($project->files as $file)
@@ -35,20 +38,20 @@
                                     method="POST" class="d-inline delete-file-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="button" class="btn btn-sm btn-danger float-right">Delete</button>
+                                    <button type="button"
+                                        class="btn btn-sm bg-red-500 btn-danger float-right">Delete</button>
                                 </form>
 
                                 <!-- <form
-                                    action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
-                                    method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger float-right">Delete</button>
-                                </form> -->
+                                                            action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
+                                                            method="POST" class="d-inline">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-sm btn-danger float-right">Delete</button>
+                                                        </form> -->
                             </li>
                             @endforeach
                         </ul>
-                        <button type="submit" class="btn btn-primary mt-3">Update Project</button>
                     </form>
                 </div>
             </div>
@@ -59,9 +62,13 @@
 
 @section('scripts')
 <script>
+
     document.addEventListener('DOMContentLoaded', function () {
         const deleteFileButtons = document.querySelectorAll('.delete-file-form button');
-
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function (event) {
+            console.log('Form submitted');
+        });
         deleteFileButtons.forEach(button => {
             button.addEventListener('click', function () {
                 event.preventDefault();

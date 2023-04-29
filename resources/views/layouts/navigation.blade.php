@@ -1,4 +1,4 @@
-<nav class="navbar navbar-light navbar-expand-lg bg-light pb-0 pt-7 pl-5 d-lg-flex align-items-center">
+<nav class="navbar navbar-light navbar-expand-lg bg-light pb-0 pt-7 pl-5 d-lg-flex align-items-center mb-2">
     <div class="container-fluid">
         <div class="d-lg-flex align-items-center">
             <a class="navbar-brand d-inline" href="{{ url('/') }}">MixPitch</a>
@@ -10,8 +10,8 @@
 
             <div class="navbar-item pr-20">
                 @guest
-                <a class="nav-link" href="{{ route('login') }}">Login</a>
-                <a class="nav-link" href="{{ route('register') }}">Register</a>
+                <a class="nav-link d-inline pr-5" href="{{ route('login') }}"><b>Login</b></a>
+                <a class="nav-link d-inline" href="{{ route('register') }}">Register</a>
                 @else
                 <div class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"

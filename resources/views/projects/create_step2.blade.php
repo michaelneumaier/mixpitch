@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header text-white">{{ __('Upload Files for Project') }} - {{ $project->name }}</div>
+                <div class="card-header">{{ __('Upload Files for Project') }} - {{ $project->name }}</div>
 
                 <div class="card-body">
                     <form action="{{ route('projects.storeStep2', $project->id) }}" method="post"
@@ -18,7 +18,7 @@
                             <span>Drop files here or click to upload.</span>
                         </div>
                     </form>
-                    <button id="finishedButton" class="btn btn-primary mt-3" type="button">Finished</button>
+                    <button id="finishedButton" class="btn bg-blue-500 btn-primary mt-3" type="button">Finished</button>
 
                 </div>
             </div>
