@@ -1,6 +1,8 @@
 body {
-    color: #333; /* Set the text color to a dark shade of gray */
-    font-size: 18px; /* Increase the base font size */
+    color: #333;
+    /* Set the text color to a dark shade of gray */
+    font-size: 18px;
+    /* Increase the base font size */
 }
 
 .always-show-nav {
@@ -10,8 +12,9 @@ body {
 
 
 .navbar-brand {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
+    padding-left: 15px;
     margin-right: 10px;
 }
 

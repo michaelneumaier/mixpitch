@@ -12,7 +12,7 @@
 }
 
 .card-columns {
-    column-count: 3;
+    column-count: 1 !important;
 }
 
 .card {

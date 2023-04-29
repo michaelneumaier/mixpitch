@@ -6,7 +6,7 @@
         <div class="col-md-8">
             <div class="card bg-dark text-white">
                 <div class="card-header">
-                    <h3>{{ $project->name }}</h3>
+                    <h3 class="display-3">{{ $project->name }}</h3>
                 </div>
                 <div class="card-body">
                     <p>Genre: {{ $project->genre }}</p>
@@ -14,29 +14,50 @@
                     <hr>
                     <h4>Files:</h4>
                     <ul>
+                        @php
+                        $audioIndex = 0;
+                        @endphp
                         @foreach($project->files as $file)
-                        <li>
-                            <audio controls>
-                                <source src="{{ asset('storage/' . $file->file_path) }}" type="audio/mpeg">
-                                Your browser does not support the audio element.
-                            </audio>
+                        @php
+                        $audioIndex++;
+                        $idCss = $audioIndex;
+                        @endphp
+                        <li class="mb-1">
                             <p>{{ basename($file->file_path) }}</p>
+                            <div id="waveform-{{$idCss}}"></div>
+                            <audio id="audio-file-{{$idCss}}" src="{{ asset('storage/' . $file->file_path) }}"
+                                preload="none"></audio>
+
+                            <button id="play-button-{{$idCss}}" class="btn btn-primary">Play/Pause</button>
+
+
+
                         </li>
                         @endforeach
                         <li>
-                            <a href="{{ route('projects.download', $project->id) }}"
-                                class="btn btn-primary mb-3">Download All Files</a>
+                            <a href="{{ route('projects.download', $project->id) }}" class="btn btn-primary ">Download
+                                All Files</a>
                             <a href="{{ route('mixes.create', $project->id) }}" class="btn btn-primary">Submit Mix</a>
 
 
                         </li>
-                        <li>@if(auth()->user()->id == $project->user_id && $project->mixes->count() != 0)
-                            <h5>Submitted Mixes</h5>
+                        <li>@if(auth()->check() && auth()->user()->id == $project->user_id && $project->mixes->count()
+                            != 0)
+                            <h5 class="display-6">Submitted Mixes</h5>
                             <ul class="list-group">
                                 @foreach($project->mixes as $mix)
+                                @php
+                                $idCss++;
+                                @endphp
                                 <li class="list-group-item">
-                                    <audio controls src="{{ asset('storage/' . $mix->mix_file_path) }}"></audio>
-                                    <br><strong>Username:</strong> {{ $mix->user->name }}
+                                    <div id="waveform-{{$idCss}}"></div>
+                                    <audio id="audio-file-{{$idCss}}"
+                                        src="{{ asset('storage/' . $mix->mix_file_path) }}" preload="none"></audio>
+
+                                    <button id="play-button-{{$idCss}}" class="btn btn-primary">Play/Pause</button>
+
+
+                                    <br><strong>User:</strong> {{ $mix->user->name }}
                                     <br>
                                     <strong>Description:</strong> {{ $mix->description }}
                                     <br>
@@ -70,7 +91,7 @@
 @endsection
 
 @section('scripts')
-@if(auth()->user()->id == $project->user_id && $project->mixes->count() != 0)
+@if(auth()->check() && auth()->user()->id == $project->user_id && $project->mixes->count() != 0)
 <script>
     $(document).ready(function () {
         $(".star-rating span").click(function () {
@@ -112,5 +133,32 @@
         });
     });
 </script>
+
 @endif
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const audioFiles = document.querySelectorAll('audio[id^="audio-file-"]');
+
+        audioFiles.forEach((audioFile, index) => {
+            const waveformContainerId = `waveform-${index + 1}`;
+
+            const wavesurfer = WaveSurfer.create({
+                container: `#${waveformContainerId}`,
+                waveColor: 'violet',
+                progressColor: 'purple',
+                height: 80,
+                barWidth: 2
+            });
+
+            wavesurfer.load(audioFile.src);
+
+            // Custom play/pause button
+            const playButton = document.getElementById(`play-button-${index + 1}`);
+            playButton.addEventListener('click', function () {
+                wavesurfer.playPause();
+            });
+        });
+    });
+
+</script>
 @endsection

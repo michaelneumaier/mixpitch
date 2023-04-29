@@ -1,34 +1,25 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-1">
-    <div class="container">
+<nav class="navbar navbar-light navbar-expand-lg bg-light pb-0 pt-7 pl-5 d-lg-flex align-items-center">
+    <div class="container-fluid">
+        <div class="d-lg-flex align-items-center">
+            <a class="navbar-brand d-inline" href="{{ url('/') }}">MixPitch</a>
+            <a class="nav-link d-inline pl-10 pt-1" href="{{ route('projects.index') }}">Projects</a>
+        </div>
 
-        <a class="navbar-brand" href="{{ url('/') }}">Pitch Mix</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
-            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="navbar-collapse ml-3" id="navbarNav">
-            <ul class="navbar-nav mr-auto always-show-nav">
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('projects.index') }}">Projects</a>
-                </li>
-            </ul>
-            <ul class="navbar always-show-nav justify-content-end text-white">
+
+        <div class="d-flex flex-row">
+
+            <div class="navbar-item pr-20">
                 @guest
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('login') }}">Login</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('register') }}">Register</a>
-                </li>
+                <a class="nav-link" href="{{ route('login') }}">Login</a>
+                <a class="nav-link" href="{{ route('register') }}">Register</a>
                 @else
-                <li class="nav-item dropdown">
+                <div class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         {{ Auth::user()->name }}
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                         <a class="dropdown-item" href="{{ route('dashboard') }}">Dashboard</a>
-
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="{{ route('logout') }}"
                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
@@ -36,9 +27,9 @@
                             @csrf
                         </form>
                     </div>
-                </li>
+                </div>
                 @endguest
-            </ul>
+            </div>
         </div>
     </div>
 </nav>

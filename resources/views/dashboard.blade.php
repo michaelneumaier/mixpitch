@@ -5,31 +5,31 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header text-white">{{ __('Dashboard') }}</div>
+                <div class="card-header">{{ __('Dashboard') }}</div>
 
                 <div class="card-body">
-                    <h3 class="text-white h3">Your Projects</h3>
+                    <h3 class="h3">Your Projects</h3>
                     @if ($projects->isEmpty())
-                    <p class="text-white">You haven't shared any projects yet.</p>
+                    <p>You haven't shared any projects yet.</p>
                     @else
                     <ul class="list-group">
                         @foreach ($projects as $project)
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <a href="{{ route('projects.show', $project->id) }}" class="text-white">{{
+                            <a href="{{ route('projects.show', $project->id) }}">{{
                                 $project->name
                                 }}</a>
                             <div>
                                 <form action="{{ route('projects.edit', $project->id) }}" method="GET"
-                                    class="text-white" style="display:inline-block">
+                                    style="display:inline-block">
                                     @csrf
 
-                                    <button type="submit" class="btn btn-info btn-sm">Edit</button>
+                                    <button type="submit" class="btn btn-info btn-sm bg-sky-400">Edit</button>
                                 </form>
                                 <form action="{{ route('projects.destroy', $project->id) }}" method="POST"
-                                    class="text-white" style="display:inline-block">
+                                    style="display:inline-block">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    <button type="submit" class="btn btn-danger btn-sm bg-red-500">Delete</button>
                                 </form>
                             </div>
                         </li>
@@ -38,8 +38,8 @@
                     @endif
                     <a href="{{ route('projects.upload') }}" class="upload-btn">Share Your Project</a>
                 </div>
-                <div class="card-body text-white">
-                    <h3 class="text-white h3">Your Uploaded Mixes</h3>
+                <div class="card-body">
+                    <h3 class="h3">Your Uploaded Mixes</h3>
                     <div class="">
                         <ul class="list-group">
                             @foreach($mixes as $mix)
