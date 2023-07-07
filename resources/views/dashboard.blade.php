@@ -15,9 +15,14 @@
                     <ul class="list-group">
                         @foreach ($projects as $project)
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <a href="{{ route('projects.show', $project->id) }}">{{
-                                $project->name
-                                }}</a>
+                            <div>
+                                <livewire:status-button :status="$project->status" />
+
+                                <a href="{{ route('projects.show', $project->id) }}">{{
+                                    $project->name
+                                    }}</a>
+                            </div>
+
                             <div>
                                 <form action="{{ route('projects.edit', $project->id) }}" method="GET"
                                     style="display:inline-block">

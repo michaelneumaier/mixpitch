@@ -41,7 +41,7 @@
         paramName: 'files',
         uploadMultiple: true,
         parallelUploads: 10,
-        maxFilesize: 20,
+        maxFilesize: 100,
         acceptedFiles: '.mp3,.wav',
         headers: {
             'X-CSRF-TOKEN': "{{ csrf_token() }}"

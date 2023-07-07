@@ -15,12 +15,25 @@ class Project extends Model
         'name',
         'description',
         'genre',
+        'status'
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
+    public function isOwnedByUser(User $user)
+    {
+        return $this->user_id == $user->id;
+    }
+
+    public function setStatus($status)
+    {
+        $this->status = $status;
+        $this->save();
+    }
+
 
     public function tracks()
     {

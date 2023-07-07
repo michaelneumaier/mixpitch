@@ -16,9 +16,21 @@
                         required>
                 </div>
                 <div class="form-group">
+                    <label for="genre">Genre</label>
+                    <select class="form-control" id="genre" name="genre" required>
+                        <option value="">Select genre...</option>
+                        <option value="Pop">Pop</option>
+                        <option value="Rock">Rock</option>
+                        <option value="Country">Country</option>
+                        <option value="Hip Hop">Hip Hop</option>
+                        <option value="Jazz">Jazz</option>
+                        <!-- add more genres as needed -->
+                    </select>
+                </div>
+                <!-- <div class="form-group">
                     <label for="name">Genre</label>
                     <input type="text" class="form-control" id="genre" name="genre" placeholder="Enter genre" required>
-                </div>
+                </div> -->
                 <!-- <div class="form-group">
                     <label for="tracks">Upload Tracks</label>
                     <input type="file" class="form-control-file" id="files" name="files[]" multiple required>

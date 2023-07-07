@@ -28,3 +28,8 @@ body {
 .navbar-brand .fas {
     margin-right: 5px;
 }
+
+.status-top-right-rounded-corner {
+    font-size: 1.3rem;
+    border-top-right-radius: .25rem !important;
+}

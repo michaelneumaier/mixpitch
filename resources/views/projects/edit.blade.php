@@ -18,12 +18,38 @@
                             <input type="text" class="form-control" id="name" name="name" value="{{ $project->name }}"
                                 required>
                         </div>
+                        <div class="form-group">
+                            <label for="genre">Genre</label>
+                            <select class="form-control" id="genre" name="genre" required>
+                                <option value="">Select genre...</option>
+                                <option value="Pop" {{ $project->genre == 'Pop' ? 'selected' : '' }}>Pop</option>
+                                <option value="Rock" {{ $project->genre == 'Rock' ? 'selected' : '' }}>Rock</option>
+                                <option value="Country" {{ $project->genre == 'Country' ? 'selected' : '' }}>Country
+                                </option>
+                                <option value="Hip Hop" {{ $project->genre == 'Hip Hop' ? 'selected' : '' }}>Hip Hop
+                                </option>
+                                <option value="Jazz" {{ $project->genre == 'Jazz' ? 'selected' : '' }}>Jazz</option>
+                                <!-- add more genres as needed -->
+                            </select>
+                        </div>
 
                         <div class="form-group">
+                            <label for="status">Status</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="">Status</option>
+                                <option value="open" {{ $project->status == 'open' ? 'selected' : '' }}>Open</option>
+                                <option value="review" {{ $project->status == 'review' ? 'selected' : '' }}>In Review
+                                </option>
+                                <option value="closed" {{ $project->status == 'closed' ? 'selected' : '' }}>Closed
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- <div class="form-group">
                             <label for="genre">Genre</label>
                             <input type="text" class="form-control" id="genre" name="genre"
                                 value="{{ $project->genre }}" required>
-                        </div>
+                        </div> -->
 
 
 

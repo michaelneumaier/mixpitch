@@ -1,7 +1,7 @@
 <nav class="navbar navbar-light navbar-expand-lg bg-light pb-0 pt-7 pl-5 d-lg-flex align-items-center mb-2">
     <div class="container-fluid">
         <div class="d-lg-flex align-items-center">
-            <a class="navbar-brand d-inline" href="{{ url('/') }}">MixPitch</a>
+            <a class="navbar-brand d-inline text-dark" href="{{ url('/') }}">MixPitch</a>
             <a class="nav-link d-inline pl-10 pt-1" href="{{ route('projects.index') }}">Projects</a>
         </div>
 

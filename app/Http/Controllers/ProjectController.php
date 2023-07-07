@@ -111,8 +111,8 @@ class ProjectController extends Controller
     public function storeProject(Request $request)
     {
         $request->validate([
-            'name' => 'required',
-            'genre' => 'required',
+            'name' => 'required|max:255',
+            'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
             //'files.*' => 'required|mimes:wav,mp3',
         ]);
 
@@ -140,7 +140,7 @@ class ProjectController extends Controller
     public function storeStep2(Request $request, Project $project)
     {
         $request->validate([
-            'files.*' => 'required|mimes:mp3,wav|max:20480',
+            'files.*' => 'required|mimes:mp3,wav|max:102400',
         ]);
 
         if ($request->hasFile('files')) {
@@ -174,16 +174,18 @@ class ProjectController extends Controller
         // Validate the request data
         $request->validate([
             'name' => 'required|max:255',
-            'genre' => 'required|max:255',
+            'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
+            'status' => 'required|in:open,review,closed',
         ]);
 
         // Update the project's name and genre
         $project->name = $request->input('name');
         $project->genre = $request->input('genre');
+        $project->status = $request->input('status');
         $project->save();
 
         // Redirect to the project's page with a success message
-        return redirect()->route('projects.show', $project)->with('success', 'Project updated successfully.');
+        return redirect()->route('projects.edit', $project)->with('success', 'Project updated successfully.');
     }
 
 

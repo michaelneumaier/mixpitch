@@ -4,15 +4,21 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card bg-dark text-white">
-                <div class="card-header">
-                    <h3 class="display-3">{{ $project->name }}</h3>
+            <div class="card bg-dark text-white border-0"
+                style="background: url('https://via.placeholder.com/500') no-repeat center center / cover;">
+                <div class="card-header bg-dark bg-opacity-25">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h3 class="display-3">{{ $project->name }}
+                            @if (auth()->check() && $project->isOwnedByUser(auth()->user()))
+                            <a href="{{ route('projects.edit', $project->id) }}"
+                                class="btn btn-info btn-sm bg-sky-400">Edit</a>
+                            @endif
+                        </h3>
+
+                        <livewire:status-button :status="$project->status" type="top-right" />
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p>Genre: {{ $project->genre }}</p>
-                    <p>Created by: {{ $project->user->name }}</p>
-                    <hr>
-                    <h4>Files:</h4>
+                <div class="card-body bg-dark bg-opacity-10">
                     <ul>
                         @php
                         $audioIndex = 0;
@@ -37,11 +43,13 @@
                         <li>
                             <a href="{{ route('projects.download', $project->id) }}" class="btn btn-primary ">Download
                                 All Files</a>
-                            <a href="{{ route('mixes.create', $project->id) }}" class="btn btn-primary">Submit Mix</a>
+                            <a href="{{ route('mixes.create', $project->id) }}" class="btn btn-primary">Submit
+                                Mix</a>
 
 
                         </li>
-                        <li>@if(auth()->check() && auth()->user()->id == $project->user_id && $project->mixes->count()
+                        <li>@if(auth()->check() && auth()->user()->id == $project->user_id &&
+                            $project->mixes->count()
                             != 0)
                             <h5 class="display-6">Submitted Mixes</h5>
                             <ul class="list-group">
