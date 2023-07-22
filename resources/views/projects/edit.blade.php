@@ -45,40 +45,27 @@
                             </select>
                         </div>
 
-                        <!-- <div class="form-group">
-                            <label for="genre">Genre</label>
-                            <input type="text" class="form-control" id="genre" name="genre"
-                                value="{{ $project->genre }}" required>
-                        </div> -->
-
-
-
                         <button type="submit" class="btn bg-blue-500 btn-primary mt-3">Update Project</button>
-                        <h5>Project Files</h5>
-                        <ul class="list-group">
-                            @foreach($project->files as $file)
-                            <li class="list-group-item">
-                                {{ basename($file->file_path) }}
-                                <form
-                                    action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
-                                    method="POST" class="d-inline delete-file-form">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="button"
-                                        class="btn btn-sm bg-red-500 btn-danger float-right">Delete</button>
-                                </form>
-
-                                <!-- <form
-                                                            action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
-                                                            method="POST" class="d-inline">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="btn btn-sm btn-danger float-right">Delete</button>
-                                                        </form> -->
-                            </li>
-                            @endforeach
-                        </ul>
                     </form>
+
+                    <h5>Project Files</h5>
+                    <ul class="list-group">
+                        @foreach($project->files as $file)
+                        <li class="list-group-item">
+                            {{ basename($file->file_path) }}
+                            <form
+                                action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
+                                method="POST" class="d-inline delete-file-form">
+                                @csrf
+                                @method('DELETE')
+                                <button type="button"
+                                    class="btn btn-sm bg-red-500 btn-danger float-right">Delete</button>
+                            </form>
+                        </li>
+                        @endforeach
+                    </ul>
+
+                    <a href="{{ route('projects.createStep2', $project->id) }}" class="btn btn-primary mt-3">Upload More Files</a>
                 </div>
             </div>
         </div>
@@ -88,7 +75,6 @@
 
 @section('scripts')
 <script>
-
     document.addEventListener('DOMContentLoaded', function () {
         const deleteFileButtons = document.querySelectorAll('.delete-file-form button');
         const form = document.querySelector('form');
