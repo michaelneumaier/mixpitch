@@ -2,8 +2,11 @@
     <a href="{{ route('projects.show', $project->id) }}" class="text-decoration-none">
         <div class="card">
             <div class="card-img-top position-relative">
-                <img src="https://via.placeholder.com/150" alt="{{ $project->name }}"
-                    class="img-fluid w-100 rounded-top">
+                <div class="ratio ratio-1x1 rounded-top"
+                    style="background-image: url('{{ $project->image_path ? asset('storage' . $project->image_path) : 'https://via.placeholder.com/150' }}'); background-size: cover; background-position: center;">
+                </div>
+
+
                 <div class="position-absolute top-0 end-0">
                     <livewire:status-button :status="$project->status" type="top-right" />
                 </div>

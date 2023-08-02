@@ -38,3 +38,10 @@
 .upload-form input[type="submit"]:hover {
     background-color: #227dc7;
 }
+
+.input-lg-custom {
+    min-height: calc(1.5em + 1rem + calc(var(--bs-border-width) * 2));
+    padding: .5rem 1rem;
+    font-size: 1.25rem;
+    border-radius: var(--bs-border-radius-lg);
+}

@@ -1,12 +1,17 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+$backgroundStyle = $project->image_path ? 'style="background: url(\'' . asset('storage' . $project->image_path) .
+'\') no-repeat center center / cover;"' :
+'style="background: black;"';
+@endphp
+
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card bg-dark text-white border-0"
-                style="background: url('https://via.placeholder.com/500') no-repeat center center / cover;">
-                <div class="card-header bg-dark bg-opacity-25">
+            <div class="card text-white border-0" {!! $backgroundStyle !!}>
+                <div class="card-header bg-dark bg-opacity-75">
                     <div class="d-flex justify-content-between align-items-start">
                         <h3 class="display-3">{{ $project->name }}
                             @if (auth()->check() && $project->isOwnedByUser(auth()->user()))
@@ -18,7 +23,7 @@
                         <livewire:status-button :status="$project->status" type="top-right" />
                     </div>
                 </div>
-                <div class="card-body bg-dark bg-opacity-10">
+                <div class="card-body bg-dark bg-opacity-50">
                     <ul>
                         @php
                         $audioIndex = 0;

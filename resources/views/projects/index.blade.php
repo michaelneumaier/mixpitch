@@ -9,10 +9,13 @@
     <div class="container">
         <div class="row">
             @foreach($projects as $project)
-                @livewire('project-card', ['project' => $project], key($project->id))
+            @livewire('project-card', ['project' => $project], key($project->id))
             @endforeach
         </div>
     </div>
+    <div class="d-flex justify-content-center">
+        {{ $projects->links() }}
+    </div>
+</div>
 
-
-    @endsection
+@endsection

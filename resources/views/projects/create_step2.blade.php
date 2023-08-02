@@ -18,7 +18,7 @@
                             <span>Drop files here or click to upload.</span>
                         </div>
                     </form>
-                    <button id="finishedButton" class="btn bg-blue-500 btn-primary mt-3" type="button">Finished</button>
+                    <button id="finishedButton" class="btn bg-blue-500 btn-primary mt-3" type="button">Finish</button>
 
                 </div>
             </div>

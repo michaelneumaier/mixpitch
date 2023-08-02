@@ -33,55 +33,10 @@ class ProjectController extends Controller
         return response()->download($zip_name)->deleteFileAfterSend();
     }
 
-    //     public function download(Project $project)
-// {
-//     $zipFileName = $project->name . '.zip';
-//     $zip = new \ZipArchive;
-//     $zip->open($zipFileName, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-
-    //     foreach ($project->tracks as $track) {
-//         $trackFile = storage_path('app/public/tracks/' . $track->filename);
-//         if (file_exists($trackFile)) {
-//             $zip->addFile($trackFile, $track->filename);
-//         }
-//     }
-
-    //     $zip->close();
-
-    //     return response()->download($zipFileName)->deleteFileAfterSend(true);
-// }
-
-    // public function upload(Request $request)
-    // {
-    //     $request->validate([
-    //         'name' => 'required',
-    //         'tracks.*' => 'required|file|mimes:mp3,wav',
-    //         'genre' => 'required'
-    //     ]);
-
-    //     $project = new Project([
-    //         'name' => $request->name,
-    //         'genre' => $request->genre,
-    //         'user_id' => auth()->id()
-    //     ]);
-    //     $project->save();
-
-    //     foreach ($request->file('tracks') as $trackFile) {
-    //         $trackPath = $trackFile->store('tracks');
-
-    //         $track = new Track([
-    //             'project_id' => $project->id,
-    //             'filename' => $trackPath
-    //         ]);
-    //         $track->save();
-    //     }
-
-    //     return redirect()->route('projects.show', $project->id);
-    // }
 
     public function index()
     {
-        $projects = Project::all();
+        $projects = Project::paginate(10);
         return view('projects.index', compact('projects'));
     }
 
@@ -113,14 +68,24 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|max:255',
             'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
+            'project_image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             //'files.*' => 'required|mimes:wav,mp3',
         ]);
 
-        $project = Project::create([
-            'user_id' => auth()->id(),
-            'name' => $request->name,
-            'genre' => $request->genre,
-        ]);
+        $project = new Project();
+        $project->name = $request->name;
+        $project->genre = $request->genre;
+        if ($request->hasFile('project_image')) {
+            $imageName = time() . '.' . $request->project_image->extension();
+            $request->project_image->move(public_path('images'), $imageName);
+            $project->image_path = "/images/{$imageName}";
+        }
+        $project->save();
+        // $project = Project::create([
+        //     'user_id' => auth()->id(),
+        //     'name' => $request->name,
+        //     'genre' => $request->genre,
+        // ]);
 
         // if ($request->hasFile('files')) {
         //     foreach ($request->file('files') as $file) {
@@ -182,6 +147,17 @@ class ProjectController extends Controller
         $project->name = $request->input('name');
         $project->genre = $request->input('genre');
         $project->status = $request->input('status');
+        if ($request->hasFile('image')) {
+            // Delete the old image if it exists
+            $oldFilePath = $project->image_path;
+            if ($oldFilePath && Storage::disk('public')->exists($oldFilePath)) {
+                Storage::disk('public')->delete($oldFilePath);
+            }
+
+            // Store the new image
+            $imageName = $request->file('image')->store('images', 'public');
+            $project->image_path = "/{$imageName}";
+        }
         $project->save();
 
         // Redirect to the project's page with a success message
@@ -232,6 +208,11 @@ class ProjectController extends Controller
         // Retrieve project files
         //$projectFiles = $project->files;
 
+        $imageFilePath = $project->image_path;
+        if ($imageFilePath && Storage::disk('public')->exists($imageFilePath)) {
+            Storage::disk('public')->delete($imageFilePath);
+        }
+
         // Delete the files from the storage
         $filesPath = 'public/projects/' . $project->id;
         Storage::deleteDirectory($filesPath);
@@ -253,23 +234,23 @@ class ProjectController extends Controller
 
 
 
-//public function storeProject(Request $request)
+    //public function storeProject(Request $request)
 // {
 //     $request->validate([
 //         'title' => 'required|string|max:255',
 //         'tracks.*' => 'required|mimes:mp3,wav|max:20480',
 //     ]);
 
-//     $tracks = [];
+    //     $tracks = [];
 
-//     foreach ($request->file('tracks') as $track) {
+    //     foreach ($request->file('tracks') as $track) {
 //         $path = $track->store('tracks', 'public');
 //         $filename = $track->getClientOriginalName();
 
-//         $tracks[] = [
+    //         $tracks[] = [
 //             'title' => $request->input('title'),
 
-//             'genre' => 'unknown', // Replace this with an appropriate genre or add a genre input field to the form
+    //             'genre' => 'unknown', // Replace this with an appropriate genre or add a genre input field to the form
 //             'file_path' => $path,
 //             'user_id' => auth()->user()->id,
 //             'created_at' => now(),
@@ -277,8 +258,8 @@ class ProjectController extends Controller
 //         ];
 //     }
 
-//     Track::insert($tracks);
+    //     Track::insert($tracks);
 
-//     return redirect()->route('tracks.index')->with('message', 'Project uploaded successfully.');
+    //     return redirect()->route('tracks.index')->with('message', 'Project uploaded successfully.');
 // }
 }
