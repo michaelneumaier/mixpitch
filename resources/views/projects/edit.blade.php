@@ -4,7 +4,7 @@
     @php
         $backgroundStyle = $project->image_path ? 'style="background: url(\'' . asset('storage' . $project->image_path) .
         '\') no-repeat center center / cover;"' :
-        'style="background: black;"';
+        '';
     @endphp
     <link href="{{ asset('css/upload-page.css') }}" rel="stylesheet">
     <div class="container">
