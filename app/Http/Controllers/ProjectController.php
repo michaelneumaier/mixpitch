@@ -14,29 +14,16 @@ use App\Models\Track;
 class ProjectController extends Controller
 {
 
-    public function download(Project $project)
+    public function index(Request $request)
     {
-        $zip = new ZipArchive();
-        $zip_name = tempnam(sys_get_temp_dir(), 'project_') . '.zip';
+        $genres = $request->get('genre');
+        $query = Project::query();
 
-        if ($zip->open($zip_name, ZipArchive::CREATE) !== TRUE) {
-            return redirect()->back()->withErrors(['Unable to create a zip file.']);
+        if ($genres) {
+            $query->whereIn('genre', $genres);
         }
 
-        foreach ($project->files as $file) {
-            $file_path = storage_path('app/public/' . $file->file_path);
-            $zip->addFile($file_path, basename($file_path));
-        }
-
-        $zip->close();
-
-        return response()->download($zip_name)->deleteFileAfterSend();
-    }
-
-
-    public function index()
-    {
-        $projects = Project::paginate(10);
+        $projects = $query->paginate(10);
         return view('projects.index', compact('projects'));
     }
 
@@ -162,6 +149,25 @@ class ProjectController extends Controller
 
         // Redirect to the project's page with a success message
         return redirect()->route('projects.edit', $project)->with('success', 'Project updated successfully.');
+    }
+
+    public function download(Project $project)
+    {
+        $zip = new ZipArchive();
+        $zip_name = tempnam(sys_get_temp_dir(), 'project_') . '.zip';
+
+        if ($zip->open($zip_name, ZipArchive::CREATE) !== TRUE) {
+            return redirect()->back()->withErrors(['Unable to create a zip file.']);
+        }
+
+        foreach ($project->files as $file) {
+            $file_path = storage_path('app/public/' . $file->file_path);
+            $zip->addFile($file_path, basename($file_path));
+        }
+
+        $zip->close();
+
+        return response()->download($zip_name)->deleteFileAfterSend();
     }
 
 
