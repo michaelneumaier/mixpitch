@@ -1,117 +1,121 @@
 @extends('layouts.app')
 
 @section('content')
-@section('content')
-@php
-$backgroundStyle = $project->image_path ? 'style="background: url(\'' . asset('storage' . $project->image_path) .
-'\') no-repeat center center / cover;"' :
-'style="background: black;"';
-@endphp
-<link href="{{ asset('css/upload-page.css') }}" rel="stylesheet">
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card text-white border-0" {!! $backgroundStyle !!}>
-                <div class="card-header bg-dark bg-opacity-75">Edit Project</div>
+    @php
+        $backgroundStyle = $project->image_path ? 'style="background: url(\'' . asset('storage' . $project->image_path) .
+        '\') no-repeat center center / cover;"' :
+        'style="background: black;"';
+    @endphp
+    <link href="{{ asset('css/upload-page.css') }}" rel="stylesheet">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card text-white border-0" {!! $backgroundStyle !!}>
+                    <div class="card-header bg-dark bg-opacity-75">Edit Project</div>
 
-                <div class="card-body bg-dark bg-opacity-50">
-                    <form method="POST" action="{{ route('projects.update', $project->id) }}"
-                        enctype="multipart/form-data">
-                        @csrf
-                        @method('PUT')
+                    <div class="card-body bg-dark bg-opacity-50">
+                        <form method="POST" action="{{ route('projects.update', $project->id) }}"
+                              enctype="multipart/form-data">
+                            @csrf
+                            @method('PUT')
 
-                        <div class="form-group">
-                            <label for="name">Project Name</label>
-                            <input type="text" class="form-control bg-dark text-light input-lg-custom" id="name"
-                                name="name" value="{{ $project->name }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="genre">Genre</label>
-                            <select class="form-control form-control-lg text-white" id="genre" name="genre" required>
-                                <option value="">Select genre...</option>
-                                <option value="Pop" {{ $project->genre == 'Pop' ? 'selected' : '' }}>Pop</option>
-                                <option value="Rock" {{ $project->genre == 'Rock' ? 'selected' : '' }}>Rock</option>
-                                <option value="Country" {{ $project->genre == 'Country' ? 'selected' : '' }}>Country
-                                </option>
-                                <option value="Hip Hop" {{ $project->genre == 'Hip Hop' ? 'selected' : '' }}>Hip Hop
-                                </option>
-                                <option value="Jazz" {{ $project->genre == 'Jazz' ? 'selected' : '' }}>Jazz</option>
-                                <!-- add more genres as needed -->
-                            </select>
-                        </div>
+                            <div class="form-group">
+                                <label for="name">Project Name</label>
+                                <input type="text" class="form-control bg-dark text-light input-lg-custom" id="name"
+                                       name="name" value="{{ $project->name }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="genre">Genre</label>
+                                <select class="form-control form-control-lg text-white" id="genre" name="genre"
+                                        required>
+                                    <option value="">Select genre...</option>
+                                    <option value="Pop" {{ $project->genre == 'Pop' ? 'selected' : '' }}>Pop</option>
+                                    <option value="Rock" {{ $project->genre == 'Rock' ? 'selected' : '' }}>Rock</option>
+                                    <option value="Country" {{ $project->genre == 'Country' ? 'selected' : '' }}>Country
+                                    </option>
+                                    <option value="Hip Hop" {{ $project->genre == 'Hip Hop' ? 'selected' : '' }}>Hip Hop
+                                    </option>
+                                    <option value="Jazz" {{ $project->genre == 'Jazz' ? 'selected' : '' }}>Jazz</option>
+                                    <!-- add more genres as needed -->
+                                </select>
+                            </div>
 
-                        <div class="form-group">
-                            <label for="status">Status</label>
-                            <select class="form-control form-control-lg text-white" id="status" name="status" required>
-                                <option value="">Status</option>
-                                <option value="open" {{ $project->status == 'open' ? 'selected' : '' }}>Open</option>
-                                <option value="review" {{ $project->status == 'review' ? 'selected' : '' }}>In Review
-                                </option>
-                                <option value="closed" {{ $project->status == 'closed' ? 'selected' : '' }}>Closed
-                                </option>
-                            </select>
-                        </div>
+                            <div class="form-group">
+                                <label for="status">Status</label>
+                                <select class="form-control form-control-lg text-white" id="status" name="status"
+                                        required>
+                                    <option value="">Status</option>
+                                    <option value="open" {{ $project->status == 'open' ? 'selected' : '' }}>Open
+                                    </option>
+                                    <option value="review" {{ $project->status == 'review' ? 'selected' : '' }}>In
+                                        Review
+                                    </option>
+                                    <option value="closed" {{ $project->status == 'closed' ? 'selected' : '' }}>Closed
+                                    </option>
+                                </select>
+                            </div>
 
-                        <div class="form-group mt-4">
-                            <label for="image">Project Image</label>
-                            <input type="file" class="form-control-file" id="image" name="image">
-                        </div>
+                            <div class="form-group mt-4">
+                                <label for="image">Project Image</label>
+                                <input type="file" class="form-control-file" id="image" name="image">
+                            </div>
 
-                        <button type="submit" class="btn bg-blue-500 btn-primary mt-3">Update Project</button>
-                    </form>
+                            <button type="submit" class="btn bg-blue-500 btn-primary mt-3">Update Project</button>
+                        </form>
 
-                    <div class="card mt-4 text-white bg-dark bg-opacity-50">
-                        <div class="card-header">
-                            <h5>Project Files</h5>
-                        </div>
-                        <div class="card-body">
-                            <ul class="list-group">
-                                @if($project->files->count() == 0)
-                                There are no files in this project
-                                @endif
-                                @foreach($project->files as $file)
-                                <li class="list-group-item">
-                                    {{ basename($file->file_path) }}
-                                    <form
-                                        action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
-                                        method="POST" class="d-inline delete-file-form">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="button"
-                                            class="btn btn-sm bg-red-500 btn-danger float-right">Delete</button>
-                                    </form>
-                                </li>
-                                @endforeach
-                            </ul>
+                        <div class="card mt-4 text-white bg-dark bg-opacity-50">
+                            <div class="card-header">
+                                <h5>Project Files</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    @if($project->files->count() == 0)
+                                        There are no files in this project
+                                    @endif
+                                    @foreach($project->files as $file)
+                                        <li class="list-group-item">
+                                            {{ basename($file->file_path) }}
+                                            <form
+                                                action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
+                                                method="POST" class="d-inline delete-file-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="button"
+                                                        class="btn btn-sm bg-red-500 btn-danger float-right">Delete
+                                                </button>
+                                            </form>
+                                        </li>
+                                    @endforeach
+                                </ul>
 
 
-                            <a href="{{ route('projects.createStep2', $project->id) }}"
-                                class="btn btn-primary mt-3">Upload
-                                More
-                                Files</a>
+                                <a href="{{ route('projects.createStep2', $project->id) }}"
+                                   class="btn btn-primary mt-3">Upload
+                                    More
+                                    Files</a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 @endsection
 
 @section('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const deleteFileButtons = document.querySelectorAll('.delete-file-form button');
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function (event) {
-            console.log('Form submitted');
-        });
-        deleteFileButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                event.preventDefault();
-                button.closest('form').submit();
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const deleteFileButtons = document.querySelectorAll('.delete-file-form button');
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function () {
+                console.log('Form submitted');
+            });
+            deleteFileButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    event.preventDefault();
+                    button.closest('form').submit();
+                });
             });
         });
-    });
-</script>
+    </script>
 @endsection
