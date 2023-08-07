@@ -14,7 +14,7 @@
                     <div class="card-header bg-dark bg-opacity-75">Edit Project</div>
 
                     <div class="card-body bg-dark bg-opacity-50">
-                        <form method="POST" action="{{ route('projects.update', $project->id) }}"
+                        <form method="POST" action="{{ route('projects.update', $project) }}"
                               enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
@@ -76,7 +76,7 @@
                                         <li class="list-group-item">
                                             {{ basename($file->file_path) }}
                                             <form
-                                                action="{{ route('projects.deleteFile', ['project' => $project->id, 'file' => $file->id]) }}"
+                                                action="{{ route('projects.deleteFile', ['project' => $project, 'file' => $file->id]) }}"
                                                 method="POST" class="d-inline delete-file-form">
                                                 @csrf
                                                 @method('DELETE')
@@ -89,7 +89,7 @@
                                 </ul>
 
 
-                                <a href="{{ route('projects.createStep2', $project->id) }}"
+                                <a href="{{ route('projects.createStep2', $project) }}"
                                    class="btn btn-primary mt-3">Upload
                                     More
                                     Files</a>

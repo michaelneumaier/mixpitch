@@ -39,7 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
     Route::get('/projects/{project}/download', [ProjectController::class, 'download'])->name('projects.download');
 
-    Route::get('/projects/{slug}/mixes/create', [MixController::class, 'create'])->name('mixes.create');
+    Route::get('/projects/{project}/mixes/create', [MixController::class, 'create'])->name('mixes.create');
     Route::post('/projects/{project}/mixes', [MixController::class, 'store'])->name('mixes.store');
     Route::patch('/mixes/{mix}/rate', [MixController::class, 'rate'])->name('mixes.rate');
 
@@ -51,7 +51,7 @@ Route::middleware(['auth'])->group(function () {
 //Route::get('/projects', [TrackController::class, 'projects'])->name('projects.index');
 //Route::delete('/tracks/{id}', [TrackController::class, 'destroy'])->name('tracks.destroy');
 //Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
-Route::get('/projects/{slug}', [ProjectController::class, 'show'])->name('projects.show');
+Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
 
 
 //Route::get('/projects/{id}/download', [ProjectController::class, 'download'])->name('projects.download');

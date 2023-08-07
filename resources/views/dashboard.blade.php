@@ -23,7 +23,7 @@
                                                     <livewire:status-button :status="$project->status"/>
                                                 </div>
                                                 <h5 class="mb-0">
-                                                    <a href="{{ route('projects.show', ['slug' => $project->slug]) }}"
+                                                    <a href="{{ route('projects.show', $project) }}"
                                                        class="text-decoration-none text-primary font-weight-bold"
                                                        style="font-size: 2rem;">
                                                         {{ $project->name }}
@@ -48,13 +48,13 @@
                                                     </div>
                                                 </div>
                                                 <div class="d-flex">
-                                                    <form action="{{ route('projects.edit', $project->id) }}"
+                                                    <form action="{{ route('projects.edit', $project) }}"
                                                           method="GET"
                                                           style="display:inline-block" class="me-2">
                                                         @csrf
                                                         <button type="submit" class="btn btn-info btn-sm">Edit</button>
                                                     </form>
-                                                    <form action="{{ route('projects.destroy', $project->id) }}"
+                                                    <form action="{{ route('projects.destroy', $project) }}"
                                                           method="POST"
                                                           style="display:inline-block">
                                                         @csrf
@@ -94,7 +94,7 @@
                             <ul class="list-group">
                                 @forelse($mixes as $mix)
                                     <li class="list-group-item py-3"> <!-- padding added -->
-                                        <a href="{{ route('projects.show', ['slug' => $project->slug]) }}">
+                                        <a href="{{ route('projects.show', $project) }}">
                                             {{ $mix->project->name }}
                                         </a>
                                         <span class="float-right">
