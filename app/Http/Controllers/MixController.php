@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\Auth;
 
 class MixController extends Controller
 {
-    public function create(Project $project)
+    public function create($slug)
     {
+        $project = Project::where('slug', $slug)->firstOrFail();
         return view('mixes.create', compact('project'));
     }
 
