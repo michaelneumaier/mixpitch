@@ -23,7 +23,7 @@
                                                     <livewire:status-button :status="$project->status"/>
                                                 </div>
                                                 <h5 class="mb-0">
-                                                    <a href="{{ route('projects.show', $project->id) }}"
+                                                    <a href="{{ route('projects.show', ['slug' => $project->slug]) }}"
                                                        class="text-decoration-none text-primary font-weight-bold"
                                                        style="font-size: 2rem;">
                                                         {{ $project->name }}
@@ -94,7 +94,7 @@
                             <ul class="list-group">
                                 @forelse($mixes as $mix)
                                     <li class="list-group-item py-3"> <!-- padding added -->
-                                        <a href="{{ route('projects.show', $mix->project_id) }}">
+                                        <a href="{{ route('projects.show', ['slug' => $project->slug]) }}">
                                             {{ $mix->project->name }}
                                         </a>
                                         <span class="float-right">

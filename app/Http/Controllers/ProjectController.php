@@ -27,10 +27,12 @@ class ProjectController extends Controller
         return view('projects.index', compact('projects'));
     }
 
-    public function show(Project $project)
+    public function show($slug)
     {
+        $project = Project::where('slug', $slug)->firstOrFail();
         return view('projects.project', compact('project'));
     }
+
 
     public function projects()
     {
@@ -55,7 +57,7 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|max:255',
             'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
-            'project_image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'project_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             //'files.*' => 'required|mimes:wav,mp3',
         ]);
 

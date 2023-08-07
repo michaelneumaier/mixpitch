@@ -5,17 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use Cviebrock\EloquentSluggable\Sluggable;
 
 class Project extends Model
 {
     use HasFactory;
+    use Sluggable;
 
     protected $fillable = [
         'user_id',
         'name',
         'description',
         'genre',
-        'status'
+        'status',
+        'slug'
     ];
 
     public function user()
@@ -48,5 +51,14 @@ class Project extends Model
     public function mixes()
     {
         return $this->hasMany(Mix::class);
+    }
+
+    public function sluggable(): array
+    {
+        return [
+            'slug' => [
+                'source' => 'name'
+            ]
+        ];
     }
 }
