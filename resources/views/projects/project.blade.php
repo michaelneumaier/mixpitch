@@ -45,9 +45,9 @@
                                 </li>
                             @endforeach
                             <li>
-                                <a href="{{ route('projects.download', $project->id) }}" class="btn btn-primary ">Download
+                                <a href="{{ route('projects.download', $project) }}" class="btn btn-primary ">Download
                                     All Files</a>
-                                <a href="{{ route('mixes.create', ['slug' => $project->slug]) }}"
+                                <a href="{{ route('mixes.create', $project) }}"
                                    class="btn btn-primary">Submit
                                     Mix</a>
 

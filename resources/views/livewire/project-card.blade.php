@@ -1,5 +1,5 @@
 <div class="col-lg-3 col-md-6 mb-4">
-    <a href="{{ route('projects.show', ['slug' => $project->slug]) }}" class="text-decoration-none">
+    <a href="{{ route('projects.show', $project) }}" class="text-decoration-none">
         <div class="card">
             <div class="card-img-top position-relative">
                 <div class="ratio ratio-1x1 rounded-top"
