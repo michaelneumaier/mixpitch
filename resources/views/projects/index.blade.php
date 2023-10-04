@@ -2,5 +2,4 @@
 
 @section('content')
     @livewire('projects-component')
-
 @endsection

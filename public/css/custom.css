@@ -1,12 +1,7 @@
-@font-face {
-    font-family: Figtree;
-    src: url('Figtree-VariableFont_wght.ttf');
-}
-
 body {
     color: #333;
     /* Set the text color to a dark shade of gray */
-    font-family: 'Figtree' !important;
+    font-family: 'Source Sans Pro', sans-serif !important;
     font-display: swap;
     font-size: 18px;
     /* Increase the base font size */
@@ -15,7 +10,6 @@ body {
 .always-show-nav {
     flex-grow: 1;
 }
-
 
 
 .navbar-brand {

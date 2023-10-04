@@ -1,38 +1,35 @@
-<div class="container container-projects">
+<div class="container mx-auto my-4">
     <link href="{{ asset('css/projects-page.css') }}" rel="stylesheet">
-    <div class="projects-text">Projects</div>
+    <div class="text-4xl text-center text-white mb-6">Projects</div>
 
-    <div class="row">
+    <div class="flex flex-wrap -mx-4">
         <!-- Filters Column -->
-        <div class="col-md-3">
-            <div class="d-md-none" x-data="{ open: false }">
-                <button class="btn btn-outline-secondary rounded-0 mb-3" style="width: 100%" type="button"
-                        @click="open = !open">
+        <div class="w-full md:w-1/4 lg:w-1/6 px-2">
+            <div class="block md:hidden" x-data="{ open: false }">
+                <button @click="open = !open"
+                        class="w-full mb-3 text-white bg-transparent border border-gray-300 rounded-none hover:bg-gray-100">
                     Filters
                 </button>
-                <div x-show="open" class="d-md-block">
-                    <div class="col-md-3">
-                        @livewire('filters-projects-component')
-                    </div>
+                <div x-show="open" class="block md:hidden">
+                    @livewire('filters-projects-component')
                 </div>
             </div>
-            <div class="d-none d-md-block">
-
+            <div class="hidden md:block">
                 @livewire('filters-projects-component')
-
             </div>
         </div>
 
         <!-- Projects Column -->
-        <div class="col-md-9">
-            <div class="row">
+        <div class="w-full px-4 flex-1">
+            <div class="flex flex-wrap">
                 @foreach($projects as $project)
                     @livewire('project-card', ['project' => $project], key($project->id))
                 @endforeach
             </div>
-            <div class="d-flex justify-content-center pagination-links">
+            <div class="flex justify-center mt-4">
                 {{ $projects->links() }}
             </div>
         </div>
     </div>
 </div>
+

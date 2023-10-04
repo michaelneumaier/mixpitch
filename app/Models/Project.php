@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use Cviebrock\EloquentSluggable\Sluggable;
+use Sebdesign\SM\StateMachine\StateMachine;
+use Sebdesign\SM\StateMachine\StateMachineInterface;
 
 class Project extends Model
 {
@@ -20,6 +22,8 @@ class Project extends Model
         'status',
         'slug'
     ];
+
+    protected $attributes = ['status' => 'unpublished'];
 
     public function getRouteKeyName()
     {
@@ -41,7 +45,6 @@ class Project extends Model
         $this->status = $status;
         $this->save();
     }
-
 
     public function tracks()
     {
@@ -65,5 +68,10 @@ class Project extends Model
                 'source' => 'name'
             ]
         ];
+    }
+
+    public function stateMachine(): StateMachineInterface
+    {
+        return new StateMachine($this, 'project_status', config('state-machine'));
     }
 }

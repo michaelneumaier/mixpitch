@@ -7,112 +7,233 @@
         'style="background: black;"';
     @endphp
 
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card text-white border-0" {!! $backgroundStyle !!}>
-                    <div class="card-header bg-dark bg-opacity-75">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h3 class="display-3">{{ $project->name }}
-                                @if (auth()->check() && $project->isOwnedByUser(auth()->user()))
-                                    <a href="{{ route('projects.edit', $project->id) }}"
-                                       class="btn btn-info btn-sm bg-sky-400">Edit</a>
-                                @endif
-                            </h3>
+    <div class="container mx-auto px-4">
+        <div class="flex justify-center">
+            <div class="w-full lg:w-2/3">
+                <div
+                    class="bg-dark bg-opacity-50 border-transparent rounded-lg overflow-hidden" {!! $backgroundStyle !!}>
+                    <div class="relative bg-dark bg-opacity-75 p-4 flex justify-between items-start">
+                        <h3 class="text-4xl text-white">{{ $project->name }}
+                            @if(auth()->check() && $project->isOwnedByUser(auth()->user()))
+                                <a href="{{ route('projects.edit', $project) }}"
+                                   class="btn btn-info btn-sm bg-sky-400 ml-3">Edit</a>
+                            @endif
+                        </h3>
 
-                            <livewire:status-button :status="$project->status" type="top-right"/>
-                        </div>
+                        <livewire:status-button :status="$project->status" type="top-right"/>
+
                     </div>
-                    <div class="card-body bg-dark bg-opacity-50">
-                        <ul>
-                            @php
-                                $audioIndex = 0;
-                            @endphp
+
+                    <div class="bg-dark bg-opacity-50 p-4">
+                        <ul class="list-decimal list-outside pl-5 space-y-2">
+                            @php $audioIndex = 0; @endphp
                             @foreach($project->files as $file)
                                 @php
                                     $audioIndex++;
                                     $idCss = $audioIndex;
                                 @endphp
-                                <li class="mb-1">
-                                    <p>{{ basename($file->file_path) }}</p>
-                                    <div id="waveform-{{$idCss}}"></div>
+                                <li>
+                                    <p class="mb-1">{{ basename($file->file_path) }}</p>
+                                    <div id="waveform-{{$idCss}}" class="mb-1"></div>
                                     <audio id="audio-file-{{$idCss}}" src="{{ asset('storage/' . $file->file_path) }}"
                                            preload="none"></audio>
-
-                                    <button id="play-button-{{$idCss}}" class="btn btn-primary">Play/Pause</button>
-
-
+                                    <button id="play-button-{{$idCss}}" class="btn btn-primary mt-2">Play/Pause</button>
                                 </li>
                             @endforeach
-                            <li>
-                                <a href="{{ route('projects.download', $project) }}" class="btn btn-primary ">Download
+
+                            <li class="flex space-x-4 mt-3">
+                                <a href="{{ route('projects.download', $project) }}" class="btn btn-primary">Download
                                     All Files</a>
-                                <a href="{{ route('mixes.create', $project) }}"
-                                   class="btn btn-primary">Submit
-                                    Mix</a>
-
-
+                                <a href="{{ route('mixes.create', $project) }}" class="btn btn-primary">Submit Mix</a>
                             </li>
-                            <li>@if(auth()->check() && auth()->user()->id == $project->user_id &&
-                            $project->mixes->count()
-                            != 0)
-                                    <h5 class="display-6">Submitted Mixes</h5>
-                                    <ul class="list-group">
+
+
+                            @if(auth()->check() && auth()->user()->id == $project->user_id && $project->mixes->count() != 0)
+                                <li>
+                                    <h5 class="text-xl mt-5">Submitted Mixes</h5>
+                                    <ul class="list-group mt-2 space-y-2">
                                         @foreach($project->mixes as $mix)
-                                            @php
-                                                $idCss++;
-                                            @endphp
-                                            <li class="list-group-item">
+                                            @php $idCss++; @endphp
+                                            <li class="rounded-lg bg-white p-3 shadow">
                                                 <div id="waveform-{{$idCss}}"></div>
                                                 <audio id="audio-file-{{$idCss}}"
                                                        src="{{ asset('storage/' . $mix->mix_file_path) }}"
                                                        preload="none"></audio>
-
-                                                <button id="play-button-{{$idCss}}" class="btn btn-primary">Play/Pause
+                                                <button id="play-button-{{$idCss}}" class="btn btn-primary mt-2">
+                                                    Play/Pause
                                                 </button>
 
-
-                                                <br><strong>User:</strong> {{ $mix->user->name }}
-                                                <br>
-                                                <strong>Description:</strong> {{ $mix->description }}
-                                                <br>
-                                                <strong>Rating:</strong>
-                                                <div class="star-rating" data-rating="{{ $mix->rating }}"
-                                                     data-mixid="{{ $mix->id}}">
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                    <span>☆</span>
-                                                </div>
+                                                <p class="mt-2"><strong>User:</strong> {{ $mix->user->name }}</p>
+                                                <p><strong>Description:</strong> {{ $mix->description }}</p>
+                                                <p><strong>Rating:</strong>
+                                                    <livewire:star-rating :rating="$mix->rating" :mix="$mix"/>
 
 
+                                                    {{--                                                <div class="star-rating" data-rating="{{ $mix->rating }}"--}}
+                                                    {{--                                                     data-mixid="{{ $mix->id }}">--}}
+                                                    {{--                                                    <span>☆</span><span>☆</span><span>☆</span>--}}
+                                                    {{--                                                    <span>☆</span><span>☆</span><span>☆</span>--}}
+                                                    {{--                                                    <span>☆</span><span>☆</span><span>☆</span><span>☆</span>--}}
+                                                    {{--                                                </div>--}}
+                                                </p>
                                             </li>
                                         @endforeach
                                     </ul>
-                                @endif
-                            </li>
+                                </li>
+                            @endif
+
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+
+    {{--    <div class="container">--}}
+    {{--        <div class="row justify-content-center">--}}
+    {{--            <div class="col-md-8">--}}
+    {{--                <div class="card text-white border-0" {!! $backgroundStyle !!}>--}}
+    {{--                    <div class="card-header bg-dark bg-opacity-75">--}}
+    {{--                        <div class="d-flex justify-content-between align-items-start">--}}
+    {{--                            <h3 class="display-3">{{ $project->name }}--}}
+    {{--                                @if (auth()->check() && $project->isOwnedByUser(auth()->user()))--}}
+    {{--                                    <a href="{{ route('projects.edit', $project) }}"--}}
+    {{--                                       class="btn btn-info btn-sm bg-sky-400">Edit</a>--}}
+    {{--                                @endif--}}
+    {{--                            </h3>--}}
+
+    {{--                            <livewire:status-button :status="$project->status" type="top-right"/>--}}
+    {{--                        </div>--}}
+    {{--                    </div>--}}
+    {{--                    <div class="card-body bg-dark bg-opacity-50">--}}
+    {{--                        <ul>--}}
+    {{--                            @php--}}
+    {{--                                $audioIndex = 0;--}}
+    {{--                            @endphp--}}
+    {{--                            @foreach($project->files as $file)--}}
+    {{--                                @php--}}
+    {{--                                    $audioIndex++;--}}
+    {{--                                    $idCss = $audioIndex;--}}
+    {{--                                @endphp--}}
+    {{--                                <li class="mb-1">--}}
+    {{--                                    <p>{{ basename($file->file_path) }}</p>--}}
+    {{--                                    <div id="waveform-{{$idCss}}"></div>--}}
+    {{--                                    <audio id="audio-file-{{$idCss}}" src="{{ asset('storage/' . $file->file_path) }}"--}}
+    {{--                                           preload="none"></audio>--}}
+
+    {{--                                    <button id="play-button-{{$idCss}}" class="btn btn-primary">Play/Pause</button>--}}
+
+
+    {{--                                </li>--}}
+    {{--                            @endforeach--}}
+    {{--                            <li>--}}
+    {{--                                <a href="{{ route('projects.download', $project) }}" class="btn btn-primary ">Download--}}
+    {{--                                    All Files</a>--}}
+    {{--                                <a href="{{ route('mixes.create', $project) }}"--}}
+    {{--                                   class="btn btn-primary">Submit--}}
+    {{--                                    Mix</a>--}}
+
+
+    {{--                            </li>--}}
+    {{--                            <li>@if(auth()->check() && auth()->user()->id == $project->user_id &&--}}
+    {{--                            $project->mixes->count()--}}
+    {{--                            != 0)--}}
+    {{--                                    <h5 class="display-6">Submitted Mixes</h5>--}}
+    {{--                                    <ul class="list-group">--}}
+    {{--                                        @foreach($project->mixes as $mix)--}}
+    {{--                                            @php--}}
+    {{--                                                $idCss++;--}}
+    {{--                                            @endphp--}}
+    {{--                                            <li class="list-group-item">--}}
+    {{--                                                <div id="waveform-{{$idCss}}"></div>--}}
+    {{--                                                <audio id="audio-file-{{$idCss}}"--}}
+    {{--                                                       src="{{ asset('storage/' . $mix->mix_file_path) }}"--}}
+    {{--                                                       preload="none"></audio>--}}
+
+    {{--                                                <button id="play-button-{{$idCss}}" class="btn btn-primary">Play/Pause--}}
+    {{--                                                </button>--}}
+
+
+    {{--                                                <br><strong>User:</strong> {{ $mix->user->name }}--}}
+    {{--                                                <br>--}}
+    {{--                                                <strong>Description:</strong> {{ $mix->description }}--}}
+    {{--                                                <br>--}}
+    {{--                                                <strong>Rating:</strong>--}}
+    {{--                                                <div class="star-rating" data-rating="{{ $mix->rating }}"--}}
+    {{--                                                     data-mixid="{{ $mix->id}}">--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                    <span>☆</span>--}}
+    {{--                                                </div>--}}
+
+
+    {{--                                            </li>--}}
+    {{--                                        @endforeach--}}
+    {{--                                    </ul>--}}
+    {{--                                @endif--}}
+    {{--                            </li>--}}
+    {{--                        </ul>--}}
+    {{--                    </div>--}}
+    {{--                </div>--}}
+    {{--            </div>--}}
+    {{--        </div>--}}
+    {{--    </div>--}}
 @endsection
 
 @section('scripts')
     @if(auth()->check() && auth()->user()->id == $project->user_id && $project->mixes->count() != 0)
         <script>
-            $(document).ready(function () {
-                $(".star-rating span").click(function () {
-                    let rating = $(this).parent().children("span").length - $(this).index();
-                    let mixId = $(this).parent().attr("data-mixid");
+            {{--$(document).ready(function () {--}}
+            {{--    $(".star-rating span").click(function () {--}}
+            {{--        let rating = $(this).parent().children("span").length - $(this).index();--}}
+            {{--        let mixId = $(this).parent().attr("data-mixid");--}}
 
+
+            {{--        $.ajax({--}}
+            {{--            url: `/mixes/${mixId}/rate`,--}}
+            {{--            method: "POST",--}}
+            {{--            data: {--}}
+            {{--                _token: "{{ csrf_token() }}",--}}
+            {{--                _method: "patch",--}}
+            {{--                rating: rating--}}
+            {{--            },--}}
+            {{--            success: function () {--}}
+            {{--                // Update the star-rating's data-rating attribute to the new rating--}}
+            {{--                $(this).parent().attr("data-rating", rating);--}}
+
+            {{--                // Update the star display--}}
+            {{--                $(this).parent().children("span").text("☆");--}}
+            {{--                $(this).parent().children("span:lt(" + rating + ")").text("★");--}}
+            {{--                $(this).parent().append($(this).parent().children("span").get().reverse());--}}
+            {{--            }.bind(this),--}}
+            {{--            error: function (xhr, status, error) {--}}
+            {{--                console.error("Error updating rating: ", error);--}}
+            {{--            }--}}
+            {{--        });--}}
+            {{--    });--}}
+
+            {{--    // Render stars based on the initial rating value--}}
+            {{--    $(".star-rating").each(function () {--}}
+            {{--        let rating = $(this).attr("data-rating");--}}
+            {{--        $(this).children("span").text("☆");--}}
+            {{--        $(this).children("span:lt(" + (rating) + ")").text("★");--}}
+            {{--        $(this).append($(this).children("span").get().reverse());--}}
+
+
+            {{--    });--}}
+            {{--});--}}
+            $(document).ready(function () {
+                $(".star-rating input").change(function () {
+                    let rating = $(this).val();
+                    let mixId = $(this).parent().attr("data-mixid");
 
                     $.ajax({
                         url: `/mixes/${mixId}/rate`,
@@ -125,11 +246,6 @@
                         success: function () {
                             // Update the star-rating's data-rating attribute to the new rating
                             $(this).parent().attr("data-rating", rating);
-
-                            // Update the star display
-                            $(this).parent().children("span").text("☆");
-                            $(this).parent().children("span:lt(" + rating + ")").text("★");
-                            $(this).parent().append($(this).parent().children("span").get().reverse());
                         }.bind(this),
                         error: function (xhr, status, error) {
                             console.error("Error updating rating: ", error);
@@ -140,13 +256,11 @@
                 // Render stars based on the initial rating value
                 $(".star-rating").each(function () {
                     let rating = $(this).attr("data-rating");
-                    $(this).children("span").text("☆");
-                    $(this).children("span:lt(" + (rating) + ")").text("★");
-                    $(this).append($(this).children("span").get().reverse());
-
-
+                    $(this).find(`input[value="${rating}"]`).prop('checked', true);
                 });
             });
+
+
         </script>
 
     @endif

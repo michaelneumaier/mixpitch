@@ -57,7 +57,7 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|max:255',
             'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
-            'project_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'project_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
             //'files.*' => 'required|mimes:wav,mp3',
         ]);
 
@@ -129,7 +129,7 @@ class ProjectController extends Controller
         $request->validate([
             'name' => 'required|max:255',
             'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
-            'status' => 'required|in:open,review,closed',
+            'status' => 'required|in:unpublished,open,review,completed,closed',
         ]);
 
         // Update the project's name and genre

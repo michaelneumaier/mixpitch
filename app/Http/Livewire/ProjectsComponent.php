@@ -20,6 +20,8 @@ class ProjectsComponent extends Component
     {
         $query = Project::query();
 
+        $query->whereNotIn('status', ['unpublished']);
+
         if (!empty($this->genres)) {
             $query->whereIn('genre', $this->genres);
         }
