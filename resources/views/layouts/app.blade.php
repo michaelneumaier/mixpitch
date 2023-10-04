@@ -10,7 +10,7 @@
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
@@ -25,8 +25,8 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link href="{{ asset('build/assets/app-e8f21799.css') }}" rel="stylesheet">
-    <script src="{{ asset('build/assets/app-919ba201.js') }}" defer></script>
+    {{--    <link href="{{ asset('build/assets/app-e8f21799.css') }}" rel="stylesheet">--}}
+    {{--    <script src="{{ asset('build/assets/app-919ba201.js') }}" defer></script>--}}
 
 
     <link href="{{ asset('css/homepage.css') }}" rel="stylesheet">

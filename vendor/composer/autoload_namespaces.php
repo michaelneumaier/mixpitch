@@ -6,5 +6,6 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'SM' => array($vendorDir . '/winzou/state-machine/src'),
     'Mockery' => array($vendorDir . '/mockery/mockery/library'),
 );

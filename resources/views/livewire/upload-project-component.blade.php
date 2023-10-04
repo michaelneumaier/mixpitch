@@ -9,7 +9,7 @@
             <div class="upload-text text-center mb-5">Upload Project</div>
             <div class="row justify-content-center">
                 <div class="col-md-6">
-                    <form class="upload-form" action="{{ route('projects.store') }}" method="POST"
+                    <form class="upload-form" wire:submit.prevent="saveProject" method="POST"
                           enctype="multipart/form-data">
                         @csrf
                         <div class="form-group mb-4">
@@ -39,7 +39,7 @@
                                    name="image">
                         </div>
                         <div class="form-group mb-4 text-center">
-                            <button type="button" wire:click="saveProject" class="btn btn-primary">Next</button>
+                            <button type="submit" class="btn btn-primary">Next</button>
                         </div>
                     </form>
                 </div>

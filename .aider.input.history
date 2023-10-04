@@ -1,0 +1,27 @@
+
+# 2023-07-22 00:06:39.537797
++This is a web app built using the Laravel framework. Can you tell me what the web app is? 
+
+# 2023-07-22 00:10:50.307013
++`resources/views/projects/edit.blade.php`
+
+# 2023-07-22 00:12:58.557551
++`routes/web.php`
+
+# 2023-07-22 00:15:46.892375
++Can you update the edit.blade.php file to include a button to upload more files? It should go by the Project Files that are listed. The route in web.php is step2 to get to the upload files page
+
+# 2023-07-22 00:20:22.880746
++Can you make the edit.blade.php file look more clean, professional, and user friendly? The website has a dark theme and uses bootstrap for most of the structure and styling
+
+# 2023-07-22 00:22:13.074276
++Can you apply the edits that you made?
+
+# 2023-07-22 00:26:06.572239
++It didn't seem like the files were updated
+
+# 2023-07-22 00:32:28.326243
++/drop routes/web.php
+
+# 2023-07-22 00:38:02.963216
++exit

@@ -13,37 +13,39 @@ class UploadProjectComponent extends Component
     public $step = 1;
     public $projectName;
     public $projectGenre;
-    public $projectImage;
+    public $projectImage = null;
     public $files;
 
     public $projectId;
 
     public $projectSlug;
 
-    public function nextStep()
+    public function nextStep(): void
     {
         $this->step++;
     }
 
     public function render()
+
     {
         return view('livewire.upload-project-component');
     }
 
-    public function saveProject()
+    public function saveProject(): void
     {
+
         // Validate your data
         $this->validate([
             'projectName' => 'required|max:255',
             'projectGenre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
-            'projectImage' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'projectImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $project = new Project();
         $project->user_id = auth()->id();
         $project->name = $this->projectName;
         $project->genre = $this->projectGenre;
-        if ($this->projectImage) {
+        if ($this->projectImage != null) {
             $imageName = $this->projectImage->store('images', 'public');
             $project->image_path = "/{$imageName}";
         }

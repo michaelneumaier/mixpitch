@@ -45,23 +45,7 @@ Route::middleware(['auth'])->group(function () {
 
 });
 
-// Route::get('/tracks', [TrackController::class, 'index'])->name('tracks.index');
-// Route::get('/tracks/{id}', [TrackController::class, 'show'])->name('tracks.show');
-
-//Route::get('/projects', [TrackController::class, 'projects'])->name('projects.index');
-//Route::delete('/tracks/{id}', [TrackController::class, 'destroy'])->name('tracks.destroy');
-//Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
 Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
-
-
-//Route::get('/projects/{id}/download', [ProjectController::class, 'download'])->name('projects.download');
-
-
-// Route::middleware(['auth'])->group(function () {
-//     Route::get('/projects/upload', [TrackController::class, 'createProject'])->name('projects.upload');
-//     Route::post('/projects/store', [TrackController::class, 'storeProject'])->name('projects.store');
-// });
-
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 

@@ -34,17 +34,17 @@ class MixController extends Controller
         $mix->project()->associate($project);
         $mix->save();
 
-        return redirect()->route('projects.show', $project->id)
+        return redirect()->route('projects.show', ['project' => $project])
             ->with('success', 'Your mix has been submitted successfully!');
     }
 
-    public function rate(Request $request, Mix $mix)
+    public function rate(Mix $mix, int $rating)
     {
-        $request->validate([
-            'rating' => 'required|integer|min:1|max:10',
-        ]);
+//        $request->validate([
+//            'rating' => 'required|integer|min:1|max:10',
+//        ]);
 
-        $mix->update(['rating' => $request->input('rating')]);
+        $mix->update(['rating' => $rating]);
 
         return back()->with('success', 'Your rating has been saved!');
     }
