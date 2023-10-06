@@ -1,2 +1,3 @@
 /public/index.php
+/config/filesystems.php
 .env
