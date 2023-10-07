@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-home">
     <div class="py-2 md:px-20">
-        <h1 class="text-5xl md:text-7xl text-white text-center">Empower&nbsp;Musicians. Elevate&nbsp;Mixers.
+        <h1 class="text-5xl md:text-7xl text-white text-center text-clip">Empower&nbsp;Musicians. Elevate&nbsp;Mixers.
             Unleash&nbsp;Creativity.</h1>
         <p class="md:mt-4 p-4 text-2xl md:text-3xl text-white text-center">
             MixPitch is the ultimate platform for musicians to have their music mixed by anyone. With real-world

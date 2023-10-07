@@ -9,21 +9,29 @@
             <a class="nav-link d-inline pr-5" href="{{ route('login') }}"><b>Login</b></a>
             <a class="nav-link d-inline" href="{{ route('register') }}">Register</a>
             @else
-            <div class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown"
-                    aria-haspopup="true" aria-expanded="false">
+            <div x-data="{ open: false }" class="relative">
+                <!-- Trigger -->
+                <button @click="open = !open" class="block">
                     {{ Auth::user()->name }}
-                </a>
-                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="{{ route('dashboard') }}">Dashboard</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="{{ route('logout') }}"
-                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                </button>
+
+                <!-- Dropdown Body -->
+                <div x-show="open" @click.away="open = false" class="absolute mt-2 py-2 rounded-md shadow-xl bg-white">
+                    <a href="{{ route('dashboard') }}"
+                        class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Dashboard</a>
+                    <div class="border-t border-gray-100"></div>
+                    <a href="{{ route('logout') }}"
+                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+                        class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                        Logout
+                    </a>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
                         @csrf
                     </form>
                 </div>
             </div>
+
+
             @endguest
         </div>
     </div>
