@@ -1,17 +1,17 @@
-<nav class="navbar navbar-light bg-light pb-0 pt-7 pl-5 d-lg-flex align-items-center mb-2">
-    <div class="container-fluid d-flex flex-row align-items-center justify-content-between">
-        <div>    
+<nav class="navbar-light bg-light pb-0 pt-7 pl-5 d-lg-flex items-baseline mb-2">
+    <div class="container-fluid d-flex flex-row items-baseline justify-content-between">
+        <div>
             <a class="navbar-brand d-inline text-dark" href="{{ url('/') }}">MixPitch</a>
-            <a class="nav-link d-inline pl-10 pt-1" href="{{ route('projects.index') }}">Projects</a>
+            <a class="nav-link d-inline pl-2 md:pl-10 pt-1" href="{{ route('projects.index') }}">Projects</a>
         </div>
-        <div class="navbar-item pr-20">
+        <div class="navbar-item md:pr-20">
             @guest
             <a class="nav-link d-inline pr-5" href="{{ route('login') }}"><b>Login</b></a>
             <a class="nav-link d-inline" href="{{ route('register') }}">Register</a>
             @else
             <div class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
                     {{ Auth::user()->name }}
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
