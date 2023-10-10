@@ -31,6 +31,7 @@
                     </form>
                 </div>
             </div>
+            <div class="modal"></div>
 
 
             @endguest
