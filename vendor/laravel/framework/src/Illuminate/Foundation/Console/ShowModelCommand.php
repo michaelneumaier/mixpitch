@@ -6,7 +6,6 @@ use BackedEnum;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Types\DecimalType;
-use Illuminate\Console\Command;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Console\DatabaseInspectionCommand;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -218,7 +217,7 @@ class ShowModelCommand extends DatabaseInspectionCommand
                 $file->seek($method->getStartLine() - 1);
                 $code = '';
                 while ($file->key() < $method->getEndLine()) {
-                    $code .= $file->current();
+                    $code .= trim($file->current());
                     $file->next();
                 }
 
