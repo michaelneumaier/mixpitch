@@ -16,7 +16,8 @@
                 </button>
 
                 <!-- Dropdown Body -->
-                <div x-show="open" @click.away="open = false" class="absolute mt-2 py-2 rounded-md shadow-xl bg-white">
+                <div x-show="open" @click.away="open = false"
+                    class="absolute mt-2 py-2 rounded-md shadow-xl bg-white z-50">
                     <a href="{{ route('dashboard') }}"
                         class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Dashboard</a>
                     <div class="border-t border-gray-100"></div>
