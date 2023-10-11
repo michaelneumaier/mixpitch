@@ -37,7 +37,7 @@
         <div class="grid md:grid-cols-3 grid-cols-1 md:gap-4">
             <!-- Left Column -->
             <div class="col-span-2 md:col-span-2">
-                <div class="p-4 md:p-5 h-full">
+                <div class="p-4 md:p-6 h-full">
                     <h2 class="font-bold text-2xl md:text-3xl md:mb-2 md:mb-4">Share Your Hits or Pitch Your Mix</h2>
                     <p class="text-lg mb-4 p-2">Discover the power of MixPitch, a web app that revolutionizes
                         music
