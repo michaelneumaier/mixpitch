@@ -27,3 +27,7 @@ body {
     font-size: 1.3rem;
     border-top-right-radius: .25rem !important;
 }
+
+[x-cloak] {
+    display: none !important;
+}
