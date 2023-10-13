@@ -20,7 +20,7 @@
         </div>
 
         <!-- Projects Column -->
-        <div class="w-full px-4 flex-1">
+        <div class="w-full px-1 flex-1">
             <div class="flex flex-wrap">
                 @foreach($projects as $project)
                 @livewire('project-card', ['project' => $project], key($project->id))
