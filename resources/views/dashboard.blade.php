@@ -8,10 +8,10 @@
             <!-- removed the background color from the card -->
             <div class="shadow mb-4">
                 <!-- Adjusted text color for visibility -->
-                <div class="py-3 px-4 text-gray-200 text-3xl font-semibold text-center">{{ __('Dashboard') }}</div>
+                <div class="py-3 px-4 text-primary text-3xl font-semibold text-center">{{ __('Dashboard') }}</div>
 
                 <div class="p-4 md:p-6 lg:p-8">
-                    <h3 class="text-2xl text-white font-semibold mb-3 pl-2">Your Projects</h3>
+                    <h3 class="text-2xl text-primary font-semibold mb-3 pl-2">Your Projects</h3>
                     @if ($projects->isEmpty())
                     <p class="mb-3">You haven't shared any projects yet.</p>
                     @else
@@ -25,11 +25,11 @@
                     </div>
                     @endif
                     <a href="{{ route('projects.upload') }}"
-                        class="block bg-blue-500 hover:bg-blue-600 text-white text-lg text-center font-bold w-full py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Share
+                        class="block bg-primary hover:bg-accent text-white text-lg text-center font-bold w-full py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Share
                         Your Project</a>
                 </div>
 
-                <div class="p-4 md:p-6 lg:p-8 text-white">
+                <div class="p-4 md:p-6 lg:p-8">
                     <h3 class="text-lg md:text-xl lg:text-2xl font-semibold mb-3">Your Uploaded Mixes</h3>
                     <ul class="divide-y divide-gray-700">
                         @forelse($mixes as $mix)

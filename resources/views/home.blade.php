@@ -3,12 +3,12 @@
 @section('content')
 <div class="pt-4">
     <div class="py-2 md:px-20">
-        <h1 class="text-3xl md:text-7xl text-white text-center text-clip">
+        <h1 class="text-3xl md:text-7xl text-secondary text-center text-clip">
             Empower&nbsp;Musicians.
             <br />Elevate&nbsp;Mixers.
             <br />Unleash&nbsp;Creativity.
         </h1>
-        <p class="md:mt-4 p-4 text-l md:text-3xl text-white text-center">
+        <p class="md:mt-4 p-4 text-l md:text-3xl text-secondary text-center">
             MixPitch is the ultimate platform for musicians to have their music mixed by anyone. With real-world
             recordings and a level playing field, it's never been easier to get paid for mixing.
         </p>
@@ -16,24 +16,24 @@
             <div class="w-full md:w-1/2 lg:w-1/3 mb-4 md:mb-0">
                 @auth
                 <a href="{{ route('projects.upload') }}"
-                    class="block bg-blue-500 hover:bg-blue-400 text-xl text-white text-center font-bold w-full py-2 px-4 border-b-4 border-blue-700 hover:border-blue-500 rounded whitespace-nowrap">Submit
+                    class="block bg-secondary hover:bg-accent text-xl text-white text-center font-bold w-full py-2 px-4 border-b-4 border-secondary hover:border-secondary-focus rounded whitespace-nowrap">Submit
                     Your Music</a>
                 @else
                 <a href="{{ route('login') }}"
-                    class="block bg-blue-500 hover:bg-blue-400 text-xl text-white text-center font-bold w-full py-2 px-4 border-b-4 border-blue-700 hover:border-blue-500 rounded whitespace-nowrap">Submit
+                    class="block bg-secondary hover:bg-accent text-xl text-white text-center font-bold w-full py-2 px-4 border-b-4 border-secondary hover:border-secondary-focus rounded whitespace-nowrap">Submit
                     Your Music</a>
                 @endauth
             </div>
             <div class="w-full md:w-1/2 lg:w-1/3">
                 <a href="{{ route('projects.index') }}"
-                    class="block bg-gray-500 hover:bg-gray-400 text-xl text-white text-center  w-full py-2 px-4 border-b-4 border-gray-700 hover:border-gray-500 rounded">Browse
+                    class="block bg-base-300 hover:bg-base-200 text-xl font-bold text-center w-full py-2 px-4 border-b-4 border-secondary hover:border-secondary-focus rounded">Browse
                     Projects</a>
             </div>
         </div>
 
     </div>
 
-    <div class="bg-light mt-4">
+    <div class="bg-base-200 mt-4">
         <div class="grid md:grid-cols-3 grid-cols-1 md:gap-4">
             <!-- Left Column -->
             <div class="col-span-2 md:col-span-2">
@@ -74,14 +74,14 @@
 
     <div class="flex items-center p-4 md:p-5">
         <div class="md:w-5/6 mx-auto flex flex-wrap">
-            <div class="w-full mb-10 md:mb-0 md:w-1/2 text-white md:px-4">
+            <div class="w-full mb-10 md:mb-0 md:w-1/2 md:px-4">
                 <h2 class="font-bold text-2xl mb-4">How MixPitch Works for Artists</h2>
                 <p class="text-lg">
                     Elevate your music by leveraging the expertise of our vast community. Upload your tracks,
                     critique diverse mixes, and handpick the one that resonates with your vision.
                 </p>
             </div>
-            <div class="w-full md:w-1/2 text-white md:px-4">
+            <div class="w-full md:w-1/2 md:px-4">
                 <h2 class="font-bold text-2xl mb-4">How MixPitch Works for Mixing/Mastering Engineers</h2>
                 <p class="text-lg">
                     Dive deep into real-world mixing challenges with tracks from aspiring artists. Showcase your

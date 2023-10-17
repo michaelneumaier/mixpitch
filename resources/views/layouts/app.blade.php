@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="mytheme">
 
 <head>
     <meta charset="utf-8">
@@ -9,8 +9,8 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous"> -->
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
 
     <!-- Add Bootstrap JS and its dependencies -->
@@ -25,7 +25,7 @@
     @livewireStyles
 </head>
 
-<body class="font-sans antialiased">
+<body class="font-sans antialiased bg-base-100">
     <div class="min-h-screen">
         @include('layouts.navigation')
         <!-- Page Heading -->
@@ -44,6 +44,21 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            window.livewire.on('add-dropdown-listener', function () {
+                document.addEventListener('click', function (event) {
+                    print('click');
+                    // Check if the click is outside the dropdown
+                    if (!document.querySelector('[wire\\:ref="dropdown"]').contains(event.target)) {
+                        // Tell Livewire to close the dropdown
+                        window.livewire.emit('outsideClick');
+                    }
+                });
+            });
+        });
+
+    </script>
     @yield('scripts')
     @livewireScripts()
 </body>
