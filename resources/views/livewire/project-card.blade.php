@@ -1,22 +1,24 @@
 <div class="w-full lg:w-1/4 md:w-1/2 mb-4 px-1" onclick="location.href='{{ route('projects.show', $project) }}';">
-    <div class="bg-white shadow-xl shadow-neutral-700 border rounded-lg">
+    <div class="shadow-lg shadow-base-300 hover:shadow-xl hover:shadow-base-300 rounded-lg">
         <div class="relative aspect-w-1 aspect-h-1 rounded-lg">
-            <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-lg"
+            <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"
                 style="background-image: url('{{ $project->image_path ? asset('storage' . $project->image_path) : 'https://via.placeholder.com/150' }}');">
                 @if($isDashboardView)
                 <div class="flex z-10 absolute bottom-2 right-2">
                     <form action="{{ route('projects.edit', $project) }}" method="GET" class="mr-2">
                         @csrf
                         <button type="submit" onclick="event.stopPropagation(); /* handle button click */"
-                            class="btn-sm bg-yellow-300 border">
-                            Edit
+                            class="btn-sm btn-warning btn-icon flex items-center space-x-1 px-2 py-2 shadow-md transition-shadow hover:shadow-lg rounded-lg">
+                            <i class="fas fa-edit"></i>
+                            <span>Edit</span>
                         </button>
                     </form>
                     <div x-data="{ open: false }">
                         <!-- Trigger -->
                         <button @click="open = true" onclick="event.stopPropagation(); /* handle button click */"
-                            class="btn-sm bg-red-400 border">
-                            Delete
+                            class="btn-sm btn-error btn-icon font-bold flex items-center space-x-1 px-2 py-2 shadow-md transition-shadow hover:shadow-lg rounded-lg">
+                            <i class="fas fa-trash"></i>
+                            <span>Delete</span>
                         </button>
 
                         <!-- Modal -->
@@ -72,26 +74,28 @@
             </div>
 
         </div>
-        <div class="p-3">
+        <div class="p-3 bg-base-300 rounded-b-md text-primary">
 
             <h5 class="font-bold mb-1"><a href="{{ route('projects.show', $project) }}" class="no-underline">
                     {{ $project->name }}
                 </a></h5>
-            <h6 class="text-sm text-gray-600">{{ $project->genre }}</h6>
+            <h6 class="text-sm">{{ $project->genre }}</h6>
             @if($isDashboardView)
-            <div class="text-sm">
-                <div>
-                    Files Uploaded: <span class="font-semibold">{{ $project->files->count()
-                        }}</span>
+            <div class="text-sm space-y-1 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <span>Files Uploaded:</span>
+                    <span class="font-semibold text-primary">{{ $project->files->count() }}</span>
                 </div>
-                <div>
-                    Mixes: <span class="font-semibold">{{ $project->mixes->count() }}</span>
+                <div class="flex justify-between">
+                    <span>Mixes:</span>
+                    <span class="font-semibold text-primary">{{ $project->mixes->count() }}</span>
                 </div>
-                <div>
-                    Last Updated: <span class="font-semibold">{{ $project->updated_at->format('F
-                        j, Y') }}</span>
+                <div class="flex justify-between">
+                    <span>Last Updated:</span>
+                    <span class="font-semibold text-primary">{{ $project->updated_at->format('F j, Y') }}</span>
                 </div>
             </div>
+
 
             @else
             <p class="text-sm mt-2">Uploaded by: {{ $project->user->name }}</p>

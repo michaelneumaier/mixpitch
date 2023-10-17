@@ -1,8 +1,3 @@
-body {
-    background-image: linear-gradient(to bottom right, #1a1a1a, #333333);
-}
-
-
 .container-home {
     padding-top: 50px;
     padding-bottom: 50px;
@@ -11,8 +6,10 @@ body {
 
 .welcome-text {
     color: #d1d1d1;
-    font-size: 32px; /* Reduced to make the paragraph slightly smaller */
-    font-weight: 500 !important; /* Semi-bold, lighter than the bold setting */
+    font-size: 32px;
+    /* Reduced to make the paragraph slightly smaller */
+    font-weight: 500 !important;
+    /* Semi-bold, lighter than the bold setting */
     margin-bottom: 30px;
     text-align: center;
 }
@@ -61,4 +58,3 @@ body {
 .responsive-text {
     font-size: clamp(1rem, 4vw, 2rem);
 }
-
