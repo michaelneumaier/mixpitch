@@ -22,6 +22,7 @@
     <link href="{{ asset('css/homepage.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/star-rating.css') }}">
     <script src="https://unpkg.com/wavesurfer.js"></script>
+
     @livewireStyles
 </head>
 
@@ -44,23 +45,11 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            window.livewire.on('add-dropdown-listener', function () {
-                document.addEventListener('click', function (event) {
-                    print('click');
-                    // Check if the click is outside the dropdown
-                    if (!document.querySelector('[wire\\:ref="dropdown"]').contains(event.target)) {
-                        // Tell Livewire to close the dropdown
-                        window.livewire.emit('outsideClick');
-                    }
-                });
-            });
-        });
 
-    </script>
     @yield('scripts')
     @livewireScripts()
+
+
 </body>
 
 </html>
