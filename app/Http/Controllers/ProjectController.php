@@ -56,6 +56,7 @@ class ProjectController extends Controller
     {
         $request->validate([
             'name' => 'required|max:255',
+            'description' => 'max:2048',
             'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
             'project_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
             //'files.*' => 'required|mimes:wav,mp3',
@@ -63,6 +64,7 @@ class ProjectController extends Controller
 
         $project = new Project();
         $project->name = $request->name;
+        $project->description = $request->description;
         $project->genre = $request->genre;
         if ($request->hasFile('project_image')) {
             $imageName = time() . '.' . $request->project_image->extension();
@@ -101,16 +103,18 @@ class ProjectController extends Controller
             foreach ($request->file('files') as $file) {
                 $fileName = $file->getClientOriginalName();
                 $path = $file->storeAs('projects/' . $project->id, $fileName, 'public');
+                $fileSize = $file->getSize();
                 //$path = Storage::putFile('projects', $file);
                 $projectFile = new ProjectFile([
                     'project_id' => $project->id,
                     'file_path' => $path,
+                    'size' => $fileSize,
                 ]);
 
                 $projectFile->save();
             }
         }
-        return response()->json(['success' => 'Project created successfully!']);
+        return response()->json(['success' => 'Files uploaded successfully!']);
 
         //return redirect()->route('projects.show', $project->id)->with('success', 'Project created successfully!');
     }
@@ -128,12 +132,14 @@ class ProjectController extends Controller
         // Validate the request data
         $request->validate([
             'name' => 'required|max:255',
+            'description' => 'max:2048',
             'genre' => 'required|in:Pop,Rock,Country,Hip Hop,Jazz',
             'status' => 'required|in:unpublished,open,review,completed,closed',
         ]);
 
         // Update the project's name and genre
         $project->name = $request->input('name');
+        $project->description = $request->input('description');
         $project->genre = $request->input('genre');
         $project->status = $request->input('status');
         if ($request->hasFile('image')) {
@@ -150,7 +156,7 @@ class ProjectController extends Controller
         $project->save();
 
         // Redirect to the project's page with a success message
-        return redirect()->route('projects.edit', $project)->with('success', 'Project updated successfully.');
+        return redirect()->route('projects.show', $project)->with('success', 'Project updated successfully.');
     }
 
     public function download(Project $project)
@@ -183,7 +189,7 @@ class ProjectController extends Controller
         // Remove the file entry from the database
         $file->delete();
 
-        return redirect()->route('projects.edit', $project->id)->with('success', 'File deleted successfully.');
+        return redirect()->route('projects.edit', $project)->with('success', 'File deleted successfully.');
     }
 
 
@@ -271,3 +277,17 @@ class ProjectController extends Controller
     //     return redirect()->route('tracks.index')->with('message', 'Project uploaded successfully.');
 // }
 }
+
+function formatBytes($bytes, $precision = 2)
+{
+    $units = array('B', 'KB', 'MB', 'GB', 'TB');
+
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+
+    $bytes /= (1 << (10 * $pow));
+
+    return round($bytes, $precision) . ' ' . $units[$pow];
+}
+

@@ -7,7 +7,7 @@
         <div class="w-full md:w-1/4 lg:w-1/6 px-2">
             <div class="block md:hidden" x-data="{ open: false }">
                 <button @click="open = !open"
-                    class="w-full mb-3 bg-transparent border border-base-200 rounded-none hover:bg-base-300">
+                    class="w-full mb-3 bg-base-300 border border-base-200 rounded-none hover:bg-base-200">
                     Filters
                 </button>
                 <div x-show="open" class="block md:hidden">

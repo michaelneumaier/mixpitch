@@ -403,8 +403,8 @@ class ComposerStaticInit32c47fef927331ec7e89f7c11c133e4c
         ),
         'Psr\\Http\\Message\\' => 
         array (
-            0 => __DIR__ . '/..' . '/psr/http-message/src',
-            1 => __DIR__ . '/..' . '/psr/http-factory/src',
+            0 => __DIR__ . '/..' . '/psr/http-factory/src',
+            1 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
         'Psr\\Http\\Client\\' => 
         array (
@@ -634,8 +634,11 @@ class ComposerStaticInit32c47fef927331ec7e89f7c11c133e4c
         'App\\Http\\Controllers\\ProjectController' => __DIR__ . '/../..' . '/app/Http/Controllers/ProjectController.php',
         'App\\Http\\Controllers\\TrackController' => __DIR__ . '/../..' . '/app/Http/Controllers/TrackController.php',
         'App\\Http\\Kernel' => __DIR__ . '/../..' . '/app/Http/Kernel.php',
+        'App\\Http\\Livewire\\AuthDropdown' => __DIR__ . '/../..' . '/app/Http/Livewire/AuthDropdown.php',
         'App\\Http\\Livewire\\FiltersProjectsComponent' => __DIR__ . '/../..' . '/app/Http/Livewire/FiltersProjectsComponent.php',
         'App\\Http\\Livewire\\ProjectCard' => __DIR__ . '/../..' . '/app/Http/Livewire/ProjectCard.php',
+        'App\\Http\\Livewire\\ProjectMixes' => __DIR__ . '/../..' . '/app/Http/Livewire/ProjectMixes.php',
+        'App\\Http\\Livewire\\ProjectTracks' => __DIR__ . '/../..' . '/app/Http/Livewire/ProjectTracks.php',
         'App\\Http\\Livewire\\ProjectsComponent' => __DIR__ . '/../..' . '/app/Http/Livewire/ProjectsComponent.php',
         'App\\Http\\Livewire\\StarRating' => __DIR__ . '/../..' . '/app/Http/Livewire/StarRating.php',
         'App\\Http\\Livewire\\StatusButton' => __DIR__ . '/../..' . '/app/Http/Livewire/StatusButton.php',
