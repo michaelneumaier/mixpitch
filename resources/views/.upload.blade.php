@@ -1,11 +1,11 @@
-@extends('layouts.app')
+@extends('components.layouts.app')
 
 @section('content')
 <div class="container">
     <h2>Upload a track</h2>
 
     @if(session('message'))
-        <div class="alert alert-success">{{ session('message') }}</div>
+    <div class="alert alert-success">{{ session('message') }}</div>
     @endif
 
     <form action="{{ route('tracks.upload') }}" method="post" enctype="multipart/form-data">
@@ -24,7 +24,7 @@
             <label for="track">Upload your track:</label>
             <input type="file" name="track" id="track" class="form-control">
             @error('track')
-                <div class="text-danger">{{ $message }}</div>
+            <div class="text-danger">{{ $message }}</div>
             @enderror
         </div>
 

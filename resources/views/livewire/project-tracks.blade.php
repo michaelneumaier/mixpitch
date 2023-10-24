@@ -38,7 +38,7 @@
         function initWaveSurfer() {
             console.log("initWaveSurfer");
             return {
-                // show: @entangle('showTracks'),
+                // show: @entangle('showTracks').live,
                 show: false,
                 waveSurferInitialized: false,
                 init() {

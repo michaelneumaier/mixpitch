@@ -1,6 +1,6 @@
 <div>
     <div>
-        <form wire:submit.prevent="render" class="space-y-4">
+        <form wire:submit="render" class="space-y-4">
             <!-- Genre Dropdown -->
             <div class="">
                 <div x-data="{ open: false }">
@@ -11,7 +11,7 @@
                     <div x-show="open" id="genreCollapse" class="mt-2 space-y-1 pl-2">
                         @foreach(['Pop', 'Rock', 'Country', 'Hip Hop', 'Jazz'] as $genre)
                         <label class="block">
-                            <input type="checkbox" wire:model="genres" value="{{ $genre }}"
+                            <input type="checkbox" wire:model.live="genres" value="{{ $genre }}"
                                 class="mr-2 form-checkbox" />
                             {{ $genre }}
                         </label>
@@ -31,7 +31,7 @@
                     <div x-show="open" id="statusCollapse" class="mt-2 space-y-1 pl-2">
                         @foreach(['open', 'review', 'closed'] as $status)
                         <label class="block">
-                            <input type="checkbox" wire:model="statuses" value="{{ $status }}"
+                            <input type="checkbox" wire:model.live="statuses" value="{{ $status }}"
                                 class="mr-2 form-checkbox" />
                             {{ ucfirst($status) }}
                         </label>

@@ -1,5 +1,5 @@
-@extends('layouts.app')
+@extends('components.layouts.app')
 
 @section('content')
-    @livewire('projects-component')
+@livewire('projects-component')
 @endsection

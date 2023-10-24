@@ -53,10 +53,10 @@ class CreateProject extends Component
         $this->dispatchBrowserEvent('notify', ['msg' => 'Project successfully created!']);
     }
 
-    // public function updated($propertyName)
-    // {
-    //     $this->validateOnly($propertyName);
-    // }
+    public function validateOnBlur($propertyName)
+    {
+        $this->validateOnly($propertyName);
+    }
 
     public function createProject()
     {
