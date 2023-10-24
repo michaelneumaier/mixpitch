@@ -11,19 +11,19 @@
         <div x-show="openSection === 'basic'" class="p-4 mb-5">
             <div class="mb-4">
                 <label for="name" class="block label-text text-gray-700 mb-2">Project Name:</label>
-                <input type="text" id="name" wire:model="name"
+                <input type="text" id="name" wire:model.live="name"
                     class="input input-bordered input-lg text-2xl w-full border rounded shadow-sm">
                 @error('name') <span class="text-red-500">{{ $message }}</span> @enderror
             </div>
             <div class="mb-4">
                 <label for="artist_name" class="block label-text text-gray-700 mb-2">Artist Name (Optional):</label>
-                <input type="text" id="artist_name" wire:model="artistName"
+                <input type="text" id="artist_name" wire:model.live="artistName"
                     class="input input-bordered w-full px-3 py-2">
                 @error('artistName') <span class="text-red-500">{{ $message }}</span> @enderror
             </div>
             <div class="mb-4">
                 <label for="project_type" class="block label-text text-gray-700 mb-2">Select project type:</label>
-                <select id="project_type" wire:model="projectType" class="w-full px-3 py-2 border rounded shadow-sm">
+                <select id="project_type" wire:model.live="projectType" class="w-full px-3 py-2 border rounded shadow-sm">
                     <option value="single">Single</option>
                     <option value="album">Album</option>
                     <option value="ep">EP</option>
@@ -33,7 +33,7 @@
             </div>
             <div class="mb-4">
                 <label for="description" class="block label-text text-gray-700 mb-2">Description:</label>
-                <textarea id="description" rows="4" wire:model="description"
+                <textarea id="description" rows="4" wire:model.live="description"
                     class="textarea textarea-bordered w-full px-3 py-2"></textarea>
                 @error('description') <span class="text-red-500">{{ $message }}</span> @enderror
             </div>
@@ -42,7 +42,7 @@
             <!-- Genre -->
             <div class="mb-4">
                 <label for="genre" class="block label-text text-gray-700 mb-2">Genre:</label>
-                <select id="genre" wire:model="genre" class="w-full px-3 py-2 border rounded shadow-sm">
+                <select id="genre" wire:model.live="genre" class="w-full px-3 py-2 border rounded shadow-sm">
                     <option value="">Select Genre</option>
                     <option value="Blues">Blues</option>
                     <option value="Classical">Classical</option>
@@ -67,7 +67,7 @@
             <div class="mb-4">
                 <label for="project_image" class="block label-text text-gray-700 mb-2">Upload an image for the
                     project:</label>
-                <input type="file" id="project_image" wire:model="projectImage" class="file-input">
+                <input type="file" id="project_image" wire:model.live="projectImage" class="file-input">
                 @error('projectImage') <span class="text-red-500">{{ $message }}</span> @enderror
             </div>
 
@@ -88,26 +88,26 @@
 
                 <div class="flex flex-col">
                     <label class="inline-flex items-center mb-4">
-                        <input type="checkbox" wire:model="collaborationType.mixing" class="checkbox text-indigo-600">
+                        <input type="checkbox" wire:model.live="collaborationType.mixing" class="checkbox text-indigo-600">
                         <span class="ml-2">Mixing</span>
                     </label>
                     <label class="inline-flex items-center mb-4">
-                        <input type="checkbox" wire:model="collaborationType.mastering"
+                        <input type="checkbox" wire:model.live="collaborationType.mastering"
                             class="checkbox text-indigo-600">
                         <span class="ml-2">Mastering</span>
                     </label>
                     <label class="inline-flex items-center mb-4">
-                        <input type="checkbox" wire:model="collaborationType.production"
+                        <input type="checkbox" wire:model.live="collaborationType.production"
                             class="checkbox text-indigo-600">
                         <span class="ml-2">Production</span>
                     </label>
                     <label class="inline-flex items-center mb-4">
-                        <input type="checkbox" wire:model="collaborationType.songwriting"
+                        <input type="checkbox" wire:model.live="collaborationType.songwriting"
                             class="checkbox text-indigo-600">
                         <span class="ml-2">Songwriting</span>
                     </label>
                     <label class="inline-flex items-center mb-4">
-                        <input type="checkbox" wire:model="collaborationType.vocal_tuning"
+                        <input type="checkbox" wire:model.live="collaborationType.vocal_tuning"
                             class="checkbox text-indigo-600">
                         <span class="ml-2">Vocal Tuning</span>
                     </label>
@@ -130,10 +130,10 @@
                 <div class="flex items-center space-x-4">
                     <!-- Slider -->
                     <!-- <input type="range" id="budget_slider" min="0" max="1000" step="10" x-bind:value="budget"
-                        x-on:input="budget = $event.target.value" class="slider flex-grow" wire:model="budget"> -->
+                        x-on:input="budget = $event.target.value" class="slider flex-grow" wire:model.live="budget"> -->
 
                     <input type="range" id="budget_slider" min="0" max="1000" step="10" x-bind:value="budget"
-                        x-on:input="budget = $event.target.value" wire:model="budget" class="h-full appearance-none flex items-center cursor-pointer bg-transparent z-30
+                        x-on:input="budget = $event.target.value" wire:model.live="budget" class="h-full appearance-none flex items-center cursor-pointer bg-transparent z-30
         [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:appearance-none
         [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:appearance-none
         [&::-ms-thumb]:bg-blue-600 [&::-ms-thumb]:rounded-full [&::-ms-thumb]:border-0 [&::-ms-thumb]:w-2.5 [&::-ms-thumb]:h-2.5 [&::-ms-thumb]:appearance-none
@@ -151,7 +151,7 @@
                         <!-- Input with Added Padding -->
                         <input type="number" id="budget" min="0" max="1000" x-bind:value="budget"
                             x-on:input="budget = $event.target.value" placeholder="0"
-                            class="px-3 py-2 pl-8 border rounded shadow-sm" wire:model="budget">
+                            class="px-3 py-2 pl-8 border rounded shadow-sm" wire:model.live="budget">
                     </div>
 
                 </div>
@@ -172,7 +172,7 @@
             <div class="mb-4">
                 <label for="deadline" class="block label-text text-gray-700 mb-2">Specify project completion
                     deadline:</label>
-                <input type="date" id="deadline" wire:model="deadline" class="input input-bordered px-3 py-2">
+                <input type="date" id="deadline" wire:model.live="deadline" class="input input-bordered px-3 py-2">
                 @error('deadline') <span class="text-red-500">{{ $message }}</span> @enderror
             </div>
         </div>
@@ -183,7 +183,7 @@
         <div x-show="openSection === 'trackUpload'" class="p-4 mb-5">
             <div class="mb-4">
                 <label for="track" class="block label-text text-gray-700 mb-2">Upload your track:</label>
-                <input type="file" id="track" wire:model="track" class="w-full px-3 py-2 border rounded shadow-sm">
+                <input type="file" id="track" wire:model.live="track" class="w-full px-3 py-2 border rounded shadow-sm">
                 @error('track') <span class="text-red-500">{{ $message }}</span> @enderror
             </div>
         </div>
@@ -198,7 +198,7 @@
             <div class="mb-4">
                 <label for="notes" class="block label-text text-gray-700 mb-2">Any additional details or
                     comments:</label>
-                <textarea id="notes" rows="4" wire:model="notes"
+                <textarea id="notes" rows="4" wire:model.live="notes"
                     class="textarea textarea-bordered w-full px-3 py-2"></textarea>
                 @error('notes') <span class="text-red-500">{{ $message }}</span> @enderror
             </div>

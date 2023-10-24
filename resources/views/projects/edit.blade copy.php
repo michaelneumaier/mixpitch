@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('components.layouts.app')
 
 @section('content')
 <div class="container">
@@ -65,7 +65,8 @@
                         @endforeach
                     </ul>
 
-                    <a href="{{ route('projects.createStep2', $project->id) }}" class="btn btn-primary mt-3">Upload More Files</a>
+                    <a href="{{ route('projects.createStep2', $project->id) }}" class="btn btn-primary mt-3">Upload More
+                        Files</a>
                 </div>
             </div>
         </div>

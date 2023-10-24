@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('components.layouts.app')
 
 @section('content')
 <div class="container mx-auto px-1">
@@ -34,8 +34,9 @@
                             <input type="file" id="image-input" name="image" class="hidden" onchange="loadFile(event)">
                             <div class="form-group mb-4">
                                 <label for="description" class="sr-only">Description</label> <!-- hidden label -->
-                                <textarea type="text" wire:model="projectDescription" class="w-full" id="description"
-                                    name="description" placeholder="Description">{{$project->description}}</textarea>
+                                <textarea type="text" wire:model.live="projectDescription" class="w-full"
+                                    id="description" name="description"
+                                    placeholder="Description">{{$project->description}}</textarea>
 
                             </div>
 

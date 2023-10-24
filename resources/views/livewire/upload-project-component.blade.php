@@ -2,32 +2,32 @@
     <link href="{{ asset('css/upload-page.css') }}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
-    <!-- <form wire:submit.prevent="saveProject"> -->
+    <!-- <form wire:submit="saveProject"> -->
     @if ($step === 1)
 
     <div class="container container-upload py-5">
         <div class="text-center mb-5">Upload Project</div>
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <form class="upload-form" wire:submit.prevent="saveProject" method="POST" enctype="multipart/form-data">
+                <form class="upload-form" wire:submit="saveProject" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="form-group mb-4">
                         <label for="name" class="sr-only">Project Name</label> <!-- hidden label -->
-                        <input type="text" wire:model="projectName"
+                        <input type="text" wire:model.live="projectName"
                             class="form-control bg-dark text-light input-lg-custom" id="name" name="name"
                             placeholder="Project Name" required>
 
                     </div>
                     <div class="form-group mb-4">
                         <label for="description" class="sr-only">Description</label> <!-- hidden label -->
-                        <input type="text" wire:model="projectDescription"
+                        <input type="text" wire:model.live="projectDescription"
                             class="form-control bg-dark text-light input-lg-custom" id="description" name="description"
                             placeholder="Description" required>
 
                     </div>
                     <div class="form-group mb-4">
                         <label for="genre" class="sr-only">Genre</label> <!-- hidden label -->
-                        <select wire:model="projectGenre" class="form-control form-control-lg" id="genre" name="genre"
+                        <select wire:model.live="projectGenre" class="form-control form-control-lg" id="genre" name="genre"
                             required>
                             <option value="">Genre</option>
                             <option value="Pop">Pop</option>
@@ -40,7 +40,7 @@
                     </div>
                     <div class="form-group mb-4">
                         <label for="projectImage">Project Image</label>
-                        <input wire:model="projectImage" type="file" class="form-control-file" id="projectImage"
+                        <input wire:model.live="projectImage" type="file" class="form-control-file" id="projectImage"
                             name="image">
                     </div>
                     <div class="form-group mb-4 text-center">
@@ -79,7 +79,7 @@
         </div>
     </div>
     <!-- <div>
-                <input type="file" wire:model="files" multiple>
+                <input type="file" wire:model.live="files" multiple>
                 <button type="submit">Upload Project</button>
             </div> -->
     <script>
