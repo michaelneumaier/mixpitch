@@ -20,8 +20,8 @@
                     <!-- The actual lightbox overlay -->
                     <div x-cloak x-show="lightbox.isOpen"
                         class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
-                        <img src="{{ asset('storage/' . $project->image_path) }}" alt="Lightbox image"
-                            class="max-w-full max-h-full">
+                        <img @click="lightbox.isOpen = false" src="{{ asset('storage/' . $project->image_path) }}"
+                            alt="Lightbox image" class="max-w-full max-h-full">
 
                         <!-- Close button -->
                         <button @click="lightbox.isOpen = false"
@@ -65,10 +65,29 @@
                         @livewire('project-tracks', ['project' => $project])
 
                         <div class="flex space-x-4 mt-3">
-                            <a href="{{ route('projects.download', $project) }}" class="btn btn-primary">Download All
-                                Files</a>
-                            <a href="{{ route('mixes.create', $project) }}" class="btn btn-primary">Submit Mix</a>
+                            @if(!auth()->check()) <!-- Check if user is not logged in -->
+                            <div class="tooltip tooltip-top" data-tip="Please login in to download files.">
+                                <button class="btn btn-primary">
+                                    Download All Files
+                                </button>
+                            </div>
+                            <div class="tooltip tooltip-top" data-tip="Please login in to download files.">
+                                <button class="btn btn-primary">
+                                    Submit Mix
+                                </button>
+                            </div>
+
+
+                            @else
+                            <a href="{{ route('projects.download', $project) }}" class="btn btn-primary">
+                                Download All Files
+                            </a>
+                            <a href="{{ route('mixes.create', $project) }}" class="btn btn-primary">
+                                Submit Mix
+                            </a>
+                            @endif
                         </div>
+
 
 
                     </div>

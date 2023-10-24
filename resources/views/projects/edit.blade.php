@@ -7,23 +7,20 @@
             <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg overflow-hidden">
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:ml-1/3">
                     <div class="lg:w-1/3 flex-shrink-0 mb-4 lg:mb-0">
-                        <!-- added mb-4 to add space between image and form on mobile -->
-                        <!-- Image label (clicking this will trigger the hidden file input) -->
-                        <label for="image-input">
+                        <label for="image-input" class="flex flex-col items-center justify-center text-center">
                             <img src="{{ asset('storage/' . $project->image_path) }}" alt="{{ $project->name }}"
                                 class="w-full h-56 object-cover lg:rounded-tl-lg cursor-pointer" id="preview">
+                            <span class="p-1 text-sm mt-2">Click above to change image</span>
                         </label>
+
                     </div>
-                    <div class="flex-grow lg:ml-4 p-4">
+                    <div class="flex-grow lg:ml-4 p-4 w-full">
 
                         <form method="POST" action="{{ route('projects.update', $project) }}"
                             enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
 
-                            <!--  -->
-
-                            <!-- First Row -->
                             <div class="mb-2">
                                 <label for="name" class="block text-sm font-medium text-gray-600">Project Name</label>
                                 <input type="text"
@@ -31,26 +28,17 @@
                                     id="name" name="name" value="{{ $project->name }}" required>
                             </div>
 
-                            <!-- Second Row -->
                             <div class="flex justify-between items-start w-full">
                                 <span>{{ $project->user->name }}</span>
                             </div>
                             <input type="file" id="image-input" name="image" class="hidden" onchange="loadFile(event)">
                             <div class="form-group mb-4">
                                 <label for="description" class="sr-only">Description</label> <!-- hidden label -->
-                                <textarea type="text" wire:model="projectDescription"
-                                    class="form-control bg-dark text-light input-lg-custom" id="description"
+                                <textarea type="text" wire:model="projectDescription" class="w-full" id="description"
                                     name="description" placeholder="Description">{{$project->description}}</textarea>
 
                             </div>
 
-                            <!-- Project Image Upload -->
-                            <!-- <div class="mb-4">
-                            <label for="image" class="block text-sm font-medium text-gray-700">Project Image</label>
-                            <input type="file" class="mt-1 rounded-md form-input block w-full" id="image" name="image">
-                        </div> -->
-
-                            <!-- Genre Selection -->
                             <div class="mb-4">
                                 <label for="genre" class="block text-sm font-medium text-gray-700">Genre</label>
                                 <select class="form-select rounded-md mt-1 block w-full text-gray-700" id="genre"
@@ -66,7 +54,6 @@
                                 </select>
                             </div>
 
-                            <!-- Status Selection -->
                             <div class="mb-4">
                                 <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
                                 <select class="form-select rounded-md mt-1 block w-full text-gray-700" id="status"
@@ -88,7 +75,6 @@
                                 </select>
                             </div>
 
-                            <!-- Update Button -->
                             <div class="mt-4">
                                 <button type="submit" class="btn btn-primary">Update Project</button>
                             </div>
@@ -96,11 +82,9 @@
                     </div>
                 </div>
 
-                <!-- Content Below the Image and Details -->
                 <div class="clear-left bg-dark bg-opacity-50">
                     <div class="space-y-4">
 
-                        <!-- Project Tracks and File Upload -->
                         <div class="mt-4 p-6 bg-white shadow-md rounded-lg">
                             <h5 class="text-xl font-semibold mb-4">Project Files</h5>
 
@@ -131,14 +115,6 @@
                             <a href="{{ route('projects.createStep2', $project) }}" class="btn btn-primary mt-3">Upload
                                 More Files</a>
                         </div>
-
-
-
-                        <!-- Other Actions -->
-                        <!-- <div class="flex space-x-4 mt-3">
-                            <a href="{{ route('projects.download', $project) }}" class="btn btn-primary">Download All
-                                Files</a> -->
-                        <!-- ... your other action buttons ... -->
                     </div>
                 </div>
             </div>
@@ -169,7 +145,7 @@
         var output = document.getElementById('preview');
         output.src = URL.createObjectURL(event.target.files[0]);
         output.onload = function () {
-            URL.revokeObjectURL(output.src); // free memory
+            URL.revokeObjectURL(output.src);
         }
     };
 </script>
