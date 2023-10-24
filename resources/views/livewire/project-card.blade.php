@@ -76,7 +76,7 @@
         </div>
         <div class="p-3 bg-base-300 rounded-b-md text-primary">
 
-            <h5 class="font-bold mb-1"><a href="{{ route('projects.show', $project) }}" class="no-underline">
+            <h5 class="font-bold truncate mb-1"><a href="{{ route('projects.show', $project) }}" class="no-underline">
                     {{ $project->name }}
                 </a></h5>
             <h6 class="text-sm">{{ $project->genre }}</h6>
@@ -98,7 +98,7 @@
 
 
             @else
-            <p class="text-sm mt-2">Uploaded by: {{ $project->user->name }}</p>
+            <p class="text-sm truncate mt-2">Uploaded by: {{ $project->user->name }}</p>
             @endif
 
         </div>

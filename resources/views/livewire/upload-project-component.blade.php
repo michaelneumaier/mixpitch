@@ -6,7 +6,7 @@
     @if ($step === 1)
 
     <div class="container container-upload py-5">
-        <div class="upload-text text-center mb-5">Upload Project</div>
+        <div class="text-center mb-5">Upload Project</div>
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <form class="upload-form" wire:submit.prevent="saveProject" method="POST" enctype="multipart/form-data">
