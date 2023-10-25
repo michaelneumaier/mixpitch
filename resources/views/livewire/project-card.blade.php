@@ -1,4 +1,4 @@
-<div class="w-full lg:w-1/4 md:w-1/2 mb-4 px-1" onclick="location.href='{{ route('projects.show', $project) }}';">
+<div class="w-full lg:w-1/4 md:w-1/2 mb-4 px-1" wire:click="cardClickRoute()">
     <div class="shadow-lg shadow-base-300 hover:shadow-xl hover:shadow-base-300 rounded-lg">
         <div class="relative aspect-w-1 aspect-h-1 rounded-lg">
             <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"

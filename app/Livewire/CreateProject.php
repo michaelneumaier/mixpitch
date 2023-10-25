@@ -3,67 +3,60 @@
 namespace App\Livewire;
 
 use App\Models\Project;
+use Livewire\Attributes\Rule;
 use Livewire\Component;
 
 class CreateProject extends Component
 {
 
+    #[Rule('required|string|min:5|max:255')]
     public $name;
+
+    #[Rule('nullable|string|max:255')]
     public $artistName;
+
+    #[Rule('required|in:single,album,ep,other')]
     public $projectType;
+
+    #[Rule('required|string|min:5|max:1000')]
     public $description;
+
+    #[Rule('required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk')]
     public $genre;
+
+    #[Rule('nullable|image|max:2048')]
     public $projectImage;
-    public $collaborationType = [
-        'mixing' => false,
-        'mastering' => false,
-        'production' => false,
-        'songwriting' => false,
-        'vocal_tuning' => false
-    ];
+
+    #[Rule('boolean')]
+    public $collaborationTypeMixing = false;
+
+    #[Rule('boolean')]
+    public $collaborationTypeMastering = false;
+
+    #[Rule('boolean')]
+    public $collaborationTypeProduction = false;
+
+    #[Rule('boolean')]
+    public $collaborationTypeSongwriting = false;
+
+    #[Rule('boolean')]
+    public $collaborationTypeVocalTuning = false;
+
+    #[Rule('required|numeric|min:0')]
     public $budget;
+
+    #[Rule('required|date|after:today')]
     public $deadline;
+
+    #[Rule('nullable|mimes:mp3,wav,aiff|max:20480')]
     public $track;
+
+    #[Rule('nullable|string|max:1000')]
     public $notes;
 
-    protected $rules = [
-        'name' => 'required|string|min:5|max:255',
-        'artistName' => 'nullable|string|max:255',
-        'projectType' => 'required|in:single,album,ep,other',
-        'description' => 'required|string|max:1000',
-        'genre' => 'required|string|max:255',
-        'projectImage' => 'nullable|image|max:2048',
-        'collaborationType.mixing' => 'boolean',
-        'collaborationType.mastering' => 'boolean',
-        'collaborationType.production' => 'boolean',
-        'collaborationType.songwriting' => 'boolean',
-        'collaborationType.vocal_tuning' => 'boolean',
-        'budget' => 'required|numeric|min:0',
-        'deadline' => 'required|date|after:today',
-        'track' => 'nullable|mimes:mp3,wav,aiff|max:20480',
-        'notes' => 'nullable|string|max:1000'
-    ];
-
-
-    public function submitForm()
+    public function save()
     {
-        // Logic to save your project or perform other actions.
-
-        // Once done, send a browser event to show the notification.
-        $this->dispatch('notify', msg: 'Project successfully created!');
-    }
-
-    // public function updated($propertyName)
-    // {
-    //     $this->validateOnly($propertyName);
-    // }
-
-    public function createProject()
-    {
-        // Validation
-        $this->validate($this->rules);
-
-        $this->dispatch('notify', msg: 'Project successfully created!');
+        $this->validate();
     }
 
     public function render()
