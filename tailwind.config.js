@@ -24,6 +24,20 @@ module.exports = {
                 "warning": "#FFB700",
                 "error": "#F74931",
             },
+        },
+        {
+            main: {
+                "primary": "#263640",
+                "secondary": "#263640",
+                "accent": "#00FF00",
+                "accent-focus": "#66ff66",
+                "neutral": "#3D372B",
+                "base-100": "#F7FAFC",
+                "info": "#91DAFA",
+                "success": "#1CD945",
+                "warning": "#FFB700",
+                "error": "#F74931",
+            },
         }, "dark"],
     },
 
@@ -32,6 +46,19 @@ module.exports = {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            boxShadow: {
+                'glow': '0 0 20px 3px rgba(0, 0, 0, 0.3)',
+                'lightGlow': '0 0 20px -7px rgba(0, 0, 0, 0.1)',
+            },
+            colors: {
+                tertiary: '#FFBF00',
+                button: '#95B3C6',
+                buttonFocus: '#AFC6D4',
+                statusOpen: '#00ff00',
+                statusClosed: '#cc0000',
+                statusReview: '#ffe500',
+                statusComplete: '#1500D6',
+            }
         },
     },
 

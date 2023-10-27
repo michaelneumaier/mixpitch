@@ -8,19 +8,19 @@ $colorClass = 'bg-gray-400';
 $iconClass = 'fa-eye-slash'; // Font Awesome class for eye with slash
 break;
 case 'open':
-$colorClass = 'bg-green-400';
+$colorClass = 'bg-statusOpen shadow-lightGlow shadow-statusOpen';
 $iconClass = 'fa-check-circle'; // Font Awesome class for check circle
 break;
 case 'review':
-$colorClass = 'bg-yellow-400';
+$colorClass = 'bg-statusReview shadow-lightGlow shadow-statusReview';
 $iconClass = 'fa-eye'; // Font Awesome class for eye
 break;
 case 'completed':
-$colorClass = 'bg-blue-400';
+$colorClass = 'bg-statusComplete text-white shadow-lightGlow shadow-statusComplete';
 $iconClass = 'fa-check'; // Font Awesome class for check
 break;
 case 'closed':
-$colorClass = 'bg-red-400';
+$colorClass = 'bg-statusClosed text-white shadow-lightGlow shadow-statusClosed';
 $iconClass = 'fa-times-circle'; // Font Awesome class for times circle
 break;
 default:

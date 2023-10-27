@@ -16,17 +16,17 @@
             <div class="w-full md:w-1/2 lg:w-1/3 mb-4 md:mb-0">
                 @auth
                 <a href="{{ route('projects.upload') }}"
-                    class="block bg-secondary hover:bg-accent text-xl text-white text-center font-bold w-full py-2 px-4 border-b-4 border-secondary hover:border-secondary-focus rounded whitespace-nowrap">Submit
+                    class="transition-all hover:scale-[1.02] block bg-accent hover:bg-accent-focus text-xl text-center font-bold w-full py-2 px-4 border-b-4 border-accent hover:border-accent-focus shadow-glow shadow-accent hover:shadow-accent-focus rounded whitespace-nowrap">Submit
                     Your Music</a>
                 @else
                 <a href="{{ route('login') }}"
-                    class="block bg-secondary hover:bg-accent text-xl text-white text-center font-bold w-full py-2 px-4 border-b-4 border-secondary hover:border-secondary-focus rounded whitespace-nowrap">Submit
+                    class="transition-all hover:scale-[1.02] block bg-accent hover:bg-accent-focus text-xl text-center font-bold w-full py-2 px-4 border-b-4 border-accent hover:border-accent-focus shadow-glow shadow-accent hover:shadow-accent-focus rounded whitespace-nowrap">Submit
                     Your Music</a>
                 @endauth
             </div>
             <div class="w-full md:w-1/2 lg:w-1/3">
                 <a href="{{ route('projects.index') }}"
-                    class="block bg-base-300 hover:bg-base-200 text-xl font-bold text-center w-full py-2 px-4 border-b-4 border-secondary hover:border-secondary-focus rounded">Browse
+                    class="transition-all hover:scale-[1.02] block bg-button hover:bg-buttonFocus text-xl font-bold text-center w-full py-2 px-4 shadow-lightGlow shadow-button hover:shadow-focus rounded">Browse
                     Projects</a>
             </div>
         </div>
