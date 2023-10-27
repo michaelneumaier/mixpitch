@@ -5,15 +5,17 @@
             <div x-data="{ openSection: 'basic', budget: 0 }">
                 <form wire:submit="save">
                     <!-- Basic Info Section -->
-                    <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
+                    <div class="shadow-lg shadow-base-200 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
                             @click="openSection = (openSection === 'basic' ? null : 'basic')">
-                            <h2 class="text-xl p-3 flex items-center"><i
-                                    class="fas fa-info-circle mr-2 w-5 mr-2 text-center"></i>Basic Info</h2>
+                            <h2 class="text-2xl p-5 flex items-center"><i
+                                    class="fas fa-info-circle w-5 text-center mr-8 text-4xl"></i>Basic
+                                Info
+                            </h2>
                         </div>
-                        <div x-show="openSection === 'basic'" class="p-4 mb-5">
+                        <div x-show="openSection === 'basic'" class="p-8 mb-5">
 
-                            <div class="relative mb-4" x-data="{ touched: false }">
+                            <div class="relative mb-8" x-data="{ touched: false }">
                                 <label for="name" class="block label-text text-gray-700 mb-2">
                                     <!-- Required Icon (Asterisk) -->
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
@@ -42,7 +44,7 @@
 
                             </div>
 
-                            <div class="relative mb-4">
+                            <div class="relative mb-8">
                                 <label for="artist_name" class="block label-text text-gray-700 mb-2">Artist Name
                                     (Optional):</label>
                                 <input type="text" id="artist_name" wire:model.blur="artistName"
@@ -53,7 +55,7 @@
                                 </div>
                                 @enderror
                             </div>
-                            <div class="relative mb-4" x-data="{ touched: false }">
+                            <div class="relative mb-8" x-data="{ touched: false }">
                                 <label for="projectType" class="block label-text text-gray-700 mb-2">
                                     <!-- Required Icon (Asterisk) -->
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
@@ -81,7 +83,7 @@
                                 </div>
                                 @enderror
                             </div>
-                            <div class="relative mb-4" x-data="{ touched: false }">
+                            <div class="relative mb-8" x-data="{ touched: false }">
                                 <label for="description" class="block label-text text-gray-700 mb-2">
                                     <!-- Required Icon (Asterisk) -->
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
@@ -108,7 +110,7 @@
 
 
                             <!-- Genre -->
-                            <div class="relative mb-4" x-data="{ touched: false }">
+                            <div class="relative mb-8" x-data="{ touched: false }">
                                 <label for="genre" class="block label-text text-gray-700 mb-2">
                                     <!-- Required Icon (Asterisk) -->
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
@@ -169,11 +171,11 @@
                     <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
                             @click="openSection = (openSection === 'collaboration' ? null : 'collaboration')">
-                            <h2 class="text-xl p-3 flex items-center"><i
-                                    class="fas fa-users mr-2 w-5 mr-2 text-center"></i>Collaboration Type
+                            <h2 class="text-2xl p-5 flex items-center"><i
+                                    class="fas fa-users w-5 text-center mr-8 text-4xl"></i>Collaboration Type
                             </h2>
                         </div>
-                        <div x-show="openSection === 'collaboration'" class="p-4 mb-5">
+                        <div x-show="openSection === 'collaboration'" class="p-8 mb-5">
                             <div class="mb-1">
                                 <label class="block label-text mb-2">Choose a collaboration type:</label>
 
@@ -215,10 +217,11 @@
                     <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
                             @click="openSection = (openSection === 'budget' ? null : 'budget')">
-                            <h2 class="text-xl p-3"><i class="fas fa-dollar-sign mr-2 w-5 mr-2 text-center"></i>Budget
+                            <h2 class="text-2xl p-5 flex items-center"><i
+                                    class="fas fa-dollar-sign w-5 text-center mr-8 text-4xl"></i>Budget
                             </h2>
                         </div>
-                        <div x-show="openSection === 'budget'" class="p-4 mb-5">
+                        <div x-show="openSection === 'budget'" class="p-8 mb-5">
                             <div class="mb-4">
                                 <label for="budget_slider" class="block label-text text-gray-700 mb-2">Specify your
                                     budget:</label>
@@ -268,11 +271,12 @@
                     <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
                             @click="openSection = (openSection === 'deadline' ? null : 'deadline')">
-                            <h2 class="text-xl p-3"><i class="fas fa-calendar-alt mr-2 w-5 mr-2 text-center"></i>Project
+                            <h2 class="text-2xl p-5 flex items-center"><i
+                                    class="fas fa-calendar-alt w-5 text-center mr-8 text-4xl"></i>Project
                                 Deadline
                             </h2>
                         </div>
-                        <div x-show="openSection === 'deadline'" class="p-4 mb-5">
+                        <div x-show="openSection === 'deadline'" class="p-8 mb-5">
                             <div class="mb-4">
                                 <label for="deadline" class="block label-text text-gray-700 mb-2">Specify project
                                     completion
@@ -290,11 +294,12 @@
                     <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
                             @click="openSection = (openSection === 'trackUpload' ? null : 'trackUpload')">
-                            <h2 class="text-xl p-3"><i class="fas fa-upload mr-2 w-5 mr-2 text-center"></i>Track
+                            <h2 class="text-2xl p-5 flex items-center"><i
+                                    class="fas fa-upload w-5 text-center  mr-8 text-4xl"></i>Track
                                 Upload
                             </h2>
                         </div>
-                        <div x-show="openSection === 'trackUpload'" class="p-4 mb-5">
+                        <div x-show="openSection === 'trackUpload'" class="p-8 mb-5">
                             <div class="mb-4">
                                 <label for="track" class="block label-text text-gray-700 mb-2">Upload your
                                     track:</label>
@@ -312,12 +317,12 @@
                     <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
                             @click="openSection = (openSection === 'notes' ? null : 'notes')">
-                            <h2 class="text-xl p-3"><i
-                                    class="fas fa-sticky-note mr-2 w-5 mr-2 text-center"></i>Additional
+                            <h2 class="text-2xl p-5 flex items-center"><i
+                                    class="fas fa-sticky-note w-5 text-center mr-8 text-4xl"></i>Additional
                                 Notes
                             </h2>
                         </div>
-                        <div x-show="openSection === 'notes'" class="p-4 mb-5">
+                        <div x-show="openSection === 'notes'" class="p-8 mb-5">
                             <div class="mb-4">
                                 <label for="notes" class="block label-text text-gray-700 mb-2">Any additional details or
                                     comments:</label>
