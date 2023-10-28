@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 ;
 
+use Livewire\Attributes\On;
 use Livewire\Component;
 use App\Models\Project;
 use Livewire\WithPagination;
@@ -14,7 +15,7 @@ class ProjectsComponent extends Component
 
     public $genres = [];
     public $statuses = [];
-    protected $listeners = ['filtersUpdated' => 'applyFilters'];
+    //protected $listeners = ['filtersUpdated' => 'applyFilters'];
 
     public function render()
     {
@@ -44,6 +45,7 @@ class ProjectsComponent extends Component
         $this->resetPage();
     }
 
+    #[On('filters-updated')]
     public function applyFilters($filters)
     {
         $this->genres = $filters['genres'];
