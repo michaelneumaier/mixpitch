@@ -12,7 +12,7 @@
                         @foreach(['Pop', 'Rock', 'Country', 'Hip Hop', 'Jazz'] as $genre)
                         <label class="block">
                             <input type="checkbox" wire:model.live="genres" value="{{ $genre }}"
-                                class="mr-2 form-checkbox" />
+                                class="mr-2 checkbox" />
                             {{ $genre }}
                         </label>
                         @endforeach
@@ -32,7 +32,7 @@
                         @foreach(['open', 'review', 'closed'] as $status)
                         <label class="block">
                             <input type="checkbox" wire:model.live="statuses" value="{{ $status }}"
-                                class="mr-2 form-checkbox" />
+                                class="mr-2 checkbox" />
                             {{ ucfirst($status) }}
                         </label>
                         @endforeach

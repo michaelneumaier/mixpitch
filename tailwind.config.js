@@ -29,7 +29,7 @@ module.exports = {
             main: {
                 "primary": "#263640",
                 "secondary": "#263640",
-                "accent": "#00FF00",
+                "accent": "rgba(0,255,0,255)",
                 "accent-focus": "#66ff66",
                 "neutral": "#3D372B",
                 "base-100": "#F7FAFC",
@@ -47,8 +47,8 @@ module.exports = {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
             boxShadow: {
-                'glow': '0 0 20px 3px rgba(0, 0, 0, 0.3)',
-                'lightGlow': '0 0 20px -7px rgba(0, 0, 0, 0.1)',
+                'glow': '0 0 20px 1px',
+                'lightGlow': '0 0 20px -7px',
             },
             colors: {
                 tertiary: '#FFBF00',
