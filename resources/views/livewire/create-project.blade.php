@@ -11,7 +11,14 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-info-circle w-5 text-center mr-8 text-4xl"></i>Basic
                                 Info
+                                @if($errors->hasAny(['name', 'artistName', 'projectType', 'description', 'genre',
+                                'projectImage']))
+                                <span class="ml-auto">
+                                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                                </span>
+                                @endif
                             </h2>
+
                         </div>
                         <div x-show="openSection === 'basic'" class="p-8 mb-5">
 
@@ -30,7 +37,7 @@
                                     Project Name:</label>
 
                                 <div class="flex items-center">
-                                    <input type="text" id="name" wire:model.blur="name"
+                                    <input type="text" id="name" maxlength="80" wire:model.blur="name"
                                         @blur="touched = ($event.target.value !== '')"
                                         class="input input-bordered input-lg text-2xl w-full border rounded shadow-sm flex-1" />
 
@@ -47,7 +54,7 @@
                             <div class="relative mb-8">
                                 <label for="artist_name" class="block label-text text-gray-700 mb-2">Artist Name
                                     (Optional):</label>
-                                <input type="text" id="artist_name" wire:model.blur="artistName"
+                                <input type="text" id="artist_name" maxlength="30" wire:model.blur="artistName"
                                     class="input input-bordered w-full px-3 py-2">
                                 @error('artistName') <div
                                     class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
@@ -155,11 +162,14 @@
                                     for
                                     the
                                     project:</label>
-                                <input type="file" id="project_image" wire:model.blur="projectImage" class="file-input">
+                                <input type="file" id="project_image" wire:model="projectImage" class="file-input">
                                 @error('projectImage') <div
                                     class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div> @enderror
+                                @if ($projectImage)
+                                <img class="w-1/2" src="{{ $projectImage->temporaryUrl() }}">
+                                @endif
                             </div>
 
                             <!-- Add more basic info fields here... -->
@@ -173,10 +183,15 @@
                             @click="openSection = (openSection === 'collaboration' ? null : 'collaboration')">
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-users w-5 text-center mr-8 text-4xl"></i>Collaboration Type
+                                @if($errors->has(['collaborationType']))
+                                <span class="ml-auto">
+                                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                                </span>
+                                @endif
                             </h2>
                         </div>
                         <div x-show="openSection === 'collaboration'" class="p-8 mb-5">
-                            <div class="mb-1">
+                            <div class="relative mb-1">
                                 <label class="block label-text mb-2">Choose a collaboration type:</label>
 
                                 <div class="flex flex-col">
@@ -206,6 +221,11 @@
                                         <span class="ml-2">Vocal Tuning</span>
                                     </label>
                                 </div>
+                                @error('collaboationType')
+                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
+                                    data-tip="{{ $message }}">
+                                </div>
+                                @enderror
 
 
                             </div>
@@ -219,10 +239,15 @@
                             @click="openSection = (openSection === 'budget' ? null : 'budget')">
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-dollar-sign w-5 text-center mr-8 text-4xl"></i>Budget
+                                @if($errors->has(['budget']))
+                                <span class="ml-auto">
+                                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                                </span>
+                                @endif
                             </h2>
                         </div>
                         <div x-show="openSection === 'budget'" class="p-8 mb-5">
-                            <div class="mb-4">
+                            <div class="relative mb-4">
                                 <label for="budget_slider" class="block label-text text-gray-700 mb-2">Specify your
                                     budget:</label>
 
@@ -256,11 +281,12 @@
                                     </div>
 
                                 </div>
-
-                                @error('budget') <div
-                                    class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
+                                @error('budget')
+                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
-                                </div> @enderror
+                                </div>
+                                @enderror
+
                             </div>
                         </div>
                     </div>
@@ -274,19 +300,25 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-calendar-alt w-5 text-center mr-8 text-4xl"></i>Project
                                 Deadline
+                                @if($errors->has(['deadline']))
+                                <span class="ml-auto">
+                                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                                </span>
+                                @endif
                             </h2>
                         </div>
                         <div x-show="openSection === 'deadline'" class="p-8 mb-5">
-                            <div class="mb-4">
+                            <div class="relative mb-4">
                                 <label for="deadline" class="block label-text text-gray-700 mb-2">Specify project
                                     completion
                                     deadline:</label>
                                 <input type="date" id="deadline" wire:model.blur="deadline"
                                     class="input input-bordered px-3 py-2">
-                                @error('deadline') <div
-                                    class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
+                                @error('deadline')
+                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
-                                </div> @enderror
+                                </div>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -297,18 +329,24 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-upload w-5 text-center  mr-8 text-4xl"></i>Track
                                 Upload
+                                @if($errors->hasAny(['track']))
+                                <span class="ml-auto">
+                                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                                </span>
+                                @endif
                             </h2>
                         </div>
                         <div x-show="openSection === 'trackUpload'" class="p-8 mb-5">
-                            <div class="mb-4">
+                            <div class="relative mb-4">
                                 <label for="track" class="block label-text text-gray-700 mb-2">Upload your
                                     track:</label>
                                 <input type="file" id="track" wire:model.blur="track"
                                     class="w-full px-3 py-2 border rounded shadow-sm">
-                                @error('track') <div
-                                    class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
+                                @error('track')
+                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
-                                </div> @enderror
+                                </div>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -320,18 +358,24 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-sticky-note w-5 text-center mr-8 text-4xl"></i>Additional
                                 Notes
+                                @if($errors->hasAny(['notes']))
+                                <span class="ml-auto">
+                                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                                </span>
+                                @endif
                             </h2>
                         </div>
                         <div x-show="openSection === 'notes'" class="p-8 mb-5">
-                            <div class="mb-4">
+                            <div class="relative mb-4">
                                 <label for="notes" class="block label-text text-gray-700 mb-2">Any additional details or
                                     comments:</label>
                                 <textarea id="notes" rows="4" wire:model.bluri="notes"
                                     class="textarea textarea-bordered w-full px-3 py-2"></textarea>
-                                @error('notes') <div
-                                    class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
+                                @error('notes')
+                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
-                                </div> @enderror
+                                </div>
+                                @enderror
                             </div>
                         </div>
                     </div>

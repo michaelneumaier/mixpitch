@@ -20,8 +20,20 @@ class Project extends Model
         'description',
         'genre',
         'status',
-        'slug'
+        'image_path',
+        'slug',
+        'artist_name',
+        'project_type',
+        'collaboration_type',
+        'budget',
+        'deadline',
+        'preview_track',
+        'notes'
     ];
+
+    protected $casts = [
+    'collaboration_type' => 'array',
+];
 
     protected $attributes = ['status' => 'unpublished'];
 
