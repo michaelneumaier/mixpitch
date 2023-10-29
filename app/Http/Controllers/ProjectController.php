@@ -242,7 +242,7 @@ class ProjectController extends Controller
         $project->delete();
 
         // Redirect back to the projects index with a success message
-        return redirect()->route('projects.index')->with('success', 'Project and all associated files have been deleted.');
+        return redirect()->route('dashboard')->with('success', 'Project and all associated files have been deleted.');
     }
 
 

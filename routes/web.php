@@ -38,7 +38,7 @@ Route::middleware(['auth'])->group(function () {
     //     return view('livewire.create-project');
     // });
 
-    Route::get('/create-project', CreateProject::class);
+    Route::get('/create-project', CreateProject::class)->name('projects.create');
 
 
     Route::delete('projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.deleteFile');

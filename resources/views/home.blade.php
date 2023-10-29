@@ -15,7 +15,7 @@
         <div class="flex flex-col md:flex-row justify-center my-4 md:mt-8 md:space-x-4 px-10 md:px-4">
             <div class="w-full md:w-1/2 lg:w-1/3 mb-8 md:mb-4 md:mb-0">
                 @auth
-                <a href="{{ route('projects.upload') }}"
+                <a href="{{ route('projects.create') }}"
                     class="transition-all hover:scale-[1.02] block bg-accent hover:bg-accent-focus text-xl text-center font-bold w-full py-2 px-4 border-b-4 border-accent hover:border-accent-focus shadow-glow shadow-accent hover:shadow-accent-focus rounded whitespace-nowrap">Submit
                     Your Music</a>
                 @else

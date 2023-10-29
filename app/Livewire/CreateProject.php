@@ -3,16 +3,19 @@
 namespace App\Livewire;
 
 use App\Models\Project;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class CreateProject extends Component
 {
+    use WithFileUploads;
 
-    #[Rule('required|string|min:5|max:255')]
+    #[Rule('required|string|min:5|max:80')]
     public $name;
 
-    #[Rule('nullable|string|max:255')]
+    #[Rule('nullable|string|max:30')]
     public $artistName;
 
     #[Rule('required|in:single,album,ep,other')]
@@ -43,7 +46,7 @@ class CreateProject extends Component
     public $collaborationTypeVocalTuning = false;
 
     #[Rule('required|numeric|min:0')]
-    public $budget;
+    public $budget = 0;
 
     #[Rule('required|date|after:today')]
     public $deadline;
@@ -57,6 +60,31 @@ class CreateProject extends Component
     public function save()
     {
         $this->validate();
+        $project = new Project();
+        $project->user_id = auth()->id();
+        $project->name = $this->name;
+        $project->artist_name = $this->artistName;
+        if ($this->projectImage) {
+            $path = $this->projectImage->store('images', 'public');
+            $project->image_path = "/{$path}";
+        }
+        $project->project_type = $this->projectType;
+        $project->description = $this->description;
+        $project->genre = $this->genre;
+        $project->collaboration_type = [
+        'mixing' => $this->collaborationTypeMixing,
+        'mastering' => $this->collaborationTypeMastering,
+        'production' => $this->collaborationTypeProduction,
+        'songwriting' => $this->collaborationTypeSongwriting,
+        'vocal_tuning' => $this->collaborationTypeVocalTuning,
+        ];
+        $project->budget = $this->budget;
+        $project->deadline = $this->deadline;
+        $project->preview_track = $this->track;
+        $project->notes = $this->notes;
+        $project->save();
+        return redirect()->route('projects.show', $project);
+
     }
 
     public function render()

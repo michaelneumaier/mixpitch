@@ -1,6 +1,5 @@
 <div class="w-full lg:w-1/4 md:w-1/2 mb-4 px-1" wire:click="cardClickRoute()">
-    <div
-        class="transition-all shadow-base-200 shadow-glow hover:shadow-lg hover:shadow-base-300 hover:scale-[1.01] rounded-lg">
+    <div class="transition-all shadow-base-200 shadow-glow hover:shadow-lg hover:shadow-base-300 rounded-lg">
         <div class="relative aspect-w-1 aspect-h-1 rounded-lg">
             <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"
                 style="background-image: url('{{ $project->image_path ? asset('storage' . $project->image_path) : 'https://via.placeholder.com/150' }}');">
