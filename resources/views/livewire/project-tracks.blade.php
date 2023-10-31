@@ -1,7 +1,7 @@
 <div id="tracks-component-root">
     @if($files->isEmpty())
     <div class="bg-white p-4 rounded shadow">
-        <p class="font-bold text-lg mb-2">There are no tracks uploaded.</p>
+        <p class="font-bold text-lg">There are no tracks uploaded.</p>
     </div>
     @else
     <div x-data="{ show: false, ...initWaveSurfer() }">

@@ -11,7 +11,8 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-info-circle w-5 text-center mr-8 text-4xl"></i>Basic
                                 Info
-                                @if($errors->hasAny(['name', 'artistName', 'projectType', 'description', 'genre',
+                                @if($errors->hasAny(['form.name', 'form.artistName', 'form.projectType',
+                                'form.description', 'form.genre',
                                 'projectImage']))
                                 <span class="ml-auto">
                                     <i class="fas fa-exclamation-circle text-red-500"></i>
@@ -28,7 +29,7 @@
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
 
                                     <!-- Invalid Icon (Red X) -->
-                                    @if($errors->has('name'))
+                                    @if($errors->has('form.name'))
                                     <span x-show="touched" class="text-red-500 fas fa-times"></span>
                                     @else
                                     <!-- Valid Icon (Checkmark) -->
@@ -37,14 +38,14 @@
                                     Project Name:</label>
 
                                 <div class="flex items-center">
-                                    <input type="text" id="name" maxlength="80" wire:model.blur="name"
+                                    <input type="text" id="name" maxlength="80" wire:model.blur="form.name"
                                         @blur="touched = ($event.target.value !== '')"
                                         class="input input-bordered input-lg text-2xl w-full border rounded shadow-sm flex-1" />
 
 
                                 </div>
 
-                                @error('name')
+                                @error('form.name')
                                 <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}"></div>
                                 @enderror
@@ -54,9 +55,9 @@
                             <div class="relative mb-8">
                                 <label for="artist_name" class="block label-text text-gray-700 mb-2">Artist Name
                                     (Optional):</label>
-                                <input type="text" id="artist_name" maxlength="30" wire:model.blur="artistName"
+                                <input type="text" id="artist_name" maxlength="30" wire:model.blur="form.artistName"
                                     class="input input-bordered w-full px-3 py-2">
-                                @error('artistName') <div
+                                @error('form.artistName') <div
                                     class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>
@@ -68,14 +69,14 @@
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
 
                                     <!-- Invalid Icon (Red X) -->
-                                    @if($errors->has('projectType'))
+                                    @if($errors->has('form.projectType'))
                                     <span x-show="touched" class="text-red-500 fas fa-times"></span>
                                     @else
                                     <!-- Valid Icon (Checkmark) -->
                                     <span x-show="touched" class="text-green-500 fas fa-check"></span>
                                     @endif
                                     Select project type:</label>
-                                <select id="projectType" wire:model.blur="projectType"
+                                <select id="projectType" wire:model.blur="form.projectType"
                                     @blur="touched = ($event.target.value !== 'null')"
                                     class="w-full px-3 py-2 border rounded shadow-sm">
                                     <option value="null" disabled>Select a project type</option>
@@ -84,7 +85,7 @@
                                     <option value="ep">EP</option>
                                     <option value="mixtape">Mixtape</option>
                                 </select>
-                                @error('projectType') <div
+                                @error('form.projectType') <div
                                     class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>
@@ -96,7 +97,7 @@
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
 
                                     <!-- Invalid Icon (Red X) -->
-                                    @if($errors->has('description'))
+                                    @if($errors->has('form.description'))
                                     <span x-show="touched" class="text-red-500 fas fa-times"></span>
                                     @else
                                     <!-- Valid Icon (Checkmark) -->
@@ -104,11 +105,11 @@
                                     @endif
                                     Description:</label>
 
-                                <textarea id="description" rows="4" wire:model.blur="description"
+                                <textarea id="description" rows="4" wire:model.blur="form.description"
                                     @blur="touched = ($event.target.value !== '')"
                                     class="textarea textarea-bordered w-full px-3 py-2"></textarea>
 
-                                @error('description')
+                                @error('form.description')
                                 <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>
@@ -123,14 +124,14 @@
                                     <span x-show="!touched" class="text-red-500 fas fa-asterisk"></span>
 
                                     <!-- Invalid Icon (Red X) -->
-                                    @if($errors->has('description'))
+                                    @if($errors->has('form.genre'))
                                     <span x-show="touched" class="text-red-500 fas fa-times"></span>
                                     @else
                                     <!-- Valid Icon (Checkmark) -->
                                     <span x-show="touched" class="text-green-500 fas fa-check"></span>
                                     @endif
                                     Genre:</label>
-                                <select id="genre" wire:model.blur="genre"
+                                <select id="genre" wire:model.blur="form.genre"
                                     @blur="touched = ($event.target.value !== 'null')"
                                     class="w-full px-3 py-2 border rounded shadow-sm">
                                     <option value="null" disabled>Select a genre</option>
@@ -151,10 +152,11 @@
                                     <option value="Punk">Punk</option>
                                     <!-- ... Add more genres as needed ... -->
                                 </select>
-                                @error('genre') <div
+                                @error('form.genre') <div
                                     class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
-                                </div> @enderror
+                                </div>
+                                @enderror
                             </div>
 
                             <div class="relative mb-4">
@@ -162,13 +164,13 @@
                                     for
                                     the
                                     project:</label>
-                                <input type="file" id="project_image" wire:model="projectImage" class="file-input">
-                                @error('projectImage') <div
+                                <input type="file" id="project_image" wire:model="form.projectImage" class="file-input">
+                                @error('form.projectImage') <div
                                     class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div> @enderror
-                                @if ($projectImage)
-                                <img class="w-1/2" src="{{ $projectImage->temporaryUrl() }}">
+                                @if ($form->projectImage)
+                                <img class="w-1/2" src="{{ $form->projectImage->temporaryUrl() }}">
                                 @endif
                             </div>
 
@@ -196,32 +198,32 @@
 
                                 <div class="flex flex-col">
                                     <label class="inline-flex items-center mb-4">
-                                        <input type="checkbox" wire:model.blur="collaborationTypeMixing"
+                                        <input type="checkbox" wire:model.blur="form.collaborationTypeMixing"
                                             class="checkbox text-indigo-600">
                                         <span class="ml-2">Mixing</span>
                                     </label>
                                     <label class="inline-flex items-center mb-4">
-                                        <input type="checkbox" wire:model.blur="collaborationTypeMastering"
+                                        <input type="checkbox" wire:model.blur="form.collaborationTypeMastering"
                                             class="checkbox text-indigo-600">
                                         <span class="ml-2">Mastering</span>
                                     </label>
                                     <label class="inline-flex items-center mb-4">
-                                        <input type="checkbox" wire:model.blur="collaborationTypeProduction"
+                                        <input type="checkbox" wire:model.blur="form.collaborationTypeProduction"
                                             class="checkbox text-indigo-600">
                                         <span class="ml-2">Production</span>
                                     </label>
                                     <label class="inline-flex items-center mb-4">
-                                        <input type="checkbox" wire:model.blur="collaborationTypeSongwriting"
+                                        <input type="checkbox" wire:model.blur="form.collaborationTypeSongwriting"
                                             class="checkbox text-indigo-600">
                                         <span class="ml-2">Songwriting</span>
                                     </label>
                                     <label class="inline-flex items-center mb-4">
-                                        <input type="checkbox" wire:model.blur="collaborationTypeVocalTuning"
+                                        <input type="checkbox" wire:model.blur="form.collaborationTypeVocalTuning"
                                             class="checkbox text-indigo-600">
                                         <span class="ml-2">Vocal Tuning</span>
                                     </label>
                                 </div>
-                                @error('collaboationType')
+                                @error('form.collaboationType')
                                 <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>
@@ -259,7 +261,7 @@
 
                                     <input type="range" id="budget_slider" min="0" max="1000" step="10"
                                         x-bind:value="budget" x-on:input="budget = $event.target.value"
-                                        wire:model.blur="budget"
+                                        wire:model.blur="form.budget"
                                         class="h-full appearance-none flex items-center cursor-pointer bg-transparent z-30
         [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:appearance-none
         [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:appearance-none
@@ -277,11 +279,12 @@
                                         <!-- Input with Added Padding -->
                                         <input type="number" id="budget" min="0" max="1000" x-bind:value="budget"
                                             x-on:input="budget = $event.target.value" placeholder="0"
-                                            class="px-3 py-2 pl-8 border rounded shadow-sm" wire:model.blur="budget">
+                                            class="px-3 py-2 pl-8 border rounded shadow-sm"
+                                            wire:model.blur="form.budget">
                                     </div>
 
                                 </div>
-                                @error('budget')
+                                @error('form.budget')
                                 <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>
@@ -300,7 +303,7 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-calendar-alt w-5 text-center mr-8 text-4xl"></i>Project
                                 Deadline
-                                @if($errors->has(['deadline']))
+                                @if($errors->has(['form.deadline']))
                                 <span class="ml-auto">
                                     <i class="fas fa-exclamation-circle text-red-500"></i>
                                 </span>
@@ -312,9 +315,9 @@
                                 <label for="deadline" class="block label-text text-gray-700 mb-2">Specify project
                                     completion
                                     deadline:</label>
-                                <input type="date" id="deadline" wire:model.blur="deadline"
+                                <input type="date" id="deadline" wire:model.blur="form.deadline"
                                     class="input input-bordered px-3 py-2">
-                                @error('deadline')
+                                @error('form.deadline')
                                 <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>
@@ -329,7 +332,7 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-upload w-5 text-center  mr-8 text-4xl"></i>Track
                                 Upload
-                                @if($errors->hasAny(['track']))
+                                @if($errors->hasAny(['form.track']))
                                 <span class="ml-auto">
                                     <i class="fas fa-exclamation-circle text-red-500"></i>
                                 </span>
@@ -340,9 +343,9 @@
                             <div class="relative mb-4">
                                 <label for="track" class="block label-text text-gray-700 mb-2">Upload your
                                     track:</label>
-                                <input type="file" id="track" wire:model.blur="track"
+                                <input type="file" id="track" wire:model.blur="form.track"
                                     class="w-full px-3 py-2 border rounded shadow-sm">
-                                @error('track')
+                                @error('form.track')
                                 <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>
@@ -358,7 +361,7 @@
                             <h2 class="text-2xl p-5 flex items-center"><i
                                     class="fas fa-sticky-note w-5 text-center mr-8 text-4xl"></i>Additional
                                 Notes
-                                @if($errors->hasAny(['notes']))
+                                @if($errors->hasAny(['form.notes']))
                                 <span class="ml-auto">
                                     <i class="fas fa-exclamation-circle text-red-500"></i>
                                 </span>
@@ -369,9 +372,9 @@
                             <div class="relative mb-4">
                                 <label for="notes" class="block label-text text-gray-700 mb-2">Any additional details or
                                     comments:</label>
-                                <textarea id="notes" rows="4" wire:model.bluri="notes"
+                                <textarea id="notes" rows="4" wire:model.bluri="form.notes"
                                     class="textarea textarea-bordered w-full px-3 py-2"></textarea>
-                                @error('notes')
+                                @error('form.notes')
                                 <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
                                 </div>

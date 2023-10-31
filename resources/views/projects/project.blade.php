@@ -3,53 +3,24 @@
 @section('content')
 <div class="container mx-auto px-1">
     <div class="flex justify-center">
-        <div class="w-full lg:w-2/3">
+        <div class="w-full lg:w-3/4 2xl:w-2/3">
             <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg overflow-hidden">
                 <div class="flex flex-col lg:flex-row shadow-lightGlow shadow-base-300">
                     <!-- Project Image on the Left -->
                     <div x-data="{ lightbox: { isOpen: false } }"
-                        class="relative w-full lg:w-1/3 lg:float-left md:mb-4 lg:mb-0">
+                        class="relative w-full lg:aspect-square lg:w-fit lg:float-left md:mb-4 lg:mb-0">
 
                         <!-- Image that triggers the lightbox -->
                         <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $project->image_path) }}"
-                            alt="{{ $project->name }}" class="w-full h-56 object-cover lg:rounded-tl-lg cursor-pointer">
+                            alt="{{ $project->name }}"
+                            class="w-full aspect-square lg:w-64 h-64 object-cover lg:rounded-tl-lg cursor-pointer">
 
                         <div class="lg:hidden">
                             <livewire:status-button :status="$project->status" type="top-right" />
                         </div>
-
-                        <!-- The actual lightbox overlay -->
-                        <div x-cloak x-show="lightbox.isOpen"
-                            class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
-                            <img @click="lightbox.isOpen = false" src="{{ asset('storage/' . $project->image_path) }}"
-                                alt="Lightbox image" class="max-w-full max-h-full">
-
-                            <!-- Close button -->
-                            <button @click="lightbox.isOpen = false"
-                                class="absolute top-4 right-4 text-white">Close</button>
-                        </div>
-
-                    </div>
-
-
-                    <!-- Project Details on the Right -->
-                    <div class="relative p-4 flex-grow flex-col justify-between items-start lg:ml-1/3">
-
-                        <!-- First Row -->
-                        <div class="flex justify-between items-start w-full mb-2">
-                            <h3 class="text-4xl">
-                                {{ $project->name }}
-                            </h3>
-
-                            <div class="hidden lg:block">
-                                <livewire:status-button :status="$project->status" type="top-right" />
-                            </div>
-
-                        </div>
-
                         <!-- Edit/Delete if User's Project-->
                         @if(auth()->check() && $project->isOwnedByUser(auth()->user()))
-                        <div class="flex items-start py-2">
+                        <div class="absolute bottom-0 right-2 flex items-start py-2">
                             <form action="{{ route('projects.edit', $project) }}" method="GET" class="mr-2">
                                 @csrf
                                 <button type="submit" onclick="event.stopPropagation(); /* handle button click */"
@@ -114,14 +85,73 @@
                         </div>
                         @endif
 
-                        <!-- Second Row -->
-                        <div class="flex justify-between items-start w-full text-xl py-2">
-                            <span> {{ $project->user->name }}</span>
+                        <!-- The actual lightbox overlay -->
+                        <div x-cloak x-show="lightbox.isOpen"
+                            class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
+                            <img @click="lightbox.isOpen = false" src="{{ asset('storage/' . $project->image_path) }}"
+                                alt="Lightbox image" class="max-w-full max-h-full">
+
+                            <!-- Close button -->
+                            <button @click="lightbox.isOpen = false"
+                                class="absolute top-4 right-4 text-white">Close</button>
                         </div>
-                        <div class="flex justify-between items-start w-full">
-                            <span> {{ Str::title($project->project_type) }}</span>
+
+                    </div>
+
+
+                    <!-- Project Details on the Right -->
+                    <div class="relative p-4 flex flex-grow flex-row items-center lg:ml-1/3">
+
+                        <!-- Content here will be vertically and horizontally centered within the parent div -->
+
+                        <!-- First Row -->
+                        <div class="w-full">
+                            <h3 class="text-4xl">
+                                {{ $project->name }}
+                            </h3>
+                            @if($project->artist_name)
+                            <div class="py-2">
+                                <b>Artist</b>: {{ $project->artist_name }}
+                            </div>
+                            @endif
+                            <!-- Second Row -->
+                            <div class="flex items-center w-full text-xl pb-2">
+                                <img class="h-10 w-10 rounded-full object-cover mr-3"
+                                    src="{{ $project->user->profile_photo_url }}" alt="{{ $project->user->name }}" />
+                                <span>{{ $project->user->name }}</span>
+                            </div>
+
+
+                            <!-- Additional Information -->
+                            <div class="flex justify-center w-full">
+                                <div
+                                    class="stats bg-base-200 shadow-lightGlow shadow-base-200 border-2 border-base-300">
+                                    <div class="stat py-2">
+                                        <div class="stat-title ">Project Type</div>
+                                        <div class="stat-value text-xl">{{ Str::title($project->project_type) }}</div>
+                                    </div>
+                                    <div class="stat py-2">
+                                        <div class="stat-title">Budget</div>
+                                        <div class="stat-value text-xl">{{ $project->budget == 0 ? 'Free' :
+                                            '$'.number_format($project->budget, 2) }}</div>
+                                    </div>
+                                    <div class="stat py-2">
+                                        <div class="stat-title">Deadline</div>
+                                        <div class="stat-value text-xl">{{
+                                            \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <!-- Status Button for larger screens -->
+                            <div class="hidden lg:block">
+                                <livewire:status-button :status="$project->status" type="top-right" />
+                            </div>
                         </div>
                     </div>
+
                 </div>
                 <div>
                     <div class="flex justify-between items-start text-xl mb-4 p-8">
