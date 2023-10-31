@@ -4,7 +4,7 @@
             <a class="text-2xl font-bold md:pl-4 md:mr-2 text-dark" href="{{ url('/') }}">MixPitch</a>
             <a class="nav-link pl-2 md:pl-10 pt-1" href="{{ route('projects.index') }}">Projects</a>
         </div>
-        <div class="md:pr-20">
+        <div class="md:pr-10">
             @guest
             <livewire:auth-dropdown />
 
@@ -12,7 +12,7 @@
             <a class="nav-link d-inline" href="{{ route('register') }}">Register</a> -->
             @else
             <div x-data="{ open: false }" @click.away="open = false" class="relative">
-                <div class="flex items-center px-4" @click="open = !open">
+                <div class="flex items-center md:px-4" @click="open = !open">
                     @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
                     <div class="shrink-0 mr-3">
                         <img class="h-10 w-10 rounded-full object-cover" src="{{ Auth::user()->profile_photo_url }}"
@@ -21,7 +21,9 @@
                     @endif
 
                     <div>
-                        <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}
+                        <div class="hidden md:inline font-medium text-base text-gray-800 dark:text-gray-200">{{
+                            Auth::user()->name
+                            }}
                         </div>
                         <!-- <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div> -->
                     </div>
