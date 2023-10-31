@@ -13,6 +13,7 @@
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
         "livewire/livewire": "^3.0",
+        "sebdesign/laravel-state-machine": "^3.4",
         "spatie/laravel-permission": "^6.0",
         "spatie/laravel-sluggable": "^3.5"
     },
