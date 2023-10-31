@@ -25,6 +25,10 @@
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             role="menuitem">Dashboard</a>
                         <div class="border-t border-gray-100"></div>
+                        <a href="{{ route('profile.show') }}"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">User
+                            Profile</a>
+                        <div class="border-t border-gray-100"></div>
                         <a href="{{ route('logout') }}"
                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">

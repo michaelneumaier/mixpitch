@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
-use Cviebrock\EloquentSluggable\Sluggable;
+
 use Sebdesign\SM\StateMachine\StateMachine;
 use Sebdesign\SM\StateMachine\StateMachineInterface;
 
@@ -82,8 +83,8 @@ class Project extends Model
         ];
     }
 
-    public function stateMachine(): StateMachineInterface
-    {
-        return new StateMachine($this, 'project_status', config('state-machine'));
-    }
+    // public function stateMachine(): StateMachineInterface
+    // {
+    //     return new StateMachine($this, 'project_status', config('state-machine'));
+    // }
 }

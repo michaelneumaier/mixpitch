@@ -1,12 +1,10 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Livewire\CreateProject;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MixController;
-
+use App\Http\Controllers\ProjectController;
+use App\Livewire\CreateProject;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +21,17 @@ Route::get('/', function () {
     return view('home');
 });
 
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+
+});
+
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
 
 
 Route::middleware(['auth'])->group(function () {
@@ -43,7 +51,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::delete('projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.deleteFile');
 
-    //Route::post('/projects/storeStep2', [ProjectController::class, 'storeStep2'])->name('projects.storeStep2');
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
     Route::get('/projects/{project}/download', [ProjectController::class, 'download'])->name('projects.download');
 
@@ -52,18 +59,3 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/mixes/{mix}/rate', [MixController::class, 'rate'])->name('mixes.rate');
 
 });
-
-Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
-
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
-Route::post('/tracks/upload', [\App\Http\Controllers\TrackController::class, 'upload'])->name('tracks.upload');
-
-
-require __DIR__ . '/auth.php';
