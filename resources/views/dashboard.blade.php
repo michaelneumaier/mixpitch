@@ -5,7 +5,6 @@
 <div class="w-full mx-auto">
     <div class="flex justify-center">
         <div class="w-full">
-            <!-- removed the background color from the card -->
             <div class="shadow mb-4">
                 <!-- Adjusted text color for visibility -->
                 <div class="py-3 px-4 text-primary text-3xl font-semibold text-center">{{ __('Dashboard') }}</div>
