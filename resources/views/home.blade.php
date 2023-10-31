@@ -8,6 +8,7 @@
             <br /><b>Elevate</b>&nbsp;Mixers.
             <br /><b>Unleash</b>&nbsp;Creativity.
         </h1>
+
         <p class="md:mt-4 p-4 text-l md:text-3xl text-secondary text-center">
             MixPitch is the ultimate platform for musicians to have their music mixed by anyone. With real-world
             recordings and a level playing field, it's never been easier to get paid for mixing.
