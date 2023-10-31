@@ -1,15 +1,39 @@
-const defaultTheme = require('tailwindcss/defaultTheme');
+import defaultTheme from 'tailwindcss/defaultTheme';
+import forms from '@tailwindcss/forms';
+import typography from '@tailwindcss/typography';
 
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+        './vendor/laravel/jetstream/**/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         "./resources/**/*.blade.php",
         "./resources/**/*.js",
         "./resources/**/*.vue",
     ],
+
+    theme: {
+        extend: {
+            fontFamily: {
+                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+            },
+            boxShadow: {
+                'glow': '0 0 20px 1px',
+                'lightGlow': '0 0 20px -7px',
+            },
+            colors: {
+                tertiary: '#FFBF00',
+                button: '#95B3C6',
+                buttonFocus: '#AFC6D4',
+                statusOpen: '#00ff00',
+                statusClosed: '#cc0000',
+                statusReview: '#ffe500',
+                statusComplete: '#1500D6',
+            }
+        },
+    },
 
     daisyui: {
         themes: [{
@@ -41,30 +65,11 @@ module.exports = {
         }, "dark"],
     },
 
-    theme: {
-        extend: {
-            fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
-            },
-            boxShadow: {
-                'glow': '0 0 20px 1px',
-                'lightGlow': '0 0 20px -7px',
-            },
-            colors: {
-                tertiary: '#FFBF00',
-                button: '#95B3C6',
-                buttonFocus: '#AFC6D4',
-                statusOpen: '#00ff00',
-                statusClosed: '#cc0000',
-                statusReview: '#ffe500',
-                statusComplete: '#1500D6',
-            }
-        },
-    },
 
     plugins: [
+        forms,
+        typography,
         require('@tailwindcss/forms'),
         require('@tailwindcss/aspect-ratio'),
-        require("daisyui")
-    ],
+        require("daisyui")],
 };
