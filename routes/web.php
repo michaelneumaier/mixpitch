@@ -39,7 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/projects/upload', [ProjectController::class, 'createProject'])->name('projects.upload');
     Route::get('/projects/{project}/step2', [ProjectController::class, 'createStep2'])->name('projects.createStep2');
     Route::post('/projects/{project}/step2', [ProjectController::class, 'storeStep2'])->name('projects.storeStep2');
-    Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
+    //Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
 
     // Route::get('/create-project', function () {
@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
     // });
 
     Route::get('/create-project', CreateProject::class)->name('projects.create');
+    Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
 
 
     Route::delete('projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.deleteFile');

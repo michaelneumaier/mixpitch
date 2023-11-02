@@ -24,6 +24,8 @@
     <script src="https://unpkg.com/wavesurfer.js"></script>
 
     @livewireStyles
+
+
 </head>
 
 <body class="font-sans antialiased bg-base-100">
@@ -51,6 +53,7 @@
 
     @yield('scripts')
     @livewireScripts()
+    @stack('scripts')
 
 
 </body>

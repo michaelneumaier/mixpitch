@@ -2,7 +2,7 @@
     <div class="flex justify-center">
         <div class="w-full lg:w-2/3">
             <div class="text-4xl text-center text-primary mb-6">Create Project</div>
-            <div x-data="{ openSection: 'basic', budget: 0 }">
+            <div x-data="{ openSection: 'basic', budget: @entangle('form.budget') }">
                 <form wire:submit="save">
                     <!-- Basic Info Section -->
                     <div class="shadow-lg shadow-base-200 rounded-lg mb-6">
@@ -160,19 +160,54 @@
                             </div>
 
                             <div class="relative mb-4">
-                                <label for="project_image" class="block label-text text-gray-700 mb-2">Upload an image
-                                    for
-                                    the
-                                    project:</label>
-                                <input type="file" id="project_image" wire:model="form.projectImage" class="file-input">
-                                @error('form.projectImage') <div
-                                    class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
+                                <label for="project_image" class="block label-text mb-2">
+                                    Upload an image for the project:
+                                </label>
+
+                                @error('form.projectImage')
+                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
                                     data-tip="{{ $message }}">
-                                </div> @enderror
-                                @if ($form->projectImage)
-                                <img class="w-1/2" src="{{ $form->projectImage->temporaryUrl() }}">
-                                @endif
+                                </div>
+                                @enderror
+
+                                <!-- Image preview or placeholder -->
+                                <div class="w-full max-w-xs mx-auto">
+                                    @if ($form->projectImage)
+                                    @if (is_object($form->projectImage) && method_exists($form->projectImage,
+                                    'temporaryUrl'))
+                                    <div class="relative">
+                                        <img src="{{ $form->projectImage->temporaryUrl() }}"
+                                            class="w-full rounded-lg object-cover">
+                                        <button type="button" wire:click="revertImage"
+                                            class="absolute top-0 left-0 bg-red-600 rounded-tl-lg text-white w-10 h-10 text-sm p-1.5"
+                                            title="Revert to original image">
+                                            &times;
+                                        </button>
+                                    </div>
+                                    @else
+                                    <img src="{{ $form->projectImage }}" class="w-full rounded-lg object-cover">
+                                    @endif
+                                    @else
+                                    <!-- Placeholder -->
+                                    <div
+                                        class="flex items-center justify-center border-2 border-dashed rounded-lg h-48 bg-gray-100">
+                                        <span class="text-gray-500">No image selected</span>
+                                    </div>
+                                    @endif
+                                </div>
+
+                                <!-- File input and label -->
+                                <div class="w-full max-w-xs mx-auto mt-2">
+                                    <input type="file" id="project_image" wire:model="form.projectImage"
+                                        class="file-input hidden">
+                                    <label for="project_image"
+                                        class="cursor-pointer label-text block text-center bg-primary text-white py-2 px-4 rounded-lg shadow hover:bg-primary-focus w-full">
+                                        <i class="fas fa-upload"></i> Choose Image
+                                    </label>
+                                </div>
                             </div>
+
+
 
                             <!-- Add more basic info fields here... -->
                         </div>
@@ -278,7 +313,7 @@
 
                                         <!-- Input with Added Padding -->
                                         <input type="number" id="budget" min="0" max="1000" x-bind:value="budget"
-                                            x-on:input="budget = $event.target.value" placeholder="0"
+                                            x-on:input="budget = $event.target.value"
                                             class="px-3 py-2 pl-8 border rounded shadow-sm"
                                             wire:model.blur="form.budget">
                                     </div>
@@ -325,13 +360,13 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Track Upload Section -->
+
+
                     <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
-                            @click="openSection = (openSection === 'trackUpload' ? null : 'trackUpload')">
+                            @click="openSection = (openSection === 'track' ? null : 'track')">
                             <h2 class="text-2xl p-5 flex items-center"><i
-                                    class="fas fa-upload w-5 text-center  mr-8 text-4xl"></i>Track
-                                Upload
+                                    class="fas fa-sticky-note w-5 text-center mr-8 text-4xl"></i>Preview Track
                                 @if($errors->hasAny(['form.track']))
                                 <span class="ml-auto">
                                     <i class="fas fa-exclamation-circle text-red-500"></i>
@@ -339,20 +374,39 @@
                                 @endif
                             </h2>
                         </div>
-                        <div x-show="openSection === 'trackUpload'" class="p-8 mb-5">
-                            <div class="relative mb-4">
-                                <label for="track" class="block label-text text-gray-700 mb-2">Upload your
-                                    track:</label>
-                                <input type="file" id="track" wire:model.blur="form.track"
-                                    class="w-full px-3 py-2 border rounded shadow-sm">
-                                @error('form.track')
-                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
-                                    data-tip="{{ $message }}">
-                                </div>
-                                @enderror
+
+
+
+                        <div x-show="openSection === 'track'" class="p-8 mb-5">
+                            <input type="file" id="track" wire:model="track" class="hidden">
+                            <label for="track"
+                                class="cursor-pointer block text-center bg-blue-500 text-white py-2 px-4 rounded-lg shadow hover:bg-blue-600 w-full">
+                                <i class="fas fa-music"></i> Choose Track
+                            </label>
+                            @error('track') <span class="error">{{ $message }}</span> @enderror
+                            <div x-data="{ loaded: false }" x-show="loaded" x-on:url-updated="loaded = true"
+                                x-on:clear-track="loaded = false" class="py-4">
+                                @livewire('audio-player', ['audioUrl' => $audioUrl])
                             </div>
+
+                            <!-- Display track name if uploaded -->
+                            @if ($track && is_object($track))
+                            <div class="mt-2 p-2 bg-base-100 rounded">
+                                <div class="flex items-center justify-between">
+                                    <span>{{ $track->getClientOriginalName() }}</span>
+                                    <button wire:click="clearTrack" type="button" class="text-red-500">&times;</button>
+                                </div>
+                            </div>
+                            @endif
+
+
                         </div>
+
+
+
                     </div>
+
+
 
                     <!-- Additional Notes Section -->
                     <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
@@ -370,7 +424,8 @@
                         </div>
                         <div x-show="openSection === 'notes'" class="p-8 mb-5">
                             <div class="relative mb-4">
-                                <label for="notes" class="block label-text text-gray-700 mb-2">Any additional details or
+                                <label for="notes" class="block label-text text-gray-700 mb-2">Any additional
+                                    details or
                                     comments:</label>
                                 <textarea id="notes" rows="4" wire:model.bluri="form.notes"
                                     class="textarea textarea-bordered w-full px-3 py-2"></textarea>
