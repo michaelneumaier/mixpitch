@@ -43,7 +43,7 @@ class ProjectForm extends Form
     public $collaborationTypeVocalTuning = false;
 
     #[Rule('required|numeric|min:0')]
-    public $budget = 0;
+    public $budget;
 
     #[Rule('required|date|after:today')]
     public $deadline;
