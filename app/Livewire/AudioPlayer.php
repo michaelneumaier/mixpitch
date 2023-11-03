@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 
 class AudioPlayer extends Component
 
@@ -12,10 +11,13 @@ class AudioPlayer extends Component
     public $audioUrl;
     public $identifier;
 
-    public function mount($audioUrl)
+    public $isPreviewTrack;
+
+    public function mount($audioUrl, $isPreviewTrack = false)
     {
         $this->audioUrl = $audioUrl;
         $this->identifier = uniqid('waveform_');
+        $this->isPreviewTrack = $isPreviewTrack;
     }
 
     #[On('audioUrlUpdated')]

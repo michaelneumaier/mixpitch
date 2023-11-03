@@ -23,8 +23,8 @@
                         </div>
                     </div>
                     @endif
-                    <a href="{{ route('projects.upload') }}"
-                        class="block bg-primary hover:bg-accent text-white text-lg text-center font-bold w-full py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Share
+                    <a href="{{ route('projects.create') }}"
+                        class="block bg-primary hover:bg-primary-focus text-white text-lg text-center font-bold w-full py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Share
                         Your Project</a>
                 </div>
 

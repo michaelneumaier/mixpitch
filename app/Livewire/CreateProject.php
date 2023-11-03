@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Http\Controllers\ProjectController;
 use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
 use Illuminate\Support\Facades\Storage;
@@ -14,11 +15,11 @@ class CreateProject extends Component
     use WithFileUploads;
 
     public Project $project;
-
+    public Project $originalProject;
     public ProjectForm $form;
-
     public $isEdit = false;
-
+    public $projectImage;
+    public $deleteProjectImage = false;
     public $initWaveSurfer;
     public $track;
     public $audioUrl;
@@ -27,14 +28,15 @@ class CreateProject extends Component
     {
 
         if ($project) {
-            // An existing project is being edited
+            $this->originalProject = $project;
             $this->project = $project;
             $this->isEdit = true;
             $this->form->name = $project->name;
             $this->form->artistName;
             $this->form->projectType = $project->project_type;
-
-            $this->form->projectImage = asset('storage/' . $project->image_path);
+            if ($project->image_path) {
+                $this->projectImage = asset('storage/' . $project->image_path);
+            }
             $this->form->description = $project->description;
             $this->form->genre = $project->genre;
             $this->form->collaborationTypeMixing = $project->collaboration_type['mixing'];
@@ -44,7 +46,11 @@ class CreateProject extends Component
             $this->form->collaborationTypeVocalTuning = $project->collaboration_type['vocal_tuning'];
             $this->form->budget = $project->budget;
             $this->form->deadline = $project->deadline;
-            $this->form->track = $project->preview_track;
+            if ($project->hasPreviewTrack()) {
+                $this->audioUrl = $project->previewTrackPath();
+                //$this->dispatch('audioUrlUpdated', $this->audioUrl);
+            }
+            //$this->form->track = $project->preview_track;
             $this->form->notes = $project->notes;
         } else {
 
@@ -54,8 +60,11 @@ class CreateProject extends Component
 
     public function revertImage()
     {
-        if ($this->isEdit) {
-            $this->form->projectImage = $this->project->image_path;
+        if ($this->isEdit && $this->form->projectImage) {
+            $this->form->projectImage = null;
+        } else if ($this->isEdit && !$this->form->projectImage && $this->projectImage) {
+            $this->projectImage = null;
+            $this->deleteProjectImage = true;
         } else {
             $this->form->projectImage = null;
         }
@@ -64,8 +73,13 @@ class CreateProject extends Component
     public function clearTrack()
     {
         $this->track = null;
-        $this->audioUrl = null;
-        $this->dispatch('track-clear-button');
+        if ($this->isEdit) {
+            $this->audioUrl = $this->originalProject->previewTrackPath();
+            $this->dispatch('audioUrlUpdated', $this->audioUrl);
+        } else {
+            $this->audioUrl = null;
+            $this->dispatch('track-clear-button');
+        }
     }
 
     public function updatedFormTrack()
@@ -98,10 +112,22 @@ class CreateProject extends Component
 
         $project->name = $this->form->name;
         $project->artist_name = $this->form->artistName;
+
+
+        if ($this->isEdit && $this->form->projectImage && $this->originalProject->image_path) {
+            $this->deleteProjectImage = true;
+            $project->image_path = null;
+        }
+
+        if ($this->deleteProjectImage) {
+            $this->originalProject->deleteProjectImage();
+            $project->image_path = null;
+        }
         if ($this->form->projectImage) {
             $path = $this->form->projectImage->store('images', 'public');
-            $project->image_path = "/{$path}";
+            $project->image_path = $path;
         }
+
         $project->project_type = $this->form->projectType;
         $project->description = $this->form->description;
         $project->genre = $this->form->genre;
@@ -114,9 +140,13 @@ class CreateProject extends Component
         ];
         $project->budget = $this->form->budget;
         $project->deadline = $this->form->deadline;
-        $project->preview_track = $this->form->track;
         $project->notes = $this->form->notes;
         $project->save();
+        if ($this->track) {
+            $controller = new ProjectController();
+            $project->preview_track = $controller->storeTrack($this->track, $project);
+            $project->save();
+        }
         return redirect()->route('projects.show', $project);
     }
 
