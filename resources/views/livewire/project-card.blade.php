@@ -1,6 +1,6 @@
-<div class="w-full lg:w-1/4 md:w-1/2 mb-4 px-1" wire:click="cardClickRoute()">
+<div class="w-full lg:w-1/4 md:w-1/2 mb-4 px-1">
     <div class="transition-all shadow-base-200 shadow-glow hover:shadow-lg hover:shadow-base-300 rounded-lg">
-        <div class="relative aspect-w-1 aspect-h-1 rounded-lg">
+        <div class="relative aspect-w-1 aspect-h-1 rounded-lg" wire:click="cardClickRoute()">
             <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"
                 style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : '' }}');">
                 @if($isDashboardView)
@@ -70,7 +70,7 @@
             </div>
 
             <div class="absolute top-0 right-0">
-                <livewire:status-button :status="$project->status" type="top-right" />
+                <x-project-status-button :status="$project->status" type="top-right" />
             </div>
 
         </div>
@@ -100,7 +100,16 @@
             @else
             <p class="text-sm truncate mt-2">Uploaded by: {{ $project->user->name }}</p>
             @endif
-
+            @if($isDashboardView)
+            @if($project->status == 'unpublished')
+            <div class="btn w-full bg-primary hover:bg-primary-focus text-white text-center" wire:click="publish()">
+                Publish</div>
+            @elseif($project->status == 'published' || $project->status == 'open')
+            <div class="btn w-full bg-primary hover:bg-primary-focus text-white text-center" wire:click="unpublish()">
+                Unpublish</div>
+            @endif
+            @endif
         </div>
+
     </div>
 </div>

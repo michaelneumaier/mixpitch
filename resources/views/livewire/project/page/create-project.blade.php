@@ -1,7 +1,12 @@
 <div class="container mx-auto p-5">
     <div class="flex justify-center">
         <div class="w-full lg:w-2/3">
+            @if($isEdit)
+            <div class="text-4xl text-center text-primary mb-6">Edit Project</div>
+            @else
             <div class="text-4xl text-center text-primary mb-6">Create Project</div>
+            @endif
+
             <div x-data="{ openSection: 'basic', budget: @entangle('form.budget') }">
                 <form wire:submit="save">
 
@@ -455,10 +460,18 @@
                     </div>
 
                     <!-- Submit Button -->
+
                     <div class="mt-4">
+                        @if($isEdit)
+                        <button type="submit" class="btn btn-primary">
+                            Save Project
+                        </button>
+                        @else
                         <button type="submit" class="btn btn-primary">
                             Create Project
                         </button>
+                        @endif
+
                     </div>
                 </form>
             </div>
