@@ -9,7 +9,7 @@ use ZipArchive;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Models\Track;
-
+use Illuminate\Http\UploadedFile;
 
 class ProjectController extends Controller
 {
@@ -117,6 +117,22 @@ class ProjectController extends Controller
         return response()->json(['success' => 'Files uploaded successfully!']);
 
         //return redirect()->route('projects.show', $project->id)->with('success', 'Project created successfully!');
+    }
+
+    public function storeTrack(UploadedFile $file, Project $project)
+    {
+        $fileName = $file->getClientOriginalName();
+        $path = $file->storeAs('projects/' . $project->id, $fileName, 'public');
+        $fileSize = $file->getSize();
+        //$path = Storage::putFile('projects', $file);
+        $projectFile = new ProjectFile([
+            'project_id' => $project->id,
+            'file_path' => $path,
+            'size' => $fileSize,
+        ]);
+
+        $projectFile->save();
+        return $projectFile->id;
     }
 
     public function edit(Project $project)
@@ -249,33 +265,33 @@ class ProjectController extends Controller
 
 
     //public function storeProject(Request $request)
-// {
-//     $request->validate([
-//         'title' => 'required|string|max:255',
-//         'tracks.*' => 'required|mimes:mp3,wav|max:20480',
-//     ]);
+    // {
+    //     $request->validate([
+    //         'title' => 'required|string|max:255',
+    //         'tracks.*' => 'required|mimes:mp3,wav|max:20480',
+    //     ]);
 
     //     $tracks = [];
 
     //     foreach ($request->file('tracks') as $track) {
-//         $path = $track->store('tracks', 'public');
-//         $filename = $track->getClientOriginalName();
+    //         $path = $track->store('tracks', 'public');
+    //         $filename = $track->getClientOriginalName();
 
     //         $tracks[] = [
-//             'title' => $request->input('title'),
+    //             'title' => $request->input('title'),
 
     //             'genre' => 'unknown', // Replace this with an appropriate genre or add a genre input field to the form
-//             'file_path' => $path,
-//             'user_id' => auth()->user()->id,
-//             'created_at' => now(),
-//             'updated_at' => now(),
-//         ];
-//     }
+    //             'file_path' => $path,
+    //             'user_id' => auth()->user()->id,
+    //             'created_at' => now(),
+    //             'updated_at' => now(),
+    //         ];
+    //     }
 
     //     Track::insert($tracks);
 
     //     return redirect()->route('tracks.index')->with('message', 'Project uploaded successfully.');
-// }
+    // }
 }
 
 function formatBytes($bytes, $precision = 2)
@@ -290,4 +306,3 @@ function formatBytes($bytes, $precision = 2)
 
     return round($bytes, $precision) . ' ' . $units[$pow];
 }
-

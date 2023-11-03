@@ -22,6 +22,7 @@
                 <div x-data="{ playing: false }" class="flex items-center">
                     <div wire:ignore id="waveform-{{ $currentIndex }}" class="flex-grow"></div>
                     <button id="play-button-{{ $currentIndex }}" @click="playing = !playing"
+                        x-on:pause-all-tracks.window="playing = false"
                         class="btn w-20 h-20 bg-primary hover:bg-accent focus:bg-accent focus:outline-none rounded-full text-white flex items-center justify-center aspect-square">
                         <i x-show="!playing" class="fas fa-play"></i>
                         <i x-show="playing" class="fas fa-pause"></i>
@@ -72,6 +73,11 @@
 
                                 const playButton = document.getElementById(`play-button-${index + 1}`);
                                 console.log(index);
+                                Livewire.on('pause-all-tracks', () => {
+
+                                    wavesurfer.pause();
+
+                                });
                                 playButton.addEventListener('click', function () {
                                     if (!wavesurfer.getCurrentTime()) { // This checks if the track hasn't been loaded
                                         wavesurfer.load(audioFile.src);

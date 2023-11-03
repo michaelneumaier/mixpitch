@@ -4,6 +4,7 @@
             <div class="text-4xl text-center text-primary mb-6">Create Project</div>
             <div x-data="{ openSection: 'basic', budget: @entangle('form.budget') }">
                 <form wire:submit="save">
+
                     <!-- Basic Info Section -->
                     <div class="shadow-lg shadow-base-200 rounded-lg mb-6">
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
@@ -184,9 +185,16 @@
                                             &times;
                                         </button>
                                     </div>
-                                    @else
-                                    <img src="{{ $form->projectImage }}" class="w-full rounded-lg object-cover">
                                     @endif
+                                    @elseif ($projectImage)
+                                    <div class="relative">
+                                        <img src="{{ $projectImage }}" class="w-full rounded-lg object-cover">
+                                        <button type="button" wire:click="revertImage"
+                                            class="absolute top-0 left-0 bg-red-600 rounded-tl-lg text-white w-10 h-10 text-sm p-1.5"
+                                            title="Revert to original image">
+                                            &times;
+                                        </button>
+                                    </div>
                                     @else
                                     <!-- Placeholder -->
                                     <div
@@ -384,10 +392,18 @@
                                 <i class="fas fa-music"></i> Choose Track
                             </label>
                             @error('track') <span class="error">{{ $message }}</span> @enderror
+
+                            @if($isEdit)
+                            <div x-data="{ loaded: true }" x-show="loaded" x-on:url-updated="loaded = true"
+                                x-on:clear-track="loaded = true" class="py-4">
+                                @livewire('audio-player', ['audioUrl' => $audioUrl])
+                            </div>
+                            @else
                             <div x-data="{ loaded: false }" x-show="loaded" x-on:url-updated="loaded = true"
                                 x-on:clear-track="loaded = false" class="py-4">
                                 @livewire('audio-player', ['audioUrl' => $audioUrl])
                             </div>
+                            @endif
 
                             <!-- Display track name if uploaded -->
                             @if ($track && is_object($track))

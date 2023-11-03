@@ -2,7 +2,7 @@
     <div class="transition-all shadow-base-200 shadow-glow hover:shadow-lg hover:shadow-base-300 rounded-lg">
         <div class="relative aspect-w-1 aspect-h-1 rounded-lg">
             <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"
-                style="background-image: url('{{ $project->image_path ? asset('storage' . $project->image_path) : 'https://via.placeholder.com/150' }}');">
+                style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : '' }}');">
                 @if($isDashboardView)
                 <div class="flex z-10 absolute bottom-2 right-2">
                     <form action="{{ route('projects.edit', $project) }}" method="GET" class="mr-2">

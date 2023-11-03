@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Cviebrock\EloquentSluggable\Sluggable;
+use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 
+use Illuminate\Support\Facades\Storage;
 use Sebdesign\SM\StateMachine\StateMachine;
 use Sebdesign\SM\StateMachine\StateMachineInterface;
 
@@ -33,8 +35,8 @@ class Project extends Model
     ];
 
     protected $casts = [
-    'collaboration_type' => 'array',
-];
+        'collaboration_type' => 'array',
+    ];
 
     protected $attributes = ['status' => 'unpublished'];
 
@@ -57,6 +59,38 @@ class Project extends Model
     {
         $this->status = $status;
         $this->save();
+    }
+
+    public function hasPreviewTrack()
+    {
+        if ($this->preview_track) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function previewTrack()
+    {
+        return $this->hasOne(ProjectFile::class, 'id', 'preview_track');
+    }
+    public function previewTrackPath()
+    {
+        if ($this->hasPreviewTrack()) {
+            $track = $this->previewTrack;
+            return asset($track->file_path);
+        } else {
+            return null;
+        }
+    }
+
+    public function deleteProjectImage()
+    {
+        try {
+            return Storage::disk('public')->delete($this->image_path);
+        } catch (Exception $e) {
+            return $e;
+        }
     }
 
     public function tracks()

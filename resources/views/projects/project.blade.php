@@ -11,9 +11,14 @@
                         class="relative w-full lg:aspect-square lg:w-fit lg:float-left md:mb-4 lg:mb-0">
 
                         <!-- Image that triggers the lightbox -->
+                        @if($project->image_path)
                         <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $project->image_path) }}"
                             alt="{{ $project->name }}"
                             class="w-full aspect-square lg:w-64 h-64 object-cover lg:rounded-tl-lg cursor-pointer">
+                        @else
+                        <div class="w-full aspect-square lg:w-64 h-64 object-cover lg:rounded-tl-lg bg-base-200">
+                        </div>
+                        @endif
 
                         <div class="lg:hidden">
                             <livewire:status-button :status="$project->status" type="top-right" />
@@ -86,6 +91,7 @@
                         @endif
 
                         <!-- The actual lightbox overlay -->
+                        @if($project->image_path)
                         <div x-cloak x-show="lightbox.isOpen"
                             class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
                             <img @click="lightbox.isOpen = false" src="{{ asset('storage/' . $project->image_path) }}"
@@ -95,9 +101,9 @@
                             <button @click="lightbox.isOpen = false"
                                 class="absolute top-4 right-4 text-white">Close</button>
                         </div>
+                        @endif
 
                     </div>
-
 
                     <!-- Project Details on the Right -->
                     <div class="relative p-4 flex flex-grow flex-row items-center lg:ml-1/3">
@@ -157,6 +163,16 @@
                     <div class="flex justify-between items-start text-xl mb-4 p-8">
                         <span> {{ $project->description }}</span>
                     </div>
+                    @if($project->hasPreviewTrack())
+                    <div class="flex-grow justify-between  items-start text-xl mb-4 p-8">
+                        <span>
+
+                            @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isPreviewTrack' =>
+                            true])
+
+                        </span>
+                    </div>
+                    @endif
 
                     <label class="block label-text -m-8 ml-12">Notes:</label>
                     <div class="flex justify-between items-start m-8 p-4 border-2 border-base-300 bg-base-200">
