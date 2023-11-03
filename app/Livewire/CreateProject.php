@@ -34,7 +34,7 @@ class CreateProject extends Component
             $this->form->artistName;
             $this->form->projectType = $project->project_type;
 
-            $this->form->projectImage = $project->image_path;
+            $this->form->projectImage = asset('storage/' . $project->image_path);
             $this->form->description = $project->description;
             $this->form->genre = $project->genre;
             $this->form->collaborationTypeMixing = $project->collaboration_type['mixing'];

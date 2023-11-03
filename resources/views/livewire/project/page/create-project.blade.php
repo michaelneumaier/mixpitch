@@ -366,7 +366,7 @@
                         <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
                             @click="openSection = (openSection === 'track' ? null : 'track')">
                             <h2 class="text-2xl p-5 flex items-center"><i
-                                    class="fas fa-sticky-note w-5 text-center mr-8 text-4xl"></i>Preview Track
+                                    class="fas fa-music w-5 text-center mr-8 text-4xl"></i>Preview Track
                                 @if($errors->hasAny(['form.track']))
                                 <span class="ml-auto">
                                     <i class="fas fa-exclamation-circle text-red-500"></i>
