@@ -24,7 +24,7 @@ class ProjectForm extends Form
     #[Rule('required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk')]
     public $genre;
 
-    #[Rule('nullable|image|max:2048')]
+    #[Rule('nullable|image|max:4096')]
     public $projectImage;
 
     #[Rule('boolean')]
@@ -53,5 +53,4 @@ class ProjectForm extends Form
 
     #[Rule('nullable|string|max:1000')]
     public $notes;
-
 }
