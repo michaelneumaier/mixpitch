@@ -1,9 +1,18 @@
-<div x-data="{ playing: false }" class="flex">
+<div x-data="{ playing: false }" class="flex items-center">
     @if($this->isPreviewTrack)
     <div id="play-button-{{ $identifier }}" @click="playing = !playing" x-on:clear-track.window="playing = false"
         class="btn w-20 h-20 bg-primary hover:bg-primary-focus focus:outline-none rounded-full text-white flex items-center justify-center aspect-square">
         <i x-show="!playing" class="fas fa-play"></i>
         <i x-show="playing" class="fas fa-pause"></i>
+    </div>
+    <div wire:ignore id="{{ $identifier }}" class="flex-grow align-middle"></div>
+    @elseif($this->isInCard)
+    <div id="play-button-{{ $identifier }}" @click="playing = !playing" x-on:clear-track.window="playing = false"
+        x-on:pause-all-tracks.window="if ($event.detail !== '{{$identifier}}') {playing=false}"
+        class="bg-statusOpen/80 hover:bg-statusOpen backdrop-blur-sm p-3 focus:outline-none rounded-bl-xl rounded-tr-xl text-primary border-statusOpen border-l-4 border-b-4 flex items-center">
+        <i x-show="!playing" class="fas fa-play"></i>
+        <i x-show="playing" class="fas fa-pause"></i>
+        <audio id="card-button-{{$identifier}}" src="{{$audioUrl}}" preload="none"></audio>
     </div>
     @else
     <div id="play-button-{{ $identifier }}" @click="playing = !playing" x-on:clear-track.window="playing = false"
@@ -12,52 +21,72 @@
         <i x-show="!playing" class="fas fa-play"></i>
         <i x-show="playing" class="fas fa-pause"></i>
     </div>
+    <div wire:ignore id="{{ $identifier }}" class="flex-grow align-middle"></div>
     @endif
-    <div wire:ignore id="{{ $identifier }}" class="flex-grow">
-    </div>
 
-    @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const identifier = '{{ $identifier }}';
-            const isPreviewTrack = '{{ $isPreviewTrack }}';
-            const playButton = document.getElementById('play-button-' + identifier);
-            const wavesurfer = WaveSurfer.create({
+</div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const identifier = '{{ $identifier }}';
+        const isPreviewTrack = '{{ $isPreviewTrack }}';
+        const isInCard = '{{ $isInCard }}';
+        const playButton = document.getElementById('play-button-' + identifier);
+        const cardPlayButton = document.getElementById('card-button-' + identifier);
+        var wavesurfer;
+        console.log('incard ' + isInCard);
+        if (isInCard == true) {
+
+        } else {
+            wavesurfer = WaveSurfer.create({
                 container: '#' + identifier,
                 waveColor: 'violet',
-                progressColor: 'purple',
+                progressColor: 'blue',
                 height: 80,
             });
-
             if ('{{$audioUrl}}' !== '') {
                 wavesurfer.load('{{$audioUrl}}');
             }
-
             window.wavesurfer = wavesurfer;
-            Livewire.on('url-updated', (audioUrl) => {
-
-                wavesurfer.load(audioUrl);
-            });
-
-            Livewire.on('clear-track', () => {
-                wavesurfer.empty();
-            });
-
-            Livewire.on('pause-all-tracks', () => {
-                if (isPreviewTrack == false) {
-                    wavesurfer.pause();
-                }
-            });
+        }
 
 
 
-            playButton.addEventListener('click', function () {
+        Livewire.on('url-updated', (audioUrl) => {
+
+            wavesurfer.load(audioUrl);
+        });
+
+        Livewire.on('clear-track', () => {
+            wavesurfer.empty();
+        });
+
+        Livewire.on('pause-all-tracks', () => {
+            if (isInCard) {
+                cardPlayButton.pause();
+            } else if (!isPreviewTrack) {
+                wavesurfer.pause();
+            }
+        });
+
+
+
+        playButton.addEventListener('click', function () {
+            if (!isInCard) {
                 if (isPreviewTrack && !wavesurfer.isPlaying()) {
                     Livewire.dispatch('pause-all-tracks');
                 }
                 wavesurfer.playPause();
-            });
+            } else {
+                if (cardPlayButton.paused) {
+                    Livewire.dispatch('pause-all-tracks', identifier);
+                    cardPlayButton.play();
+                } else {
+                    cardPlayButton.pause();
+                }
+            }
         });
-    </script>
-    @endpush
-</div>
+    });
+</script>
+@endpush
