@@ -23,6 +23,7 @@ export default {
             boxShadow: {
                 'glow': '0 0 20px 1px',
                 'lightGlow': '0 0 20px -7px',
+                'innerGlow': 'inset 0 0 100px 1px',
             },
             colors: {
                 tertiary: '#FFBF00',

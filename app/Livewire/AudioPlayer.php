@@ -13,11 +13,14 @@ class AudioPlayer extends Component
 
     public $isPreviewTrack;
 
-    public function mount($audioUrl, $isPreviewTrack = false)
+    public $isInCard;
+
+    public function mount($audioUrl, $isPreviewTrack = false, $isInCard = false)
     {
         $this->audioUrl = $audioUrl;
         $this->identifier = uniqid('waveform_');
         $this->isPreviewTrack = $isPreviewTrack;
+        $this->isInCard = $isInCard;
     }
 
     #[On('audioUrlUpdated')]

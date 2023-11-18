@@ -164,13 +164,18 @@
                         <span> {{ $project->description }}</span>
                     </div>
                     @if($project->hasPreviewTrack())
-                    <div class="flex-grow justify-between  items-start text-xl mb-4 p-8">
-                        <span>
+                    <div class="w-1/2">
+                        <label class="block label-text -m-8 ml-12">Preview Track</label>
+                        <div class="flex-grow justify-between items-start text-xl mb-4 p-8">
 
-                            @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isPreviewTrack' =>
-                            true])
+                            <span>
 
-                        </span>
+                                @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isPreviewTrack'
+                                =>
+                                true])
+
+                            </span>
+                        </div>
                     </div>
                     @endif
 
