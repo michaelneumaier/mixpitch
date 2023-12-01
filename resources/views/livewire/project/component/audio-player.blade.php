@@ -1,4 +1,4 @@
-<div x-data="{ playing: false }" class="flex items-center">
+<div x-data="{ playing: false }" class="{{ $mainDivClass }}">
     @if($this->isPreviewTrack)
     <div id="play-button-{{ $identifier }}" @click="playing = !playing" x-on:clear-track.window="playing = false"
         class="btn w-20 h-20 bg-primary hover:bg-primary-focus focus:outline-none rounded-full text-white flex items-center justify-center aspect-square">
@@ -56,10 +56,12 @@
         Livewire.on('url-updated', (audioUrl) => {
 
             wavesurfer.load(audioUrl);
+            wavesurfer.seekTo(0);
         });
 
         Livewire.on('clear-track', () => {
             wavesurfer.empty();
+
         });
 
         Livewire.on('pause-all-tracks', () => {

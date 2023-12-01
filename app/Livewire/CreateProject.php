@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Http\Controllers\ProjectController;
 use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
@@ -20,6 +21,7 @@ class CreateProject extends Component
     public $isEdit = false;
     public $projectImage;
     public $deleteProjectImage = false;
+    public $deletePreviewTrack = false;
     public $initWaveSurfer;
     public $track;
     public $audioUrl;
@@ -58,6 +60,11 @@ class CreateProject extends Component
         }
     }
 
+    public function rendered()
+    {
+        $this->dispatch('audioUrlUpdated', $this->audioUrl);
+    }
+
     public function revertImage()
     {
         if ($this->isEdit && $this->form->projectImage) {
@@ -70,13 +77,26 @@ class CreateProject extends Component
         }
     }
 
+
     public function clearTrack()
     {
-        $this->track = null;
-        if ($this->isEdit) {
-            $this->audioUrl = $this->originalProject->previewTrackPath();
-            $this->dispatch('audioUrlUpdated', $this->audioUrl);
+
+        if ($this->isEdit && $this->audioUrl == $this->originalProject->previewTrackPath()) {
+            $this->audioUrl = null;
+            $this->track = null;
+            $this->deletePreviewTrack = true;
+            $this->dispatch('track-clear-button');
+        } else if ($this->isEdit) {
+            $this->track = null;
+            if ($this->deletePreviewTrack) {
+                $this->audioUrl = null;
+                $this->dispatch('track-clear-button');
+            } else {
+                $this->audioUrl = $this->originalProject->previewTrackPath();
+                $this->dispatch('audioUrlUpdated', $this->audioUrl);
+            }
         } else {
+            $this->track = null;
             $this->audioUrl = null;
             $this->dispatch('track-clear-button');
         }
@@ -96,6 +116,7 @@ class CreateProject extends Component
         // ]);
 
         // Update the audio URL for the AudioPlayer component
+
         $this->audioUrl = $this->track->temporaryUrl();
         $this->dispatch('audioUrlUpdated', $this->audioUrl);
     }
@@ -142,6 +163,15 @@ class CreateProject extends Component
         $project->deadline = $this->form->deadline;
         $project->notes = $this->form->notes;
         $project->save();
+        if ($this->isEdit && $this->deletePreviewTrack) {
+            $controller = new ProjectController();
+            $oldProjectPreviewFile = $project->previewTrack;
+            $controller->deleteFile(
+                $project,
+                $oldProjectPreviewFile
+            );
+            $project->preview_track = null;
+        }
         if ($this->track) {
             $controller = new ProjectController();
             $project->preview_track = $controller->storeTrack($this->track, $project);

@@ -78,7 +78,11 @@ class Project extends Model
     {
         if ($this->hasPreviewTrack()) {
             $track = $this->previewTrack;
-            return asset('storage/' . $track->file_path);
+            try {
+                return asset('storage/' . $track->file_path);
+            } catch (Exception $e) {
+                return null;
+            }
         } else {
             return null;
         }

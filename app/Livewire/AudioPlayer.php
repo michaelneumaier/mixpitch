@@ -15,24 +15,36 @@ class AudioPlayer extends Component
 
     public $isInCard;
 
+    public $mainDivClass;
+
     public function mount($audioUrl, $isPreviewTrack = false, $isInCard = false)
     {
         $this->audioUrl = $audioUrl;
         $this->identifier = uniqid('waveform_');
         $this->isPreviewTrack = $isPreviewTrack;
         $this->isInCard = $isInCard;
+
+        if ($audioUrl == '') {
+            $this->mainDivClass = 'flex items-center hidden';
+        } else {
+            $this->mainDivClass = 'flex items-center';
+        }
     }
 
     #[On('audioUrlUpdated')]
     public function audioUrlUpdated($audioUrl)
     {
         $this->audioUrl = $audioUrl;
+        if ($audioUrl != '') {
+            $this->mainDivClass = 'flex items-center';
+        }
         $this->dispatch('url-updated', $this->audioUrl);
     }
 
     #[On('track-clear-button')]
     public function clearTrack()
     {
+        $this->mainDivClass = 'flex items-center hidden';
         $this->dispatch('clear-track');
     }
 

@@ -198,35 +198,15 @@ class ProjectController extends Controller
     public function deleteFile(Project $project, ProjectFile $file)
     {
         $this->authorize('update', $project);
-
         // Delete the file from the storage
-        Storage::delete($file->file_path);
+        Storage::disk('public')->delete($file->file_path);
 
         // Remove the file entry from the database
         $file->delete();
 
-        return redirect()->route('projects.edit', $project)->with('success', 'File deleted successfully.');
+        //return redirect()->route('projects.edit', $project)->with('success', 'File deleted successfully.');
     }
 
-
-    // public function delete(Project $project)
-    // {
-    //     // Ensure the authenticated user is the owner of the project
-    //     if (auth()->id() !== $project->user_id) {
-    //         abort(403);
-    //     }
-
-    //     // Delete tracks and associated files
-    //     foreach ($project->tracks as $track) {
-    //         \Storage::delete($track->filename);
-    //         $track->delete();
-    //     }
-
-    //     // Delete the project
-    //     $project->delete();
-
-    //     return redirect()->route('projects.index');
-    // }
 
     public function destroy(Project $project)
     {
