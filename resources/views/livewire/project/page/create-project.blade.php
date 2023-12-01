@@ -397,19 +397,12 @@
                                 <i class="fas fa-music"></i> Choose Track
                             </label>
                             @error('track') <span class="error">{{ $message }}</span> @enderror
-
-                            @if($isEdit)
-                            <div x-data="{ loaded: true }" x-show="loaded" x-on:url-updated="loaded = true"
-                                x-on:clear-track="loaded = true" class="py-4">
-                                @livewire('audio-player', ['audioUrl' => $audioUrl])
-                            </div>
-                            @else
-                            <div x-data="{ loaded: false }" x-show="loaded" x-on:url-updated="loaded = true"
+                            @error('form.track') <span class="error">{{ $message }}</span> @enderror
+                            <div x-data="{ loaded: true }" x-show="loaded"
+                                x-on:url-updated.window="loaded = true; console.log('url updated')"
                                 x-on:clear-track="loaded = false" class="py-4">
                                 @livewire('audio-player', ['audioUrl' => $audioUrl])
                             </div>
-                            @endif
-
                             <!-- Display track name if uploaded -->
                             @if ($track && is_object($track))
                             <div class="mt-2 p-2 bg-base-100 rounded">
@@ -418,7 +411,15 @@
                                     <button wire:click="clearTrack" type="button" class="text-red-500">&times;</button>
                                 </div>
                             </div>
+                            @elseif ($isEdit && !$deletePreviewTrack && $audioUrl)
+                            <div class="mt-2 p-2 bg-base-100 rounded">
+                                <div class="flex items-center justify-between">
+                                    <span>{{ basename($audioUrl) }}</span>
+                                    <button wire:click="clearTrack" type="button" class="text-red-500">&times;</button>
+                                </div>
+                            </div>
                             @endif
+
 
 
                         </div>
