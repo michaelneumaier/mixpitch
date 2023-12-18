@@ -11,7 +11,7 @@
             <!-- <a class="nav-link d-inline pr-1 md:pr-5" href="{{ route('login') }}"><b>Login</b></a>
             <a class="nav-link d-inline" href="{{ route('register') }}">Register</a> -->
             @else
-            <div x-data="{ open: false }" @click.away="open = false" class="relative">
+            <div x-data="{ open: false }" @click.away="open = false" class="relative cursor-default">
                 <div class="flex items-center md:px-4" @click="open = !open">
                     @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
                     <div class="shrink-0 mr-3">
@@ -21,10 +21,11 @@
                     @endif
 
                     <div>
-                        <div class="hidden md:inline font-medium text-base text-gray-800 dark:text-gray-200">{{
+                        <span class="hidden md:flex text-base text-gray-800 dark:text-gray-200 max-w-xs truncate">
+                            {{
                             Auth::user()->name
                             }}
-                        </div>
+                        </span>
                         <!-- <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div> -->
                     </div>
                 </div>

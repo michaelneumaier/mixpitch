@@ -31,6 +31,6 @@ break;
 @endphp
 
 <span
-    class="py-1 px-3 {{ $colorClass }} bg-opacity-60 backdrop-blur-sm text-black text-sm {{ $type === 'top-right' ? 'absolute -top-1 -right-1 rounded-none rounded-tr-md rounded-bl-2xl border-t-4 border-r-4' : 'rounded-md' }} uppercase cursor-default">
-    <i class="fa-solid {{ $iconClass }}"></i> {{ $status }}
+    class="py-1 px-3 {{ $colorClass }} bg-opacity-60 flex items-center text-black text-sm {{ $type === 'top-right' ? 'absolute -top-1 -right-1 rounded-none rounded-tr-md rounded-bl-2xl border-t-4 border-r-4' : 'rounded-md' }} uppercase cursor-default">
+    <i class="fa-solid pr-1 {{ $iconClass }}"></i> {{ $status }}
 </span>

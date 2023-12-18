@@ -28,14 +28,23 @@
 
 @push('scripts')
 <script>
+    /*Disable media control keys */
+    navigator.mediaSession.setActionHandler('play', function () { });
+    navigator.mediaSession.setActionHandler('pause', function () { });
+    navigator.mediaSession.setActionHandler('seekbackward', function () { });
+    navigator.mediaSession.setActionHandler('seekforward', function () { });
+    navigator.mediaSession.setActionHandler('previoustrack', function () { });
+    navigator.mediaSession.setActionHandler('nexttrack', function () { });
+
     document.addEventListener('DOMContentLoaded', function () {
         const identifier = '{{ $identifier }}';
         const isPreviewTrack = '{{ $isPreviewTrack }}';
         const isInCard = '{{ $isInCard }}';
         const playButton = document.getElementById('play-button-' + identifier);
         const cardPlayButton = document.getElementById('card-button-' + identifier);
+
         var wavesurfer;
-        console.log('incard ' + isInCard);
+
         if (isInCard == true) {
 
         } else {
@@ -50,8 +59,6 @@
             }
             window.wavesurfer = wavesurfer;
         }
-
-
 
         Livewire.on('url-updated', (audioUrl) => {
 

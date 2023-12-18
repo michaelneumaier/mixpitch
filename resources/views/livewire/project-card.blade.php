@@ -1,4 +1,4 @@
-<div class="w-full lg:w-1/4 md:w-1/2 mb-4 px-1">
+<div class="w-full md:w-1/2 lg:w-1/3  mb-4 px-1">
     <div class="transition-all shadow-base-200 shadow-glow hover:shadow-lg hover:shadow-base-300 rounded-lg">
         <div class="relative flex aspect-w-1 aspect-h-1 rounded-lg" wire:click="cardClickRoute()">
             <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"
@@ -84,8 +84,13 @@
             style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : '' }}');">
             <div
                 class="rounded-b-md p-3 shadow-innerGlow shadow-base-200 backdrop-blur-sm rotate-180 -scale-x-100 bg-gradient-to-b from-base-200/60 to-base-200">
-                <h5 class="font-bold truncate mb-1"><a href="{{ route('projects.show', $project) }}"
-                        class="no-underline">
+                <div class="flex w-full items-center text-xl mb-1">
+                    <img class="h-7 w-7 rounded-full object-cover mr-1" src="{{ $project->user->profile_photo_url }}"
+                        alt="{{ $project->user->name }}" />
+                    <span class="text-base max-w-xs truncate">{{ $project->user->name
+                        }}</span>
+                </div>
+                <h5 class="font-bold truncate"><a href="{{ route('projects.show', $project) }}" class="no-underline">
                         {{ $project->name }}
                     </a></h5>
 
@@ -108,7 +113,7 @@
 
 
                 @else
-                <p class="text-sm truncate mt-2">Uploaded by: {{ $project->user->name }}</p>
+
                 @endif
                 @if($isDashboardView)
                 @if($project->status == 'unpublished')
