@@ -4,17 +4,18 @@
 
     <div class="flex flex-wrap mx-1">
         <!-- Filters Column -->
-        <div class="w-full md:w-1/4 lg:w-1/6 px-2">
-            <div class="block md:hidden" x-data="{ open: false }">
+        <div class="w-full lg:w-1/6 px-2 pb-2">
+            <div class="block -mt-6 lg:hidden relative" x-data="{ open: false }">
                 <button @click="open = !open"
-                    class="w-full mb-3 bg-base-300 border border-base-200 rounded-none hover:bg-base-200">
+                    class="py-1 px-4 bg-base-300 text-sm border border-base-200 rounded-none hover:bg-base-200">
                     Filters
                 </button>
-                <div x-show="open" class="block md:hidden">
+                <div x-show="open" x-cloak
+                    class="absolute  left-0 block lg:hidden z-50 bg-base-100 p-4 rounded-b-lg shadow-lg">
                     @livewire('filters-projects-component')
                 </div>
             </div>
-            <div class="hidden md:block">
+            <div class="hidden lg:block">
                 @livewire('filters-projects-component')
             </div>
         </div>

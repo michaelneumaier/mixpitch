@@ -162,7 +162,7 @@ class CreateProject extends Component
         $project->budget = $this->form->budget;
         $project->deadline = $this->form->deadline;
         $project->notes = $this->form->notes;
-        $project->save();
+
         if ($this->isEdit && $this->deletePreviewTrack) {
             $controller = new ProjectController();
             $oldProjectPreviewFile = $project->previewTrack;
@@ -175,8 +175,8 @@ class CreateProject extends Component
         if ($this->track) {
             $controller = new ProjectController();
             $project->preview_track = $controller->storeTrack($this->track, $project);
-            $project->save();
         }
+        $project->save();
         return redirect()->route('projects.show', $project);
     }
 
