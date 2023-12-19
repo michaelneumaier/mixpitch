@@ -34,7 +34,7 @@ class CreateProject extends Component
             $this->project = $project;
             $this->isEdit = true;
             $this->form->name = $project->name;
-            $this->form->artistName;
+            $this->form->artistName = $project->artist_name;
             $this->form->projectType = $project->project_type;
             if ($project->image_path) {
                 $this->projectImage = asset('storage/' . $project->image_path);

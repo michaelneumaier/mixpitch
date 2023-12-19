@@ -4,19 +4,19 @@
 <div class="container mx-auto px-1">
     <div class="flex justify-center">
         <div class="w-full lg:w-3/4 2xl:w-2/3">
-            <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg">
+            <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg mb-12">
                 <div class="flex flex-col md:flex-row shadow-lightGlow shadow-base-300">
                     <!-- Project Image on the Left -->
-                    <div x-data="{ lightbox: { isOpen: false } }" class="relative md:w-64">
+                    <div x-data="{ lightbox: { isOpen: false } }" class="relative shrink-0 md:w-72">
 
                         <!-- Image that triggers the lightbox -->
                         @if($project->image_path)
 
                         <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $project->image_path) }}"
                             alt="{{ $project->name }}"
-                            class="w-full md:aspect-square h-64 object-cover md:rounded-tl-lg cursor-pointer" />
+                            class="w-full md:aspect-square h-72 object-cover md:rounded-tl-lg cursor-pointer" />
                         @else
-                        <div class="w-full md:aspect-square md:w-64 h-64 object-cover lg:rounded-tl-lg bg-base-200">
+                        <div class="w-full md:aspect-square md:w-72 h-72 object-cover lg:rounded-tl-lg bg-base-200">
                         </div>
                         @endif
                         @if($project->hasPreviewTrack())
@@ -110,27 +110,25 @@
                                 class="absolute top-4 right-4 text-white">Close</button>
                         </div>
                         @endif
-
-
                     </div>
 
                     <!-- Project Details on the Right -->
-                    <div class="relative  pb-0 flex flex-grow flex-col items-center lg:ml-1/3">
+                    <div class="relative pb-0 flex flex-grow flex-col items-center lg:ml-1/3">
 
                         <!-- Content here will be vertically and horizontally centered within the parent div -->
 
                         <!-- First Row -->
-                        <div class="w-full flex px-4 py-4 flex-col justify-center flex-1">
-                            <h3 class="text-4xl">
+                        <div class="w-full flex px-4 py-2 flex-col justify-center flex-1">
+                            <h3 class="text-3xl py-1 leading-8">
                                 {{ $project->name }}
                             </h3>
                             @if($project->artist_name)
-                            <div class="py-2">
+                            <div class="py-1">
                                 <b>Artist</b>: {{ $project->artist_name }}
                             </div>
                             @endif
                             <!-- Second Row -->
-                            <div class="flex items-center w-full text-xl p-2">
+                            <div class="flex items-center w-full text-xl">
                                 <img class="h-8 w-8 rounded-full object-cover mr-3"
                                     src="{{ $project->user->profile_photo_url }}" alt="{{ $project->user->name }}" />
                                 <span class="text-base max-w-xs truncate">{{ $project->user->name
@@ -168,6 +166,10 @@
                                 </div>
                             </div>
                         </div>
+                        <a href="{{ route('projects.create') }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                            w-full py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
+                            whitespace-nowrap">Start
+                            Your Pitch</a>
                         <div class="font-sans w-full border-t border-b border-base-200">
                             <div class="flex flex-row">
                                 <div class="px-2 py-1 md:px-4 grow bg-base-200/70 text-right border-r border-base-200">
@@ -181,7 +183,7 @@
                                         '$'.number_format($project->budget, 0) }}</div>
 
                                 </div>
-                                <div class="py-1 pb-0 md:px-4 grow bg-base-200/70">
+                                <div class="py-1 pb-0 px-2 md:px-4 grow bg-base-200/70">
                                     <div class="label-text">Deadline</div>
                                     <div class="whitespace-nowrap font-bold">{{
                                         \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}</div>
@@ -189,33 +191,14 @@
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
 
                 </div>
+
                 <div>
-                    <div class="hidden flex flex-row font-sans justify-center w-full px-2 mb-1">
-                        <div class="flex flex-row shadow-sm rounded-b-lg">
-                            <div class="p-2 grow bg-base-200/70 rounded-bl-lg text-right">
-                                <div class="label-text whitespace-nowrap">Project Type</div>
-                                <div class="font-bold">{{ Str::title($project->project_type) }}</div>
-
-                            </div>
-                            <div class="p-2 px-4 bg-base-200/30">
-                                <div class="label-text">Budget</div>
-                                <div class="font-bold">{{ $project->budget == 0 ? 'Free' :
-                                    '$'.number_format($project->budget, 0) }}</div>
-
-                            </div>
-                            <div class="p-2 grow bg-base-200/70 rounded-br-lg">
-                                <div class="label-text">Deadline</div>
-                                <div class="whitespace-nowrap font-bold">{{
-                                    \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}</div>
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-start text-xl mb-4 px-6 py-4 ">
+                    <div class="flex justify-between items-start text-xl mb-4 px-6 py-8 ">
                         <span class="whitespace-pre-wrap">{{ $project->description }}</span>
                     </div>
 
@@ -240,7 +223,7 @@
                         <label class="block label-text ml-12">Looking for collaboration with:</label>
                         @foreach($project->collaboration_type as $type => $value)
                         @if($value)
-                        <div class="flex items-center p-2 bg-gray-200">
+                        <div class="flex items-center p-2 pl-4 bg-gray-200">
                             <i class="fas fa-check-circle text-green-500 mr-2"></i>
                             <span class="font-medium text-gray-700">{{ Str::title(str_replace('_', ' ', $type))
                                 }}</span>
@@ -260,32 +243,6 @@
                     <!-- Content Below the Image and Details -->
                     <div class="clear-left bg-dark bg-opacity-50 p-4">
                         <div class="space-y-4">
-                            @livewire('project-tracks', ['project' => $project])
-
-                            <div class="flex space-x-4 mt-3">
-                                @if(!auth()->check()) <!-- Check if user is not logged in -->
-                                <div class="tooltip tooltip-top" data-tip="Please login in to download files.">
-                                    <button class="btn btn-primary">
-                                        Download All Files
-                                    </button>
-                                </div>
-                                <div class="tooltip tooltip-top" data-tip="Please login in to download files.">
-                                    <button class="btn btn-primary">
-                                        Submit Mix
-                                    </button>
-                                </div>
-
-
-                                @else
-                                <a href="{{ route('projects.download', $project) }}" class="btn btn-primary">
-                                    Download All Files
-                                </a>
-                                <a href="{{ route('mixes.create', $project) }}" class="btn btn-primary">
-                                    Submit Mix
-                                </a>
-                                @endif
-                            </div>
-
 
 
                         </div>
