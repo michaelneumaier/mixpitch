@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 
 class AuthDropdown extends Component
 {
@@ -54,6 +55,11 @@ class AuthDropdown extends Component
         $this->dispatch('add-dropdown-listener');
     }
 
+    public function logoutForm()
+    {
+        Auth::logout();
+        return redirect()->back();
+    }
     public function submitLoginForm()
     {
         // Validate form data
@@ -62,12 +68,13 @@ class AuthDropdown extends Component
             'loginForm.password' => 'required|min:6',
         ]);
 
+
         // Attempt to authenticate the user
         if (Auth::attempt(['email' => $this->loginForm['email'], 'password' => $this->loginForm['password']])) {
             // Successful login
             $this->reset(['isOpen', 'loginForm']);
             session()->flash('message', 'Logged in successfully.');
-            return redirect()->to('/');
+            return redirect()->back();
         } else {
             // Failed login
             $this->addError('loginForm.email', 'The provided credentials do not match our records.');
