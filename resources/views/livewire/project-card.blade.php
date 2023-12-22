@@ -116,14 +116,10 @@
 
                 @endif
                 @if($isDashboardView)
-                @if($project->status == 'unpublished')
-                <div class="btn w-full bg-primary hover:bg-primary-focus text-white text-center" wire:click="publish()">
-                    Publish</div>
-                @elseif($project->status == 'published' || $project->status == 'open')
-                <div class="btn w-full bg-primary hover:bg-primary-focus text-white text-center"
-                    wire:click="unpublish()">
-                    Unpublish</div>
-                @endif
+
+                <a href="{{ route('projects.manage', $project)}}"
+                    class="btn w-full bg-primary hover:bg-primary-focus text-white text-center">
+                    Manage Project</a>
                 @endif
             </div>
         </div>

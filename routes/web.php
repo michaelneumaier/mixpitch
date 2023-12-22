@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MixController;
 use App\Http\Controllers\ProjectController;
 use App\Livewire\CreateProject;
+use App\Livewire\ManageProject;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,7 +28,6 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-
 });
 
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
@@ -48,6 +48,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/create-project', CreateProject::class)->name('projects.create');
     Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
+    Route::get('/manage-project/{project}', ManageProject::class)->name('projects.manage');
 
 
     Route::delete('projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.deleteFile');
@@ -58,5 +59,4 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/projects/{project}/mixes/create', [MixController::class, 'create'])->name('mixes.create');
     Route::post('/projects/{project}/mixes', [MixController::class, 'store'])->name('mixes.store');
     Route::patch('/mixes/{mix}/rate', [MixController::class, 'rate'])->name('mixes.rate');
-
 });
