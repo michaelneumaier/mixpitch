@@ -16,10 +16,10 @@
                         <div class="w-full md:aspect-square md:w-72 h-72 object-cover lg:rounded-tl-lg bg-base-200">
                         </div>
                         @endif
-                        @if($project->hasPreviewTrack())
+                        @if($this->hasPreviewTrack)
                         <div
                             class="flex absolute h-auto w-auto top-auto -bottom-1 -left-1 right-auto z-50 aspect-auto text-sm">
-                            @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isInCard' => true])
+                            <livewire:audio-player audioUrl="{{$this->audioUrl}}" isInCard=true />
                         </div>
                         @endif
 
@@ -116,9 +116,10 @@
 
                         <!-- First Row -->
                         <div class="w-full flex px-4 py-2 flex-col justify-center flex-1">
-                            <h3 class="text-3xl py-1 leading-8">
+                            <a href="{{ route('projects.show', $project) }}" class="text-3xl py-1 leading-8">
+
                                 {{ $project->name }}
-                            </h3>
+                            </a>
                             @if($project->artist_name)
                             <div class="py-1">
                                 <b>Artist</b>: {{ $project->artist_name }}
@@ -190,17 +191,87 @@
 
                 <div class="p-4 grid md:grid-cols-2 gap-4">
                     <div class="flex flex-col md:col-span-2 bg-base-200 rounded-lg">
-                        <div class="flex-row p-4 pl-6 text-xl font-bold bg-base-300 rounded-t-lg"><i
-                                class="fas fa-music w-5 text-center mr-3"></i>Tracks</div>
-                        <div class="flex-row grow p-2">
-                            @if($project->hasPreviewTrack())
-                            <span>{{ basename($audioUrl) }}</span>
-                            @endif
+                        <div class="flex-row p-4 pl-6 text-xl font-bold bg-base-300 rounded-t-lg">
+                            <i class="fas fa-music w-5 text-center mr-3"></i>Tracks
                         </div>
-                        <div
-                            class="btn flex-row  rounded-t-none bg-primary hover:bg-primary-focus text-white text-center">
-                            Manage Tracks</div>
+                        @if($isUploading)
+                        {{-- File Upload Form --}}
+                        <div x-data="{ isUploading: false }"
+                            x-on:drop.prevent="isUploading = false; $refs.fileInput.files = $event.dataTransfer.files"
+                            x-on:dragover.prevent="isUploading = true" x-on:dragleave.prevent="isUploading = false"
+                            class="border-2 border-base-300 border-dashed" :class="{'bg-gray-100': isUploading}">
+
+                            <input type="file" wire:model="uploadedFiles" multiple class="hidden" x-ref="fileInput">
+
+                            <div @click="$refs.fileInput.click()" class="cursor-pointer text-center p-4">
+                                Drag files here or click to upload
+                            </div>
+
+                            @if ($uploadedFiles)
+                            <div class="mt-2 p-4">
+                                @foreach ($uploadedFiles as $uploadedFile)
+                                <div>{{ $uploadedFile->getClientOriginalName() }}</div>
+                                @endforeach
+                            </div>
+                            @endif
+
+
+                        </div>
+
+
+
+                        @else
+                        @if($project->files->isEmpty())
+                        <div class="p-4">There are no files uploaded.</div>
+                        @else
+                        <div class="flex flex-col p-2">
+                            @if(!$project->preview_track)
+                            <div class="p-4 font-bold hidden">Preview Track not selected</div>
+                            @endif
+                            <div class="border-4 border-base-300/40 rounded-lg">
+                                @foreach($project->files as $file)
+                                <div
+                                    class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-300/30' : 'bg-base-100/50' }} hover:bg-base-100 {{ $loop->first ? 'rounded-t-md' : '' }} {{ $loop->last ? 'rounded-b-md' : '' }}">
+                                    <div
+                                        class="flex items-center {{ $file->id == $project->preview_track ? 'font-bold' : '' }}">
+                                        <span>{{ $file->file_name }}</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span>{{ $file->formatted_size }}</span>
+                                        <button wire:click="togglePreviewTrack({{ $file }})" class="ml-2">
+                                            <i
+                                                class="fas fa-star {{ $file->id == $project->preview_track ? 'text-yellow-400' : 'text-gray-400' }} hover:text-yellow-400 cursor-pointer"></i>
+                                        </button>
+                                        {{-- Trash can icon with confirmation dialog --}}
+                                        <button
+                                            x-on:click="if (confirm('Are you sure you want to delete this file?')) @this.call('deleteFile', {{ $file->id }})"
+                                            class="ml-2">
+                                            <i
+                                                class="fas fa-trash-alt text-red-500 hover:text-red-600 cursor-pointer"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+
+                        </div>
+                        @endif
+                        @endif
+                        <div class="flex">
+                            <button wire:click="uploadFiles"
+                                class="btn grow flex-row rounded-t-none border-0 bg-success/90 hover:bg-success text-white {{ $isUploading ? 'rounded-br-none' : 'hidden' }}">
+                                Upload
+                            </button>
+                            <button wire:click="$toggle('isUploading')"
+                                class="btn grow flex-row rounded-t-none border-0 bg-primary hover:bg-primary-focus text-white text-center {{ $isUploading ? 'grow-0 rounded-bl-none' : 'bg-primary hover:bg-primary-focus' }}">
+                                {{ $isUploading ? 'Finish' : 'Upload Files' }}
+                            </button>
+
+                        </div>
                     </div>
+
+
+
 
                     <div class="flex flex-col bg-base-200 rounded-lg">
                         @if($project->status == 'unpublished')

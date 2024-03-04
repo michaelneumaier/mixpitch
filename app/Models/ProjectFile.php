@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Exception;
 
 class ProjectFile extends Model
 {
@@ -31,6 +32,20 @@ class ProjectFile extends Model
 
         // Use the helper function to format the bytes
         return $this->formatBytes($bytes);
+    }
+
+    public function getFileNameAttribute()
+    {
+        return basename($this->file_path);
+    }
+
+    public function getFullFilePathAttribute()
+    {
+        try {
+            return asset('storage/' . $this->file_path);
+        } catch (Exception $e) {
+            return null;
+        }
     }
 
     public function project()

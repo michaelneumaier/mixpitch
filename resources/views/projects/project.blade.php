@@ -166,10 +166,18 @@
                                 </div>
                             </div>
                         </div>
-                        <a href="{{ route('projects.create') }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
-                            w-full py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
+                        <div class="flex w-full">
+                            <a href="{{ route('projects.create') }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                            grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
                             whitespace-nowrap">Start
-                            Your Pitch</a>
+                                Your Pitch</a>
+                            @if(auth()->check() && $project->isOwnedByUser(auth()->user()))
+                            <a href="{{ route('projects.manage', $project)}}" class="block bg-primary hover:bg-primary-focus text-white tracking-tight text-xl text-center font-bold
+                            grow py-2 px-4 shadow-accent hover:shadow-accent-focus
+                            whitespace-nowrap">
+                                Manage Project</a>
+                            @endif
+                        </div>
                         <div class="font-sans w-full border-t border-b border-base-200">
                             <div class="flex flex-row">
                                 <div class="px-2 py-1 md:px-4 grow bg-base-200/70 text-right border-r border-base-200">
@@ -243,8 +251,29 @@
                     <!-- Content Below the Image and Details -->
                     <div class="clear-left bg-dark bg-opacity-50 p-4">
                         <div class="space-y-4">
+                            <div>
+                                <label class="block label-text ml-8">Files:</label>
+                                <div class="border-4 border-base-300/40 rounded-lg">
+                                    @if($project->files->isEmpty())
+                                    <div class="p-4">There are no files uploaded.</div>
+                                    @else
+                                    @foreach($project->files as $file)
+                                    <div
+                                        class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-200/10' : 'bg-base-200/60' }} hover:bg-base-100 {{ $loop->first ? 'rounded-t-md' : '' }} {{ $loop->last ? 'rounded-b-md' : '' }}">
+                                        <div
+                                            class="flex items-center {{ $file->id == $project->preview_track ? 'font-bold' : '' }}">
+                                            <span>{{ $file->file_name }}</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span>{{ $file->formatted_size }}</span>
 
 
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
 
