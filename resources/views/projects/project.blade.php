@@ -259,9 +259,8 @@
                                     @else
                                     @foreach($project->files as $file)
                                     <div
-                                        class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-200/10' : 'bg-base-200/60' }} hover:bg-base-100 {{ $loop->first ? 'rounded-t-md' : '' }} {{ $loop->last ? 'rounded-b-md' : '' }}">
-                                        <div
-                                            class="flex items-center {{ $file->id == $project->preview_track ? 'font-bold' : '' }}">
+                                        class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-200/10' : 'bg-base-200/60' }} {{ $loop->first ? 'rounded-t-md' : '' }} {{ $loop->last ? 'rounded-b-md' : '' }}">
+                                        <div class="flex items-center">
                                             <span>{{ $file->file_name }}</span>
                                         </div>
                                         <div class="flex items-center">
