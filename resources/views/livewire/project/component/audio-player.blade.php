@@ -26,7 +26,7 @@
 
 </div>
 
-@push('scripts')
+@script
 <script>
     /*Disable media control keys */
     navigator.mediaSession.setActionHandler('play', function () { });
@@ -35,13 +35,13 @@
     navigator.mediaSession.setActionHandler('seekforward', function () { });
     navigator.mediaSession.setActionHandler('previoustrack', function () { });
     navigator.mediaSession.setActionHandler('nexttrack', function () { });
-
-    document.addEventListener('DOMContentLoaded', function () {
+    console.log('audioplayerinitialized {{$audioPlayerInitialized}}');
+    Livewire.on('audio-player-rendered-{{ $identifier }}', function () {
         const identifier = '{{ $identifier }}';
         const isPreviewTrack = '{{ $isPreviewTrack }}';
         const isInCard = '{{ $isInCard }}';
-        const playButton = document.getElementById('play-button-' + identifier);
-        const cardPlayButton = document.getElementById('card-button-' + identifier);
+        const playButton = document.getElementById('play-button-{{ $identifier }}');
+        const cardPlayButton = document.getElementById('card-button-{{ $identifier }}');
 
         var wavesurfer;
 
@@ -49,7 +49,7 @@
 
         } else {
             wavesurfer = WaveSurfer.create({
-                container: '#' + identifier,
+                container: '#{{ $identifier }}',
                 waveColor: 'violet',
                 progressColor: 'blue',
                 height: 80,
@@ -61,13 +61,17 @@
         }
 
         Livewire.on('url-updated', (audioUrl) => {
+            if (!isInCard) {
 
-            wavesurfer.load(audioUrl);
-            wavesurfer.seekTo(0);
+                wavesurfer.load(audioUrl);
+                wavesurfer.seekTo(0);
+            }
         });
 
         Livewire.on('clear-track', () => {
-            wavesurfer.empty();
+            if (!isInCard) {
+                wavesurfer.empty();
+            }
 
         });
 
@@ -82,14 +86,17 @@
 
 
         playButton.addEventListener('click', function () {
+            console.log('added playbutton click event listener');
             if (!isInCard) {
                 if (isPreviewTrack && !wavesurfer.isPlaying()) {
                     Livewire.dispatch('pause-all-tracks');
                 }
                 wavesurfer.playPause();
             } else {
+                console.log(cardPlayButton.readyState);
                 if (cardPlayButton.paused) {
                     Livewire.dispatch('pause-all-tracks', identifier);
+                    console.log('cardPlayButton is paused and clicked');
                     cardPlayButton.play();
                 } else {
                     cardPlayButton.pause();
@@ -98,4 +105,4 @@
         });
     });
 </script>
-@endpush
+@endscript

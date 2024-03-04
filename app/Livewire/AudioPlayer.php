@@ -17,7 +17,9 @@ class AudioPlayer extends Component
 
     public $mainDivClass;
 
-    public function mount($audioUrl, $isPreviewTrack = false, $isInCard = false)
+    public bool $audioPlayerInitialized = false;
+
+    public function mount($audioUrl, $isPreviewTrack = false, bool $isInCard = false)
     {
         $this->audioUrl = $audioUrl;
         $this->identifier = uniqid('waveform_');
@@ -38,6 +40,7 @@ class AudioPlayer extends Component
         if ($audioUrl != '') {
             $this->mainDivClass = 'flex items-center';
         }
+        $this->dispatch('clear-track');
         $this->dispatch('url-updated', $this->audioUrl);
     }
 
@@ -48,8 +51,13 @@ class AudioPlayer extends Component
         $this->dispatch('clear-track');
     }
 
+
     public function render()
     {
+        if (!$this->audioPlayerInitialized) {
+            $this->dispatch('audio-player-rendered-' . $this->identifier);
+        }
+        $this->audioPlayerInitialized = true;
         return view('livewire.project.component.audio-player');
     }
 }

@@ -41,7 +41,7 @@ class MakeCommand extends FileManipulationCommand implements PromptsForMissingIn
         $force = $this->option('force');
         $inline = $this->option('inline');
         $test = $this->option('test') || $this->option('pest');
-        $testType = $this->option('test') ? 'phpunit' : 'pest';
+        $testType = $this->option('pest') ? 'pest' : 'phpunit';
 
         $showWelcomeMessage = $this->isFirstTimeMakingAComponent();
 
@@ -204,6 +204,7 @@ class MakeCommand extends FileManipulationCommand implements PromptsForMissingIn
             'endif',
             'endswitch',
             'endwhile',
+            'enum',
             'eval',
             'exit',
             'extends',
@@ -223,7 +224,9 @@ class MakeCommand extends FileManipulationCommand implements PromptsForMissingIn
             'insteadof',
             'interface',
             'isset',
+            'self',
             'list',
+            'match',
             'namespace',
             'new',
             'or',
@@ -231,6 +234,7 @@ class MakeCommand extends FileManipulationCommand implements PromptsForMissingIn
             'private',
             'protected',
             'public',
+            'readonly',
             'require',
             'require_once',
             'return',

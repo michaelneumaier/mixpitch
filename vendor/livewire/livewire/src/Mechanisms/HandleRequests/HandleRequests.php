@@ -3,23 +3,23 @@
 namespace Livewire\Mechanisms\HandleRequests;
 
 use Illuminate\Support\Facades\Route;
+use Livewire\Features\SupportScriptsAndAssets\SupportScriptsAndAssets;
 
+use Livewire\Mechanisms\Mechanism;
 use function Livewire\trigger;
 
-class HandleRequests
+class HandleRequests extends Mechanism
 {
     protected $updateRoute;
 
-    function register()
-    {
-        app()->singleton($this::class);
-    }
-
     function boot()
     {
-        app($this::class)->setUpdateRoute(function ($handle) {
-            return Route::post('/livewire/update', $handle)->middleware('web');
-        });
+        // Only set it if another provider hasn't already set it....
+        if (! $this->updateRoute) {
+            app($this::class)->setUpdateRoute(function ($handle) {
+                return Route::post('/livewire/update', $handle)->middleware('web');
+            });
+        }
 
         $this->skipRequestPayloadTamperingMiddleware();
     }
@@ -96,9 +96,10 @@ class HandleRequests
 
         $response = [
             'components' => $responses,
+            'assets' => SupportScriptsAndAssets::getAssets(),
         ];
 
-        $finish = trigger('profile.response', $response);
+        $finish = trigger('response', $response);
 
         return $finish($response);
     }
