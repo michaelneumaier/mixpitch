@@ -10,7 +10,11 @@
                 <div class="py-3 px-4 text-primary text-3xl font-semibold text-center">{{ __('Dashboard') }}</div>
 
                 <div class="p-4 md:p-6 lg:p-8">
-                    <h3 class="text-2xl text-primary font-semibold mb-3 pl-2">Your Projects</h3>
+                    <h3 class="text-2xl text-primary font-semibold mb-3 pl-2 flex items-center">Your Projects
+                        <a href="{{ route('projects.create') }}"
+                            class="bg-primary hover:bg-primary-focus text-white text-sm text-center ml-2 py-2 px-4 rounded-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Share
+                            Your Project</a>
+                    </h3>
                     @if ($projects->isEmpty())
                     <p class="mb-3">You haven't shared any projects yet.</p>
                     @else
@@ -23,33 +27,44 @@
                         </div>
                     </div>
                     @endif
-                    <a href="{{ route('projects.create') }}"
-                        class="block bg-primary hover:bg-primary-focus text-white text-lg text-center font-bold w-full py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Share
-                        Your Project</a>
                 </div>
 
                 <div class="p-4 md:p-6 lg:p-8">
-                    <h3 class="text-lg md:text-xl lg:text-2xl font-semibold mb-3">Your Uploaded Mixes</h3>
-                    <ul class="divide-y divide-gray-700">
-                        @forelse($mixes as $mix)
-                        <li class="py-3 flex justify-between items-center">
-                            <a href="{{ route('projects.show', $project) }}"
-                                class="hover:underline hover:text-gray-300">
-                                {{ $mix->project->name }}
+                    <h3 class="text-2xl text-primary font-semibold mb-3 pl-2">Your Pitches</h3>
+                    <div class="flex">
+                        @forelse($pitches as $pitch)
+                        <div class="flex flex-row w-full justify-between items-center rounded bg-base-200">
+                            <a href="{{ route('pitches.show', $pitch->id) }}"
+                                class="flex flex-row items-center flex-grow">
+                                <div class="w-24 h-24 bg-center bg-cover bg-no-repeat rounded-l-lg"
+                                    style="background-image: url('{{ $pitch->project->image_path ? asset('storage/' . $pitch->project->image_path) : '' }}');">
+                                </div>
+                                <div class="p-3 flex flex-col">
+                                    <div>{{ $pitch->project->name }}</div>
+                                    <div>
+                                        <div class="whitespace-nowrap"><span class="label-text">Deadline:
+                                            </span>{{
+                                            \Carbon\Carbon::parse($pitch->project->deadline)->format('M d, Y') }}</div>
+                                    </div>
+                                </div>
                             </a>
+                            <div class="flex h-full items-center p-3 bg-base-300 rounded-r-lg">
+                                {{ ucfirst($pitch->status) }}
+                            </div>
                             <span>
-                                @for($i = 1; $i <= 10; $i++) @if($i <=$mix->rating)
+                                <!-- for($i = 1; $i <= 10; $i++) 
+                                    if($i <=$mix->rating)
                                     ★
-                                    @else
+                                    else
                                     ☆
-                                    @endif
-                                    @endfor
+                                    endif
+                                    endfor -->
                             </span>
-                        </li>
+                        </div>
                         @empty
-                        <li class="py-3">You haven't uploaded any mixes yet.</li>
+                        <div class="py-3">You have no pitches started, yet.</div>
                         @endforelse
-                    </ul>
+                    </div>
                 </div>
 
             </div>

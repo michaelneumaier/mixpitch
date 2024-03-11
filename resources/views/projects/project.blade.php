@@ -102,7 +102,7 @@
                             </div>
                         </div>
                         <div class="flex w-full">
-                            <a href="{{ route('projects.create') }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                            <a href="{{ route('pitches.create', $project) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
                             grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
                             whitespace-nowrap">Start
                                 Your Pitch</a>
