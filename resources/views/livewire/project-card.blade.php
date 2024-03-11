@@ -1,9 +1,8 @@
-<div class="w-full md:w-1/2 lg:w-1/3  mb-4 px-1">
+<div class="w-full md:w-1/3 lg:w-1/4 mb-4 px-1">
     <div class="transition-all shadow-base-200 shadow-glow hover:shadow-lg hover:shadow-base-300 rounded-lg">
         <div class="relative flex aspect-w-1 aspect-h-1 rounded-lg  cursor-pointer" wire:click="cardClickRoute()">
             <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"
                 style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : '' }}');">
-
             </div>
 
             <div class="absolute top-0 right-0">

@@ -64,6 +64,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(Project::class);
     }
+
+    public function pitches()
+    {
+        return $this->hasMany(Pitch::class);
+    }
     public function mixes()
     {
         return $this->hasMany(Mix::class);

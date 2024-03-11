@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MixController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\PitchController;
 use App\Livewire\CreateProject;
 use App\Livewire\ManageProject;
 use Illuminate\Support\Facades\Route;
@@ -59,4 +60,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/projects/{project}/mixes/create', [MixController::class, 'create'])->name('mixes.create');
     Route::post('/projects/{project}/mixes', [MixController::class, 'store'])->name('mixes.store');
     Route::patch('/mixes/{mix}/rate', [MixController::class, 'rate'])->name('mixes.rate');
+
+    Route::resource('/pitches', PitchController::class);
+    Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create');
 });
