@@ -193,10 +193,16 @@
                                     <div class="p-4">There are no files uploaded.</div>
                                     @else
                                     @foreach($project->files as $file)
-                                    <div
+                                    <div x-data="{ showTooltip: false }"
                                         class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-200/10' : 'bg-base-200/60' }} {{ $loop->first ? 'rounded-t-md' : '' }} {{ $loop->last ? 'rounded-b-md' : '' }}">
-                                        <div class="flex items-center">
-                                            <span>{{ $file->file_name }}</span>
+                                        <div class="flex flex-1 items-center truncate">
+                                            <span @click="showTooltip = !showTooltip" class="truncate">{{
+                                                $file->file_name
+                                                }}</span>
+                                        </div>
+                                        <div x-show="showTooltip" @click.away="showTooltip = false"
+                                            class="absolute z-10 break-all w-auto p-2 mr-2 bg-black text-white text-sm rounded-md shadow-lg"
+                                            x-text="'{{ $file->file_name }}'">
                                         </div>
                                         <div class="flex items-center">
                                             <span>{{ $file->formatted_size }}</span>
