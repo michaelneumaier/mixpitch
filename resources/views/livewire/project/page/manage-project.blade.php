@@ -130,13 +130,13 @@
                     </div>
                 </div>
 
-                <div class="p-4 grid md:grid-cols-2 gap-4">
-                    <div class="flex flex-col md:col-span-2 bg-base-200 rounded-lg">
-                        <div class="flex-row p-4 pl-6 text-xl font-bold bg-base-300 rounded-t-lg">
+                <div class="p-2 md:p-4 grid md:grid-cols-2 gap-4">
+                    <div class="flex w-full flex-col md:col-span-2 bg-base-200 rounded-lg overflow-hidden">
+                        <div class="p-4 pl-6 text-xl font-bold bg-base-300 rounded-t-lg flex items-center">
                             <i class="fas fa-music w-5 text-center mr-3"></i>Tracks
                         </div>
                         @if($isUploading)
-                        {{-- File Upload Form --}}
+                        <!-- File Upload Form -->
                         <div x-data="{ isUploading: false }"
                             x-on:drop.prevent="isUploading = false; $refs.fileInput.files = $event.dataTransfer.files"
                             x-on:dragover.prevent="isUploading = true" x-on:dragleave.prevent="isUploading = false"
@@ -151,16 +151,11 @@
                             @if ($uploadedFiles)
                             <div class="mt-2 p-4">
                                 @foreach ($uploadedFiles as $uploadedFile)
-                                <div>{{ $uploadedFile->getClientOriginalName() }}</div>
+                                <div class="truncate">{{ $uploadedFile->getClientOriginalName() }}</div>
                                 @endforeach
                             </div>
                             @endif
-
-
                         </div>
-
-
-
                         @else
                         @if($project->files->isEmpty())
                         <div class="p-4">There are no files uploaded.</div>
@@ -171,19 +166,23 @@
                             @endif
                             <div class="border-4 border-base-300/40 rounded-lg">
                                 @foreach($project->files as $file)
-                                <div
-                                    class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-300/30' : 'bg-base-100/50' }} hover:bg-base-100 {{ $loop->first ? 'rounded-t-md' : '' }} {{ $loop->last ? 'rounded-b-md' : '' }}">
-                                    <div
-                                        class="flex items-center {{ $file->id == $project->preview_track ? 'font-bold' : '' }}">
-                                        <span>{{ $file->file_name }}</span>
+                                <div x-data="{ showTooltip: false }"
+                                    class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-300/30' : 'bg-base-100/50' }} hover:bg-base-100">
+                                    <div class="relative flex-1 truncate items-center">
+                                        <span @click="showTooltip = !showTooltip" class="truncate">{{ $file->file_name
+                                            }}</span>
                                     </div>
-                                    <div class="flex items-center">
+                                    <div x-show="showTooltip" @click.away="showTooltip = false"
+                                        class="absolute z-10 break-all w-auto p-2 mr-2 bg-black text-white text-sm rounded-md shadow-lg"
+                                        x-text="'{{ $file->file_name }}'">
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+
                                         <span>{{ $file->formatted_size }}</span>
-                                        <button wire:click="togglePreviewTrack({{ $file }})" class="ml-2">
+                                        <button wire:click="togglePreviewTrack({{ $file->id }})" class="ml-2">
                                             <i
                                                 class="fas fa-star {{ $file->id == $project->preview_track ? 'text-yellow-400' : 'text-gray-400' }} hover:text-yellow-400 cursor-pointer"></i>
                                         </button>
-                                        {{-- Trash can icon with confirmation dialog --}}
                                         <button
                                             x-on:click="if (confirm('Are you sure you want to delete this file?')) @this.call('deleteFile', {{ $file->id }})"
                                             class="ml-2">
@@ -207,7 +206,6 @@
                                 class="btn grow flex-row rounded-t-none border-0 bg-primary hover:bg-primary-focus text-white text-center {{ $isUploading ? 'grow-0 rounded-bl-none' : 'bg-primary hover:bg-primary-focus' }}">
                                 {{ $isUploading ? 'Finish' : 'Upload Files' }}
                             </button>
-
                         </div>
                     </div>
 
