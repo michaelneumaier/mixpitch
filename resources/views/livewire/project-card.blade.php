@@ -38,8 +38,8 @@
                         <span class="font-semibold text-primary">{{ $project->files->count() }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span>Mixes:</span>
-                        <span class="font-semibold text-primary">{{ $project->mixes->count() }}</span>
+                        <span>Pitches:</span>
+                        <span class="font-semibold text-primary">{{ $project->pitches->count() }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Last Updated:</span>

@@ -29,8 +29,11 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        //$project = Project::where('slug', $slug)->firstOrFail();
-        return view('projects.project', compact('project'));
+        $userPitch = null;
+        if (auth()->check()) {
+            $userPitch = $project->userPitch(auth()->id());
+        }
+        return view('projects.project', compact('project', 'userPitch'));
     }
 
 
