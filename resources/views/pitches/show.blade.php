@@ -50,7 +50,8 @@
                                         href="{{ route('projects.show', $pitch->project) }}">"{{
                                         $pitch->project->name }}"</a></h2>
 
-                                <p>Status: <span class="font-semibold">{{ ucfirst($pitch->status) }}</span></p>
+                                <p>Status: <span class="font-semibold">{{ $pitch->getReadableStatusAttribute() }}</span>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -84,6 +85,9 @@
                             <div class="py-1">
                                 <b>Artist</b>: {{ $pitch->project->artist_name }}
                             </div>
+                            @endif
+                            @if (auth()->check() && auth()->id() === $pitch->user_id)
+                            <livewire:pitch.component.manage-pitch :pitch="$pitch" />
                             @endif
                             <!-- Second Row -->
                             <div class="flex items-center w-full text-xl">
@@ -133,7 +137,10 @@
                 <div class="p-6">
                     <h4 class="flex items-center text-xl font-semibold mb-2">Project Files
 
-                        @if($pitch->project->files->isEmpty())
+                        @if($pitch->status === \App\Models\Pitch::STATUS_PENDING)
+                    </h4>
+                    <div class="p-4">You don't have access to the project files.</div>
+                    @elseif($pitch->project->files->isEmpty())
                     </h4>
                     <div class="p-4">No files available for download.</div>
                     @else

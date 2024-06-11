@@ -133,6 +133,44 @@
                 <div class="p-2 md:p-4 grid md:grid-cols-2 gap-4">
                     <div class="flex w-full flex-col md:col-span-2 bg-base-200 rounded-lg overflow-hidden">
                         <div class="p-4 pl-6 text-xl font-bold bg-base-300 rounded-t-lg flex items-center">
+                            <i class="fas fa-paper-plane w-5 text-center mr-3"></i>Pitches
+                        </div>
+                        <div class="flex flex-col">
+                            @forelse($project->pitches as $pitch)
+                            <div
+                                class="flex flex-row w-full justify-between items-stretch rounded {{ $loop->even ? 'bg-base-300/30' : 'bg-base-100/50' }}">
+                                <a href="{{ route('pitches.show', $pitch->id) }}"
+                                    class="flex flex-row items-center flex-grow p-3">
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center w-full text-xl">
+                                            <img class="h-8 w-8 rounded-full object-cover mr-3"
+                                                src="{{ $pitch->user->profile_photo_url }}"
+                                                alt="{{ $pitch->user->name }}" />
+                                            <span class="text-base max-w-xs truncate">{{ $pitch->user->name }}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                                <div
+                                    class="flex items-center h-full p-3 bg-base-300 {{ $loop->even ? 'bg-base-300' : 'bg-base-300/50' }} {{ $loop->last ? 'rounded-br-lg' : '' }} min-w-[170px]">
+                                    <livewire:pitch.component.update-pitch-status :pitch="$pitch" />
+                                </div>
+                                <span>
+                                    <!-- for($i = 1; $i <= 10; $i++) 
+                                            if($i <= $mix->rating)
+                                            ★
+                                            else
+                                            ☆
+                                            endif
+                                        endfor -->
+                                </span>
+                            </div>
+                            @empty
+                            <div class="p-4">You have no pitches, yet.</div>
+                            @endforelse
+                        </div>
+                    </div>
+                    <div class="flex w-full flex-col md:col-span-2 bg-base-200 rounded-lg overflow-hidden">
+                        <div class="p-4 pl-6 text-xl font-bold bg-base-300 rounded-t-lg flex items-center">
                             <i class="fas fa-music w-5 text-center mr-3"></i>Tracks
                         </div>
                         @if($isUploading)

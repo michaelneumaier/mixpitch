@@ -33,7 +33,7 @@
                     <h3 class="text-2xl text-primary font-semibold mb-3 pl-2">Your Pitches</h3>
                     <div class="flex">
                         @forelse($pitches as $pitch)
-                        <div class="flex flex-row w-full justify-between items-center rounded bg-base-200">
+                        <div class="flex flex-row w-full justify-between items-center rounded bg-base-200 m-2">
                             <a href="{{ route('pitches.show', $pitch->id) }}"
                                 class="flex flex-row items-center flex-grow">
                                 <div class="w-24 h-24 bg-center bg-cover bg-no-repeat rounded-l-lg"
@@ -49,7 +49,7 @@
                                 </div>
                             </a>
                             <div class="flex h-full items-center p-3 bg-base-300 rounded-r-lg">
-                                {{ ucfirst($pitch->status) }}
+                                {{ $pitch->getReadableStatusAttribute() }}
                             </div>
                             <span>
                                 <!-- for($i = 1; $i <= 10; $i++) 

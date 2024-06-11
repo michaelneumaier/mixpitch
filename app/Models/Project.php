@@ -112,6 +112,11 @@ class Project extends Model
         return $this->hasMany(Pitch::class);
     }
 
+    public function userPitch($userId)
+    {
+        return $this->pitches()->where('user_id', $userId)->first();
+    }
+
     public function mixes()
     {
         return $this->hasMany(Mix::class);

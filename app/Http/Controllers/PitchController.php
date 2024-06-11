@@ -23,6 +23,14 @@ class PitchController extends Controller
      */
     public function create(Project $project)
     {
+        if (auth()->check()) {
+            $userPitch = $project->userPitch(auth()->id());
+
+            if ($userPitch) {
+                return redirect()->route('pitches.show', $userPitch->id);
+            }
+        }
+
         return view('pitches.create', compact('project'));
     }
 
@@ -54,8 +62,18 @@ class PitchController extends Controller
     public function show($id)
     {
         $pitch = Pitch::with('project')->find($id);
-        // Assuming you have a view called 'pitches.show' to display the pitch dashboard
-        return view('pitches.show', compact('pitch'));
+
+        // Retrieve the authenticated user
+        $user = auth()->user();
+
+        // Check if the user is either the project owner or the pitch user
+        if ($user->id === $pitch->user_id || $user->id === $pitch->project->user_id) {
+            // Assuming you have a view called 'pitches.show' to display the pitch dashboard
+            return view('pitches.show', compact('pitch'));
+        }
+
+        // If the user is not authorized, redirect or show an error
+        abort(403, 'Unauthorized action.');
     }
 
 
@@ -73,6 +91,26 @@ class PitchController extends Controller
     public function update(Request $request, string $id)
     {
         //
+    }
+
+    public function updateStatus(Request $request, Pitch $pitch)
+    {
+        $project = $pitch->project;
+
+        // Ensure the authenticated user is the owner of the project
+        if (!auth()->check() || $project->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $direction = $request->input('direction');
+
+        try {
+            $pitch->changeStatus($direction);
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('projects.show', $project)->with('status', 'Pitch status updated successfully.');
     }
 
     /**
