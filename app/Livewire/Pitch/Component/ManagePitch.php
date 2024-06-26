@@ -9,6 +9,7 @@ use App\Models\Pitch;
 use App\Models\PitchFile; // Add this line
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Masmerise\Toaster\Toaster;
 
 class ManagePitch extends Component
 {
@@ -25,14 +26,20 @@ class ManagePitch extends Component
 
     public function uploadFiles()
     {
+        $currentFileCount = $this->pitch->files()->count();
+
+        if ($currentFileCount + count($this->files) > $this->pitch->max_files) {
+            Toaster::warning('You have exceeded the maximum number of files allowed for this pitch.');
+            return;
+        }
+
         $this->validate([
-            'files.*' => 'required|file|max:10240', // Max 10MB per file
+            'files.*' => 'required|file|max:102400', // Max 10MB per file
         ]);
 
         foreach ($this->files as $file) {
             $filePath = $file->store('pitch_files', 'public');
 
-            // Save file information in the database, assuming you have a PitchFile model
             $this->pitch->files()->create([
                 'file_path' => $filePath,
                 'file_name' => $file->getClientOriginalName(),
@@ -40,10 +47,9 @@ class ManagePitch extends Component
             ]);
         }
 
-        // Clear the file input
         $this->files = [];
-
-        session()->flash('message', 'Files uploaded successfully.');
+        Toaster::success('Files uploaded successfully.');
+        $this->dispatch('file-upload-success');
     }
 
     public function deleteFile(PitchFile $file) // Add this line
@@ -58,8 +64,7 @@ class ManagePitch extends Component
 
         // Delete the file record from the database
         $file->delete();
-
-        session()->flash('message', 'File deleted successfully.');
+        Toaster::success('File deleted successfully.');
     }
 
     public function render()
