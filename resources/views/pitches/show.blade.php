@@ -86,17 +86,18 @@
                                 <b>Artist</b>: {{ $pitch->project->artist_name }}
                             </div>
                             @endif
-                            @if (auth()->check() && auth()->id() === $pitch->user_id)
-                            <livewire:pitch.component.manage-pitch :pitch="$pitch" />
-                            @endif
-                            <!-- Second Row -->
-                            <div class="flex items-center w-full text-xl">
+                            <div class="flex items-center w-full text-xl py-1">
                                 <img class="h-8 w-8 rounded-full object-cover mr-3"
                                     src="{{ $pitch->project->user->profile_photo_url }}"
                                     alt="{{ $pitch->project->user->name }}" />
                                 <span class="text-base max-w-xs truncate">{{ $pitch->project->user->name
                                     }} (Project Owner)</span>
                             </div>
+                            @if (auth()->check() && auth()->id() === $pitch->user_id)
+                            <livewire:pitch.component.manage-pitch :pitch="$pitch" />
+                            @endif
+                            <!-- Second Row -->
+
                             <h3 class="text-xl font-semibold mb-4">Project Details:</h3>
 
                             <p class="mb-4">{{ $pitch->project->description }}</p>

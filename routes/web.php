@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MixController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PitchController;
+use App\Http\Controllers\PitchFileController;
 use App\Livewire\CreateProject;
 use App\Livewire\ManageProject;
 use Illuminate\Support\Facades\Route;
@@ -64,4 +65,13 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('/pitches', PitchController::class);
     Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create');
     Route::post('/pitches/{pitch}/status', [PitchController::class, 'updateStatus'])->name('pitches.updateStatus');
+
+    Route::get('/pitch-files/{file}', [PitchFileController::class, 'show'])->name('pitch-files.show');
+    Route::get('/pitch-files/download/{file}', [PitchFileController::class, 'download'])
+        ->name('pitch-files.download')
+        ->middleware('auth');
+
+    Route::delete('/pitch-files/{file}', [PitchFileController::class, 'delete'])
+        ->name('pitch-files.delete')
+        ->middleware('auth');
 });

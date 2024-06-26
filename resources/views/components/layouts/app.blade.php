@@ -55,7 +55,7 @@
     @livewireScripts()
     @stack('scripts')
 
-
+    <x-toaster-hub />
 </body>
 
 </html>

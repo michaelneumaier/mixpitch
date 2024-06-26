@@ -14,6 +14,10 @@ class Pitch extends Model
 
     protected $fillable = ['status'];
 
+    protected $attributes = [
+        'max_files' => 25,
+    ];
+
     protected static $transitions = [
         'forward' => [
             self::STATUS_PENDING => self::STATUS_IN_PROGRESS,
