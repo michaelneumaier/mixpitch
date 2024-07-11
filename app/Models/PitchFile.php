@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PitchFile extends Model
 {
-    protected $fillable = ['file_path', 'file_name', 'user_id'];
+    protected $fillable = ['file_path', 'file_name', 'note', 'user_id'];
 
     public function pitch()
     {
