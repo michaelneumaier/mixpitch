@@ -95,7 +95,10 @@
                             </div>
                             @if (auth()->check() && auth()->id() === $pitch->user_id)
                             <livewire:pitch.component.manage-pitch :pitch="$pitch" />
+                            @elseif ($pitch->status != 'in_progress')
+                            <livewire:pitch.component.manage-pitch :pitch="$pitch" />
                             @endif
+
                             <!-- Second Row -->
 
                             <h3 class="text-xl font-semibold mb-4">Project Details:</h3>
@@ -115,7 +118,9 @@
                                         {{-- Every 3 items, close and open a new flex container to simulate a "new
                                         column" --}}
                                         @if($loop->iteration % 3 == 1)
-                                        @if(!$loop->first)</div>@endif
+                                        @if(!$loop->first)
+                                    </div>
+                                    @endif
                                     <div class="w-1/2 px-2 flex flex-col">
                                         @endif
                                         <div class="mt-2 flex items-center">
@@ -126,8 +131,9 @@
                                         @endforeach
                                     </div> {{-- Close the last opened flex container --}}
                                 </div>
+                                @endif
                             </div>
-                            @endif
+
 
                         </div>
                     </div>

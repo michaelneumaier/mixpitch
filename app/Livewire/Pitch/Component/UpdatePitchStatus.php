@@ -18,7 +18,7 @@ class UpdatePitchStatus extends Component
         $this->status = $pitch->status;
     }
 
-    public function changeStatus($direction)
+    public function changeStatus($direction, $newStatus = null)
     {
         $project = $this->pitch->project;
 
@@ -29,7 +29,11 @@ class UpdatePitchStatus extends Component
         }
 
         try {
-            $this->pitch->changeStatus($direction);
+            if ($newStatus) {
+                $this->pitch->changeStatus($direction, $newStatus);
+            } else {
+                $this->pitch->changeStatus($direction);
+            }
             $this->status = $this->pitch->status;
             session()->flash('message', 'Pitch status updated successfully.');
         } catch (\Exception $e) {

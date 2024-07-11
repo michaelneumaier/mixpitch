@@ -137,7 +137,7 @@
                         </div>
                         <div class="flex flex-col">
                             @forelse($project->pitches as $pitch)
-                            <div
+                            <div wire:key="pitch-{{$pitch->id}}" wire:ignore
                                 class="flex flex-row w-full justify-between items-stretch rounded {{ $loop->even ? 'bg-base-300/30' : 'bg-base-100/50' }}">
                                 <a href="{{ route('pitches.show', $pitch->id) }}"
                                     class="flex flex-row items-center flex-grow p-3">
@@ -152,7 +152,7 @@
                                 </a>
                                 <div
                                     class="flex items-center h-full p-3 bg-base-300 {{ $loop->even ? 'bg-base-300' : 'bg-base-300/50' }} {{ $loop->last ? 'rounded-br-lg' : '' }} min-w-[170px]">
-                                    <livewire:pitch.component.update-pitch-status :pitch="$pitch" />
+                                    <livewire:pitch.component.update-pitch-status :key="'pitch-'.$pitch->id" :$pitch />
                                 </div>
                                 <span>
                                     <!-- for($i = 1; $i <= 10; $i++) 
@@ -204,8 +204,12 @@
                             @endif
                             <div class="border-4 border-base-300/40 rounded-lg">
                                 @foreach($project->files as $file)
-                                <div x-data="{ showTooltip: false }"
+                                <div x-data="{ showTooltip: false }" wire:key="file-{{$file->id}}"
                                     class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-300/30' : 'bg-base-100/50' }} hover:bg-base-100">
+                                    <button wire:click="togglePreviewTrack({{ $file->id }})" class="mr-2">
+                                        <i
+                                            class="fas fa-play {{ $file->id == $project->preview_track ? 'text-green-400' : 'text-gray-400' }} hover:text-green-400 cursor-pointer"></i>
+                                    </button>
                                     <div class="relative flex-1 truncate items-center">
                                         <span @click="showTooltip = !showTooltip" class="truncate">{{ $file->file_name
                                             }}</span>
@@ -217,10 +221,7 @@
                                     <div class="flex items-center space-x-2">
 
                                         <span>{{ $file->formatted_size }}</span>
-                                        <button wire:click="togglePreviewTrack({{ $file->id }})" class="ml-2">
-                                            <i
-                                                class="fas fa-star {{ $file->id == $project->preview_track ? 'text-yellow-400' : 'text-gray-400' }} hover:text-yellow-400 cursor-pointer"></i>
-                                        </button>
+
                                         <button
                                             x-on:click="if (confirm('Are you sure you want to delete this file?')) @this.call('deleteFile', {{ $file->id }})"
                                             class="ml-2">
