@@ -50,30 +50,10 @@
                                         href="{{ route('projects.show', $pitch->project) }}">"{{
                                         $pitch->project->name }}"</a></h2>
 
-                                <p>Status: <span class="font-semibold">{{ $pitch->getReadableStatusAttribute() }}</span>
+                                <p>Version: <span class="font-semibold">{{ $snapshotData['version']
+                                        }}</span>
                                 </p>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="font-sans w-full border-t border-b border-base-200">
-                    <div class="flex flex-row">
-                        <div class="px-2 py-1 md:px-4 grow bg-base-200 text-right border-r border-base-200">
-                            <div class="label-text whitespace-nowrap">Project Type</div>
-                            <div class="font-bold">{{ Str::title($pitch->project->project_type) }}</div>
-
-                        </div>
-                        <div class="py-1 pb-0 px-4 bg-base-200/30 border-r border-base-200">
-                            <div class="label-text">Budget</div>
-                            <div class="font-bold">{{ $pitch->project->budget == 0 ? 'Free' :
-                                '$'.number_format($pitch->project->budget, 0) }}</div>
-
-                        </div>
-                        <div class="py-1 pb-0 px-2 md:px-4 grow bg-base-200">
-                            <div class="label-text">Deadline</div>
-                            <div class="whitespace-nowrap font-bold">{{
-                                \Carbon\Carbon::parse($pitch->project->deadline)->format('M d, Y') }}</div>
-
                         </div>
                     </div>
                 </div>
@@ -81,23 +61,76 @@
                     <!-- Project Details -->
                     <div class="">
                         <div class="px-2 md:px-6 py-4">
-                            @if($pitch->project->artist_name)
-                            <div class="py-1">
-                                <b>Artist</b>: {{ $pitch->project->artist_name }}
-                            </div>
-                            @endif
                             <div class="flex items-center w-full text-xl py-1">
                                 <img class="h-8 w-8 rounded-full object-cover mr-3"
-                                    src="{{ $pitch->project->user->profile_photo_url }}"
-                                    alt="{{ $pitch->project->user->name }}" />
-                                <span class="text-base max-w-xs truncate">{{ $pitch->project->user->name
-                                    }} (Project Owner)</span>
+                                    src="{{ $pitch->user->profile_photo_url }}" alt="{{ $pitch->user->name }}" />
+                                <span class="text-base max-w-xs truncate">{{ $pitch->user->name
+                                    }}</span>
                             </div>
-                            @if (auth()->check() && auth()->id() === $pitch->user_id)
-                            <livewire:pitch.component.manage-pitch :pitch="$pitch" />
-                            @elseif ($pitch->status != 'in_progress')
-                            <livewire:pitch.component.manage-pitch :pitch="$pitch" />
-                            @endif
+                            <div class="container">
+                                <h1>Snapshot for Pitch: {{ $pitch->id }}</h1>
+                                <h2>Snapshot Version: {{ $snapshotData['version'] }}</h2>
+                                <h3>Files:</h3>
+                                <div class="space-y-1">
+                                    @foreach($snapshotData['file_ids'] as $fileId)
+                                    @php
+                                    $file = \App\Models\PitchFile::find($fileId);
+                                    @endphp
+                                    @if($file)
+                                    <div class="flex flex-col p-2 bg-gray-100 rounded-lg shadow"
+                                        x-data="{ showNotes: false, note: '{{ $file->note }}' }">
+                                        <div class="flex flex-col md:flex-row justify-between items-end">
+                                            <span class="flex-1 place-self-start truncate font-bold">{{ $file->file_name
+                                                }}</span>
+
+                                            <div class="flex items-center space-x-2">
+                                                <template x-if="!showNotes">
+                                                    <a href="#" @click.prevent="showNotes = true"
+                                                        :class="{'border-green-500 text-green-500 hover:border-green-700 hover:text-green-700': !note, 'border-orange-500 text-orange-500 hover:border-orange-700 hover:text-orange-700': note}"
+                                                        class="border py-1 px-2 rounded text-sm">
+                                                        {{ $file->note ? 'Edit Note' : 'Add Note' }}
+                                                    </a>
+                                                </template>
+                                                <template x-if="showNotes">
+                                                    <div class="flex items-center space-x-2">
+                                                        <button
+                                                            @click.prevent="showNotes = false; note = '{{ $file->note }}'"
+                                                            class="bg-red-500 hover:bg-red-700 text-white py-1 px-2 rounded text-sm">
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            @click.prevent="$wire.saveNote({{ $file->id }}, note); showNotes = false"
+                                                            class="bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded text-sm">
+                                                            Save
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                                <a href="{{ route('pitch-files.show', $file) }}"
+                                                    class="bg-gray-500 hover:bg-gray-700 text-white font-semibold py-1 px-2 rounded text-sm">
+                                                    View
+                                                </a>
+                                                <a href="{{ asset('storage/' . $file->file_path) }}"
+                                                    download="{{ $file->file_name }}"
+                                                    class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-2 rounded text-sm">
+                                                    Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <template x-if="showNotes">
+                                            <div class="flex">
+                                                <textarea x-model="note"
+                                                    class="mt-2 block w-full border border-gray-300 rounded-md shadow-sm"
+                                                    rows="1"></textarea>
+                                            </div>
+                                        </template>
+                                        <div x-show="!showNotes && note" class="text-sm text-gray-700 pl-2">
+                                            <strong>Note:</strong> {{ $file->note }}
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @endforeach
+                                </div>
+                            </div>
 
                             <!-- Second Row -->
 

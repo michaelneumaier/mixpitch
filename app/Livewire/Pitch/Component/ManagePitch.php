@@ -34,10 +34,12 @@ class ManagePitch extends Component
     {
         $uploadedFiles = PitchFile::where('pitch_id', $this->pitch->id)->paginate(10);
         $events = $this->pitch->events()->latest()->paginate(5);
+        $snapshots = $this->pitch->snapshots()->orderBy('created_at', 'desc')->get();
 
         return view('livewire.pitch.component.manage-pitch')->with([
             'uploadedFiles' => $uploadedFiles,
             'events' => $events,
+            'snapshots' => $snapshots,
         ]);
     }
 
@@ -162,6 +164,7 @@ class ManagePitch extends Component
 
     public function submitForReview()
     {
+        $this->pitch->createSnapshot();
         $this->pitch->changeStatus('forward', Pitch::STATUS_READY_FOR_REVIEW);
         Toaster::success('Pitch submitted for review successfully.');
         // session()->flash('message', 'Pitch submitted for review successfully.');

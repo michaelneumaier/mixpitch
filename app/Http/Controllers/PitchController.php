@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 
 use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\PitchSnapshot;
 
 class PitchController extends Controller
 {
@@ -74,6 +75,20 @@ class PitchController extends Controller
 
         // If the user is not authorized, redirect or show an error
         abort(403, 'Unauthorized action.');
+    }
+
+    public function showSnapshot(Pitch $pitch, PitchSnapshot $pitchSnapshot)
+    {
+        // Ensure the snapshot belongs to the given pitch
+        if ($pitchSnapshot->pitch_id !== $pitch->id) {
+            abort(404);
+        }
+
+        // Retrieve the snapshot data
+        $snapshotData = $pitchSnapshot->snapshot_data;
+
+        // Return a view to display the snapshot data
+        return view('pitches.show-snapshot', compact('pitch', 'pitchSnapshot', 'snapshotData'));
     }
 
 
