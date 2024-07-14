@@ -32,6 +32,24 @@
     </div>
     @endif
 
+    @if($snapshots->isNotEmpty())
+    <div class="mt-4">
+        <h4 class="font-semibold">Submitted Pitches</h4>
+        <ul class="space-y-2">
+            @foreach($snapshots as $snapshot)
+            <li class="flex justify-between items-center p-2 bg-gray-100 rounded-lg shadow">
+                <span>Version {{ $snapshot->snapshot_data['version'] }} - {{ $snapshot->created_at->format('M d, Y H:i')
+                    }}</span>
+                <a href="{{ route('pitches.showSnapshot', [$pitch->id, $snapshot->id]) }}"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-2 rounded text-sm">
+                    View
+                </a>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     @if($events->count())
     <div class="mt-4">
         <h4 class="font-semibold">Pitch History</h4>
@@ -152,8 +170,8 @@
             @foreach ($uploadedFiles as $file)
             <div class="flex flex-col p-2 bg-gray-100 rounded-lg shadow"
                 x-data="{ showNotes: false, note: '{{ $file->note }}' }">
-                <div class="flex justify-between items-end">
-                    <span class="flex-1 truncate font-bold">{{ $file->file_name }}</span>
+                <div class="flex flex-col md:flex-row justify-between items-end">
+                    <span class="flex-1 place-self-start truncate font-bold">{{ $file->file_name }}</span>
 
                     <div class="flex items-center space-x-2">
                         <template x-if="!showNotes">
@@ -191,8 +209,7 @@
                     </div>
                 </div>
                 <template x-if="showNotes">
-                    <div class="flex pl-2">
-                        <strong class="text-sm">Note:</strong>
+                    <div class="flex">
                         <textarea x-model="note" class="mt-2 block w-full border border-gray-300 rounded-md shadow-sm"
                             rows="1"></textarea>
                     </div>
@@ -240,7 +257,7 @@
 
     @if($pitch->status == 'in_progress' || $pitch->status == 'pending_review')
     <div class="mt-4 flex justify-end">
-        <button wire:click="submitForReview"
+        <button wire:click="submitForReview" wire:confirm="Are you sure you want to Submit your Pitch?"
             class="bg-green-500 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
             <i class="fas fa-check pr-2"></i>
             Ready To Submit
@@ -248,7 +265,7 @@
     </div>
     @elseif($pitch->status != 'pending')
     <div class="mt-4 flex justify-end">
-        <button wire:click="cancelPitchSubmission"
+        <button wire:click="cancelPitchSubmission" wire:confirm="Are you sure you want to cancel your Pitch?"
             class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded">
             <i class="fas fa-xmark pr-2"></i>
             Cancel Submission

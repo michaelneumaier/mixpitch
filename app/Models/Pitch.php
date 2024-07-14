@@ -77,6 +77,33 @@ class Pitch extends Model
         return $this->hasMany(PitchEvent::class);
     }
 
+    public function snapshots()
+    {
+        return $this->hasMany(PitchSnapshot::class);
+    }
+
+    public function createSnapshot()
+    {
+        // Retrieve the last snapshot for this pitch
+        $lastSnapshot = $this->snapshots()->orderBy('created_at', 'desc')->first();
+
+        // Determine the version number
+        $version = $lastSnapshot ? ($lastSnapshot->snapshot_data['version'] + 1) : 1;
+
+        // Prepare the snapshot data
+        $snapshotData = [
+            'version' => $version,
+            'file_ids' => $this->files->pluck('id')->toArray(),
+        ];
+
+        // Create the new snapshot
+        $this->snapshots()->create([
+            'project_id' => $this->project_id,
+            'user_id' => $this->user_id,
+            'snapshot_data' => $snapshotData,
+        ]);
+    }
+
     public function changeStatus($direction, $newStatus = null)
     {
         if (!in_array($direction, ['forward', 'backward'])) {
