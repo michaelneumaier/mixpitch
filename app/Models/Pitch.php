@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class Pitch extends Model
 {
@@ -101,17 +102,44 @@ class Pitch extends Model
             'project_id' => $this->project_id,
             'user_id' => $this->user_id,
             'snapshot_data' => $snapshotData,
+            'status' => 'pending',
         ]);
     }
 
-    public function changeStatus($direction, $newStatus = null)
+    public function deleteSnapshot($snapshotId)
+    {
+        // Find the snapshot by ID
+        $snapshot = $this->snapshots()->find($snapshotId);
+
+        // Check if the snapshot exists and the authenticated user is the pitch creator
+        if ($snapshot && $this->user_id === Auth::id()) {
+            $snapshot->delete();
+            return true;
+        }
+
+        return false;
+    }
+
+    public function changeSnapshotStatus($snapshotId, $status)
+    {
+        // Find the snapshot by ID
+        $snapshot = $this->snapshots()->find($snapshotId);
+
+        // Check if the snapshot exists and the authenticated user is the pitch creator
+        if ($snapshot && $this->user_id === Auth::id()) {
+            return $snapshot->changeStatus($status);
+        }
+
+        return false;
+    }
+
+    public function changeStatus($direction, $newStatus = null, $comment = null)
     {
         if (!in_array($direction, ['forward', 'backward'])) {
             throw new \InvalidArgumentException("Invalid direction.");
         }
 
         $currentStatus = $this->status;
-        $comment = '';
 
         if ($direction === 'forward' && is_array(self::$transitions[$direction][$currentStatus])) {
             if (!in_array($newStatus, self::$transitions[$direction][$currentStatus])) {

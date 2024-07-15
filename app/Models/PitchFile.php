@@ -14,4 +14,16 @@ class PitchFile extends Model
     {
         return $this->belongsTo(Pitch::class);
     }
+
+    public function name()
+    {
+        $pathInfo = pathinfo($this->file_name);
+        return $pathInfo['filename'];
+    }
+
+    public function extension()
+    {
+        $pathInfo = pathinfo($this->file_name);
+        return $pathInfo['extension'];
+    }
 }

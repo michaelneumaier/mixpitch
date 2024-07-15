@@ -41,6 +41,18 @@ class UpdatePitchStatus extends Component
         }
     }
 
+    public function reviewPitch()
+    {
+        // Retrieve the latest snapshot for this pitch
+        $latestSnapshot = $this->pitch->snapshots()->orderBy('created_at', 'desc')->first();
+
+        if ($latestSnapshot) {
+            return redirect()->route('pitches.showSnapshot', [$this->pitch->id, $latestSnapshot->id]);
+        }
+
+        session()->flash('error', 'No snapshots available to review.');
+    }
+
     public function render()
     {
         return view('livewire.pitch.component.update-pitch-status');

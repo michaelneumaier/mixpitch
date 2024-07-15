@@ -171,6 +171,15 @@ class ManagePitch extends Component
         // return redirect()->route('pitches.show', $this->pitch->id);
     }
 
+    public function deleteSnapshot($snapshotId)
+    {
+        if ($this->pitch->deleteSnapshot($snapshotId)) {
+            Toaster::success('Pitch deleted successfully');
+        } else {
+            Toaster::warning('Pitch deleted unsuccessfully');
+        }
+    }
+
     public function cancelPitchSubmission()
     {
         $this->pitch->changeStatus('backward', Pitch::STATUS_IN_PROGRESS);
