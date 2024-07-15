@@ -8,42 +8,57 @@
         </div>
         @endif
     </div>
-
-    @if($pitch->status == 'pending')
-    <div class="mt-4">
-        <p class="text-gray-500">The project owner must allow access before you can upload files.</p>
+    <div class="flex justify-center">
+        <div class="flex-shrink font-bold text-base bg-white rounded-full shadow">
+            @if($pitch->status == 'pending')
+            <div class="px-6 py-2">
+                <p>The project owner must allow access before you can upload files.</p>
+            </div>
+            @elseif($pitch->status == 'ready_for_review')
+            <div class="px-6 py-2">
+                <p>You have submitted your pitch. We are waiting on the project owner to review your
+                    pitch.</p>
+            </div>
+            @elseif($pitch->status == 'pending_review')
+            <div class="px-6 py-2">
+                <p>The project owner wants you to review their response.</p>
+            </div>
+            @elseif($pitch->status == 'denied')
+            <div class="px-6 py-2">
+                <p>The project owner denied your pitch.</p>
+            </div>
+            @elseif($pitch->status == 'approved')
+            <div class="px-6 py-2">
+                <p>The project owner has approved your pitch.</p>
+            </div>
+            @endif
+        </div>
     </div>
-    @elseif($pitch->status == 'ready_for_review')
-    <div class="mt-4">
-        <p class="text-gray-500">You have submitted your pitch. We are waiting on the project owner to review your
-            pitch.</p>
-    </div>
-    @elseif($pitch->status == 'pending_review')
-    <div class="mt-4">
-        <p class="text-gray-500">The project owner wants you to review their response.</p>
-    </div>
-    @elseif($pitch->status == 'denied')
-    <div class="mt-4">
-        <p class="text-gray-500">The project owner denied your pitch.</p>
-    </div>
-    @elseif($pitch->status == 'approved')
-    <div class="mt-4">
-        <p class="text-gray-500">The project owner has approved your pitch.</p>
-    </div>
-    @endif
 
     @if($snapshots->isNotEmpty())
-    <div class="mt-4">
-        <h4 class="font-semibold">Submitted Pitches</h4>
+    <div class="my-8">
+        <h4 class="font-semibold pb-2">Submitted Pitches</h4>
         <ul class="space-y-2">
             @foreach($snapshots as $snapshot)
-            <li class="flex justify-between items-center p-2 bg-gray-100 rounded-lg shadow">
-                <span>Version {{ $snapshot->snapshot_data['version'] }} - {{ $snapshot->created_at->format('M d, Y H:i')
-                    }}</span>
-                <a href="{{ route('pitches.showSnapshot', [$pitch->id, $snapshot->id]) }}"
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-2 rounded text-sm">
-                    View
-                </a>
+            <li class="flex justify-between items-center p-2 bg-gray-50 rounded-lg shadow">
+                <span class="pl-2"><a href="{{ route('pitches.showSnapshot', [$pitch->id, $snapshot->id]) }}"
+                        class="font-bold text-xl">Version {{ $snapshot->snapshot_data['version'] }} </a><span
+                        class="text-base pl-2">
+                        {{
+                        $snapshot->created_at->format('M d, Y H:i')
+                        }}</span></span>
+                <div>
+                    <span class="mr-2 font-bold text-base">{{$snapshot->getReadableStatusAttribute()}}</span>
+                    <a href="{{ route('pitches.showSnapshot', [$pitch->id, $snapshot->id]) }}"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-2 mr-2 rounded text-sm">
+                        View
+                    </a>
+                    <button wire:click="deleteSnapshot({{ $snapshot->id }})"
+                        wire:confirm="Are you sure you want to delete this pitch?"
+                        class="bg-red-500 hover:bg-red-700 text-white font-semibold py-1 px-2 rounded text-sm">
+                        Delete
+                    </button>
+                </div>
             </li>
             @endforeach
         </ul>
@@ -91,19 +106,24 @@
                     <div class="p-2 text-base flex-grow ">
 
                         @if($event->status == 'pending')
-                        <i class="fas fa-hourglass-half text-yellow-400"></i> Pitch Access is Pending
+                        <i class="fas fa-hourglass-half text-yellow-400"></i>
+                        @if(!$event->comment) Pitch Access is Pending @endif
                         @elseif($event->status == 'in_progress')
-                        <i class="fas fa-spinner text-blue-400"></i> Pitch In Progress
+                        <i class="fas fa-spinner text-blue-400"></i>
+                        @if(!$event->comment) Pitch In Progress @endif
                         @elseif($event->status == 'ready_for_review')
-                        <i class="fas fa-file-alt text-orange-400"></i> Pitch Submitted for Review
+                        <i class="fas fa-file-alt text-orange-400"></i>
+                        @if(!$event->comment) Pitch Submitted for Review @endif
                         @elseif($event->status == 'pending_review')
-                        <i class="fas fa-undo text-purple-400"></i> Pitch Reviewed by Project Owner and Pending
-                        Review from Pitch User
+                        <i class="fas fa-undo text-purple-400"></i> @if(!$event->comment) Pitch Reviewed by Project
+                        Owner and Pending Review from Pitch User @endif
                         @elseif($event->status == 'approved')
-                        <i class="fas fa-check-circle text-green-400"></i> Pitch Reviewed by Project Owner and
-                        Approved
+                        <i class="fas fa-check-circle text-green-400"></i> @if(!$event->comment) Pitch Reviewed by
+                        Project Owner and
+                        Approved @endif
                         @elseif($event->status == 'denied')
-                        <i class="fas fa-times-circle text-red-400"></i> Pitch Reviewed by Project Owner and Denied
+                        <i class="fas fa-times-circle text-red-400"></i> @if(!$event->comment) Pitch Reviewed by Project
+                        Owner and Denied @endif
                         @endif
                         {{ $event->comment ?? '' }}
 
@@ -168,10 +188,14 @@
         <h4 class="font-semibold">Uploaded Files</h4>
         <div class="space-y-1">
             @foreach ($uploadedFiles as $file)
-            <div class="flex flex-col p-2 bg-gray-100 rounded-lg shadow"
+            <div class="flex flex-col p-2 bg-gray-50 rounded shadow"
                 x-data="{ showNotes: false, note: '{{ $file->note }}' }">
                 <div class="flex flex-col md:flex-row justify-between items-end">
-                    <span class="flex-1 place-self-start truncate font-bold">{{ $file->file_name }}</span>
+                    <a href="{{ route('pitch-files.show', $file) }}"
+                        class="flex-1 place-self-start truncate text-base ml-2">
+                        <span class="font-bold">{{ $file->name() }}</span><span>.{{
+                            $file->extension() }}</span>
+                    </a>
 
                     <div class="flex items-center space-x-2">
                         <template x-if="!showNotes">

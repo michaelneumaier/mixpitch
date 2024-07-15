@@ -31,6 +31,7 @@ export default {
                 button: '#95B3C6',
                 buttonFocus: '#AFC6D4',
                 pitch: '#ff0000',
+                decline: '#ff0000',
                 statusOpen: '#00ff00',
                 statusClosed: '#cc0000',
                 statusReview: '#ffe500',

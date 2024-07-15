@@ -7,6 +7,7 @@ use App\Http\Controllers\PitchController;
 use App\Http\Controllers\PitchFileController;
 use App\Livewire\CreateProject;
 use App\Livewire\ManageProject;
+use App\Livewire\Pitch\Snapshot\ShowSnapshot;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -65,7 +66,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('/pitches', PitchController::class);
     Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create');
     Route::post('/pitches/{pitch}/status', [PitchController::class, 'updateStatus'])->name('pitches.updateStatus');
-    Route::get('/pitches/{pitch}/{pitchSnapshot}', [PitchController::class, 'showSnapshot'])->name('pitches.showSnapshot');
+    Route::get('/pitches/{pitch}/{pitchSnapshot}', ShowSnapshot::class)->name('pitches.showSnapshot');
 
     Route::get('/pitch-files/{file}', [PitchFileController::class, 'show'])->name('pitch-files.show');
     Route::get('/pitch-files/download/{file}', [PitchFileController::class, 'download'])
