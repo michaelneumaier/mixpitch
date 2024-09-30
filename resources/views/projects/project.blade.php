@@ -147,9 +147,22 @@
 
 
                 </div>
-
+                <div class="m-4 flex justify-center">
+                    @if($project->collaboration_type)
+                        <div class="flex flex-wrap justify-center gap-2 w-full">
+                            @foreach($project->collaboration_type as $type => $value)
+                                @if($value)
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-base-200 text-base-content cursor-default select-none border border-base-300 hover:border-base-300 hover:bg-base-300 transition-colors duration-200">
+                                        <i class="fas fa-check-circle text-success mr-2"></i>
+                                        {{ Str::title(str_replace('_', ' ', $type)) }}
+                                    </span>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
                 <div>
-                    <div class="flex justify-between items-start text-xl mb-4 px-6 py-8 ">
+                    <div class="flex justify-between items-start text-xl mb-4 px-6 py-2 ">
                         <span class="whitespace-pre-wrap">{{ $project->description }}</span>
                     </div>
 
@@ -169,20 +182,7 @@
                     </div>
 
 
-                    <div class="space-y-2">
-                        @if($project->collaboration_type)
-                        <label class="block label-text ml-12">Looking for collaboration with:</label>
-                        @foreach($project->collaboration_type as $type => $value)
-                        @if($value)
-                        <div class="flex items-center p-2 pl-4 bg-gray-200">
-                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                            <span class="font-medium text-gray-700">{{ Str::title(str_replace('_', ' ', $type))
-                                }}</span>
-                        </div>
-                        @endif
-                        @endforeach
-                        @endif
-                    </div>
+                    
                     @if ($project->notes)
                     <label class="block label-text mt-8 ml-12">Notes:</label>
                     <div class="flex justify-between items-start m-8 mt-1 p-4 border border-base-200 bg-base-200/50">

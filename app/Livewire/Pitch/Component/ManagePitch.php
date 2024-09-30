@@ -22,6 +22,10 @@ class ManagePitch extends Component
     public $comment;
     public $rating;
 
+    public $acceptedTerms = false;
+
+    public $budgetFlexibility = 'strict';
+    public $licensingAgreement = 'exclusive';
     //public $uploadedFiles;
 
     public function mount(Pitch $pitch)
@@ -164,9 +168,13 @@ class ManagePitch extends Component
 
     public function submitForReview()
     {
+        $this->validate([
+            'acceptedTerms' => 'accepted',
+        ]);
         $this->pitch->createSnapshot();
         $this->pitch->changeStatus('forward', Pitch::STATUS_READY_FOR_REVIEW);
         Toaster::success('Pitch submitted for review successfully.');
+        $this->acceptedTerms = false;
         // session()->flash('message', 'Pitch submitted for review successfully.');
         // return redirect()->route('pitches.show', $this->pitch->id);
     }

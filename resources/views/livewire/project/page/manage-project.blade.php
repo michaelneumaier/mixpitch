@@ -151,8 +151,11 @@
                                     </div>
                                 </a>
                                 <div
-                                    class="flex items-center h-full p-3 bg-base-300 {{ $loop->even ? 'bg-base-300' : 'bg-base-300/50' }} {{ $loop->last ? 'rounded-br-lg' : '' }} min-w-[170px]">
-                                    <livewire:pitch.component.update-pitch-status :key="'pitch-'.$pitch->id" :$pitch />
+                                    class="flex items-center h-full p-3 bg-base-300 {{ $loop->even ? 'bg-base-300' : 'bg-base-300/50' }} {{ $loop->last ? 'rounded-br-lg' : '' }} w-48">
+                                    <div class="w-full flex justify-center">
+                                        <livewire:pitch.component.update-pitch-status :key="'pitch-'.$pitch->id"
+                                            :$pitch />
+                                    </div>
                                 </div>
                                 <span>
                                     <!-- for($i = 1; $i <= 10; $i++) 
