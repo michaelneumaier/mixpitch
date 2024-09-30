@@ -185,7 +185,7 @@
 
     @if($uploadedFiles->count())
     <div class="">
-        <h4 class="font-semibold">Uploaded Files</h4>
+        <h4 class="font-semibold my-2">Uploaded Files</h4>
         <div class="space-y-1">
             @foreach ($uploadedFiles as $file)
             <div class="flex flex-col p-2 bg-gray-50 rounded shadow"
@@ -277,12 +277,71 @@
             Clear Selection
         </button>
     </form>
+    <div class="mt-4">
+        <!-- Final Note Section -->
+        <div class="mb-4">
+            <label for="final-note" class="block text-gray-700 text-base">Final Notes</label>
+            <textarea id="final-note" wire:model.defer="finalNote" rows="3"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"></textarea>
+            @error('finalNote') <span class="text-red-500">{{ $message }}</span> @enderror
+        </div>
+
+        <div class="flex flex-row flex-wrap">
+            <!-- Budget Flexibility -->
+            <div class="m-2">
+                <label class="block text-gray-700 text-base">Budget Flexibility</label>
+                <div class="flex flex-row">
+
+                    <div role="tablist" class="tabs tabs-boxed">
+                        <a role="tab" wire:click="$set('budgetFlexibility', 'strict')"
+                            class="tab {{ $budgetFlexibility == 'strict' ? 'tab-active' : '' }}">Strict on Budget</a>
+                        <a role="tab" wire:click="$set('budgetFlexibility', 'negotiable')"
+                            class="tab {{ $budgetFlexibility == 'negotiable' ? 'tab-active' : '' }}">Willing to
+                            Negotiate</a>
+                    </div>
+                    @error('budgetFlexibility') <span class="text-red-500">{{ $message }}</span> @enderror
+                </div>
+            </div>
+            <!-- Licensing Agreement -->
+            <div class="m-2">
+                <label class="block text-gray-700 text-base">Licensing Agreement</label>
+                <div class="flex flex-row">
+
+                    <div role="tablist" class="tabs tabs-boxed">
+                        <a role="tab" wire:click="$set('licensingAgreement', 'exclusive')"
+                            class="tab {{ $licensingAgreement == 'exclusive' ? 'tab-active' : '' }}">Exclusive to This
+                            Project</a>
+                        <a role="tab" wire:click="$set('licensingAgreement', 'non-exclusive')"
+                            class="tab {{ $licensingAgreement == 'non-exclusive' ? 'tab-active' : '' }}">Non-exclusive,
+                            Can Be Used
+                            Elsewhere</a>
+                    </div>
+                    @error('licensingAgreement') <span class="text-red-500">{{ $message }}</span> @enderror
+                </div>
+            </div>
+        </div>
+
+
+
+
+    </div>
     @endif
 
     @if($pitch->status == 'in_progress' || $pitch->status == 'pending_review')
-    <div class="mt-4 flex justify-end">
+    <div class="mt-4 flex flex-col md:flex-row justify-end items-center">
+        @error('acceptedTerms')
+        <span class="text-red-500 text-sm mx-1">{{ $message }}</span>
+        @enderror
+        <div class="flex items-center mb-2 md:mb-0 md:mr-4">
+            <input type="checkbox" id="terms" class="form-checkbox h-5 w-5 text-green-600"
+                wire:model.defer="acceptedTerms">
+            <label for="terms" class="px-2 text-sm text-gray-700">I accept the <a href="/terms" target="_blank"
+                    class="text-blue-500 hover:underline">terms and conditions</a></label>
+        </div>
+
         <button wire:click="submitForReview" wire:confirm="Are you sure you want to Submit your Pitch?"
-            class="bg-green-500 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
+            class="bg-green-500 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded"
+            :disabled="!acceptedTerms">
             <i class="fas fa-check pr-2"></i>
             Ready To Submit
         </button>

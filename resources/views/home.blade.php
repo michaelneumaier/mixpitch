@@ -2,6 +2,7 @@
 
 @section('content')
 <div class="pt-4">
+    <!-- Hero Section with Empower, Elevate, Unleash -->
     <div class="py-2 md:px-20">
         <h1 class="text-3xl md:text-7xl text-secondary text-center grid grid-cols-2 gap-x-2">
             <div class="text-right">
@@ -16,12 +17,14 @@
             </div>
         </h1>
 
-
-
+        <!-- Introduction Section -->
         <p class="md:mt-4 p-4 text-l md:text-3xl text-secondary text-center">
-            MixPitch is the ultimate platform for musicians to have their music mixed by anyone. With real-world
-            recordings and a level playing field, it's never been easier to get paid for mixing.
+            MixPitch is the ultimate platform for musicians to collaborate with mixers, producers, and audio engineers
+            from around the world. Whether you're looking to refine your tracks or showcase your mixing skills, MixPitch
+            connects you with a community dedicated to elevating your sound.
         </p>
+
+        <!-- Call to Action Buttons -->
         <div class="flex flex-col md:flex-row justify-center my-4 md:mt-8 md:space-x-4 px-10 md:px-4">
             <div class="w-full md:w-1/2 lg:w-1/3 mb-8 md:mb-4 md:mb-0">
                 @auth
@@ -40,57 +43,65 @@
                     Projects</a>
             </div>
         </div>
-
     </div>
 
+    <!-- Features Highlights -->
     <div class="bg-base-200 mt-4">
-        <div class="grid md:grid-cols-3 grid-cols-1 md:gap-4">
-            <!-- Left Column -->
-            <div class="col-span-2 md:col-span-2">
-                <div class="p-8 md:p-6 h-full">
-                    <h2 class="font-bold text-2xl md:text-3xl mb-2 md:mb-4">Share Your Hits or Pitch Your Mix</h2>
-                    <p class="text-lg mb-4 p-2">Discover the power of MixPitch, a web app that revolutionizes
-                        music
-                        mixing.
-                        Whether you're an artist or a mixer/engineer, MixPitch provides the platform to enhance your
-                        skills and get paid for your work.</p>
-
-                    <div class="flex flex-wrap md:mt-10">
-                        <!-- First Block -->
-                        <div class="mb-4 md:w-1/2">
-                            <h3 class="font-bold text-2xl md:text-3xl mb-2">Unlock Potential</h3>
-                            <p class="p-2">MixPitch levels the playing field, giving artists and mixers/engineers the
-                                opportunity to
-                                shine.</p>
-                        </div>
-                        <!-- Second Block -->
-                        <div class="md:w-1/2 md:px-5">
-                            <h3 class="font-bold text-2xl md:text-3xl mb-2">Boost Success</h3>
-                            <p class="p-2">With MixPitch, artists and mixers/engineers can take their music to new
-                                heights.</p>
-                        </div>
-                    </div>
+        <div class="py-8 md:py-6 px-4 md:px-20">
+            <h2 class="font-bold text-3xl md:text-4xl text-center mb-6">Why MixPitch?</h2>
+            <div class="grid md:grid-cols-3 grid-cols-1 md:gap-6">
+                <!-- For Artists -->
+                <div class="p-4">
+                    <h3 class="font-semibold text-2xl mb-2">For Artists</h3>
+                    <ul class="list-disc list-inside text-lg">
+                        <li><strong>Unlock Global Talent:</strong> Upload your tracks and receive contributions from
+                            multiple audio engineers and producers.</li>
+                        <li><strong>Pay for Perfection:</strong> Only invest in the work that resonates with your
+                            vision.</li>
+                        <li><strong>Diverse Perspectives:</strong> Experience fresh takes on your music to elevate your
+                            sound.</li>
+                    </ul>
                 </div>
-            </div>
-
-            <!-- Right Column - Image -->
-            <div class="col-span-1 md:col-span-1 bg-cover bg-center min-h-[300px]"
-                style="background-image: url({{ asset('images/home_mixing.jpg') }})">
-
+                <!-- For Audio Professionals -->
+                <div class="p-4">
+                    <h3 class="font-semibold text-2xl mb-2">For Audio Professionals</h3>
+                    <ul class="list-disc list-inside text-lg">
+                        <li><strong>Expand Your Portfolio:</strong> Work on a variety of projects to showcase your
+                            skills.</li>
+                        <li><strong>Gain Real Experience:</strong> Collaborate with artists and receive valuable
+                            feedback.</li>
+                        <li><strong>Earn Opportunities:</strong> Get compensated when your work aligns with the artist's
+                            needs.</li>
+                    </ul>
+                </div>
+                <!-- Why Choose MixPitch -->
+                <div class="p-4">
+                    <h3 class="font-semibold text-2xl mb-2">Why Choose MixPitch?</h3>
+                    <ul class="list-disc list-inside text-lg">
+                        <li><strong>Collaborative Environment:</strong> Multiple creatives can work on the same project
+                            simultaneously.</li>
+                        <li><strong>Risk-Free Exploration:</strong> Artists can explore different styles without upfront
+                            costs.</li>
+                        <li><strong>Community Growth:</strong> Join a supportive network aimed at mutual growth and
+                            success.</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 
-
+    <!-- How It Works -->
     <div class="flex items-center p-4 md:p-5">
         <div class="md:w-5/6 mx-auto flex flex-wrap">
+            <!-- For Artists -->
             <div class="w-full p-8 mb-10 md:mb-0 md:w-1/2 md:px-4">
                 <h2 class="font-bold text-2xl mb-4">How MixPitch Works for Artists</h2>
                 <p class="text-lg">
-                    Elevate your music by leveraging the expertise of our vast community. Upload your tracks,
-                    critique diverse mixes, and handpick the one that resonates with your vision.
+                    Elevate your music by leveraging the expertise of our vast community. Upload your tracks, critique
+                    diverse mixes, and handpick the one that resonates with your vision.
                 </p>
             </div>
+            <!-- For Audio Professionals -->
             <div class="w-full p-8 md:w-1/2 md:px-4">
                 <h2 class="font-bold text-2xl mb-4">How MixPitch Works for Mixing/Mastering Engineers</h2>
                 <p class="text-lg">
@@ -100,5 +111,96 @@
             </div>
         </div>
     </div>
+
+    <!-- Join the Movement -->
+    <div class="bg-base-200 mt-4">
+        <div class="p-8 md:p-6 text-center">
+            <h2 class="font-bold text-3xl md:text-4xl mb-4">Join the MixPitch Movement</h2>
+            <p class="text-lg md:text-xl mb-6">
+                Ready to take your music or audio career to the next level? Dive into a world where collaboration fuels
+                creativity.
+            </p>
+            @auth
+            <a href="{{ route('projects.create') }}"
+                class="transition-all hover:scale-[1.02] inline-block bg-accent hover:bg-accent-focus text-xl text-center font-bold py-2 px-6 border-b-4 border-accent hover:border-accent-focus shadow-glow shadow-accent hover:shadow-accent-focus rounded whitespace-nowrap">Get
+                Started Today</a>
+            @else
+            <a href="{{ route('register') }}"
+                class="transition-all hover:scale-[1.02] inline-block bg-accent hover:bg-accent-focus text-xl text-center font-bold py-2 px-6 border-b-4 border-accent hover:border-accent-focus shadow-glow shadow-accent hover:shadow-accent-focus rounded whitespace-nowrap">Get
+                Started Today</a>
+            @endauth
+        </div>
+    </div>
+
+    <!-- Testimonials (Optional) -->
+    <div class="py-8 md:py-6 px-4 md:px-20">
+        <h2 class="font-bold text-3xl md:text-4xl text-center mb-6">What Our Users Say</h2>
+        <div class="grid md:grid-cols-3 grid-cols-1 md:gap-6">
+            <!-- Testimonial 1 -->
+            <div class="p-4">
+                <div class="bg-white p-6 rounded shadow">
+                    <p class="text-lg mb-4">"MixPitch has transformed the way I collaborate with audio engineers. The
+                        platform is intuitive and the community is incredibly supportive."</p>
+                    <p class="font-semibold">- Alex R., Musician</p>
+                </div>
+            </div>
+            <!-- Testimonial 2 -->
+            <div class="p-4">
+                <div class="bg-white p-6 rounded shadow">
+                    <p class="text-lg mb-4">"As an audio engineer, MixPitch has provided me with endless opportunities
+                        to showcase my skills and grow my portfolio."</p>
+                    <p class="font-semibold">- Jamie L., Audio Engineer</p>
+                </div>
+            </div>
+            <!-- Testimonial 3 -->
+            <div class="p-4">
+                <div class="bg-white p-6 rounded shadow">
+                    <p class="text-lg mb-4">"The collaborative environment on MixPitch is unparalleled. I've connected
+                        with talented artists and professionals worldwide."</p>
+                    <p class="font-semibold">- Taylor M., Producer</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer (Optional) -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-wrap justify-between">
+                <!-- Quick Links -->
+                <div class="w-full md:w-1/3 mb-6">
+                    <h3 class="font-bold text-xl mb-4">Quick Links</h3>
+                    <ul>
+                        <li><a href="" class="hover:underline">About Us</a></li>
+                        <li><a href="" class="hover:underline">Pricing & Plans</a></li>
+                        <li><a href="" class="hover:underline">Support</a></li>
+                        <li><a href="" class="hover:underline">Legal</a></li>
+                    </ul>
+                </div>
+                <!-- Social Media -->
+                <div class="w-full md:w-1/3 mb-6">
+                    <h3 class="font-bold text-xl mb-4">Follow Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="hover:text-gray-400"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="hover:text-gray-400"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="hover:text-gray-400"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="hover:text-gray-400"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                <!-- Newsletter -->
+                <div class="w-full md:w-1/3">
+                    <h3 class="font-bold text-xl mb-4">Stay Updated</h3>
+                    <form action="#" method="POST" class="flex">
+                        <input type="email" name="email" placeholder="Your email"
+                            class="p-2 rounded-l bg-gray-700 text-white focus:outline-none">
+                        <button type="submit" class="p-2 bg-accent hover:bg-accent-focus rounded-r">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                &copy; {{ date('Y') }} MixPitch. All rights reserved.
+            </div>
+        </div>
+    </footer>
 </div>
 @endsection

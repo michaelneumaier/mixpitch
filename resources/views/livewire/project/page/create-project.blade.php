@@ -297,47 +297,51 @@
                             </h2>
                         </div>
                         <div x-show="openSection === 'budget'" class="p-8 mb-5">
-                            <div class="relative mb-4">
-                                <label for="budget_slider" class="block label-text text-gray-700 mb-2">Specify your
-                                    budget:</label>
+                            <div class="relative mb-4" x-data="{ budget: @entangle('form.budget') }">
+                                <label for="budget_slider" class="block text-lg font-medium text-gray-700 mb-4">
+                                    Specify your budget: $<span x-text="budget"></span>
+                                </label>
 
-                                <!-- Slider and Manual Input Flex Container -->
-                                <div class="flex items-center space-x-4">
+                                <div class="flex flex-col space-y-6">
                                     <!-- Slider -->
-                                    <!-- <input type="range" id="budget_slider" min="0" max="1000" step="10" x-bind:value="budget"
-                        x-on:input="budget = $event.target.value" class="slider flex-grow" wire:model.blur="budget"> -->
-
-                                    <input type="range" id="budget_slider" min="0" max="1000" step="10"
-                                        x-bind:value="budget" x-on:input="budget = $event.target.value"
-                                        wire:model.blur="form.budget"
-                                        class="h-full appearance-none flex items-center cursor-pointer bg-transparent z-30
-        [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:appearance-none
-        [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:appearance-none
-        [&::-ms-thumb]:bg-blue-600 [&::-ms-thumb]:rounded-full [&::-ms-thumb]:border-0 [&::-ms-thumb]:w-2.5 [&::-ms-thumb]:h-2.5 [&::-ms-thumb]:appearance-none
-        [&::-webkit-slider-runnable-track]:bg-neutral-200 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:overflow-hidden [&::-moz-range-track]:bg-neutral-200 [&::-moz-range-track]:rounded-full [&::-ms-track]:bg-neutral-200 [&::-ms-track]:rounded-full
-        [&::-moz-range-progress]:bg-blue-400 [&::-moz-range-progress]:rounded-full [&::-ms-fill-lower]:bg-blue-400 [&::-ms-fill-lower]:rounded-full [&::-webkit-slider-thumb]:shadow-[-999px_0px_0px_990px_#4e97ff]">
-
-                                    <!-- Manual Input -->
-                                    <div class="flex-shrink-0 relative">
-                                        <!-- Overlay $ Symbol -->
-                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                                            <span class="text-gray-600">$</span>
-                                        </span>
-
-                                        <!-- Input with Added Padding -->
-                                        <input type="number" id="budget" min="0" max="1000" x-bind:value="budget"
-                                            x-on:input="budget = $event.target.value"
-                                            class="px-3 py-2 pl-8 border rounded shadow-sm"
-                                            wire:model.blur="form.budget">
+                                    <div class="w-full">
+                                        <input type="range" id="budget_slider" min="0" max="1000" step="10"
+                                            x-model="budget"
+                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                            :class="{'bg-primary': budget > 0}"
+                                            style="background-size: 0% 100%; background-image: linear-gradient(#4e97ff, #4e97ff);"
+                                            x-on:input="$el.style.backgroundSize = `${$el.value / 10}% 100%`">
                                     </div>
 
-                                </div>
-                                @error('form.budget')
-                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
-                                    data-tip="{{ $message }}">
-                                </div>
-                                @enderror
+                                    <!-- Predefined budget options -->
+                                    <div class="flex justify-between">
+                                        <button @click="budget = 100" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                            $100
+                                        </button>
+                                        <button @click="budget = 250" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                            $250
+                                        </button>
+                                        <button @click="budget = 500" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                            $500
+                                        </button>
+                                        <button @click="budget = 1000" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                            $1000
+                                        </button>
+                                    </div>
 
+                                    <!-- Manual Input -->
+                                    <div class="flex items-center">
+                                        <span class="mr-2 text-gray-600">$</span>
+                                        <input type="number" id="budget" min="0" max="1000" step="10"
+                                            x-model="budget"
+                                            class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                                            wire:model.blur="form.budget">
+                                    </div>
+                                </div>
+
+                                @error('form.budget')
+                                <div class="mt-2 text-sm text-red-600">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -375,108 +379,61 @@
                     </div>
 
 
-                    <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
-                        <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
-                            @click="openSection = (openSection === 'track' ? null : 'track')">
-                            <h2 class="text-2xl p-5 flex items-center"><i
-                                    class="fas fa-music w-5 text-center mr-8 text-4xl"></i>Preview Track
-                                @if($errors->hasAny(['form.track']))
-                                <span class="ml-auto">
-                                    <i class="fas fa-exclamation-circle text-red-500"></i>
-                                </span>
-                                @endif
-                            </h2>
-                        </div>
 
 
 
-                        <div x-show="openSection === 'track'" class="p-8 mb-5">
-                            <input type="file" id="track" wire:model="track" class="hidden">
-                            <label for="track"
-                                class="cursor-pointer block text-center bg-blue-500 text-white py-2 px-4 rounded-lg shadow hover:bg-blue-600 w-full">
-                                <i class="fas fa-music"></i> Choose Track
-                            </label>
-                            @error('track') <span class="error">{{ $message }}</span> @enderror
-                            @error('form.track') <span class="error">{{ $message }}</span> @enderror
-                            <div x-data="{ loaded: true }" x-show="loaded"
-                                x-on:url-updated.window="loaded = true; console.log('url updated')"
-                                x-on:clear-track="loaded = false" class="py-4">
-                                @livewire('audio-player', ['audioUrl' => $audioUrl])
-                            </div>
-                            <!-- Display track name if uploaded -->
-                            @if ($track && is_object($track))
-                            <div class="mt-2 p-2 bg-base-100 rounded">
-                                <div class="flex items-center justify-between">
-                                    <span>{{ $track->getClientOriginalName() }}</span>
-                                    <button wire:click="clearTrack" type="button" class="text-red-500">&times;</button>
-                                </div>
-                            </div>
-                            @elseif ($isEdit && !$deletePreviewTrack && $audioUrl)
-                            <div class="mt-2 p-2 bg-base-100 rounded">
-                                <div class="flex items-center justify-between">
-                                    <span>{{ basename($audioUrl) }}</span>
-                                    <button wire:click="clearTrack" type="button" class="text-red-500">&times;</button>
-                                </div>
-                            </div>
-                            @endif
 
-
-
-                        </div>
-
-
-
-                    </div>
-
-
-
-                    <!-- Additional Notes Section -->
-                    <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
-                        <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
-                            @click="openSection = (openSection === 'notes' ? null : 'notes')">
-                            <h2 class="text-2xl p-5 flex items-center"><i
-                                    class="fas fa-sticky-note w-5 text-center mr-8 text-4xl"></i>Additional
-                                Notes
-                                @if($errors->hasAny(['form.notes']))
-                                <span class="ml-auto">
-                                    <i class="fas fa-exclamation-circle text-red-500"></i>
-                                </span>
-                                @endif
-                            </h2>
-                        </div>
-                        <div x-show="openSection === 'notes'" class="p-8 mb-5">
-                            <div class="relative mb-4">
-                                <label for="notes" class="block label-text text-gray-700 mb-2">Any additional
-                                    details or
-                                    comments:</label>
-                                <textarea id="notes" rows="4" wire:model.bluri="form.notes"
-                                    class="textarea textarea-bordered w-full px-3 py-2"></textarea>
-                                @error('form.notes')
-                                <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
-                                    data-tip="{{ $message }}">
-                                </div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Submit Button -->
-
-                    <div class="mt-4">
-                        @if($isEdit)
-                        <button type="submit" class="btn btn-primary">
-                            Save Project
-                        </button>
-                        @else
-                        <button type="submit" class="btn btn-primary">
-                            Create Project
-                        </button>
-                        @endif
-
-                    </div>
-                </form>
             </div>
 
+
+
+            <!-- Additional Notes Section -->
+            <div class="shadow-lg shadow-base-300 rounded-lg mb-6">
+                <div class="border-2 border-base-300 bg-base-200 rounded-lg cursor-pointer"
+                    @click="openSection = (openSection === 'notes' ? null : 'notes')">
+                    <h2 class="text-2xl p-5 flex items-center"><i
+                            class="fas fa-sticky-note w-5 text-center mr-8 text-4xl"></i>Additional
+                        Notes
+                        @if($errors->hasAny(['form.notes']))
+                        <span class="ml-auto">
+                            <i class="fas fa-exclamation-circle text-red-500"></i>
+                        </span>
+                        @endif
+                    </h2>
+                </div>
+                <div x-show="openSection === 'notes'" class="p-8 mb-5">
+                    <div class="relative mb-4">
+                        <label for="notes" class="block label-text text-gray-700 mb-2">Any additional
+                            details or
+                            comments:</label>
+                        <textarea id="notes" rows="4" wire:model.bluri="form.notes"
+                            class="textarea textarea-bordered w-full px-3 py-2"></textarea>
+                        @error('form.notes')
+                        <div class="tooltip tooltip-open tooltip-error tooltip-bottom absolute inset-x-0 bottom-0"
+                            data-tip="{{ $message }}">
+                        </div>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+
+            <div class="mt-4">
+                @if($isEdit)
+                <button type="submit" class="btn btn-primary">
+                    Save Project
+                </button>
+                @else
+                <button type="submit" class="btn btn-primary">
+                    Create Project
+                </button>
+                @endif
+
+            </div>
+            </form>
         </div>
+
     </div>
+</div>
 </div>
