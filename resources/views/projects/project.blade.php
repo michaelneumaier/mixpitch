@@ -108,10 +108,10 @@
                                                         whitespace-nowrap">Manage
                                 Your Pitch</a>
                             @else
-                            <a href="{{ route('pitches.create', $project) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                            <button onclick="openPitchTermsModal()" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
                                                         grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
                                                         whitespace-nowrap">Start
-                                Your Pitch</a>
+                                Your Pitch</button>
                             @endif
 
                             @if(auth()->check() && $project->isOwnedByUser(auth()->user()))
@@ -128,7 +128,7 @@
                                     <div class="font-bold">{{ Str::title($project->project_type) }}</div>
 
                                 </div>
-                                <div class="py-1 pb-0 px-4 bg-base-200/30 border-r border-base-200">
+                                <div class="py-1 pb-0 px-4 bg-base-200/30 border-r border-base-200 hidden">
                                     <div class="label-text">Budget</div>
                                     <div class="font-bold">{{ $project->budget == 0 ? 'Free' :
                                         '$'.number_format($project->budget, 0) }}</div>
@@ -147,23 +147,71 @@
 
 
                 </div>
-                <div class="m-4 flex justify-center">
-                    @if($project->collaboration_type)
-                        <div class="flex flex-wrap justify-center gap-2 w-full">
+                @if($project->collaboration_type && count(array_filter($project->collaboration_type)) > 0)
+                <div class="m-4">
+                    <div class="bg-base-200/30 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
+                            <i class="fas fa-handshake text-indigo-500 mr-2"></i>Looking For Collaboration In
+                        </h3>
+                        <div class="flex flex-wrap gap-3">
                             @foreach($project->collaboration_type as $type => $value)
-                                @if($value)
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-base-200 text-base-content cursor-default select-none border border-base-300 hover:border-base-300 hover:bg-base-300 transition-colors duration-200">
-                                        <i class="fas fa-check-circle text-success mr-2"></i>
-                                        {{ Str::title(str_replace('_', ' ', $type)) }}
-                                    </span>
-                                @endif
+                            @if($value)
+                            <div
+                                class="flex flex-col items-center bg-white rounded-lg p-3 shadow-sm border border-indigo-100 hover:shadow-md transition-all">
+                                <div class="text-indigo-500 text-xl mb-1">
+                                    <i class="fas {{ 
+                                        $type == 'mixing' ? 'fa-sliders-h' : 
+                                        ($type == 'mastering' ? 'fa-compact-disc' : 
+                                        ($type == 'production' ? 'fa-music' : 
+                                        ($type == 'vocals' ? 'fa-microphone' : 
+                                        ($type == 'instruments' ? 'fa-guitar' : 'fa-tasks')))) 
+                                    }}"></i>
+                                </div>
+                                <span class="text-center font-medium text-gray-800">
+                                    {{ Str::title(str_replace('_', ' ', $type)) }}
+                                </span>
+                            </div>
+                            @endif
                             @endforeach
                         </div>
-                    @endif
+                    </div>
                 </div>
+                @endif
                 <div>
-                    <div class="flex justify-between items-start text-xl mb-4 px-6 py-2 ">
-                        <span class="whitespace-pre-wrap">{{ $project->description }}</span>
+                    <!-- Budget Section -->
+                    <div class="px-6 py-2">
+                        <div class="bg-base-200/30 p-4 rounded-lg">
+                            <h3 class="font-semibold text-gray-700 mb-2 flex items-center">
+                                <i class="fas fa-money-bill-wave text-green-500 mr-2"></i>Budget
+                            </h3>
+                            <div class="flex items-center">
+                                <span class="text-2xl font-bold text-gray-800">
+                                    {{ $project->budget == 0 ? 'Free Project' : '$'.number_format($project->budget, 0)
+                                    }}
+                                </span>
+                                @if($project->budget > 0)
+                                <span class="ml-2 text-gray-600">USD</span>
+                                @endif
+                            </div>
+                            <p class="text-gray-600 mt-2">
+                                @if($project->budget == 0)
+                                This is a free collaboration project. No payment is expected.
+                                @else
+                                This is the budget allocated for this project. The final payment may vary based on
+                                project requirements and
+                                agreement with the collaborator.
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Description Section -->
+                    <div class="px-6 py-2">
+                        <div class="bg-base-200/30 p-4 rounded-lg">
+                            <h3 class="font-semibold text-gray-700 mb-2 flex items-center">
+                                <i class="fas fa-align-left text-blue-500 mr-2"></i>Description
+                            </h3>
+                            <p class="text-gray-700 whitespace-pre-wrap">{{ $project->description }}</p>
+                        </div>
                     </div>
 
                     <div class="w-full hidden">
@@ -181,55 +229,56 @@
                         </div>
                     </div>
 
-
-                    
+                    <!-- Notes Section -->
                     @if ($project->notes)
-                    <label class="block label-text mt-8 ml-12">Notes:</label>
-                    <div class="flex justify-between items-start m-8 mt-1 p-4 border border-base-200 bg-base-200/50">
-
-                        <span class="whitespace-pre-wrap">{{ $project->notes }}</span>
+                    <div class="px-6 py-2">
+                        <div class="bg-base-200/30 p-4 rounded-lg">
+                            <h3 class="font-semibold text-gray-700 mb-2 flex items-center">
+                                <i class="fas fa-sticky-note text-yellow-500 mr-2"></i>Additional Notes
+                            </h3>
+                            <p class="text-gray-700 whitespace-pre-wrap">{{ $project->notes }}</p>
+                        </div>
                     </div>
                     @endif
 
-                    <!-- Content Below the Image and Details -->
-                    <div class="clear-left bg-dark bg-opacity-50 p-4">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block label-text ml-8">Files:</label>
-                                <div class="border-4 border-base-300/40 rounded-lg">
-                                    @if($project->files->isEmpty())
-                                    <div class="p-4">There are no files uploaded.</div>
-                                    @else
-                                    @foreach($project->files as $file)
-                                    <div x-data="{ showTooltip: false }"
-                                        class="flex flex-row items-center justify-between p-2 {{ $loop->even ? 'bg-base-200/10' : 'bg-base-200/60' }} {{ $loop->first ? 'rounded-t-md' : '' }} {{ $loop->last ? 'rounded-b-md' : '' }}">
-                                        <div class="flex flex-1 items-center truncate">
-                                            <span @click="showTooltip = !showTooltip" class="truncate">{{
-                                                $file->file_name
-                                                }}</span>
-                                        </div>
-                                        <div x-show="showTooltip" @click.away="showTooltip = false"
-                                            class="absolute z-10 break-all w-auto p-2 mr-2 bg-black text-white text-sm rounded-md shadow-lg"
-                                            x-text="'{{ $file->file_name }}'">
-                                        </div>
-                                        <div class="flex items-center">
-                                            <span>{{ $file->formatted_size }}</span>
+                    <!-- Files Section -->
+                    <div class="px-6 py-2">
+                        <div class="bg-base-200/30 p-4 rounded-lg">
+                            <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
+                                <i class="fas fa-music text-purple-500 mr-2"></i>Project Files
+                            </h3>
 
-
-                                        </div>
-                                    </div>
-                                    @endforeach
-                                    @endif
-                                </div>
+                            @if($project->files->isEmpty())
+                            <div class="p-4 text-center text-gray-500 italic">
+                                <p>No files have been uploaded for this project</p>
                             </div>
+                            @else
+                            <div class="divide-y divide-base-300/50">
+                                @foreach($project->files as $file)
+                                <div
+                                    class="flex items-center justify-between py-3 px-2 {{ $loop->even ? 'bg-base-200/30' : '' }}">
+                                    <div class="flex items-center truncate">
+                                        <i class="fas fa-file-audio text-gray-500 mr-3"></i>
+                                        <span class="font-medium text-gray-800 truncate" title="{{ $file->file_name }}">
+                                            {{ $file->file_name }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center ml-4">
+                                        <span class="text-sm text-gray-500">{{ $file->formatted_size }}</span>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            @endif
                         </div>
                     </div>
-
-
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Include the pitch terms modal component -->
+<x-pitch-terms-modal :project="$project" />
 
 @endsection

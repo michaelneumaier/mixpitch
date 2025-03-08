@@ -8,7 +8,8 @@
     <title>{{ config('app.name', 'Mix Pitch') }}</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <!-- <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet"> -->
     <!-- <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet"> -->
     <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -16,6 +17,7 @@
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
 
     <!-- Add Bootstrap JS and its dependencies -->
+    @commentsStyles
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
@@ -27,11 +29,38 @@
 
     @livewireStyles
 
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+                background-color: rgba(147, 51, 234, 0.2); /* Light purple background */
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(0);
+                background-color: rgba(147, 51, 234, 0.1); /* Light purple background */
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+                background-color: white;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 1.5s ease-out;
+        }
+    </style>
 
 </head>
 
 <body class="font-sans antialiased bg-base-100">
-    <div class="min-h-screen">
+    <div class="min-h-screen flex flex-col">
         @include('components.layouts.navigation')
         <!-- Page Heading -->
         @if (isset($header))
@@ -42,12 +71,12 @@
         </header>
         @endif
         <!-- Page Content -->
-        <main>
+        <main class="flex-grow">
             {{ $slot ?? '' }}
             @yield('content')
-
-
         </main>
+
+        @include('components.layouts.footer')
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
@@ -56,6 +85,7 @@
     @yield('scripts')
     @livewireScripts()
     @stack('scripts')
+    @commentsScripts
 
     <x-toaster-hub />
 </body>

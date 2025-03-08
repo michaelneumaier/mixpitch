@@ -12,9 +12,9 @@ export default {
         "./resources/**/*.blade.php",
         "./resources/**/*.js",
         "./resources/**/*.vue",
+        "./app/View/Components/**/*.php",
         './vendor/masmerise/livewire-toaster/resources/views/*.blade.php',
     ],
-    darkMode: 'class',
 
     theme: {
         extend: {
@@ -68,7 +68,7 @@ export default {
                 "warning": "#FFB700",
                 "error": "#F74931",
             },
-        }, "dark"],
+        },],
     },
 
 

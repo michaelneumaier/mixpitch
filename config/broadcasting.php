@@ -32,14 +32,14 @@ return [
 
         'pusher' => [
             'driver' => 'pusher',
-            'key' => env('PUSHER_APP_KEY'),
-            'secret' => env('PUSHER_APP_SECRET'),
-            'app_id' => env('PUSHER_APP_ID'),
+            'key' => env('PUSHER_APP_KEY', 'MixPitchApp'),
+            'secret' => env('PUSHER_APP_SECRET', 'MixPitchSecret'),
+            'app_id' => env('PUSHER_APP_ID', 'MixPitch'),
             'options' => [
-                'cluster' => env('PUSHER_APP_CLUSTER'),
-                'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
-                'port' => env('PUSHER_PORT', 443),
-                'scheme' => env('PUSHER_SCHEME', 'https'),
+                'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
+                'host' => env('PUSHER_HOST', '127.0.0.1'),
+                'port' => env('PUSHER_PORT', 6001),
+                'scheme' => env('PUSHER_SCHEME', 'http'),
                 'encrypted' => true,
                 'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
             ],
@@ -47,7 +47,17 @@ return [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],
         ],
-
+        
+        'reverb' => [
+            'driver' => 'reverb',
+            'app_id' => env('REVERB_APP_ID', 'MixPitch'),
+            'app_key' => env('REVERB_APP_KEY', 'MixPitchApp'),
+            'app_secret' => env('REVERB_APP_SECRET', 'MixPitchSecret'),
+            'host' => env('REVERB_HOST', '127.0.0.1'),
+            'port' => env('REVERB_PORT', 8080),
+            'scheme' => env('REVERB_SCHEME', 'http'),
+        ],
+        
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),

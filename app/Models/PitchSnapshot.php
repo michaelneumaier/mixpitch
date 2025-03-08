@@ -36,37 +36,85 @@ class PitchSnapshot extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function getReadableStatusAttribute()
+    /**
+     * Get human-readable status
+     */
+    public function getStatusLabelAttribute()
     {
-        return ucwords(str_replace('_', ' ', $this->status));
+        $statusMapping = [
+            'pending' => 'Pending',
+            'accepted' => 'Accepted',
+            'denied' => 'Denied',
+            'revisions_requested' => 'Revisions Requested',
+            'revision_addressed' => 'Revision Addressed',
+            'completed' => 'Completed',
+        ];
+
+        return $statusMapping[$this->status] ?? ucfirst($this->status);
     }
 
+    /**
+     * Check if the snapshot has changes requested
+     */
+    public function hasChangesRequested()
+    {
+        return $this->status === 'revisions_requested';
+    }
+
+    /**
+     * Check if the snapshot is approved
+     * 
+     * @return bool
+     */
     public function isApproved()
     {
-        if ($this->status == 'approved') {
-            return true;
-        }
-        return false;
+        return $this->status === 'accepted';
     }
 
-    public function isDeclined()
+    /**
+     * Check if the snapshot is denied
+     * 
+     * @return bool
+     */
+    public function isDenied()
     {
-        if ($this->status == 'declined') {
-            return true;
-        }
-        return false;
+        return $this->status === 'denied';
     }
 
-    public function isRevise()
+    /**
+     * Check if the snapshot is pending review
+     * 
+     * @return bool
+     */
+    public function isPending()
     {
-        if ($this->status == 'revise') {
-            return true;
-        }
-        return false;
+        return $this->status === 'pending';
+    }
+    
+    /**
+     * Check if the snapshot is for a completed pitch
+     * 
+     * @return bool
+     */
+    public function isCompleted()
+    {
+        return $this->status === 'completed';
     }
 
+    /**
+     * Change the status of the snapshot
+     * 
+     * @param string $status
+     * @return bool
+     */
     public function changeStatus($status)
     {
+        $allowedStatuses = ['pending', 'accepted', 'denied', 'revisions_requested', 'revision_addressed', 'completed'];
+        
+        if (!in_array($status, $allowedStatuses)) {
+            throw new \InvalidArgumentException("Invalid snapshot status: {$status}");
+        }
+        
         $this->status = $status;
         return $this->save();
     }
