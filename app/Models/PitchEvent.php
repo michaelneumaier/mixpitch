@@ -15,7 +15,8 @@ class PitchEvent extends Model
         'status',
         'comment',
         'rating',
-        'created_by'
+        'created_by',
+        'snapshot_id'
     ];
 
     public function pitch()
@@ -26,5 +27,15 @@ class PitchEvent extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+    
+    /**
+     * Get the snapshot associated with this event
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function snapshot()
+    {
+        return $this->belongsTo(PitchSnapshot::class, 'snapshot_id');
     }
 }

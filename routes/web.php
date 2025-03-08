@@ -5,6 +5,8 @@ use App\Http\Controllers\MixController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PitchController;
 use App\Http\Controllers\PitchFileController;
+use App\Http\Controllers\AboutController;
+use App\Http\Controllers\PricingController;
 use App\Livewire\CreateProject;
 use App\Livewire\ManageProject;
 use App\Livewire\Pitch\Snapshot\ShowSnapshot;
@@ -66,7 +68,27 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('/pitches', PitchController::class);
     Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create');
     Route::post('/pitches/{pitch}/status', [PitchController::class, 'updateStatus'])->name('pitches.updateStatus');
+    
+    // Special route for pitch deletion to handle the Livewire redirect approach
+    Route::get('/pitches/{pitch}/delete-confirmed', [PitchController::class, 'destroyConfirmed'])->name('pitches.destroyConfirmed');
+    
+    // Make sure snapshot routes come after other specific routes to avoid conflicts
+    Route::get('/pitches/{pitch}/latest-snapshot', [PitchController::class, 'showLatestSnapshot'])->name('pitches.showLatestSnapshot');
     Route::get('/pitches/{pitch}/{pitchSnapshot}', ShowSnapshot::class)->name('pitches.showSnapshot');
+
+    // New routes for non-Livewire pitch status changes
+    Route::get('/pitch/{pitch}/change-status/{direction}/{newStatus?}', [App\Http\Controllers\PitchStatusController::class, 'changeStatus'])
+        ->name('pitch.changeStatus')
+        ->middleware('auth');
+    Route::post('/pitch/{pitch}/approve-snapshot/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'approveSnapshot'])
+        ->name('pitch.approveSnapshot')
+        ->middleware('auth');
+    Route::post('/pitch/{pitch}/deny-snapshot/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'denySnapshot'])
+        ->name('pitch.denySnapshot')
+        ->middleware('auth');
+    Route::post('/pitch/{pitch}/request-changes/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'requestChanges'])
+        ->name('pitch.requestChanges')
+        ->middleware('auth');
 
     Route::get('/pitch-files/{file}', [PitchFileController::class, 'show'])->name('pitch-files.show');
     Route::get('/pitch-files/download/{file}', [PitchFileController::class, 'download'])
@@ -77,3 +99,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('pitch-files.delete')
         ->middleware('auth');
 });
+
+
+Route::get('/about', [AboutController::class, 'index'])->name('about');
+Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');

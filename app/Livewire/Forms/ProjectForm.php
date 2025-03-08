@@ -42,7 +42,10 @@ class ProjectForm extends Form
     #[Rule('boolean')]
     public $collaborationTypeVocalTuning = false;
 
-    #[Rule('required|numeric|min:0')]
+    #[Rule('required|in:free,paid')]
+    public $budgetType;
+
+    #[Rule('required|numeric|min:0|max:10000')]
     public $budget;
 
     #[Rule('required|date|after:today')]

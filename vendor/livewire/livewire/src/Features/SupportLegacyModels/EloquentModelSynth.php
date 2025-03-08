@@ -62,6 +62,8 @@ class EloquentModelSynth extends Synth
 
     public function hydrate($data, $meta, $hydrateChild)
     {
+        if ($data === '' || $data === null) return null;
+        
         if (isset($meta['__child_from_parent'])) {
             $model = $meta['__child_from_parent'];
 
@@ -71,8 +73,8 @@ class EloquentModelSynth extends Synth
         }
 
         if (isset($meta['relations'])) {
-            foreach ($meta['relations'] as $relationKey) {
-                if (!isset($data[$relationKey])) continue;
+            foreach($meta['relations'] as $relationKey) {
+                if (! isset($data[$relationKey])) continue;
 
                 $data[$relationKey][1]['__child_from_parent'] = $model->getRelation($relationKey);
 
@@ -104,6 +106,10 @@ class EloquentModelSynth extends Synth
 
         if ($target->relationLoaded($key)) {
             return $target->setRelation($key, $value);
+        }
+
+        if (array_key_exists($key, $target->getCasts()) && enum_exists($target->getCasts()[$key]) && $value === '') {
+            $value = null;
         }
 
         $target->$key = $value;
@@ -142,12 +148,12 @@ class EloquentModelSynth extends Synth
         $attributes = $model->attributesToArray();
 
         foreach ($model->getCasts() as $key => $cast) {
-            if (!class_exists($cast)) continue;
+            if (! class_exists($cast)) continue;
 
             if (
                 in_array(CastsAttributes::class, class_implements($cast))
                 && isset($attributes[$key])
-            ) {
+                ) {
                 $attributes[$key] = $model->getAttributes()[$key];
             }
         }
@@ -159,7 +165,7 @@ class EloquentModelSynth extends Synth
     {
         $filteredAttributes = [];
 
-        foreach ($rules as $key => $rule) {
+        foreach($rules as $key => $rule) {
             // If the rule is an array, take the key instead
             if (is_array($rule)) {
                 $rule = $key;
@@ -187,7 +193,7 @@ class EloquentModelSynth extends Synth
         // If no alias found, this returns `null`
         $aliasClass = Relation::getMorphedModel($class);
 
-        if (!is_null($aliasClass)) {
+        if (! is_null($aliasClass)) {
             $class = $aliasClass;
         }
 

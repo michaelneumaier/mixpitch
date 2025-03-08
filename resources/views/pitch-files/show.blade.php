@@ -5,7 +5,7 @@
 @section('content')
 <div class="container mx-auto px-1">
     <div class="flex justify-center">
-        <div class="w-full lg:w-3/4 2xl:w-2/3">
+        <div class="w-full lg:!w-3/4 2xl:!w-2/3">
             <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg mb-12">
                 <div class="flex flex-col shadow-lightGlow shadow-base-300 rounded-t-lg">
                     <div class="px-4 py-2">
@@ -46,9 +46,10 @@
                     </div>
 
                     <!-- Placeholder for Comments Section -->
-                    <div class="px-4 py-2">
-                        <h2 class="text-xl font-semibold mb-2">Comments</h2>
-                        <p class="text-gray-500">Comments section placeholder</p>
+
+
+                    <div class="px-4 py-2"> <x-comments:: :model="$file" />
+
                     </div>
                 </div>
             </div>

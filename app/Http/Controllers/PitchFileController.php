@@ -35,11 +35,13 @@ class PitchFileController extends Controller
 
         foreach ($request->file('files') as $file) {
             $filePath = $file->store('pitch_files', 'public');
+            $fileSize = $file->getSize(); // Get file size in bytes
 
             // Save file information in the database
             $pitch->files()->create([
                 'file_path' => $filePath,
                 'file_name' => $file->getClientOriginalName(),
+                'size' => $fileSize,
                 'user_id' => Auth::id(),
             ]);
         }

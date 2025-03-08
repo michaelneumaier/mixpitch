@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Pitch;
+use App\Observers\PitchObserver;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -25,7 +27,8 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register the PitchObserver with the Pitch model
+        Pitch::observe(PitchObserver::class);
     }
 
     /**

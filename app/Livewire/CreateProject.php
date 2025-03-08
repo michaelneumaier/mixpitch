@@ -16,7 +16,7 @@ class CreateProject extends Component
     use WithFileUploads;
 
     public Project $project;
-    public Project $originalProject;
+    public ?Project $originalProject = null;
     public ProjectForm $form;
     public $isEdit = false;
     public $projectImage;
@@ -28,6 +28,9 @@ class CreateProject extends Component
 
     public function mount($project = null)
     {
+        // Initialize the project property with a new instance to prevent "property must not be accessed before initialization" errors
+        $this->project = new Project();
+        // Don't manually instantiate the form - Livewire does this automatically
 
         if ($project) {
             $this->originalProject = $project;
@@ -54,9 +57,6 @@ class CreateProject extends Component
             }
             //$this->form->track = $project->preview_track;
             $this->form->notes = $project->notes;
-        } else {
-
-            //$this->form->budget = 0;
         }
     }
 
@@ -177,7 +177,13 @@ class CreateProject extends Component
             $project->preview_track = $controller->storeTrack($this->track, $project);
         }
         $project->save();
-        return redirect()->route('projects.show', $project);
+
+        // Redirect to the appropriate page after saving
+        if ($this->isEdit) {
+            return redirect()->route('projects.manage', [$project]);
+        } else {
+            return redirect()->route('projects.show', $project);
+        }
     }
 
     public function render()

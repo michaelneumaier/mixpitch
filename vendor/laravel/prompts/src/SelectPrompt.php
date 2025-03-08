@@ -27,9 +27,10 @@ class SelectPrompt extends Prompt
         array|Collection $options,
         public int|string|null $default = null,
         public int $scroll = 5,
-        public ?Closure $validate = null,
+        public mixed $validate = null,
         public string $hint = '',
         public bool|string $required = true,
+        public ?Closure $transform = null,
     ) {
         if ($this->required === false) {
             throw new InvalidArgumentException('Argument [required] must be true or a string.');
@@ -95,5 +96,13 @@ class SelectPrompt extends Prompt
     public function visible(): array
     {
         return array_slice($this->options, $this->firstVisible, $this->scroll, preserve_keys: true);
+    }
+
+    /**
+     * Determine whether the given value is invalid when the prompt is required.
+     */
+    protected function isInvalidWhenRequired(mixed $value): bool
+    {
+        return $value === null;
     }
 }

@@ -1,79 +1,120 @@
-<div class="container mx-auto px-1">
+<div class="container mx-auto px-1 sm:px-4">
     <div class="flex justify-center">
         <div class="w-full lg:w-3/4 2xl:w-2/3">
-            <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg mb-12">
+            <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg mb-12 overflow-hidden">
                 <div class="flex flex-row shadow-lightGlow shadow-base-300">
                     <!-- Project Image on the Left -->
                     <div x-data="{ lightbox: { isOpen: false } }" class="relative shrink-0 w-1/5 md:w-48">
-
                         <!-- Image that triggers the lightbox -->
                         @if($pitch->project->image_path)
                         <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $pitch->project->image_path) }}"
                             alt="{{ $pitch->project->name }}"
-                            class=" md:aspect-square h-48 object-cover md:rounded-tl-lg cursor-pointer" />
+                            class="md:aspect-square h-48 object-cover md:rounded-tl-lg cursor-pointer" />
                         @else
-                        <div class="w-full md:aspect-square md:w-72 h-72 object-cover lg:rounded-tl-lg bg-base-200">
+                        <div
+                            class="flex items-center justify-center w-full md:aspect-square h-48 object-cover md:rounded-tl-lg bg-base-200">
+                            <i class="fas fa-music text-5xl text-gray-400"></i>
                         </div>
                         @endif
 
                         <!-- The actual lightbox overlay -->
                         @if($pitch->project->image_path)
                         <div x-cloak x-show="lightbox.isOpen"
-                            class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
-                            <img @click="lightbox.isOpen = false"
-                                src="{{ asset('storage/' . $pitch->project->image_path) }}" alt="Lightbox image"
-                                class="max-w-full max-h-full">
+                            class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
+                            <div class="relative max-w-4xl mx-auto">
+                                <img @click.away="lightbox.isOpen = false"
+                                    src="{{ asset('storage/' . $pitch->project->image_path) }}"
+                                    alt="{{ $pitch->project->name }}" class="max-w-full max-h-[90vh] object-contain">
 
-                            <!-- Close button -->
-                            <button @click="lightbox.isOpen = false"
-                                class="absolute top-4 right-4 text-white">Close</button>
+                                <!-- Close button -->
+                                <button @click="lightbox.isOpen = false"
+                                    class="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75 transition-all">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         @endif
                     </div>
 
                     <!-- Project Details on the Right -->
-                    <div class="relative pb-0 flex flex-grow flex-col items-center">
-                        <div class="w-full flex px-1 py-2 flex-col justify-center flex-1">
-                            <div class="p-2 text-center">
-                                <h2 class="text-3xl font-bold">{{ $pitch->user->name }}'s Pitch for <a
-                                        href="{{ route('projects.show', $pitch->project) }}">"{{
-                                        $pitch->project->name }}"</a></h2>
-                                <div class="text-center">
-                                    <p class="text-2xl">Version: <span class="font-semibold">{{ $snapshotData['version']
-                                            }}</span></p>
+                    <div class="relative pb-0 flex flex-grow flex-col">
+                        <div class="w-full flex px-3 py-2 flex-col justify-center flex-1">
+                            <div class="p-2">
+                                <div class="flex flex-col mb-2">
+                                    <div class="flex pb-1">
+                                        <img class="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover mr-2 border-2 border-base-200"
+                                            src="{{ $pitch->user->profile_photo_url }}"
+                                            alt="{{ $pitch->user->name }}" />
+                                        <h2 class="md:pl-2 text-2xl md:text-3xl font-bold break-words">
+                                            {{ $pitch->user->name }}'s Pitch
+                                        </h2>
+                                    </div>
+
+                                    <div class="text-lg md:text-xl font-medium text-gray-700">
+                                        for <a href="{{ route('projects.show', $pitch->project) }}"
+                                            class="text-primary hover:text-primary-focus transition-colors">"{{
+                                            $pitch->project->name }}"</a>
+                                    </div>
+                                    <div class=""><span class="text-sm text-gray-600">Submitted</span>
+                                        <span class="text-base font-medium">{{ $pitchSnapshot->created_at->format('M j,
+                                            Y')
+                                            }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+
+
+
+                        <!-- Status Bar -->
                         @if (Auth::check() && Auth::id() === $pitch->project->user_id)
                         <div class="flex w-full">
                             @if ($pitchSnapshot->status === 'pending')
-                            <button wire:click="accept" wire:confirm="Are you sure you want to accept this Pitch?"
-                                class="block basis-1/3 bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold grow py-2 px-4 shadow-glow shadow-accent/50 hover:shadow-accent-focus/50 whitespace-nowrap">
-                                Accept
+                            <button
+                                onclick="openApproveModal({{ $pitchSnapshot->id }}, '{{ route('pitch.approveSnapshot', ['pitch' => $pitch->id, 'snapshot' => $pitchSnapshot->id]) }}')"
+                                class="block basis-1/3 bg-success hover:bg-success/80 text-white tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap">
+                                <i class="fas fa-check mr-2"></i> Approve
                             </button>
-                            <button wire:click="revise"
-                                wire:confirm="Are you sure you want the user to revise this Pitch?"
-                                class="block basis-1/3 bg-primary hover:bg-primary/80 text-white tracking-tight text-xl text-center font-bold grow py-2 px-4 shadow-glow shadow-primary hover:shadow-primary whitespace-nowrap">
-                                Revise
+                            <button
+                                onclick="openRevisionsModal({{ $pitchSnapshot->id }}, '{{ route('pitch.requestChanges', ['pitch' => $pitch->id, 'snapshot' => $pitchSnapshot->id]) }}')"
+                                class="block basis-1/3 bg-primary hover:bg-primary/80 text-white tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap">
+                                <i class="fas fa-edit mr-2"></i> Request Revisions
                             </button>
-                            <button wire:click="decline" wire:confirm="Are you sure you want to decline this Pitch?"
-                                class="block basis-1/3 bg-decline hover:bg-decline/80 tracking-tight text-xl text-center text-gray-100 font-bold grow py-2 px-4 shadow-glow shadow-decline/30 hover:shadow-decline/30 whitespace-nowrap">
-                                Decline
+                            <button
+                                onclick="openDenyModal({{ $pitchSnapshot->id }}, '{{ route('pitch.denySnapshot', ['pitch' => $pitch->id, 'snapshot' => $pitchSnapshot->id]) }}')"
+                                class="block basis-1/3 bg-decline hover:bg-decline/80 tracking-tight text-lg text-center text-gray-100 font-bold grow py-3 px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap">
+                                <i class="fas fa-times mr-2"></i> Deny
                             </button>
                             @elseif ($pitchSnapshot->status === 'accepted')
                             <div
-                                class="block bg-accent tracking-tight text-xl text-center font-bold grow py-2 px-4 shadow-glow shadow-accent/50 whitespace-nowrap">
-                                Pitch Accepted
+                                class="block bg-accent tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap">
+                                <i class="fas fa-check-circle mr-2"></i> Pitch Accepted
                             </div>
-                            @elseif ($pitchSnapshot->status === 'revise')
-                            <div
-                                class="block bg-primary tracking-tight text-xl text-center font-bold grow py-2 px-4 shadow-glow shadow-primary whitespace-nowrap text-white">
-                                Pitch Needs Revised
+                            @elseif ($pitchSnapshot->status === 'revisions_requested')
+                            <div class="flex w-full">
+                                <div
+                                    class="block bg-amber-500 tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap text-white">
+                                    <i class="fas fa-edit mr-2"></i> Revisions Requested
+                                </div>
+                                @if(auth()->id() === $pitch->user_id)
+                                <a href="{{ route('pitches.edit', $pitch->id) }}"
+                                    class="block bg-amber-600 hover:bg-amber-700 tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap text-white">
+                                    <i class="fas fa-reply mr-2"></i> Submit Revisions
+                                </a>
+                                @endif
                             </div>
-                            @elseif ($pitchSnapshot->status === 'declined')
+                            @elseif ($pitchSnapshot->status === 'revision_addressed')
+                            <div class="flex w-full">
+                                <div
+                                    class="block bg-info/80 tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap text-white">
+                                    <i class="fas fa-check-circle mr-2"></i> Revision Addressed
+                                </div>
+                            </div>
+                            @elseif ($pitchSnapshot->status === 'denied')
                             <div
-                                class="block bg-decline tracking-tight text-xl text-center font-bold grow py-2 px-4 shadow-glow shadow-decline/30 whitespace-nowrap text-gray-100">
-                                Pitch Declined
+                                class="block bg-decline tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap text-gray-100">
+                                <i class="fas fa-times-circle mr-2"></i> Pitch Denied
                             </div>
                             @endif
                         </div>
@@ -81,73 +122,286 @@
                         @if ($pitchSnapshot->status === 'pending')
                         <div class="flex w-full">
                             <div
-                                class="block bg-gray-200 tracking-tight text-xl text-center font-bold grow py-2 px-4 whitespace-nowrap text-gray-900">
-                                Pending Review
+                                class="block bg-warning/80 tracking-tight text-lg text-center font-bold grow py-3 px-4 whitespace-nowrap text-white">
+                                <i class="fas fa-hourglass-half mr-2"></i> Pending Review
+                            </div>
+                        </div>
+                        @elseif ($pitchSnapshot->status === 'accepted')
+                        <div class="flex w-full">
+                            <div
+                                class="block bg-accent tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap">
+                                <i class="fas fa-check-circle mr-2"></i> Pitch Accepted
+                            </div>
+                        </div>
+                        @elseif ($pitchSnapshot->status === 'revisions_requested')
+                        <div class="flex w-full">
+                            <div
+                                class="block bg-amber-500 tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap text-white">
+                                <i class="fas fa-edit mr-2"></i> Revisions Requested
+                            </div>
+                        </div>
+                        @elseif ($pitchSnapshot->status === 'revision_addressed')
+                        <div class="flex w-full">
+                            <div
+                                class="block bg-info/80 tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap text-white">
+                                <i class="fas fa-check-circle mr-2"></i> Revision Addressed
+                            </div>
+                        </div>
+                        @elseif ($pitchSnapshot->status === 'denied')
+                        <div class="flex w-full">
+                            <div
+                                class="block bg-decline tracking-tight text-lg text-center font-bold grow py-3 px-4 shadow-sm whitespace-nowrap text-gray-100">
+                                <i class="fas fa-times-circle mr-2"></i> Pitch Denied
                             </div>
                         </div>
                         @endif
                         @endif
+
                     </div>
                 </div>
-                <div class="shadow-lightGlow shadow-base-300 rounded-lg">
-                    <!-- Project Details -->
-                    <div class="">
-                        <div class="px-2 md:px-6 py-4">
-                            <div class="flex items-center w-full text-xl py-1">
-                                <img class="h-8 w-8 rounded-full object-cover mr-3"
-                                    src="{{ $pitch->user->profile_photo_url }}" alt="{{ $pitch->user->name }}" />
-                                <span class="text-base max-w-xs truncate">{{ $pitch->user->name }}</span>
-                            </div>
-                            <div class="text-xl ml-1 font-semibold">Pitch Files</div>
-                            <div class="bg-base-200/50 rounded-lg p-3">
-                                <div class="space-y-1">
-                                    @foreach($snapshotData['file_ids'] as $fileId)
-                                    @php
-                                    $file = \App\Models\PitchFile::find($fileId);
-                                    @endphp
-                                    @if($file)
-                                    <div class="flex flex-col p-2 bg-gray-50 rounded shadow">
-                                        <div class="flex flex-col md:flex-row justify-between items-end">
-                                            <a href="{{ route('pitch-files.show', $file) }}"
-                                                class="flex-1 place-self-start truncate text-base ml-2">
-                                                <span class="font-bold">{{ $file->name() }}</span><span>.{{
-                                                    $file->extension() }}</span>
-                                            </a>
 
-                                            <div class="flex items-center space-x-2">
-                                                <a href="{{ route('pitch-files.show', $file) }}"
-                                                    class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-2 rounded text-sm">
-                                                    View
-                                                </a>
-                                                @if($pitchSnapshot->isApproved())
-                                                <a href="{{ asset('storage/' . $file->file_path) }}"
-                                                    download="{{ $file->file_name }}"
-                                                    class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-2 rounded text-sm">
-                                                    Download
-                                                </a>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        @if($file->note)
-                                        <div class="text-sm text-gray-700 ml-4">
-                                            <strong>Note:</strong> {{ $file->note }}
-                                        </div>
-                                        @endif
-                                        <div class="px-4 py-2">
-                                            <audio controls class="w-full">
-                                                <source src="{{ asset('storage/' . $file->file_path) }}">
-                                                Your browser does not support the audio element.
-                                            </audio>
-                                        </div>
-                                    </div>
+                <!-- Navigation and Back Button -->
+                <div class="">
+                    <!-- Snapshot Navigation -->
+                    @php
+                    // Get all snapshots for this pitch
+                    $snapshots = $pitch->snapshots()->orderBy('created_at')->get();
+                    $totalSnapshots = $snapshots->count();
+
+                    // Find the current snapshot's position
+                    $currentPosition = 0;
+                    $latestSnapshot = null;
+                    $previousSnapshot = null;
+                    $nextSnapshot = null;
+
+                    foreach ($snapshots as $index => $snapshot) {
+                    if ($snapshot->id === $pitchSnapshot->id) {
+                    $currentPosition = $index;
+
+                    // Get previous snapshot if exists
+                    if ($index > 0) {
+                    $previousSnapshot = $snapshots[$index - 1];
+                    }
+
+                    // Get next snapshot if exists
+                    if ($index < $totalSnapshots - 1) { $nextSnapshot=$snapshots[$index + 1]; } } } if ($totalSnapshots>
+                        0) {
+                        $latestSnapshot = $snapshots[$totalSnapshots - 1];
+                        }
+
+                        // Check if we're on the latest snapshot
+                        $isLatestSnapshot = $latestSnapshot && $latestSnapshot->id === $pitchSnapshot->id;
+                        @endphp
+
+                        <!-- Show Navigation Controls if there are multiple snapshots -->
+                        @if($totalSnapshots > 1)
+                        <div class="flex flex-wrap gap-3 items-center bg-base-200/30 p-3 rounded-lg">
+                            <div class="flex-grow">
+                                <span class="text-gray-600 text-sm font-medium">
+                                    <span class="font-bold text-base">Version {{ $currentPosition + 1 }}</span> of {{
+                                    $totalSnapshots }}
+                                </span>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <!-- Always show Previous when not on the first snapshot -->
+                                @if($previousSnapshot)
+                                <a href="{{ route('pitches.showSnapshot', ['pitch' => $pitch->id, 'pitchSnapshot' => $previousSnapshot->id]) }}"
+                                    class="btn btn-sm bg-base-200 hover:bg-base-300 text-gray-700">
+                                    <i class="fas fa-arrow-left mr-1"></i> Previous
+                                </a>
+                                @endif
+
+                                <!-- Always show Next when not on the last snapshot -->
+                                @if($nextSnapshot)
+                                <a href="{{ route('pitches.showSnapshot', ['pitch' => $pitch->id, 'pitchSnapshot' => $nextSnapshot->id]) }}"
+                                    class="btn btn-sm bg-base-200 hover:bg-base-300 text-gray-700">
+                                    Next <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                                @endif
+
+                                <!-- Always show Latest unless we're already on the latest -->
+                                @if(!$isLatestSnapshot && $latestSnapshot)
+                                <a href="{{ route('pitches.showSnapshot', ['pitch' => $pitch->id, 'pitchSnapshot' => $latestSnapshot->id]) }}"
+                                    class="btn btn-sm bg-blue-100 hover:bg-blue-200 text-blue-800">
+                                    <i class="fas fa-fast-forward mr-1"></i> Latest
+                                </a>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
+
+
+                </div>
+                <!-- Main Content Area -->
+
+                @if ($pitchSnapshot->status === 'revisions_requested' || $pitchSnapshot->status === 'denied' ||
+                $pitchSnapshot->status === 'revision_addressed' || $pitchSnapshot->status === 'pending' ||
+                $pitchSnapshot->status === 'accepted')
+                <!-- Feedback Section for All Snapshot Types -->
+                <div class="px-2 md:px-6 py-4">
+                    <h3 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-comments mr-2 text-blue-600"></i>
+                        Feedback & Response
+                    </h3>
+
+                    <div class="space-y-4">
+                        @forelse($conversationThread as $item)
+                        <div
+                            class="w-full rounded-lg shadow-sm {{ $item['type'] === 'feedback' ? 'bg-amber-50 border border-amber-200' : 'bg-blue-50 border border-blue-200' }}">
+                            <div
+                                class="flex items-center justify-between px-3 py-2 border-b {{ $item['type'] === 'feedback' ? 'border-amber-200 bg-amber-100/50' : 'border-blue-200 bg-blue-100/50' }}">
+                                <div class="flex items-center">
+                                    @if($item['user'])
+                                    <img class="h-5 w-5 rounded-full object-cover mr-2 border border-gray-200"
+                                        src="{{ $item['user']->profile_photo_url }}" alt="{{ $item['user']->name }}" />
+                                    <span class="font-medium text-gray-900 text-sm">{{ $item['user']->name }}</span>
+                                    @else
+                                    <span class="font-medium text-gray-900 text-sm">{{ $item['type'] === 'feedback' ?
+                                        'Project Owner' : 'Pitch Creator' }}</span>
                                     @endif
-                                    @endforeach
+
+                                    <span class="mx-2 text-xs text-gray-500">•</span>
+
+                                    <span class="inline-flex items-center text-xs">
+                                        @if($item['type'] === 'feedback')
+                                        @if($item['feedback_type'] === 'revision')
+                                        <i class="fas fa-comment-dots mr-1 text-amber-600"></i>
+                                        Revision Request
+                                        @else
+                                        <i class="fas fa-times-circle mr-1 text-red-600"></i>
+                                        Denial Reason
+                                        @endif
+                                        @elseif($item['type'] === 'response')
+                                        <i class="fas fa-reply mr-1 text-blue-600"></i>
+                                        @if(isset($item['previous_snapshot_id']))
+                                        <span>
+                                            Response to
+                                            <a href="{{ route('pitches.showSnapshot', [$pitch->id, $item['previous_snapshot_id']]) }}"
+                                                class="text-blue-600 hover:text-blue-800 hover:underline">previous
+                                                version</a>
+                                        </span>
+                                        @else
+                                        Response to feedback
+                                        @endif
+                                        @endif
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center">
+                                    @if($item['date'])
+                                    <span class="text-xs text-gray-500">{{ $item['date']->format('M j, g:i a') }}</span>
+                                    @endif
                                 </div>
                             </div>
+
+                            <div class="p-4 text-gray-700 text-sm">
+                                @if($item['message'])
+                                {{ $item['message'] }}
+                                @else
+                                <span class="italic text-gray-500">No specific response was provided with this
+                                    revision.</span>
+                                @endif
+                            </div>
                         </div>
+                        @empty
+                        <div class="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <i class="fas fa-comments text-gray-300 text-3xl mb-1"></i>
+                            <p class="text-gray-500">No feedback or revision messages for this snapshot.</p>
+                        </div>
+                        @endforelse
                     </div>
                 </div>
+                @endif
+
+
+
+                <!-- Pitch Files Section -->
+                <div class="px-2 md:px-6 py-4 shadow-lightGlow shadow-base-300">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-file-audio mr-3 text-purple-500"></i>Pitch Files
+                    </h3>
+                    <div class="bg-base-200/30 rounded-lg p-4 shadow-inner">
+                        <div class="space-y-3">
+                            @foreach($snapshotData['file_ids'] as $fileId)
+                            @php
+                            $file = \App\Models\PitchFile::find($fileId);
+                            @endphp
+                            @if($file)
+                            <div
+                                class="flex flex-col p-3 bg-white rounded-lg shadow-sm border border-base-200 hover:shadow-md transition-shadow">
+                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                                    <div class="flex items-center flex-1 min-w-0 mb-2 md:mb-0">
+                                        <i class="fas fa-music text-purple-500 mr-3"></i>
+                                        <div class="truncate">
+                                            <span class="font-bold">{{ $file->name() }}</span><span
+                                                class="text-gray-500">.{{ $file->extension() }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center space-x-2 self-end md:self-auto">
+                                        <a href="{{ route('pitch-files.show', $file) }}"
+                                            class="btn btn-sm bg-blue-500 hover:bg-blue-700 text-white">
+                                            <i class="fas fa-eye mr-1"></i> View
+                                        </a>
+                                        @if($pitchSnapshot->isApproved())
+                                        <a href="{{ asset('storage/' . $file->file_path) }}"
+                                            download="{{ $file->file_name }}"
+                                            class="btn btn-sm bg-green-500 hover:bg-green-700 text-white">
+                                            <i class="fas fa-download mr-1"></i> Download
+                                        </a>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                @if($file->note)
+                                <div
+                                    class="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded-md border-l-2 border-blue-500">
+                                    <strong>Note:</strong> {{ $file->note }}
+                                </div>
+                                @endif
+
+                                <div class="mt-3 bg-base-200/30 p-3 rounded-md">
+                                    <audio controls class="w-full">
+                                        <source src="{{ asset('storage/' . $file->file_path) }}">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                </div>
+                            </div>
+                            @endif
+                            @endforeach
+
+                            @if(count($snapshotData['file_ids']) === 0)
+                            <div class="p-8 text-center text-gray-500 italic">
+                                <i class="fas fa-music text-5xl text-gray-300 mb-3"></i>
+                                <p class="text-lg">No audio files in this pitch</p>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Back Buttons -->
+                    <div class="flex justify-between pt-3">
+                        @if(Auth::id() === $pitch->user_id)
+                        <a href="{{ route('pitches.show', $pitch) }}"
+                            class="btn bg-base-200 hover:bg-base-300 text-gray-700">
+                            <i class="fas fa-arrow-left mr-2"></i> Back to Pitch
+                        </a>
+                        @endif
+
+                        @if(Auth::id() === $pitch->project->user_id)
+                        <a href="{{ route('projects.manage', $pitch->project) }}"
+                            class="btn bg-base-200 hover:bg-base-300 text-gray-700">
+                            <i class="fas fa-project-diagram mr-2"></i> Back to Project
+                        </a>
+                        @endif
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
+
+    <!-- Include the shared modals component -->
+    <x-pitch-action-modals />
 </div>

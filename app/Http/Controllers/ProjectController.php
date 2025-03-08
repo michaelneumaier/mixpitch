@@ -218,74 +218,111 @@ class ProjectController extends Controller
             return redirect()->route('projects.index')->withErrors(['You are not allowed to delete this project.']);
         }
 
-        // Retrieve project files
-        //$projectFiles = $project->files;
+        // Begin database transaction to ensure all-or-nothing deletion
+        \DB::beginTransaction();
 
-        $imageFilePath = $project->image_path;
-        if ($imageFilePath && Storage::disk('public')->exists($imageFilePath)) {
-            Storage::disk('public')->delete($imageFilePath);
+        try {
+            // 1. Delete all pitches and their associated data
+            foreach ($project->pitches as $pitch) {
+                // 1.1 Delete pitch events (audit trail from memory)
+                $pitch->events()->delete();
+                
+                // 1.2 Delete pitch notifications using the notification system from memory
+                \Illuminate\Support\Facades\DB::table('notifications')
+                    ->whereRaw("json_extract(data, '$.pitch_id') = ?", [$pitch->id])
+                    ->delete();
+                
+                // 1.3 Delete pitch snapshots and their files
+                foreach ($pitch->snapshots as $snapshot) {
+                    // Delete files associated with this snapshot
+                    if (isset($snapshot->snapshot_data['file_ids']) && is_array($snapshot->snapshot_data['file_ids'])) {
+                        foreach ($snapshot->snapshot_data['file_ids'] as $fileId) {
+                            $file = \App\Models\PitchFile::find($fileId);
+                            if ($file) {
+                                // Delete physical file if it exists
+                                if ($file->file_path && Storage::disk('public')->exists($file->file_path)) {
+                                    Storage::disk('public')->delete($file->file_path);
+                                }
+                                $file->delete();
+                            }
+                        }
+                    }
+                    
+                    // Delete the snapshot record
+                    $snapshot->delete();
+                }
+                
+                // 1.4 Delete any remaining pitch files not associated with snapshots
+                $pitch->files()->get()->each(function($file) {
+                    if ($file->file_path && Storage::disk('public')->exists($file->file_path)) {
+                        Storage::disk('public')->delete($file->file_path);
+                    }
+                    $file->delete();
+                });
+                
+                // 1.5 Delete the pitch itself
+                $pitch->delete();
+            }
+            
+            // 2. Delete project image if exists
+            $imageFilePath = $project->image_path;
+            if ($imageFilePath && Storage::disk('public')->exists($imageFilePath)) {
+                Storage::disk('public')->delete($imageFilePath);
+            }
+            
+            // 3. Delete all project files from storage
+            $filesPath = 'public/projects/' . $project->id;
+            Storage::deleteDirectory($filesPath);
+            
+            // 4. Delete all project file records from database
+            $project->files()->delete();
+            
+            // 5. Delete mixes associated with the project
+            if (method_exists($project, 'mixes')) {
+                $project->mixes()->delete();
+            }
+            
+            // 6. Delete project notifications
+            \Illuminate\Support\Facades\DB::table('notifications')
+                ->whereRaw("json_extract(data, '$.project_id') = ?", [$project->id])
+                ->delete();
+            
+            // 7. Delete any project comments (if applicable)
+            if (method_exists($project, 'comments')) {
+                $project->comments()->delete();
+            }
+            
+            // 8. Delete the project itself
+            $project->delete();
+            
+            // Commit the transaction if all operations succeed
+            \DB::commit();
+            
+            // Redirect to dashboard with success message
+            return redirect()->route('dashboard')->with('success', 'Project and all associated data have been deleted successfully.');
+            
+        } catch (\Exception $e) {
+            // Roll back the transaction if any operation fails
+            \DB::rollBack();
+            
+            // Log the error
+            \Illuminate\Support\Facades\Log::error('Project deletion failed: ' . $e->getMessage());
+            
+            // Redirect with error message
+            return redirect()->route('dashboard')->withErrors(['Failed to delete project. Please try again or contact support.']);
         }
-
-        // Delete the files from the storage
-        $filesPath = 'public/projects/' . $project->id;
-        Storage::deleteDirectory($filesPath);
-        //Storage::deleteDirectory('public/' . $project->project_id);
-        // foreach ($projectFiles as $file) {
-        //     Storage::deleteDirectory('public/' . $project->project_id);
-        // }
-
-        // Delete project_files entries in the database
-        $project->files()->delete();
-
-        // Delete the project entry from the database
-        $project->delete();
-
-        // Redirect back to the projects index with a success message
-        return redirect()->route('dashboard')->with('success', 'Project and all associated files have been deleted.');
     }
 
+    function formatBytes($bytes, $precision = 2)
+    {
+        $units = array('B', 'KB', 'MB', 'GB', 'TB');
 
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
 
+        $bytes /= (1 << (10 * $pow));
 
-    //public function storeProject(Request $request)
-    // {
-    //     $request->validate([
-    //         'title' => 'required|string|max:255',
-    //         'tracks.*' => 'required|mimes:mp3,wav|max:20480',
-    //     ]);
-
-    //     $tracks = [];
-
-    //     foreach ($request->file('tracks') as $track) {
-    //         $path = $track->store('tracks', 'public');
-    //         $filename = $track->getClientOriginalName();
-
-    //         $tracks[] = [
-    //             'title' => $request->input('title'),
-
-    //             'genre' => 'unknown', // Replace this with an appropriate genre or add a genre input field to the form
-    //             'file_path' => $path,
-    //             'user_id' => auth()->user()->id,
-    //             'created_at' => now(),
-    //             'updated_at' => now(),
-    //         ];
-    //     }
-
-    //     Track::insert($tracks);
-
-    //     return redirect()->route('tracks.index')->with('message', 'Project uploaded successfully.');
-    // }
-}
-
-function formatBytes($bytes, $precision = 2)
-{
-    $units = array('B', 'KB', 'MB', 'GB', 'TB');
-
-    $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-    $pow = min($pow, count($units) - 1);
-
-    $bytes /= (1 << (10 * $pow));
-
-    return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
 }

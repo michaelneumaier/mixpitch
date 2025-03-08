@@ -17,6 +17,12 @@ class Project extends Model
     use HasFactory;
     use Sluggable;
 
+    // Constants for project statuses
+    const STATUS_UNPUBLISHED = 'unpublished';
+    const STATUS_OPEN = 'open';
+    const STATUS_IN_PROGRESS = 'in_progress';
+    const STATUS_COMPLETED = 'completed';
+
     protected $fillable = [
         'user_id',
         'name',
@@ -31,14 +37,21 @@ class Project extends Model
         'budget',
         'deadline',
         'preview_track',
-        'notes'
+        'notes',
+        'is_published',
+        'completed_at'
     ];
 
     protected $casts = [
         'collaboration_type' => 'array',
+        'is_published' => 'boolean',
+        'completed_at' => 'datetime',
     ];
 
-    protected $attributes = ['status' => 'unpublished'];
+    protected $attributes = [
+        'status' => self::STATUS_UNPUBLISHED,
+        'is_published' => false
+    ];
 
     public function getRouteKeyName()
     {
@@ -58,6 +71,40 @@ class Project extends Model
     public function setStatus($status)
     {
         $this->status = $status;
+        $this->save();
+    }
+
+    /**
+     * Publish the project
+     * 
+     * @return void
+     */
+    public function publish()
+    {
+        $this->is_published = true;
+        
+        // Only change status if it's not already completed
+        if ($this->status === self::STATUS_UNPUBLISHED) {
+            $this->status = self::STATUS_OPEN;
+        }
+        
+        $this->save();
+    }
+    
+    /**
+     * Unpublish the project
+     * 
+     * @return void
+     */
+    public function unpublish()
+    {
+        $this->is_published = false;
+        
+        // If the project is not completed, set status to unpublished
+        if ($this->status !== self::STATUS_COMPLETED) {
+            $this->status = self::STATUS_UNPUBLISHED;
+        }
+        
         $this->save();
     }
 
@@ -129,6 +176,110 @@ class Project extends Model
                 'source' => 'name'
             ]
         ];
+    }
+
+    /**
+     * Sync project status with its pitches
+     * Updates the project status based on the status of its pitches
+     * 
+     * @return bool Whether the status changed
+     */
+    public function syncStatusWithPitches()
+    {
+        $oldStatus = $this->status;
+        $hasCompletedPitch = false;
+        $hasApprovedPitch = false;
+        $hasActivePitch = false;
+        
+        // If the project has no pitches, keep its current status
+        if ($this->pitches()->count() === 0) {
+            return false;
+        }
+        
+        // Check for completed, approved, and active pitches
+        foreach ($this->pitches as $pitch) {
+            if ($pitch->status === Pitch::STATUS_COMPLETED) {
+                $hasCompletedPitch = true;
+            } elseif ($pitch->status === Pitch::STATUS_APPROVED) {
+                $hasApprovedPitch = true;
+            } elseif (!in_array($pitch->status, [Pitch::STATUS_CLOSED, Pitch::STATUS_DENIED])) {
+                $hasActivePitch = true;
+            }
+        }
+        
+        // Determine the new status based on pitch statuses
+        if ($hasCompletedPitch) {
+            $this->status = self::STATUS_COMPLETED;
+            $this->completed_at = $this->completed_at ?? now();
+        } elseif ($hasApprovedPitch || $hasActivePitch) {
+            // Projects with either approved pitches or active pitches should be OPEN
+            $this->status = self::STATUS_OPEN;
+            
+            // If there was a completed_at date, clear it since the project is no longer completed
+            if ($this->completed_at) {
+                $this->completed_at = null;
+            }
+        }
+        
+        // Only save if status has changed
+        if ($this->status !== $oldStatus) {
+            $this->save();
+            
+            // Log the status change
+            \Log::info('Project status changed', [
+                'project_id' => $this->id,
+                'old_status' => $oldStatus,
+                'new_status' => $this->status,
+                'completed_at' => $this->completed_at
+            ]);
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if a new pitch can be created for this project
+     * 
+     * @return array [bool $canCreatePitch, string $errorMessage]
+     */
+    public function canCreatePitch()
+    {
+        // Cannot create pitch if project is completed
+        if ($this->status === self::STATUS_COMPLETED) {
+            return [false, 'This project has been completed and is not accepting new pitches.'];
+        }
+        
+        // Cannot create pitch if project is unpublished
+        if ($this->status === self::STATUS_UNPUBLISHED) {
+            return [false, 'This project is unpublished and is not accepting pitches.'];
+        }
+        
+        return [true, ''];
+    }
+    
+    /**
+     * Mark the project as completed
+     * 
+     * @param int|null $completedPitchId ID of the pitch that completed the project
+     * @return bool
+     */
+    public function markAsCompleted($completedPitchId = null)
+    {
+        $this->status = self::STATUS_COMPLETED;
+        $this->completed_at = now();
+        
+        // Log the completion event with the pitch ID if provided
+        if ($completedPitchId) {
+            \Log::info('Project marked as completed', [
+                'project_id' => $this->id,
+                'completed_by_pitch_id' => $completedPitchId,
+                'completed_at' => $this->completed_at
+            ]);
+        }
+        
+        return $this->save();
     }
 
     // public function stateMachine(): StateMachineInterface
