@@ -243,6 +243,22 @@
                             </div>
                             @endif
 
+                            @if($hasMultipleApprovedPitches && !$hasCompletedPitch)
+                            <div class="mb-4">
+                                <div class="p-3 bg-amber-100 border-l-4 border-amber-400 rounded-r-lg">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-exclamation-circle text-amber-600 mr-2"></i>
+                                        <span class="font-medium text-amber-800">Multiple Approved Pitches</span>
+                                    </div>
+                                    <p class="text-sm mt-1 text-amber-800">
+                                        There are {{ $approvedPitchesCount }} approved pitches for this project. You'll
+                                        need to choose one to mark as completed. The other approved pitches will be
+                                        automatically closed.
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
                             @if(!$project->is_published)
                             <p class="text-gray-700 mb-4">Your project is currently unpublished and not visible to
                                 potential collaborators.</p>
@@ -279,7 +295,8 @@
                                 @forelse($sortedPitches as $pitch)
                                 <div wire:key="pitch-{{$pitch->id}}" class="flex flex-col w-full {{ $loop->even ? 'bg-base-200/30' : 'bg-base-100' }} hover:bg-base-100 transition-colors relative
                                     {{ $pitch->status === 'completed' ? 'border-l-4 border-l-success' : '' }}
-                                    {{ $pitch->status === 'approved' ? 'border-l-4 border-l-blue-500' : '' }}
+                                    {{ $pitch->status === 'approved' && !$hasMultipleApprovedPitches ? 'border-l-4 border-l-blue-500' : '' }}
+                                    {{ $pitch->status === 'approved' && $hasMultipleApprovedPitches ? 'border-l-4 border-l-amber-500 border-t border-t-amber-500 border-r border-r-amber-500 border-b border-b-amber-500 shadow-md' : '' }}
                                     {{ $pitch->status === 'closed' ? 'border-l-4 border-l-gray-400' : '' }}
                                     {{ $pitch->status === 'denied' ? 'border-l-4 border-l-error' : '' }}
                                     {{ $pitch->status === 'revisions_requested' ? 'border-l-4 border-l-amber-500' : '' }}
@@ -299,9 +316,11 @@
                                     </div>
                                     @elseif($pitch->status === 'approved')
                                     <div
-                                        class="absolute top-0 left-0 bg-blue-500 text-white px-2 sm:px-3 py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-thumbs-up mr-1"></i> <span
-                                            class="hidden xs:inline">APPROVED</span>
+                                        class="absolute top-0 {{ $hasMultipleApprovedPitches ? 'right-0' : 'left-0' }} {{ $hasMultipleApprovedPitches ? 'bg-amber-500' : 'bg-blue-500' }} text-white px-2 sm:px-3 py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
+                                        <i
+                                            class="fas {{ $hasMultipleApprovedPitches ? 'fa-exclamation-circle' : 'fa-thumbs-up' }} mr-1"></i>
+                                        <span class="hidden xs:inline">{{ $hasMultipleApprovedPitches ? 'CHOOSE THIS
+                                            PITCH' : 'APPROVED' }}</span>
                                     </div>
                                     @elseif($pitch->status === 'closed')
                                     <div

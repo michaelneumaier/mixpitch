@@ -267,19 +267,29 @@ class Project extends Model
      */
     public function markAsCompleted($completedPitchId = null)
     {
-        $this->status = self::STATUS_COMPLETED;
-        $this->completed_at = now();
-        
-        // Log the completion event with the pitch ID if provided
-        if ($completedPitchId) {
-            \Log::info('Project marked as completed', [
+        try {
+            $this->status = self::STATUS_COMPLETED;
+            $this->completed_at = now();
+            
+            // Log the completion event with the pitch ID if provided
+            if ($completedPitchId) {
+                \Log::info('Project marked as completed', [
+                    'project_id' => $this->id,
+                    'completed_by_pitch_id' => $completedPitchId,
+                    'completed_at' => $this->completed_at
+                ]);
+            }
+            
+            return $this->save();
+        } catch (\Exception $e) {
+            \Log::error('Error marking project as completed', [
                 'project_id' => $this->id,
                 'completed_by_pitch_id' => $completedPitchId,
-                'completed_at' => $this->completed_at
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
+            throw $e; // Re-throw to ensure the calling method can handle it
         }
-        
-        return $this->save();
     }
 
     // public function stateMachine(): StateMachineInterface

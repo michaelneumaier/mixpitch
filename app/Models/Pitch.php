@@ -752,6 +752,32 @@ class Pitch extends Model
             );
         }
 
+        // Check for other approved pitches in the same project
+        $otherApprovedPitchesCount = $this->project->pitches()
+            ->where('status', self::STATUS_APPROVED)
+            ->where('id', '!=', $this->id)
+            ->count();
+            
+        \Log::info('Checking for other approved pitches in canComplete', [
+            'pitch_id' => $this->id,
+            'project_id' => $this->project_id,
+            'other_approved_count' => $otherApprovedPitchesCount
+        ]);
+
+        // We'll still allow completion, but the UI will show a warning
+        if ($otherApprovedPitchesCount > 0) {
+            // Set a property that can be accessed later in the UI components
+            $this->multipleApprovedPitches = true;
+            $this->otherApprovedPitchesCount = $otherApprovedPitchesCount;
+            
+            // Log this situation for monitoring
+            \Log::info('Multiple approved pitches detected during completion check', [
+                'pitch_id' => $this->id,
+                'project_id' => $this->project_id,
+                'other_approved_count' => $otherApprovedPitchesCount
+            ]);
+        }
+
         return true;
     }
 

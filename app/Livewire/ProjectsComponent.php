@@ -13,6 +13,7 @@ class ProjectsComponent extends Component
 
     public $genres = [];
     public $statuses = [];
+    public $projectTypes = [];
     public $search = '';
     public $sortBy = 'latest';
     public $perPage = 12;
@@ -22,6 +23,7 @@ class ProjectsComponent extends Component
         'sortBy' => ['except' => 'latest'],
         'genres' => ['except' => []],
         'statuses' => ['except' => []],
+        'projectTypes' => ['except' => []],
     ];
 
     public function render()
@@ -36,10 +38,13 @@ class ProjectsComponent extends Component
         if (!empty($this->statuses)) {
             $query->whereIn('status', $this->statuses);
         }
+        if (!empty($this->projectTypes)) {
+            $query->whereIn('project_type', $this->projectTypes);
+        }
         if (!empty($this->search)) {
             $query->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('description', 'like', '%' . $this->search . '%');
+                    ->orWhere('description', 'like', '%' . $this->search . '%');
             });
         }
 
@@ -86,11 +91,17 @@ class ProjectsComponent extends Component
         $this->resetPage();
     }
 
+    public function updatedProjectTypes()
+    {
+        $this->resetPage();
+    }
+
     #[On('filters-updated')]
     public function applyFilters($filters)
     {
         $this->genres = $filters['genres'];
         $this->statuses = $filters['statuses'];
+        $this->projectTypes = $filters['projectTypes'];
         $this->resetPage();
     }
 
@@ -98,6 +109,7 @@ class ProjectsComponent extends Component
     {
         $this->genres = [];
         $this->statuses = [];
+        $this->projectTypes = [];
         $this->search = '';
         $this->sortBy = 'latest';
         $this->resetPage();
@@ -107,5 +119,37 @@ class ProjectsComponent extends Component
     {
         $this->perPage += 12;
     }
-}
 
+    /**
+     * Remove a specific genre filter
+     */
+    public function removeGenre($genre)
+    {
+        $this->genres = array_filter($this->genres, function ($item) use ($genre) {
+            return $item !== $genre;
+        });
+        $this->resetPage();
+    }
+
+    /**
+     * Remove a specific status filter
+     */
+    public function removeStatus($status)
+    {
+        $this->statuses = array_filter($this->statuses, function ($item) use ($status) {
+            return $item !== $status;
+        });
+        $this->resetPage();
+    }
+
+    /**
+     * Remove a specific project type filter
+     */
+    public function removeProjectType($projectType)
+    {
+        $this->projectTypes = array_filter($this->projectTypes, function ($item) use ($projectType) {
+            return $item !== $projectType;
+        });
+        $this->resetPage();
+    }
+}

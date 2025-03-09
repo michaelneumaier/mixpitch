@@ -221,8 +221,32 @@ class ManageProject extends Component
         $approvedPitches = $this->getApprovedAndCompletedPitches();
         return view('livewire.project.page.manage-project', [
             'approvedPitches' => $approvedPitches,
-            'hasCompletedPitch' => $this->project->pitches()->where('status', \App\Models\Pitch::STATUS_COMPLETED)->exists()
+            'hasCompletedPitch' => $this->project->pitches()->where('status', \App\Models\Pitch::STATUS_COMPLETED)->exists(),
+            'hasMultipleApprovedPitches' => $this->hasMultipleApprovedPitches(),
+            'approvedPitchesCount' => $this->getApprovedPitchesCount()
         ]);
+    }
+
+    /**
+     * Check if the project has multiple approved pitches
+     *
+     * @return bool
+     */
+    protected function hasMultipleApprovedPitches()
+    {
+        return $this->getApprovedPitchesCount() > 1;
+    }
+
+    /**
+     * Get the count of approved pitches
+     *
+     * @return int
+     */
+    protected function getApprovedPitchesCount()
+    {
+        return $this->project->pitches()
+            ->where('status', \App\Models\Pitch::STATUS_APPROVED)
+            ->count();
     }
 
     /**
