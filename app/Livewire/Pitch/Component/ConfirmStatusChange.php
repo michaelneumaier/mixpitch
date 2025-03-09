@@ -42,6 +42,11 @@ class ConfirmStatusChange extends Component
         $this->pendingAction = $action;
         $this->actionData = $data;
         
+        // Store the pitch ID if it's provided
+        if (isset($data['pitch_id'])) {
+            $this->actionData['pitch_id'] = $data['pitch_id'];
+        }
+        
         // Set confirmation messages and button styles based on the action
         switch ($action) {
             case 'approve':
@@ -64,6 +69,15 @@ class ConfirmStatusChange extends Component
                 
             case 'complete':
                 $this->confirmMessage = 'Are you sure you want to mark this pitch as completed? This action cannot be undone.';
+                
+                // Check if there are other approved pitches
+                if (isset($data['hasOtherApprovedPitches']) && $data['hasOtherApprovedPitches']) {
+                    $count = $data['otherApprovedPitchesCount'] ?? 0;
+                    $this->confirmMessage = 'Are you sure you want to mark this pitch as completed? This will CLOSE ' . 
+                        $count . ' other approved ' . ($count === 1 ? 'pitch' : 'pitches') . 
+                        '. This action cannot be undone.';
+                }
+                
                 $this->actionLabel = 'Complete';
                 $this->confirmButtonClass = 'bg-success hover:bg-success/80';
                 break;
@@ -138,11 +152,25 @@ class ConfirmStatusChange extends Component
                 
             case 'complete':
                 $feedback = $this->actionData['feedback'] ?? '';
-                $this->dispatch('confirmCompletePitch', $feedback);
+                
+                // Add logging for debugging
+                \Log::info('ConfirmStatusChange: dispatching confirmCompletePitch', [
+                    'feedback_length' => strlen($feedback),
+                    'pitch_id' => $this->pitch->id
+                ]);
+                
+                // Use a pitch-specific event name if we have a pitch ID
+                if (isset($this->actionData['pitch_id'])) {
+                    $pitchId = $this->actionData['pitch_id'];
+                    $this->dispatch("confirmCompletePitch-{$pitchId}", $feedback);
+                } else {
+                    // Fallback to original pitch ID
+                    $this->dispatch("confirmCompletePitch-{$this->pitch->id}", $feedback);
+                }
                 break;
                 
             case 'cancel':
-                $this->dispatch('confirmCancelSubmission');
+                $this->dispatch('confirmCancelSubmission')->to('pitch.component.update-pitch-status');
                 break;
         }
         
