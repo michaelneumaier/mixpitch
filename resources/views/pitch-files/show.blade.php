@@ -48,7 +48,7 @@
                     <!-- Placeholder for Comments Section -->
 
 
-                    <div class="px-4 py-2"> <x-comments:: :model="$file" />
+                    <div class="px-4 py-2">
 
                     </div>
                 </div>

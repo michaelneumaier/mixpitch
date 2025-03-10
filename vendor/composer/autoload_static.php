@@ -13,33 +13,31 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
         '8825ede83f2f289127722d4e842cf7e8' => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme/bootstrap.php',
         'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
-        'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
-        'f598d06aa772fa33d905e87be6398fb1' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/bootstrap.php',
-        '662a729f963d39afe703c9d9b7ab4a8c' => __DIR__ . '/..' . '/symfony/polyfill-php83/bootstrap.php',
         'ad155f8f1cf0d418fe49e248db8c661b' => __DIR__ . '/..' . '/react/promise/src/functions_include.php',
+        'f598d06aa772fa33d905e87be6398fb1' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/bootstrap.php',
+        'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
+        '662a729f963d39afe703c9d9b7ab4a8c' => __DIR__ . '/..' . '/symfony/polyfill-php83/bootstrap.php',
         '35a6ad97d21e794e7e22a17d806652e4' => __DIR__ . '/..' . '/nunomaduro/termwind/src/Functions.php',
-        'a1105708a18b76903365ca1c4aa61b02' => __DIR__ . '/..' . '/symfony/translation/Resources/functions.php',
-        '47e1160838b5e5a10346ac4084b58c23' => __DIR__ . '/..' . '/laravel/prompts/src/helpers.php',
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
         'ec07570ca5a812141189b1fa81503674' => __DIR__ . '/..' . '/phpunit/phpunit/src/Framework/Assert/Functions.php',
-        'def43f6c87e4f8dfd0c9e1b1bab14fe8' => __DIR__ . '/..' . '/symfony/polyfill-iconv/bootstrap.php',
+        'a1105708a18b76903365ca1c4aa61b02' => __DIR__ . '/..' . '/symfony/translation/Resources/functions.php',
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
+        '47e1160838b5e5a10346ac4084b58c23' => __DIR__ . '/..' . '/laravel/prompts/src/helpers.php',
+        'a1cfe24d14977df6878b9bf804af2d1c' => __DIR__ . '/..' . '/nunomaduro/collision/src/Adapters/Phpunit/Autoload.php',
         '09f6b20656683369174dd6fa83b7e5fb' => __DIR__ . '/..' . '/symfony/polyfill-uuid/bootstrap.php',
-        'b46ad4fe52f4d1899a2951c7e6ea56b0' => __DIR__ . '/..' . '/voku/portable-utf8/bootstrap.php',
         'e39a8b23c42d4e1452234d762b03835a' => __DIR__ . '/..' . '/ramsey/uuid/src/functions.php',
+        '972fda704d680a3a53c68e34e193cb22' => __DIR__ . '/..' . '/react/promise-timer/src/functions_include.php',
+        '3bd81c9b8fcc150b69d8b63b4d2ccf23' => __DIR__ . '/..' . '/spatie/flare-client-php/src/helpers.php',
+        '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         '265b4faa2b3a9766332744949e83bf97' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Collections/helpers.php',
         'c7a3c339e7e14b60e06a2d7fcce9476b' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Events/functions.php',
         'f57d353b41eb2e234b26064d63d8c5dd' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Filesystem/functions.php',
         'f0906e6318348a765ffb6eb24e0d0938' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Foundation/helpers.php',
         '58571171fd5812e6e447dce228f52f4d' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Support/helpers.php',
-        'a1cfe24d14977df6878b9bf804af2d1c' => __DIR__ . '/..' . '/nunomaduro/collision/src/Adapters/Phpunit/Autoload.php',
-        '972fda704d680a3a53c68e34e193cb22' => __DIR__ . '/..' . '/react/promise-timer/src/functions_include.php',
-        '3bd81c9b8fcc150b69d8b63b4d2ccf23' => __DIR__ . '/..' . '/spatie/flare-client-php/src/helpers.php',
-        '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
-        '40275907c8566c390185147049ef6e5d' => __DIR__ . '/..' . '/livewire/livewire/src/helpers.php',
         '3109cb1a231dcd04bee1f9f620d46975' => __DIR__ . '/..' . '/paragonie/sodium_compat/autoload.php',
         'aadac1114cab8dc19489a7f6dc24c003' => __DIR__ . '/..' . '/pestphp/pest-plugin-arch/src/Autoload.php',
+        '40275907c8566c390185147049ef6e5d' => __DIR__ . '/..' . '/livewire/livewire/src/helpers.php',
         'f83ed111c2f97a0449abf067f157f418' => __DIR__ . '/..' . '/pestphp/pest/src/Functions.php',
         '7d2876738dc0328edeb8a103c76cd8e7' => __DIR__ . '/..' . '/pestphp/pest/src/Pest.php',
         '801c31d8ed748cfa537fa45402288c95' => __DIR__ . '/..' . '/psy/psysh/src/functions.php',
@@ -53,7 +51,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
     public static $prefixLengthsPsr4 = array (
         'v' => 
         array (
-            'voku\\helper\\' => 12,
             'voku\\' => 5,
         ),
         'p' => 
@@ -80,7 +77,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
             'Symfony\\Polyfill\\Intl\\Normalizer\\' => 33,
             'Symfony\\Polyfill\\Intl\\Idn\\' => 26,
             'Symfony\\Polyfill\\Intl\\Grapheme\\' => 31,
-            'Symfony\\Polyfill\\Iconv\\' => 23,
             'Symfony\\Polyfill\\Ctype\\' => 23,
             'Symfony\\Contracts\\Translation\\' => 30,
             'Symfony\\Contracts\\Service\\' => 26,
@@ -109,10 +105,8 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
             'Symfony\\Component\\Cache\\' => 24,
             'Spatie\\Sluggable\\' => 17,
             'Spatie\\Permission\\' => 18,
-            'Spatie\\LaravelPackageTools\\' => 27,
             'Spatie\\LaravelIgnition\\' => 23,
             'Spatie\\Ignition\\' => 16,
-            'Spatie\\Honeypot\\' => 16,
             'Spatie\\FlareClient\\' => 19,
             'Spatie\\Backtrace\\' => 17,
             'Sebdesign\\SM\\' => 13,
@@ -180,8 +174,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
             'Laravel\\Prompts\\' => 16,
             'Laravel\\Jetstream\\' => 18,
             'Laravel\\Fortify\\' => 16,
-            'LakM\\NoPass\\' => 12,
-            'LakM\\Comments\\' => 14,
         ),
         'J' => 
         array (
@@ -200,8 +192,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
             'GuzzleHttp\\Psr7\\' => 16,
             'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
-            'GrahamCampbell\\Security\\' => 24,
-            'GrahamCampbell\\SecurityCore\\' => 28,
             'GrahamCampbell\\ResultType\\' => 26,
         ),
         'F' => 
@@ -249,14 +239,9 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
     );
 
     public static $prefixDirsPsr4 = array (
-        'voku\\helper\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/voku/anti-xss/src/voku/helper',
-        ),
         'voku\\' => 
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
-            1 => __DIR__ . '/..' . '/voku/portable-utf8/src/voku',
         ),
         'phpDocumentor\\Reflection\\' => 
         array (
@@ -311,10 +296,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Symfony\\Polyfill\\Intl\\Grapheme\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme',
-        ),
-        'Symfony\\Polyfill\\Iconv\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/symfony/polyfill-iconv',
         ),
         'Symfony\\Polyfill\\Ctype\\' => 
         array (
@@ -428,10 +409,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         array (
             0 => __DIR__ . '/..' . '/spatie/laravel-permission/src',
         ),
-        'Spatie\\LaravelPackageTools\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/spatie/laravel-package-tools/src',
-        ),
         'Spatie\\LaravelIgnition\\' => 
         array (
             0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
@@ -439,10 +416,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Spatie\\Ignition\\' => 
         array (
             0 => __DIR__ . '/..' . '/spatie/ignition/src',
-        ),
-        'Spatie\\Honeypot\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/spatie/laravel-honeypot/src',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -653,14 +626,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         array (
             0 => __DIR__ . '/..' . '/laravel/fortify/src',
         ),
-        'LakM\\NoPass\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/lakm/nopass/src',
-        ),
-        'LakM\\Comments\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/lakm/laravel-comments/src',
-        ),
         'Jenssegers\\Agent\\' => 
         array (
             0 => __DIR__ . '/..' . '/jenssegers/agent/src',
@@ -698,14 +663,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'GuzzleHttp\\' => 
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
-        ),
-        'GrahamCampbell\\Security\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/graham-campbell/security/src',
-        ),
-        'GrahamCampbell\\SecurityCore\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/graham-campbell/security-core/src',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (
@@ -1889,9 +1846,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'GrahamCampbell\\ResultType\\Error' => __DIR__ . '/..' . '/graham-campbell/result-type/src/Error.php',
         'GrahamCampbell\\ResultType\\Result' => __DIR__ . '/..' . '/graham-campbell/result-type/src/Result.php',
         'GrahamCampbell\\ResultType\\Success' => __DIR__ . '/..' . '/graham-campbell/result-type/src/Success.php',
-        'GrahamCampbell\\SecurityCore\\Security' => __DIR__ . '/..' . '/graham-campbell/security-core/src/Security.php',
-        'GrahamCampbell\\Security\\Facades\\Security' => __DIR__ . '/..' . '/graham-campbell/security/src/Facades/Security.php',
-        'GrahamCampbell\\Security\\SecurityServiceProvider' => __DIR__ . '/..' . '/graham-campbell/security/src/SecurityServiceProvider.php',
         'GuzzleHttp\\BodySummarizer' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/BodySummarizer.php',
         'GuzzleHttp\\BodySummarizerInterface' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/BodySummarizerInterface.php',
         'GuzzleHttp\\Client' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/Client.php',
@@ -3294,84 +3248,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Jenssegers\\Agent\\Agent' => __DIR__ . '/..' . '/jenssegers/agent/src/Agent.php',
         'Jenssegers\\Agent\\AgentServiceProvider' => __DIR__ . '/..' . '/jenssegers/agent/src/AgentServiceProvider.php',
         'Jenssegers\\Agent\\Facades\\Agent' => __DIR__ . '/..' . '/jenssegers/agent/src/Facades/Agent.php',
-        'LakM\\Comments\\Abstracts\\AbstractQueries' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Abstracts/AbstractQueries.php',
-        'LakM\\Comments\\Actions\\CreateCommentAction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Actions/CreateCommentAction.php',
-        'LakM\\Comments\\Actions\\CreateCommentReplyAction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Actions/CreateCommentReplyAction.php',
-        'LakM\\Comments\\Actions\\DeleteCommentAction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Actions/DeleteCommentAction.php',
-        'LakM\\Comments\\Actions\\DeleteCommentReplyAction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Actions/DeleteCommentReplyAction.php',
-        'LakM\\Comments\\Actions\\UpdateCommentAction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Actions/UpdateCommentAction.php',
-        'LakM\\Comments\\Actions\\UpdateCommentReplyAction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Actions/UpdateCommentReplyAction.php',
-        'LakM\\Comments\\Actions\\VerifyGuestAction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Actions/VerifyGuestAction.php',
-        'LakM\\Comments\\Builders\\MessageBuilder' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Builders/MessageBuilder.php',
-        'LakM\\Comments\\Builders\\ReactionBuilder' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Builders/ReactionBuilder.php',
-        'LakM\\Comments\\CommentServiceProvider' => __DIR__ . '/..' . '/lakm/laravel-comments/src/CommentServiceProvider.php',
-        'LakM\\Comments\\Concerns\\Commentable' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Concerns/Commentable.php',
-        'LakM\\Comments\\Concerns\\Commenter' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Concerns/Commenter.php',
-        'LakM\\Comments\\Console\\InstallCommand' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Console/InstallCommand.php',
-        'LakM\\Comments\\Contracts\\CommentableContract' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Contracts/CommentableContract.php',
-        'LakM\\Comments\\Contracts\\CommenterContract' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Contracts/CommenterContract.php',
-        'LakM\\Comments\\Data\\GuestData' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Data/GuestData.php',
-        'LakM\\Comments\\Data\\MessageData' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Data/MessageData.php',
-        'LakM\\Comments\\Data\\UserData' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Data/UserData.php',
-        'LakM\\Comments\\Enums\\Sort' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Enums/Sort.php',
-        'LakM\\Comments\\Events\\CommentCreated' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Events/CommentCreated.php',
-        'LakM\\Comments\\Events\\CommentDeleted' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Events/CommentDeleted.php',
-        'LakM\\Comments\\Events\\CommentReplyCreated' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Events/CommentReplyCreated.php',
-        'LakM\\Comments\\Events\\CommentReplyDeleted' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Events/CommentReplyDeleted.php',
-        'LakM\\Comments\\Events\\CommentReplyUpdated' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Events/CommentReplyUpdated.php',
-        'LakM\\Comments\\Events\\CommentUpdated' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Events/CommentUpdated.php',
-        'LakM\\Comments\\Exceptions\\CommentLimitExceededException' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Exceptions/CommentLimitExceededException.php',
-        'LakM\\Comments\\Exceptions\\InvalidEditorIDException' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Exceptions/InvalidEditorIDException.php',
-        'LakM\\Comments\\Exceptions\\InvalidModelException' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Exceptions/InvalidModelException.php',
-        'LakM\\Comments\\Exceptions\\ReplyLimitExceededException' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Exceptions/ReplyLimitExceededException.php',
-        'LakM\\Comments\\Facades\\SecureGuestMode' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Facades/SecureGuestMode.php',
-        'LakM\\Comments\\GuestModeRateLimiter' => __DIR__ . '/..' . '/lakm/laravel-comments/src/GuestModeRateLimiter.php',
-        'LakM\\Comments\\Helpers' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Helpers.php',
-        'LakM\\Comments\\Http\\Controllers\\VerifyGuestController' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Http/Controllers/VerifyGuestController.php',
-        'LakM\\Comments\\Livewire\\CommentItem' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/CommentItem.php',
-        'LakM\\Comments\\Livewire\\CommentList' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/CommentList.php',
-        'LakM\\Comments\\Livewire\\CommentReplyItem' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/CommentReplyItem.php',
-        'LakM\\Comments\\Livewire\\CommentReplyList' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/CommentReplyList.php',
-        'LakM\\Comments\\Livewire\\CreateCommentForm' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/CreateCommentForm.php',
-        'LakM\\Comments\\Livewire\\CreateCommentReplyForm' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/CreateCommentReplyForm.php',
-        'LakM\\Comments\\Livewire\\Editor' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/Editor.php',
-        'LakM\\Comments\\Livewire\\ReactionsManager' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/ReactionsManager.php',
-        'LakM\\Comments\\Livewire\\UpdateCommentForm' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/UpdateCommentForm.php',
-        'LakM\\Comments\\Livewire\\UpdateCommentReplyForm' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/UpdateCommentReplyForm.php',
-        'LakM\\Comments\\Livewire\\UserList' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Livewire/UserList.php',
-        'LakM\\Comments\\ModelResolver' => __DIR__ . '/..' . '/lakm/laravel-comments/src/ModelResolver.php',
-        'LakM\\Comments\\Models\\Comment' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Comment.php',
-        'LakM\\Comments\\Models\\Concerns\\HasOwner' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Concerns/HasOwner.php',
-        'LakM\\Comments\\Models\\Concerns\\HasProfilePhoto' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Concerns/HasProfilePhoto.php',
-        'LakM\\Comments\\Models\\Concerns\\HasReactions' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Concerns/HasReactions.php',
-        'LakM\\Comments\\Models\\Guest' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Guest.php',
-        'LakM\\Comments\\Models\\Message' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Message.php',
-        'LakM\\Comments\\Models\\Reaction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Reaction.php',
-        'LakM\\Comments\\Models\\Reply' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Models/Reply.php',
-        'LakM\\Comments\\Notifications\\Guest\\VerifyLinkGenerated' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Notifications/Guest/VerifyLinkGenerated.php',
-        'LakM\\Comments\\Policies\\CommentPolicy' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Policies/CommentPolicy.php',
-        'LakM\\Comments\\Policies\\Concerns\\CanManipulate' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Policies/Concerns/CanManipulate.php',
-        'LakM\\Comments\\Policies\\ReplyPolicy' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Policies/ReplyPolicy.php',
-        'LakM\\Comments\\Queries' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Queries.php',
-        'LakM\\Comments\\Reactions\\Dislike' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Reactions/Dislike.php',
-        'LakM\\Comments\\Reactions\\Like' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Reactions/Like.php',
-        'LakM\\Comments\\Reactions\\Reaction' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Reactions/Reaction.php',
-        'LakM\\Comments\\Reactions\\ReactionContract' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Reactions/ReactionContract.php',
-        'LakM\\Comments\\Reactions\\ReactionManager' => __DIR__ . '/..' . '/lakm/laravel-comments/src/Reactions/ReactionManager.php',
-        'LakM\\Comments\\SecureGuestModeManager' => __DIR__ . '/..' . '/lakm/laravel-comments/src/SecureGuestModeManager.php',
-        'LakM\\Comments\\ValidationRules' => __DIR__ . '/..' . '/lakm/laravel-comments/src/ValidationRules.php',
-        'LakM\\NoPass\\CacheService' => __DIR__ . '/..' . '/lakm/nopass/src/CacheService.php',
-        'LakM\\NoPass\\Enums\\Login' => __DIR__ . '/..' . '/lakm/nopass/src/Enums/Login.php',
-        'LakM\\NoPass\\Facades\\NoPass' => __DIR__ . '/..' . '/lakm/nopass/src/Facades/NoPass.php',
-        'LakM\\NoPass\\Generators\\AbstractGenerator' => __DIR__ . '/..' . '/lakm/nopass/src/Generators/AbstractGenerator.php',
-        'LakM\\NoPass\\Generators\\EmailGenerator' => __DIR__ . '/..' . '/lakm/nopass/src/Generators/EmailGenerator.php',
-        'LakM\\NoPass\\Generators\\Generator' => __DIR__ . '/..' . '/lakm/nopass/src/Generators/Generator.php',
-        'LakM\\NoPass\\Generators\\OTPGenerator' => __DIR__ . '/..' . '/lakm/nopass/src/Generators/OTPGenerator.php',
-        'LakM\\NoPass\\NoPassManager' => __DIR__ . '/..' . '/lakm/nopass/src/NoPassManager.php',
-        'LakM\\NoPass\\Validator\\EmailValidator' => __DIR__ . '/..' . '/lakm/nopass/src/Validator/EmailValidator.php',
-        'LakM\\NoPass\\Validator\\OTPValidator' => __DIR__ . '/..' . '/lakm/nopass/src/Validator/OTPValidator.php',
-        'LakM\\NoPass\\Validator\\Validator' => __DIR__ . '/..' . '/lakm/nopass/src/Validator/Validator.php',
-        'LakM\\NoPass\\Validator\\ValidatorContract' => __DIR__ . '/..' . '/lakm/nopass/src/Validator/ValidatorContract.php',
         'Laravel\\Fortify\\Actions\\AttemptToAuthenticate' => __DIR__ . '/..' . '/laravel/fortify/src/Actions/AttemptToAuthenticate.php',
         'Laravel\\Fortify\\Actions\\CanonicalizeUsername' => __DIR__ . '/..' . '/laravel/fortify/src/Actions/CanonicalizeUsername.php',
         'Laravel\\Fortify\\Actions\\CompletePasswordReset' => __DIR__ . '/..' . '/laravel/fortify/src/Actions/CompletePasswordReset.php',
@@ -6976,20 +6852,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Spatie\\FlareClient\\Truncation\\TrimStringsStrategy' => __DIR__ . '/..' . '/spatie/flare-client-php/src/Truncation/TrimStringsStrategy.php',
         'Spatie\\FlareClient\\Truncation\\TruncationStrategy' => __DIR__ . '/..' . '/spatie/flare-client-php/src/Truncation/TruncationStrategy.php',
         'Spatie\\FlareClient\\View' => __DIR__ . '/..' . '/spatie/flare-client-php/src/View.php',
-        'Spatie\\Honeypot\\EncryptedTime' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/EncryptedTime.php',
-        'Spatie\\Honeypot\\Events\\SpamDetectedEvent' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/Events/SpamDetectedEvent.php',
-        'Spatie\\Honeypot\\Exceptions\\InvalidTimestamp' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/Exceptions/InvalidTimestamp.php',
-        'Spatie\\Honeypot\\Exceptions\\SpamException' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/Exceptions/SpamException.php',
-        'Spatie\\Honeypot\\Honeypot' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/Honeypot.php',
-        'Spatie\\Honeypot\\HoneypotServiceProvider' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/HoneypotServiceProvider.php',
-        'Spatie\\Honeypot\\Http\\Livewire\\Concerns\\HoneypotData' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/Http/Livewire/Concerns/HoneypotData.php',
-        'Spatie\\Honeypot\\Http\\Livewire\\Concerns\\UsesSpamProtection' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/Http/Livewire/Concerns/UsesSpamProtection.php',
-        'Spatie\\Honeypot\\ProtectAgainstSpam' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/ProtectAgainstSpam.php',
-        'Spatie\\Honeypot\\SpamProtection' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/SpamProtection.php',
-        'Spatie\\Honeypot\\SpamResponder\\BlankPageResponder' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/SpamResponder/BlankPageResponder.php',
-        'Spatie\\Honeypot\\SpamResponder\\SpamResponder' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/SpamResponder/SpamResponder.php',
-        'Spatie\\Honeypot\\View\\HoneypotComponent' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/View/HoneypotComponent.php',
-        'Spatie\\Honeypot\\View\\HoneypotViewComposer' => __DIR__ . '/..' . '/spatie/laravel-honeypot/src/View/HoneypotViewComposer.php',
         'Spatie\\Ignition\\Config\\FileConfigManager' => __DIR__ . '/..' . '/spatie/ignition/src/Config/FileConfigManager.php',
         'Spatie\\Ignition\\Config\\IgnitionConfig' => __DIR__ . '/..' . '/spatie/ignition/src/Config/IgnitionConfig.php',
         'Spatie\\Ignition\\Contracts\\BaseSolution' => __DIR__ . '/..' . '/spatie/ignition/src/Contracts/BaseSolution.php',
@@ -7099,10 +6961,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Spatie\\LaravelIgnition\\Support\\StringComparator' => __DIR__ . '/..' . '/spatie/laravel-ignition/src/Support/StringComparator.php',
         'Spatie\\LaravelIgnition\\Views\\BladeSourceMapCompiler' => __DIR__ . '/..' . '/spatie/laravel-ignition/src/Views/BladeSourceMapCompiler.php',
         'Spatie\\LaravelIgnition\\Views\\ViewExceptionMapper' => __DIR__ . '/..' . '/spatie/laravel-ignition/src/Views/ViewExceptionMapper.php',
-        'Spatie\\LaravelPackageTools\\Commands\\InstallCommand' => __DIR__ . '/..' . '/spatie/laravel-package-tools/src/Commands/InstallCommand.php',
-        'Spatie\\LaravelPackageTools\\Exceptions\\InvalidPackage' => __DIR__ . '/..' . '/spatie/laravel-package-tools/src/Exceptions/InvalidPackage.php',
-        'Spatie\\LaravelPackageTools\\Package' => __DIR__ . '/..' . '/spatie/laravel-package-tools/src/Package.php',
-        'Spatie\\LaravelPackageTools\\PackageServiceProvider' => __DIR__ . '/..' . '/spatie/laravel-package-tools/src/PackageServiceProvider.php',
         'Spatie\\Permission\\Commands\\CacheReset' => __DIR__ . '/..' . '/spatie/laravel-permission/src/Commands/CacheReset.php',
         'Spatie\\Permission\\Commands\\CreatePermission' => __DIR__ . '/..' . '/spatie/laravel-permission/src/Commands/CreatePermission.php',
         'Spatie\\Permission\\Commands\\CreateRole' => __DIR__ . '/..' . '/spatie/laravel-permission/src/Commands/CreateRole.php',
@@ -8235,7 +8093,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Symfony\\Contracts\\Translation\\TranslatorInterface' => __DIR__ . '/..' . '/symfony/translation-contracts/TranslatorInterface.php',
         'Symfony\\Contracts\\Translation\\TranslatorTrait' => __DIR__ . '/..' . '/symfony/translation-contracts/TranslatorTrait.php',
         'Symfony\\Polyfill\\Ctype\\Ctype' => __DIR__ . '/..' . '/symfony/polyfill-ctype/Ctype.php',
-        'Symfony\\Polyfill\\Iconv\\Iconv' => __DIR__ . '/..' . '/symfony/polyfill-iconv/Iconv.php',
         'Symfony\\Polyfill\\Intl\\Grapheme\\Grapheme' => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme/Grapheme.php',
         'Symfony\\Polyfill\\Intl\\Idn\\Idn' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/Idn.php',
         'Symfony\\Polyfill\\Intl\\Idn\\Info' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/Info.php',
@@ -8444,9 +8301,6 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'phpDocumentor\\Reflection\\Types\\Void_' => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src/Types/Void_.php',
         'phpDocumentor\\Reflection\\Utils' => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src/Utils.php',
         'voku\\helper\\ASCII' => __DIR__ . '/..' . '/voku/portable-ascii/src/voku/helper/ASCII.php',
-        'voku\\helper\\AntiXSS' => __DIR__ . '/..' . '/voku/anti-xss/src/voku/helper/AntiXSS.php',
-        'voku\\helper\\Bootup' => __DIR__ . '/..' . '/voku/portable-utf8/src/voku/helper/Bootup.php',
-        'voku\\helper\\UTF8' => __DIR__ . '/..' . '/voku/portable-utf8/src/voku/helper/UTF8.php',
         '©' => __DIR__ . '/..' . '/symfony/cache/Traits/ValueWrapper.php',
     );
 
