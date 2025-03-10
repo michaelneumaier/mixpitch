@@ -5,14 +5,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use LakM\Comments\Concerns\Commentable;
-use LakM\Comments\Contracts\CommentableContract;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 
-class PitchFile extends Model implements CommentableContract
+class PitchFile extends Model
 {
-    use Commentable;
     protected $fillable = ['file_path', 'file_name', 'note', 'user_id', 'size'];
 
     /**
