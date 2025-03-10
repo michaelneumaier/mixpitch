@@ -16,6 +16,7 @@
         "laravel/tinker": "^2.8",
         "livewire/livewire": "^3.0",
         "masmerise/livewire-toaster": "^2.0",
+        "pusher/pusher-php-server": "^7.2",
         "sebdesign/laravel-state-machine": "^3.4",
         "spatie/laravel-permission": "^6.0",
         "spatie/laravel-sluggable": "^3.5"
