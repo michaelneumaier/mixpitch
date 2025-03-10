@@ -17,8 +17,6 @@
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
 
     <!-- Add Bootstrap JS and its dependencies -->
-    @commentsStyles
-
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <!-- Scripts -->
@@ -38,13 +36,17 @@
             0% {
                 opacity: 0;
                 transform: translateY(10px);
-                background-color: rgba(147, 51, 234, 0.2); /* Light purple background */
+                background-color: rgba(147, 51, 234, 0.2);
+                /* Light purple background */
             }
+
             50% {
                 opacity: 1;
                 transform: translateY(0);
-                background-color: rgba(147, 51, 234, 0.1); /* Light purple background */
+                background-color: rgba(147, 51, 234, 0.1);
+                /* Light purple background */
             }
+
             100% {
                 opacity: 1;
                 transform: translateY(0);
@@ -85,7 +87,6 @@
     @yield('scripts')
     @livewireScripts()
     @stack('scripts')
-    @commentsScripts
 
     <x-toaster-hub />
 </body>
