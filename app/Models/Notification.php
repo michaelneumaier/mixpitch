@@ -44,6 +44,7 @@ class Notification extends Model
     const TYPE_PITCH_CREATED = 'pitch_created';
     const TYPE_PITCH_STATUS_CHANGE = 'pitch_status_change';
     const TYPE_PITCH_COMMENT = 'pitch_comment';
+    const TYPE_PITCH_FILE_COMMENT = 'pitch_file_comment';
     const TYPE_SNAPSHOT_APPROVED = 'snapshot_approved';
     const TYPE_SNAPSHOT_DENIED = 'snapshot_denied';
     const TYPE_SNAPSHOT_REVISIONS_REQUESTED = 'snapshot_revisions_requested';
@@ -118,6 +119,20 @@ class Notification extends Model
             }
         }
         
+        // For pitch file comment notifications
+        if ($this->related_type === 'App\\Models\\PitchFile' && $this->type === self::TYPE_PITCH_FILE_COMMENT) {
+            $pitchFile = \App\Models\PitchFile::find($this->related_id);
+            if ($pitchFile) {
+                // For comment/reply notifications, include the comment anchor for direct navigation
+                if (isset($data['comment_id'])) {
+                    return route('pitch-files.show', $pitchFile) . '#comment-' . $data['comment_id'];
+                }
+                
+                // Without specific comment ID, just go to the file page
+                return route('pitch-files.show', $pitchFile);
+            }
+        }
+        
         // Default to dashboard if we can't determine a specific URL
         return route('dashboard');
     }
@@ -151,6 +166,25 @@ class Notification extends Model
                 return isset($data['user_name']) 
                     ? $data['user_name'] . ' commented on your pitch' 
                     : 'New comment on your pitch';
+                
+            case self::TYPE_PITCH_FILE_COMMENT:
+                if (isset($data['replying_to_your_comment']) && $data['replying_to_your_comment']) {
+                    return isset($data['user_name']) 
+                        ? $data['user_name'] . ' replied to your comment' 
+                        : 'Someone replied to your comment';
+                } else if (isset($data['nested_reply_to_your_thread']) && $data['nested_reply_to_your_thread']) {
+                    return isset($data['user_name']) 
+                        ? $data['user_name'] . ' replied in a thread you started' 
+                        : 'New reply in your comment thread';
+                } else if (isset($data['is_reply']) && $data['is_reply']) {
+                    return isset($data['user_name']) 
+                        ? $data['user_name'] . ' replied to a comment on your audio file' 
+                        : 'New reply on your audio file';
+                } else {
+                    return isset($data['user_name']) 
+                        ? $data['user_name'] . ' commented on your audio file' 
+                        : 'New comment on your audio file';
+                }
                 
             case self::TYPE_NEW_SUBMISSION:
                 return 'New pitch submission needs your review';

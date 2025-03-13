@@ -1,0 +1,82 @@
+/* Wave animation for auth pages */
+.wave-container {
+    position: absolute;
+    width: 100%;
+    transform-origin: bottom;
+    animation: wave 15s ease-in-out infinite alternate;
+}
+
+@keyframes wave {
+    0% {
+        transform: scale(1.05) translateY(2px);
+    }
+
+    100% {
+        transform: scale(1) translateY(-2px);
+    }
+}
+
+.wave {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0.4;
+    background: linear-gradient(to bottom, transparent, rgba(124, 58, 237, 0.2));
+    border-radius: 50% 50% 0 0;
+}
+
+.wave1 {
+    bottom: 0;
+    height: 60%;
+    animation: wave-anim 8s linear infinite;
+}
+
+.wave2 {
+    bottom: 0;
+    height: 40%;
+    animation: wave-anim 10s linear infinite;
+    animation-delay: 1s;
+}
+
+.wave3 {
+    bottom: 0;
+    height: 30%;
+    animation: wave-anim 7s linear infinite;
+    animation-delay: 2s;
+}
+
+.wave4 {
+    bottom: 0;
+    height: 20%;
+    animation: wave-anim 5s linear infinite;
+    animation-delay: 3s;
+}
+
+@keyframes wave-anim {
+    0% {
+        transform: translateX(-50%) scale(1, 1);
+    }
+
+    50% {
+        transform: translateX(0) scale(1.2, 0.8);
+    }
+
+    100% {
+        transform: translateX(50%) scale(1, 1);
+    }
+}
+
+/* Custom styling for auth forms */
+.auth-form input:focus {
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .auth-card {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: none;
+    }
+}

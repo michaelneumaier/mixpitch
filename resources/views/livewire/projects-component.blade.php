@@ -48,7 +48,28 @@
                             class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                             wire:model.live.debounce.300ms="search">
                     </div>
-                    <div class="flex items-center">
+                    <div class="flex items-center space-x-3">
+                        <!-- View Toggle Buttons -->
+                        <div class="hidden md:flex border border-gray-300 rounded-lg overflow-hidden">
+                            <button wire:click="$set('viewMode', 'card')"
+                                class="px-3 py-2 text-sm font-medium {{ $viewMode === 'card' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }} flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                </svg>
+                                Cards
+                            </button>
+                            <button wire:click="$set('viewMode', 'list')"
+                                class="px-3 py-2 text-sm font-medium {{ $viewMode === 'list' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }} flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                </svg>
+                                List
+                            </button>
+                        </div>
                         <label for="sort" class="text-sm font-medium text-gray-700 mr-2 whitespace-nowrap">Sort
                             by:</label>
                         <select id="sort"
@@ -165,6 +186,32 @@
 
         <!-- Projects Column -->
         <div class="w-full lg:w-3/4">
+            <!-- Mobile View Toggle -->
+            <div class="md:hidden mb-4">
+                <div class="bg-white rounded-lg shadow-sm p-2 flex justify-center">
+                    <div class="inline-flex rounded-md shadow-sm">
+                        <button wire:click="$set('viewMode', 'card')"
+                            class="relative inline-flex items-center px-4 py-2 rounded-l-lg border border-gray-300 text-sm font-medium {{ $viewMode === 'card' ? 'bg-primary text-white z-10' : 'bg-white text-gray-700' }} hover:bg-gray-50 focus:z-10 focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                            </svg>
+                            Cards
+                        </button>
+                        <button wire:click="$set('viewMode', 'list')"
+                            class="relative inline-flex items-center px-4 py-2 rounded-r-lg border border-gray-300 text-sm font-medium {{ $viewMode === 'list' ? 'bg-primary text-white z-10' : 'bg-white text-gray-700' }} hover:bg-gray-50 focus:z-10 focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                            </svg>
+                            List
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Project Count and Search Results Info -->
             <div class="mb-6 flex flex-wrap items-center justify-between">
                 <h2 class="text-xl font-semibold">
@@ -178,9 +225,14 @@
                 </h2>
             </div>
 
-            <div class="flex flex-wrap">
+            <!-- Projects Container - Different layout for different view modes -->
+            <div class="{{ $viewMode === 'card' ? 'flex flex-wrap' : '' }}">
                 @forelse($projects as $project)
-                @livewire('project-card', ['project' => $project], key($project->id))
+                @if($viewMode === 'card')
+                @livewire('project-card', ['project' => $project], key('card-'.$project->id))
+                @else
+                @livewire('project-list-item', ['project' => $project], key('list-'.$project->id))
+                @endif
                 @empty
                 <div class="w-full p-12 bg-white rounded-xl shadow-md text-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none"
@@ -219,7 +271,7 @@
             </p>
             @auth
             <a href="{{ route('projects.create') }}"
-                class="transition-all transform hover:scale-105 inline-block bg-white text-accent font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg">
+                class="transition-all transform hover:scale-105 inline-block bg-white text-black font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg">
                 <span class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
                         fill="currentColor">
@@ -232,7 +284,7 @@
             </a>
             @else
             <a href="{{ route('login') }}"
-                class="transition-all transform hover:scale-105 inline-block bg-white text-accent font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg">
+                class="transition-all transform hover:scale-105 inline-block bg-white text-black font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg">
                 <span class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
                         fill="currentColor">

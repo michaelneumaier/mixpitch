@@ -10,7 +10,23 @@ use Exception;
 
 class PitchFile extends Model
 {
-    protected $fillable = ['file_path', 'file_name', 'note', 'user_id', 'size'];
+    protected $fillable = [
+        'file_path', 
+        'file_name', 
+        'note', 
+        'user_id', 
+        'size',
+        'waveform_peaks',
+        'waveform_processed',
+        'waveform_processed_at',
+        'duration'
+    ];
+    
+    protected $casts = [
+        'waveform_processed' => 'boolean',
+        'waveform_processed_at' => 'datetime',
+        'duration' => 'float',
+    ];
 
     /**
      * Format bytes to human-readable format
@@ -67,6 +83,20 @@ class PitchFile extends Model
         }
     }
 
+    /**
+     * Get waveform peaks data as PHP array
+     * 
+     * @return array|null
+     */
+    public function getWaveformPeaksArrayAttribute()
+    {
+        if (!$this->waveform_peaks) {
+            return null;
+        }
+        
+        return json_decode($this->waveform_peaks, true);
+    }
+
     public function pitch()
     {
         return $this->belongsTo(Pitch::class);
@@ -82,5 +112,21 @@ class PitchFile extends Model
     {
         $pathInfo = pathinfo($this->file_name);
         return $pathInfo['extension'];
+    }
+
+    /**
+     * Get all comments for this pitch file
+     */
+    public function comments()
+    {
+        return $this->hasMany(PitchFileComment::class);
+    }
+
+    /**
+     * Get the user who uploaded this file
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

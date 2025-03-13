@@ -330,43 +330,18 @@
                             @if($file)
                             <div
                                 class="flex flex-col p-3 bg-white rounded-lg shadow-sm border border-base-200 hover:shadow-md transition-shadow">
-                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                                    <div class="flex items-center flex-1 min-w-0 mb-2 md:mb-0">
-                                        <i class="fas fa-music text-purple-500 mr-3"></i>
-                                        <div class="truncate">
-                                            <span class="font-bold">{{ $file->name() }}</span><span
-                                                class="text-gray-500">.{{ $file->extension() }}</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center space-x-2 self-end md:self-auto">
-                                        <a href="{{ route('pitch-files.show', $file) }}"
-                                            class="btn btn-sm bg-blue-500 hover:bg-blue-700 text-white">
-                                            <i class="fas fa-eye mr-1"></i> View
-                                        </a>
-                                        @if($pitchSnapshot->isApproved())
-                                        <a href="{{ asset('storage/' . $file->file_path) }}"
-                                            download="{{ $file->file_name }}"
-                                            class="btn btn-sm bg-green-500 hover:bg-green-700 text-white">
-                                            <i class="fas fa-download mr-1"></i> Download
-                                        </a>
-                                        @endif
-                                    </div>
-                                </div>
-
                                 @if($file->note)
                                 <div
-                                    class="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded-md border-l-2 border-blue-500">
+                                    class="mb-3 text-sm text-gray-700 bg-gray-50 p-2 rounded-md border-l-2 border-blue-500">
                                     <strong>Note:</strong> {{ $file->note }}
                                 </div>
                                 @endif
 
-                                <div class="mt-3 bg-base-200/30 p-3 rounded-md">
-                                    <audio controls class="w-full">
-                                        <source src="{{ asset('storage/' . $file->file_path) }}">
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                </div>
+                                <!-- Embed our WaveSurfer component -->
+                                @livewire('snapshot-file-player', [
+                                'file' => $file,
+                                'showDownloadButton' => $pitchSnapshot->isApproved()
+                                ], key('file-player-' . $file->id))
                             </div>
                             @endif
                             @endforeach

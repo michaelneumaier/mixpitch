@@ -36,26 +36,16 @@
             0% {
                 opacity: 0;
                 transform: translateY(10px);
-                background-color: rgba(147, 51, 234, 0.2);
-                /* Light purple background */
-            }
-
-            50% {
-                opacity: 1;
-                transform: translateY(0);
-                background-color: rgba(147, 51, 234, 0.1);
-                /* Light purple background */
             }
 
             100% {
                 opacity: 1;
                 transform: translateY(0);
-                background-color: white;
             }
         }
 
         .animate-fade-in {
-            animation: fadeIn 1.5s ease-out;
+            animation: fadeIn 0.6s ease-out;
         }
     </style>
 

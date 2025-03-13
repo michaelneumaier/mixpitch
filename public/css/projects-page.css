@@ -31,3 +31,91 @@
     font-weight: bold;
     margin-bottom: 15px;
 }
+
+/* Project List View Styles */
+.project-list-item {
+    transition: all 0.3s ease;
+}
+
+.project-list-item:hover {
+    transform: translateY(-2px);
+}
+
+/* Animation for toggling description */
+.project-description {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    word-break: break-word;
+}
+
+.project-description.collapsed {
+    max-height: 4.5em;
+    overflow: hidden;
+    position: relative;
+}
+
+.project-description.collapsed::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+}
+
+/* Ensure metadata badges wrap properly */
+.project-list-item .metadata {
+    flex-wrap: wrap;
+}
+
+.project-list-item .metadata>div:first-child {
+    min-width: 0;
+    /* Allow flex item to shrink beyond content width */
+}
+
+/* Fix for long titles */
+.project-list-item h3 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+}
+
+/* Fixed width for budget and deadline */
+.project-list-item .budget-deadline {
+    flex-shrink: 0;
+}
+
+/* View toggle button styles */
+.view-toggle {
+    display: flex;
+    margin-left: auto;
+}
+
+.view-toggle button {
+    border: none;
+    background: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.view-toggle button.active {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+/* Responsive adjustments for the list view */
+@media (max-width: 768px) {
+    .project-list-item .metadata {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .project-list-item .image-container {
+        height: 150px;
+    }
+}
