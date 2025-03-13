@@ -89,7 +89,7 @@
                                             
                                             @php
                                                 $pendingCount = $project->pitches->where('status', \App\Models\Pitch::STATUS_PENDING)->count();
-                                                $reviewCount = $project->pitches->where('status', \App\Models\Pitch::STATUS_PENDING_REVIEW)->count();
+                                                $reviewCount = $project->pitches->where('status', \App\Models\Pitch::STATUS_READY_FOR_REVIEW)->count();
                                                 $needsAttentionCount = $pendingCount + $reviewCount;
                                             @endphp
                                             
@@ -185,6 +185,13 @@
                                                 <span>{{ $pitch->snapshots->count() }} {{ Str::plural('Snapshot',
                                                     $pitch->snapshots->count()) }}</span>
                                             </div>
+                                            
+                                            @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
+                                            <div class="mt-1 bg-warning/20 text-amber-700 text-xs px-2 py-1 rounded-full border border-amber-200 flex items-center">
+                                                <i class="fas fa-hourglass-half text-amber-500 mr-1"></i>
+                                                <span>Pending Review</span>
+                                            </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

@@ -90,7 +90,7 @@
             @endif
 
             <div>
-                <span class="hidden md:flex text-base text-gray-800 dark:text-gray-200 max-w-xs truncate">
+                <span class="hidden md:flex text-base text-gray-700 max-w-xs truncate">
                     {{
                     Auth::user()->name
                     }}

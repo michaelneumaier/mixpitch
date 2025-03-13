@@ -17,6 +17,7 @@ class ProjectsComponent extends Component
     public $search = '';
     public $sortBy = 'latest';
     public $perPage = 12;
+    public $viewMode = 'list'; // 'card' or 'list'
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -24,6 +25,7 @@ class ProjectsComponent extends Component
         'genres' => ['except' => []],
         'statuses' => ['except' => []],
         'projectTypes' => ['except' => []],
+        'viewMode' => ['except' => 'list'],
     ];
 
     public function render()
@@ -151,5 +153,10 @@ class ProjectsComponent extends Component
             return $item !== $projectType;
         });
         $this->resetPage();
+    }
+
+    public function toggleViewMode()
+    {
+        $this->viewMode = $this->viewMode === 'card' ? 'list' : 'card';
     }
 }

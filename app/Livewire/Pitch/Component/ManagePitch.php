@@ -18,6 +18,7 @@ use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Masmerise\Toaster\Toaster;
 use App\Exceptions\UnauthorizedActionException;
+use App\Jobs\GenerateAudioWaveform;
 
 class ManagePitch extends Component
 {
@@ -144,6 +145,15 @@ class ManagePitch extends Component
 
             if ($pitchFile) {
                 $this->newlyUploadedFileIds[] = $pitchFile->id;
+
+                // Check if this is an audio file and dispatch the waveform generation job
+                $extension = strtolower($file->getClientOriginalExtension());
+                $audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+                
+                if (in_array($extension, $audioExtensions)) {
+                    // Dispatch job to generate waveform data
+                    GenerateAudioWaveform::dispatch($pitchFile);
+                }
 
                 // Notify project owner about new file upload
                 // Only if the uploader is not the project owner

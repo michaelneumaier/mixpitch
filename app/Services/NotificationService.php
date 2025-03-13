@@ -795,4 +795,141 @@ class NotificationService
             return null;
         }
     }
+
+    /**
+     * Notify a user about a new comment on their pitch file
+     *
+     * @param \App\Models\PitchFile $pitchFile The pitch file
+     * @param \App\Models\PitchFileComment $comment The comment
+     * @param int $commenterId The user ID of the commenter
+     * @return Notification|null
+     */
+    public function notifyPitchFileComment(\App\Models\PitchFile $pitchFile, \App\Models\PitchFileComment $comment, int $commenterId): ?Notification
+    {
+        // Get commenter's name for the notification
+        $commenter = User::find($commenterId);
+        $commenterName = $commenter ? $commenter->name : 'Someone';
+        
+        // Create notification data
+        $notificationData = [
+            'comment_id' => $comment->id,
+            'comment_text' => $comment->comment,
+            'commenter_id' => $commenterId,
+            'user_name' => $commenterName,
+            'timestamp' => $comment->timestamp,
+            'formatted_timestamp' => $comment->formattedTimestamp,
+            'pitch_id' => $pitchFile->pitch->id,
+            'is_reply' => $comment->parent_id !== null,
+            'parent_comment_id' => $comment->parent_id,
+        ];
+        
+        $notifiedUsers = [];
+        $notifications = [];
+        
+        // If this is a reply, notify the parent comment author
+        if ($comment->parent_id) {
+            $parentComment = \App\Models\PitchFileComment::find($comment->parent_id);
+            if ($parentComment && $parentComment->user_id !== $commenterId && !in_array($parentComment->user_id, $notifiedUsers)) {
+                $parentCommentAuthor = User::find($parentComment->user_id);
+                
+                if ($parentCommentAuthor) {
+                    try {
+                        $notifications[] = $this->createNotification(
+                            $parentCommentAuthor,
+                            Notification::TYPE_PITCH_FILE_COMMENT,
+                            $pitchFile,
+                            array_merge($notificationData, [
+                                'replying_to_your_comment' => true,
+                            ])
+                        );
+                        $notifiedUsers[] = $parentCommentAuthor->id;
+                    } catch (\Exception $e) {
+                        Log::error('Failed to notify parent comment author about reply', [
+                            'message' => $e->getMessage(),
+                            'pitch_file_id' => $pitchFile->id,
+                            'parent_comment_id' => $comment->parent_id,
+                        ]);
+                    }
+                }
+                
+                // If this is a reply to a reply, also notify the original top-level comment author
+                if ($parentComment->parent_id) {
+                    $topLevelComment = \App\Models\PitchFileComment::find($parentComment->parent_id);
+                    if ($topLevelComment && $topLevelComment->user_id !== $commenterId && 
+                        !in_array($topLevelComment->user_id, $notifiedUsers)) {
+                        $topLevelAuthor = User::find($topLevelComment->user_id);
+                        
+                        if ($topLevelAuthor) {
+                            try {
+                                $notifications[] = $this->createNotification(
+                                    $topLevelAuthor,
+                                    Notification::TYPE_PITCH_FILE_COMMENT,
+                                    $pitchFile,
+                                    array_merge($notificationData, [
+                                        'nested_reply_to_your_thread' => true,
+                                    ])
+                                );
+                                $notifiedUsers[] = $topLevelAuthor->id;
+                            } catch (\Exception $e) {
+                                Log::error('Failed to notify top-level comment author about nested reply', [
+                                    'message' => $e->getMessage(),
+                                    'pitch_file_id' => $pitchFile->id,
+                                    'top_level_comment_id' => $topLevelComment->id,
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Notify the pitch file owner if not already notified
+        if ($pitchFile->user_id !== $commenterId && !in_array($pitchFile->user_id, $notifiedUsers)) {
+            $fileOwner = User::find($pitchFile->user_id);
+            
+            if ($fileOwner) {
+                try {
+                    $notifications[] = $this->createNotification(
+                        $fileOwner,
+                        Notification::TYPE_PITCH_FILE_COMMENT,
+                        $pitchFile,
+                        $notificationData
+                    );
+                    $notifiedUsers[] = $fileOwner->id;
+                } catch (\Exception $e) {
+                    Log::error('Failed to notify file owner about pitch file comment', [
+                        'message' => $e->getMessage(),
+                        'pitch_file_id' => $pitchFile->id,
+                        'file_owner_id' => $pitchFile->user_id,
+                    ]);
+                }
+            }
+        }
+        
+        // Notify the pitch owner if different from file owner and not already notified
+        $pitch = $pitchFile->pitch;
+        if ($pitch && $pitch->user_id !== $commenterId && !in_array($pitch->user_id, $notifiedUsers)) {
+            $pitchOwner = User::find($pitch->user_id);
+            
+            if ($pitchOwner) {
+                try {
+                    $notifications[] = $this->createNotification(
+                        $pitchOwner,
+                        Notification::TYPE_PITCH_FILE_COMMENT,
+                        $pitchFile,
+                        $notificationData
+                    );
+                } catch (\Exception $e) {
+                    Log::error('Failed to notify pitch owner about pitch file comment', [
+                        'message' => $e->getMessage(),
+                        'pitch_file_id' => $pitchFile->id,
+                        'pitch_id' => $pitch->id,
+                        'pitch_owner_id' => $pitch->user_id,
+                    ]);
+                }
+            }
+        }
+        
+        return $notifications[0] ?? null;
+    }
 }

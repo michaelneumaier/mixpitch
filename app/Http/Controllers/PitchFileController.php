@@ -9,6 +9,7 @@ use App\Models\Pitch;
 use App\Models\PitchFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Jobs\GenerateAudioWaveform;
 
 class PitchFileController extends Controller
 
@@ -38,12 +39,21 @@ class PitchFileController extends Controller
             $fileSize = $file->getSize(); // Get file size in bytes
 
             // Save file information in the database
-            $pitch->files()->create([
+            $pitchFile = $pitch->files()->create([
                 'file_path' => $filePath,
                 'file_name' => $file->getClientOriginalName(),
                 'size' => $fileSize,
                 'user_id' => Auth::id(),
             ]);
+            
+            // Check if this is an audio file and dispatch the waveform generation job
+            $extension = strtolower($file->getClientOriginalExtension());
+            $audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+            
+            if (in_array($extension, $audioExtensions)) {
+                // Dispatch job to generate waveform data
+                GenerateAudioWaveform::dispatch($pitchFile);
+            }
         }
 
         return redirect()->back()->with('message', 'Files uploaded successfully.');
