@@ -110,11 +110,15 @@ class Pitch extends Model
                         self::STATUS_REVISIONS_REQUESTED
                     ]));
 
+                // Remove the generic notification entirely - it's redundant with the toast messages
+                // that are already shown in the controllers and components
+                /*
                 if ($isSignificantTransition && !$skipGenericNotification) {
                     // Only notify the pitch owner about significant status transitions
                     // that aren't handled by more specific notifications
                     $notificationService->notifyPitchStatusChange($pitch, $newStatus);
                 }
+                */
             }
         });
     }
