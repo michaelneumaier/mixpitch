@@ -10,14 +10,6 @@
                         $file->formattedSize }}</p>
                 </div>
                 <div class="flex mt-2 md:mt-0 space-x-2">
-                    <a href="{{ route('download.pitch-file', $file->id) }}" class="btn btn-primary btn-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Download
-                    </a>
                     <a href="{{ route('pitches.show', $file->pitch) }}" class="btn btn-secondary btn-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -573,7 +565,7 @@
         });
 
         // Load audio file
-        const audioUrl = @json($file->fullFilePath);
+        const audioUrl = @json($file -> fullFilePath);
         console.log('Loading audio URL:', audioUrl);
 
         // Check if we have pre-generated waveform data
@@ -601,9 +593,8 @@
             console.log('Set min/max peaks');
 
             // Use the stored duration if available, otherwise estimate
-            const storedDuration = {{ $file-> duration ?? 'null'
-        }
-    };
+            const storedDuration = {{ $file-> duration ?? 'null'}};
+
     // Set a fake duration based on the peaks array length if stored one is not available
     const fakeLength = maxPeaks && maxPeaks.length ? maxPeaks.length : 0;
     // Avoid division by zero and ensure we have a positive value
@@ -652,7 +643,7 @@
             if (event.detail.playing) {
                 /* eslint-disable */
                 @if ($file -> waveform_processed && $file -> waveform_peaks)
-                     /* eslint-enable */
+                    /* eslint-enable */
                     // Check if audio is already loaded
                     if (!audioLoaded) {
                         console.log('First play - loading audio');
