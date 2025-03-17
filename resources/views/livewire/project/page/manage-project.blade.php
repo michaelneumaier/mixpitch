@@ -645,13 +645,32 @@
                                     }
                                 })
                                 .then(response => {
+                                    // Check for specific HTTP status codes
+                                    if (response.status === 413) {
+                                        // Handle storage/file size limit exceeded
+                                        return response.json().then(data => {
+                                            throw new Error(data.message || 'File size or storage limit exceeded');
+                                        });
+                                    }
+                                    
                                     if (!response.ok) {
                                         throw new Error('Network response was not ok');
                                     }
+                                    
                                     return response.json();
                                 })
                                 .then(data => {
                                     console.log(`File ${index + 1} uploaded successfully:`, data);
+                                    
+                                    // Update storage UI if data contains storage info
+                                    if (data.storage_percentage !== undefined) {
+                                        @this.set('storageUsedPercentage', data.storage_percentage);
+                                    }
+                                    
+                                    if (data.storage_limit_message) {
+                                        @this.set('storageLimitMessage', data.storage_limit_message);
+                                    }
+                                    
                                     // Tell Livewire the file was uploaded successfully
                                     @this.uploadSuccess(index, data.file_path, data.file_id);
                                 })
@@ -686,6 +705,22 @@
                             <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
                                 <i class="fas fa-music w-5 text-center mr-3 text-purple-500"></i>Tracks
                             </span>
+
+                            <!-- Storage Usage Indicator -->
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs sm:text-sm font-medium text-gray-700">Storage Usage</span>
+                                    <span class="text-xs text-gray-600">{{ $storageLimitMessage }}</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="h-2.5 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? 'bg-red-500' : ($storageUsedPercentage > 70 ? 'bg-amber-500' : 'bg-primary') }}"
+                                        style="width: {{ $storageUsedPercentage }}%"></div>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Maximum 1GB per project. Individual files up to 200MB.
+                                </p>
+                            </div>
 
                             <div class="mb-4">
                                 <div class="flex flex-col">

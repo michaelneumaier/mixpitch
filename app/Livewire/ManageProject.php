@@ -31,6 +31,11 @@ class ManageProject extends Component
     public $uploadingFileKey = null;
     public $uploadProgress = 0;
     public $uploadProgressMessage = '';
+    
+    // Storage tracking
+    public $storageUsedPercentage = 0;
+    public $storageLimitMessage = '';
+    public $storageRemaining = 0;
 
     public function mount()
     {
@@ -38,6 +43,9 @@ class ManageProject extends Component
             $this->audioUrl = $this->project->previewTrackPath();
             $this->hasPreviewTrack = true;
         }
+        
+        // Initialize storage information
+        $this->updateStorageInfo();
     }
 
     /**
@@ -211,9 +219,11 @@ class ManageProject extends Component
         // Call the method
         $controller->deleteFile($project, $file);
 
-        // Optionally, emit an event or refresh part of the component
-        // Or if you keep a local collection of files in the component:
+        // Refresh the project model to get updated file list
         $this->project->refresh();
+        
+        // Update storage information display
+        $this->updateStorageInfo();
     }
 
     /**
@@ -292,6 +302,52 @@ class ManageProject extends Component
             return;
         }
         
+        // Check file sizes against limits before starting uploads
+        $totalSizeToUpload = 0;
+        $tooLargeFiles = [];
+        
+        foreach ($this->tempUploadedFiles as $key => $file) {
+            $fileSize = $file['size'] ?? 0;
+            $totalSizeToUpload += $fileSize;
+            
+            // Check individual file size limit
+            if (!Project::isFileSizeAllowed($fileSize)) {
+                $tooLargeFiles[] = [
+                    'name' => $file['name'],
+                    'size' => Project::formatBytes($fileSize),
+                    'limit' => Project::formatBytes(Project::MAX_FILE_SIZE_BYTES)
+                ];
+            }
+        }
+        
+        // Check project storage capacity
+        if (!$this->project->hasStorageCapacity($totalSizeToUpload)) {
+            $this->project->refresh();
+            $this->updateStorageInfo();
+            
+            Toaster::error(
+                'Project storage limit exceeded. Available space: ' . 
+                Project::formatBytes($this->project->getRemainingStorageBytes()) . 
+                '. Required: ' . 
+                Project::formatBytes($totalSizeToUpload)
+            );
+            return;
+        }
+        
+        // Handle files that are too large
+        if (!empty($tooLargeFiles)) {
+            $message = count($tooLargeFiles) === 1 
+                ? 'One file exceeds the maximum allowed size of ' . Project::formatBytes(Project::MAX_FILE_SIZE_BYTES)
+                : count($tooLargeFiles) . ' files exceed the maximum allowed size of ' . Project::formatBytes(Project::MAX_FILE_SIZE_BYTES);
+                
+            foreach ($tooLargeFiles as $file) {
+                $message .= "\n• {$file['name']} ({$file['size']})";
+            }
+            
+            Toaster::error($message);
+            return;
+        }
+        
         // Reset tracking variables
         $this->isProcessingQueue = true;
         $this->newlyUploadedFileIds = []; 
@@ -349,6 +405,10 @@ class ManageProject extends Component
         $totalFiles = count($this->tempUploadedFiles);
         $this->uploadProgress = round((($index + 1) / $totalFiles) * 100);
         
+        // Refresh the project and update storage info
+        $this->project->refresh();
+        $this->updateStorageInfo();
+        
         // Process the next file
         $this->processNextFile($index + 1, $totalFiles);
     }
@@ -390,5 +450,15 @@ class ManageProject extends Component
         
         Toaster::success('Files uploaded successfully.');
         $this->dispatch('new-uploads-completed');
+    }
+
+    /**
+     * Update storage information for the view
+     */
+    public function updateStorageInfo()
+    {
+        $this->storageUsedPercentage = $this->project->getStorageUsedPercentage();
+        $this->storageLimitMessage = $this->project->getStorageLimitMessage();
+        $this->storageRemaining = Project::formatBytes($this->project->getRemainingStorageBytes());
     }
 }

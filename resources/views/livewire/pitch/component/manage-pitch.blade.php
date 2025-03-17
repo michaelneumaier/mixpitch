@@ -401,6 +401,25 @@
             <i class="fas fa-folder-open mr-2 text-green-500"></i>File Management
         </h4>
 
+        <!-- Storage usage display -->
+        <div class="mb-4 bg-base-200 p-3 rounded-lg">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium">Storage Used: {{ $storageLimitMessage }}</span>
+                <span class="text-xs text-gray-500">{{ $storageRemaining }} remaining</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="bg-primary h-2.5 rounded-full" style="width: {{ $storageUsedPercentage }}%"></div>
+            </div>
+            <div class="mt-1 text-xs text-gray-500 flex justify-between">
+                <span>0 GB</span>
+                <span>1 GB</span>
+            </div>
+            <div class="mt-2 text-xs">
+                <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                Maximum file size: 200MB. Total storage limit: 1GB.
+            </div>
+        </div>
+
         <div class="mb-4">
             <div class="flex flex-col">
                 <label class="mb-1.5 sm:mb-2 text-sm sm:text-base text-gray-700">Upload new files</label>
@@ -478,6 +497,21 @@
                     </div>
                     @endif
                 </div>
+            </div>
+        </div>
+
+        <!-- File upload progress indicator -->
+        <div x-show="isUploading || $wire.isUploading" class="mb-4 p-3 bg-blue-50 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-blue-700">
+                    <i class="fas fa-sync fa-spin mr-2"></i>
+                    {{ $uploadProgressMessage || 'Processing files...' }}
+                </span>
+                <span class="text-xs text-blue-600">{{ $uploadProgress }}%</span>
+            </div>
+            <div class="w-full bg-blue-200 rounded-full h-2.5">
+                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                     x-bind:style="`width: ${$wire.uploadProgress}%`"></div>
             </div>
         </div>
 
