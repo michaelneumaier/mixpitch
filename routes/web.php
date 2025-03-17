@@ -422,6 +422,7 @@ Route::get('/test-s3', function () {
         ];
     }
 });
+
 Route::get('/check-s3-config', function () {
     return [
         's3_disk_config' => [
