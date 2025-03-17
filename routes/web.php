@@ -392,7 +392,6 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
         ]);
     }
 })->middleware('auth');
-
 // Secure file download routes
 Route::get('/download/pitch-file/{id}', [App\Http\Controllers\FileDownloadController::class, 'downloadPitchFile'])
     ->name('download.pitch-file')
