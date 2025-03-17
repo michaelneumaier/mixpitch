@@ -49,15 +49,20 @@ class ProjectFile extends Model
     public function getFullFilePathAttribute()
     {
         try {
-            // Return a signed URL with a short expiration (15 minutes)
+            // Return a signed URL with a longer expiration (30 minutes) for audio playback
             return Storage::disk('s3')->temporaryUrl(
                 $this->file_path,
-                now()->addMinutes(15)
+                now()->addMinutes(30),
+                [
+                    'ResponseContentType' => 'audio/mpeg',
+                    'ResponseCacheControl' => 'no-cache'
+                ]
             );
         } catch (Exception $e) {
             \Log::error('Error generating signed S3 URL for file', [
                 'file_path' => $this->file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return null;
         }
