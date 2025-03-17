@@ -166,7 +166,8 @@
         });
 
         // Audio URL path
-        const audioUrl = "{{ $file->fullFilePath }}";
+        const audioUrl = @json($file->fullFilePath);
+        console.log('Loading audio URL:', audioUrl);
 
         // Helper function to format time
         function formatTime(seconds) {

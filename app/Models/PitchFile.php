@@ -11,17 +11,17 @@ use Exception;
 class PitchFile extends Model
 {
     protected $fillable = [
-        'file_path', 
-        'file_name', 
-        'note', 
-        'user_id', 
+        'file_path',
+        'file_name',
+        'note',
+        'user_id',
         'size',
         'waveform_peaks',
         'waveform_processed',
         'waveform_processed_at',
         'duration'
     ];
-    
+
     protected $casts = [
         'waveform_processed' => 'boolean',
         'waveform_processed_at' => 'datetime',
@@ -58,16 +58,20 @@ class PitchFile extends Model
     public function getFullFilePathAttribute()
     {
         try {
-            // Return a signed URL with a short expiration (15 minutes)
-            return Storage::disk('s3')->temporaryUrl(
+            // Return a signed URL with a longer expiration (30 minutes) for audio playback
+            $url = Storage::disk('s3')->temporaryUrl(
                 $this->file_path,
-                now()->addMinutes(15)
+                now()->addMinutes(30)
             );
+            
+            // Ensure the URL is properly formatted for JavaScript
+            return $url;
         } catch (Exception $e) {
             \Log::error('Error generating signed S3 URL for pitch file', [
                 'file_id' => $this->id,
                 'file_path' => $this->file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return null;
         }
@@ -111,7 +115,7 @@ class PitchFile extends Model
         if (isset($this->attributes['size']) && $this->attributes['size']) {
             return $this->formatBytes($this->attributes['size']);
         }
-        
+
         // Otherwise try to get the size from storage
         try {
             $size = Storage::disk('s3')->size($this->file_path);
@@ -131,7 +135,7 @@ class PitchFile extends Model
         if (!$this->waveform_peaks) {
             return null;
         }
-        
+
         return json_decode($this->waveform_peaks, true);
     }
 
