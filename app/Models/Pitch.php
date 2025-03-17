@@ -30,7 +30,8 @@ class Pitch extends Model
         'completion_feedback',
         'current_snapshot_id',
         'status',
-        'is_inactive'
+        'is_inactive',
+        'producer_id'
     ];
 
     protected $attributes = [
@@ -177,6 +178,11 @@ class Pitch extends Model
     public function currentSnapshot()
     {
         return $this->belongsTo(PitchSnapshot::class, 'current_snapshot_id');
+    }
+
+    public function producer()
+    {
+        return $this->belongsTo(User::class, 'producer_id');
     }
 
     public function createSnapshot()

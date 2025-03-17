@@ -115,9 +115,9 @@
 
                         <!-- Image that triggers the lightbox -->
                         @if($project->image_path)
-                        <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $project->image_path) }}"
-                            alt="{{ $project->name }}"
-                            class="w-full md:aspect-square h-72 object-cover md:rounded-tl-lg cursor-pointer shadow-sm" />
+                        <img @click="lightbox.isOpen = true" src="{{ $project->imageUrl }}"
+                            class="rounded-lg shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl"
+                            alt="{{ $project->name }}">
                         @else
                         <div
                             class="w-full md:aspect-square md:w-72 h-72 object-cover lg:rounded-tl-lg bg-base-200 flex items-center justify-center">
@@ -137,16 +137,27 @@
 
                         <!-- The actual lightbox overlay -->
                         @if($project->image_path)
-                        <div x-cloak x-show="lightbox.isOpen"
-                            class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
-                            <img @click="lightbox.isOpen = false" src="{{ asset('storage/' . $project->image_path) }}"
-                                alt="Lightbox image" class="max-w-full max-h-full">
-
-                            <!-- Close button -->
-                            <button @click="lightbox.isOpen = false"
-                                class="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black/70 transition-colors">
-                                <i class="fas fa-times"></i>
-                            </button>
+                        <div x-cloak x-show="lightbox.isOpen" 
+                            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 transition-all duration-300"
+                            x-transition:enter="transition ease-out duration-300"
+                            x-transition:enter-start="opacity-0"
+                            x-transition:enter-end="opacity-100"
+                            x-transition:leave="transition ease-in duration-200"
+                            x-transition:leave-start="opacity-100"
+                            x-transition:leave-end="opacity-0">
+                            
+                            <div class="relative max-w-4xl mx-auto">
+                                <img class="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl rounded" 
+                                    src="{{ $project->imageUrl }}" 
+                                    alt="{{ $project->name }}">
+                                
+                                <button @click="lightbox.isOpen = false" 
+                                    class="absolute top-4 right-4 text-white bg-gray-900 bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 transition-colors duration-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         @endif
                     </div>
@@ -371,7 +382,9 @@
                                                 src="{{ $pitch->user->profile_photo_url }}"
                                                 alt="{{ $pitch->user->name }}" />
                                             <div class="min-w-0">
-                                                <div class="font-bold truncate">{{ $pitch->user->name }}</div>
+                                                <div class="font-bold truncate">
+                                                    <x-user-link :user="$pitch->user" />
+                                                </div>
                                                 <div class="text-sm text-gray-600 truncate">
                                                     Submitted {{ $pitch->created_at->diffForHumans() }}
                                                 </div>
@@ -545,7 +558,7 @@
                                                     <input type="file" wire:model.live="newUploadedFiles"
                                                         id="newUploadedFiles" class="hidden"
                                                         accept="audio/mpeg,audio/wav,audio/mp3,audio/aac,audio/ogg"
-                                                        multiple />
+                                                         />
                                                 </label>
                                                 @error('uploadedFiles.*') <span class="text-red-500 text-sm">{{ $message
                                                     }}</span>
@@ -636,7 +649,7 @@
                                             <i class="fas fa-star"></i>
                                         </button>
                                         @endif
-                                        <a href="{{ Storage::url($file->path) }}" target="_blank"
+                                        <a href="{{ route('download.project-file', $file->id) }}" 
                                             class="text-gray-500 hover:text-gray-700 transition-colors mr-2">
                                             <i class="fas fa-download"></i>
                                         </a>

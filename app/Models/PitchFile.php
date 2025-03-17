@@ -49,6 +49,58 @@ class PitchFile extends Model
     }
 
     /**
+     * Get the full file path including storage path
+     * Now returns a signed URL with a short expiration
+     * This is used for display purposes like audio players
+     *
+     * @return string|null
+     */
+    public function getFullFilePathAttribute()
+    {
+        try {
+            // Return a signed URL with a short expiration (15 minutes)
+            return Storage::disk('s3')->temporaryUrl(
+                $this->file_path,
+                now()->addMinutes(15)
+            );
+        } catch (Exception $e) {
+            \Log::error('Error generating signed S3 URL for pitch file', [
+                'file_id' => $this->id,
+                'file_path' => $this->file_path,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get a signed URL for downloading the file
+     * This uses a longer expiration time and appropriate headers for downloading
+     *
+     * @param int $expirationMinutes Minutes until URL expires (default: 60)
+     * @return string|null
+     */
+    public function getSignedUrlAttribute($expirationMinutes = 60)
+    {
+        try {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->file_path,
+                now()->addMinutes($expirationMinutes),
+                [
+                    'ResponseContentDisposition' => 'attachment; filename="' . $this->file_name . '"'
+                ]
+            );
+        } catch (Exception $e) {
+            \Log::error('Error generating signed download URL for pitch file', [
+                'file_id' => $this->id,
+                'file_path' => $this->file_path,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Get the formatted file size
      *
      * @return string
@@ -62,24 +114,10 @@ class PitchFile extends Model
         
         // Otherwise try to get the size from storage
         try {
-            $size = Storage::disk('public')->size($this->file_path);
+            $size = Storage::disk('s3')->size($this->file_path);
             return $this->formatBytes($size);
         } catch (Exception $e) {
             return '-';
-        }
-    }
-
-    /**
-     * Get the full file path including storage path
-     *
-     * @return string|null
-     */
-    public function getFullFilePathAttribute()
-    {
-        try {
-            return asset('storage/' . $this->file_path);
-        } catch (Exception $e) {
-            return null;
         }
     }
 

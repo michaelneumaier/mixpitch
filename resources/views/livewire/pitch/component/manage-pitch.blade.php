@@ -293,7 +293,7 @@
                                 <input type="file" wire:model.live="newUploadedFiles" id="newUploadedFiles"
                                     class="hidden"
                                     accept="audio/mpeg,audio/wav,audio/mp3,audio/aac,audio/ogg,application/pdf,image/jpeg,image/png,image/gif,application/zip"
-                                    multiple />
+                                     />
                             </label>
                             @error('tempUploadedFiles.*') <span class="text-red-500 text-sm">{{ $message }}</span>
                             @enderror

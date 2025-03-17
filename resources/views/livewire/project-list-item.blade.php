@@ -6,7 +6,7 @@
                 <!-- Project Image with Hover Effect -->
                 <div class="relative h-48 md:h-full w-full cursor-pointer image-container" wire:click="viewProject">
                     <div class="absolute inset-0 rounded-l-xl bg-center bg-cover bg-no-repeat"
-                        style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : asset('images/default-project.jpg') }}');">
+                        style="background-image: url('{{ $project->image_path ? $project->imageUrl : asset('images/default-project.jpg') }}');">
                     </div>
                     <div class="absolute inset-0 rounded-l-xl bg-gradient-to-t from-black/10 to-transparent"></div>
 
@@ -35,7 +35,7 @@
                         <div class="flex items-center text-gray-600 text-sm mt-1">
                             <img class="h-6 w-6 rounded-full object-cover mr-2"
                                 src="{{ $project->user->profile_photo_url }}" alt="{{ $project->user->name }}" />
-                            <span>{{ $project->user->name }}</span>
+                            <x-user-link :user="$project->user" />
                         </div>
                     </div>
 

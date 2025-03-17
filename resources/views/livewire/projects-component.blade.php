@@ -89,7 +89,7 @@
 
     <div class="flex flex-wrap mx-1">
         <!-- Enhanced Filters Column -->
-        <div class="w-full lg:w-1/4 pr-4 mb-6 lg:mb-0">
+        <div class="w-full lg:w-1/4 xl:w-1/5 pr-4 mb-6 lg:mb-0">
             <div class="lg:sticky lg:top-6">
                 <div class="lg:hidden mb-4">
                     <button x-on:click="$store.filterMenu.toggle()"

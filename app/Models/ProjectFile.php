@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Exception;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectFile extends Model
 {
@@ -39,11 +40,78 @@ class ProjectFile extends Model
         return basename($this->file_path);
     }
 
+    /**
+     * Get the full file path - now returns a signed URL with a short expiration
+     * This is used for display purposes like audio players
+     *
+     * @return string|null
+     */
     public function getFullFilePathAttribute()
     {
         try {
-            return asset('storage/' . $this->file_path);
+            // Return a signed URL with a short expiration (15 minutes)
+            return Storage::disk('s3')->temporaryUrl(
+                $this->file_path,
+                now()->addMinutes(15)
+            );
         } catch (Exception $e) {
+            \Log::error('Error generating signed S3 URL for file', [
+                'file_path' => $this->file_path,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get a signed URL for downloading the file
+     * This uses a longer expiration time and appropriate headers for downloading
+     *
+     * @param int $expirationMinutes Minutes until URL expires (default: 60)
+     * @return string|null
+     */
+    public function getSignedUrlAttribute($expirationMinutes = 60)
+    {
+        try {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->file_path,
+                now()->addMinutes($expirationMinutes),
+                [
+                    'ResponseContentDisposition' => 'attachment; filename="' . $this->getFileNameAttribute() . '"'
+                ]
+            );
+        } catch (Exception $e) {
+            \Log::error('Error generating signed download URL for file', [
+                'file_path' => $this->file_path,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a signed URL with custom expiration time
+     * This is a method implementation of the getSignedUrlAttribute accessor
+     * that allows passing a custom expiration time
+     *
+     * @param int $expirationMinutes Minutes until URL expires
+     * @return string|null
+     */
+    public function signedUrl($expirationMinutes = 60)
+    {
+        try {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->file_path,
+                now()->addMinutes($expirationMinutes),
+                [
+                    'ResponseContentDisposition' => 'attachment; filename="' . $this->getFileNameAttribute() . '"'
+                ]
+            );
+        } catch (Exception $e) {
+            \Log::error('Error generating signed download URL for file', [
+                'file_path' => $this->file_path,
+                'error' => $e->getMessage()
+            ]);
             return null;
         }
     }

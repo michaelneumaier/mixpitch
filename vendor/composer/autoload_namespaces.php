@@ -7,5 +7,4 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'SM' => array($vendorDir . '/winzou/state-machine/src'),
-    'Detection' => array($vendorDir . '/mobiledetect/mobiledetectlib/namespaced'),
 );

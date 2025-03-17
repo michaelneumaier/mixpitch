@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Sebdesign\SM\StateMachine\StateMachine;
 use Sebdesign\SM\StateMachine\StateMachineInterface;
+use Illuminate\Support\Str;
 
 class Project extends Model
 {
@@ -126,8 +127,15 @@ class Project extends Model
         if ($this->hasPreviewTrack()) {
             $track = $this->previewTrack;
             try {
-                return asset('storage/' . $track->file_path);
+                return Storage::disk('s3')->temporaryUrl(
+                    $track->file_path,
+                    now()->addMinutes(15)
+                );
             } catch (Exception $e) {
+                \Log::error('Error getting signed preview track path', [
+                    'track_id' => $this->preview_track,
+                    'error' => $e->getMessage()
+                ]);
                 return null;
             }
         } else {
@@ -138,9 +146,14 @@ class Project extends Model
     public function deleteProjectImage()
     {
         try {
-            return Storage::disk('public')->delete($this->image_path);
+            return Storage::disk('s3')->delete($this->image_path);
         } catch (Exception $e) {
-            return $e;
+            \Log::error('Error deleting project image', [
+                'project_id' => $this->id,
+                'image_path' => $this->image_path,
+                'error' => $e->getMessage()
+            ]);
+            return false;
         }
     }
 
@@ -296,4 +309,131 @@ class Project extends Model
     // {
     //     return new StateMachine($this, 'project_status', config('state-machine'));
     // }
+
+    /**
+     * Get the full URL for the project image
+     *
+     * @return string|null
+     */
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image_path) {
+            return null;
+        }
+        
+        try {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->image_path,
+                now()->addHours(1) // Longer expiration for images since they're used in UI
+            );
+        } catch (Exception $e) {
+            \Log::error('Error getting signed project image URL', [
+                'project_id' => $this->id,
+                'image_path' => $this->image_path,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a unique hash representing the current state of project files
+     * This is used for caching the ZIP file
+     *
+     * @return string
+     */
+    public function getFilesStateHash()
+    {
+        // Get all files sorted by id to ensure consistent ordering
+        $files = $this->files()->orderBy('id')->get();
+        
+        // If no files, return a default hash
+        if ($files->isEmpty()) {
+            return md5('empty_project_' . $this->id);
+        }
+        
+        // Build a string containing all file info: id, path, size, updated_at
+        $filesData = $files->map(function($file) {
+            return $file->id . $file->file_path . $file->size . $file->updated_at->timestamp;
+        })->implode('|');
+        
+        // Create a hash for the current state
+        return md5($filesData);
+    }
+    
+    /**
+     * Get the path where a cached ZIP would be stored in S3
+     *
+     * @return string
+     */
+    public function getCachedZipPath()
+    {
+        $hash = $this->getFilesStateHash();
+        return 'project_archives/' . $this->id . '_' . $hash . '.zip';
+    }
+    
+    /**
+     * Check if a cached ZIP file exists for the current project state
+     *
+     * @return bool
+     */
+    public function hasCachedZip()
+    {
+        $zipPath = $this->getCachedZipPath();
+        return Storage::disk('s3')->exists($zipPath);
+    }
+    
+    /**
+     * Get a signed URL for the cached ZIP file
+     * 
+     * @param int $expirationMinutes Minutes until URL expires (default: 30)
+     * @return string|null
+     */
+    public function getCachedZipUrl($expirationMinutes = 30)
+    {
+        if (!$this->hasCachedZip()) {
+            return null;
+        }
+        
+        try {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->getCachedZipPath(),
+                now()->addMinutes($expirationMinutes),
+                [
+                    'ResponseContentDisposition' => 'attachment; filename="' . Str::slug($this->name) . '_files.zip"',
+                    'ResponseContentType' => 'application/zip'
+                ]
+            );
+        } catch (\Exception $e) {
+            \Log::error('Error generating signed URL for cached ZIP', [
+                'project_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+    
+    /**
+     * Delete the cached ZIP file for this project
+     *
+     * @return void
+     */
+    public function deleteCachedZip()
+    {
+        try {
+            $zipPath = $this->getCachedZipPath();
+            if (Storage::disk('s3')->exists($zipPath)) {
+                Storage::disk('s3')->delete($zipPath);
+                \Log::info('Deleted cached ZIP file', [
+                    'project_id' => $this->id,
+                    'zipPath' => $zipPath
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error deleting cached ZIP file', [
+                'project_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
 }

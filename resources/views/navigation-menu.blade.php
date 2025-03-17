@@ -99,8 +99,18 @@
                             </div>
 
                             <x-dropdown-link href="{{ route('profile.show') }}">
-                                {{ __('Profile') }}
+                                {{ __('Account Settings') }}
                             </x-dropdown-link>
+
+                            @if(Auth::user()->username)
+                            <x-dropdown-link href="{{ route('profile.public', ['username' => Auth::user()->username]) }}">
+                                {{ __('My Public Profile') }}
+                            </x-dropdown-link>
+                            @else
+                            <x-dropdown-link href="{{ route('profile.edit') }}">
+                                {{ __('Set Up Profile') }}
+                            </x-dropdown-link>
+                            @endif
 
                             @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                                 <x-dropdown-link href="{{ route('api-tokens.index') }}">
@@ -162,8 +172,18 @@
             <div class="mt-3 space-y-1">
                 <!-- Account Management -->
                 <x-responsive-nav-link href="{{ route('profile.show') }}" :active="request()->routeIs('profile.show')">
-                    {{ __('Profile') }}
+                    {{ __('Account Settings') }}
                 </x-responsive-nav-link>
+
+                @if(Auth::user()->username)
+                <x-responsive-nav-link href="{{ route('profile.public', ['username' => Auth::user()->username]) }}" :active="request()->routeIs('profile.public')">
+                    {{ __('My Public Profile') }}
+                </x-responsive-nav-link>
+                @else
+                <x-responsive-nav-link href="{{ route('profile.edit') }}" :active="request()->routeIs('profile.edit')">
+                    {{ __('Set Up Profile') }}
+                </x-responsive-nav-link>
+                @endif
 
                 @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                     <x-responsive-nav-link href="{{ route('api-tokens.index') }}" :active="request()->routeIs('api-tokens.index')">

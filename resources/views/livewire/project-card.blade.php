@@ -2,7 +2,7 @@
     <div class="transition-all shadow-base-200 shadow-glow hover:shadow-lg hover:shadow-base-300 rounded-lg">
         <div class="relative flex aspect-w-1 aspect-h-1 rounded-lg  cursor-pointer" wire:click="cardClickRoute()">
             <div class="absolute inset-0 bg-center bg-cover bg-no-repeat rounded-t-lg"
-                style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : '' }}');">
+                style="background-image: url('{{ $project->image_path ? $project->imageUrl : '' }}');">
             </div>
 
             <div class="absolute top-0 right-0">
@@ -17,14 +17,15 @@
 
         </div>
         <div class="rounded-t-xl shadow-innerGlow shadow-base-200 text-primary bg-cover bg-no-repeat rotate-180 bg-bottom -scale-x-100 "
-            style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : '' }}');">
+            style="background-image: url('{{ $project->image_path ? $project->imageUrl : '' }}');">
             <div
                 class="rounded-b-md p-3 shadow-innerGlow shadow-base-200 backdrop-blur-sm rotate-180 -scale-x-100 bg-gradient-to-b from-base-200/60 to-base-200">
                 <div class="flex w-full items-center text-xl mb-1">
                     <img class="h-7 w-7 rounded-full object-cover mr-1" src="{{ $project->user->profile_photo_url }}"
                         alt="{{ $project->user->name }}" />
-                    <span class="text-base max-w-xs truncate">{{ $project->user->name
-                        }}</span>
+                    <span class="text-base max-w-xs truncate">
+                        <x-user-link :user="$project->user" />
+                    </span>
                 </div>
                 <h5 class="font-bold truncate"><a href="{{ route('projects.show', $project) }}" class="no-underline">
                         {{ $project->name }}

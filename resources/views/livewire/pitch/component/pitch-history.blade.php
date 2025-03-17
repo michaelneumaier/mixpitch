@@ -38,7 +38,11 @@
                                 <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                                     <div class="flex justify-between items-start">
                                         <span class="text-sm font-medium text-gray-800">
-                                            {{ $event->user->name ?? 'System' }}
+                                            @if($event->user)
+                                                <x-user-link :user="$event->user" />
+                                            @else
+                                                System
+                                            @endif
                                         </span>
                                         <span class="text-xs text-gray-500">
                                             {{ $event->created_at->format('M j, Y g:i A') }}

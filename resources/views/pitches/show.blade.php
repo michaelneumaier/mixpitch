@@ -11,9 +11,9 @@
 
                         <!-- Image that triggers the lightbox -->
                         @if ($pitch->project->image_path)
-                        <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $pitch->project->image_path) }}"
-                            alt="{{ $pitch->project->name }}"
-                            class="md:aspect-square h-48 object-cover md:rounded-tl-lg cursor-pointer" />
+                        <img @click="lightbox.isOpen = true" src="{{ $pitch->project->imageUrl }}"
+                            class="object-cover rounded-lg shadow-xl cursor-pointer transition-all hover:scale-105" width="600" height="400"
+                            alt="{{ $pitch->project->name }}">
                         @else
                         <div
                             class="flex items-center justify-center w-full md:aspect-square h-48 object-cover md:rounded-tl-lg bg-base-200">
@@ -30,17 +30,11 @@
 
                         <!-- The actual lightbox overlay -->
                         @if ($pitch->project->image_path)
-                        <div x-cloak x-show="lightbox.isOpen"
-                            class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
-                            <img @click="lightbox.isOpen = false"
-                                src="{{ asset('storage/' . $pitch->project->image_path) }}" alt="Lightbox image"
-                                class="max-w-full max-h-full">
-
-                            <!-- Close button -->
-                            <button @click="lightbox.isOpen = false"
-                                class="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-2 transition-colors">
-                                <i class="fas fa-times"></i>
-                            </button>
+                        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 transition-all"
+                            x-show="lightbox.isOpen" x-transition>
+                            <img class="max-h-[80vh] max-w-[90vw] object-contain shadow-2xl rounded"
+                            src="{{ $pitch->project->imageUrl }}" alt="Lightbox image"
+                            @click.away="lightbox.isOpen = false">
                         </div>
                         @endif
                     </div>

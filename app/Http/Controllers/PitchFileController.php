@@ -27,32 +27,52 @@ class PitchFileController extends Controller
         return view('pitch-files.show', compact('file'));
     }
 
+    // Currently not used
     public function upload(Request $request, Pitch $pitch)
     {
-
         $request->validate([
-            'files.*' => 'required|file|max:10240', // Max 10MB per file
+            'files.*' => 'required|file|max:100000', // Max 100MB per file
         ]);
 
         foreach ($request->file('files') as $file) {
-            $filePath = $file->store('pitch_files', 'public');
-            $fileSize = $file->getSize(); // Get file size in bytes
+            try {
+                // Store file in S3 bucket with public visibility
+                $fileName = $file->getClientOriginalName();
+                $filePath = $file->storeAs(
+                    'pitch_files/' . $pitch->id, 
+                    $fileName, 
+                    's3'
+                );
+                $fileSize = $file->getSize(); // Get file size in bytes
 
-            // Save file information in the database
-            $pitchFile = $pitch->files()->create([
-                'file_path' => $filePath,
-                'file_name' => $file->getClientOriginalName(),
-                'size' => $fileSize,
-                'user_id' => Auth::id(),
-            ]);
-            
-            // Check if this is an audio file and dispatch the waveform generation job
-            $extension = strtolower($file->getClientOriginalExtension());
-            $audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
-            
-            if (in_array($extension, $audioExtensions)) {
-                // Dispatch job to generate waveform data
-                GenerateAudioWaveform::dispatch($pitchFile);
+                // Save file information in the database
+                $pitchFile = $pitch->files()->create([
+                    'file_path' => $filePath,
+                    'file_name' => $fileName,
+                    'size' => $fileSize,
+                    'user_id' => Auth::id(),
+                ]);
+                
+                // Check if this is an audio file and dispatch the waveform generation job
+                // $extension = strtolower($file->getClientOriginalExtension());
+                // $audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+                
+                // if (in_array($extension, $audioExtensions)) {
+                //     // Dispatch job to generate waveform data
+                //     GenerateAudioWaveform::dispatch($pitchFile);
+                // }
+                
+                \Log::info('Pitch file uploaded to S3', [
+                    'filename' => $fileName,
+                    'path' => $filePath,
+                    'pitch_id' => $pitch->id
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Error uploading pitch file to S3', [
+                    'error' => $e->getMessage(),
+                    'pitch_id' => $pitch->id,
+                    'filename' => $file->getClientOriginalName()
+                ]);
             }
         }
 
@@ -68,8 +88,8 @@ class PitchFileController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        // Delete the file from storage
-        Storage::disk('public')->delete($file->file_path);
+        // Delete the file from S3 storage
+        Storage::disk('s3')->delete($file->file_path);
 
         // Delete the file record from the database
         $file->delete();
