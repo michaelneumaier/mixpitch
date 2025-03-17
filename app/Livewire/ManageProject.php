@@ -8,6 +8,7 @@ use App\Models\ProjectFile;
 use App\Http\Controllers\ProjectController;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
+use Masmerise\Toaster\Toaster;
 
 class ManageProject extends Component
 {
@@ -18,11 +19,18 @@ class ManageProject extends Component
     public $audioUrl;
     public $isUploading = false;
     public $uploadedFiles = [];
+    public $tempUploadedFiles = []; // For storing file metadata
     public $newUploadedFiles = []; // For accumulating new files
     public $track; // For single file upload (keeping for backward compatibility)
     public $fileSizes = []; // Store file sizes
     public $newlyAddedFileKeys = []; // Track which files were just added
     public $newlyUploadedFileIds = []; // Track IDs of newly uploaded files
+    
+    // Sequential upload properties
+    public $isProcessingQueue = false;
+    public $uploadingFileKey = null;
+    public $uploadProgress = 0;
+    public $uploadProgressMessage = '';
 
     public function mount()
     {
@@ -179,12 +187,12 @@ class ManageProject extends Component
      */
     public function removeUploadedFile($key)
     {
-        if (isset($this->uploadedFiles[$key])) {
-            unset($this->uploadedFiles[$key]);
+        if (isset($this->tempUploadedFiles[$key])) {
+            unset($this->tempUploadedFiles[$key]);
             unset($this->fileSizes[$key]);
 
             // Re-index arrays
-            $this->uploadedFiles = array_values($this->uploadedFiles);
+            $this->tempUploadedFiles = array_values($this->tempUploadedFiles);
             $this->fileSizes = array_values($this->fileSizes);
 
             // Clear the newly added keys since indexes have changed
@@ -262,5 +270,125 @@ class ManageProject extends Component
                 $query->where('status', 'accepted');
             }, 'user'])
             ->get();
+    }
+
+    /**
+     * Queue files for upload
+     */
+    public function queueFilesForUpload()
+    {
+        // This is now handled by JavaScript that directly sets tempUploadedFiles and fileSizes
+        $this->newlyAddedFileKeys = array_keys($this->tempUploadedFiles);
+        $this->dispatch('new-files-added');
+    }
+
+    /**
+     * Process the queued files one by one
+     */
+    public function processQueuedFiles()
+    {        
+        if (empty($this->tempUploadedFiles)) {
+            Toaster::warning('No files selected for upload.');
+            return;
+        }
+        
+        // Reset tracking variables
+        $this->isProcessingQueue = true;
+        $this->newlyUploadedFileIds = []; 
+        $this->uploadProgress = 0;
+        $this->uploadProgressMessage = 'Preparing to upload files...';
+        
+        $totalFiles = count($this->tempUploadedFiles);
+        
+        // Process the first file
+        $this->processNextFile(0, $totalFiles);
+    }
+    
+    /**
+     * Process the next file in the queue
+     */
+    public function processNextFile($currentIndex, $totalFiles)
+    {
+        if ($currentIndex >= count($this->tempUploadedFiles)) {
+            // All files processed
+            $this->finishUploadProcess();
+            return;
+        }
+        
+        $this->uploadingFileKey = $currentIndex;
+        $this->uploadProgress = round(($currentIndex / $totalFiles) * 100);
+        $this->uploadProgressMessage = "Uploading file " . ($currentIndex + 1) . " of " . $totalFiles;
+        
+        \Log::info('Processing next project file', [
+            'index' => $currentIndex,
+            'total' => $totalFiles,
+            'project_id' => $this->project->id
+        ]);
+        
+        // Dispatch event to trigger JS file upload
+        $this->dispatch('uploadNextFile', index: $currentIndex, total: $totalFiles);
+    }
+    
+    /**
+     * Handle successful file upload
+     */
+    public function uploadSuccess($index, $filePath, $fileId)
+    {
+        if (!isset($this->tempUploadedFiles[$index])) {
+            \Log::error('File index not found in tempUploadedFiles', [
+                'index' => $index,
+                'project_id' => $this->project->id
+            ]);
+            return;
+        }
+        
+        // Add to newly uploaded files
+        $this->newlyUploadedFileIds[] = $fileId;
+        
+        // Update progress
+        $totalFiles = count($this->tempUploadedFiles);
+        $this->uploadProgress = round((($index + 1) / $totalFiles) * 100);
+        
+        // Process the next file
+        $this->processNextFile($index + 1, $totalFiles);
+    }
+    
+    /**
+     * Handle failed file upload
+     */
+    public function uploadFailed($index, $errorMessage)
+    {
+        \Log::error('File upload failed', [
+            'project_id' => $this->project->id,
+            'file_index' => $index,
+            'error' => $errorMessage
+        ]);
+        
+        Toaster::error("Failed to upload file: " . $errorMessage);
+        
+        // Process the next file, skipping this one
+        $totalFiles = count($this->tempUploadedFiles);
+        $this->processNextFile(($index !== null ? $index : 0) + 1, $totalFiles);
+    }
+    
+    /**
+     * Finish the upload process and clean up
+     */
+    protected function finishUploadProcess()
+    {
+        $this->isProcessingQueue = false;
+        $this->uploadingFileKey = null;
+        $this->uploadProgress = 100;
+        $this->uploadProgressMessage = 'Upload complete!';
+        
+        // Clear the queue
+        $this->tempUploadedFiles = [];
+        $this->fileSizes = [];
+        
+        // Refresh the project to update files
+        $this->project->refresh();
+        
+        Toaster::success('Files uploaded successfully.');
+        $this->dispatch('new-uploads-completed');
     }
 }
