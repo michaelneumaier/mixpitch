@@ -185,7 +185,7 @@
         </div>
 
         <!-- Projects Column -->
-        <div class="w-full lg:w-3/4">
+        <div class="w-full lg:w-3/4 xl:w-4/5">
             <!-- Mobile View Toggle -->
             <div class="md:hidden mb-4">
                 <div class="bg-white rounded-lg shadow-sm p-2 flex justify-center">

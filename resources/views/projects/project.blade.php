@@ -12,8 +12,7 @@
                         <!-- Image that triggers the lightbox -->
                         @if($project->image_path)
 
-                        <img @click="lightbox.isOpen = true" src="{{ $project->imageUrl }}"
-                            alt="{{ $project->name }}"
+                        <img @click="lightbox.isOpen = true" src="{{ $project->imageUrl }}" alt="{{ $project->name }}"
                             class="w-full md:aspect-square h-72 object-cover md:rounded-tl-lg cursor-pointer" />
                         @else
                         <div class="w-full md:aspect-square md:w-72 h-72 object-cover lg:rounded-tl-lg bg-base-200">
@@ -37,8 +36,8 @@
                         @if($project->image_path)
                         <div x-cloak x-show="lightbox.isOpen"
                             class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
-                            <img @click="lightbox.isOpen = false" src="{{ $project->imageUrl }}"
-                                alt="Lightbox image" class="max-w-full max-h-full">
+                            <img @click="lightbox.isOpen = false" src="{{ $project->imageUrl }}" alt="Lightbox image"
+                                class="max-w-full max-h-full">
 
                             <!-- Close button -->
                             <button @click="lightbox.isOpen = false"
@@ -154,24 +153,20 @@
                         <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
                             <i class="fas fa-handshake text-indigo-500 mr-2"></i>Looking For Collaboration In
                         </h3>
-                        <div class="flex flex-wrap gap-3">
+                        <div class="flex flex-wrap gap-2 mt-3">
                             @foreach($project->collaboration_type as $type => $value)
                             @if($value)
-                            <div
-                                class="flex flex-col items-center bg-white rounded-lg p-3 shadow-sm border border-indigo-100 hover:shadow-md transition-all">
-                                <div class="text-indigo-500 text-xl mb-1">
-                                    <i class="fas {{ 
-                                        $type == 'mixing' ? 'fa-sliders-h' : 
-                                        ($type == 'mastering' ? 'fa-compact-disc' : 
-                                        ($type == 'production' ? 'fa-music' : 
-                                        ($type == 'vocals' ? 'fa-microphone' : 
-                                        ($type == 'instruments' ? 'fa-guitar' : 'fa-tasks')))) 
-                                    }}"></i>
-                                </div>
-                                <span class="text-center font-medium text-gray-800">
-                                    {{ Str::title(str_replace('_', ' ', $type)) }}
-                                </span>
-                            </div>
+                            <span
+                                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
+                                <i class="fas {{ 
+                                                            $type == 'mixing' ? 'fa-sliders-h' : 
+                                                            ($type == 'mastering' ? 'fa-compact-disc' : 
+                                                            ($type == 'production' ? 'fa-music' : 
+                                                            ($type == 'vocals' ? 'fa-microphone' : 
+                                                            ($type == 'instruments' ? 'fa-guitar' : 'fa-tasks')))) 
+                                                        }} mr-1.5"></i>
+                                {{ Str::title(str_replace('_', ' ', $type)) }}
+                            </span>
                             @endif
                             @endforeach
                         </div>
