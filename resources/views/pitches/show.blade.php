@@ -12,8 +12,8 @@
                         <!-- Image that triggers the lightbox -->
                         @if ($pitch->project->image_path)
                         <img @click="lightbox.isOpen = true" src="{{ $pitch->project->imageUrl }}"
-                            class="object-cover rounded-lg shadow-xl cursor-pointer transition-all hover:scale-105" width="600" height="400"
-                            alt="{{ $pitch->project->name }}">
+                            class="object-cover rounded-lg shadow-xl cursor-pointer transition-all hover:scale-105"
+                            width="600" height="400" alt="{{ $pitch->project->name }}">
                         @else
                         <div
                             class="flex items-center justify-center w-full md:aspect-square h-48 object-cover md:rounded-tl-lg bg-base-200">
@@ -33,8 +33,8 @@
                         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 transition-all"
                             x-show="lightbox.isOpen" x-transition>
                             <img class="max-h-[80vh] max-w-[90vw] object-contain shadow-2xl rounded"
-                            src="{{ $pitch->project->imageUrl }}" alt="Lightbox image"
-                            @click.away="lightbox.isOpen = false">
+                                src="{{ $pitch->project->imageUrl }}" alt="Lightbox image"
+                                @click.away="lightbox.isOpen = false">
                         </div>
                         @endif
                     </div>
@@ -207,24 +207,20 @@
                             <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
                                 <i class="fas fa-handshake text-indigo-500 mr-2"></i>Looking For Collaboration In
                             </h3>
-                            <div class="flex flex-wrap gap-3">
-                                @foreach ($pitch->project->collaboration_type as $type => $value)
-                                @if ($value)
-                                <div
-                                    class="flex flex-col items-center bg-white rounded-lg p-3 shadow-sm border border-indigo-100 hover:shadow-md transition-all">
-                                    <div class="text-indigo-500 text-xl mb-1">
-                                        <i class="fas {{ 
-                                            $type == 'mixing' ? 'fa-sliders-h' : 
-                                            ($type == 'mastering' ? 'fa-compact-disc' : 
-                                            ($type == 'production' ? 'fa-music' : 
-                                            ($type == 'vocals' ? 'fa-microphone' : 
-                                            ($type == 'instruments' ? 'fa-guitar' : 'fa-tasks')))) 
-                                        }}"></i>
-                                    </div>
-                                    <span class="text-center font-medium text-gray-800">
-                                        {{ Str::title(str_replace('_', ' ', $type)) }}
-                                    </span>
-                                </div>
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                @foreach($pitch->project->collaboration_type as $type => $value)
+                                @if($value)
+                                <span
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
+                                    <i class="fas {{ 
+                                                                $type == 'mixing' ? 'fa-sliders-h' : 
+                                                                ($type == 'mastering' ? 'fa-compact-disc' : 
+                                                                ($type == 'production' ? 'fa-music' : 
+                                                                ($type == 'vocals' ? 'fa-microphone' : 
+                                                                ($type == 'instruments' ? 'fa-guitar' : 'fa-tasks')))) 
+                                                            }} mr-1.5"></i>
+                                    {{ Str::title(str_replace('_', ' ', $type)) }}
+                                </span>
                                 @endif
                                 @endforeach
                             </div>
