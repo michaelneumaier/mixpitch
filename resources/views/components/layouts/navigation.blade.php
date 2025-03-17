@@ -31,7 +31,7 @@
             <div class="hidden sm:flex sm:items-center sm:ml-6 space-x-3">
                 @auth
                 <!-- Notifications -->
-                <div class="relative">
+                <div class="relative mr-4">
                     <livewire:notification-list />
                 </div>
 
@@ -48,6 +48,12 @@
 
             <!-- Hamburger -->
             <div class="flex items-center -mr-2 sm:hidden">
+                @auth
+                <!-- Notifications -->
+                <div class="relative mr-4">
+                    <livewire:notification-list />
+                </div>
+                @endauth
                 <button @click="open = ! open"
                     class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-700 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
