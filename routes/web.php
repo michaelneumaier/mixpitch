@@ -92,6 +92,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('pitch.requestChanges')
         ->middleware('auth');
 
+    // New route for handling sequential file uploads
+    Route::post('/pitch/upload-file', [App\Http\Controllers\PitchFileController::class, 'uploadSingle'])
+        ->name('pitch.uploadFile')
+        ->middleware('auth');
+
+    // New route for handling sequential project file uploads
+    Route::post('/project/upload-file', [App\Http\Controllers\ProjectController::class, 'uploadSingle'])
+        ->name('project.uploadFile')
+        ->middleware('auth');
+
     Route::get('/pitch-files/{file}', [PitchFileController::class, 'show'])->name('pitch-files.show');
     Route::get('/pitch-files/download/{file}', [PitchFileController::class, 'download'])
         ->name('pitch-files.download')

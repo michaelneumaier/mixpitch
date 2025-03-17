@@ -711,4 +711,78 @@ class ProjectController extends Controller
         
         rmdir($folder);
     }
+
+    /**
+     * Handle a single file upload via AJAX
+     */
+    public function uploadSingle(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:102400', // 100MB max
+            'project_id' => 'required|exists:projects,id',
+        ]);
+
+        $project = Project::findOrFail($request->project_id);
+        
+        // Authorize the user
+        if (Auth::id() !== $project->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action.'
+            ], 403);
+        }
+
+        try {
+            $file = $request->file('file');
+            
+            // Store file in S3 bucket
+            $fileName = $file->getClientOriginalName();
+            $filePath = $file->storeAs(
+                'projects/' . $project->id, 
+                $fileName, 
+                's3'
+            );
+            $fileSize = $file->getSize(); // Get file size in bytes
+
+            // Save file information in the database
+            $projectFile = new ProjectFile([
+                'project_id' => $project->id,
+                'file_path' => $filePath,
+                'size' => $fileSize,
+            ]);
+            
+            $projectFile->save();
+            
+            // Delete any cached ZIP files since project files have changed
+            $project->deleteCachedZip();
+            
+            \Log::info('Single project file uploaded to S3 via AJAX', [
+                'filename' => $fileName,
+                'path' => $filePath,
+                'project_id' => $project->id,
+                'file_id' => $projectFile->id
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully',
+                'file_path' => $filePath,
+                'file_id' => $projectFile->id,
+                'file_name' => $fileName,
+                'file_size' => $fileSize
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error uploading single project file to S3 via AJAX', [
+                'error' => $e->getMessage(),
+                'project_id' => $project->id,
+                'file_name' => $request->file('file')->getClientOriginalName()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error uploading file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

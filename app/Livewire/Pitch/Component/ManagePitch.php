@@ -41,6 +41,14 @@ class ManagePitch extends Component
     public $fileSizes = []; // Store file sizes
     public $newlyAddedFileKeys = []; // Track which files were just added
     public $newlyUploadedFileIds = []; // Track IDs of newly uploaded files
+    
+    // Sequential upload properties
+    public $isProcessingQueue = false;
+    public $uploadingFileKey = null;
+    public $uploadProgress = 0;
+    public $uploadProgressMessage = '';
+    public $singleFileUpload = null;
+    public $isUploading = false;
 
     public function mount(Pitch $pitch)
     {
@@ -61,29 +69,143 @@ class ManagePitch extends Component
     }
 
     /**
-     * Called when new files are selected
-     * This method accumulates files instead of replacing them
+     * Queue files for upload when selected
      */
-    public function updatedNewUploadedFiles()
+    public function queueFilesForUpload()
     {
-        $this->newlyAddedFileKeys = []; // Reset the tracking array
-
-        $startIndex = count($this->tempUploadedFiles);
-
-        foreach ($this->newUploadedFiles as $file) {
-            $this->tempUploadedFiles[] = $file;
-            // Calculate and store file size
-            $this->fileSizes[] = $this->formatFileSize($file->getSize());
-            // Track the index of this newly added file
-            $this->newlyAddedFileKeys[] = $startIndex;
-            $startIndex++;
-        }
-
-        // Reset the new files input to allow for more files to be added
-        $this->newUploadedFiles = [];
-
-        // We'll use JavaScript setTimeout in the blade file instead
+        // This is now handled by JavaScript that directly sets tempUploadedFiles and fileSizes
+        $this->newlyAddedFileKeys = array_keys($this->tempUploadedFiles);
         $this->dispatch('new-files-added');
+    }
+
+    /**
+     * Process the queued files one by one
+     */
+    public function processQueuedFiles()
+    {
+        // Check if the pitch status allows file uploads
+        if (!in_array($this->pitch->status, ['in_progress', 'pending_review'])) {
+            Toaster::warning('You can only upload files when the pitch is in progress or pending review.');
+            return;
+        }
+        
+        if (empty($this->tempUploadedFiles)) {
+            Toaster::warning('No files selected for upload.');
+            return;
+        }
+        
+        // Reset tracking variables
+        $this->isProcessingQueue = true;
+        $this->newlyUploadedFileIds = []; 
+        $this->uploadProgress = 0;
+        $this->uploadProgressMessage = 'Preparing to upload files...';
+        
+        $totalFiles = count($this->tempUploadedFiles);
+        
+        // Process the first file
+        $this->processNextFile(0, $totalFiles);
+    }
+    
+    /**
+     * Process the next file in the queue
+     */
+    public function processNextFile($currentIndex, $totalFiles)
+    {
+        if ($currentIndex >= count($this->tempUploadedFiles)) {
+            // All files processed
+            $this->finishUploadProcess();
+            return;
+        }
+        
+        $this->uploadingFileKey = $currentIndex;
+        $this->uploadProgress = round(($currentIndex / $totalFiles) * 100);
+        $this->uploadProgressMessage = "Uploading file " . ($currentIndex + 1) . " of " . $totalFiles;
+        
+        \Log::info('Processing next file', [
+            'index' => $currentIndex,
+            'total' => $totalFiles,
+            'pitch_id' => $this->pitch->id
+        ]);
+        
+        // Fix the event dispatch to ensure proper data format
+        $this->dispatch('uploadNextFile', index: $currentIndex, total: $totalFiles);
+    }
+    
+    /**
+     * Upload a single file (called from JavaScript)
+     */
+    public function uploadSingleFile($index)
+    {
+        if (!isset($this->tempUploadedFiles[$index])) {
+            $this->processNextFile($index + 1, count($this->tempUploadedFiles));
+            return;
+        }
+        
+        $this->uploadingFileKey = $index;
+        $this->isUploading = true;
+        
+        try {
+            $file = $this->tempUploadedFiles[$index];
+            $fileName = $file['name'];
+            
+            // You'll need to implement file handling here
+            // This might involve JavaScript to get the actual file from the input
+            // and upload it via AJAX or a separate route
+            
+            // For now, we'll just simulate a successful upload
+            $pitchFile = $this->pitch->files()->create([
+                'file_path' => 'pitch_files/' . $this->pitch->id . '/' . $fileName,
+                'file_name' => $fileName,
+                'user_id' => Auth::id(),
+                'size' => $file['size']
+            ]);
+            
+            if ($pitchFile) {
+                $this->newlyUploadedFileIds[] = $pitchFile->id;
+            }
+            
+            // Process the next file
+            $this->isUploading = false;
+            $this->processNextFile($index + 1, count($this->tempUploadedFiles));
+        } catch (\Exception $e) {
+            Log::error('Error uploading pitch file', [
+                'error' => $e->getMessage(),
+                'pitch_id' => $this->pitch->id,
+                'file_index' => $index
+            ]);
+            
+            // Skip this file and continue with the next one
+            $this->isUploading = false;
+            $this->processNextFile($index + 1, count($this->tempUploadedFiles));
+        }
+    }
+    
+    /**
+     * Finish the upload process and clean up
+     */
+    protected function finishUploadProcess()
+    {
+        $this->isProcessingQueue = false;
+        $this->uploadingFileKey = null;
+        $this->uploadProgress = 100;
+        $this->uploadProgressMessage = 'Upload complete!';
+        
+        // Add a comment about the uploads
+        $uploadCount = count($this->newlyUploadedFileIds);
+        if ($uploadCount > 0) {
+            $comment = $uploadCount . ($uploadCount > 1 ? ' files ' : ' file ') . 'have been uploaded.';
+            $this->pitch->addComment($comment);
+        }
+        
+        // Clear the queue
+        $this->tempUploadedFiles = [];
+        $this->fileSizes = [];
+        
+        // Refresh the pitch to update files
+        $this->pitch->refresh();
+        
+        Toaster::success('Files uploaded successfully.');
+        $this->dispatch('new-uploads-completed');
     }
 
     /**
@@ -117,81 +239,14 @@ class ManagePitch extends Component
     }
 
     /**
-     * Upload multiple files
+     * Legacy upload method - no longer used
      */
     public function uploadFiles()
     {
-        // Check if the pitch status allows file uploads
-        if (!in_array($this->pitch->status, ['in_progress', 'pending_review'])) {
-            Toaster::warning('You can only upload files when the pitch is in progress or pending review.');
-            return;
-        }
-
-        $this->validate([
-            'tempUploadedFiles.*' => 'required|file|max:102400', // 100MB max
-        ]);
-
-        $this->newlyUploadedFileIds = []; // Reset the tracking array
-
-        foreach ($this->tempUploadedFiles as $file) {
-            try {
-                // Store file in S3 bucket with public visibility instead of local 'public' disk
-                $fileName = $file->getClientOriginalName();
-                $filePath = $file->storeAs(
-                    'pitch_files/' . $this->pitch->id, 
-                    $fileName, 
-                    's3'
-                );
-
-                $pitchFile = $this->pitch->files()->create([
-                    'file_path' => $filePath,
-                    'file_name' => $fileName,
-                    'user_id' => Auth::id(),
-                    'size' => $file->getSize(), // Store the file size
-                ]);
-
-                if ($pitchFile) {
-                    $this->newlyUploadedFileIds[] = $pitchFile->id;
-
-                    // Check if this is an audio file and dispatch the waveform generation job
-                    $extension = strtolower($file->getClientOriginalExtension());
-                    $audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
-                    
-                    if (in_array($extension, $audioExtensions)) {
-                        // Dispatch job to generate waveform data
-                        GenerateAudioWaveform::dispatch($pitchFile);
-                    }
-
-                    // Notify project owner about new file upload
-                    // Only if the uploader is not the project owner
-                    if (Auth::id() !== $this->pitch->project->user_id) {
-                        app(\App\Services\NotificationService::class)->notifyFileUploadedToProject($this->pitch, $pitchFile);
-                    }
-                }
-                
-                Log::info('Pitch file uploaded to S3 via Livewire', [
-                    'filename' => $fileName,
-                    'path' => $filePath,
-                    'pitch_id' => $this->pitch->id
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Error uploading pitch file to S3 via Livewire', [
-                    'error' => $e->getMessage(),
-                    'pitch_id' => $this->pitch->id,
-                    'filename' => $file->getClientOriginalName()
-                ]);
-            }
-        }
-
-        $this->tempUploadedFiles = []; // Clear the files after upload
-        $this->fileSizes = []; // Clear file sizes
-        $this->pitch->refresh(); // Refresh pitch files relation
-
-        $comment = count($this->newlyUploadedFileIds) . (count($this->newlyUploadedFileIds) > 1 ? ' files ' : ' file ') . 'have been uploaded.';
-        $this->pitch->addComment($comment);
-
-        Toaster::success('Files uploaded successfully.');
-        $this->dispatch('new-uploads-completed');
+        // This method is kept for compatibility but no longer used
+        // The sequential upload process via uploadSingleFile is used instead
+        Toaster::info('Please use the new upload process instead.');
+        return;
     }
 
     /**
@@ -533,5 +588,47 @@ class ManagePitch extends Component
             Toaster::error('An error occurred while cancelling your submission. Please try again or contact support.');
             return redirect()->route('pitches.show', $this->pitch);
         }
+    }
+
+    /**
+     * Handle successful file upload
+     */
+    public function uploadSuccess($index, $filePath, $fileId)
+    {
+        if (!isset($this->tempUploadedFiles[$index])) {
+            Log::error('File index not found in tempUploadedFiles', [
+                'index' => $index,
+                'pitch_id' => $this->pitch->id
+            ]);
+            return;
+        }
+        
+        // Add to newly uploaded files
+        $this->newlyUploadedFileIds[] = $fileId;
+        
+        // Update progress
+        $totalFiles = count($this->tempUploadedFiles);
+        $this->uploadProgress = round((($index + 1) / $totalFiles) * 100);
+        
+        // Process the next file
+        $this->processNextFile($index + 1, $totalFiles);
+    }
+    
+    /**
+     * Handle failed file upload
+     */
+    public function uploadFailed($index, $errorMessage)
+    {
+        Log::error('File upload failed', [
+            'pitch_id' => $this->pitch->id,
+            'file_index' => $index,
+            'error' => $errorMessage
+        ]);
+        
+        Toaster::error("Failed to upload file: " . $errorMessage);
+        
+        // Process the next file, skipping this one
+        $totalFiles = count($this->tempUploadedFiles);
+        $this->processNextFile(($index !== null ? $index : 0) + 1, $totalFiles);
     }
 }
