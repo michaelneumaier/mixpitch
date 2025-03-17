@@ -10,7 +10,7 @@
                         $file->formattedSize }}</p>
                 </div>
                 <div class="flex mt-2 md:mt-0 space-x-2">
-                    <a href="{{ $file->fullFilePath }}" download="{{ $file->file_name }}"
+                    <a href="{{ route('download.pitch-file', $file->id) }}" 
                         class="btn btn-primary btn-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">

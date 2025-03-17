@@ -20,14 +20,14 @@ use Symfony\Component\ExpressionLanguage\Compiler;
  */
 class ArrayNode extends Node
 {
-    protected $index;
+    protected int $index;
 
     public function __construct()
     {
         $this->index = -1;
     }
 
-    public function addElement(Node $value, Node $key = null): void
+    public function addElement(Node $value, ?Node $key = null): void
     {
         $key ??= new ConstantNode(++$this->index);
 

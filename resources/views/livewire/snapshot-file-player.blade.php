@@ -26,7 +26,7 @@
                 <i class="fas fa-eye mr-1"></i> View
             </a>
             @if($showDownloadButton)
-            <a href="{{ asset('storage/' . $file->file_path) }}" download="{{ $file->file_name }}"
+            <a href="{{ route('download.pitch-file', $file->id) }}"
                 class="btn btn-xs bg-green-500 hover:bg-green-700 text-white">
                 <i class="fas fa-download mr-1"></i> Download
             </a>

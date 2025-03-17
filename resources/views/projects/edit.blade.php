@@ -8,7 +8,7 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:ml-1/3">
                     <div class="lg:w-1/3 flex-shrink-0 mb-4 lg:mb-0">
                         <label for="image-input" class="flex flex-col items-center justify-center text-center">
-                            <img src="{{ asset('storage/' . $project->image_path) }}" alt="{{ $project->name }}"
+                            <img src="{{ $project->imageUrl ?: asset('images/default-project.jpg') }}" alt="{{ $project->name }}"
                                 class="w-full h-56 object-cover lg:rounded-tl-lg cursor-pointer" id="preview">
                             <span class="p-1 text-sm mt-2">Click above to change image</span>
                         </label>

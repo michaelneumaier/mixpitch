@@ -7,6 +7,7 @@ use App\Http\Controllers\PitchController;
 use App\Http\Controllers\PitchFileController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\PricingController;
+use App\Http\Controllers\UserProfileController;
 use App\Livewire\CreateProject;
 use App\Livewire\ManageProject;
 use App\Livewire\Pitch\Snapshot\ShowSnapshot;
@@ -94,12 +95,308 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pitch-files/download/{file}', [PitchFileController::class, 'download'])
         ->name('pitch-files.download')
         ->middleware('auth');
-
-    Route::delete('/pitch-files/{file}', [PitchFileController::class, 'delete'])
-        ->name('pitch-files.delete')
-        ->middleware('auth');
 });
 
+// User Profile Routes
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/profile/edit', function () {
+        return view('user-profile.edit-livewire');
+    })->name('profile.edit');
+    
+    Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.show');
+});
 
+// About and Pricing Pages
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+
+// Audio Processor Test Routes
+Route::get('/test-audio-processor', [App\Http\Controllers\TestAudioProcessorController::class, 'index'])->middleware('auth');
+Route::get('/test-audio-processor/test/{file_id}', [App\Http\Controllers\TestAudioProcessorController::class, 'testEndpoint'])->middleware('auth');
+Route::post('/test-audio-processor/upload', [App\Http\Controllers\TestAudioProcessorController::class, 'uploadTest'])->middleware('auth');
+
+// Simple Lambda test
+Route::get('/test-lambda-direct', function() {
+    try {
+        $lambdaUrl = config('services.aws.lambda_audio_processor_url');
+        
+        if (empty($lambdaUrl)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Lambda URL is not configured'
+            ]);
+        }
+        
+        // Append /waveform if it's not already there
+        if (!str_ends_with($lambdaUrl, '/waveform')) {
+            $lambdaUrl .= '/waveform';
+        }
+        
+        // First try a direct GET request to test connectivity
+        $getResponse = \Illuminate\Support\Facades\Http::timeout(10)
+            ->withOptions([
+                'debug' => true,
+                'verify' => false
+            ])
+            ->get($lambdaUrl);
+            
+        // Now try a POST with minimal data
+        $postResponse = \Illuminate\Support\Facades\Http::timeout(10)
+            ->withOptions([
+                'debug' => true,
+                'verify' => false
+            ])
+            ->post($lambdaUrl, [
+                'test' => true
+            ]);
+            
+        return response()->json([
+            'lambda_url' => $lambdaUrl,
+            'get_status' => $getResponse->status(),
+            'get_body' => $getResponse->body(),
+            'post_status' => $postResponse->status(),
+            'post_body' => $postResponse->body()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+})->middleware('auth');
+
+// Test Lambda with a specific file
+Route::get('/test-lambda-with-file/{file_id?}', function($fileId = null) {
+    try {
+        // Get a file to test with
+        if ($fileId) {
+            $file = \App\Models\PitchFile::findOrFail($fileId);
+        } else {
+            // Get the first audio file
+            $file = \App\Models\PitchFile::whereRaw("LOWER(file_path) LIKE '%.mp3' OR LOWER(file_path) LIKE '%.wav'")->first();
+            
+            if (!$file) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No audio files found'
+                ]);
+            }
+        }
+        
+        // Get file URL
+        $fileUrl = $file->fullFilePath;
+        
+        if (empty($fileUrl)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Could not generate S3 URL for file'
+            ]);
+        }
+        
+        // Properly encode the URL - ensure spaces are encoded as %20
+        $encodedFileUrl = str_replace(' ', '%20', $fileUrl);
+        
+        // Get Lambda URL
+        $lambdaUrl = config('services.aws.lambda_audio_processor_url');
+        
+        if (empty($lambdaUrl)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Lambda URL is not configured'
+            ]);
+        }
+        
+        // Append /waveform if it's not already there
+        if (!str_ends_with($lambdaUrl, '/waveform')) {
+            $lambdaUrl .= '/waveform';
+        }
+        
+        // Try different variations of the request
+        
+        // Regular request
+        $response1 = \Illuminate\Support\Facades\Http::timeout(60)
+            ->withOptions([
+                'debug' => true,
+                'verify' => false
+            ])
+            ->post($lambdaUrl, [
+                'file_url' => $encodedFileUrl,
+                'peaks_count' => 200
+            ]);
+            
+        // Try with JSON content type
+        $response2 = \Illuminate\Support\Facades\Http::timeout(60)
+            ->withOptions([
+                'debug' => true,
+                'verify' => false
+            ])
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->post($lambdaUrl, [
+                'file_url' => $encodedFileUrl,
+                'peaks_count' => 200
+            ]);
+            
+        // Try with URL encoded as query param
+        $response3 = \Illuminate\Support\Facades\Http::timeout(60)
+            ->withOptions([
+                'debug' => true,
+                'verify' => false
+            ])
+            ->post($lambdaUrl . '?file_url=' . urlencode($encodedFileUrl) . '&peaks_count=200');
+            
+        return response()->json([
+            'file_id' => $file->id,
+            'file_name' => $file->file_name,
+            'file_path' => $file->file_path,
+            'file_url' => $fileUrl,
+            'encoded_file_url' => $encodedFileUrl,
+            'lambda_url' => $lambdaUrl,
+            'regular_request' => [
+                'status' => $response1->status(),
+                'body' => $response1->body()
+            ],
+            'json_request' => [
+                'status' => $response2->status(),
+                'body' => $response2->body()
+            ],
+            'url_params_request' => [
+                'status' => $response3->status(),
+                'body' => $response3->body()
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+})->middleware('auth');
+
+// Test Lambda with various URL formats
+Route::get('/test-lambda-url-formats/{file_id?}', function($fileId = null) {
+    try {
+        // Get a file to test with
+        if ($fileId) {
+            $file = \App\Models\PitchFile::findOrFail($fileId);
+        } else {
+            // Get the first audio file
+            $file = \App\Models\PitchFile::whereRaw("LOWER(file_path) LIKE '%.mp3' OR LOWER(file_path) LIKE '%.wav'")->first();
+            
+            if (!$file) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No audio files found'
+                ]);
+            }
+        }
+        
+        // Get file URL and create variations
+        $originalUrl = $file->fullFilePath;
+        
+        if (empty($originalUrl)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Could not generate S3 URL for file'
+            ]);
+        }
+        
+        // Pre-encode the URL to ensure spaces are handled correctly
+        $safeUrl = str_replace(' ', '%20', $originalUrl);
+        
+        // Generate URL variations to test
+        $urlVariations = [
+            'original' => $originalUrl,
+            'safe_url' => $safeUrl,
+            'encoded' => urlencode($safeUrl),
+            'double_encoded' => urlencode(urlencode($safeUrl)),
+            'spaces_to_plus' => str_replace(' ', '+', $originalUrl),
+            'spaces_to_percent20' => str_replace(' ', '%20', $originalUrl),
+            'lowercase' => strtolower($safeUrl),
+            'no_query_params' => preg_replace('/\?.*/', '', $safeUrl),
+            'escaped_quotes' => str_replace('"', '\"', $safeUrl)
+        ];
+        
+        // Get Lambda URL
+        $lambdaUrl = config('services.aws.lambda_audio_processor_url');
+        
+        if (empty($lambdaUrl)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Lambda URL is not configured'
+            ]);
+        }
+        
+        // Append /waveform if it's not already there
+        if (!str_ends_with($lambdaUrl, '/waveform')) {
+            $lambdaUrl .= '/waveform';
+        }
+        
+        // Test each URL variation
+        $results = [];
+        
+        foreach ($urlVariations as $type => $url) {
+            try {
+                // Send request with this URL variation
+                $response = \Illuminate\Support\Facades\Http::timeout(30)
+                    ->withOptions([
+                        'verify' => false
+                    ])
+                    ->withHeaders([
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json'
+                    ])
+                    ->post($lambdaUrl, [
+                        'file_url' => $url,
+                        'peaks_count' => 200
+                    ]);
+                
+                $results[$type] = [
+                    'status' => $response->status(),
+                    'success' => $response->successful(),
+                    'url' => $url,
+                    'response_excerpt' => substr($response->body(), 0, 200) . (strlen($response->body()) > 200 ? '...' : '')
+                ];
+                
+                // If successful, mark this one
+                if ($response->successful()) {
+                    $results[$type]['works'] = true;
+                }
+            } catch (\Exception $e) {
+                $results[$type] = [
+                    'status' => 'exception',
+                    'success' => false,
+                    'url' => $url,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+        
+        return response()->json([
+            'file_id' => $file->id,
+            'file_name' => $file->file_name,
+            'file_path' => $file->file_path,
+            'file_url_variations' => $results,
+            'lambda_url' => $lambdaUrl
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+})->middleware('auth');
+
+// Secure file download routes
+Route::get('/download/pitch-file/{id}', [App\Http\Controllers\FileDownloadController::class, 'downloadPitchFile'])
+    ->name('download.pitch-file')
+    ->middleware('auth');
+
+Route::get('/download/project-file/{id}', [App\Http\Controllers\FileDownloadController::class, 'downloadProjectFile'])
+    ->name('download.project-file')
+    ->middleware('auth');

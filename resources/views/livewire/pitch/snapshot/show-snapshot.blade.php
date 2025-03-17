@@ -7,7 +7,7 @@
                     <div x-data="{ lightbox: { isOpen: false } }" class="relative shrink-0 w-1/5 md:w-48">
                         <!-- Image that triggers the lightbox -->
                         @if($pitch->project->image_path)
-                        <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $pitch->project->image_path) }}"
+                        <img @click="lightbox.isOpen = true" src="{{ $pitch->project->imageUrl }}"
                             alt="{{ $pitch->project->name }}"
                             class="md:aspect-square h-48 object-cover md:rounded-tl-lg cursor-pointer" />
                         @else
@@ -19,19 +19,13 @@
 
                         <!-- The actual lightbox overlay -->
                         @if($pitch->project->image_path)
-                        <div x-cloak x-show="lightbox.isOpen"
-                            class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
-                            <div class="relative max-w-4xl mx-auto">
-                                <img @click.away="lightbox.isOpen = false"
-                                    src="{{ asset('storage/' . $pitch->project->image_path) }}"
-                                    alt="{{ $pitch->project->name }}" class="max-w-full max-h-[90vh] object-contain">
-
-                                <!-- Close button -->
-                                <button @click="lightbox.isOpen = false"
-                                    class="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75 transition-all">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
+                        <div x-cloak x-show="lightbox.isOpen" 
+                            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 transition-all"
+                            x-transition>
+                            <img class="max-h-[80vh] max-w-[90vw] object-contain shadow-2xl rounded"
+                                src="{{ $pitch->project->imageUrl }}" 
+                                alt="{{ $pitch->project->name }}"
+                                @click.away="lightbox.isOpen = false">
                         </div>
                         @endif
                     </div>
@@ -46,7 +40,7 @@
                                             src="{{ $pitch->user->profile_photo_url }}"
                                             alt="{{ $pitch->user->name }}" />
                                         <h2 class="md:pl-2 text-2xl md:text-3xl font-bold break-words">
-                                            {{ $pitch->user->name }}'s Pitch
+                                            <x-user-link :user="$pitch->user" />'s Pitch
                                         </h2>
                                     </div>
 

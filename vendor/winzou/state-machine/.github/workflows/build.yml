@@ -1,0 +1,59 @@
+name: Build
+
+on:
+    push: ~
+    pull_request: ~
+    release:
+        types: [created]
+    schedule:
+        -
+            cron: "0 1 * * 6" # Run at 1am every Saturday
+    workflow_dispatch: ~
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        name: "PHP ${{ matrix.php }}, Symfony ${{ matrix.symfony }}"
+        strategy:
+            fail-fast: false
+            matrix:
+                php: ["7.4", "8.0", "8.1"]
+                symfony: ["~4.4", "~5.4"]
+
+                include:
+                    - php: "8.0"
+                      symfony: "~6.0"
+
+                    - php: "8.1"
+                      symfony: "~6.0"
+
+                    - php: "8.2"
+                      symfony: "~7.0"
+
+        steps:
+            -
+                uses: actions/checkout@v2
+
+            -
+                name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: "${{ matrix.php }}"
+                    coverage: none
+
+            -
+                name: Restrict Symfony version
+                if: matrix.symfony != ''
+                run: |
+                    composer require symfony/event-dispatcher:${{ matrix.symfony }} --no-update --dev
+                    composer require symfony/property-access:${{ matrix.symfony }} --no-update --dev
+                    composer require symfony/expression-language:${{ matrix.symfony }} --no-update --dev
+
+            -
+                name: Install dependencies
+                run: |
+                    composer --no-interaction --prefer-source install
+
+            -
+                name: Run tests specification
+                run: bin/phpspec run -f dot

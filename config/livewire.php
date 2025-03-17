@@ -59,21 +59,34 @@ return [
     |
     | Livewire handles file uploads by storing uploads in a temporary directory
     | before the file is stored permanently. All file uploads are directed to
-    | a global endpoint for temporary storage. You may configure this below:
+    | a global endpoint for temporary storage. The following config options
+    | are used for configuring the way the endpoint's controller works.
     |
     */
 
     'temporary_file_upload' => [
-        'disk' => null,        // Example: 'local', 's3'              | Default: 'default'
-        'rules' => ['required', 'file', 'max:52288'],                  // Example: ['file', 'mimes:png,jpg']  | Default: ['required', 'file', 'max:12288'] (12MB)
-        'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
-        'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
-        'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
+        'disk' => 's3',                          // Use S3 disk for livewire temporary uploads
+        'rules' => ['required', 'file', 'max:12288'],    // Adjust maximum upload size as needed (12MB)
+        'directory' => 'livewire-tmp',           // Default directory
+        'middleware' => null,                    // Middleware for upload route
+        'preview_mimes' => [                     // Supported file types for temporary preview
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
             'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
-        'max_upload_time' => 5, // Max duration (in minutes) before an upload is invalidated...
+        'max_upload_time' => 10,                 // Max upload time in minutes
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Temporary URL Generator
+        |--------------------------------------------------------------------------
+        |
+        | If you are using the S3 disk for Livewire file uploads and need to
+        | override the default URL generator, you can do so by specifying
+        | a custom URL generator class here for temporary uploads.
+        |
+        */
+        'url_generator' => null, // Let Livewire use default
     ],
 
     /*

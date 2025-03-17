@@ -134,32 +134,52 @@ class ManagePitch extends Component
         $this->newlyUploadedFileIds = []; // Reset the tracking array
 
         foreach ($this->tempUploadedFiles as $file) {
-            $filePath = $file->store('pitch_files', 'public');
+            try {
+                // Store file in S3 bucket with public visibility instead of local 'public' disk
+                $fileName = $file->getClientOriginalName();
+                $filePath = $file->storeAs(
+                    'pitch_files/' . $this->pitch->id, 
+                    $fileName, 
+                    's3'
+                );
 
-            $pitchFile = $this->pitch->files()->create([
-                'file_path' => $filePath,
-                'file_name' => $file->getClientOriginalName(),
-                'user_id' => Auth::id(),
-                'size' => $file->getSize(), // Store the file size
-            ]);
+                $pitchFile = $this->pitch->files()->create([
+                    'file_path' => $filePath,
+                    'file_name' => $fileName,
+                    'user_id' => Auth::id(),
+                    'size' => $file->getSize(), // Store the file size
+                ]);
 
-            if ($pitchFile) {
-                $this->newlyUploadedFileIds[] = $pitchFile->id;
+                if ($pitchFile) {
+                    $this->newlyUploadedFileIds[] = $pitchFile->id;
 
-                // Check if this is an audio file and dispatch the waveform generation job
-                $extension = strtolower($file->getClientOriginalExtension());
-                $audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+                    // Check if this is an audio file and dispatch the waveform generation job
+                    $extension = strtolower($file->getClientOriginalExtension());
+                    $audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+                    
+                    if (in_array($extension, $audioExtensions)) {
+                        // Dispatch job to generate waveform data
+                        GenerateAudioWaveform::dispatch($pitchFile);
+                    }
+
+                    // Notify project owner about new file upload
+                    // Only if the uploader is not the project owner
+                    if (Auth::id() !== $this->pitch->project->user_id) {
+                        app(\App\Services\NotificationService::class)->notifyFileUploadedToProject($this->pitch, $pitchFile);
+                    }
+                }
                 
-                if (in_array($extension, $audioExtensions)) {
-                    // Dispatch job to generate waveform data
-                    GenerateAudioWaveform::dispatch($pitchFile);
-                }
-
-                // Notify project owner about new file upload
-                // Only if the uploader is not the project owner
-                if (Auth::id() !== $this->pitch->project->user_id) {
-                    app(\App\Services\NotificationService::class)->notifyFileUploadedToProject($this->pitch, $pitchFile);
-                }
+                Log::info('Pitch file uploaded to S3 via Livewire', [
+                    'filename' => $fileName,
+                    'path' => $filePath,
+                    'pitch_id' => $this->pitch->id
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error uploading pitch file to S3 via Livewire', [
+                    'error' => $e->getMessage(),
+                    'pitch_id' => $this->pitch->id,
+                    'filename' => $file->getClientOriginalName()
+                ]);
             }
         }
 
@@ -194,19 +214,43 @@ class ManagePitch extends Component
 
     public function deleteFile($fileId)
     {
-        $file = PitchFile::findOrFail($fileId);
+        try {
+            $file = PitchFile::findOrFail($fileId);
 
-        // Ensure the file belongs to the pitch
-        if ($file->pitch_id !== $this->pitch->id) {
-            return;
+            // Ensure the file belongs to the pitch
+            if ($file->pitch_id !== $this->pitch->id) {
+                Toaster::error('You do not have permission to delete this file.');
+                return;
+            }
+
+            // Delete the file from S3 storage
+            if (Storage::disk('s3')->exists($file->file_path)) {
+                Storage::disk('s3')->delete($file->file_path);
+                
+                Log::info('File deleted from S3 via Livewire', [
+                    'file_path' => $file->file_path,
+                    'pitch_id' => $this->pitch->id
+                ]);
+            } else {
+                Log::warning('File not found in S3 during deletion via Livewire', [
+                    'file_path' => $file->file_path,
+                    'pitch_id' => $this->pitch->id
+                ]);
+            }
+
+            // Delete the file record from the database
+            $file->delete();
+            Toaster::success('File deleted successfully.');
+            
+            // Refresh the pitch to update the files list
+            $this->pitch->refresh();
+        } catch (\Exception $e) {
+            Log::error('Error deleting file from S3 via Livewire', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('Error deleting file: ' . $e->getMessage());
         }
-
-        // Delete the file from storage
-        Storage::disk('public')->delete($file->file_path);
-
-        // Delete the file record from the database
-        $file->delete();
-        Toaster::success('File deleted successfully.');
     }
 
     /**
@@ -214,25 +258,51 @@ class ManagePitch extends Component
      */
     public function downloadFile($fileId)
     {
-        $file = PitchFile::findOrFail($fileId);
+        try {
+            $file = PitchFile::findOrFail($fileId);
 
-        // Ensure the file belongs to the pitch
-        if ($file->pitch_id !== $this->pitch->id) {
-            Toaster::error('You do not have permission to download this file.');
-            return;
-        }
+            // Ensure the file belongs to the pitch
+            if ($file->pitch_id !== $this->pitch->id) {
+                Toaster::error('You do not have permission to download this file.');
+                return;
+            }
 
-        // Check if the file exists in storage
-        if (!Storage::disk('public')->exists($file->file_path)) {
+            // For S3 files, we'll redirect to the signed URL
+            if (Storage::disk('s3')->exists($file->file_path)) {
+                // Create a temporary signed URL that expires after a short time
+                $signedUrl = Storage::disk('s3')->temporaryUrl(
+                    $file->file_path,
+                    now()->addMinutes(5),
+                    [
+                        'ResponseContentDisposition' => 'attachment; filename="' . $file->file_name . '"'
+                    ]
+                );
+                
+                Log::info('Generated signed URL for file download', [
+                    'file_id' => $fileId,
+                    'pitch_id' => $this->pitch->id
+                ]);
+                
+                // Redirect to the signed URL
+                return redirect()->away($signedUrl);
+            }
+            
+            // File not found in S3
             Toaster::error('File not found in storage.');
-            return;
+            Log::warning('File not found in S3 during download attempt', [
+                'file_id' => $fileId,
+                'file_path' => $file->file_path
+            ]);
+            
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Error generating download URL', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('Error downloading file: ' . $e->getMessage());
+            return null;
         }
-
-        // Generate a download response
-        return response()->download(
-            storage_path('app/public/' . $file->file_path),
-            $file->file_name ?? basename($file->file_path)
-        );
     }
 
     public function submitComment()

@@ -131,7 +131,7 @@ final class Expectation
      *
      * @return self<TValue>
      */
-    public function toBeGreaterThan(int|float|DateTimeInterface $expected, string $message = ''): self
+    public function toBeGreaterThan(int|float|string|DateTimeInterface $expected, string $message = ''): self
     {
         Assert::assertGreaterThan($expected, $this->value, $message);
 
@@ -143,7 +143,7 @@ final class Expectation
      *
      * @return self<TValue>
      */
-    public function toBeGreaterThanOrEqual(int|float|DateTimeInterface $expected, string $message = ''): self
+    public function toBeGreaterThanOrEqual(int|float|string|DateTimeInterface $expected, string $message = ''): self
     {
         Assert::assertGreaterThanOrEqual($expected, $this->value, $message);
 
@@ -155,7 +155,7 @@ final class Expectation
      *
      * @return self<TValue>
      */
-    public function toBeLessThan(int|float|DateTimeInterface $expected, string $message = ''): self
+    public function toBeLessThan(int|float|string|DateTimeInterface $expected, string $message = ''): self
     {
         Assert::assertLessThan($expected, $this->value, $message);
 
@@ -167,7 +167,7 @@ final class Expectation
      *
      * @return self<TValue>
      */
-    public function toBeLessThanOrEqual(int|float|DateTimeInterface $expected, string $message = ''): self
+    public function toBeLessThanOrEqual(int|float|string|DateTimeInterface $expected, string $message = ''): self
     {
         Assert::assertLessThanOrEqual($expected, $this->value, $message);
 
@@ -191,6 +191,24 @@ final class Expectation
                 }
                 Assert::assertContains($needle, $this->value);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Asserts that $needle equal an element of the value.
+     *
+     * @return self<TValue>
+     */
+    public function toContainEqual(mixed ...$needles): self
+    {
+        if (! is_iterable($this->value)) {
+            InvalidExpectationValue::expected('iterable');
+        }
+
+        foreach ($needles as $needle) {
+            Assert::assertContainsEquals($needle, $this->value);
         }
 
         return $this;
@@ -296,7 +314,7 @@ final class Expectation
      *
      * @return self<TValue>
      */
-    public function toHaveProperty(string $name, mixed $value = new Any(), string $message = ''): self
+    public function toHaveProperty(string $name, mixed $value = new Any, string $message = ''): self
     {
         $this->toBeObject();
 
@@ -314,13 +332,13 @@ final class Expectation
     /**
      * Asserts that the value contains the provided properties $names.
      *
-     * @param  iterable<array-key, string>  $names
+     * @param  iterable<string, mixed>|iterable<int, string>  $names
      * @return self<TValue>
      */
     public function toHaveProperties(iterable $names, string $message = ''): self
     {
         foreach ($names as $name => $value) {
-            is_int($name) ? $this->toHaveProperty($value, message: $message) : $this->toHaveProperty($name, $value, $message);
+            is_int($name) ? $this->toHaveProperty($value, message: $message) : $this->toHaveProperty($name, $value, $message); // @phpstan-ignore-line
         }
 
         return $this;
@@ -445,6 +463,18 @@ final class Expectation
     public function toBeArray(string $message = ''): self
     {
         Assert::assertIsArray($this->value, $message);
+
+        return $this;
+    }
+
+    /**
+     * Asserts that the value is a list.
+     *
+     * @return self<TValue>
+     */
+    public function toBeList(string $message = ''): self
+    {
+        Assert::assertIsList($this->value, $message);
 
         return $this;
     }
@@ -624,7 +654,7 @@ final class Expectation
      *
      * @return self<TValue>
      */
-    public function toHaveKey(string|int $key, mixed $value = new Any(), string $message = ''): self
+    public function toHaveKey(string|int $key, mixed $value = new Any, string $message = ''): self
     {
         if (is_object($this->value) && method_exists($this->value, 'toArray')) {
             $array = $this->value->toArray();
@@ -844,6 +874,7 @@ final class Expectation
 
         $string = match (true) {
             is_string($this->value) => $this->value,
+            is_object($this->value) && method_exists($this->value, 'toSnapshot') => $this->value->toSnapshot(),
             is_object($this->value) && method_exists($this->value, '__toString') => $this->value->__toString(),
             is_object($this->value) && method_exists($this->value, 'toString') => $this->value->toString(),
             $this->value instanceof \Illuminate\Testing\TestResponse => $this->value->getContent(), // @phpstan-ignore-line
@@ -919,7 +950,7 @@ final class Expectation
      * @param  (Closure(Throwable): mixed)|string  $exception
      * @return self<TValue>
      */
-    public function toThrow(callable|string|Throwable $exception, string $exceptionMessage = null, string $message = ''): self
+    public function toThrow(callable|string|Throwable $exception, ?string $exceptionMessage = null, string $message = ''): self
     {
         $callback = NullClosure::create();
 

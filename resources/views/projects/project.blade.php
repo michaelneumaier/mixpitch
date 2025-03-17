@@ -12,7 +12,7 @@
                         <!-- Image that triggers the lightbox -->
                         @if($project->image_path)
 
-                        <img @click="lightbox.isOpen = true" src="{{ asset('storage/' . $project->image_path) }}"
+                        <img @click="lightbox.isOpen = true" src="{{ $project->imageUrl }}"
                             alt="{{ $project->name }}"
                             class="w-full md:aspect-square h-72 object-cover md:rounded-tl-lg cursor-pointer" />
                         @else
@@ -37,7 +37,7 @@
                         @if($project->image_path)
                         <div x-cloak x-show="lightbox.isOpen"
                             class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center z-50">
-                            <img @click="lightbox.isOpen = false" src="{{ asset('storage/' . $project->image_path) }}"
+                            <img @click="lightbox.isOpen = false" src="{{ $project->imageUrl }}"
                                 alt="Lightbox image" class="max-w-full max-h-full">
 
                             <!-- Close button -->
@@ -66,8 +66,9 @@
                             <div class="flex items-center w-full text-xl">
                                 <img class="h-8 w-8 rounded-full object-cover mr-3"
                                     src="{{ $project->user->profile_photo_url }}" alt="{{ $project->user->name }}" />
-                                <span class="text-base max-w-xs truncate">{{ $project->user->name
-                                    }}</span>
+                                <span class="text-base max-w-xs truncate">
+                                    <x-user-link :user="$project->user" />
+                                </span>
                             </div>
 
 

@@ -12,7 +12,7 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 $bootPest = (static function (): void {
-    $workerArgv = new ArgvInput();
+    $workerArgv = new ArgvInput;
 
     $rootPath = dirname(PHPUNIT_COMPOSER_INSTALL, 2);
     $testSuite = TestSuite::getInstance($rootPath, $workerArgv->getParameterOption(
@@ -20,7 +20,7 @@ $bootPest = (static function (): void {
         'tests'
     ));
 
-    $input = new ArgvInput();
+    $input = new ArgvInput;
 
     $output = new ConsoleOutput(OutputInterface::VERBOSITY_NORMAL, true);
 
@@ -81,6 +81,7 @@ $bootPest = (static function (): void {
         $getopt['teamcity-file'] ?? null,
         $getopt['testdox-file'] ?? null,
         isset($getopt['testdox-color']),
+        $getopt['testdox-columns'] ?? null,
     );
 
     while (true) {

@@ -31,7 +31,7 @@
                             <div class="flex flex-col md:flex-row">
                                 <!-- Project Image -->
                                 <div class="w-full md:w-40 h-40 bg-center bg-cover bg-no-repeat"
-                                    style="background-image: url('{{ $project->image_path ? asset('storage/' . $project->image_path) : asset('images/default-project.jpg') }}');">
+                                    style="background-image: url('{{ $project->image_path ? $project->imageUrl : asset('images/default-project.jpg') }}');">
                                 </div>
 
                                 <!-- Project Info -->
@@ -124,7 +124,7 @@
                             <div class="flex flex-col md:flex-row">
                                 <!-- Project Image -->
                                 <div class="w-full md:w-40 h-40 bg-center bg-cover bg-no-repeat"
-                                    style="background-image: url('{{ $pitch->project->image_path ? asset('storage/' . $pitch->project->image_path) : asset('images/default-project.jpg') }}');">
+                                    style="background-image: url('{{ $pitch->project->image_path ? $pitch->project->imageUrl : asset('images/default-project.jpg') }}');">
                                 </div>
 
                                 <!-- Project Info -->

@@ -40,7 +40,14 @@ class CreateProject extends Component
             $this->form->artistName = $project->artist_name;
             $this->form->projectType = $project->project_type;
             if ($project->image_path) {
-                $this->projectImage = asset('storage/' . $project->image_path);
+                try {
+                    $this->projectImage = $project->imageUrl;
+                } catch (\Exception $e) {
+                    \Log::error('Error getting project image URL', [
+                        'project_id' => $project->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
             $this->form->description = $project->description;
             $this->form->genre = $project->genre;
@@ -145,8 +152,14 @@ class CreateProject extends Component
             $project->image_path = null;
         }
         if ($this->form->projectImage) {
-            $path = $this->form->projectImage->store('images', 'public');
+            // Store image in S3 instead of public disk
+            $path = $this->form->projectImage->store('project_images', 's3');
             $project->image_path = $path;
+            
+            \Log::info('Project image uploaded to S3', [
+                'path' => $path,
+                'project_name' => $project->name
+            ]);
         }
 
         $project->project_type = $this->form->projectType;

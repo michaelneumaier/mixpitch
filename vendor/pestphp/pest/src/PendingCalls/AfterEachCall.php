@@ -35,11 +35,11 @@ final class AfterEachCall
     public function __construct(
         private readonly TestSuite $testSuite,
         private readonly string $filename,
-        Closure $closure = null
+        ?Closure $closure = null
     ) {
         $this->closure = $closure instanceof Closure ? $closure : NullClosure::create();
 
-        $this->proxies = new HigherOrderMessageCollection();
+        $this->proxies = new HigherOrderMessageCollection;
 
         $this->describing = DescribeCall::describing();
     }

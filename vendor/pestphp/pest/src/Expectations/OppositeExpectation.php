@@ -36,9 +36,7 @@ final class OppositeExpectation
      *
      * @param  Expectation<TValue>  $original
      */
-    public function __construct(private readonly Expectation $original)
-    {
-    }
+    public function __construct(private readonly Expectation $original) {}
 
     /**
      * Asserts that the value array not has the provided $keys.
@@ -84,7 +82,7 @@ final class OppositeExpectation
     {
         return Targeted::make(
             $this->original,
-            fn (ObjectDescription $object): bool => ! str_contains((string) file_get_contents($object->path), 'declare(strict_types=1);'),
+            fn (ObjectDescription $object): bool => ! (bool) preg_match('/^<\?php\s+declare\(.*?strict_types\s?=\s?1.*?\);/', (string) file_get_contents($object->path)),
             'not to use strict types',
             FileLineFinder::where(fn (string $line): bool => str_contains($line, '<?php')),
         );
@@ -484,5 +482,52 @@ final class OppositeExpectation
     public function toHaveDestructor(): ArchExpectation
     {
         return $this->toHaveMethod('__destruct');
+    }
+
+    /**
+     * Asserts that the given expectation target is not a backed enum of given type.
+     */
+    private function toBeBackedEnum(string $backingType): ArchExpectation
+    {
+        return Targeted::make(
+            $this->original,
+            fn (ObjectDescription $object): bool => ! $object->reflectionClass->isEnum()
+                || ! (new \ReflectionEnum($object->name))->isBacked() // @phpstan-ignore-line
+                || (string) (new \ReflectionEnum($object->name))->getBackingType() !== $backingType, // @phpstan-ignore-line
+            'not to be '.$backingType.' backed enum',
+            FileLineFinder::where(fn (string $line): bool => str_contains($line, 'class')),
+        );
+    }
+
+    /**
+     * Asserts that the given expectation targets are not string backed enums.
+     */
+    public function toBeStringBackedEnums(): ArchExpectation
+    {
+        return $this->toBeStringBackedEnum();
+    }
+
+    /**
+     * Asserts that the given expectation targets are not int backed enums.
+     */
+    public function toBeIntBackedEnums(): ArchExpectation
+    {
+        return $this->toBeIntBackedEnum();
+    }
+
+    /**
+     * Asserts that the given expectation target is not a string backed enum.
+     */
+    public function toBeStringBackedEnum(): ArchExpectation
+    {
+        return $this->toBeBackedEnum('string');
+    }
+
+    /**
+     * Asserts that the given expectation target is not an int backed enum.
+     */
+    public function toBeIntBackedEnum(): ArchExpectation
+    {
+        return $this->toBeBackedEnum('int');
     }
 }

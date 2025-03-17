@@ -13,6 +13,19 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+        
+        // Run ZIP cleanup once per week to remove old archives
+        $schedule->command('zips:cleanup --days=30')
+                ->weekly()
+                ->sundays()
+                ->at('01:00')
+                ->appendOutputTo(storage_path('logs/zip-cleanup.log'));
+                
+        // Run temporary uploads cleanup daily to prevent buildup of orphaned files
+        $schedule->command('uploads:cleanup --days=1')
+                ->daily()
+                ->at('03:00')
+                ->appendOutputTo(storage_path('logs/uploads-cleanup.log'));
     }
 
     /**
