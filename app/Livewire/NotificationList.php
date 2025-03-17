@@ -11,6 +11,7 @@ class NotificationList extends Component
     public $notifications = [];
     public $hasUnread = false;
     public $showDropdown = false;
+    public $notificationLimit = 10;
     
     protected $listeners = [
         'notificationRead' => '$refresh',
@@ -25,10 +26,10 @@ class NotificationList extends Component
     public function loadNotifications()
     {
         if (Auth::check()) {
-            // Get the latest 10 notifications for the user
+            // Get the latest notifications for the user based on the current limit
             $this->notifications = Notification::where('user_id', Auth::id())
                 ->orderByDesc('created_at')
-                ->limit(10)
+                ->limit($this->notificationLimit)
                 ->get();
                 
             // Check if there are any unread notifications
@@ -89,6 +90,18 @@ class NotificationList extends Component
      */
     public function refreshNotifications()
     {
+        $this->loadNotifications();
+    }
+    
+    /**
+     * Load more notifications when requested
+     */
+    public function loadMoreNotifications()
+    {
+        // Increase the limit by 10
+        $this->notificationLimit += 10;
+        
+        // Reload notifications with the new limit
         $this->loadNotifications();
     }
     
