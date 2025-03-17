@@ -334,7 +334,7 @@
                                 <!-- Embed our WaveSurfer component -->
                                 @livewire('snapshot-file-player', [
                                 'file' => $file,
-                                'showDownloadButton' => $pitchSnapshot->isApproved()
+                                'showDownloadButton' => $pitchSnapshot->isApproved() && $pitch->project->status === 'completed'
                                 ], key('file-player-' . $file->id))
                             </div>
                             @endif
