@@ -12,7 +12,7 @@ use Masmerise\Toaster\Toaster;
 class UserProfileEdit extends Component
 {
     use WithFileUploads;
-    
+
     public $name;
     public $email;
     public $username;
@@ -31,7 +31,13 @@ class UserProfileEdit extends Component
     public $newSkill = '';
     public $newEquipment = '';
     public $newSpecialty = '';
-    
+
+    // Add a protected property for temporary URL validation
+    protected $temporaryUploadDirectory = 'livewire-tmp';
+
+    // Set a longer expiration time for temporary URLs
+    protected $temporaryUrlLifetime = 300; // 5 minutes
+
     protected $listeners = ['refreshProfilePhoto' => '$refresh'];
 
     protected function rules()
@@ -41,7 +47,7 @@ class UserProfileEdit extends Component
         if ($this->is_username_locked) {
             $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username,' . auth()->id();
         }
-        
+
         return [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . auth()->id(),
@@ -50,6 +56,7 @@ class UserProfileEdit extends Component
             'bio' => 'nullable|string|max:5000',
             'location' => 'nullable|string|max:255',
             'website' => 'nullable|string|max:255',
+            'profilePhoto' => 'nullable|image|max:1024',
             'skills' => 'nullable|array',
             'skills.*' => 'nullable|string|max:50',
             'equipment' => 'nullable|array',
@@ -71,6 +78,8 @@ class UserProfileEdit extends Component
         'username.alpha_dash' => 'Username can only contain letters, numbers, dashes and underscores.',
         'social_links.*.max' => 'Social media handle is too long.',
         'website' => 'Please enter a valid URL (e.g., example.com)',
+        'profilePhoto.image' => 'The profile photo must be an image file.',
+        'profilePhoto.max' => 'The profile photo must not be larger than 1MB.',
     ];
 
     public function mount()
@@ -89,7 +98,7 @@ class UserProfileEdit extends Component
         $this->social_links = $user->social_links ?? [];
         $this->is_username_locked = $user->is_username_locked;
         $this->profile_completed = $user->profile_completed ?? false;
-        
+
         // Calculate profile completion percentage on initial load
         $this->calculateProfileCompletion();
     }
@@ -145,7 +154,7 @@ class UserProfileEdit extends Component
         $requiredFields = ['name', 'email', 'username'];
         $optionalFields = ['headline', 'bio', 'location', 'website'];
         $arrayFields = ['skills', 'equipment', 'specialties', 'social_links'];
-        
+
         // Count required fields that are filled
         $completedRequired = 0;
         foreach ($requiredFields as $field) {
@@ -153,7 +162,7 @@ class UserProfileEdit extends Component
                 $completedRequired++;
             }
         }
-        
+
         // Count optional fields that are filled
         $completedOptional = 0;
         foreach ($optionalFields as $field) {
@@ -161,7 +170,7 @@ class UserProfileEdit extends Component
                 $completedOptional++;
             }
         }
-        
+
         // Count array fields that have at least one non-empty value
         $completedArrays = 0;
         foreach ($arrayFields as $field) {
@@ -169,29 +178,37 @@ class UserProfileEdit extends Component
                 $completedArrays++;
             }
         }
-        
+
         // Calculate total completed fields and maximum possible
         $totalCompleted = $completedRequired + $completedOptional + $completedArrays;
         $totalPossible = count($requiredFields) + count($optionalFields) + count($arrayFields);
-        
+
         // Calculate percentage
         $this->profile_completion_percentage = intval(($totalCompleted / $totalPossible) * 100);
-        
+
         // Profile is considered complete if at least 70% is filled
         $this->profile_completed = $this->profile_completion_percentage >= 70;
+    }
+
+    public function updatedProfilePhoto()
+    {
+        // Validate the profile photo when it's updated
+        $this->validate([
+            'profilePhoto' => 'image|max:1024',
+        ]);
     }
 
     public function save()
     {
         $this->validate();
-        
+
         $user = auth()->user();
-        
+
         // Clean empty values from array fields
         $skills = array_values(array_filter($this->skills));
         $equipment = array_values(array_filter($this->equipment));
         $specialties = array_values(array_filter($this->specialties));
-        
+
         // Clean empty values from social links
         $social_links = [];
         foreach ($this->social_links as $key => $value) {
@@ -199,17 +216,17 @@ class UserProfileEdit extends Component
                 $social_links[$key] = $value;
             }
         }
-        
+
         // If username is being set for the first time, lock it
         if (!empty($this->username) && !$user->is_username_locked) {
             $this->is_username_locked = true;
         }
-        
+
         // Prepend http:// to website if it doesn't have a protocol
         if (!empty($this->website) && !preg_match("~^(?:f|ht)tps?://~i", $this->website)) {
             $this->website = "http://" . $this->website;
         }
-        
+
         // Update user model with validated data
         $user->name = $this->name;
         $user->email = $this->email;
@@ -223,24 +240,36 @@ class UserProfileEdit extends Component
         $user->specialties = $specialties;
         $user->social_links = $social_links;
         $user->is_username_locked = $this->is_username_locked;
-        
+
         // Recalculate profile completion before saving
         $this->calculateProfileCompletion();
         $user->profile_completed = $this->profile_completed;
-        
+
         try {
-            $user->save();
-            
-            // Handle profile photo upload
+            // Handle profile photo upload first
             if ($this->profilePhoto) {
-                $user->updateProfilePhoto($this->profilePhoto);
-                $this->profilePhoto = null;
+                try {
+                    $user->updateProfilePhoto($this->profilePhoto);
+                    // Reset the profile photo property after successful upload
+                    $this->profilePhoto = null;
+                } catch (\Exception $e) {
+                    Log::error('Error updating profile photo: ' . $e->getMessage());
+                    $this->dispatch('profile-updated', ['error' => 'Failed to upload profile photo. Please try again.']);
+                    return;
+                }
             }
 
+            // Save other user data
+            $user->save();
+
+            // Flash a success message to the session
             Toaster::success('Profile updated successfully!');
+
+            // Redirect back to the same page to refresh everything
+            return redirect()->route('profile.edit');
         } catch (\Exception $e) {
             Log::error('Error updating user profile: ' . $e->getMessage());
-            Toaster::error('An error occurred while updating your profile. Please try again.');
+            $this->dispatch('profile-updated', ['error' => 'An error occurred while updating your profile. Please try again.']);
         }
     }
 

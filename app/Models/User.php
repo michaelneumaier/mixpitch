@@ -128,7 +128,7 @@ class User extends Authenticatable
                     'user_id' => $this->id,
                     'error' => $e->getMessage()
                 ]);
-                return;
+                throw $e; // Re-throw to handle in the component
             }
         } else {
             // This might be a Livewire temp path reference
@@ -146,7 +146,7 @@ class User extends Authenticatable
                         \Log::error('Livewire temp file not found on S3', [
                             'path' => $tempPath
                         ]);
-                        return;
+                        throw new \Exception('Temporary file not found');
                     }
                 } catch (\Exception $e) {
                     \Log::error('Error copying S3 temp file to profile-photos', [
@@ -155,7 +155,7 @@ class User extends Authenticatable
                         'tempPath' => $tempPath,
                         'finalPath' => $fileName
                     ]);
-                    return;
+                    throw $e; // Re-throw to handle in the component
                 }
             } else {
                 // Fallback to standard upload in case it's not working the way we expect
@@ -168,7 +168,7 @@ class User extends Authenticatable
                         'user_id' => $this->id,
                         'error' => $e->getMessage()
                     ]);
-                    return;
+                    throw $e; // Re-throw to handle in the component
                 }
             }
         }
