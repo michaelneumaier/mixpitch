@@ -142,11 +142,33 @@ class ProjectController extends Controller
     public function storeTrack(UploadedFile $file, Project $project)
     {
         $fileName = $file->getClientOriginalName();
+        $fileSize = $file->getSize();
         
         try {
+            // Check individual file size limit
+            if (!Project::isFileSizeAllowed($fileSize)) {
+                \Log::warning('File exceeds size limit', [
+                    'filename' => $fileName,
+                    'size' => $fileSize,
+                    'limit' => Project::MAX_FILE_SIZE_BYTES,
+                    'project_id' => $project->id
+                ]);
+                return null;
+            }
+            
+            // Check project storage limit
+            if (!$project->hasStorageCapacity($fileSize)) {
+                \Log::warning('Project storage limit reached', [
+                    'project_id' => $project->id,
+                    'current_usage' => $project->total_storage_used,
+                    'file_size' => $fileSize,
+                    'limit' => Project::MAX_STORAGE_BYTES
+                ]);
+                return null;
+            }
+            
             // Store file on S3 instead of 'public' disk
             $path = $file->storeAs('projects/' . $project->id, $fileName, 's3');
-            $fileSize = $file->getSize();
             
             \Log::info('File uploaded to S3', [
                 'filename' => $fileName,
@@ -162,6 +184,9 @@ class ProjectController extends Controller
             ]);
 
             $projectFile->save();
+            
+            // Update project storage used
+            $project->updateStorageUsed($fileSize);
             
             // Delete any cached ZIP files since project files have changed
             $project->deleteCachedZip();
@@ -535,12 +560,16 @@ class ProjectController extends Controller
         }
         
         try {
+            // Get file size before deleting
+            $fileSize = $file->size;
+            
             // Delete from S3
             if (Storage::disk('s3')->exists($file->file_path)) {
                 Storage::disk('s3')->delete($file->file_path);
                 \Log::info('Deleted file from S3', [
                     'file_path' => $file->file_path,
-                    'project_id' => $project->id
+                    'project_id' => $project->id,
+                    'file_size' => $fileSize
                 ]);
             }
             
@@ -552,6 +581,16 @@ class ProjectController extends Controller
             
             // Delete the database record
             $file->delete();
+            
+            // Update project storage used (subtract file size)
+            $project->updateStorageUsed(-$fileSize);
+            
+            \Log::info('File deleted and storage updated', [
+                'project_id' => $project->id,
+                'file_id' => $file->id,
+                'file_size' => $fileSize,
+                'new_storage_used' => $project->total_storage_used
+            ]);
             
             // Delete any cached ZIP files since the project files have changed
             $project->deleteCachedZip();
@@ -718,7 +757,7 @@ class ProjectController extends Controller
     public function uploadSingle(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:102400', // 100MB max
+            'file' => 'required|file|max:204800', // 200MB max (slightly smaller than our constant to account for overhead)
             'project_id' => 'required|exists:projects,id',
         ]);
 
@@ -734,6 +773,26 @@ class ProjectController extends Controller
 
         try {
             $file = $request->file('file');
+            $fileSize = $file->getSize(); // Get file size in bytes
+            
+            // Check individual file size limit
+            if (!Project::isFileSizeAllowed($fileSize)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File exceeds the maximum allowed size of ' . Project::formatBytes(Project::MAX_FILE_SIZE_BYTES)
+                ], 413); // 413 Payload Too Large
+            }
+            
+            // Check project storage limit
+            if (!$project->hasStorageCapacity($fileSize)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Project storage limit reached. Maximum allowed is ' . 
+                                 Project::formatBytes(Project::MAX_STORAGE_BYTES) . 
+                                 '. Currently using ' . 
+                                 Project::formatBytes($project->total_storage_used) . '.'
+                ], 413); // 413 Payload Too Large
+            }
             
             // Store file in S3 bucket
             $fileName = $file->getClientOriginalName();
@@ -742,7 +801,6 @@ class ProjectController extends Controller
                 $fileName, 
                 's3'
             );
-            $fileSize = $file->getSize(); // Get file size in bytes
 
             // Save file information in the database
             $projectFile = new ProjectFile([
@@ -753,6 +811,9 @@ class ProjectController extends Controller
             
             $projectFile->save();
             
+            // Update project storage used
+            $project->updateStorageUsed($fileSize);
+            
             // Delete any cached ZIP files since project files have changed
             $project->deleteCachedZip();
             
@@ -760,7 +821,9 @@ class ProjectController extends Controller
                 'filename' => $fileName,
                 'path' => $filePath,
                 'project_id' => $project->id,
-                'file_id' => $projectFile->id
+                'file_id' => $projectFile->id,
+                'file_size' => $fileSize,
+                'project_storage_used' => $project->total_storage_used
             ]);
             
             return response()->json([
@@ -769,7 +832,13 @@ class ProjectController extends Controller
                 'file_path' => $filePath,
                 'file_id' => $projectFile->id,
                 'file_name' => $fileName,
-                'file_size' => $fileSize
+                'file_size' => $fileSize,
+                'storage_used' => $project->total_storage_used,
+                'storage_used_formatted' => Project::formatBytes($project->total_storage_used),
+                'storage_percentage' => $project->getStorageUsedPercentage(),
+                'storage_remaining' => $project->getRemainingStorageBytes(),
+                'storage_remaining_formatted' => Project::formatBytes($project->getRemainingStorageBytes()),
+                'storage_limit_message' => $project->getStorageLimitMessage()
             ]);
             
         } catch (\Exception $e) {

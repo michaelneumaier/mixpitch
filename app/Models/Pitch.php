@@ -23,6 +23,16 @@ class Pitch extends Model
     const STATUS_COMPLETED = 'completed';
     const STATUS_CLOSED = 'closed';
 
+    /**
+     * The maximum storage allowed per pitch in bytes (1GB)
+     */
+    const MAX_STORAGE_BYTES = 1073741824; // 1GB in bytes
+    
+    /**
+     * The maximum file size allowed per upload in bytes (200MB)
+     */
+    const MAX_FILE_SIZE_BYTES = 209715200; // 200MB in bytes
+
     protected $fillable = [
         'user_id',
         'project_id',
@@ -897,5 +907,123 @@ class Pitch extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Check if the pitch has available storage capacity
+     * 
+     * @param int $additionalBytes Additional bytes to check if they would fit
+     * @return bool
+     */
+    public function hasStorageCapacity($additionalBytes = 0)
+    {
+        return ($this->total_storage_used + $additionalBytes) <= self::MAX_STORAGE_BYTES;
+    }
+    
+    /**
+     * Get remaining storage capacity in bytes
+     * 
+     * @return int
+     */
+    public function getRemainingStorageBytes()
+    {
+        $remaining = self::MAX_STORAGE_BYTES - $this->total_storage_used;
+        return max(0, $remaining);
+    }
+    
+    /**
+     * Format bytes to human readable format
+     * 
+     * @param int $bytes The size in bytes
+     * @param int $precision The precision for decimal places
+     * @return string The formatted size
+     */
+    public static function formatBytes($bytes, $precision = 2)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        
+        $bytes /= pow(1024, $pow);
+        
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+    
+    /**
+     * Get the storage used percentage
+     *
+     * @return float The percentage of storage used (0-100)
+     */
+    public function getStorageUsedPercentage()
+    {
+        $percentage = ($this->total_storage_used / self::MAX_STORAGE_BYTES) * 100;
+        return min(100, max(0, $percentage));
+    }
+    
+    /**
+     * Update the pitch's total storage used
+     * 
+     * @param int $bytes Amount to add (positive) or subtract (negative)
+     * @return bool
+     */
+    public function updateStorageUsed($bytes)
+    {
+        $this->total_storage_used += $bytes;
+        
+        // Ensure we don't go below zero
+        if ($this->total_storage_used < 0) {
+            $this->total_storage_used = 0;
+        }
+        
+        return $this->save();
+    }
+    
+    /**
+     * Check if a file size is within the allowed limit
+     * 
+     * @param int $fileSize File size in bytes
+     * @return bool
+     */
+    public static function isFileSizeAllowed($fileSize)
+    {
+        return $fileSize <= self::MAX_FILE_SIZE_BYTES;
+    }
+    
+    /**
+     * Get user-friendly message about storage limits
+     * 
+     * @return string
+     */
+    public function getStorageLimitMessage()
+    {
+        $used = self::formatBytes($this->total_storage_used);
+        $total = self::formatBytes(self::MAX_STORAGE_BYTES);
+        $remaining = self::formatBytes($this->getRemainingStorageBytes());
+        
+        return "Using $used of $total ($remaining available)";
+    }
+
+    /**
+     * Get total storage used by this pitch
+     *
+     * @return int
+     */
+    public function getTotalStorageUsed()
+    {
+        return $this->total_storage_used;
+    }
+
+
+    /**
+     * Check if the pitch has enough storage for the given file size
+     *
+     * @param int $fileSize The file size in bytes
+     * @return bool Whether there is enough storage
+     */
+    public function hasEnoughStorageFor($fileSize)
+    {
+        return $this->getRemainingStorageBytes() >= $fileSize;
     }
 }

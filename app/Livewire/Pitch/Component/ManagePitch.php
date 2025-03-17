@@ -49,10 +49,18 @@ class ManagePitch extends Component
     public $uploadProgressMessage = '';
     public $singleFileUpload = null;
     public $isUploading = false;
+    
+    // Storage tracking
+    public $storageUsedPercentage = 0;
+    public $storageLimitMessage = '';
+    public $storageRemaining = 0;
 
     public function mount(Pitch $pitch)
     {
         $this->pitch = $pitch;
+        
+        // Initialize storage information
+        $this->updateStorageInfo();
     }
 
     public function render()
@@ -91,6 +99,52 @@ class ManagePitch extends Component
         
         if (empty($this->tempUploadedFiles)) {
             Toaster::warning('No files selected for upload.');
+            return;
+        }
+        
+        // Check file sizes against limits before starting uploads
+        $totalSizeToUpload = 0;
+        $tooLargeFiles = [];
+        
+        foreach ($this->tempUploadedFiles as $key => $file) {
+            $fileSize = $file['size'] ?? 0;
+            $totalSizeToUpload += $fileSize;
+            
+            // Check individual file size limit
+            if (!Pitch::isFileSizeAllowed($fileSize)) {
+                $tooLargeFiles[] = [
+                    'name' => $file['name'],
+                    'size' => Pitch::formatBytes($fileSize),
+                    'limit' => Pitch::formatBytes(Pitch::MAX_FILE_SIZE_BYTES)
+                ];
+            }
+        }
+        
+        // Check pitch storage capacity
+        if (!$this->pitch->hasStorageCapacity($totalSizeToUpload)) {
+            $this->pitch->refresh();
+            $this->updateStorageInfo();
+            
+            Toaster::error(
+                'Pitch storage limit exceeded. Available space: ' . 
+                Pitch::formatBytes($this->pitch->getRemainingStorageBytes()) . 
+                '. Required: ' . 
+                Pitch::formatBytes($totalSizeToUpload)
+            );
+            return;
+        }
+        
+        // Handle files that are too large
+        if (!empty($tooLargeFiles)) {
+            $message = count($tooLargeFiles) === 1 
+                ? 'One file exceeds the maximum allowed size of ' . Pitch::formatBytes(Pitch::MAX_FILE_SIZE_BYTES)
+                : count($tooLargeFiles) . ' files exceed the maximum allowed size of ' . Pitch::formatBytes(Pitch::MAX_FILE_SIZE_BYTES);
+                
+            foreach ($tooLargeFiles as $file) {
+                $message .= "\n• {$file['name']} ({$file['size']})";
+            }
+            
+            Toaster::error($message);
             return;
         }
         
@@ -278,6 +332,9 @@ class ManagePitch extends Component
                 return;
             }
 
+            // Capture file size before deletion
+            $fileSize = $file->size;
+
             // Delete the file from S3 storage
             if (Storage::disk('s3')->exists($file->file_path)) {
                 Storage::disk('s3')->delete($file->file_path);
@@ -295,10 +352,15 @@ class ManagePitch extends Component
 
             // Delete the file record from the database
             $file->delete();
+            
+            // Update the pitch's storage usage
+            $this->pitch->decrement('total_storage_used', $fileSize);
+            
             Toaster::success('File deleted successfully.');
             
-            // Refresh the pitch to update the files list
+            // Refresh the pitch to update the files list and storage info
             $this->pitch->refresh();
+            $this->updateStorageInfo();
         } catch (\Exception $e) {
             Log::error('Error deleting file from S3 via Livewire', [
                 'file_id' => $fileId,
@@ -610,6 +672,10 @@ class ManagePitch extends Component
         $totalFiles = count($this->tempUploadedFiles);
         $this->uploadProgress = round((($index + 1) / $totalFiles) * 100);
         
+        // Refresh the pitch and update storage info
+        $this->pitch->refresh();
+        $this->updateStorageInfo();
+        
         // Process the next file
         $this->processNextFile($index + 1, $totalFiles);
     }
@@ -630,5 +696,15 @@ class ManagePitch extends Component
         // Process the next file, skipping this one
         $totalFiles = count($this->tempUploadedFiles);
         $this->processNextFile(($index !== null ? $index : 0) + 1, $totalFiles);
+    }
+
+    /**
+     * Update storage information for the view
+     */
+    protected function updateStorageInfo()
+    {
+        $this->storageUsedPercentage = $this->pitch->getStorageUsedPercentage();
+        $this->storageLimitMessage = $this->pitch->getStorageLimitMessage();
+        $this->storageRemaining = Pitch::formatBytes($this->pitch->getRemainingStorageBytes());
     }
 }

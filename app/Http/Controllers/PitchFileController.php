@@ -82,20 +82,44 @@ class PitchFileController extends Controller
     public function delete(PitchFile $file)
     {
         $user = Auth::user();
+        $pitch = $file->pitch;
 
         // Check if the authenticated user is the pitch owner or the project owner
-        if ($user->id !== $file->pitch->user_id && $user->id !== $file->pitch->project->user_id) {
+        if ($user->id !== $pitch->user_id && $user->id !== $pitch->project->user_id) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Delete the file from S3 storage
-        Storage::disk('s3')->delete($file->file_path);
-
-        // Delete the file record from the database
-        $file->delete();
-
-        // Redirect back to the pitch page
-        return redirect()->route('pitches.show', $file->pitch_id)->warning('File deleted successfully.');
+        try {
+            // Get file size before deleting
+            $fileSize = $file->size;
+            
+            // Delete the file from S3 storage
+            Storage::disk('s3')->delete($file->file_path);
+            
+            // Delete the file record from the database
+            $file->delete();
+            
+            // Update pitch storage used (subtract file size)
+            $pitch->updateStorageUsed(-$fileSize);
+            
+            \Log::info('Pitch file deleted and storage updated', [
+                'pitch_id' => $pitch->id,
+                'file_id' => $file->id,
+                'file_size' => $fileSize,
+                'new_storage_used' => $pitch->total_storage_used
+            ]);
+            
+            // Redirect back to the pitch page
+            return redirect()->route('pitches.show', $pitch->id)->with('success', 'File deleted successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting pitch file', [
+                'error' => $e->getMessage(),
+                'file_id' => $file->id,
+                'pitch_id' => $pitch->id
+            ]);
+            
+            return redirect()->route('pitches.show', $pitch->id)->with('error', 'Error deleting file: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -104,7 +128,7 @@ class PitchFileController extends Controller
     public function uploadSingle(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:102400', // 100MB max
+            'file' => 'required|file|max:204800', // 200MB max (slightly smaller than our constant to account for overhead)
             'pitch_id' => 'required|exists:pitches,id',
         ]);
 
@@ -128,6 +152,26 @@ class PitchFileController extends Controller
 
         try {
             $file = $request->file('file');
+            $fileSize = $file->getSize(); // Get file size in bytes
+            
+            // Check individual file size limit
+            if (!Pitch::isFileSizeAllowed($fileSize)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File exceeds the maximum allowed size of ' . Pitch::formatBytes(Pitch::MAX_FILE_SIZE_BYTES)
+                ], 413); // 413 Payload Too Large
+            }
+            
+            // Check pitch storage limit
+            if (!$pitch->hasStorageCapacity($fileSize)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pitch storage limit reached. Maximum allowed is ' . 
+                                 Pitch::formatBytes(Pitch::MAX_STORAGE_BYTES) . 
+                                 '. Currently using ' . 
+                                 Pitch::formatBytes($pitch->total_storage_used) . '.'
+                ], 413); // 413 Payload Too Large
+            }
             
             // Store file in S3 bucket with public visibility
             $fileName = $file->getClientOriginalName();
@@ -136,7 +180,6 @@ class PitchFileController extends Controller
                 $fileName, 
                 's3'
             );
-            $fileSize = $file->getSize(); // Get file size in bytes
 
             // Save file information in the database
             $pitchFile = $pitch->files()->create([
@@ -145,6 +188,9 @@ class PitchFileController extends Controller
                 'size' => $fileSize,
                 'user_id' => Auth::id(),
             ]);
+            
+            // Update pitch storage used
+            $pitch->updateStorageUsed($fileSize);
             
             // Check if this is an audio file and dispatch the waveform generation job
             $extension = strtolower($file->getClientOriginalExtension());
@@ -159,7 +205,9 @@ class PitchFileController extends Controller
                 'filename' => $fileName,
                 'path' => $filePath,
                 'pitch_id' => $pitch->id,
-                'file_id' => $pitchFile->id
+                'file_id' => $pitchFile->id,
+                'file_size' => $fileSize,
+                'pitch_storage_used' => $pitch->total_storage_used
             ]);
             
             return response()->json([
@@ -168,7 +216,13 @@ class PitchFileController extends Controller
                 'file_path' => $filePath,
                 'file_id' => $pitchFile->id,
                 'file_name' => $fileName,
-                'file_size' => $fileSize
+                'file_size' => $fileSize,
+                'storage_used' => $pitch->total_storage_used,
+                'storage_used_formatted' => Pitch::formatBytes($pitch->total_storage_used),
+                'storage_percentage' => $pitch->getStorageUsedPercentage(),
+                'storage_remaining' => $pitch->getRemainingStorageBytes(),
+                'storage_remaining_formatted' => Pitch::formatBytes($pitch->getRemainingStorageBytes()),
+                'storage_limit_message' => $pitch->getStorageLimitMessage()
             ]);
             
         } catch (\Exception $e) {
