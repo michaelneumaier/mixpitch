@@ -1,0 +1,237 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\UserResource\Pages;
+use App\Filament\Resources\UserResource\RelationManagers;
+use App\Models\User;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use Spatie\Permission\Models\Role;
+
+class UserResource extends Resource
+{
+    protected static ?string $model = User::class;
+
+    protected static ?string $navigationIcon = 'heroicon-m-users';
+    
+    protected static ?string $navigationGroup = 'User Management';
+
+    protected static ?int $navigationSort = 1;
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('User Information')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255),
+                                
+                                Forms\Components\TextInput::make('email')
+                                    ->email()
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->unique(ignoreRecord: true),
+                                
+                                Forms\Components\TextInput::make('username')
+                                    ->maxLength(255)
+                                    ->unique(ignoreRecord: true),
+                                
+                                Forms\Components\DateTimePicker::make('email_verified_at')
+                                    ->label('Email Verified')
+                                    ->hiddenOn('create'),
+                                
+                                Forms\Components\TextInput::make('password')
+                                    ->password()
+                                    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
+                                    ->dehydrated(fn ($state) => filled($state))
+                                    ->required(fn (string $context): bool => $context === 'create')
+                                    ->maxLength(255),
+                                
+                                Forms\Components\Select::make('roles')
+                                    ->multiple()
+                                    ->relationship('roles', 'name')
+                                    ->preload(),
+                            ]),
+                    ]),
+                
+                Forms\Components\Section::make('Profile Details')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\FileUpload::make('profile_photo_path')
+                                    ->label('Profile Photo')
+                                    ->directory('profile-photos')
+                                    ->visibility('public')
+                                    ->image()
+                                    ->imageResizeMode('cover')
+                                    ->imageCropAspectRatio('1:1')
+                                    ->imageResizeTargetWidth('300')
+                                    ->imageResizeTargetHeight('300'),
+                                
+                                Forms\Components\Textarea::make('bio')
+                                    ->maxLength(1000)
+                                    ->columnSpanFull(),
+                                
+                                Forms\Components\TextInput::make('website')
+                                    ->url()
+                                    ->maxLength(255),
+                                
+                                Forms\Components\TextInput::make('location')
+                                    ->maxLength(255),
+                                
+                                Forms\Components\TextInput::make('headline')
+                                    ->maxLength(255),
+                                
+                                Forms\Components\Toggle::make('profile_completed')
+                                    ->default(false),
+                                
+                                Forms\Components\Toggle::make('username_locked')
+                                    ->label('Lock Username')
+                                    ->default(false),
+                            ]),
+                    ]),
+                
+                Forms\Components\Section::make('Professional Details')
+                    ->schema([
+                        Forms\Components\TagsInput::make('skills')
+                            ->splitKeys(['Tab', 'Enter', ','])
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\TagsInput::make('equipment')
+                            ->splitKeys(['Tab', 'Enter', ','])
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\TagsInput::make('specialties')
+                            ->splitKeys(['Tab', 'Enter', ','])
+                            ->columnSpanFull(),
+                        
+                        Forms\Components\Select::make('portfolio_layout')
+                            ->options([
+                                'grid' => 'Grid',
+                                'list' => 'List',
+                                'masonry' => 'Masonry',
+                                'carousel' => 'Carousel',
+                            ])
+                            ->default('grid'),
+                    ]),
+                
+                Forms\Components\Section::make('Social Media')
+                    ->schema([
+                        Forms\Components\Repeater::make('social_links')
+                            ->schema([
+                                Forms\Components\Select::make('platform')
+                                    ->options([
+                                        'twitter' => 'Twitter',
+                                        'facebook' => 'Facebook',
+                                        'instagram' => 'Instagram',
+                                        'linkedin' => 'LinkedIn',
+                                        'youtube' => 'YouTube',
+                                        'soundcloud' => 'SoundCloud',
+                                        'spotify' => 'Spotify',
+                                        'bandcamp' => 'Bandcamp',
+                                        'other' => 'Other',
+                                    ])
+                                    ->required(),
+                                
+                                Forms\Components\TextInput::make('url')
+                                    ->label('URL')
+                                    ->url()
+                                    ->required(),
+                            ])
+                            ->columns(2)
+                            ->columnSpanFull(),
+                    ]),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable()
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('email')
+                    ->searchable()
+                    ->sortable(),
+                    
+                Tables\Columns\TextColumn::make('username')
+                    ->searchable()
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'admin' => 'danger',
+                        'editor' => 'warning',
+                        'moderator' => 'info',
+                        default => 'gray',
+                    }),
+                
+                Tables\Columns\IconColumn::make('profile_completed')
+                    ->boolean()
+                    ->label('Profile')
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('roles')
+                    ->relationship('roles', 'name')
+                    ->preload()
+                    ->multiple(),
+                
+                Tables\Filters\Filter::make('verified')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('email_verified_at'))
+                    ->label('Email Verified')
+                    ->toggle(),
+                
+                Tables\Filters\Filter::make('profile_completed')
+                    ->query(fn (Builder $query): Builder => $query->where('profile_completed', true))
+                    ->toggle(),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\ProjectsRelationManager::class,
+            RelationManagers\PitchesRelationManager::class,
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListUsers::route('/'),
+            'create' => Pages\CreateUser::route('/create'),
+            'edit' => Pages\EditUser::route('/{record}/edit'),
+        ];
+    }
+}
