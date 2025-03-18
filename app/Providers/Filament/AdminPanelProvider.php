@@ -39,6 +39,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->homeUrl('/dashboard')
             ->colors([
                 'primary' => Color::Indigo,
                 'danger' => Color::Rose,
