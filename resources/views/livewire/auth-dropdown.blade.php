@@ -241,7 +241,7 @@
             </a>
 
             @if(Auth::user()->username)
-            <a href="{{ route('profile.show', ['username' => '@' . Auth::user()->username]) }}"
+            <a href="{{ route('profile.username', ['username' => '@' . Auth::user()->username]) }}"
                 class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
                 <svg class="mr-3 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
                     viewBox="0 0 24 24" stroke="currentColor">
