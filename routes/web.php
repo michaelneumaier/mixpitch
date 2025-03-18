@@ -68,7 +68,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/mixes/{mix}/rate', [MixController::class, 'rate'])->name('mixes.rate');
 
     Route::resource('/pitches', PitchController::class);
-    Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create');
+    Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create.project');
     Route::post('/pitches/{pitch}/status', [PitchController::class, 'updateStatus'])->name('pitches.updateStatus');
 
     // Special route for pitch deletion to handle the Livewire redirect approach
