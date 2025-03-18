@@ -49,6 +49,10 @@ class User extends Authenticatable implements FilamentUser
         'headline',
         'portfolio_layout', 
         'profile_completed',
+        'provider',
+        'provider_id',
+        'provider_token',
+        'provider_refresh_token',
     ];
 
     /**
