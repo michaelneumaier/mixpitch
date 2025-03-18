@@ -125,7 +125,7 @@
 
             <div class="mt-3 space-y-1 bg-white rounded-lg mx-3 overflow-hidden shadow-sm border border-gray-100">
                 @if (Auth::user()->username)
-                <a href="{{ route('profile.show', ['username' => '@' . Auth::user()->username]) }}"
+                <a href="{{ route('profile.username', ['username' => '@' . Auth::user()->username]) }}"
                     class="flex items-center px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-400" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">

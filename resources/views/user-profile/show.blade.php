@@ -241,7 +241,7 @@
                                             <span class="font-medium">Project Owner</span>
                                             @if($pitch->user && $pitch->user->id != $user->id)
                                             - Pitch by
-                                            <a href="{{ route('profile.show', $pitch->user->username) }}"
+                                            <a href="{{ route('profile.username', $pitch->user->username) }}"
                                                 class="font-medium hover:underline">
                                                 {{ $pitch->user->name }}
                                             </a>
@@ -250,7 +250,7 @@
                                             <span class="font-medium">Pitch Submitter</span>
                                             @if($pitch->project->user)
                                             - Project by
-                                            <a href="{{ route('profile.show', $pitch->project->user->username) }}"
+                                            <a href="{{ route('profile.username', $pitch->project->user->username) }}"
                                                 class="font-medium hover:underline">
                                                 {{ $pitch->project->user->name }}
                                             </a>

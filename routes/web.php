@@ -114,7 +114,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         return view('user-profile.edit-livewire');
     })->name('profile.edit');
 
-    Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.show');
+    Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.username');
 });
 
 // About and Pricing Pages
