@@ -1,3 +1,7 @@
+@php
+use Filament\Panel;
+@endphp
+
 <nav x-data="{ open: false }" class="bg-base-100 border-b border-base-200 sticky top-0 z-50 shadow-sm">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -101,6 +105,39 @@
                 </svg>
                 About
             </a>
+            <a href="{{ route('dashboard') }}"
+                class="flex items-center px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-400" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span class="text-base font-medium">Dashboard</span>
+            </a>
+
+            @if(Auth::check() && Auth::user()->canAccessPanel(Panel::make()))
+            <a href="{{ route('filament.admin.pages.dashboard') }}"
+                class="flex items-center px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-400" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                <span class="text-base font-medium">Admin Dashboard</span>
+            </a>
+            @endif
+
+            @if(Auth::check() && !Auth::user()->hasCompletedProfile())
+            <a href="{{ route('profile.edit') }}"
+                class="flex items-center px-4 py-3 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-indigo-500" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span class="text-base font-medium">Set Up Profile</span>
+            </a>
+            @endif
         </div>
 
         <!-- Mobile Authentication Links -->
@@ -158,7 +195,19 @@
                     <span class="text-base font-medium">Dashboard</span>
                 </a>
 
-                @if(!Auth::user()->hasCompletedProfile())
+                @if(Auth::check() && Auth::user()->canAccessPanel(Panel::make()))
+                <a href="{{ route('filament.admin.pages.dashboard') }}"
+                    class="flex items-center px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-400" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                    <span class="text-base font-medium">Admin Dashboard</span>
+                </a>
+                @endif
+
+                @if(Auth::check() && !Auth::user()->hasCompletedProfile())
                 <a href="{{ route('profile.edit') }}"
                     class="flex items-center px-4 py-3 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-indigo-500" fill="none"
