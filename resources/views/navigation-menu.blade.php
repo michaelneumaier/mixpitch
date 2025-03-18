@@ -1,3 +1,6 @@
+@php
+use Filament\Panel;
+@endphp
 <nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -112,6 +115,12 @@
                             </x-dropdown-link>
                             @endif
 
+                            @if (Auth::user()->canAccessPanel(Filament\Panel::make()))
+                            <x-dropdown-link href="{{ route('filament.admin.pages.dashboard') }}">
+                                {{ __('Admin Dashboard') }}
+                            </x-dropdown-link>
+                            @endif
+
                             @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                                 <x-dropdown-link href="{{ route('api-tokens.index') }}">
                                     {{ __('API Tokens') }}
@@ -182,6 +191,12 @@
                 @else
                 <x-responsive-nav-link href="{{ route('profile.edit') }}" :active="request()->routeIs('profile.edit')">
                     {{ __('Set Up Profile') }}
+                </x-responsive-nav-link>
+                @endif
+
+                @if (Auth::user()->canAccessPanel(Filament\Panel::make()))
+                <x-responsive-nav-link href="{{ route('filament.admin.pages.dashboard') }}" :active="request()->routeIs('filament.admin.pages.dashboard')">
+                    {{ __('Admin Dashboard') }}
                 </x-responsive-nav-link>
                 @endif
 
