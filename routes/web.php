@@ -117,6 +117,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.username');
 });
 
+// Social Authentication Routes
+Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialiteController::class, 'redirect'])->name('socialite.redirect');
+Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteController::class, 'callback'])->name('socialite.callback');
+
 // About and Pricing Pages
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');

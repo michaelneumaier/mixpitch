@@ -42,4 +42,10 @@ return [
         'lambda_audio_processor_url' => rtrim(env('AWS_LAMBDA_AUDIO_PROCESSOR_URL'), '/'),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
 ];
