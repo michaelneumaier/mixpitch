@@ -14,14 +14,18 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens;
     use HasFactory;
     use HasProfilePhoto;
     use Notifiable;
     use TwoFactorAuthenticatable;
+    use HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -262,5 +266,31 @@ class User extends Authenticatable
     {
         // Consider a profile complete if the user has set their username and bio
         return !empty($this->username) && !empty($this->bio);
+    }
+
+    /**
+     * Determine if the user can access the Filament admin panel.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // For now, using the existing hasRole method as a bridge
+        // Later this should be updated to use the proper Spatie permissions
+        return $this->hasRole('admin') || $this->hasPermissionTo('access_filament');
+    }
+
+    /**
+     * Get the user's name.
+     */
+    public function getFilamentName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Get the user's avatar for Filament.
+     */
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->profile_photo_url;
     }
 }

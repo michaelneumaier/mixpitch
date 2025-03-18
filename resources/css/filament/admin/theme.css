@@ -1,0 +1,60 @@
+@import '/vendor/filament/filament/resources/css/theme.css';
+
+@config './tailwind.import.config.js';
+
+@layer base {
+    :root {
+        --sidebar-width: 20rem;
+        --sidebar-width-collapsed: 5.4rem;
+    }
+}
+
+/* Custom styles for Filament */
+.fi-sidebar {
+    @apply bg-primary-950/95 backdrop-blur-xl border-r border-gray-800;
+}
+
+.fi-sidebar-header {
+    @apply bg-primary-950/50;
+}
+
+.fi-sidebar-nav {
+    @apply px-2;
+}
+
+.fi-sidebar-item a {
+    @apply rounded-lg;
+}
+
+.fi-sidebar-item-active a {
+    @apply bg-primary-500/10 text-primary-500;
+}
+
+.fi-main {
+    @apply bg-gray-50 dark:bg-gray-950;
+}
+
+.fi-topbar {
+    @apply bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800;
+}
+
+/* Improve form styling */
+.fi-input,
+.fi-select,
+.fi-textarea {
+    @apply rounded-lg;
+}
+
+.fi-btn-primary {
+    @apply shadow-md;
+}
+
+/* Table customizations */
+.fi-ta-header-cell {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+/* Card customizations */
+.fi-card {
+    @apply rounded-xl shadow-sm border border-gray-200 dark:border-gray-800;
+}
