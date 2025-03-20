@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Mail\TestMail;
+use App\Services\EmailService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
 
 class SendTestEmail extends Command
 {
@@ -25,15 +25,20 @@ class SendTestEmail extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(EmailService $emailService)
     {
         $email = $this->argument('email') ?: $this->ask('What email address should receive the test message?');
 
         $this->info("Sending test email to {$email}...");
 
         try {
-            Mail::to($email)->send(new TestMail());
-            $this->info('Test email sent successfully!');
+            $result = $emailService->send(new TestMail(), $email, 'test');
+            
+            if ($result) {
+                $this->info('Test email sent successfully!');
+            } else {
+                $this->warn('Email was not sent (possibly due to suppression list)');
+            }
         } catch (\Exception $e) {
             $this->error('Error sending test email: ' . $e->getMessage());
             $this->line('Trace:');
