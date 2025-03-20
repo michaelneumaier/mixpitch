@@ -29,6 +29,7 @@ use App\Filament\Widgets\UserActivity;
 use App\Filament\Widgets\LatestProjects;
 use App\Filament\Widgets\LatestPitches;
 use App\Filament\Widgets\FilesOverview;
+use App\Filament\Widgets\UserVerificationStats;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -68,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 // Overview widgets for high-level metrics
                 StatsOverview::class,
                 ProjectStats::class,
+                UserVerificationStats::class,
                 
                 // Activity widgets showing recent events
                 UserActivity::class,

@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Hash;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Spatie\Permission\Models\Role;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
 
 class UserResource extends Resource
 {
@@ -52,6 +54,11 @@ class UserResource extends Resource
                                 Forms\Components\DateTimePicker::make('email_verified_at')
                                     ->label('Email Verified')
                                     ->hiddenOn('create'),
+                                
+                                Forms\Components\Toggle::make('email_valid')
+                                    ->label('Email Valid')
+                                    ->default(true)
+                                    ->helperText('Addresses marked invalid have bounced or been reported as spam'),
                                 
                                 Forms\Components\TextInput::make('password')
                                     ->password()
@@ -173,6 +180,17 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable(),
                 
+                Tables\Columns\IconColumn::make('email_verified_at')
+                    ->label('Verified')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-x-mark')
+                    ->state(fn (User $record): bool => $record->email_verified_at !== null),
+                
+                Tables\Columns\IconColumn::make('email_valid')
+                    ->label('Valid Email')
+                    ->boolean(),
+                
                 Tables\Columns\TextColumn::make('roles.name')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -203,6 +221,16 @@ class UserResource extends Resource
                     ->label('Email Verified')
                     ->toggle(),
                 
+                Tables\Filters\Filter::make('unverified')
+                    ->query(fn (Builder $query): Builder => $query->whereNull('email_verified_at'))
+                    ->label('Email Not Verified')
+                    ->toggle(),
+                
+                Tables\Filters\Filter::make('valid_email')
+                    ->query(fn (Builder $query): Builder => $query->where('email_valid', true))
+                    ->label('Valid Email')
+                    ->toggle(),
+                
                 Tables\Filters\Filter::make('profile_completed')
                     ->query(fn (Builder $query): Builder => $query->where('profile_completed', true))
                     ->toggle(),
@@ -210,10 +238,76 @@ class UserResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('verifyEmail')
+                    ->label('Verify Email')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn (User $record): bool => $record->email_verified_at === null)
+                    ->action(function (User $record): void {
+                        $record->email_verified_at = now();
+                        $record->save();
+                        Notification::make()
+                            ->title('Email Verified')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('unverifyEmail')
+                    ->label('Unverify Email')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn (User $record): bool => $record->email_verified_at !== null)
+                    ->action(function (User $record): void {
+                        $record->email_verified_at = null;
+                        $record->save();
+                        Notification::make()
+                            ->title('Email Unverified')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\BulkAction::make('verifyEmails')
+                        ->label('Verify Emails')
+                        ->icon('heroicon-o-check-badge')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records): void {
+                            $updated = 0;
+                            foreach ($records as $record) {
+                                if ($record->email_verified_at === null) {
+                                    $record->email_verified_at = now();
+                                    $record->save();
+                                    $updated++;
+                                }
+                            }
+                            Notification::make()
+                                ->title("$updated emails verified")
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('unverifyEmails')
+                        ->label('Unverify Emails')
+                        ->icon('heroicon-o-x-mark')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records): void {
+                            $updated = 0;
+                            foreach ($records as $record) {
+                                if ($record->email_verified_at !== null) {
+                                    $record->email_verified_at = null;
+                                    $record->save();
+                                    $updated++;
+                                }
+                            }
+                            Notification::make()
+                                ->title("$updated emails unverified")
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }
