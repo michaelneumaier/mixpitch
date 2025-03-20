@@ -106,6 +106,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pitch-files/download/{file}', [PitchFileController::class, 'download'])
         ->name('pitch-files.download')
         ->middleware('auth');
+
+    // Email testing routes
+    Route::get('/email/test', [App\Http\Controllers\EmailController::class, 'showTestForm'])->name('email.test');
+    Route::post('/email/test', [App\Http\Controllers\EmailController::class, 'sendTest'])->name('email.test.send');
 });
 
 // User Profile Routes

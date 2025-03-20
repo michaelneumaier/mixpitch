@@ -6,6 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
+        "aws/aws-sdk-php": "^3.342",
         "cviebrock/eloquent-sluggable": "^10.0",
         "filament/filament": "^3.0-stable",
         "filament/spatie-laravel-media-library-plugin": "^3.0-stable",
