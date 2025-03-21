@@ -4,15 +4,16 @@ namespace App\Filament\Resources\EmailTestResource\Pages;
 
 use App\Filament\Resources\EmailTestResource;
 use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use Filament\Resources\Pages\ViewRecord;
 
-class EditEmailTest extends EditRecord
+class ViewEmailTest extends ViewRecord
 {
     protected static string $resource = EmailTestResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            Actions\EditAction::make(),
             Actions\DeleteAction::make(),
             Actions\Action::make('send')
                 ->label('Send Test Email')
@@ -36,4 +37,4 @@ class EditEmailTest extends EditRecord
                 ->visible(fn () => $this->record->status !== 'sent'),
         ];
     }
-}
+} 

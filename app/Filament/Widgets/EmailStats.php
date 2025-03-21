@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\EmailAudit;
 use App\Models\EmailEvent;
 use App\Models\EmailSuppression;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -10,89 +11,70 @@ use Illuminate\Support\Facades\DB;
 
 class EmailStats extends BaseWidget
 {
-    protected static ?string $pollingInterval = '60s';
-    
+    protected static ?string $pollingInterval = '30s';
+
     protected function getStats(): array
     {
-        // Total emails sent
-        $totalSent = EmailEvent::where('event_type', 'sent')->count();
+        // Get today's date for comparison
+        $today = now()->startOfDay();
+        $yesterday = now()->subDay()->startOfDay();
+        $thisWeek = now()->startOfWeek();
+        $lastWeek = now()->subWeek()->startOfWeek();
         
-        // Last 24 hours emails
-        $last24Hours = EmailEvent::where('event_type', 'sent')
-            ->where('created_at', '>=', now()->subHours(24))
+        // Get email stats
+        $totalEmails = EmailAudit::count();
+        $todayEmails = EmailAudit::where('created_at', '>=', $today)->count();
+        $yesterdayEmails = EmailAudit::where('created_at', '>=', $yesterday)
+            ->where('created_at', '<', $today)
             ->count();
         
-        // Last 7 days trend (daily count of sent emails for the last 7 days)
-        $dailyCounts = EmailEvent::where('event_type', 'sent')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->pluck('count')
+        // Calculate percentage change
+        $emailPercentChange = $yesterdayEmails > 0 
+            ? round((($todayEmails - $yesterdayEmails) / $yesterdayEmails) * 100, 1) 
+            : 0;
+        
+        // Get status breakdown
+        $statusBreakdown = EmailAudit::select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
             ->toArray();
         
-        // Ensure the array has 7 elements (fill with 0 for missing days)
-        $trend = array_pad($dailyCounts, 7, 0);
+        // Get suppression stats
+        $totalSuppressions = EmailSuppression::count();
+        $thisWeekSuppressions = EmailSuppression::where('created_at', '>=', $thisWeek)->count();
+        $lastWeekSuppressions = EmailSuppression::where('created_at', '>=', $lastWeek)
+            ->where('created_at', '<', $thisWeek)
+            ->count();
         
-        // Calculate delivery rate
-        $delivered = EmailEvent::where('event_type', 'delivered')->count();
-        $deliveryRate = $totalSent > 0 ? round(($delivered / $totalSent) * 100) : 0;
+        // Calculate percentage change
+        $suppressionPercentChange = $lastWeekSuppressions > 0 
+            ? round((($thisWeekSuppressions - $lastWeekSuppressions) / $lastWeekSuppressions) * 100, 1) 
+            : 0;
         
-        // Calculate open rate from delivered emails
-        $opened = EmailEvent::where('event_type', 'opened')->count();
-        $openRate = $delivered > 0 ? round(($opened / $delivered) * 100) : 0;
+        // Get bounce rate
+        $bouncedEmails = $statusBreakdown['bounced'] ?? 0;
+        $sentEmails = $statusBreakdown['sent'] ?? 0;
+        $queuedEmails = $statusBreakdown['queued'] ?? 0;
         
-        // Calculate click rate from opened emails
-        $clicked = EmailEvent::where('event_type', 'clicked')->count();
-        $clickRate = $opened > 0 ? round(($clicked / $opened) * 100) : 0;
-        
-        // Count bounces and complaints
-        $bounces = EmailSuppression::where('type', 'bounce')->count();
-        $complaints = EmailSuppression::where('type', 'complaint')->count();
-        $bounceRate = $totalSent > 0 ? round(($bounces / $totalSent) * 100, 2) : 0;
-        
-        // Last 7 days bounces trend
-        $bounceTrend = EmailSuppression::where('type', 'bounce')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->pluck('count')
-            ->toArray();
-            
-        // Ensure the array has 7 elements
-        $bounceTrend = array_pad($bounceTrend, 7, 0);
+        $bounceRate = ($sentEmails + $queuedEmails) > 0 
+            ? round(($bouncedEmails / ($sentEmails + $queuedEmails)) * 100, 1) 
+            : 0;
         
         return [
-            Stat::make('Total Emails Sent', number_format($totalSent))
-                ->description($last24Hours . ' in last 24 hours')
-                ->descriptionIcon('heroicon-m-envelope')
-                ->chart($trend)
-                ->color('primary'),
-                
-            Stat::make('Delivery Rate', $deliveryRate . '%')
-                ->description($delivered . ' emails delivered')
-                ->descriptionIcon('heroicon-m-check-circle')
-                ->chart([$deliveryRate, $deliveryRate, $deliveryRate, $deliveryRate, $deliveryRate])
-                ->color('success'),
-                
-            Stat::make('Open Rate', $openRate . '%')
-                ->description($opened . ' emails opened')
-                ->descriptionIcon('heroicon-m-eye')
-                ->chart([$openRate, $openRate, $openRate, $openRate, $openRate])
-                ->color('info'),
-                
-            Stat::make('Click Rate', $clickRate . '%')
-                ->description($clicked . ' emails clicked')
-                ->descriptionIcon('heroicon-m-cursor-arrow-rays')
-                ->chart([$clickRate, $clickRate, $clickRate, $clickRate, $clickRate])
-                ->color('warning'),
-                
+            Stat::make('Total Emails', $totalEmails)
+                ->description($todayEmails . ' today (' . $emailPercentChange . '% from yesterday)')
+                ->descriptionIcon($emailPercentChange >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
+                ->color($emailPercentChange >= 0 ? 'success' : 'danger'),
+            
+            Stat::make('Suppressed Emails', $totalSuppressions)
+                ->description($thisWeekSuppressions . ' this week (' . $suppressionPercentChange . '% from last week)')
+                ->descriptionIcon($suppressionPercentChange <= 0 ? 'heroicon-m-arrow-trending-down' : 'heroicon-m-arrow-trending-up')
+                ->color($suppressionPercentChange <= 0 ? 'success' : 'danger'),
+            
             Stat::make('Bounce Rate', $bounceRate . '%')
-                ->description($bounces . ' bounces, ' . $complaints . ' complaints')
-                ->descriptionIcon('heroicon-m-x-circle')
-                ->chart($bounceTrend)
-                ->color($bounceRate > 5 ? 'danger' : ($bounceRate > 2 ? 'warning' : 'success')),
+                ->description('Based on sent and queued emails')
+                ->descriptionIcon($bounceRate <= 5 ? 'heroicon-m-check-circle' : 'heroicon-m-exclamation-circle')
+                ->color($bounceRate <= 5 ? 'success' : ($bounceRate <= 10 ? 'warning' : 'danger')),
         ];
     }
 }

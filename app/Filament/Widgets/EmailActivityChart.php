@@ -2,19 +2,19 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\EmailEvent;
+use App\Models\EmailAudit;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 
 class EmailActivityChart extends ChartWidget
 {
-    protected static ?string $heading = 'Email Activity (Last 30 Days)';
+    protected static ?string $heading = 'Email Activity';
     
-    protected static ?string $pollingInterval = '300s';
+    protected static ?string $pollingInterval = '60s';
     
-    protected static ?string $maxHeight = '400px';
+    protected static ?string $maxHeight = '300px';
     
-    protected int $daysToShow = 30;
+    protected static ?string $navigationGroup = 'Email Management';
     
     public function getDescription(): ?string
     {
@@ -23,63 +23,100 @@ class EmailActivityChart extends ChartWidget
 
     protected function getData(): array
     {
-        $days = $this->daysToShow;
-        $endDate = Carbon::today();
-        $startDate = Carbon::today()->subDays($days - 1);
+        // Get the last 14 days of data
+        $startDate = now()->subDays(14)->startOfDay();
+        $endDate = now()->endOfDay();
         
-        // Create date range array for labels
-        $dateRange = collect();
-        for ($i = 0; $i < $days; $i++) {
-            $dateRange->push($startDate->copy()->addDays($i)->format('M d'));
+        // Initialize arrays with dates
+        $labels = [];
+        $sentData = [];
+        $bouncedData = [];
+        $suppressedData = [];
+        $failedData = [];
+        
+        $current = clone $startDate;
+        while ($current <= $endDate) {
+            $labels[] = $current->format('M d');
+            
+            // For each day, initialize the data points with 0
+            $sentData[$current->format('Y-m-d')] = 0;
+            $bouncedData[$current->format('Y-m-d')] = 0;
+            $suppressedData[$current->format('Y-m-d')] = 0;
+            $failedData[$current->format('Y-m-d')] = 0;
+            
+            $current->addDay();
         }
         
-        // Get event counts by type and date
-        $eventTypes = ['sent', 'delivered', 'opened', 'clicked', 'bounced', 'complained'];
-        $datasets = [];
+        // Get the email data
+        $emailData = EmailAudit::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE(created_at) as date, status, COUNT(*) as count')
+            ->groupBy('date', 'status')
+            ->get();
         
-        $colors = [
-            'sent' => '75, 85, 99', // Gray
-            'delivered' => '52, 211, 153', // Green
-            'opened' => '59, 130, 246', // Blue
-            'clicked' => '249, 115, 22', // Orange
-            'bounced' => '239, 68, 68', // Red
-            'complained' => '217, 70, 239', // Purple
-        ];
-        
-        foreach ($eventTypes as $type) {
-            $data = EmailEvent::where('event_type', $type)
-                ->where('created_at', '>=', $startDate->format('Y-m-d'))
-                ->where('created_at', '<=', $endDate->format('Y-m-d'))
-                ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                ->groupBy('date')
-                ->pluck('count', 'date')
-                ->toArray();
+        // Populate the data arrays
+        foreach ($emailData as $data) {
+            $date = $data->date;
             
-            // Fill in missing dates with zeros
-            $countsArray = [];
-            for ($i = 0; $i < $days; $i++) {
-                $currentDate = $startDate->copy()->addDays($i)->format('Y-m-d');
-                $countsArray[] = $data[$currentDate] ?? 0;
+            switch ($data->status) {
+                case 'sent':
+                    $sentData[$date] = $data->count;
+                    break;
+                case 'bounced':
+                    $bouncedData[$date] = $data->count;
+                    break;
+                case 'suppressed':
+                    $suppressedData[$date] = $data->count;
+                    break;
+                case 'failed':
+                    $failedData[$date] = $data->count;
+                    break;
             }
-            
-            $datasets[] = [
-                'label' => ucfirst($type),
-                'data' => $countsArray,
-                'backgroundColor' => "rgba({$colors[$type]}, 0.7)",
-                'borderColor' => "rgba({$colors[$type]}, 1)",
-                'borderWidth' => 1,
-            ];
         }
+        
+        // Convert data arrays to sequential arrays (removing keys)
+        $sent = array_values($sentData);
+        $bounced = array_values($bouncedData);
+        $suppressed = array_values($suppressedData);
+        $failed = array_values($failedData);
         
         return [
-            'labels' => $dateRange->toArray(),
-            'datasets' => $datasets,
+            'datasets' => [
+                [
+                    'label' => 'Sent',
+                    'data' => $sent,
+                    'backgroundColor' => 'rgba(34, 197, 94, 0.2)',
+                    'borderColor' => 'rgb(34, 197, 94)',
+                    'fill' => 'start',
+                ],
+                [
+                    'label' => 'Bounced',
+                    'data' => $bounced,
+                    'backgroundColor' => 'rgba(220, 38, 38, 0.2)',
+                    'borderColor' => 'rgb(220, 38, 38)',
+                    'fill' => 'start',
+                ],
+                [
+                    'label' => 'Suppressed',
+                    'data' => $suppressed,
+                    'backgroundColor' => 'rgba(234, 179, 8, 0.2)',
+                    'borderColor' => 'rgb(234, 179, 8)',
+                    'fill' => 'start',
+                ],
+                [
+                    'label' => 'Failed',
+                    'data' => $failed,
+                    'backgroundColor' => 'rgba(99, 102, 241, 0.2)',
+                    'borderColor' => 'rgb(99, 102, 241)',
+                    'fill' => 'start',
+                ],
+            ],
+            'labels' => $labels,
         ];
     }
 
     protected function getType(): string
     {
-        return 'bar';
+        return 'line';
     }
     
     protected function getOptions(): array
@@ -93,17 +130,30 @@ class EmailActivityChart extends ChartWidget
                     ],
                 ],
             ],
+            'elements' => [
+                'line' => [
+                    'tension' => 0.3, // Slightly curved lines
+                ],
+                'point' => [
+                    'radius' => 3,
+                    'hitRadius' => 10,
+                    'hoverRadius' => 5,
+                ],
+            ],
             'plugins' => [
                 'legend' => [
-                    'display' => true,
-                    'position' => 'top',
+                    'position' => 'bottom',
                 ],
                 'tooltip' => [
                     'mode' => 'index',
                     'intersect' => false,
                 ],
             ],
-            'responsive' => true,
+            'interaction' => [
+                'mode' => 'nearest',
+                'axis' => 'x',
+                'intersect' => false,
+            ],
             'maintainAspectRatio' => false,
         ];
     }

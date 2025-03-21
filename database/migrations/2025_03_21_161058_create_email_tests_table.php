@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('email_tests', function (Blueprint $table) {
             $table->id();
+            $table->string('recipient_email');
+            $table->string('subject')->nullable();
+            $table->string('template')->default('emails.test');
+            $table->json('content_variables')->nullable();
+            $table->string('status')->default('pending');
+            $table->json('result')->nullable();
+            $table->timestamp('sent_at')->nullable();
             $table->timestamps();
         });
     }

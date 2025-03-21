@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EmailAudit;
 use App\Models\EmailEvent;
 use App\Models\EmailSuppression;
 use App\Models\User;
@@ -100,6 +101,23 @@ class SesWebhookController extends Controller
                 ]
             );
             
+            // Log comprehensive audit information
+            EmailAudit::log(
+                $email,
+                $bounceData['bouncedRecipients'][0]['diagnosticCode'] ?? 'Bounce Notification',
+                'bounced',
+                [
+                    'bounce_type' => $bounceData['bounceType'] ?? 'unknown',
+                    'bounce_subtype' => $bounceData['bounceSubType'] ?? 'unknown',
+                    'diagnostic_code' => $recipient['diagnosticCode'] ?? null,
+                    'action' => $recipient['action'] ?? null,
+                    'status' => $recipient['status'] ?? null,
+                    'message_id' => $bounceData['mail']['messageId'] ?? null,
+                    'timestamp' => $bounceData['timestamp'] ?? now()->toIso8601String(),
+                    'raw_data' => $bounceData
+                ]
+            );
+            
             // Update user record if exists
             $user = User::where('email', $email)->first();
             if ($user) {
@@ -144,6 +162,20 @@ class SesWebhookController extends Controller
                 'complained',
                 null,
                 ['complaint_feedback_type' => $complaintData['complaintFeedbackType'] ?? 'unknown']
+            );
+            
+            // Log comprehensive audit information
+            EmailAudit::log(
+                $email,
+                'Complaint Notification',
+                'complained',
+                [
+                    'complaint_feedback_type' => $complaintData['complaintFeedbackType'] ?? 'unknown',
+                    'arrived_date' => $complaintData['arrivalDate'] ?? null,
+                    'message_id' => $complaintData['mail']['messageId'] ?? null,
+                    'timestamp' => $complaintData['timestamp'] ?? now()->toIso8601String(),
+                    'raw_data' => $complaintData
+                ]
             );
             
             // Update user preferences if exists

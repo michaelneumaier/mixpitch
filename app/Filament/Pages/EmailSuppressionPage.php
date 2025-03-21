@@ -25,7 +25,7 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
     
     protected static string $view = 'filament.pages.email-suppression-page';
     
-    protected static ?string $slug = 'email-suppressions';
+    protected static ?string $slug = 'email-suppression';
     
     protected static ?string $title = 'Suppressed Emails';
     
@@ -157,5 +157,10 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
             ->filters($this->getTableFilters())
             ->actions($this->getTableActions())
             ->bulkActions($this->getTableBulkActions());
+    }
+    
+    public static function canAccess(): bool
+    {
+        return auth()->check() && (auth()->user()->can('view_email_suppressions') || auth()->user()->hasRole('admin'));
     }
 } 
