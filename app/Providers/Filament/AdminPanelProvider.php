@@ -37,6 +37,7 @@ use App\Filament\Resources\EmailSuppressionResource;
 use App\Filament\Resources\EmailTestResource;
 use App\Filament\Resources\EmailAuditResource;
 use App\Filament\Pages\EmailAuditPage;
+use App\Filament\Pages\EmailSuppressionPage;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -77,7 +78,7 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
                 Settings::class,
                 EmailAuditPage::class,
-                \App\Filament\Pages\EmailSuppressionPage::class,
+                EmailSuppressionPage::class,
             ])
             ->widgets([
                 // Overview widgets for high-level metrics

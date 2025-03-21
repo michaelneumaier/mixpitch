@@ -119,4 +119,9 @@ class EmailAuditPage extends Page implements Tables\Contracts\HasTable
             ->actions($this->getTableActions())
             ->bulkActions($this->getTableBulkActions());
     }
+    
+    public static function canAccess(): bool
+    {
+        return auth()->check() && (auth()->user()->can('view_email_audit') || auth()->user()->hasRole('admin'));
+    }
 } 

@@ -144,7 +144,7 @@ return array(
     'Filament\\Infolists\\' => array($vendorDir . '/filament/infolists/src'),
     'Filament\\Forms\\' => array($vendorDir . '/filament/forms/src'),
     'Filament\\Actions\\' => array($vendorDir . '/filament/actions/src'),
-    'Filament\\' => array($vendorDir . '/filament/filament/src', $vendorDir . '/filament/spatie-laravel-media-library-plugin/src', $vendorDir . '/filament/spatie-laravel-settings-plugin/src', $vendorDir . '/filament/spatie-laravel-translatable-plugin/src'),
+    'Filament\\' => array($vendorDir . '/filament/spatie-laravel-media-library-plugin/src', $vendorDir . '/filament/spatie-laravel-settings-plugin/src', $vendorDir . '/filament/spatie-laravel-translatable-plugin/src', $vendorDir . '/filament/filament/src'),
     'Fidry\\CpuCoreCounter\\' => array($vendorDir . '/fidry/cpu-core-counter/src'),
     'Faker\\' => array($vendorDir . '/fakerphp/faker/src/Faker'),
     'Evenement\\' => array($vendorDir . '/evenement/evenement/src'),

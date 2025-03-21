@@ -39,6 +39,15 @@ class FilamentAdminSeeder extends Seeder
             'edit_pitches',
             'delete_pitches',
             
+            // Email management
+            'view_email_audit',
+            'manage_email_audit',
+            'view_email_events',
+            'view_email_suppressions',
+            'manage_email_suppressions',
+            'view_email_tests',
+            'create_email_tests',
+            
             // Settings management
             'manage_settings',
         ];
@@ -64,6 +73,10 @@ class FilamentAdminSeeder extends Seeder
             'view_pitches',
             'create_pitches',
             'edit_pitches',
+            'view_email_audit',
+            'view_email_events',
+            'view_email_suppressions',
+            'view_email_tests',
         ]);
         
         // Assign limited permissions to moderator role
@@ -73,6 +86,9 @@ class FilamentAdminSeeder extends Seeder
             'view_projects',
             'view_pitches',
             'edit_pitches',
+            'view_email_audit',
+            'view_email_events',
+            'view_email_suppressions',
         ]);
 
         // Assign admin role to the first user or a specific user
