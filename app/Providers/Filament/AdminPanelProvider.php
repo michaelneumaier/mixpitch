@@ -30,6 +30,13 @@ use App\Filament\Widgets\LatestProjects;
 use App\Filament\Widgets\LatestPitches;
 use App\Filament\Widgets\FilesOverview;
 use App\Filament\Widgets\UserVerificationStats;
+use App\Filament\Widgets\EmailStats;
+use App\Filament\Widgets\EmailActivityChart;
+use App\Filament\Resources\EmailEventResource;
+use App\Filament\Resources\EmailSuppressionResource;
+use App\Filament\Resources\EmailTestResource;
+use App\Filament\Resources\EmailAuditResource;
+use App\Filament\Pages\EmailAuditPage;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -51,6 +58,7 @@ class AdminPanelProvider extends PanelProvider
             ->font('Inter')
             ->favicon(asset('favicon.ico'))
             ->navigationGroups([
+                'Email Management',
                 'Content Management',
                 'User Management',
                 'System Settings',
@@ -60,19 +68,27 @@ class AdminPanelProvider extends PanelProvider
                 PitchResource::class,
                 ProjectFileResource::class,
                 UserResource::class,
+                EmailAuditResource::class,
+                EmailEventResource::class,
+                EmailSuppressionResource::class,
+                EmailTestResource::class,
             ])
             ->pages([
                 Dashboard::class,
                 Settings::class,
+                EmailAuditPage::class,
+                \App\Filament\Pages\EmailSuppressionPage::class,
             ])
             ->widgets([
                 // Overview widgets for high-level metrics
                 StatsOverview::class,
                 ProjectStats::class,
                 UserVerificationStats::class,
+                EmailStats::class,
                 
                 // Activity widgets showing recent events
                 UserActivity::class,
+                EmailActivityChart::class,
                 
                 // Detail widgets showing specific content
                 LatestProjects::class,
