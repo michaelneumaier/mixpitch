@@ -150,10 +150,14 @@
                                         @foreach($invoices as $invoice)
                                             <tr class="hover:bg-gray-50">
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {{ $invoice->date()->format('M d, Y') }}
+                                                    {{ $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('M d, Y') : $invoice->date()->format('M d, Y') }}
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    ${{ number_format(floatval($invoice->total()) / 100, 2) }}
+                                                    @if(isset($invoice->stripe_invoice))
+                                                        ${{ number_format($invoice->total / 100, 2) }}
+                                                    @else
+                                                        ${{ number_format(floatval($invoice->total()) / 100, 2) }}
+                                                    @endif
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                     @if($invoice->paid)
