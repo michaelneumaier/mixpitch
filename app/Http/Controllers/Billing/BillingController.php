@@ -117,26 +117,78 @@ class BillingController extends Controller
                 $user->createAsStripeCustomer();
             }
             
-            // Instead of using charge(), create a payment intent with a return URL
-            $stripeCharge = $user->pay(
-                $amount, 
-                [
-                    'payment_method' => $paymentMethod,
-                    'description' => $description,
-                    'return_url' => route('billing.index'),
-                    'confirm' => true, // Auto-confirm the payment
+            // First create a Stripe Invoice
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            
+            // First create an invoice item
+            $invoiceItem = $stripe->invoiceItems->create([
+                'customer' => $user->stripe_id,
+                'amount' => $amount,
+                'currency' => 'usd',
+                'description' => $description,
+            ]);
+            
+            // Create the invoice
+            $invoice = $stripe->invoices->create([
+                'customer' => $user->stripe_id,
+                'auto_advance' => true, // auto-finalize the invoice
+                'description' => $description,
+                'collection_method' => 'charge_automatically',
+                'metadata' => [
+                    'source' => 'one_time_payment',
+                    'user_id' => $user->id
                 ]
-            );
+            ]);
+            
+            // Pay the invoice using the specified payment method
+            $payResult = $stripe->invoices->pay($invoice->id, [
+                'payment_method' => $paymentMethod,
+                'off_session' => true,
+            ]);
+            
+            // Log the successful payment
+            \Log::info('Payment processed successfully', [
+                'user_id' => $user->id,
+                'invoice_id' => $invoice->id,
+                'amount' => $amount,
+                'description' => $description
+            ]);
+            
+            // Refresh the user's invoices from Stripe
+            $this->syncInvoicesFromStripe($user);
             
             return redirect()->back()->with('success', 'Payment processed successfully!');
-        } catch (IncompletePayment $exception) {
+        } catch (\Stripe\Exception\CardException $e) {
+            \Log::error('Card error during payment', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return redirect()->back()->withErrors(['error' => 'Card error: ' . $e->getMessage()]);
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            \Log::error('Invalid request during payment', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return redirect()->back()->withErrors(['error' => 'Invalid request: ' . $e->getMessage()]);
+        } catch (\Laravel\Cashier\Exceptions\IncompletePayment $exception) {
+            \Log::info('Incomplete payment requiring authentication', [
+                'user_id' => $user->id,
+                'payment_id' => $exception->payment->id
+            ]);
             // Redirect to the payment confirmation page if additional authentication is needed
             return redirect()->route(
                 'cashier.payment',
                 [$exception->payment->id, 'redirect' => route('billing.index')]
             );
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+            \Log::error('Error processing payment', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->withErrors(['error' => 'Error processing payment: ' . $e->getMessage()]);
         }
     }
 
@@ -304,19 +356,65 @@ class BillingController extends Controller
             }
             
             // Use Stripe API to get the latest invoice data
-            $stripeInvoices = $user->stripeClient()->invoices->all([
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            $stripeInvoices = $stripe->invoices->all([
                 'customer' => $user->stripe_id,
                 'limit' => 100, // Get a reasonable number of invoices
+                'expand' => ['data.charge', 'data.payment_intent']
             ]);
             
-            // The invoices will be automatically synced by Laravel Cashier
-            // when the user->invoices() method is called
+            // Force a refresh by calling the invoices() method
+            // We'll count the invoices to ensure the method is actually executed
+            $invoiceCount = $user->invoices()->count();
+            
+            \Log::info("Synced {$invoiceCount} invoices for user {$user->id}");
             
         } catch (\Exception $e) {
             \Log::error('Failed to sync invoices from Stripe: ' . $e->getMessage(), [
                 'user_id' => $user->id,
                 'stripe_id' => $user->stripe_id,
             ]);
+        }
+    }
+
+    /**
+     * Diagnostic method to show raw invoice data from Stripe.
+     * This can help debug invoice syncing issues.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function diagnosticInvoices()
+    {
+        $user = Auth::user();
+        
+        try {
+            // Make sure we have a Stripe customer
+            if (!$user->stripe_id) {
+                $user->createAsStripeCustomer();
+            }
+            
+            // Get raw invoice data from Stripe
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            $rawInvoices = $stripe->invoices->all([
+                'customer' => $user->stripe_id,
+                'limit' => 100,
+                'expand' => ['data.charge', 'data.payment_intent']
+            ]);
+            
+            // Get Cashier-processed invoices
+            $cashierInvoices = $user->invoices();
+            
+            return view('billing.diagnostic', [
+                'rawInvoiceData' => $rawInvoices->data,
+                'cashierInvoiceCount' => count($cashierInvoices),
+                'stripeId' => $user->stripe_id
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+                'stripe_id' => $user->stripe_id
+            ], 500);
         }
     }
 }

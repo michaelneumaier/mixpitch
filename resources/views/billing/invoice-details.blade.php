@@ -60,23 +60,23 @@
                         <div class="bg-gray-50 p-4 rounded-md">
                             <div class="flex justify-between mb-2">
                                 <span class="text-gray-700">Subtotal:</span>
-                                <span class="font-medium">${{ number_format($invoice->subtotal() / 100, 2) }}</span>
+                                <span class="font-medium">${{ number_format(floatval($invoice->subtotal()) / 100, 2) }}</span>
                             </div>
                             @if($invoice->tax() > 0)
                             <div class="flex justify-between mb-2">
                                 <span class="text-gray-700">Tax:</span>
-                                <span class="font-medium">${{ number_format($invoice->tax() / 100, 2) }}</span>
+                                <span class="font-medium">${{ number_format(floatval($invoice->tax()) / 100, 2) }}</span>
                             </div>
                             @endif
                             @if($invoice->hasDiscount())
                             <div class="flex justify-between mb-2">
                                 <span class="text-gray-700">Discount:</span>
-                                <span class="font-medium text-green-600">-${{ number_format($invoice->rawDiscount() / 100, 2) }}</span>
+                                <span class="font-medium text-green-600">-${{ number_format(floatval($invoice->rawDiscount()) / 100, 2) }}</span>
                             </div>
                             @endif
                             <div class="flex justify-between pt-2 border-t border-gray-200 mt-2">
                                 <span class="text-gray-800 font-semibold">Total:</span>
-                                <span class="font-bold text-gray-800">${{ number_format($invoice->total() / 100, 2) }}</span>
+                                <span class="font-bold text-gray-800">${{ number_format(floatval($invoice->total()) / 100, 2) }}</span>
                             </div>
                         </div>
                     </div>
@@ -103,10 +103,10 @@
                                                 {{ $item->quantity ?? 1 }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                ${{ number_format(($item->amount / ($item->quantity ?? 1)) / 100, 2) }}
+                                                ${{ number_format(floatval($item->amount) / floatval($item->quantity ?? 1) / 100, 2) }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                ${{ number_format($item->amount / 100, 2) }}
+                                                ${{ number_format(floatval($item->amount) / 100, 2) }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -122,11 +122,36 @@
                                 <h5 class="text-sm font-medium text-gray-700 mb-2">Payment Method</h5>
                                 <div class="bg-gray-50 p-4 rounded-md">
                                     @php
-                                        $charge = $invoice->charge();
-                                        $paymentMethod = $charge ? $charge->payment_method_details : null;
+                                        $stripeInvoice = null;
+                                        $paymentMethod = null;
+                                        
+                                        try {
+                                            $stripeInvoice = $invoice->asStripeInvoice();
+                                            
+                                            // Only proceed if this invoice has been paid
+                                            if ($invoice->paid) {
+                                                $paymentIntent = $stripeInvoice->payment_intent ?? null;
+                                                
+                                                if (is_string($paymentIntent)) {
+                                                    // If payment_intent is a string (ID), retrieve the object
+                                                    $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+                                                    $paymentIntent = $stripe->paymentIntents->retrieve($paymentIntent);
+                                                    
+                                                    if (isset($paymentIntent->payment_method)) {
+                                                        $paymentMethod = $stripe->paymentMethods->retrieve($paymentIntent->payment_method);
+                                                    }
+                                                } elseif (is_object($paymentIntent) && isset($paymentIntent->payment_method)) {
+                                                    // If payment_intent is already an object
+                                                    $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+                                                    $paymentMethod = $stripe->paymentMethods->retrieve($paymentIntent->payment_method);
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            // Silently handle the error
+                                        }
                                     @endphp
 
-                                    @if($paymentMethod && $paymentMethod->card)
+                                    @if($paymentMethod && isset($paymentMethod->card))
                                         <div class="flex items-center">
                                             <div>
                                                 @php
@@ -159,22 +184,28 @@
                                 <h5 class="text-sm font-medium text-gray-700 mb-2">Billing Details</h5>
                                 <div class="bg-gray-50 p-4 rounded-md">
                                     @php
-                                        $customer = $invoice->customer();
+                                        try {
+                                            $stripeInvoice = $invoice->asStripeInvoice();
+                                            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+                                            $customer = $stripe->customers->retrieve($stripeInvoice->customer);
+                                        } catch (\Exception $e) {
+                                            $customer = null;
+                                        }
                                     @endphp
                                     @if($customer)
                                         <p class="text-gray-700">{{ $customer->name }}</p>
                                         <p class="text-gray-700">{{ $customer->email }}</p>
-                                        @if($customer->address)
-                                            <p class="text-gray-700 mt-2">{{ $customer->address->line1 }}</p>
-                                            @if($customer->address->line2)
+                                        @if(isset($customer->address) && !empty($customer->address))
+                                            <p class="text-gray-700 mt-2">{{ $customer->address->line1 ?? '' }}</p>
+                                            @if(isset($customer->address->line2) && !empty($customer->address->line2))
                                                 <p class="text-gray-700">{{ $customer->address->line2 }}</p>
                                             @endif
                                             <p class="text-gray-700">
-                                                {{ $customer->address->city }}, 
-                                                {{ $customer->address->state }} 
-                                                {{ $customer->address->postal_code }}
+                                                {{ isset($customer->address->city) ? $customer->address->city . ', ' : '' }}
+                                                {{ isset($customer->address->state) ? $customer->address->state . ' ' : '' }} 
+                                                {{ $customer->address->postal_code ?? '' }}
                                             </p>
-                                            <p class="text-gray-700">{{ $customer->address->country }}</p>
+                                            <p class="text-gray-700">{{ $customer->address->country ?? '' }}</p>
                                         @endif
                                     @else
                                         <p class="text-gray-700">Billing details not available</p>
