@@ -32,18 +32,27 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-33d38dfa.css",
+    "file": "assets/app-e465749f.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-9800387d.css",
+    "file": "assets/theme-f6cebab8.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
   "resources/js/app.js": {
-    "file": "assets/app-4194c1ba.js",
+    "dynamicImports": [
+      "resources/js/filament/billing/stripe-handler.js"
+    ],
+    "file": "assets/app-5e9a229c.js",
     "isEntry": true,
     "src": "resources/js/app.js"
+  },
+  "resources/js/filament/billing/stripe-handler.js": {
+    "file": "assets/stripe-handler-9538a51a.js",
+    "isDynamicEntry": true,
+    "isEntry": true,
+    "src": "resources/js/filament/billing/stripe-handler.js"
   }
 }

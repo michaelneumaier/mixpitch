@@ -6,8 +6,9 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/app.css',
-                'resources/js/app.js',
                 'resources/css/filament/admin/theme.css',
+                'resources/js/app.js',
+                'resources/js/filament/billing/stripe-handler.js',
             ],
             refresh: [
                 ...refreshPaths,

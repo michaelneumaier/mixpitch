@@ -503,3 +503,17 @@ Route::get('/check-s3-config', function () {
         'aws_sdk_version' => \Composer\InstalledVersions::getVersion('aws/aws-sdk-php'),
     ];
 });
+
+// Billing routes
+Route::get('/billing/download-invoice/{invoice}', [App\Http\Controllers\Billing\BillingController::class, 'downloadInvoice'])->name('billing.invoice.download');
+
+// Admin Billing Routes
+Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('admin/billing')->name('filament.admin.resources.users.')->group(function () {
+    Route::post('/{record}/create-stripe-customer', [App\Http\Controllers\Billing\AdminBillingController::class, 'createStripeCustomer'])->name('create-stripe-customer');
+    Route::get('/stats', function() {
+        return response()->json([
+            'success' => true,
+            'stats' => \App\Filament\Plugins\Billing\Widgets\RevenueOverviewWidget::getOverviewStats()
+        ]);
+    })->name('stats');
+});
