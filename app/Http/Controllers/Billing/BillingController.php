@@ -9,6 +9,7 @@ use Laravel\Cashier\Exceptions\IncompletePayment;
 use Stripe\Exception\CardException;
 use Stripe\PaymentIntent;
 use Stripe\Stripe;
+use App\Filament\Plugins\Billing\Pages\BillingDashboard;
 
 class BillingController extends Controller
 {
@@ -269,10 +270,27 @@ class BillingController extends Controller
      */
     public function downloadInvoice($invoiceId)
     {
-        return Auth::user()->downloadInvoice($invoiceId, [
-            'vendor' => config('app.name'),
-            'product' => 'Service Payment',
-        ]);
+        $user = auth()->user();
+        
+        try {
+            // Find the invoice using Cashier
+            $invoice = $user->findInvoice($invoiceId);
+            
+            if (!$invoice) {
+                // Redirect to the dashboard URL with an error message
+                return redirect(BillingDashboard::getUrl())
+                    ->with('error', 'Invoice not found');
+            }
+            
+            return $invoice->download([
+                'vendor' => config('app.name'),
+                'product' => 'Subscription',
+            ]);
+        } catch (\Exception $e) {
+            // Redirect to the dashboard URL with an error message
+            return redirect(BillingDashboard::getUrl())
+                ->with('error', 'Failed to download invoice: ' . $e->getMessage());
+        }
     }
 
     /**

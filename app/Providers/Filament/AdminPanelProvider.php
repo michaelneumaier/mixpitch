@@ -38,6 +38,7 @@ use App\Filament\Resources\EmailTestResource;
 use App\Filament\Resources\EmailAuditResource;
 use App\Filament\Pages\EmailAuditPage;
 use App\Filament\Pages\EmailSuppressionPage;
+use App\Filament\Plugins\BillingPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -116,6 +117,9 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
             ->globalSearch()
-            ->viteTheme('resources/css/filament/admin/theme.css');
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->plugins([
+                BillingPlugin::make(),
+            ]);
     }
 }

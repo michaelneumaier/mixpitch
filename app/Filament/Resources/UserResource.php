@@ -326,6 +326,26 @@ class UserResource extends Resource
             'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
+            'invoices' => Pages\UserInvoices::route('/{record}/invoices'),
+            'payment' => Pages\UserPayment::route('/{record}/payment'),
+        ];
+    }
+
+    public static function getTableActions(): array
+    {
+        return [
+            Tables\Actions\ViewAction::make(),
+            Tables\Actions\EditAction::make(),
+            Tables\Actions\Action::make('invoices')
+                ->label('Invoices')
+                ->icon('heroicon-o-document-text')
+                ->url(fn (User $record): string => static::getUrl('invoices', ['record' => $record]))
+                ->color('info'),
+            Tables\Actions\Action::make('payment')
+                ->label('Process Payment')
+                ->icon('heroicon-o-credit-card')
+                ->url(fn (User $record): string => static::getUrl('payment', ['record' => $record]))
+                ->color('success'),
         ];
     }
 }
