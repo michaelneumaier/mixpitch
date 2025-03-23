@@ -146,6 +146,9 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('billing')->name('billin
     Route::get('/test-invoice', [App\Http\Controllers\Billing\BillingController::class, 'testInvoiceCreation'])->name('test.invoice');
 });
 
+// Add a route alias for /billing that redirects to the billing index
+Route::get('/billing', [App\Http\Controllers\Billing\BillingController::class, 'index'])->middleware(['auth:sanctum', 'verified'])->name('billing');
+
 // Stripe Webhook Route
 Route::post('/stripe/webhook', [App\Http\Controllers\Billing\WebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 
