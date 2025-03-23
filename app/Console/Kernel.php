@@ -39,11 +39,5 @@ class Kernel extends ConsoleKernel
         $this->load(__DIR__.'/Commands');
 
         require base_path('routes/console.php');
-        
-        // Register additional commands that need special handling
-        $this->commands([
-            \App\Console\Commands\SyncStripeInvoices::class,
-            \App\Console\Commands\StripePaymentDebug::class,
-        ]);
     }
 }

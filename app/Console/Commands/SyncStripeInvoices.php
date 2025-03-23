@@ -44,63 +44,13 @@ class SyncStripeInvoices extends Command
                 return 1;
             }
             
-            $this->info("Syncing invoices for user {$user->name} (ID: {$user->id})...");
-            
-            try {
-                $result = $this->syncUserInvoices($user);
-                
-                if ($result['success']) {
-                    $this->info("Successfully synced invoices for user {$user->name}");
-                    $this->table(
-                        ['Metric', 'Value'],
-                        [
-                            ['Total Charges', $result['results']['charges']],
-                            ['Total Invoices', $result['results']['invoices']],
-                            ['Orphaned Charges', $result['results']['orphaned_charges']],
-                            ['New Invoices Created', $result['results']['new_invoices']],
-                            ['Payment Intents', $result['results']['payment_intents']],
-                        ]
-                    );
-                    
-                    // List the actual invoices
-                    $this->info("Listing invoices for user {$user->name}:");
-                    $invoices = $user->invoices();
-                    
-                    if (count($invoices) > 0) {
-                        $invoiceData = [];
-                        foreach ($invoices as $invoice) {
-                            $invoiceData[] = [
-                                $invoice->id,
-                                $invoice->number ?? 'N/A',
-                                '$' . number_format($invoice->total() / 100, 2),
-                                $invoice->date()->format('Y-m-d'),
-                                $invoice->paid ? 'Paid' : 'Unpaid'
-                            ];
-                        }
-                        
-                        $this->table(
-                            ['ID', 'Number', 'Amount', 'Date', 'Status'],
-                            $invoiceData
-                        );
-                    } else {
-                        $this->warn("No invoices found for this user.");
-                    }
-                } else {
-                    $this->error("Failed to sync invoices: " . ($result['reason'] ?? 'Unknown error'));
-                }
-            } catch (\Exception $e) {
-                $this->error("Error syncing invoices: " . $e->getMessage());
-                return 1;
-            }
+            $this->syncUserInvoices($user);
+            $this->info("Invoices synced for user {$user->name} (ID: {$user->id})");
         } else {
             // Sync for all users with a Stripe ID
             $users = User::whereNotNull('stripe_id')->get();
             $total = $users->count();
             $processed = 0;
-            $successCount = 0;
-            $totalInvoices = 0;
-            $totalCharges = 0;
-            $newInvoicesCreated = 0;
             
             if ($total === 0) {
                 $this->info('No users with Stripe IDs found.');
@@ -113,15 +63,8 @@ class SyncStripeInvoices extends Command
             
             foreach ($users as $user) {
                 try {
-                    $result = $this->syncUserInvoices($user);
+                    $this->syncUserInvoices($user);
                     $processed++;
-                    
-                    if ($result['success']) {
-                        $successCount++;
-                        $totalInvoices += $result['results']['invoices'];
-                        $totalCharges += $result['results']['charges'];
-                        $newInvoicesCreated += $result['results']['new_invoices'];
-                    }
                 } catch (\Exception $e) {
                     Log::error("Error syncing invoices for user {$user->id}: {$e->getMessage()}");
                 }
@@ -130,19 +73,8 @@ class SyncStripeInvoices extends Command
             }
             
             $progress->finish();
-            $this->newLine(2);
-            
-            $this->info("Completed: Synced invoices for {$successCount} out of {$total} users.");
-            $this->table(
-                ['Metric', 'Value'],
-                [
-                    ['Users Processed', $processed],
-                    ['Users Successfully Synced', $successCount],
-                    ['Total Invoices Found', $totalInvoices],
-                    ['Total Charges Found', $totalCharges],
-                    ['New Invoices Created', $newInvoicesCreated],
-                ]
-            );
+            $this->newLine();
+            $this->info("Completed: Synced invoices for {$processed} out of {$total} users.");
         }
         
         return 0;
@@ -152,108 +84,31 @@ class SyncStripeInvoices extends Command
      * Sync invoices for a specific user
      *
      * @param User $user
-     * @return array
+     * @return void
      */
     protected function syncUserInvoices(User $user)
     {
         if (!$user->stripe_id) {
-            return ['success' => false, 'reason' => 'no_stripe_id'];
+            return;
         }
         
         try {
-            $results = [
-                'charges' => 0,
-                'invoices' => 0,
-                'orphaned_charges' => 0,
-                'new_invoices' => 0
-            ];
-            
-            // 1. Sync charges first
-            $charges = $user->stripeClient()->charges->all([
-                'customer' => $user->stripe_id,
-                'limit' => 100,
-            ]);
-            
-            $results['charges'] = count($charges->data);
-            
-            // Track orphaned charges (successful charges without invoices)
-            foreach ($charges->data as $charge) {
-                if (!empty($charge->invoice) || $charge->status !== 'succeeded') {
-                    continue;
-                }
-                
-                $results['orphaned_charges']++;
-                
-                try {
-                    // Create invoice item
-                    $user->stripeClient()->invoiceItems->create([
-                        'customer' => $user->stripe_id,
-                        'amount' => $charge->amount,
-                        'currency' => $charge->currency,
-                        'description' => $charge->description ?? 'Charge ' . $charge->id,
-                    ]);
-                    
-                    // Create and finalize the invoice
-                    $invoice = $user->stripeClient()->invoices->create([
-                        'customer' => $user->stripe_id,
-                        'auto_advance' => true,
-                    ]);
-                    
-                    // Mark it as paid from this charge
-                    $user->stripeClient()->invoices->pay($invoice->id, [
-                        'paid_out_of_band' => true,
-                    ]);
-                    
-                    $results['new_invoices']++;
-                    
-                    Log::info('Created invoice for orphaned charge', [
-                        'user_id' => $user->id,
-                        'charge_id' => $charge->id,
-                        'invoice_id' => $invoice->id,
-                    ]);
-                } catch (\Exception $e) {
-                    Log::warning('Failed to create invoice for charge: ' . $e->getMessage(), [
-                        'user_id' => $user->id,
-                        'charge_id' => $charge->id,
-                    ]);
-                }
-            }
-            
-            // 2. Get all invoices
+            // Use Stripe API to get the latest invoice data
             $stripeInvoices = $user->stripeClient()->invoices->all([
                 'customer' => $user->stripe_id,
-                'limit' => 100,
+                'limit' => 100, // Get a reasonable number of invoices
             ]);
             
-            $results['invoices'] = count($stripeInvoices->data);
+            // Force a refresh of the user's invoices
+            $invoiceCount = count($user->invoices());
             
-            // 3. Force a refresh of the invoice data in Laravel Cashier
-            $invoices = $user->invoices(true); // Pass true to force refresh
-            
-            // 4. Check for payment intents that aren't associated with invoices
-            $paymentIntents = $user->stripeClient()->paymentIntents->all([
-                'customer' => $user->stripe_id,
-                'limit' => 100,
-            ]);
-            
-            $results['payment_intents'] = count($paymentIntents->data);
-            
-            // Log success
-            Log::info('Successfully synced invoices for user', [
-                'user_id' => $user->id,
-                'results' => $results
-            ]);
-            
-            // Return results
+            // Return details
             return [
                 'success' => true,
-                'results' => $results
+                'invoice_count' => $invoiceCount
             ];
         } catch (\Exception $e) {
-            Log::error("Failed to sync invoices from Stripe for user {$user->id}: " . $e->getMessage(), [
-                'exception' => $e
-            ]);
-            
+            Log::error("Failed to sync invoices from Stripe for user {$user->id}: {$e->getMessage()}");
             throw $e;
         }
     }

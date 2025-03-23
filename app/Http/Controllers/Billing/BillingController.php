@@ -128,9 +128,6 @@ class BillingController extends Controller
                 ]
             );
             
-            // Explicitly create an invoice for this payment
-            $this->createInvoiceForPayment($user, $amount, $description, $stripeCharge);
-            
             return redirect()->back()->with('success', 'Payment processed successfully!');
         } catch (IncompletePayment $exception) {
             // Redirect to the payment confirmation page if additional authentication is needed
@@ -140,56 +137,6 @@ class BillingController extends Controller
             );
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => $e->getMessage()]);
-        }
-    }
-    
-    /**
-     * Create an invoice record for a processed payment
-     *
-     * @param \App\Models\User $user
-     * @param int $amount
-     * @param string $description
-     * @param mixed $paymentIntent
-     * @return void
-     */
-    protected function createInvoiceForPayment($user, $amount, $description, $paymentIntent)
-    {
-        try {
-            // Use the Stripe API to create an invoice item
-            $user->stripeClient()->invoiceItems->create([
-                'customer' => $user->stripe_id,
-                'amount' => $amount,
-                'currency' => 'usd',
-                'description' => $description,
-            ]);
-            
-            // Create and finalize the invoice
-            $invoice = $user->stripeClient()->invoices->create([
-                'customer' => $user->stripe_id,
-                'auto_advance' => true, // Auto-finalize the invoice
-            ]);
-            
-            // Mark the invoice as paid with the payment intent
-            if ($paymentIntent && isset($paymentIntent->id)) {
-                $user->stripeClient()->invoices->pay($invoice->id, [
-                    'paid_out_of_band' => false,
-                    'payment_method' => $paymentIntent->payment_method,
-                ]);
-            }
-            
-            // Log the successful invoice creation
-            \Log::info('Invoice created for payment', [
-                'user_id' => $user->id,
-                'amount' => $amount / 100,
-                'invoice_id' => $invoice->id,
-            ]);
-            
-        } catch (\Exception $e) {
-            // Log any errors but don't interrupt the payment flow
-            \Log::error('Failed to create invoice for payment: ' . $e->getMessage(), [
-                'user_id' => $user->id,
-                'amount' => $amount / 100,
-            ]);
         }
     }
 
@@ -356,92 +303,17 @@ class BillingController extends Controller
                 return; // New customer won't have invoices yet
             }
             
-            // First, sync any charges made to the customer
-            $this->syncStripeCharges($user);
-            
-            // Then get all invoices
+            // Use Stripe API to get the latest invoice data
             $stripeInvoices = $user->stripeClient()->invoices->all([
                 'customer' => $user->stripe_id,
                 'limit' => 100, // Get a reasonable number of invoices
             ]);
             
-            // Force cashier to refresh invoice data
-            $invoices = $user->invoices(true); // Pass true to force refresh from Stripe
-            
-            \Log::info('Synced invoices from Stripe', [
-                'user_id' => $user->id,
-                'invoice_count' => count($invoices),
-            ]);
+            // The invoices will be automatically synced by Laravel Cashier
+            // when the user->invoices() method is called
             
         } catch (\Exception $e) {
             \Log::error('Failed to sync invoices from Stripe: ' . $e->getMessage(), [
-                'user_id' => $user->id,
-                'stripe_id' => $user->stripe_id,
-            ]);
-        }
-    }
-    
-    /**
-     * Sync charges from Stripe that might not be associated with invoices.
-     *
-     * @param  \App\Models\User  $user
-     * @return void
-     */
-    protected function syncStripeCharges($user)
-    {
-        try {
-            // Get all charges for this customer
-            $charges = $user->stripeClient()->charges->all([
-                'customer' => $user->stripe_id,
-                'limit' => 100,
-            ]);
-            
-            // For each charge that doesn't have an invoice, create one
-            foreach ($charges->data as $charge) {
-                // Skip charges that already have an invoice
-                if (!empty($charge->invoice)) {
-                    continue;
-                }
-                
-                // Skip charges that aren't successful
-                if ($charge->status !== 'succeeded') {
-                    continue;
-                }
-                
-                try {
-                    // Create invoice item
-                    $user->stripeClient()->invoiceItems->create([
-                        'customer' => $user->stripe_id,
-                        'amount' => $charge->amount,
-                        'currency' => $charge->currency,
-                        'description' => $charge->description ?? 'Charge ' . $charge->id,
-                    ]);
-                    
-                    // Create and finalize the invoice
-                    $invoice = $user->stripeClient()->invoices->create([
-                        'customer' => $user->stripe_id,
-                        'auto_advance' => true,
-                    ]);
-                    
-                    // Mark it as paid from this charge
-                    $user->stripeClient()->invoices->pay($invoice->id, [
-                        'paid_out_of_band' => true,
-                    ]);
-                    
-                    \Log::info('Created invoice for orphaned charge', [
-                        'user_id' => $user->id,
-                        'charge_id' => $charge->id,
-                        'invoice_id' => $invoice->id,
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to create invoice for charge: ' . $e->getMessage(), [
-                        'user_id' => $user->id,
-                        'charge_id' => $charge->id,
-                    ]);
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Failed to sync charges from Stripe: ' . $e->getMessage(), [
                 'user_id' => $user->id,
                 'stripe_id' => $user->stripe_id,
             ]);
