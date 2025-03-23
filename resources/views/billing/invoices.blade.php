@@ -55,7 +55,7 @@
                                                     {{ $invoice->date()->format('M d, Y') }}
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    ${{ number_format($invoice->total() / 100, 2) }}
+                                                    ${{ number_format(floatval($invoice->total()) / 100, 2) }}
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     @if($invoice->paid)
