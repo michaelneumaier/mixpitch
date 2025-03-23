@@ -60,23 +60,23 @@
                         <div class="bg-gray-50 p-4 rounded-md">
                             <div class="flex justify-between mb-2">
                                 <span class="text-gray-700">Subtotal:</span>
-                                <span class="font-medium">${{ number_format(floatval($invoice->subtotal()) / 100, 2) }}</span>
+                                <span class="font-medium">${{ number_format($stripeInvoice->subtotal / 100, 2) }}</span>
                             </div>
-                            @if($invoice->tax() > 0)
+                            @if($stripeInvoice->tax)
                             <div class="flex justify-between mb-2">
                                 <span class="text-gray-700">Tax:</span>
-                                <span class="font-medium">${{ number_format(floatval($invoice->tax()) / 100, 2) }}</span>
+                                <span class="font-medium">${{ number_format($stripeInvoice->tax / 100, 2) }}</span>
                             </div>
                             @endif
-                            @if($invoice->hasDiscount())
+                            @if(isset($stripeInvoice->discount) && $stripeInvoice->discount)
                             <div class="flex justify-between mb-2">
                                 <span class="text-gray-700">Discount:</span>
-                                <span class="font-medium text-green-600">-${{ number_format(floatval($invoice->rawDiscount()) / 100, 2) }}</span>
+                                <span class="font-medium text-green-600">-${{ number_format(abs($stripeInvoice->discount->amount ?? 0) / 100, 2) }}</span>
                             </div>
                             @endif
                             <div class="flex justify-between pt-2 border-t border-gray-200 mt-2">
                                 <span class="text-gray-800 font-semibold">Total:</span>
-                                <span class="font-bold text-gray-800">${{ number_format(floatval($invoice->total()) / 100, 2) }}</span>
+                                <span class="font-bold text-gray-800">${{ number_format($stripeInvoice->total / 100, 2) }}</span>
                             </div>
                         </div>
                     </div>
@@ -94,19 +94,24 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach($invoice->invoiceItems() as $item)
+                                    @foreach($stripeInvoice->lines->data as $item)
                                         <tr>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ $item->asStripeInvoiceLineItem()->description ?? 'Product or Service' }}
+                                                {{ $item->description ?? 'Product or Service' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {{ $item->quantity ?? 1 }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                ${{ number_format(floatval($item->amount) / floatval($item->quantity ?? 1) / 100, 2) }}
+                                                @php
+                                                    $unitAmount = isset($item->quantity) && $item->quantity > 0 
+                                                        ? $item->amount / $item->quantity 
+                                                        : $item->amount;
+                                                @endphp
+                                                ${{ number_format($unitAmount / 100, 2) }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                ${{ number_format(floatval($item->amount) / 100, 2) }}
+                                                ${{ number_format($item->amount / 100, 2) }}
                                             </td>
                                         </tr>
                                     @endforeach

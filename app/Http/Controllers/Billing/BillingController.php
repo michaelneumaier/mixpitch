@@ -26,14 +26,49 @@ class BillingController extends Controller
             $user->createAsStripeCustomer();
         }
         
-        // Ensure we get the latest invoices from Stripe
-        $this->syncInvoicesFromStripe($user);
+        // Fetch invoices directly from Stripe for more accurate data
+        try {
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            $stripeInvoices = $stripe->invoices->all([
+                'customer' => $user->stripe_id,
+                'limit' => 5, // Show only 5 most recent invoices
+            ]);
+            
+            // Also get Cashier invoices for data we might need from there
+            $cashierInvoices = $user->invoices()->take(5);
+            
+            // Map Stripe invoices to a format we can use in the view
+            $invoices = collect($stripeInvoices->data)->map(function($stripeInvoice) use ($cashierInvoices) {
+                // Find matching Cashier invoice
+                $cashierInvoice = $cashierInvoices->first(function($invoice) use ($stripeInvoice) {
+                    return $invoice->id === $stripeInvoice->id;
+                });
+                
+                return (object)[
+                    'id' => $stripeInvoice->id,
+                    'number' => $stripeInvoice->number,
+                    'date' => \Carbon\Carbon::createFromTimestamp($stripeInvoice->created),
+                    'total' => $stripeInvoice->total,
+                    'paid' => $stripeInvoice->status === 'paid',
+                    'stripe_invoice' => $stripeInvoice,
+                    'cashier_invoice' => $cashierInvoice
+                ];
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error retrieving invoices for billing index', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Fall back to Cashier invoices if there's an error
+            $invoices = $user->invoices()->take(5);
+        }
         
         return view('billing.index', [
             'intent' => $user->createSetupIntent(),
             'hasPaymentMethod' => $user->hasDefaultPaymentMethod(),
             'paymentMethod' => $user->hasDefaultPaymentMethod() ? $user->defaultPaymentMethod() : null,
-            'invoices' => $user->invoices()->take(5), // Show only 5 most recent invoices
+            'invoices' => $invoices,
         ]);
     }
 
@@ -325,7 +360,7 @@ class BillingController extends Controller
     }
 
     /**
-     * Display all invoices for the user.
+     * Show all invoices for the current user.
      *
      * @return \Illuminate\View\View
      */
@@ -338,12 +373,50 @@ class BillingController extends Controller
             $user->createAsStripeCustomer();
         }
         
-        // Ensure we get the latest invoices from Stripe
-        $this->syncInvoicesFromStripe($user);
-        
-        return view('billing.invoices', [
-            'invoices' => $user->invoices(),
-        ]);
+        try {
+            // Get raw invoice data directly from Stripe for more accurate totals
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            $stripeInvoices = $stripe->invoices->all([
+                'customer' => $user->stripe_id,
+                'limit' => 100, // Get a reasonable number of invoices
+            ]);
+            
+            // Also get Cashier invoices for data we might need from there
+            $cashierInvoices = $user->invoices();
+            
+            // Map Stripe invoices to a format we can use in the view
+            $invoices = collect($stripeInvoices->data)->map(function($stripeInvoice) use ($cashierInvoices) {
+                // Find matching Cashier invoice
+                $cashierInvoice = $cashierInvoices->first(function($invoice) use ($stripeInvoice) {
+                    return $invoice->id === $stripeInvoice->id;
+                });
+                
+                return (object)[
+                    'id' => $stripeInvoice->id,
+                    'number' => $stripeInvoice->number,
+                    'date' => \Carbon\Carbon::createFromTimestamp($stripeInvoice->created),
+                    'total' => $stripeInvoice->total,
+                    'paid' => $stripeInvoice->status === 'paid',
+                    'stripe_invoice' => $stripeInvoice,
+                    'cashier_invoice' => $cashierInvoice
+                ];
+            });
+            
+            return view('billing.invoices', [
+                'invoices' => $invoices,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error retrieving invoices', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Fall back to Cashier invoices if there's an error
+            return view('billing.invoices', [
+                'invoices' => $user->invoices(),
+                'error' => 'There was an error fetching some invoice details: ' . $e->getMessage()
+            ]);
+        }
     }
     
     /**
@@ -357,18 +430,32 @@ class BillingController extends Controller
         $user = Auth::user();
         
         try {
-            // Retrieve the specific invoice from Stripe
-            $invoice = $user->findInvoice($invoiceId);
+            // Retrieve the invoice from Cashier first
+            $cashierInvoice = $user->findInvoice($invoiceId);
             
-            if (!$invoice) {
+            if (!$cashierInvoice) {
                 return redirect()->route('billing.invoices')
                     ->withErrors(['error' => 'Invoice not found.']);
             }
             
+            // Also fetch the raw invoice data from Stripe to ensure we have accurate totals
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            $stripeInvoice = $stripe->invoices->retrieve($invoiceId, [
+                'expand' => ['lines.data', 'payment_intent', 'charge']
+            ]);
+            
+            // Pass both the Cashier invoice and Stripe invoice data to the view
             return view('billing.invoice-details', [
-                'invoice' => $invoice,
+                'invoice' => $cashierInvoice,
+                'stripeInvoice' => $stripeInvoice
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error retrieving invoice', [
+                'invoice_id' => $invoiceId,
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
             return redirect()->route('billing.invoices')
                 ->withErrors(['error' => 'Unable to retrieve invoice details: ' . $e->getMessage()]);
         }
@@ -429,25 +516,99 @@ class BillingController extends Controller
             
             // Get raw invoice data from Stripe
             $stripe = new \Stripe\StripeClient(config('cashier.secret'));
-            $rawInvoices = $stripe->invoices->all([
+            $stripeInvoices = $stripe->invoices->all([
                 'customer' => $user->stripe_id,
-                'limit' => 100,
-                'expand' => ['data.charge', 'data.payment_intent']
+                'limit' => 10, // Limit to most recent invoices
+                'expand' => ['data.lines.data', 'data.payment_intent']
             ]);
             
-            // Get Cashier-processed invoices
+            // Get Cashier invoice data for comparison
             $cashierInvoices = $user->invoices();
             
-            return view('billing.diagnostic', [
-                'rawInvoiceData' => $rawInvoices->data,
-                'cashierInvoiceCount' => count($cashierInvoices),
-                'stripeId' => $user->stripe_id
-            ]);
+            $diagnosticData = [
+                'stripe_customer_id' => $user->stripe_id,
+                'stripe_invoices' => [],
+                'cashier_invoices' => []
+            ];
+            
+            // Process Stripe invoice data
+            foreach ($stripeInvoices->data as $invoice) {
+                $invoiceData = [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'created' => date('Y-m-d H:i:s', $invoice->created),
+                    'due_date' => isset($invoice->due_date) ? date('Y-m-d', $invoice->due_date) : null,
+                    'status' => $invoice->status,
+                    'amount_due' => $invoice->amount_due,
+                    'amount_due_dollars' => number_format($invoice->amount_due / 100, 2),
+                    'amount_paid' => $invoice->amount_paid,
+                    'amount_paid_dollars' => number_format($invoice->amount_paid / 100, 2),
+                    'total' => $invoice->total,
+                    'total_dollars' => number_format($invoice->total / 100, 2),
+                    'subtotal' => $invoice->subtotal,
+                    'subtotal_dollars' => number_format($invoice->subtotal / 100, 2),
+                    'line_items' => []
+                ];
+                
+                // Add line items if available
+                if (isset($invoice->lines) && isset($invoice->lines->data)) {
+                    foreach ($invoice->lines->data as $lineItem) {
+                        $invoiceData['line_items'][] = [
+                            'id' => $lineItem->id,
+                            'description' => $lineItem->description,
+                            'amount' => $lineItem->amount,
+                            'amount_dollars' => number_format($lineItem->amount / 100, 2),
+                            'currency' => $lineItem->currency,
+                            'quantity' => $lineItem->quantity,
+                            'type' => $lineItem->type
+                        ];
+                    }
+                }
+                
+                $diagnosticData['stripe_invoices'][] = $invoiceData;
+            }
+            
+            // Process Cashier invoice data
+            foreach ($cashierInvoices as $invoice) {
+                $invoiceData = [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'date' => $invoice->date()->format('Y-m-d H:i:s'),
+                    'status' => $invoice->status(), // "paid", "open", etc
+                    'subtotal' => $invoice->subtotal(),
+                    'subtotal_dollars' => number_format($invoice->subtotal() / 100, 2),
+                    'tax' => $invoice->tax(),
+                    'tax_dollars' => number_format($invoice->tax() / 100, 2),
+                    'total' => $invoice->total(),
+                    'total_dollars' => number_format($invoice->total() / 100, 2),
+                    'raw_invoice' => json_encode($invoice),
+                    'invoice_items' => []
+                ];
+                
+                try {
+                    // Try to get invoice items if available
+                    foreach ($invoice->invoiceItems() as $item) {
+                        $invoiceData['invoice_items'][] = [
+                            'id' => $item->id,
+                            'description' => $item->description,
+                            'amount' => $item->amount,
+                            'amount_dollars' => number_format($item->amount / 100, 2),
+                            'currency' => $item->currency,
+                            'quantity' => $item->quantity ?? 1,
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    $invoiceData['invoice_items_error'] = $e->getMessage();
+                }
+                
+                $diagnosticData['cashier_invoices'][] = $invoiceData;
+            }
+            
+            return response()->json($diagnosticData);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
-                'user_id' => $user->id,
-                'stripe_id' => $user->stripe_id
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }

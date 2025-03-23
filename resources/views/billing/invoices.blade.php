@@ -52,10 +52,14 @@
                                                     {{ $invoice->number ?? $invoice->id }}
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {{ $invoice->date()->format('M d, Y') }}
+                                                    {{ $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('M d, Y') : date('M d, Y', strtotime($invoice->date)) }}
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    ${{ number_format(floatval($invoice->total()) / 100, 2) }}
+                                                    @if(isset($invoice->stripe_invoice))
+                                                        ${{ number_format($invoice->total / 100, 2) }}
+                                                    @else
+                                                        ${{ number_format(floatval($invoice->total()) / 100, 2) }}
+                                                    @endif
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     @if($invoice->paid)
