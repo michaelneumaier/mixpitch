@@ -102,9 +102,14 @@ class BillingController extends Controller
     public function processPayment(Request $request)
     {
         $user = Auth::user();
-        $amount = $request->input('amount') * 100; // Convert to cents
+        $amount = floatval($request->input('amount')) * 100; // Convert to cents and ensure it's a number
         $description = $request->input('description', 'Payment for services');
         $paymentMethod = $request->input('payment_method');
+
+        // Validate amount
+        if ($amount <= 0) {
+            return redirect()->back()->withErrors(['error' => 'Please enter a valid amount greater than zero.']);
+        }
 
         // Validate payment method
         if (empty($paymentMethod)) {
@@ -120,24 +125,44 @@ class BillingController extends Controller
             // First create a Stripe Invoice
             $stripe = new \Stripe\StripeClient(config('cashier.secret'));
             
-            // First create an invoice item
-            $invoiceItem = $stripe->invoiceItems->create([
-                'customer' => $user->stripe_id,
+            // Log the amount we're about to charge
+            \Log::info('Creating invoice with amount', [
                 'amount' => $amount,
-                'currency' => 'usd',
-                'description' => $description,
+                'amount_dollars' => $amount / 100,
+                'user_id' => $user->id,
+                'payment_method' => $paymentMethod
             ]);
             
-            // Create the invoice
+            // First create the invoice
             $invoice = $stripe->invoices->create([
                 'customer' => $user->stripe_id,
-                'auto_advance' => true, // auto-finalize the invoice
+                'auto_advance' => false, // Don't auto-finalize yet
                 'description' => $description,
                 'collection_method' => 'charge_automatically',
                 'metadata' => [
                     'source' => 'one_time_payment',
-                    'user_id' => $user->id
+                    'user_id' => $user->id,
+                    'amount' => $amount
                 ]
+            ]);
+            
+            // Then create an invoice item attached to the invoice
+            $invoiceItem = $stripe->invoiceItems->create([
+                'customer' => $user->stripe_id,
+                'amount' => (int)$amount, // Ensure amount is an integer
+                'currency' => 'usd',
+                'description' => $description,
+                'invoice' => $invoice->id, // Attach to the invoice we just created
+            ]);
+            
+            // Finalize the invoice
+            $invoice = $stripe->invoices->finalizeInvoice($invoice->id);
+            
+            // Log the invoice before payment
+            \Log::info('Invoice finalized, about to pay', [
+                'invoice_id' => $invoice->id,
+                'invoice_total' => $invoice->total,
+                'invoice_amount_due' => $invoice->amount_due
             ]);
             
             // Pay the invoice using the specified payment method
@@ -151,31 +176,39 @@ class BillingController extends Controller
                 'user_id' => $user->id,
                 'invoice_id' => $invoice->id,
                 'amount' => $amount,
-                'description' => $description
+                'description' => $description,
+                'payment_result' => [
+                    'status' => $payResult->status,
+                    'total' => $payResult->total,
+                    'amount_paid' => $payResult->amount_paid
+                ]
             ]);
             
             // Refresh the user's invoices from Stripe
             $this->syncInvoicesFromStripe($user);
             
-            return redirect()->back()->with('success', 'Payment processed successfully!');
+            return redirect()->back()->with('success', 'Payment of $' . number_format($amount / 100, 2) . ' processed successfully!');
         } catch (\Stripe\Exception\CardException $e) {
             \Log::error('Card error during payment', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
+                'amount' => $amount
             ]);
             return redirect()->back()->withErrors(['error' => 'Card error: ' . $e->getMessage()]);
         } catch (\Stripe\Exception\InvalidRequestException $e) {
             \Log::error('Invalid request during payment', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
+                'amount' => $amount
             ]);
             return redirect()->back()->withErrors(['error' => 'Invalid request: ' . $e->getMessage()]);
         } catch (\Laravel\Cashier\Exceptions\IncompletePayment $exception) {
             \Log::info('Incomplete payment requiring authentication', [
                 'user_id' => $user->id,
-                'payment_id' => $exception->payment->id
+                'payment_id' => $exception->payment->id,
+                'amount' => $amount
             ]);
             // Redirect to the payment confirmation page if additional authentication is needed
             return redirect()->route(
@@ -186,7 +219,8 @@ class BillingController extends Controller
             \Log::error('Error processing payment', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'amount' => $amount
             ]);
             return redirect()->back()->withErrors(['error' => 'Error processing payment: ' . $e->getMessage()]);
         }
@@ -415,6 +449,68 @@ class BillingController extends Controller
                 'user_id' => $user->id,
                 'stripe_id' => $user->stripe_id
             ], 500);
+        }
+    }
+
+    /**
+     * Debug method to test invoice creation directly
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function testInvoiceCreation(Request $request)
+    {
+        $user = Auth::user();
+        $amount = 1000; // $10.00
+        
+        try {
+            // Create Stripe customer if one doesn't exist yet
+            if (!$user->stripe_id) {
+                $user->createAsStripeCustomer();
+            }
+            
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            
+            // Create test invoice first
+            $invoice = $stripe->invoices->create([
+                'customer' => $user->stripe_id,
+                'auto_advance' => false, // Don't auto-finalize yet
+                'collection_method' => 'send_invoice',
+                'days_until_due' => 30,
+                'description' => 'Test Invoice',
+            ]);
+            
+            // Create test invoice item attached to the invoice
+            $invoiceItem = $stripe->invoiceItems->create([
+                'customer' => $user->stripe_id,
+                'amount' => $amount,
+                'currency' => 'usd',
+                'description' => 'Test Invoice Item',
+                'invoice' => $invoice->id, // Attach to the invoice
+            ]);
+            
+            // Now finalize the invoice
+            $finalizedInvoice = $stripe->invoices->finalizeInvoice($invoice->id);
+            
+            // Get the Stripe invoice directly to check
+            $retrievedInvoice = $stripe->invoices->retrieve($invoice->id, [
+                'expand' => ['lines.data']
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'invoice_item' => $invoiceItem,
+                'invoice' => $invoice,
+                'finalized_invoice' => $finalizedInvoice,
+                'retrieved_invoice' => $retrievedInvoice,
+                'message' => 'Test invoice created successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 }

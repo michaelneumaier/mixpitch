@@ -141,6 +141,9 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('billing')->name('billin
     
     // Diagnostic route for troubleshooting
     Route::get('/diagnostic', [App\Http\Controllers\Billing\BillingController::class, 'diagnosticInvoices'])->name('diagnostic');
+    
+    // Debug route for testing invoice creation
+    Route::get('/test-invoice', [App\Http\Controllers\Billing\BillingController::class, 'testInvoiceCreation'])->name('test.invoice');
 });
 
 // Stripe Webhook Route
