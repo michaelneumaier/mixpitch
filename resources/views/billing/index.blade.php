@@ -109,11 +109,12 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
-                                    <input type="number" step="0.01" min="1" id="amount" name="amount" class="w-full p-2 border border-gray-300 rounded-md" required>
+                                    <input type="number" step="0.01" min="1" id="amount" name="amount" class="w-full p-2 border border-gray-300 rounded-md" required value="{{ old('amount') }}">
+                                    <p class="text-xs text-gray-500 mt-1">Please enter a valid amount (minimum $1.00)</p>
                                 </div>
                                 <div>
                                     <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <input type="text" id="description" name="description" class="w-full p-2 border border-gray-300 rounded-md" placeholder="What is this payment for?">
+                                    <input type="text" id="description" name="description" class="w-full p-2 border border-gray-300 rounded-md" placeholder="What is this payment for?" value="{{ old('description') }}">
                                 </div>
                             </div>
                             
