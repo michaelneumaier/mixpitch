@@ -124,6 +124,25 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.username');
 });
 
+// Billing Routes
+Route::middleware(['auth:sanctum', 'verified'])->prefix('billing')->name('billing.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Billing\BillingController::class, 'index'])->name('index');
+    Route::post('/payment-method', [App\Http\Controllers\Billing\BillingController::class, 'updatePaymentMethod'])->name('payment.update');
+    Route::delete('/payment-method', [App\Http\Controllers\Billing\BillingController::class, 'removePaymentMethod'])->name('payment.remove');
+    Route::post('/payment', [App\Http\Controllers\Billing\BillingController::class, 'processPayment'])->name('payment.process');
+    Route::get('/invoice/{invoice}', [App\Http\Controllers\Billing\BillingController::class, 'downloadInvoice'])->name('invoice.download');
+    Route::get('/portal', [App\Http\Controllers\Billing\BillingController::class, 'customerPortal'])->name('portal');
+    Route::get('/checkout', [App\Http\Controllers\Billing\BillingController::class, 'checkout'])->name('checkout');
+    Route::get('/payment-methods', [App\Http\Controllers\Billing\BillingController::class, 'managePaymentMethods'])->name('payment-methods');
+    
+    // New invoice routes
+    Route::get('/invoices', [App\Http\Controllers\Billing\BillingController::class, 'invoices'])->name('invoices');
+    Route::get('/invoices/{invoice}', [App\Http\Controllers\Billing\BillingController::class, 'showInvoice'])->name('invoice.show');
+});
+
+// Stripe Webhook Route
+Route::post('/stripe/webhook', [App\Http\Controllers\Billing\WebhookController::class, 'handleWebhook'])->name('cashier.webhook');
+
 // Social Authentication Routes
 Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialiteController::class, 'redirect'])->name('socialite.redirect');
 Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteController::class, 'callback'])->name('socialite.callback');

@@ -404,6 +404,12 @@
                                             <div class="min-w-0">
                                                 <div class="font-bold truncate text-sm sm:text-base">
                                                     <x-user-link :user="$pitch->user" />
+                                                    @if($pitch->user->tipjar_link)
+                                                    <a href="{{ $pitch->user->tipjar_link }}" target="_blank"
+                                                       class="ml-2 text-xs inline-flex items-center justify-center px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded transition-colors">
+                                                       <i class="fas fa-donate mr-1"></i>TIP
+                                                    </a>
+                                                    @endif
                                                 </div>
                                                 <div class="text-xs sm:text-sm text-gray-600 truncate">
                                                     Submitted {{ $pitch->created_at->diffForHumans() }}

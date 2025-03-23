@@ -101,6 +101,13 @@
                                 <i class="fab fa-youtube text-2xl"></i>
                             </a>
                             @endif
+                            
+                            @if($user->tipjar_link)
+                            <a href="{{ $user->tipjar_link }}" target="_blank"
+                                class="text-green-600 hover:text-green-700 transition-colors" title="Support {{ $user->name }}">
+                                <i class="fas fa-donate text-2xl"></i>
+                            </a>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -116,6 +123,16 @@
                         <div class="prose max-w-none">
                             <p class="text-gray-600 whitespace-pre-line">{{ $user->bio }}</p>
                         </div>
+                        
+                        <!-- Added Tipjar section when bio exists -->
+                        @if($user->tipjar_link)
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <a href="{{ $user->tipjar_link }}" target="_blank"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors">
+                                <i class="fas fa-donate mr-2"></i> Support {{ $user->name }}
+                            </a>
+                        </div>
+                        @endif
                     </div>
                     @endif
 

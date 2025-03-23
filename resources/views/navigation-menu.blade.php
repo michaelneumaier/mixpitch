@@ -127,6 +127,10 @@ use Filament\Panel;
                                 </x-dropdown-link>
                             @endif
 
+                            <x-dropdown-link href="{{ route('billing.index') }}">
+                                {{ __('Billing & Payments') }}
+                            </x-dropdown-link>
+
                             <div class="border-t border-gray-200 dark:border-gray-600"></div>
 
                             <!-- Authentication -->
@@ -205,6 +209,10 @@ use Filament\Panel;
                         {{ __('API Tokens') }}
                     </x-responsive-nav-link>
                 @endif
+
+                <x-responsive-nav-link href="{{ route('billing.index') }}" :active="request()->routeIs('billing.index')">
+                    {{ __('Billing & Payments') }}
+                </x-responsive-nav-link>
 
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}" x-data>

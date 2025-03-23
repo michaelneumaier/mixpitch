@@ -20,6 +20,7 @@ class UserProfileEdit extends Component
     public $bio;
     public $location;
     public $website;
+    public $tipjar_link;
     public $skills = [];
     public $equipment = [];
     public $specialties = [];
@@ -56,6 +57,7 @@ class UserProfileEdit extends Component
             'bio' => 'nullable|string|max:5000',
             'location' => 'nullable|string|max:255',
             'website' => 'nullable|string|max:255',
+            'tipjar_link' => 'nullable|string|max:255|allowed_tipjar_domain',
             'profilePhoto' => 'nullable|image|max:1024',
             'skills' => 'nullable|array',
             'skills.*' => 'nullable|string|max:50',
@@ -78,6 +80,7 @@ class UserProfileEdit extends Component
         'username.alpha_dash' => 'Username can only contain letters, numbers, dashes and underscores.',
         'social_links.*.max' => 'Social media handle is too long.',
         'website' => 'Please enter a valid URL (e.g., example.com)',
+        'tipjar_link.allowed_tipjar_domain' => 'The tipjar link must be from an approved service like PayPal.me, Ko-fi, etc.',
         'profilePhoto.image' => 'The profile photo must be an image file.',
         'profilePhoto.max' => 'The profile photo must not be larger than 1MB.',
     ];
@@ -92,6 +95,7 @@ class UserProfileEdit extends Component
         $this->bio = $user->bio;
         $this->location = $user->location;
         $this->website = $user->website;
+        $this->tipjar_link = $user->tipjar_link;
         $this->skills = $user->skills ?? [];
         $this->equipment = $user->equipment ?? [];
         $this->specialties = $user->specialties ?? [];
@@ -227,6 +231,11 @@ class UserProfileEdit extends Component
             $this->website = "http://" . $this->website;
         }
 
+        // Prepend http:// to tipjar link if it doesn't have a protocol
+        if (!empty($this->tipjar_link) && !preg_match("~^(?:f|ht)tps?://~i", $this->tipjar_link)) {
+            $this->tipjar_link = "https://" . $this->tipjar_link;
+        }
+
         // Update user model with validated data
         $user->name = $this->name;
         $user->email = $this->email;
@@ -235,6 +244,7 @@ class UserProfileEdit extends Component
         $user->bio = $this->bio;
         $user->location = $this->location;
         $user->website = $this->website;
+        $user->tipjar_link = $this->tipjar_link;
         $user->skills = $skills;
         $user->equipment = $equipment;
         $user->specialties = $specialties;

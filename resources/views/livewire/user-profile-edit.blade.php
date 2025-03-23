@@ -185,6 +185,22 @@
                     </p>
                     @error('website') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                 </div>
+                
+                <!-- Tipjar Link -->
+                <div>
+                    <label for="tipjar_link" class="block text-sm font-medium text-gray-700">
+                        Tip Jar Link
+                    </label>
+                    <div class="mt-1">
+                        <input type="text" wire:model="tipjar_link" id="tipjar_link" 
+                               class="shadow-sm block w-full border-gray-300 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 rounded-md"
+                               placeholder="paypal.me/yourusername">
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Supported services: PayPal.me, Ko-fi, Buy Me A Coffee, Patreon, Venmo, CashApp, Stripe, GoFundMe, etc.
+                    </p>
+                    @error('tipjar_link') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                </div>
             </div>
             
             <!-- Professional Skills -->

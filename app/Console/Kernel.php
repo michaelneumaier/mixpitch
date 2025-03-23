@@ -26,6 +26,9 @@ class Kernel extends ConsoleKernel
                 ->daily()
                 ->at('03:00')
                 ->appendOutputTo(storage_path('logs/uploads-cleanup.log'));
+
+        // Sync invoices from Stripe daily to ensure we have the latest data
+        $schedule->command('stripe:sync-invoices --all')->daily();
     }
 
     /**
@@ -36,5 +39,11 @@ class Kernel extends ConsoleKernel
         $this->load(__DIR__.'/Commands');
 
         require base_path('routes/console.php');
+        
+        // Register additional commands that need special handling
+        $this->commands([
+            \App\Console\Commands\SyncStripeInvoices::class,
+            \App\Console\Commands\StripePaymentDebug::class,
+        ]);
     }
 }

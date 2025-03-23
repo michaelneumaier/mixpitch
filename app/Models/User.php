@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Spatie\Permission\Traits\HasRoles;
+use Laravel\Cashier\Billable;
 
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
@@ -27,6 +28,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     use Notifiable;
     use TwoFactorAuthenticatable;
     use HasRoles;
+    use Billable;
 
     /**
      * The attributes that are mass assignable.
@@ -40,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'username',
         'bio',
         'website',
+        'tipjar_link',
         'location',
         'social_links',
         'username_locked',
