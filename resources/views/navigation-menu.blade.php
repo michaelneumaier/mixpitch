@@ -127,8 +127,8 @@ use Filament\Panel;
                                 </x-dropdown-link>
                             @endif
 
-                            <x-dropdown-link href="{{ route('billing.index') }}">
-                                {{ __('Billing & Payments') }}
+                            <x-dropdown-link href="{{ route('billing') }}">
+                                {{ __('Billing') }}
                             </x-dropdown-link>
 
                             <div class="border-t border-gray-200 dark:border-gray-600"></div>
@@ -210,8 +210,8 @@ use Filament\Panel;
                     </x-responsive-nav-link>
                 @endif
 
-                <x-responsive-nav-link href="{{ route('billing.index') }}" :active="request()->routeIs('billing.index')">
-                    {{ __('Billing & Payments') }}
+                <x-responsive-nav-link href="{{ route('billing') }}" :active="request()->routeIs('billing')">
+                    {{ __('Billing') }}
                 </x-responsive-nav-link>
 
                 <!-- Authentication -->

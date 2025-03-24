@@ -932,4 +932,86 @@ class NotificationService
         
         return $notifications[0] ?? null;
     }
+
+    /**
+     * Notify a user about a payment being processed for their pitch
+     *
+     * @param Pitch $pitch The pitch
+     * @param float $amount Payment amount
+     * @param string $invoiceId Invoice ID
+     * @return Notification|null
+     */
+    public function notifyPaymentProcessed(Pitch $pitch, float $amount, string $invoiceId): ?Notification
+    {
+        // Notify the pitch creator
+        $user = $pitch->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about payment processing: user not found', [
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PAYMENT_PROCESSED,
+                $pitch,
+                [
+                    'amount' => $amount,
+                    'invoice_id' => $invoiceId,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about payment processing', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Notify a user about a payment failure for their pitch
+     *
+     * @param Pitch $pitch The pitch
+     * @param string $error Error message
+     * @return Notification|null
+     */
+    public function notifyPaymentFailed(Pitch $pitch, string $error): ?Notification
+    {
+        // Notify the pitch creator
+        $user = $pitch->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about payment failure: user not found', [
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PAYMENT_FAILED,
+                $pitch,
+                [
+                    'error' => $error,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about payment failure', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            
+            return null;
+        }
+    }
 }

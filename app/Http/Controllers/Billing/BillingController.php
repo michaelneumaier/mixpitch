@@ -65,11 +65,16 @@ class BillingController extends Controller
             $invoices = $user->invoices()->take(5);
         }
         
+        // Check if user has payment method
+        $hasPaymentMethod = $user->hasDefaultPaymentMethod();
+        $paymentMethod = $hasPaymentMethod ? $user->defaultPaymentMethod() : null;
+        
         return view('billing.index', [
-            'intent' => $user->createSetupIntent(),
-            'hasPaymentMethod' => $user->hasDefaultPaymentMethod(),
-            'paymentMethod' => $user->hasDefaultPaymentMethod() ? $user->defaultPaymentMethod() : null,
+            'user' => $user,
             'invoices' => $invoices,
+            'hasPaymentMethod' => $hasPaymentMethod,
+            'paymentMethod' => $paymentMethod,
+            'intent' => $user->createSetupIntent(),
         ]);
     }
 
@@ -91,7 +96,7 @@ class BillingController extends Controller
             
             $user->updateDefaultPaymentMethod($request->payment_method);
             
-            return redirect()->route('billing.index')->with('success', 'Payment method updated successfully!');
+            return redirect()->route('billing')->with('success', 'Payment method updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => $e->getMessage()]);
         }
@@ -249,8 +254,8 @@ class BillingController extends Controller
             // Redirect to the payment confirmation page if additional authentication is needed
             return redirect()->route(
                 'cashier.payment',
-                [$exception->payment->id, 'redirect' => route('billing.index')]
-            );
+                [$exception->payment->id, 'redirect' => route('billing')])
+            ;
         } catch (\Exception $e) {
             \Log::error('Error processing payment', [
                 'user_id' => $user->id,
@@ -308,7 +313,7 @@ class BillingController extends Controller
         }
         
         try {
-            return $user->redirectToBillingPortal(route('billing.index'));
+            return $user->redirectToBillingPortal(route('billing'));
         } catch (\Exception $e) {
             // Log the error
             \Log::error('Stripe Portal Error: ' . $e->getMessage(), [
@@ -326,7 +331,7 @@ class BillingController extends Controller
                 $errorMessage .= $e->getMessage();
             }
             
-            return redirect()->route('billing.index')->withErrors(['error' => $errorMessage]);
+            return redirect()->route('billing')->withErrors(['error' => $errorMessage]);
         }
     }
 

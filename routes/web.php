@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use App\Livewire\LivewireViewFactory;
+use App\Http\Controllers\Admin\StatsController;
+use App\Http\Controllers\Billing\BillingController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +78,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create.project');
     Route::post('/pitches/{pitch}/status', [PitchController::class, 'updateStatus'])->name('pitches.updateStatus');
 
+    // Payment details for a specific pitch
+    Route::get('/pitches/{pitch}/payment', [PitchController::class, 'showPayment'])
+        ->name('pitches.payment')
+        ->middleware(['auth']);
+
     // Special route for pitch deletion to handle the Livewire redirect approach
     Route::get('/pitches/{pitch}/delete-confirmed', [PitchController::class, 'destroyConfirmed'])->name('pitches.destroyConfirmed');
 
@@ -113,6 +122,16 @@ Route::middleware(['auth'])->group(function () {
     // Email testing routes
     Route::get('/email/test', [App\Http\Controllers\EmailController::class, 'showTestForm'])->name('email.test');
     Route::post('/email/test', [App\Http\Controllers\EmailController::class, 'sendTest'])->name('email.test.send');
+
+    // Payment routes
+    Route::get('/pitches/{pitch}/payment/overview', [App\Http\Controllers\PitchPaymentController::class, 'overview'])
+        ->name('pitches.payment.overview');
+    
+    Route::post('/pitches/{pitch}/payment/process', [App\Http\Controllers\PitchPaymentController::class, 'process'])
+        ->name('pitches.payment.process');
+    
+    Route::get('/pitches/{pitch}/payment/receipt', [App\Http\Controllers\PitchPaymentController::class, 'receipt'])
+        ->name('pitches.payment.receipt');
 });
 
 // User Profile Routes
@@ -519,4 +538,13 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('a
             'stats' => \App\Filament\Plugins\Billing\Widgets\RevenueOverviewWidget::getOverviewStats()
         ]);
     })->name('stats');
+});
+
+// Pitch routes
+Route::prefix('pitches')->name('pitches.')->middleware(['auth'])->group(function () {
+    Route::get('/', [PitchController::class, 'index'])->name('index');
+    Route::get('/create/{project}', [PitchController::class, 'create'])->name('create');
+    Route::get('/{pitch}', [PitchController::class, 'show'])->name('show');
+    Route::get('/{pitch}/edit', [PitchController::class, 'edit'])->name('edit');
+    Route::get('/{pitch}/payment', [PitchController::class, 'payment'])->name('payment');
 });

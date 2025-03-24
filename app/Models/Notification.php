@@ -54,6 +54,8 @@ class Notification extends Model
     const TYPE_FILE_UPLOADED = 'file_uploaded';
     const TYPE_PITCH_REVISION = 'pitch_revision';
     const TYPE_PITCH_CANCELLED = 'pitch_cancelled';
+    const TYPE_PAYMENT_PROCESSED = 'payment_processed';
+    const TYPE_PAYMENT_FAILED = 'payment_failed';
     
     /**
      * Get the related model
@@ -197,6 +199,12 @@ class Notification extends Model
                 
             case self::TYPE_PITCH_CANCELLED:
                 return 'A pitch submission has been cancelled';
+                
+            case self::TYPE_PAYMENT_PROCESSED:
+                return 'Payment has been processed for your completed pitch';
+                
+            case self::TYPE_PAYMENT_FAILED:
+                return 'Payment processing failed for your completed pitch';
                 
             default:
                 return 'New notification';

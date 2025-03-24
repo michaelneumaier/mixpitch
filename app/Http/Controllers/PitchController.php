@@ -125,22 +125,13 @@ class PitchController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Pitch $pitch)
     {
-        $pitch = Pitch::with(['project', 'files'])->findOrFail($id);
-
-        // Check if the authenticated user is the pitch owner
-        if (auth()->id() !== $pitch->user_id) {
-            abort(403, 'Unauthorized action.');
-        }
-
-        // Get the current snapshot if available
-        $currentSnapshot = null;
-        if ($pitch->current_snapshot_id) {
-            $currentSnapshot = PitchSnapshot::find($pitch->current_snapshot_id);
-        }
-
-        return view('pitches.edit', compact('pitch', 'currentSnapshot'));
+        $this->authorize('update', $pitch);
+        
+        return view('pitches.edit', [
+            'pitch' => $pitch,
+        ]);
     }
 
     /**
@@ -520,5 +511,36 @@ class PitchController extends Controller
         // This method is part of the resource controller but we're using destroyConfirmed instead
         // for our deletion flow to better handle the Livewire component integration
         return redirect()->route('dashboard');
+    }
+
+    /**
+     * Display the payment details for a pitch
+     *
+     * @param  \App\Models\Pitch  $pitch
+     * @return \Illuminate\Http\Response
+     */
+    public function showPayment(Pitch $pitch)
+    {
+        // Check if the user is authorized to view this payment information
+        if (auth()->id() !== $pitch->project->user_id && auth()->id() !== $pitch->user_id) {
+            abort(403, 'Unauthorized');
+        }
+
+        return view('pitches.payment', compact('pitch'));
+    }
+
+    public function payment(Pitch $pitch)
+    {
+        $this->authorize('view', $pitch);
+        
+        // Users can only view payment details if the pitch is completed
+        if ($pitch->status !== Pitch::STATUS_COMPLETED) {
+            return redirect()->route('pitches.show', $pitch)
+                ->with('error', 'Payment details are only available for completed pitches.');
+        }
+        
+        return view('pitches.payment', [
+            'pitch' => $pitch,
+        ]);
     }
 }

@@ -48,8 +48,8 @@
                                 </span>
                             </button>
                             
-                            <a href="{{ route('billing.index') }}" class="ml-4 text-gray-600 hover:text-gray-800 transition-colors">
-                                Cancel
+                            <a href="{{ route('billing') }}" class="ml-4 text-gray-600 hover:text-gray-800 transition-colors">
+                                <i class="fas fa-arrow-left mr-1"></i> Back to Billing
                             </a>
                         </form>
                     </div>

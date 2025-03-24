@@ -54,7 +54,14 @@ class UpdatePitchStatus extends Component
             if ($newStatus) {
                 switch ($newStatus) {
                     case Pitch::STATUS_APPROVED:
-                        [$validationPassed, $errorMessage] = $this->pitch->canApprove($this->pitch->current_snapshot_id);
+                        // Check if the pitch was completed and paid
+                        if ($this->pitch->status === Pitch::STATUS_COMPLETED &&
+                            $this->pitch->payment_status === Pitch::PAYMENT_STATUS_PAID) {
+                            $validationPassed = false;
+                            $errorMessage = 'This pitch has already been paid and cannot be returned to approved status.';
+                        } else {
+                            [$validationPassed, $errorMessage] = $this->pitch->canApprove($this->pitch->current_snapshot_id);
+                        }
                         break;
                     case Pitch::STATUS_DENIED:
                         [$validationPassed, $errorMessage] = $this->pitch->canDeny($this->pitch->current_snapshot_id);
