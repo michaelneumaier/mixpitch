@@ -22,6 +22,14 @@ class Pitch extends Model
     const STATUS_REVISIONS_REQUESTED = 'revisions_requested';
     const STATUS_COMPLETED = 'completed';
     const STATUS_CLOSED = 'closed';
+    const STATUS_INPROGRESS = 'inprogress';
+
+    // Payment status constants
+    const PAYMENT_STATUS_PENDING = 'pending';
+    const PAYMENT_STATUS_PROCESSING = 'processing';
+    const PAYMENT_STATUS_PAID = 'paid';
+    const PAYMENT_STATUS_FAILED = 'failed';
+    const PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required';
 
     /**
      * The maximum storage allowed per pitch in bytes (1GB)
@@ -34,14 +42,24 @@ class Pitch extends Model
     const MAX_FILE_SIZE_BYTES = 209715200; // 200MB in bytes
 
     protected $fillable = [
-        'user_id',
         'project_id',
-        'completion_date',
-        'completion_feedback',
-        'current_snapshot_id',
+        'user_id',
+        'title',
+        'description',
         'status',
-        'is_inactive',
-        'producer_id'
+        'current_snapshot_id',
+        'completed_at',
+        'payment_status',
+        'final_invoice_id',
+        'payment_amount',
+        'payment_completed_at',
+    ];
+
+    protected $dates = [
+        'created_at',
+        'updated_at',
+        'completed_at',
+        'payment_completed_at',
     ];
 
     protected $attributes = [

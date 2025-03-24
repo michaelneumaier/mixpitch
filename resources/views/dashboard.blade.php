@@ -101,7 +101,50 @@
                                             </div>
                                             @endif
                                             
-                                            {{-- Removed collaboration types badge --}}
+                                            <!-- Payment Status Badges -->
+                                            @php
+                                                $completedPitches = $project->pitches->where('status', \App\Models\Pitch::STATUS_COMPLETED);
+                                                $pendingPaymentCount = $completedPitches->whereIn('payment_status', [\App\Models\Pitch::PAYMENT_STATUS_PENDING, null])->count();
+                                                $processingPaymentCount = $completedPitches->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)->count();
+                                                $paidCount = $completedPitches->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->count();
+                                                $failedPaymentCount = $completedPitches->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_FAILED)->count();
+                                            @endphp
+                                            
+                                            <!-- Only show payment badges if there are payments to handle -->
+                                            @if($project->budget > 0 && auth()->id() === $project->user_id)
+                                                @if($pendingPaymentCount > 0)
+                                                <div class="bg-amber-50 text-amber-700 text-xs px-2 py-1 rounded-full border border-amber-100 flex items-center mt-1">
+                                                    <i class="fas fa-credit-card text-amber-400 mr-1"></i>
+                                                    <span>{{ $pendingPaymentCount }} {{ Str::plural('Payment', $pendingPaymentCount) }} Required</span>
+                                                </div>
+                                                @endif
+                                                
+                                                @if($processingPaymentCount > 0)
+                                                <div class="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-100 flex items-center mt-1">
+                                                    <i class="fas fa-spinner fa-spin text-blue-400 mr-1"></i>
+                                                    <span>{{ $processingPaymentCount }} {{ Str::plural('Payment', $processingPaymentCount) }} Processing</span>
+                                                </div>
+                                                @endif
+                                                
+                                                @if($failedPaymentCount > 0)
+                                                <div class="bg-red-50 text-red-700 text-xs px-2 py-1 rounded-full border border-red-100 flex items-center mt-1">
+                                                    <i class="fas fa-exclamation-circle text-red-400 mr-1"></i>
+                                                    <span>{{ $failedPaymentCount }} {{ Str::plural('Payment', $failedPaymentCount) }} Failed</span>
+                                                </div>
+                                                @endif
+
+                                                @if($paidCount > 0 && $paidCount === $completedPitches->count() && $completedPitches->count() > 0)
+                                                <div class="bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full border border-green-100 flex items-center mt-1">
+                                                    <i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                                    <span>All Payments Complete</span>
+                                                </div>
+                                                @elseif($paidCount > 0)
+                                                <div class="bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full border border-green-100 flex items-center mt-1">
+                                                    <i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                                    <span>{{ $paidCount }} {{ Str::plural('Payment', $paidCount) }} Complete</span>
+                                                </div>
+                                                @endif
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -191,6 +234,55 @@
                                                 <i class="fas fa-hourglass-half text-amber-500 mr-1"></i>
                                                 <span>Pending Review</span>
                                             </div>
+                                            @endif
+                                            
+                                            <!-- Payment Status for Pitches -->
+                                            @if($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->project->budget > 0)
+                                                @if(auth()->id() === $pitch->project->user_id)
+                                                    @if(empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING)
+                                                    <div class="mt-1 bg-amber-50 text-amber-700 text-xs px-2 py-1 rounded-full border border-amber-100 flex items-center">
+                                                        <i class="fas fa-credit-card text-amber-500 mr-1"></i>
+                                                        <span>Payment Required</span>
+                                                    </div>
+                                                    @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
+                                                    <div class="mt-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-100 flex items-center">
+                                                        <i class="fas fa-spinner fa-spin text-blue-400 mr-1"></i>
+                                                        <span>Payment Processing</span>
+                                                    </div>
+                                                    @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                                                    <div class="mt-1 bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full border border-green-100 flex items-center">
+                                                        <i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                                        <span>Paid</span>
+                                                    </div>
+                                                    @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED)
+                                                    <div class="mt-1 bg-red-50 text-red-700 text-xs px-2 py-1 rounded-full border border-red-100 flex items-center">
+                                                        <i class="fas fa-exclamation-circle text-red-400 mr-1"></i>
+                                                        <span>Payment Failed</span>
+                                                    </div>
+                                                    @endif
+                                                @else
+                                                    @if(empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING)
+                                                    <div class="mt-1 bg-amber-50 text-amber-700 text-xs px-2 py-1 rounded-full border border-amber-100 flex items-center">
+                                                        <i class="fas fa-clock text-amber-500 mr-1"></i>
+                                                        <span>Awaiting Payment</span>
+                                                    </div>
+                                                    @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
+                                                    <div class="mt-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-100 flex items-center">
+                                                        <i class="fas fa-spinner fa-spin text-blue-400 mr-1"></i>
+                                                        <span>Payment Processing</span>
+                                                    </div>
+                                                    @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                                                    <div class="mt-1 bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full border border-green-100 flex items-center">
+                                                        <i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                                        <span>Payment Received</span>
+                                                    </div>
+                                                    @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED)
+                                                    <div class="mt-1 bg-red-50 text-red-700 text-xs px-2 py-1 rounded-full border border-red-100 flex items-center">
+                                                        <i class="fas fa-exclamation-circle text-red-400 mr-1"></i>
+                                                        <span>Payment Failed</span>
+                                                    </div>
+                                                    @endif
+                                                @endif
                                             @endif
                                         </div>
                                     </div>

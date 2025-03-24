@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Masmerise\Toaster\Toaster;
 use App\Services\NotificationService;
 use App\Models\Project;
+use App\Models\PitchFeedback;
 
 class CompletePitch extends Component
 {
@@ -142,6 +143,21 @@ class CompletePitch extends Component
             $this->closeCompletionModal();
             
             if ($result) {
+                // Set initial payment status for the pitch
+                if ($this->pitch->project->budget == 0) {
+                    // If it's a free project, mark it as not requiring payment
+                    $this->pitch->payment_status = Pitch::PAYMENT_STATUS_NOT_REQUIRED;
+                } else {
+                    // Otherwise, mark it as pending payment
+                    $this->pitch->payment_status = Pitch::PAYMENT_STATUS_PENDING;
+                }
+                $this->pitch->save();
+                
+                // For paid projects, dispatch an event to open the payment modal
+                if ($this->pitch->project->budget > 0) {
+                    $this->dispatch('openPaymentModal');
+                }
+                
                 // Redirect back to the manage project page if successful
                 return redirect()->route('projects.manage', $this->pitch->project);
             }
@@ -177,7 +193,7 @@ class CompletePitch extends Component
             $this->validateCompletionRequirements();
             
             // Step 2: Mark this pitch as completed (in its own transaction)
-            $this->markPitchAsCompleted($feedback);
+            $this->markAsCompleted($feedback);
             
             // Step 3: Close other active pitches (in its own transaction)
             $this->closeOtherPitches();
@@ -248,54 +264,79 @@ class CompletePitch extends Component
     /**
      * Mark this pitch as completed (Step 2)
      */
-    protected function markPitchAsCompleted($feedback)
+    protected function markAsCompleted($feedback)
     {
         DB::beginTransaction();
+        
         try {
-            \Log::info('Marking pitch as completed', [
-                'pitch_id' => $this->pitch->id,
-                'current_status' => $this->pitch->status
+            // Update pitch status
+            $this->pitch->update([
+                'status' => Pitch::STATUS_COMPLETED,
+                'completed_at' => now(),
+                'payment_status' => $this->isFreeProject() ? Pitch::PAYMENT_STATUS_PAID : Pitch::PAYMENT_STATUS_PENDING,
             ]);
             
-            // Save the feedback if provided
-            if (!empty($feedback)) {
-                $this->pitch->addComment('Completion feedback: ' . $feedback);
-            }
-            
-            // Change the pitch status
-            $this->pitch->changeStatus('forward', Pitch::STATUS_COMPLETED);
-            
-            // Find and process the latest accepted snapshot
-            $latestApprovedSnapshot = $this->pitch->snapshots()
-                ->where('status', 'accepted')
-                ->orderBy('created_at', 'desc')
-                ->first();
-                
-            if ($latestApprovedSnapshot) {
-                // Create a completion event that links to the snapshot
-                $this->pitch->events()->create([
-                    'event_type' => 'snapshot_status_change',
-                    'comment' => 'Pitch has been completed with snapshot version ' . 
-                        $latestApprovedSnapshot->snapshot_data['version'],
-                    'status' => Pitch::STATUS_COMPLETED,
-                    'snapshot_id' => $latestApprovedSnapshot->id,
-                    'created_by' => auth()->id(),
+            // If this is a free project, mark as paid immediately with no payment required
+            if ($this->isFreeProject()) {
+                $this->pitch->update([
+                    'final_invoice_id' => 'free_project',
+                    'payment_amount' => 0,
+                    'payment_completed_at' => now(),
                 ]);
             }
             
+            // Process the feedback if it exists
+            if ($feedback) {
+                PitchFeedback::create([
+                    'pitch_id' => $this->pitch->id,
+                    'user_id' => auth()->id(),
+                    'content' => $feedback,
+                    'type' => 'completion',
+                ]);
+            }
+            
+            // Send notifications
+            $notificationService = app(NotificationService::class);
+            
+            // Notify the pitch creator that their pitch was completed
+            $notificationService->notifyPitchCompleted(
+                $this->pitch,
+                'Your pitch for ' . $this->pitch->project->name . ' has been marked as completed.'
+            );
+            
+            // Notify project owner if pitch creator completed the pitch
+            if (auth()->id() === $this->pitch->user_id && auth()->id() !== $this->pitch->project->user_id) {
+                $notificationService->notifyPitchCompleted(
+                    $this->pitch,
+                    $this->pitch->user->name . ' marked their pitch for ' . $this->pitch->project->name . ' as completed.'
+                );
+            }
+            
             DB::commit();
-            \Log::info('Pitch marked as completed successfully', [
-                'pitch_id' => $this->pitch->id,
-                'new_status' => $this->pitch->status
-            ]);
+            
+            // Session message
+            session()->flash('success', 'The pitch has been marked as completed.');
+            
+            // Reload the page to show the completed state
+            return redirect()->route('pitches.show', $this->pitch);
+            
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error marking pitch as completed', [
+            Log::error('Error marking pitch as completed: ' . $e->getMessage(), [
                 'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage()
+                'exception' => $e,
             ]);
-            throw $e; // Re-throw to be handled by the calling method
+            
+            // Show error message
+            Toaster::error('There was an error completing the pitch. Please try again.');
         }
+        
+        $this->showCompletionModal = false;
+    }
+    
+    protected function isFreeProject()
+    {
+        return (int) $this->pitch->project->budget === 0;
     }
     
     /**

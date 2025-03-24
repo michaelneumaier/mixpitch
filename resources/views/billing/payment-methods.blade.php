@@ -118,8 +118,8 @@
 
                     <div class="mt-8 pt-6 border-t border-gray-200">
                         <div class="flex items-center justify-between">
-                            <a href="{{ route('billing.index') }}" class="text-gray-600 hover:text-gray-800 transition-colors flex items-center">
-                                <i class="fas fa-arrow-left mr-2"></i> Back to Billing
+                            <a href="{{ route('billing') }}" class="text-gray-600 hover:text-gray-800 transition-colors flex items-center">
+                                <i class="fas fa-arrow-left mr-1"></i> Back to Billing
                             </a>
                             
                             <a href="{{ route('billing.portal') }}" class="inline-block bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded shadow transition-colors">

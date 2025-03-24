@@ -260,7 +260,53 @@
 </div>
 @endif
 
+<div class="mt-3 w-full flex justify-between items-center pb-2 border-b border-base-200">
+    <!-- Here on the left we have the project details heading -->
+    <h3 class="text-lg font-semibold text-gray-900">Project Details</h3>
+    
+    <!-- On the right we have the status actions such as links to complete, etc -->
+    <div class="flex justify-end">
+        <!-- Complete Pitch Button (Project Owner) -->
+        @if($pitch->status === \App\Models\Pitch::STATUS_APPROVED && 
+            auth()->id() === $pitch->project->user_id)
+            <livewire:pitch.component.complete-pitch :pitch="$pitch" />
+        @endif
+        
+        <!-- Process Payment Button (Project Owner) -->
+        @if($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && 
+            auth()->id() === $pitch->project->user_id &&
+            (empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
+            <a href="{{ route('pitches.payment.overview', $pitch) }}" class="btn btn-primary">
+                <i class="fas fa-credit-card mr-2"></i> Process Payment
+            </a>
+        @endif
 
-
+        <!-- Payment Status Display -->
+        @if($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->payment_status)
+            @if($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                <div class="flex items-center text-success">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>Payment Complete</span>
+                </div>
+            @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
+                <div class="flex items-center text-amber-600">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Processing Payment</span>
+                </div>
+            @endif
+            
+            <!-- View Payment Details Link -->
+            <div class="ml-4">
+                <a href="{{ route('pitches.payment.receipt', $pitch) }}" 
+                    class="text-primary hover:underline flex items-center">
+                    <i class="fas fa-file-invoice-dollar mr-1"></i> View Receipt
+                </a>
+            </div>
+        @endif
+    </div>
+</div>
 
 @endsection

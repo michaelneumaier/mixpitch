@@ -427,6 +427,25 @@
                                                 </div>
                                                 @endif
 
+                                                <!-- Payment Component for Completed Pitches -->
+                                                @if(auth()->id() === $project->user_id && 
+                                                    $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
+                                                    (empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
+                                                <div>
+                                                    <a href="{{ route('pitches.payment.overview', $pitch) }}" class="btn btn-primary w-full">
+                                                        <i class="fas fa-credit-card mr-2"></i> Process Payment
+                                                    </a>
+                                                </div>
+                                                @elseif(auth()->id() === $project->user_id && 
+                                                    $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
+                                                    in_array($pitch->payment_status, [\App\Models\Pitch::PAYMENT_STATUS_PAID, \App\Models\Pitch::PAYMENT_STATUS_PROCESSING]))
+                                                <div>
+                                                    <a href="{{ route('pitches.payment.receipt', $pitch) }}" class="text-primary hover:underline flex items-center">
+                                                        <i class="fas fa-file-invoice-dollar mr-1"></i> View Receipt
+                                                    </a>
+                                                </div>
+                                                @endif
+
                                                 @if(auth()->id() === $project->user_id && in_array($pitch->status, [
                                                 \App\Models\Pitch::STATUS_PENDING,
                                                 \App\Models\Pitch::STATUS_IN_PROGRESS,
