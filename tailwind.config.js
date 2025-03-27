@@ -59,7 +59,7 @@ export default {
             main: {
                 "primary": "#263640",
                 "secondary": "#263640",
-                "accent": "rgba(0,255,0,255)",
+                "accent": "#00EF2B",
                 "accent-focus": "#66ff66",
                 "neutral": "#3D372B",
                 "base-100": "#F7FAFC",
