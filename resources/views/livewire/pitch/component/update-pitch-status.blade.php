@@ -77,11 +77,15 @@
             <i class="fas fa-undo mr-2"></i>Return to Review
         </button>
         @elseif ($status === \App\Models\Pitch::STATUS_COMPLETED)
-        @if($pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_PAID)
+        @if($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED)
         <button wire:click="changeStatus('backward', '{{ \App\Models\Pitch::STATUS_APPROVED }}')"
             class="btn btn-sm shadow-sm bg-warning hover:bg-warning/80 border-0 text-black flex items-center justify-center transition-colors z-30 relative">
             <i class="fas fa-undo mr-2"></i>Return to Approved
         </button>
+        @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
+        <div class="text-gray-500 text-sm italic flex items-center">
+            <i class="fas fa-lock mr-2"></i>Payment processed - Status locked
+        </div>
         @endif
         @endif
     </div>

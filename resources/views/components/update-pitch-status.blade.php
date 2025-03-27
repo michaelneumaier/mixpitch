@@ -67,10 +67,16 @@
             <i class="fas fa-undo mr-2"></i>Return to Review
         </a>
         @elseif ($status === \App\Models\Pitch::STATUS_COMPLETED)
-        <a href="{{ route('pitch.changeStatus', ['pitch' => $pitch->id, 'direction' => 'backward', 'newStatus' => \App\Models\Pitch::STATUS_APPROVED]) }}"
-            class="btn btn-sm shadow-sm bg-warning hover:bg-warning/80 border-0 text-black flex items-center justify-center transition-colors z-30 relative">
-            <i class="fas fa-undo mr-2"></i>Return to Approved
-        </a>
+            @if($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED)
+            <a href="{{ route('pitch.changeStatus', ['pitch' => $pitch->id, 'direction' => 'backward', 'newStatus' => \App\Models\Pitch::STATUS_APPROVED]) }}"
+                class="btn btn-sm shadow-sm bg-warning hover:bg-warning/80 border-0 text-black flex items-center justify-center transition-colors z-30 relative">
+                <i class="fas fa-undo mr-2"></i>Return to Approved
+            </a>
+            @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
+            <div class="text-gray-500 text-sm italic flex items-center">
+                <i class="fas fa-lock mr-2"></i>Payment processed - Status locked
+            </div>
+            @endif
         @endif
     </div>
 

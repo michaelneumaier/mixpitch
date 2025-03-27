@@ -46,6 +46,19 @@ class UpdatePitchStatus extends Component
         }
 
         try {
+            // Immediately block changes to completed pitches with finalized payments
+            if ($this->pitch->status === Pitch::STATUS_COMPLETED && 
+                in_array($this->pitch->payment_status, [
+                    Pitch::PAYMENT_STATUS_PAID, 
+                    Pitch::PAYMENT_STATUS_PROCESSING
+                ])) {
+                throw new InvalidStatusTransitionException(
+                    $this->pitch->status, 
+                    $newStatus ?? 'unknown',
+                    'This pitch has been completed and payment has been processed. It cannot be modified.'
+                );
+            }
+            
             // Validate the status transition before proceeding
             $validationPassed = false;
             $errorMessage = '';
@@ -56,9 +69,12 @@ class UpdatePitchStatus extends Component
                     case Pitch::STATUS_APPROVED:
                         // Check if the pitch was completed and paid
                         if ($this->pitch->status === Pitch::STATUS_COMPLETED &&
-                            $this->pitch->payment_status === Pitch::PAYMENT_STATUS_PAID) {
+                            in_array($this->pitch->payment_status, [
+                                Pitch::PAYMENT_STATUS_PAID, 
+                                Pitch::PAYMENT_STATUS_PROCESSING
+                            ])) {
                             $validationPassed = false;
-                            $errorMessage = 'This pitch has already been paid and cannot be returned to approved status.';
+                            $errorMessage = 'This pitch has been paid and cannot be returned to approved status.';
                         } else {
                             [$validationPassed, $errorMessage] = $this->pitch->canApprove($this->pitch->current_snapshot_id);
                         }

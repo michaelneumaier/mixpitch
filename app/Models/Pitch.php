@@ -30,6 +30,7 @@ class Pitch extends Model
     const PAYMENT_STATUS_PAID = 'paid';
     const PAYMENT_STATUS_FAILED = 'failed';
     const PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required';
+    const PAYMENT_STATUS_REFUNDED = 'refunded';
 
     /**
      * The maximum storage allowed per pitch in bytes (1GB)
@@ -700,36 +701,31 @@ class Pitch extends Model
      * @param int $snapshotId
      * @throws InvalidStatusTransitionException
      * @throws SnapshotException
-     * @return bool
+     * @return array [bool $canApprove, string $errorMessage]
      */
     public function canApprove($snapshotId)
     {
+        // Check if this is a completed pitch with finalized payment
+        if ($this->status === self::STATUS_COMPLETED && $this->isPaymentFinalized()) {
+            return [false, 'This pitch has been completed and payment has been processed. It cannot be changed to approved status.'];
+        }
+        
         // Check if the pitch is in the correct status
         if ($this->status !== self::STATUS_READY_FOR_REVIEW) {
-            throw new InvalidStatusTransitionException(
-                $this->status,
-                self::STATUS_APPROVED,
-                'Only pitches that are ready for review can be approved.'
-            );
+            return [false, 'Only pitches that are ready for review can be approved.'];
         }
 
         // Check if the snapshot exists and is pending
         $snapshot = $this->snapshots()->find($snapshotId);
         if (!$snapshot) {
-            throw new SnapshotException(
-                $snapshotId,
-                'The specified snapshot does not exist.'
-            );
+            return [false, 'The specified snapshot does not exist.'];
         }
 
         if ($snapshot->status !== 'pending') {
-            throw new SnapshotException(
-                $snapshotId,
-                'Only pending snapshots can be approved.'
-            );
+            return [false, 'Only pending snapshots can be approved.'];
         }
 
-        return true;
+        return [true, ''];
     }
 
     /**
@@ -1045,5 +1041,19 @@ class Pitch extends Model
     public function hasEnoughStorageFor($fileSize)
     {
         return $this->getRemainingStorageBytes() >= $fileSize;
+    }
+
+    /**
+     * Check if payment is finalized (paid, processing, or not required)
+     * 
+     * @return bool
+     */
+    public function isPaymentFinalized()
+    {
+        return in_array($this->payment_status, [
+            self::PAYMENT_STATUS_PAID,
+            self::PAYMENT_STATUS_PROCESSING, // Once processing begins, it should be considered finalized
+            self::PAYMENT_STATUS_NOT_REQUIRED
+        ]);
     }
 }
