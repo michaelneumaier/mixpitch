@@ -102,23 +102,23 @@
                             </div>
                         </div>
                         <div class="flex w-full">
-                            @if($userPitch)
-                            <a href="{{ route('pitches.show', $userPitch->id) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
-                                                        grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
-                                                        whitespace-nowrap">Manage
-                                Your Pitch</a>
-                            @else
-                            <button onclick="openPitchTermsModal()" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
-                                                        grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
-                                                        whitespace-nowrap">Start
-                                Your Pitch</button>
-                            @endif
-
                             @if(auth()->check() && $project->isOwnedByUser(auth()->user()))
                             <a href="{{ route('projects.manage', $project)}}" class="block bg-primary hover:bg-primary-focus text-white tracking-tight text-xl text-center font-bold
                             grow py-2 px-4 shadow-accent hover:shadow-accent-focus
                             whitespace-nowrap">
                                 Manage Project</a>
+                            @else
+                                @if($userPitch)
+                                <a href="{{ route('pitches.show', $userPitch->id) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                                                                grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
+                                                                whitespace-nowrap">Manage
+                                    Your Pitch</a>
+                                @else
+                                <button onclick="openPitchTermsModal()" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                                                                grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
+                                                                whitespace-nowrap">Start
+                                    Your Pitch</button>
+                                @endif
                             @endif
                         </div>
                         <div class="font-sans w-full border-t border-b border-base-200">
