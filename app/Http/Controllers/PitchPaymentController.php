@@ -153,6 +153,30 @@ class PitchPaymentController extends Controller
                 'payment_completed_at' => now()
             ]);
             
+            // Add payment event to the audit trail
+            $pitch->events()->create([
+                'event_type' => 'payment_processed',
+                'comment' => 'Payment of $' . number_format($pitch->project->budget, 2) . ' was processed successfully.',
+                'created_by' => auth()->id(),
+                'user_id' => auth()->id(),
+            ]);
+            
+            // Send final payment notification to the pitch creator
+            try {
+                $notificationService = app(\App\Services\NotificationService::class);
+                $notificationService->notifyPaymentProcessed(
+                    $pitch, 
+                    $pitch->project->budget,
+                    $invoiceId
+                );
+            } catch (\Exception $e) {
+                \Log::error('Failed to send payment notification', [
+                    'pitch_id' => $pitch->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Continue process even if notification fails
+            }
+            
             // Log the successful payment
             \Log::info('Pitch payment processed successfully', [
                 'pitch_id' => $pitch->id,
