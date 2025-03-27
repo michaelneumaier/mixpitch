@@ -22,7 +22,7 @@
                             </div>
                             @endif
                         </div>
-                        
+
                         @if ($pitch->project->hasPreviewTrack())
                         <div
                             class="flex absolute h-auto w-auto top-auto -bottom-1 -left-1 right-auto z-50 aspect-auto text-sm">
@@ -47,16 +47,19 @@
                         <div class="w-full flex px-3 flex-col justify-center flex-1">
                             <div class="p-2">
                                 <div class="flex flex-col mb-2">
-                                    <h2 class="text-xl sm:text-2xl md:text-3xl font-bold break-words text-center sm:text-left">
+                                    <h2
+                                        class="text-xl sm:text-2xl md:text-3xl font-bold break-words text-center sm:text-left">
                                         {{ $pitch->user->name }}'s Pitch
                                     </h2>
-                                    <div class="text-base sm:text-lg md:text-xl font-medium text-gray-700 text-center sm:text-left">
+                                    <div
+                                        class="text-base sm:text-lg md:text-xl font-medium text-gray-700 text-center sm:text-left">
                                         for <a href="{{ route('projects.show', $pitch->project) }}"
                                             class="text-blue-600 hover:text-blue-800 transition-colors">"{{
                                             $pitch->project->name }}"</a>
                                     </div>
                                 </div>
-                                <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 mt-3 items-center sm:items-start">
+                                <div
+                                    class="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 mt-3 items-center sm:items-start">
                                     @if ($pitch->project->artist_name)
                                     <div class="flex items-center">
                                         <span class="font-semibold mr-1">Artist:</span> {{ $pitch->project->artist_name
@@ -152,12 +155,15 @@
                                     class="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 sm:py-3 px-2 {{ $loop->even ? 'bg-base-200/30' : '' }}">
                                     <div class="flex items-center truncate mb-2 sm:mb-0">
                                         <i class="fas fa-file-audio text-gray-500 mr-2 sm:mr-3"></i>
-                                        <span class="font-medium text-gray-800 truncate text-sm sm:text-base" title="{{ $file->file_name }}">
+                                        <span class="font-medium text-gray-800 truncate text-sm sm:text-base"
+                                            title="{{ $file->file_name }}">
                                             {{ $file->file_name }}
                                         </span>
                                     </div>
-                                    <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 pl-6 sm:pl-0">
-                                        <span class="text-xs sm:text-sm text-gray-500">{{ $file->formatted_size }}</span>
+                                    <div
+                                        class="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 pl-6 sm:pl-0">
+                                        <span class="text-xs sm:text-sm text-gray-500">{{ $file->formatted_size
+                                            }}</span>
                                         <a href="{{ asset('storage/' . $file->file_path) }}"
                                             download="{{ $file->file_name }}"
                                             class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1.5 sm:py-1 px-3 rounded text-xs sm:text-sm shadow-sm transition-colors inline-flex items-center">
@@ -200,7 +206,8 @@
                             <h3 class="font-semibold text-gray-700 mb-2 flex items-center text-base sm:text-lg">
                                 <i class="fas fa-align-left text-blue-500 mr-2"></i>Project Description
                             </h3>
-                            <p class="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{{ $pitch->project->description }}</p>
+                            <p class="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{{
+                                $pitch->project->description }}</p>
                         </div>
 
                         <!-- Collaboration Types if needed -->
@@ -235,7 +242,8 @@
                             <h3 class="font-semibold text-gray-700 mb-2 flex items-center text-base sm:text-lg">
                                 <i class="fas fa-sticky-note text-yellow-500 mr-2"></i>Additional Notes
                             </h3>
-                            <p class="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{{ $pitch->project->notes }}</p>
+                            <p class="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{{ $pitch->project->notes
+                                }}</p>
                         </div>
                         @endif
                         <!-- Pitch Delete Component - Only visible to pitch owner -->
@@ -259,54 +267,5 @@
     </div>
 </div>
 @endif
-
-<div class="mt-3 w-full flex justify-between items-center pb-2 border-b border-base-200">
-    <!-- Here on the left we have the project details heading -->
-    <h3 class="text-lg font-semibold text-gray-900">Project Details</h3>
-    
-    <!-- On the right we have the status actions such as links to complete, etc -->
-    <div class="flex justify-end">
-        <!-- Complete Pitch Button (Project Owner) -->
-        @if($pitch->status === \App\Models\Pitch::STATUS_APPROVED && 
-            auth()->id() === $pitch->project->user_id)
-            <livewire:pitch.component.complete-pitch :pitch="$pitch" />
-        @endif
-        
-        <!-- Process Payment Button (Project Owner) -->
-        @if($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && 
-            auth()->id() === $pitch->project->user_id &&
-            (empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
-            <a href="{{ route('pitches.payment.overview', $pitch) }}" class="btn btn-primary">
-                <i class="fas fa-credit-card mr-2"></i> Process Payment
-            </a>
-        @endif
-
-        <!-- Payment Status Display -->
-        @if($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->payment_status)
-            @if($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
-                <div class="flex items-center text-success">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span>Payment Complete</span>
-                </div>
-            @elseif($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
-                <div class="flex items-center text-amber-600">
-                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Processing Payment</span>
-                </div>
-            @endif
-            
-            <!-- View Payment Details Link -->
-            <div class="ml-4">
-                <a href="{{ route('pitches.payment.receipt', $pitch) }}" 
-                    class="text-primary hover:underline flex items-center">
-                    <i class="fas fa-file-invoice-dollar mr-1"></i> View Receipt
-                </a>
-            </div>
-        @endif
-    </div>
-</div>
 
 @endsection

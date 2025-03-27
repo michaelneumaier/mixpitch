@@ -58,8 +58,38 @@ class FeedbackConversation extends Component
             }
         }
 
-        // Sort items by date
-        return $items->sortBy('date')->values();
+        // 3. Add completion feedback if pitch is completed
+        if ($this->pitch->status === 'completed' && !empty($this->pitch->completion_feedback)) {
+            // Get the current snapshot (the one that was accepted)
+            $currentSnapshot = $this->pitch->currentSnapshot;
+            
+            if ($currentSnapshot) {
+                // Ensure we have a Carbon date object for the date
+                $completionDate = null;
+                if ($this->pitch->completion_date) {
+                    $completionDate = is_string($this->pitch->completion_date) 
+                        ? \Carbon\Carbon::parse($this->pitch->completion_date)
+                        : $this->pitch->completion_date;
+                } else if ($this->pitch->completed_at) {
+                    $completionDate = is_string($this->pitch->completed_at)
+                        ? \Carbon\Carbon::parse($this->pitch->completed_at)
+                        : $this->pitch->completed_at;
+                } else {
+                    $completionDate = now();
+                }
+                
+                $items->push([
+                    'type' => 'completion',
+                    'snapshot' => $currentSnapshot,
+                    'content' => $this->pitch->completion_feedback,
+                    'date' => $completionDate,
+                    'user' => $this->pitch->project->user,
+                ]);
+            }
+        }
+
+        // Sort items by date in descending order (newest first)
+        return $items->sortByDesc('date')->values();
     }
 
     /**

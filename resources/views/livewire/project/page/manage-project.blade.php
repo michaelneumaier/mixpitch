@@ -529,7 +529,7 @@
                                     </div>
                                     @endif
 
-                                    @if($pitch->completion_feedback && $pitch->status === 'completed')
+                                    @if($pitch->status === 'completed' && !empty($pitch->completion_feedback))
                                     <div class="px-3 sm:px-4 pb-3 sm:pb-4">
                                         <div class="p-2.5 sm:p-3 bg-success/10 border border-success/20 rounded-lg">
                                             <div class="text-xs sm:text-sm font-semibold text-gray-700 mb-1 flex items-center">
@@ -1002,5 +1002,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 </div>
