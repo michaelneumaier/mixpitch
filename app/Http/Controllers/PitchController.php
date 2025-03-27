@@ -32,7 +32,7 @@ class PitchController extends Controller
             }
 
             // Check if a new pitch can be created for this project
-            [$canCreatePitch, $errorMessage] = $project->canCreatePitch();
+            [$canCreatePitch, $errorMessage] = $project->canCreatePitch(auth()->user());
             if (!$canCreatePitch) {
                 return redirect()->route('projects.show', $project->slug)
                     ->with('error', $errorMessage);
@@ -57,7 +57,7 @@ class PitchController extends Controller
         $project = Project::findOrFail($request->project_id);
 
         // Check if a new pitch can be created for this project
-        [$canCreatePitch, $errorMessage] = $project->canCreatePitch();
+        [$canCreatePitch, $errorMessage] = $project->canCreatePitch(auth()->user());
         if (!$canCreatePitch) {
             return redirect()->route('projects.show', $project->slug)
                 ->with('error', $errorMessage);

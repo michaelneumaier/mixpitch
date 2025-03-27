@@ -265,10 +265,16 @@ class Project extends Model
     /**
      * Check if a new pitch can be created for this project
      * 
+     * @param User|null $user The user attempting to create a pitch
      * @return array [bool $canCreatePitch, string $errorMessage]
      */
-    public function canCreatePitch()
+    public function canCreatePitch($user = null)
     {
+        // Check if user is the project owner
+        if ($user && $this->isOwnedByUser($user)) {
+            return [false, 'You cannot create a pitch for your own project.'];
+        }
+        
         // Cannot create pitch if project is completed
         if ($this->status === self::STATUS_COMPLETED) {
             return [false, 'This project has been completed and is not accepting new pitches.'];
