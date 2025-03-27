@@ -45,6 +45,7 @@
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
@@ -75,6 +76,20 @@
                                                         </span>
                                                     @endif
                                                 </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    @if(isset($invoice->metadata) && isset($invoice->metadata['pitch_id']))
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            <i class="fas fa-music mr-1"></i> Pitch Payment
+                                                        </span>
+                                                        <a href="{{ route('pitches.show', $invoice->metadata['pitch_id']) }}" class="text-primary hover:underline ml-2 text-xs">
+                                                            View Pitch
+                                                        </a>
+                                                    @else
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                            Standard
+                                                        </span>
+                                                    @endif
+                                                </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div class="flex items-center gap-3">
                                                         <a href="{{ route('billing.invoice.show', $invoice->id) }}" class="text-primary hover:text-primary-focus">
@@ -102,4 +117,4 @@
             </div>
         </div>
     </div>
-</x-app-layout> 
+</x-app-layout>

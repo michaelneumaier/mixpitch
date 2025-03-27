@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pitch;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -79,78 +80,42 @@ class PitchPaymentController extends Controller
                 ->with('error', 'No payment method was provided.');
         }
 
-        // Generate a unique invoice ID
-        $invoiceId = 'INV-' . strtoupper(substr(md5(uniqid()), 0, 10));
-
         try {
             // Start by updating the pitch status to processing
             $pitch->update([
                 'payment_status' => Pitch::PAYMENT_STATUS_PROCESSING,
-                'payment_amount' => $pitch->project->budget,
-                'final_invoice_id' => $invoiceId
+                'payment_amount' => $pitch->project->budget
             ]);
 
-            // Get the authenticated user (project owner)
-            $user = Auth::user();
+            // Use the centralized invoice service
+            $invoiceService = app(InvoiceService::class);
+            $result = $invoiceService->createPitchInvoice(
+                $pitch, 
+                $pitch->project->budget, 
+                $request->input('payment_method')
+            );
             
-            // Create Stripe customer if one doesn't exist yet
-            if (!$user->stripe_id) {
-                $user->createAsStripeCustomer();
+            if (!$result['success']) {
+                throw new \Exception($result['error'] ?? 'Failed to create invoice');
             }
             
-            // Get payment method
-            $paymentMethod = $request->input('payment_method');
+            // Process the payment
+            $paymentResult = $invoiceService->processInvoicePayment(
+                $result['invoice'], 
+                $request->input('payment_method')
+            );
             
-            // Create description for the payment
-            $description = "Payment for Pitch: {$pitch->title} (Project: {$pitch->project->name})";
+            if (!$paymentResult['success']) {
+                throw new \Exception($paymentResult['error'] ?? 'Failed to process payment');
+            }
+
+            $payResult = $paymentResult['paymentResult'];
             
-            // Process the payment through Stripe
-            \Log::info('Processing pitch payment', [
-                'pitch_id' => $pitch->id,
-                'amount' => $pitch->project->budget,
-                'payment_method' => $paymentMethod
-            ]);
-            
-            // Create a Stripe client
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
-            
-            // First create an invoice
-            $invoice = $stripe->invoices->create([
-                'customer' => $user->stripe_id,
-                'auto_advance' => false, // Don't auto-finalize yet
-                'description' => $description,
-                'collection_method' => 'charge_automatically',
-                'metadata' => [
-                    'pitch_id' => $pitch->id,
-                    'project_id' => $pitch->project->id,
-                    'invoice_id' => $invoiceId,
-                    'source' => 'pitch_payment'
-                ]
-            ]);
-            
-            // Create an invoice item attached to the invoice
-            $invoiceItem = $stripe->invoiceItems->create([
-                'customer' => $user->stripe_id,
-                'amount' => (int)($pitch->project->budget * 100), // Convert to cents
-                'currency' => 'usd',
-                'description' => "Payment for '{$pitch->title}' pitch",
-                'invoice' => $invoice->id, // Attach to the invoice
-            ]);
-            
-            // Finalize the invoice
-            $finalizedInvoice = $stripe->invoices->finalizeInvoice($invoice->id);
-            
-            // Pay the invoice using the specified payment method
-            $payResult = $stripe->invoices->pay($invoice->id, [
-                'payment_method' => $paymentMethod,
-                'off_session' => true,
-            ]);
-            
-            // If we get here, payment was successful
-            // Update pitch payment status
+            // Update pitch with the invoice ID
             $pitch->update([
                 'payment_status' => Pitch::PAYMENT_STATUS_PAID,
-                'payment_completed_at' => now()
+                'payment_completed_at' => now(),
+                'final_invoice_id' => $result['invoice']->id // Store actual Stripe invoice ID
             ]);
             
             // Add payment event to the audit trail
@@ -159,6 +124,10 @@ class PitchPaymentController extends Controller
                 'comment' => 'Payment of $' . number_format($pitch->project->budget, 2) . ' was processed successfully.',
                 'created_by' => auth()->id(),
                 'user_id' => auth()->id(),
+                'metadata' => [
+                    'invoice_id' => $result['invoice']->id,
+                    'amount' => $pitch->project->budget
+                ]
             ]);
             
             // Send final payment notification to the pitch creator
@@ -167,7 +136,7 @@ class PitchPaymentController extends Controller
                 $notificationService->notifyPaymentProcessed(
                     $pitch, 
                     $pitch->project->budget,
-                    $invoiceId
+                    $result['invoice']->id
                 );
             } catch (\Exception $e) {
                 \Log::error('Failed to send payment notification', [
@@ -180,8 +149,8 @@ class PitchPaymentController extends Controller
             // Log the successful payment
             \Log::info('Pitch payment processed successfully', [
                 'pitch_id' => $pitch->id,
-                'user_id' => $user->id,
-                'invoice_id' => $invoice->id,
+                'user_id' => Auth::id(),
+                'invoice_id' => $result['invoice']->id,
                 'amount' => $pitch->project->budget,
                 'payment_result' => [
                     'status' => $payResult->status,
@@ -189,9 +158,6 @@ class PitchPaymentController extends Controller
                     'amount_paid' => $payResult->amount_paid
                 ]
             ]);
-
-            // Send email notifications (would be implemented in a real system)
-            // $this->sendPaymentConfirmationEmails($pitch);
 
             return redirect()->route('pitches.payment.receipt', $pitch)
                 ->with('success', 'Payment processed successfully!');
@@ -249,20 +215,25 @@ class PitchPaymentController extends Controller
      */
     public function receipt(Pitch $pitch)
     {
-        // Check if the authenticated user is the project owner or the pitch creator
+        // Check if the authenticated user is authorized
         if (Auth::id() !== $pitch->project->user_id && Auth::id() !== $pitch->user_id) {
-            abort(403, 'You are not authorized to view this payment receipt.');
+            abort(403, 'You are not authorized to view this receipt.');
         }
 
-        // Check if payment has been processed
-        if (!in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING])) {
-            return redirect()->route('pitches.payment.overview', $pitch)
-                ->with('error', 'No payment has been processed for this pitch.');
+        // Retrieve the actual invoice from Stripe using our invoice service
+        $invoiceService = app(InvoiceService::class);
+        $invoice = null;
+        
+        if ($pitch->final_invoice_id) {
+            $invoice = $invoiceService->getInvoice($pitch->final_invoice_id);
         }
 
         return view('pitches.payment.receipt', [
             'pitch' => $pitch,
             'project' => $pitch->project,
+            'invoice' => $invoice,
+            // Include a link to the billing history
+            'viewAllInvoicesUrl' => route('billing.invoices')
         ]);
     }
-} 
+}

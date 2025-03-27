@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Billing;
 
 use App\Http\Controllers\Controller;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Exceptions\IncompletePayment;
@@ -268,33 +269,60 @@ class BillingController extends Controller
     }
 
     /**
-     * Display a specific invoice.
+     * Display the list of invoices
      *
-     * @param  string  $invoiceId
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\View\View
+     */
+    public function invoices()
+    {
+        $invoiceService = app(InvoiceService::class);
+        $invoices = $invoiceService->getUserInvoices(50); // Get up to 50 invoices
+        
+        return view('billing.invoices', [
+            'invoices' => $invoices
+        ]);
+    }
+    
+    /**
+     * Show invoice details
+     *
+     * @param string $invoiceId
+     * @return \Illuminate\View\View
+     */
+    public function showInvoice($invoiceId)
+    {
+        $invoiceService = app(InvoiceService::class);
+        $invoice = $invoiceService->getInvoice($invoiceId);
+        
+        if (!$invoice) {
+            return redirect()->route('billing.invoices')
+                ->with('error', 'Invoice not found.');
+        }
+        
+        return view('billing.invoice-show', [
+            'invoice' => $invoice
+        ]);
+    }
+    
+    /**
+     * Download invoice PDF
+     *
+     * @param string $invoiceId
+     * @return \Symfony\Component\HttpFoundation\Response|\Illuminate\Http\RedirectResponse
      */
     public function downloadInvoice($invoiceId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         try {
-            // Find the invoice using Cashier
             $invoice = $user->findInvoice($invoiceId);
-            
-            if (!$invoice) {
-                // Redirect to the dashboard URL with an error message
-                return redirect(BillingDashboard::getUrl())
-                    ->with('error', 'Invoice not found');
-            }
-            
             return $invoice->download([
                 'vendor' => config('app.name'),
-                'product' => 'Subscription',
+                'product' => 'Subscription and Services',
             ]);
         } catch (\Exception $e) {
-            // Redirect to the dashboard URL with an error message
-            return redirect(BillingDashboard::getUrl())
-                ->with('error', 'Failed to download invoice: ' . $e->getMessage());
+            return redirect()->route('billing.invoices')
+                ->with('error', 'Error downloading invoice: ' . $e->getMessage());
         }
     }
 
@@ -383,108 +411,6 @@ class BillingController extends Controller
     }
 
     /**
-     * Show all invoices for the current user.
-     *
-     * @return \Illuminate\View\View
-     */
-    public function invoices()
-    {
-        $user = Auth::user();
-        
-        // Create Stripe customer if one doesn't exist yet
-        if (!$user->stripe_id) {
-            $user->createAsStripeCustomer();
-        }
-        
-        try {
-            // Get raw invoice data directly from Stripe for more accurate totals
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
-            $stripeInvoices = $stripe->invoices->all([
-                'customer' => $user->stripe_id,
-                'limit' => 100, // Get a reasonable number of invoices
-            ]);
-            
-            // Also get Cashier invoices for data we might need from there
-            $cashierInvoices = $user->invoices();
-            
-            // Map Stripe invoices to a format we can use in the view
-            $invoices = collect($stripeInvoices->data)->map(function($stripeInvoice) use ($cashierInvoices) {
-                // Find matching Cashier invoice
-                $cashierInvoice = $cashierInvoices->first(function($invoice) use ($stripeInvoice) {
-                    return $invoice->id === $stripeInvoice->id;
-                });
-                
-                return (object)[
-                    'id' => $stripeInvoice->id,
-                    'number' => $stripeInvoice->number,
-                    'date' => \Carbon\Carbon::createFromTimestamp($stripeInvoice->created),
-                    'total' => $stripeInvoice->total,
-                    'paid' => $stripeInvoice->status === 'paid',
-                    'stripe_invoice' => $stripeInvoice,
-                    'cashier_invoice' => $cashierInvoice
-                ];
-            });
-            
-            return view('billing.invoices', [
-                'invoices' => $invoices,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error retrieving invoices', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage()
-            ]);
-            
-            // Fall back to Cashier invoices if there's an error
-            return view('billing.invoices', [
-                'invoices' => $user->invoices(),
-                'error' => 'There was an error fetching some invoice details: ' . $e->getMessage()
-            ]);
-        }
-    }
-    
-    /**
-     * Display a specific invoice details.
-     *
-     * @param  string  $invoiceId
-     * @return \Illuminate\View\View
-     */
-    public function showInvoice($invoiceId)
-    {
-        $user = Auth::user();
-        
-        try {
-            // Retrieve the invoice from Cashier first
-            $cashierInvoice = $user->findInvoice($invoiceId);
-            
-            if (!$cashierInvoice) {
-                return redirect()->route('billing.invoices')
-                    ->withErrors(['error' => 'Invoice not found.']);
-            }
-            
-            // Also fetch the raw invoice data from Stripe to ensure we have accurate totals
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
-            $stripeInvoice = $stripe->invoices->retrieve($invoiceId, [
-                'expand' => ['lines.data', 'payment_intent', 'charge']
-            ]);
-            
-            // Pass both the Cashier invoice and Stripe invoice data to the view
-            return view('billing.invoice-details', [
-                'invoice' => $cashierInvoice,
-                'stripeInvoice' => $stripeInvoice
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error retrieving invoice', [
-                'invoice_id' => $invoiceId,
-                'user_id' => $user->id,
-                'error' => $e->getMessage()
-            ]);
-            
-            return redirect()->route('billing.invoices')
-                ->withErrors(['error' => 'Unable to retrieve invoice details: ' . $e->getMessage()]);
-        }
-    }
-    
-    /**
      * Sync the user's invoices with Stripe to ensure we have the latest data.
      *
      * @param  \App\Models\User  $user
@@ -516,7 +442,7 @@ class BillingController extends Controller
         } catch (\Exception $e) {
             \Log::error('Failed to sync invoices from Stripe: ' . $e->getMessage(), [
                 'user_id' => $user->id,
-                'stripe_id' => $user->stripe_id,
+                'stripe_id' => $user->stripe_id
             ]);
         }
     }
