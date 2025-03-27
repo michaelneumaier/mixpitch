@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,5 +32,10 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('invoice-list-widget', \App\Filament\Plugins\Billing\Widgets\InvoiceListWidget::class);
         Livewire::component('payment-method-widget', \App\Filament\Plugins\Billing\Widgets\PaymentMethodWidget::class);
         Livewire::component('one-time-payment-widget', \App\Filament\Plugins\Billing\Widgets\OneTimePaymentWidget::class);
+
+        // Add the ReCaptchaV3 facade as a blade directive
+        Blade::directive('recaptchav3', function ($action) {
+            return "<?php echo app('recaptcha')->htmlScriptTagJsApi(['action' => $action]); ?>";
+        });
     }
 }

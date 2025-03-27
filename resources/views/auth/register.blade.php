@@ -1,4 +1,16 @@
 <x-guest-layout>
+    @push('scripts')
+        {!! app('recaptcha')->htmlScriptTagJsApi([
+            'action' => 'register',
+            'callback_then' => 'recaptchaCallback',
+        ]) !!}
+        <script>
+            function recaptchaCallback(token) {
+                document.getElementById('g-recaptcha-response').value = token;
+            }
+        </script>
+    @endpush
+    
     <x-authentication-card>
         <x-slot name="logo">
             <x-authentication-card-logo />
@@ -57,6 +69,16 @@
                 </x-label>
             </div>
             @endif
+
+            <!-- Add reCAPTCHA v3 - this will be invisible to users -->
+            <div class="mt-4">
+                <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
+                @if ($errors->has('recaptcha'))
+                    <div class="mt-1 text-sm text-red-600">
+                        {{ $errors->first('recaptcha') }}
+                    </div>
+                @endif
+            </div>
 
             <div class="flex items-center justify-end mt-6">
                 <a class="text-sm text-primary hover:text-primary-focus transition-colors" href="{{ route('login') }}">
