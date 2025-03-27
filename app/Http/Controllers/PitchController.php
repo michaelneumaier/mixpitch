@@ -97,9 +97,16 @@ class PitchController extends Controller
         // Retrieve the authenticated user
         $user = auth()->user();
 
-        // Check if the user is either the project owner or the pitch user
-        if ($user->id === $pitch->user_id || $user->id === $pitch->project->user_id) {
-            // Assuming you have a view called 'pitches.show' to display the pitch dashboard
+        // Check if the user is the project owner
+        if ($user->id === $pitch->project->user_id) {
+            // Redirect project owners to the manage project page
+            return redirect()->route('projects.manage', $pitch->project)
+                ->with('info', 'Project owners should manage pitches from the project management page.');
+        }
+
+        // Check if the user is the pitch owner
+        if ($user->id === $pitch->user_id) {
+            // Allowing pitch owners to view the pitch details
             return view('pitches.show', compact('pitch'));
         }
 
@@ -112,6 +119,16 @@ class PitchController extends Controller
         // Ensure the snapshot belongs to the given pitch
         if ($pitchSnapshot->pitch_id !== $pitch->id) {
             abort(404);
+        }
+
+        // Retrieve the authenticated user
+        $user = auth()->user();
+
+        // Check if the user is the project owner
+        if ($user->id === $pitch->project->user_id) {
+            // Redirect project owners to the manage project page
+            return redirect()->route('projects.manage', $pitch->project)
+                ->with('info', 'Project owners should manage pitches from the project management page.');
         }
 
         // Retrieve the snapshot data

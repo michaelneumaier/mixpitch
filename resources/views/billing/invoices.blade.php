@@ -81,8 +81,8 @@
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                             <i class="fas fa-music mr-1"></i> Pitch Payment
                                                         </span>
-                                                        <a href="{{ route('pitches.show', $invoice->metadata['pitch_id']) }}" class="text-primary hover:underline ml-2 text-xs">
-                                                            View Pitch
+                                                        <a href="{{ route('projects.manage', $invoice->metadata['project_id']) }}" class="text-primary hover:underline ml-2 text-xs">
+                                                            View Project
                                                         </a>
                                                     @else
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
