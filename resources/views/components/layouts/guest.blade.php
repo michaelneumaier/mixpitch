@@ -23,6 +23,9 @@
             display: none !important;
         }
     </style>
+    
+    <!-- reCAPTCHA scripts -->
+    @stack('scripts')
 </head>
 
 <body class="font-sans antialiased bg-gray-50">

@@ -36,5 +36,10 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });
+
+        // Rate limit registration attempts to 3 per hour from the same IP
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perHour(3)->by($request->ip());
+        });
     }
 }

@@ -54,6 +54,7 @@ return array(
     'decc78cc4436b1292c6c0d151b19445c' => $vendorDir . '/phpseclib/phpseclib/phpseclib/bootstrap.php',
     '801c31d8ed748cfa537fa45402288c95' => $vendorDir . '/psy/psysh/src/functions.php',
     '6a47392539ca2329373e0d33e1dba053' => $vendorDir . '/symfony/polyfill-intl-icu/bootstrap.php',
+    '5f2edeb18ca19ebd9ee6da72dc9f4292' => $vendorDir . '/biscolab/laravel-recaptcha/src/helpers.php',
     'c72349b1fe8d0deeedd3a52e8aa814d8' => $vendorDir . '/mockery/mockery/library/helpers.php',
     'ce9671a430e4846b44e1c68c7611f9f5' => $vendorDir . '/mockery/mockery/library/Mockery.php',
     'd634523d799d97a8ab4807b650bf5cea' => $vendorDir . '/pestphp/pest-plugin-laravel/src/Autoload.php',
