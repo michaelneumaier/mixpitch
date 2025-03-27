@@ -17,6 +17,8 @@
                 @else
                     bg-red-50 border border-red-200
                 @endif
+            @elseif($item['type'] === 'completion')
+                bg-success/10 border border-success/30
             @else
                 bg-blue-50 border border-blue-200
             @endif">
@@ -30,6 +32,8 @@
                     @else
                         border-red-200 bg-red-100/50
                     @endif
+                @elseif($item['type'] === 'completion')
+                    border-success/30 bg-success/20
                 @else
                     border-blue-200 bg-blue-100/50
                 @endif">
@@ -56,6 +60,9 @@
                         <i class="fas fa-times-circle mr-1 text-red-600"></i>
                         Denial Reason for v{{ $item['snapshot']->snapshot_data['version'] ?? '?' }}
                         @endif
+                        @elseif($item['type'] === 'completion')
+                        <i class="fas fa-trophy mr-1 text-success"></i>
+                        Completion Feedback for v{{ $item['snapshot']->snapshot_data['version'] ?? '?' }}
                         @elseif($item['type'] === 'response')
                         <i class="fas fa-reply mr-1 text-blue-600"></i>
                         @if(isset($item['previous_snapshot_id']))
@@ -78,12 +85,18 @@
                         <i class="fas fa-eye mr-1"></i> View version
                     </a>
 
-                    <span class="text-xs text-gray-500">{{ $item['date']->format('M j, g:i a') }}</span>
+                    <span class="text-xs text-gray-500">
+                        @if(is_object($item['date']) && method_exists($item['date'], 'format'))
+                            {{ $item['date']->format('M j, g:i a') }}
+                        @else
+                            {{ is_string($item['date']) ? $item['date'] : date('M j, g:i a') }}
+                        @endif
+                    </span>
                 </div>
             </div>
 
             <!-- Content -->
-            <div class=" whitespace-pre-wrap text-gray-700 text-sm">
+            <div class="p-2.5 whitespace-pre-wrap text-gray-700 text-sm">
                 {{ $item['content'] }}
             </div>
         </div>

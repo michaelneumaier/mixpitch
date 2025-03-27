@@ -10,7 +10,8 @@ use Filament\Panel;
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ url('/') }}" class="flex items-center">
-                        <div class="text-2xl font-bold text-primary">MixPitch</div>
+                        <div class="text-2xl hidden font-bold text-primary">MixPitch</div>
+                        <img src="{{ asset('logo.png') }}" alt="MixPitch Logo" class="h-7 w-auto mb-1">
                     </a>
                 </div>
 

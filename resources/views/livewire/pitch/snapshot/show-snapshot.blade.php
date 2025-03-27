@@ -297,7 +297,7 @@
                         </div>
                         @empty
                         <div class="text-center p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <i class="fas fa-comments text-gray-300 text-2xl sm:text-3xl mb-1"></i>
+                            <i class="fas fa-comments text-gray-300 text-2xl sm:text-3xl mb-2 sm:mb-3"></i>
                             <p class="text-gray-500 text-xs sm:text-sm">No feedback or revision messages for this snapshot.</p>
                         </div>
                         @endforelse
@@ -305,7 +305,28 @@
                 </div>
                 @endif
 
-
+                <!-- Completion Feedback Section -->
+                @if($pitch->status === 'completed' && !empty($pitch->completion_feedback) && $pitchSnapshot->id === $pitch->current_snapshot_id)
+                <div class="px-2 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-base-200">
+                    <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-3 flex items-center">
+                        <i class="fas fa-trophy mr-1.5 sm:mr-2 text-success"></i>
+                        Completion Feedback
+                    </h3>
+                    
+                    <div class="bg-success/10 border border-success/30 rounded-lg p-3 sm:p-4">
+                        <div class="flex items-start">
+                            <div class="flex-1">
+                                <div class="text-sm text-gray-700 mb-2">
+                                    The project owner provided the following feedback when completing this pitch:
+                                </div>
+                                <div class="bg-white border border-success/20 rounded-lg p-2.5 sm:p-3">
+                                    <div class="text-gray-800 text-sm whitespace-pre-wrap">{{ $pitch->completion_feedback }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <!-- Pitch Files Section -->
                 <div class="px-2 sm:px-4 md:px-6 py-3 sm:py-4 shadow-lightGlow shadow-base-300">

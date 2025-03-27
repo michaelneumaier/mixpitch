@@ -200,6 +200,29 @@
     </div>
     @endif
 
+    <!-- Completed Pitch Feedback Section -->
+    @if($pitch->status == 'completed' && !empty($pitch->completion_feedback))
+    <div class="mb-4 sm:mb-8 bg-success/10 border border-success/30 rounded-lg p-3 sm:p-6">
+        <div class="flex items-start space-x-3 sm:space-x-4">
+            <div class="flex-shrink-0 bg-success/20 rounded-full p-1.5 sm:p-2">
+                <i class="fas fa-trophy text-success text-lg sm:text-xl"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h4 class="text-base sm:text-lg font-semibold text-success mb-1.5 sm:mb-2">Completion Feedback</h4>
+                <p class="text-sm text-gray-700 mb-3 sm:mb-4">
+                    The project owner provided the following feedback when completing your pitch:
+                </p>
+
+                <div class="bg-white border border-success/30 rounded-lg p-3 sm:p-4">
+                    <div class="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">
+                        {{ $pitch->completion_feedback }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Submitted Pitches -->
     @if($snapshots->isNotEmpty())
     <div class="mb-4 sm:mb-8">

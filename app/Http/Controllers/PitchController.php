@@ -128,9 +128,13 @@ class PitchController extends Controller
     public function edit(Pitch $pitch)
     {
         $this->authorize('update', $pitch);
-        
+
+        // Load the current snapshot using the relationship method
+        $currentSnapshot = $pitch->currentSnapshot;
+
         return view('pitches.edit', [
             'pitch' => $pitch,
+            'currentSnapshot' => $currentSnapshot,
         ]);
     }
 
@@ -532,13 +536,13 @@ class PitchController extends Controller
     public function payment(Pitch $pitch)
     {
         $this->authorize('view', $pitch);
-        
+
         // Users can only view payment details if the pitch is completed
         if ($pitch->status !== Pitch::STATUS_COMPLETED) {
             return redirect()->route('pitches.show', $pitch)
                 ->with('error', 'Payment details are only available for completed pitches.');
         }
-        
+
         return view('pitches.payment', [
             'pitch' => $pitch,
         ]);

@@ -53,6 +53,8 @@ class Pitch extends Model
         'final_invoice_id',
         'payment_amount',
         'payment_completed_at',
+        'completion_feedback',
+        'completion_date',
     ];
 
     protected $dates = [
