@@ -18,11 +18,11 @@
             <!-- Use the shared invoice component -->
             <x-invoice-details :invoice="$invoice" />
             
-            <!-- If this is a pitch payment, add a link to the pitch -->
+            <!-- If this is a pitch payment, add a link to the project -->
             @if(isset($invoice->metadata) && isset($invoice->metadata['pitch_id']))
                 <div class="mt-6 text-center">
-                    <a href="{{ route('pitches.show', $invoice->metadata['pitch_id']) }}" class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
-                        <i class="fas fa-project-diagram mr-2"></i> View Related Pitch
+                    <a href="{{ route('projects.manage', $invoice->metadata['project_id']) }}" class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-project-diagram mr-2"></i> View Related Project
                     </a>
                 </div>
             @endif
