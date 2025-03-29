@@ -54,6 +54,9 @@ class ManagePitch extends Component
     public $storageUsedPercentage = 0;
     public $storageLimitMessage = '';
     public $storageRemaining = 0;
+    
+    // File management access flag
+    public $canManageFiles = false;
 
     public function mount(Pitch $pitch)
     {
@@ -61,6 +64,9 @@ class ManagePitch extends Component
         
         // Initialize storage information
         $this->updateStorageInfo();
+        
+        // Check if file management is allowed for this pitch status
+        $this->canManageFiles = $this->pitch->canManageFiles();
     }
 
     public function render()
@@ -77,10 +83,27 @@ class ManagePitch extends Component
     }
 
     /**
+     * Validate if file management operations are allowed for this pitch
+     * 
+     * @return bool Whether file management is allowed
+     */
+    protected function validateFileOperation()
+    {
+        if (!$this->canManageFiles) {
+            Toaster::error('File management is not available for pending pitches');
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Queue files for upload when selected
      */
     public function queueFilesForUpload()
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         // This is now handled by JavaScript that directly sets tempUploadedFiles and fileSizes
         $this->newlyAddedFileKeys = array_keys($this->tempUploadedFiles);
         $this->dispatch('new-files-added');
@@ -91,6 +114,9 @@ class ManagePitch extends Component
      */
     public function processQueuedFiles()
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         // Check if the pitch status allows file uploads
         if (!in_array($this->pitch->status, ['in_progress', 'pending_review'])) {
             Toaster::warning('You can only upload files when the pitch is in progress or pending review.');
@@ -190,6 +216,9 @@ class ManagePitch extends Component
      */
     public function uploadSingleFile($index)
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         if (!isset($this->tempUploadedFiles[$index])) {
             $this->processNextFile($index + 1, count($this->tempUploadedFiles));
             return;
@@ -308,6 +337,9 @@ class ManagePitch extends Component
      */
     public function removeUploadedFile($key)
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         if (isset($this->tempUploadedFiles[$key])) {
             unset($this->tempUploadedFiles[$key]);
             unset($this->fileSizes[$key]);
@@ -323,6 +355,9 @@ class ManagePitch extends Component
 
     public function deleteFile($fileId)
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         try {
             $file = PitchFile::findOrFail($fileId);
 
@@ -375,6 +410,9 @@ class ManagePitch extends Component
      */
     public function downloadFile($fileId)
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         try {
             $file = PitchFile::findOrFail($fileId);
 
@@ -539,7 +577,7 @@ class ManagePitch extends Component
                 : 'Your pitch has been submitted for review!';
 
             Toaster::success($successMessage);
-            return redirect()->route('pitches.show', $this->pitch);
+            return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
         } catch (InvalidStatusTransitionException $e) {
             Toaster::error($e->getMessage());
             return;
@@ -629,7 +667,7 @@ class ManagePitch extends Component
             }
 
             Toaster::success('Submission cancelled successfully. Your pitch has been returned to "In Progress" status.');
-            return redirect()->route('pitches.show', $this->pitch);
+            return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
         } catch (UnauthorizedActionException $e) {
             Log::error('Unauthorized attempt to cancel pitch submission', [
                 'pitch_id' => $this->pitch->id,
@@ -637,10 +675,10 @@ class ManagePitch extends Component
                 'error' => $e->getMessage()
             ]);
             Toaster::error($e->getMessage());
-            return redirect()->route('pitches.show', $this->pitch);
+            return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
         } catch (InvalidStatusTransitionException $e) {
             Toaster::error($e->getMessage());
-            return redirect()->route('pitches.show', $this->pitch);
+            return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
         } catch (\Exception $e) {
             Log::error('Error cancelling pitch submission', [
                 'pitch_id' => $this->pitch->id,
@@ -648,7 +686,7 @@ class ManagePitch extends Component
                 'trace' => $e->getTraceAsString()
             ]);
             Toaster::error('An error occurred while cancelling your submission. Please try again or contact support.');
-            return redirect()->route('pitches.show', $this->pitch);
+            return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
         }
     }
 
@@ -657,6 +695,9 @@ class ManagePitch extends Component
      */
     public function uploadSuccess($index, $filePath, $fileId)
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         if (!isset($this->tempUploadedFiles[$index])) {
             Log::error('File index not found in tempUploadedFiles', [
                 'index' => $index,
@@ -685,6 +726,9 @@ class ManagePitch extends Component
      */
     public function uploadFailed($index, $errorMessage)
     {
+        if (!$this->validateFileOperation()) {
+            return;
+        }
         Log::error('File upload failed', [
             'pitch_id' => $this->pitch->id,
             'file_index' => $index,

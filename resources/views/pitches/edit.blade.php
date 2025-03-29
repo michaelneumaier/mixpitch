@@ -5,7 +5,7 @@
     <div class="flex justify-center">
         <div class="w-full lg:w-3/4 2xl:w-2/3">
             <div class="mb-6">
-                <a href="{{ route('pitches.show', $pitch) }}" class="btn btn-sm bg-base-200 hover:bg-base-300 transition-colors">
+                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn btn-sm bg-base-200 hover:bg-base-300 transition-colors">
                     <i class="fas fa-arrow-left mr-2"></i>Back to Pitch
                 </a>
             </div>
@@ -57,7 +57,7 @@
                     </div>
 
                     <!-- Revision Form -->
-                    <form action="{{ route('pitches.update', $pitch) }}" method="POST" class="space-y-6">
+                    <form action="{{ route('projects.pitches.update', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" method="POST" class="space-y-6">
                         @csrf
                         @method('PUT')
 
@@ -89,7 +89,7 @@
                         </div>
 
                         <div class="flex items-center justify-between">
-                            <a href="{{ route('pitches.show', $pitch) }}" class="btn btn-outline">
+                            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn btn-outline">
                                 Cancel
                             </a>
                             <div class="flex gap-3">
@@ -114,7 +114,7 @@
                 <p class="text-gray-700 mb-4">
                     To upload new files or manage existing ones, please return to your pitch dashboard.
                 </p>
-                <a href="{{ route('pitches.show', $pitch) }}" class="btn bg-blue-500 hover:bg-blue-600 text-white">
+                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn bg-blue-500 hover:bg-blue-600 text-white">
                     <i class="fas fa-folder-open mr-2"></i>Manage Files
                 </a>
             </div>

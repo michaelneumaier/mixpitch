@@ -89,7 +89,7 @@
                                     <i class="fas fa-edit mr-1.5 sm:mr-2"></i> Revisions Requested
                                 </div>
                                 @if(auth()->id() === $pitch->user_id)
-                                <a href="{{ route('pitches.edit', $pitch->id) }}"
+                                <a href="{{ route('projects.pitches.edit', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}"
                                     class="block bg-amber-600 hover:bg-amber-700 tracking-tight text-base sm:text-lg text-center font-bold grow py-2.5 sm:py-3 px-3 sm:px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap text-white">
                                     <i class="fas fa-reply mr-1.5 sm:mr-2"></i> Submit Revisions
                                 </a>
@@ -197,7 +197,7 @@
                             <div class="flex justify-center gap-1.5 sm:gap-2 w-full sm:w-auto order-3 sm:order-2 mt-2 sm:mt-0">
                                 <!-- Always show Previous when not on the first snapshot -->
                                 @if($previousSnapshot)
-                                <a href="{{ route('pitches.showSnapshot', ['pitch' => $pitch->id, 'pitchSnapshot' => $previousSnapshot->id]) }}"
+                                <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $previousSnapshot->id]) }}"
                                     class="btn btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 text-gray-700 text-xs sm:text-sm">
                                     <i class="fas fa-arrow-left mr-1"></i> Previous
                                 </a>
@@ -205,7 +205,7 @@
 
                                 <!-- Always show Next when not on the last snapshot -->
                                 @if($nextSnapshot)
-                                <a href="{{ route('pitches.showSnapshot', ['pitch' => $pitch->id, 'pitchSnapshot' => $nextSnapshot->id]) }}"
+                                <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $nextSnapshot->id]) }}"
                                     class="btn btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 text-gray-700 text-xs sm:text-sm">
                                     Next <i class="fas fa-arrow-right ml-1"></i>
                                 </a>
@@ -213,7 +213,7 @@
 
                                 <!-- Always show Latest unless we're already on the latest -->
                                 @if(!$isLatestSnapshot && $latestSnapshot)
-                                <a href="{{ route('pitches.showSnapshot', ['pitch' => $pitch->id, 'pitchSnapshot' => $latestSnapshot->id]) }}"
+                                <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $latestSnapshot->id]) }}"
                                     class="btn btn-xs sm:btn-sm bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs sm:text-sm">
                                     <i class="fas fa-fast-forward mr-1"></i> Latest
                                 </a>
@@ -268,7 +268,7 @@
                                         @if(isset($item['previous_snapshot_id']))
                                         <span>
                                             Response to
-                                            <a href="{{ route('pitches.showSnapshot', [$pitch->id, $item['previous_snapshot_id']]) }}"
+                                            <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $item['previous_snapshot_id']]) }}"
                                                 class="text-blue-600 hover:text-blue-800 hover:underline">previous
                                                 version</a>
                                         </span>
@@ -370,7 +370,7 @@
                     <!-- Back Buttons -->
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 pt-3">
                         @if(Auth::id() === $pitch->user_id)
-                        <a href="{{ route('pitches.show', $pitch) }}"
+                        <a href="{{ route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}"
                             class="btn btn-sm w-full sm:w-auto bg-base-200 hover:bg-base-300 text-gray-700 text-xs sm:text-sm">
                             <i class="fas fa-arrow-left mr-1.5 sm:mr-2"></i> Back to Pitch
                         </a>

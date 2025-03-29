@@ -7,7 +7,7 @@
             <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg mb-12 p-4">
                 <h2>Start Your Pitch for "{{ $project->name }}"</h2>
 
-                <form action="{{ route('pitches.store') }}" method="POST">
+                <form action="{{ route('projects.pitches.store', ['project' => $project->slug]) }}" method="POST">
                     @csrf
                     <input type="hidden" name="project_id" value="{{ $project->id }}">
 

@@ -9,7 +9,7 @@
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <a href="{{ route('pitches.show', $pitch) }}" class="hover:text-primary">Pitch Details</a>
+            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="hover:text-primary">Pitch Details</a>
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
@@ -203,7 +203,7 @@
 
                         <!-- Actions -->
                         <div class="flex justify-center space-x-4">
-                            <a href="{{ route('pitches.show', $pitch) }}" class="btn btn-outline">
+                            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn btn-outline">
                                 <i class="fas fa-arrow-left mr-2"></i> Return to Pitch
                             </a>
                             <button onclick="window.print()" class="btn btn-primary">

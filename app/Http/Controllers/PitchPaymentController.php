@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Cashier;
+use App\Models\Project;
 
 class PitchPaymentController extends Controller
 {
@@ -26,20 +27,24 @@ class PitchPaymentController extends Controller
 
         // Check if the pitch is in completed status
         if ($pitch->status !== Pitch::STATUS_COMPLETED) {
-            return redirect()->route('pitches.show', $pitch)
-                ->with('error', 'Only completed pitches can be paid.');
+            return redirect()->route('projects.pitches.show', [
+                'project' => $pitch->project,
+                'pitch' => $pitch
+            ])->with('error', 'Only completed pitches can be paid.');
         }
 
         // Check if payment is already processed or in processing
         if (in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING])) {
-            return redirect()->route('pitches.payment.receipt', $pitch);
+            return redirect()->route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]);
         }
 
         // Free projects don't require payment
         $isFreeProject = ($pitch->project->budget == 0);
         if ($isFreeProject) {
-            return redirect()->route('pitches.show', $pitch)
-                ->with('info', 'This is a free project and does not require payment.');
+            return redirect()->route('projects.pitches.show', [
+                'project' => $pitch->project,
+                'pitch' => $pitch
+            ])->with('info', 'This is a free project and does not require payment.');
         }
 
         return view('pitches.payment.overview', [
@@ -65,18 +70,20 @@ class PitchPaymentController extends Controller
 
         // Check if the pitch is in completed status
         if ($pitch->status !== Pitch::STATUS_COMPLETED) {
-            return redirect()->route('pitches.show', $pitch)
-                ->with('error', 'Only completed pitches can be paid.');
+            return redirect()->route('projects.pitches.show', [
+                'project' => $pitch->project,
+                'pitch' => $pitch
+            ])->with('error', 'Only completed pitches can be paid.');
         }
 
         // Check if payment is already processed or in processing
         if (in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING])) {
-            return redirect()->route('pitches.payment.receipt', $pitch);
+            return redirect()->route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]);
         }
 
         // Validate the payment method
         if (!$request->has('payment_method')) {
-            return redirect()->route('pitches.payment.overview', $pitch)
+            return redirect()->route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                 ->with('error', 'No payment method was provided.');
         }
 
@@ -159,7 +166,7 @@ class PitchPaymentController extends Controller
                 ]
             ]);
 
-            return redirect()->route('pitches.payment.receipt', $pitch)
+            return redirect()->route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                 ->with('success', 'Payment processed successfully!');
             
         } catch (\Stripe\Exception\CardException $e) {
@@ -174,7 +181,7 @@ class PitchPaymentController extends Controller
                 'payment_status' => Pitch::PAYMENT_STATUS_FAILED
             ]);
             
-            return redirect()->route('pitches.payment.overview', $pitch)
+            return redirect()->route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                 ->with('error', 'Card error: ' . $e->getMessage());
                 
         } catch (\Laravel\Cashier\Exceptions\IncompletePayment $exception) {
@@ -186,7 +193,7 @@ class PitchPaymentController extends Controller
             
             return redirect()->route(
                 'cashier.payment',
-                [$exception->payment->id, 'redirect' => route('pitches.payment.receipt', $pitch)]
+                [$exception->payment->id, 'redirect' => route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])]
             );
             
         } catch (\Exception $e) {
@@ -202,7 +209,7 @@ class PitchPaymentController extends Controller
                 'payment_status' => Pitch::PAYMENT_STATUS_FAILED
             ]);
 
-            return redirect()->route('pitches.payment.overview', $pitch)
+            return redirect()->route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                 ->with('error', 'Payment processing failed: ' . $e->getMessage());
         }
     }
@@ -235,5 +242,44 @@ class PitchPaymentController extends Controller
             // Include a link to the billing history
             'viewAllInvoicesUrl' => route('billing.invoices')
         ]);
+    }
+
+    /**
+     * Show the payment overview page with the new URL pattern
+     */
+    public function projectPitchOverview(Project $project, Pitch $pitch)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+        
+        return $this->overview($pitch);
+    }
+    
+    /**
+     * Process the payment with the new URL pattern
+     */
+    public function projectPitchProcess(Request $request, Project $project, Pitch $pitch)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+        
+        return $this->process($request, $pitch);
+    }
+    
+    /**
+     * Show the receipt with the new URL pattern
+     */
+    public function projectPitchReceipt(Project $project, Pitch $pitch)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+        
+        return $this->receipt($pitch);
     }
 }

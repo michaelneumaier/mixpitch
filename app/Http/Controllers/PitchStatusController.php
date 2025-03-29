@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\PitchSnapshot;
 use App\Services\NotificationService;
 use App\Exceptions\Pitch\InvalidStatusTransitionException;
@@ -545,5 +546,81 @@ class PitchStatusController extends Controller
             Toaster::error($e->getMessage());
             return redirect()->back();
         }
+    }
+
+    /**
+     * Change the status of a pitch with the project/pitch URL pattern
+     *
+     * @param Project $project
+     * @param Pitch $pitch
+     * @param string $direction
+     * @param string|null $newStatus
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function changeStatusWithProject(Project $project, Pitch $pitch, string $direction, ?string $newStatus = null)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+        
+        return $this->changeStatus($pitch, $direction, $newStatus);
+    }
+    
+    /**
+     * Approve a snapshot with the project/pitch URL pattern
+     *
+     * @param Request $request
+     * @param Project $project
+     * @param Pitch $pitch
+     * @param PitchSnapshot $snapshot
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function approveSnapshotWithProject(Request $request, Project $project, Pitch $pitch, PitchSnapshot $snapshot)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+        
+        return $this->approveSnapshot($request, $pitch, $snapshot);
+    }
+    
+    /**
+     * Deny a snapshot with the project/pitch URL pattern
+     *
+     * @param Request $request
+     * @param Project $project
+     * @param Pitch $pitch
+     * @param PitchSnapshot $snapshot
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function denySnapshotWithProject(Request $request, Project $project, Pitch $pitch, PitchSnapshot $snapshot)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+        
+        return $this->denySnapshot($request, $pitch, $snapshot);
+    }
+    
+    /**
+     * Request changes to a snapshot with the project/pitch URL pattern
+     *
+     * @param Request $request
+     * @param Project $project
+     * @param Pitch $pitch
+     * @param PitchSnapshot $snapshot
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function requestChangesWithProject(Request $request, Project $project, Pitch $pitch, PitchSnapshot $snapshot)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+        
+        return $this->requestChanges($request, $pitch, $snapshot);
     }
 }

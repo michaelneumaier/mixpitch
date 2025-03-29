@@ -9,7 +9,7 @@
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <a href="{{ route('pitches.show', $pitch) }}" class="hover:text-primary">Pitch Details</a>
+            <a href="{{ route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="hover:text-primary">Pitch Details</a>
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
@@ -129,7 +129,7 @@
                         
                         @if(auth()->id() === $pitch->project->user_id && $pitch->project->budget > 0)
                             <div class="mt-4">
-                                <a href="{{ route('pitches.payment.overview', $pitch) }}" class="btn btn-primary">
+                                <a href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="btn btn-primary">
                                     <i class="fas fa-credit-card mr-2"></i> Process Payment
                                 </a>
                             </div>
@@ -175,7 +175,7 @@
 
             <!-- Actions -->
             <div class="bg-gray-50 px-6 py-4 border-t flex justify-between">
-                <a href="{{ route('pitches.show', $pitch) }}" class="text-gray-600 hover:text-gray-900">
+                <a href="{{ route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="text-gray-600 hover:text-gray-900">
                     <i class="fas fa-arrow-left mr-1"></i> Back to Pitch
                 </a>
                 

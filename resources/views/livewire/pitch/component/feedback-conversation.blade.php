@@ -80,7 +80,7 @@
                 </div>
 
                 <div class="flex items-center">
-                    <a href="{{ route('pitches.showSnapshot', [$pitch->id, $item['snapshot']->id]) }}"
+                    <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $item['snapshot']->id]) }}"
                         class="text-xs text-blue-600 hover:text-blue-800 mr-3">
                         <i class="fas fa-eye mr-1"></i> View version
                     </a>

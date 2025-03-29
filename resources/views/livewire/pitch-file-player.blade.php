@@ -10,7 +10,7 @@
                         $file->formattedSize }}</p>
                 </div>
                 <div class="flex mt-2 md:mt-0 space-x-2">
-                    <a href="{{ route('pitches.show', $file->pitch) }}" class="btn btn-secondary btn-sm">
+                    <a href="{{ route('projects.pitches.show', ['project' => $file->pitch->project->slug, 'pitch' => $file->pitch->slug]) }}" class="btn btn-secondary btn-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
