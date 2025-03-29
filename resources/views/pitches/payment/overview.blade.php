@@ -9,7 +9,7 @@
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <a href="{{ route('pitches.show', $pitch) }}" class="hover:text-primary">Pitch Details</a>
+            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="hover:text-primary">Pitch Details</a>
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
@@ -147,7 +147,7 @@
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="font-bold text-gray-700 mb-3">Payment Method</h3>
                 
-                <form id="payment-form" action="{{ route('pitches.payment.process', $pitch) }}" method="POST">
+                <form id="payment-form" action="{{ route('projects.pitches.payment.process', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" method="POST">
                     @csrf
                     <input type="hidden" name="amount" value="{{ $paymentAmount }}">
                     <input type="hidden" name="pitch_id" value="{{ $pitch->id }}">
@@ -245,7 +245,7 @@
                 </div>
                 
                 <div class="mt-4 border-t border-gray-200 pt-4">
-                    <a href="{{ route('pitches.show', $pitch) }}" class="text-gray-600 hover:text-gray-900 font-medium">
+                    <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="text-gray-600 hover:text-gray-900 font-medium">
                         <i class="fas fa-arrow-left mr-1"></i> Back to Pitch
                     </a>
                 </div>

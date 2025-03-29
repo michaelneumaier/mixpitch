@@ -164,7 +164,7 @@
                     </div>
                 </div>
                 
-                <a href="{{ route('pitches.payment.overview', $pitch) }}" class="btn btn-primary w-full">
+                <a href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="btn btn-primary w-full">
                     <i class="fas fa-credit-card mr-2"></i> Process Payment
                 </a>
             </div>

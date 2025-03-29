@@ -109,7 +109,7 @@
                                 Manage Project</a>
                             @else
                                 @if($userPitch)
-                                <a href="{{ route('pitches.show', $userPitch->id) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($userPitch) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
                                                                 grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
                                                                 whitespace-nowrap">Manage
                                     Your Pitch</a>

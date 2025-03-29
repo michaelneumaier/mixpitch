@@ -432,7 +432,7 @@
                                                     $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
                                                     (empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
                                                 <div>
-                                                    <a href="{{ route('pitches.payment.overview', $pitch) }}" class="btn btn-primary w-full">
+                                                    <a href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project, 'pitch' => $pitch]) }}" class="btn btn-primary w-full">
                                                         <i class="fas fa-credit-card mr-2"></i> Process Payment
                                                     </a>
                                                 </div>
@@ -440,7 +440,7 @@
                                                     $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
                                                     in_array($pitch->payment_status, [\App\Models\Pitch::PAYMENT_STATUS_PAID, \App\Models\Pitch::PAYMENT_STATUS_PROCESSING]))
                                                 <div>
-                                                    <a href="{{ route('pitches.payment.receipt', $pitch) }}" class="text-primary hover:underline flex items-center">
+                                                    <a href="{{ route('projects.pitches.payment.receipt', ['project' => $pitch->project, 'pitch' => $pitch]) }}" class="text-primary hover:underline flex items-center">
                                                         <i class="fas fa-file-invoice-dollar mr-1"></i> View Receipt
                                                     </a>
                                                 </div>
@@ -487,7 +487,7 @@
                                             <div
                                                 class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 bg-base-200/30 p-1.5 sm:p-2 rounded-lg">
                                                 @foreach($pitch->snapshots->sortByDesc('created_at') as $snapshot)
-                                                <a href="{{ route('pitches.showSnapshot', [$pitch->id, $snapshot->id]) }}"
+                                                <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
                                                     class="flex items-center p-1.5 sm:p-2 hover:bg-base-200 rounded-md transition-colors">
                                                     <div
                                                         class="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-blue-100 text-blue-700 mr-1.5 sm:mr-2">

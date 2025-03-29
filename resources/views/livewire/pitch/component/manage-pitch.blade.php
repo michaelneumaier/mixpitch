@@ -70,7 +70,8 @@
                 <i class="fas fa-times-circle text-red-600 text-lg sm:text-xl"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <h4 class="text-base sm:text-lg font-semibold text-red-800 mb-1.5 sm:mb-2">Your Pitch Has Been Denied</h4>
+                <h4 class="text-base sm:text-lg font-semibold text-red-800 mb-1.5 sm:mb-2">Your Pitch Has Been Denied
+                </h4>
                 <p class="text-sm text-red-700 mb-3 sm:mb-4">
                     The project owner has reviewed your pitch and has decided not to proceed with it at this time. You
                     can view their feedback below, make changes to your files, and resubmit if appropriate.
@@ -78,7 +79,8 @@
 
                 @if($snapshots->isNotEmpty())
                 <div class="bg-white border border-red-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
-                    <h5 class="font-medium text-sm sm:text-base text-red-800 mb-1.5 sm:mb-2">Feedback from Project Owner</h5>
+                    <h5 class="font-medium text-sm sm:text-base text-red-800 mb-1.5 sm:mb-2">Feedback from Project Owner
+                    </h5>
                     <div class="text-xs sm:text-sm text-gray-700">
                         @php
                         // Try to get feedback from different potential sources
@@ -106,7 +108,7 @@
                     </div>
                     <div class="mt-3">
                         @if($pitch->currentSnapshot)
-                        <a href="{{ route('pitches.showSnapshot', [$pitch->id, $pitch->currentSnapshot->id]) }}"
+                        <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitch->currentSnapshot->id]) }}"
                             class="btn btn-sm btn-red hover:bg-red-700 text-xs sm:text-sm py-1.5">
                             <i class="fas fa-eye mr-1"></i>View Denied Snapshot
                         </a>
@@ -135,7 +137,8 @@
                 <i class="fas fa-pencil-alt text-amber-600 text-lg sm:text-xl"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <h4 class="text-base sm:text-lg font-semibold text-amber-800 mb-1.5 sm:mb-2">Revisions Have Been Requested</h4>
+                <h4 class="text-base sm:text-lg font-semibold text-amber-800 mb-1.5 sm:mb-2">Revisions Have Been
+                    Requested</h4>
                 <p class="text-sm text-amber-700 mb-3 sm:mb-4">
                     The project owner has reviewed your pitch and requested some changes. Please review the latest
                     snapshot and their feedback,
@@ -144,7 +147,8 @@
 
                 @if($snapshots->isNotEmpty())
                 <div class="bg-white border border-amber-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
-                    <h5 class="font-medium text-sm sm:text-base text-amber-800 mb-1.5 sm:mb-2">Feedback from Project Owner</h5>
+                    <h5 class="font-medium text-sm sm:text-base text-amber-800 mb-1.5 sm:mb-2">Feedback from Project
+                        Owner</h5>
                     <div class="text-xs sm:text-sm text-gray-700">
                         @php
                         // Try to get feedback from different potential sources
@@ -172,7 +176,7 @@
                     </div>
                     <div class="mt-3">
                         @if($pitch->currentSnapshot)
-                        <a href="{{ route('pitches.showSnapshot', [$pitch->id, $pitch->currentSnapshot->id]) }}"
+                        <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitch->currentSnapshot->id]) }}"
                             class="btn btn-sm btn-amber hover:bg-amber-600 text-xs sm:text-sm py-1.5">
                             <i class="fas fa-eye mr-1"></i>View Snapshot Details
                         </a>
@@ -184,7 +188,7 @@
                 @endif
                 @if($pitch->status === 'revisions_requested')
                 <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-2">
-                    <a href="{{ route('pitches.edit', $pitch->id) }}"
+                    <a href="{{ route('projects.pitches.edit', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}"
                         class="btn bg-amber-500 hover:bg-amber-600 text-white text-sm py-2.5 sm:py-2">
                         <i class="fas fa-edit mr-1"></i>Make Revisions & Resubmit
                     </a>
@@ -236,7 +240,7 @@
                 <div class="flex-1 min-w-0 mb-2 sm:mb-0">
                     <div class="flex flex-wrap items-center">
                         <i class="fas fa-version mr-2 text-gray-400"></i>
-                        <a href="{{ route('pitches.showSnapshot', [$pitch->id, $snapshot->id]) }}"
+                        <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
                             class="font-medium hover:text-blue-600 transition-colors text-sm">
                             Version {{ $snapshot->snapshot_data['version'] }}
                         </a>
@@ -263,7 +267,7 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <a href="{{ route('pitches.showSnapshot', [$pitch->id, $snapshot->id]) }}"
+                    <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
                         class="btn btn-sm btn-outline-primary py-1.5 text-xs sm:text-sm">
                         <i class="fas fa-eye mr-1"></i>View
                     </a>
@@ -280,6 +284,7 @@
     @endif
 
     <!-- File Management Section -->
+    @if($pitch->status !== \App\Models\Pitch::STATUS_PENDING)
     <div class="mb-4 sm:mb-8 tracks-container" x-data="{ 
             isUploading: false, 
             progress: 0,
@@ -289,6 +294,7 @@
                 fileName: ''
             },
             uploadQueue: [],
+            queueIndex: 0,
             currentUploadIndex: 0,
 
             // Initialize listeners for file upload process
@@ -412,8 +418,7 @@
                     @this.uploadFailed(index, error.message);
                 });
             }
-        }" 
-        x-init="initFileUpload(); 
+        }" x-init="initFileUpload(); 
             Livewire.on('upload:start', () => { isUploading = true; })
             Livewire.on('upload:finish', () => { isUploading = false; })
             Livewire.on('upload:error', () => { isUploading = false; })
@@ -461,7 +466,8 @@
                                     accept="audio/mpeg,audio/wav,audio/mp3,audio/aac,audio/ogg,application/pdf,image/jpeg,image/png,image/gif,application/zip"
                                     multiple />
                             </label>
-                            @error('singleFileUpload') <span class="text-red-500 text-xs sm:text-sm">{{ $message }}</span>
+                            @error('singleFileUpload') <span class="text-red-500 text-xs sm:text-sm">{{ $message
+                                }}</span>
                             @enderror
                         </div>
                         <div class="flex-shrink-0">
@@ -476,7 +482,8 @@
                     @if(count($tempUploadedFiles) > 0)
                     <div class="bg-base-200/50 p-2 sm:p-3 rounded-lg mb-3">
                         <div class="flex items-center justify-between mb-2">
-                            <h4 class="font-medium text-sm sm:text-base">Files to upload ({{ count($tempUploadedFiles) }})</h4>
+                            <h4 class="font-medium text-sm sm:text-base">Files to upload ({{ count($tempUploadedFiles)
+                                }})</h4>
                             <button wire:click="$set('tempUploadedFiles', []); $set('fileSizes', []);"
                                 class="text-red-500 hover:text-red-700 transition-colors text-xs sm:text-sm">
                                 Clear All
@@ -488,7 +495,8 @@
                                 @if(in_array($key, $newlyAddedFileKeys)) animate-fade-in @endif
                                 @if(isset($uploadingFileKey) && $uploadingFileKey === $key) bg-blue-50 @endif">
                                 <div class="flex items-center flex-1 min-w-0">
-                                    <i class="fas @if(isset($uploadingFileKey) && $uploadingFileKey === $key) fa-spinner fa-spin text-blue-500 @else fa-file text-blue-500 @endif mr-1.5 sm:mr-2 text-sm sm:text-base"></i>
+                                    <i
+                                        class="fas @if(isset($uploadingFileKey) && $uploadingFileKey === $key) fa-spinner fa-spin text-blue-500 @else fa-file text-blue-500 @endif mr-1.5 sm:mr-2 text-sm sm:text-base"></i>
                                     <div class="truncate flex-1 text-xs sm:text-sm">
                                         {{ $file['name'] }}
                                         <span class="text-xs text-gray-500 ml-1">{{ $fileSizes[$key] ?? '' }}</span>
@@ -533,8 +541,8 @@
                 <span class="text-xs text-blue-600">{{ $uploadProgress }}%</span>
             </div>
             <div class="w-full bg-blue-200 rounded-full h-2.5">
-                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-                     x-bind:style="`width: ${$wire.uploadProgress}%`"></div>
+                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    x-bind:style="`width: ${$wire.uploadProgress}%`"></div>
             </div>
         </div>
 
@@ -562,7 +570,8 @@
                     {{ $this->formatFileSize($file->size ?? 0) }}
                 </div>
                 <div class="w-24 sm:w-32 text-center space-x-1 sm:space-x-2">
-                    <button wire:click="downloadFile('{{ $file->id }}')" class="btn btn-xs btn-outline-primary p-1.5 sm:p-1">
+                    <button wire:click="downloadFile('{{ $file->id }}')"
+                        class="btn btn-xs btn-outline-primary p-1.5 sm:p-1">
                         <i class="fas fa-download"></i>
                     </button>
                     <button
@@ -621,41 +630,51 @@
                     </div>
                 </div>
             </div>
+            <div class="mb-4 sm:mb-8">
+                <h4 class="text-base sm:text-lg font-medium mb-2 flex items-center">
+                    <i class="fas fa-file-upload mr-2 text-gray-500"></i>File Management
+                </h4>
+                <div class="p-3 sm:p-4 text-center text-yellow-600 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <i class="fas fa-lock mr-2"></i>File management will be available once the project owner approves
+                    your pitch.
+                </div>
+            </div>
+            @endif
+
+            <!-- Submit for review button section -->
+            @if($pitch->status == 'in_progress' || $pitch->status == 'pending_review' || $pitch->status == 'denied' ||
+            $pitch->status == 'revisions_requested')
+            <div
+                class="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-end items-start sm:items-center space-y-2 sm:space-y-0">
+                @error('acceptedTerms')
+                <span class="text-red-500 text-xs sm:text-sm">{{ $message }}</span>
+                @enderror
+                <div class="flex items-center w-full sm:w-auto mb-2 sm:mb-0 sm:mr-4">
+                    <input type="checkbox" id="terms" class="form-checkbox h-4 w-4 sm:h-5 sm:w-5 text-green-600"
+                        wire:model.defer="acceptedTerms">
+                    <label for="terms" class="px-2 text-xs sm:text-sm text-gray-700">I accept the <a href="/terms"
+                            target="_blank" class="text-blue-500 hover:underline">terms and conditions</a></label>
+                </div>
+
+                <button wire:click="submitForReview" wire:confirm="Are you sure you want to Submit your Pitch?"
+                    class="w-full sm:w-auto bg-green-500 hover:bg-green-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded"
+                    :disabled="!acceptedTerms">
+                    <i class="fas fa-check pr-1.5 sm:pr-2"></i>
+                    {{ $pitch->status == 'denied' || $pitch->status == 'revisions_requested' ? 'Resubmit Pitch' : 'Ready
+                    To Submit' }}
+                </button>
+            </div>
+            @endif
+
+            <!-- Cancel submission button section -->
+            @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW && auth()->id() === $pitch->user_id)
+            <div class="mt-4 sm:mt-6 flex justify-end">
+                <button wire:click="cancelPitchSubmission"
+                    wire:confirm="Are you sure you want to cancel your submission? This will return your pitch to 'In Progress' status and delete the current pending snapshot."
+                    class="w-full sm:w-auto bg-red-500 hover:bg-red-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded">
+                    <i class="fas fa-xmark pr-1.5 sm:pr-2"></i>
+                    Cancel Submission
+                </button>
+            </div>
+            @endif
         </div>
-    </div>
-
-    <!-- Submit for review button section -->
-    @if($pitch->status == 'in_progress' || $pitch->status == 'pending_review' || $pitch->status == 'denied' ||
-    $pitch->status == 'revisions_requested')
-    <div class="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-end items-start sm:items-center space-y-2 sm:space-y-0">
-        @error('acceptedTerms')
-        <span class="text-red-500 text-xs sm:text-sm">{{ $message }}</span>
-        @enderror
-        <div class="flex items-center w-full sm:w-auto mb-2 sm:mb-0 sm:mr-4">
-            <input type="checkbox" id="terms" class="form-checkbox h-4 w-4 sm:h-5 sm:w-5 text-green-600"
-                wire:model.defer="acceptedTerms">
-            <label for="terms" class="px-2 text-xs sm:text-sm text-gray-700">I accept the <a href="/terms" target="_blank"
-                    class="text-blue-500 hover:underline">terms and conditions</a></label>
-        </div>
-
-        <button wire:click="submitForReview" wire:confirm="Are you sure you want to Submit your Pitch?"
-            class="w-full sm:w-auto bg-green-500 hover:bg-green-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded"
-            :disabled="!acceptedTerms">
-            <i class="fas fa-check pr-1.5 sm:pr-2"></i>
-            {{ $pitch->status == 'denied' || $pitch->status == 'revisions_requested' ? 'Resubmit Pitch' : 'Ready To Submit' }}
-        </button>
-    </div>
-    @endif
-
-    <!-- Cancel submission button section -->
-    @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW && auth()->id() === $pitch->user_id)
-    <div class="mt-4 sm:mt-6 flex justify-end">
-        <button wire:click="cancelPitchSubmission"
-            wire:confirm="Are you sure you want to cancel your submission? This will return your pitch to 'In Progress' status and delete the current pending snapshot."
-            class="w-full sm:w-auto bg-red-500 hover:bg-red-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded">
-            <i class="fas fa-xmark pr-1.5 sm:pr-2"></i>
-            Cancel Submission
-        </button>
-    </div>
-    @endif
-</div>

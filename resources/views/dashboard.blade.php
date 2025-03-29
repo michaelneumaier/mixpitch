@@ -163,7 +163,7 @@
                     @forelse($pitches as $pitch)
                     <div
                         class="mb-4 rounded-lg shadow-sm overflow-hidden border border-base-300 hover:shadow-md transition-all">
-                        <a href="{{ route('pitches.show', $pitch->id) }}" class="block">
+                        <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="block">
                             <div class="flex flex-col md:flex-row">
                                 <!-- Project Image -->
                                 <div class="w-full md:w-40 h-40 bg-center bg-cover bg-no-repeat"

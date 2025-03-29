@@ -158,7 +158,7 @@ class CompletePitch extends Component
                 }
 
                 // Redirect back to the manage project page if successful
-                return redirect()->route('projects.manage', $this->pitch->project);
+                return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
             }
         } catch (\Exception $e) {
             Log::error('Error in debugComplete', [
@@ -321,7 +321,7 @@ class CompletePitch extends Component
             session()->flash('success', 'The pitch has been marked as completed.');
 
             // Reload the page to show the completed state
-            return redirect()->route('pitches.show', $this->pitch);
+            return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error marking pitch as completed: ' . $e->getMessage(), [

@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Cviebrock\EloquentSluggable\Sluggable;
 
 class Pitch extends Model
 {
     use HasFactory;
+    use Sluggable;
     const STATUS_PENDING = 'pending';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_READY_FOR_REVIEW = 'ready_for_review';
@@ -56,6 +58,7 @@ class Pitch extends Model
         'payment_completed_at',
         'completion_feedback',
         'completion_date',
+        'slug',
     ];
 
     protected $dates = [
@@ -1056,4 +1059,42 @@ class Pitch extends Model
             self::PAYMENT_STATUS_NOT_REQUIRED
         ]);
     }
+
+    /**
+     * Get the route key for the model.
+     *
+     * @return string
+     */
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
+    
+    /**
+     * Return the sluggable configuration array for this model.
+     *
+     * @return array
+     */
+    public function sluggable(): array
+    {
+        return [
+            'slug' => [
+                'source' => 'auto_slug',
+            ]
+        ];
+    }
+
+    /**
+     * Determines if file management operations are allowed for this pitch
+     * 
+     * @return bool
+     */
+    public function canManageFiles()
+    {
+        return $this->status !== self::STATUS_PENDING;
+    }
+
+    /**
+     * Get a readable version of the pitch status
+     */
 }

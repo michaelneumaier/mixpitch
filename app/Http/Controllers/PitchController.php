@@ -28,7 +28,7 @@ class PitchController extends Controller
             $userPitch = $project->userPitch(auth()->id());
 
             if ($userPitch) {
-                return redirect()->route('pitches.show', $userPitch->id);
+                return redirect()->route('projects.pitches.show', ['project' => $userPitch->project->slug, 'pitch' => $userPitch->slug]);
             }
 
             // Check if a new pitch can be created for this project
@@ -46,15 +46,20 @@ class PitchController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, Project $project = null)
     {
         $request->validate([
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => 'required_without:project|exists:projects,id',
             'agree_terms' => 'accepted', // This checks that the terms checkbox was checked
         ]);
 
-        // Get the project
-        $project = Project::findOrFail($request->project_id);
+        // Get the project - either from the route parameter or the request
+        if (!$project) {
+            $project = Project::findOrFail($request->project_id);
+        } elseif (!$request->has('project_id')) {
+            // If using the new route pattern, add project_id to the request
+            $request->merge(['project_id' => $project->id]);
+        }
 
         // Check if a new pitch can be created for this project
         [$canCreatePitch, $errorMessage] = $project->canCreatePitch(auth()->user());
@@ -65,11 +70,11 @@ class PitchController extends Controller
 
         $pitch = new Pitch();
         $pitch->user_id = Auth::id(); // Assumes the user is logged in and you're using Laravel's authentication
-        $pitch->project_id = $request->project_id;
+        $pitch->project_id = $project->id;
         $pitch->status = Pitch::STATUS_PENDING; // Set initial status to pending, requiring owner approval
-        // Add other fields as necessary
-
-        $pitch->save();
+        
+        // Generate and set the slug using our helper method
+        $this->generateAndSetSlug($pitch);
 
         // Create an initial event record
         $pitch->events()->create([
@@ -79,7 +84,7 @@ class PitchController extends Controller
             'created_by' => Auth::id(),
         ]);
 
-        return redirect()->route('pitches.show', $pitch->id)->with('success', 'Your pitch has been created and is pending approval from the project owner.');
+        return redirect()->route('projects.pitches.show', ['project' => $project->slug, 'pitch' => $pitch->slug])->with('success', 'Your pitch has been created and is pending approval from the project owner.');
     }
 
     /**
@@ -94,19 +99,36 @@ class PitchController extends Controller
             abort(404, 'Pitch not found');
         }
 
+        // Redirect to the new URL pattern
+        return redirect()->route('projects.pitches.show', [
+            'project' => $pitch->project,
+            'pitch' => $pitch
+        ]);
+    }
+
+    /**
+     * Display the pitch with the new URL pattern
+     */
+    public function showProjectPitch(Project $project, Pitch $pitch)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+
         // Retrieve the authenticated user
         $user = auth()->user();
 
         // Check if the user is the project owner
-        if ($user->id === $pitch->project->user_id) {
+        if ($user->id === $project->user_id) {
             // Redirect project owners to the manage project page
-            return redirect()->route('projects.manage', $pitch->project)
+            return redirect()->route('projects.manage', $project)
                 ->with('info', 'Project owners should manage pitches from the project management page.');
         }
 
         // Check if the user is the pitch owner
         if ($user->id === $pitch->user_id) {
-            // Allowing pitch owners to view the pitch details
+            // Allow pitch owners to view the pitch details
             return view('pitches.show', compact('pitch'));
         }
 
@@ -144,15 +166,27 @@ class PitchController extends Controller
      */
     public function edit(Pitch $pitch)
     {
+        // Redirect to the new URL pattern
+        return redirect()->route('projects.pitches.edit', [
+            'project' => $pitch->project,
+            'pitch' => $pitch
+        ]);
+    }
+
+    /**
+     * Edit the pitch with the new URL pattern
+     */
+    public function editProjectPitch(Project $project, Pitch $pitch)
+    {
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
+        }
+
+        // Check if the user is authorized to edit the pitch
         $this->authorize('update', $pitch);
 
-        // Load the current snapshot using the relationship method
-        $currentSnapshot = $pitch->currentSnapshot;
-
-        return view('pitches.edit', [
-            'pitch' => $pitch,
-            'currentSnapshot' => $currentSnapshot,
-        ]);
+        return view('pitches.edit', compact('pitch'));
     }
 
     /**
@@ -224,11 +258,11 @@ class PitchController extends Controller
             // Update the pitch status to ready for review
             $pitch->changeStatus('forward', Pitch::STATUS_READY_FOR_REVIEW, 'Revisions submitted in response to feedback');
 
-            return redirect()->route('pitches.show', $pitch->id)
+            return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                 ->with('success', 'Your revisions have been submitted successfully and are now under review.');
         }
 
-        return redirect()->route('pitches.show', $pitch->id)
+        return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
             ->with('error', 'This pitch is not currently awaiting revisions.');
     }
 
@@ -299,7 +333,7 @@ class PitchController extends Controller
                 [$canSubmit, $errorMessage] = $pitch->canSubmitForReview();
                 if (!$canSubmit) {
                     \DB::rollBack();
-                    return redirect()->route('pitches.show', $pitch->id)
+                    return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                         ->with('error', $errorMessage);
                 }
 
@@ -309,7 +343,7 @@ class PitchController extends Controller
                 // Commit the transaction
                 \DB::commit();
 
-                return redirect()->route('pitches.show', $pitch->id)
+                return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                     ->with('success', 'Your revisions have been submitted successfully and are now under review.');
             } catch (\Exception $e) {
                 // Roll back the transaction if something goes wrong
@@ -320,12 +354,12 @@ class PitchController extends Controller
                     'trace' => $e->getTraceAsString()
                 ]);
 
-                return redirect()->route('pitches.show', $pitch->id)
+                return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
                     ->with('error', 'An error occurred while submitting revisions: ' . $e->getMessage());
             }
         }
 
-        return redirect()->route('pitches.show', $pitch->id)
+        return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
             ->with('error', 'This pitch is not currently awaiting revisions.');
     }
 
@@ -437,7 +471,7 @@ class PitchController extends Controller
         $latestSnapshot = $pitch->snapshots()->orderBy('created_at', 'desc')->first();
 
         if ($latestSnapshot) {
-            return redirect()->route('pitches.showSnapshot', [$pitch->id, $latestSnapshot->id]);
+            return redirect()->route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $latestSnapshot->id]);
         }
 
         return redirect()->back()->with('error', 'No snapshots available to review.');
@@ -446,8 +480,15 @@ class PitchController extends Controller
     /**
      * Process the confirmed deletion from the Livewire component
      */
-    public function destroyConfirmed(Pitch $pitch)
+    public function destroyConfirmed(Project $project = null, Pitch $pitch = null)
     {
+        // If pitch is null but project is provided, it means we're using the new route pattern
+        // and Laravel has bound parameters in the wrong order
+        if ($pitch === null && $project !== null && $project instanceof Pitch) {
+            $pitch = $project;
+            $project = null;
+        }
+        
         // Ensure the pitch exists
         if (!$pitch || !$pitch->exists) {
             abort(404, 'Pitch not found');
@@ -540,28 +581,61 @@ class PitchController extends Controller
      * @param  \App\Models\Pitch  $pitch
      * @return \Illuminate\Http\Response
      */
-    public function showPayment(Pitch $pitch)
+    public function showProjectPitchPayment(Project $project, Pitch $pitch)
     {
-        // Check if the user is authorized to view this payment information
-        if (auth()->id() !== $pitch->project->user_id && auth()->id() !== $pitch->user_id) {
-            abort(403, 'Unauthorized');
+        // Verify the pitch belongs to the specified project
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch not found for this project');
         }
 
-        return view('pitches.payment', compact('pitch'));
+        // Redirect to payment overview
+        return redirect()->route('projects.pitches.payment.overview', [
+            'project' => $project,
+            'pitch' => $pitch
+        ]);
     }
 
-    public function payment(Pitch $pitch)
+    /**
+     * Original payment method redirects to new URL
+     */
+    public function showPayment(Pitch $pitch)
     {
-        $this->authorize('view', $pitch);
-
-        // Users can only view payment details if the pitch is completed
-        if ($pitch->status !== Pitch::STATUS_COMPLETED) {
-            return redirect()->route('pitches.show', $pitch)
-                ->with('error', 'Payment details are only available for completed pitches.');
-        }
-
-        return view('pitches.payment', [
-            'pitch' => $pitch,
+        // Redirect to the new URL pattern
+        return redirect()->route('projects.pitches.payment', [
+            'project' => $pitch->project,
+            'pitch' => $pitch
         ]);
+    }
+
+    /**
+     * Generate and set a unique slug for a pitch
+     * 
+     * @param Pitch $pitch The pitch model to set a slug for
+     * @return void
+     */
+    private function generateAndSetSlug(Pitch $pitch)
+    {
+        // Manually set a slug to avoid the sluggable trait error
+        $user = Auth::user();
+        $username = $user ? ($user->username ?? 'user-' . $user->id) : 'user-' . Auth::id();
+        $baseSlug = \Illuminate\Support\Str::slug($username);
+        
+        // Check if the slug already exists for this project
+        $existingCount = \App\Models\Pitch::where('project_id', $pitch->project_id)
+            ->where('slug', 'like', $baseSlug . '%')
+            ->count();
+            
+        // Make the slug unique within the project
+        $pitch->slug = $existingCount > 0 ? $baseSlug . '-' . ($existingCount + 1) : $baseSlug;
+        
+        // Disable automatic slug generation
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $pitch->saveQuietly(); // This bypasses the slug generation
+            \Illuminate\Support\Facades\DB::commit();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            throw $e;
+        }
     }
 }

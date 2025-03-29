@@ -113,11 +113,11 @@ class Notification extends Model
             if ($pitch) {
                 // For comments, include the comment anchor
                 if ($this->type === self::TYPE_PITCH_COMMENT && isset($data['comment_id'])) {
-                    return route('pitches.show', $pitch) . '#comment-' . $data['comment_id'];
+                    return route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) . '#comment-' . $data['comment_id'];
                 }
                 
                 // For all other pitch-related notifications, go to the pitch page
-                return route('pitches.show', $pitch);
+                return route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]);
             }
         }
         

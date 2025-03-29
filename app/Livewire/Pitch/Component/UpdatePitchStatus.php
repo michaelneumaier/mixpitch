@@ -180,7 +180,7 @@ class UpdatePitchStatus extends Component
         $latestSnapshot = $this->pitch->snapshots()->orderBy('created_at', 'desc')->first();
 
         if ($latestSnapshot) {
-            return redirect()->route('pitches.showSnapshot', [$this->pitch->id, $latestSnapshot->id]);
+            return redirect()->route('projects.pitches.snapshots.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug, 'snapshot' => $latestSnapshot->id]);
         }
 
         Toaster::error('No snapshots available to review.');

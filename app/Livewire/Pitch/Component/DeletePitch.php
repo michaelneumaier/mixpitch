@@ -35,8 +35,8 @@ class DeletePitch extends Component
             return;
         }
         
-        // Redirect to the controller's destroyConfirmed method
-        return redirect()->route('pitches.destroyConfirmed', $this->pitch);
+        // Check if there's a project-based destroy route, and if so, use it
+        return redirect()->route('projects.pitches.destroyConfirmed', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
     }
 
     public function render()

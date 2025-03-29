@@ -44,7 +44,7 @@
                     </div>
                 </div>
 
-                <form id="pitch-create-form" action="{{ route('pitches.store') }}" method="POST">
+                <form id="pitch-create-form" action="{{ route('projects.pitches.store', ['project' => $project->slug]) }}" method="POST">
                     @csrf
                     <input type="hidden" name="project_id" value="{{ $project->id }}">
 

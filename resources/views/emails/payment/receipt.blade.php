@@ -183,7 +183,7 @@
         <p>You can view the complete details of this {{ $isFreeProject ? 'project' : 'payment' }} by clicking the button below:</p>
         
         <p style="text-align: center;">
-            <a href="{{ route('pitches.payment', $pitch) }}" class="button">View Receipt Details</a>
+            <a href="{{ route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="button">View Receipt Details</a>
         </p>
         
         <div class="footer">

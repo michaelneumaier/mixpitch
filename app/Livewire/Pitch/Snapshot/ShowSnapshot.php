@@ -4,6 +4,7 @@ namespace App\Livewire\Pitch\Snapshot;
 
 use Livewire\Component;
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\PitchSnapshot;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -14,20 +15,60 @@ class ShowSnapshot extends Component
     public $pitchSnapshot;
     public $snapshotData;
 
-    public function mount(Pitch $pitch, PitchSnapshot $pitchSnapshot)
+    public function mount($pitch = null, $pitchSnapshot = null, $project = null, $snapshot = null)
     {
-        $this->pitch = $pitch;
-        $this->pitchSnapshot = $pitchSnapshot;
-        $this->snapshotData = $pitchSnapshot->snapshot_data;
+        // Handle the case where we have slug-based routing (project and pitch are slugs)
+        if (isset($project) && isset($pitch) && isset($snapshot)) {
+            // When using the new URL pattern with slugs, we need to find models by slug
+            if (is_string($project)) {
+                // Find project by slug
+                $project = Project::where('slug', $project)->firstOrFail();
+            }
+            
+            if (is_string($pitch)) {
+                // Find pitch by slug
+                $pitch = Pitch::where('slug', $pitch)->where('project_id', $project->id)->firstOrFail();
+            }
+            
+            // Verify pitch belongs to project
+            if ($pitch->project_id != $project->id) {
+                abort(404, 'Pitch not found for this project');
+            }
+            
+            // Resolve snapshot by ID (snapshots don't have slugs)
+            $pitchSnapshot = PitchSnapshot::findOrFail($snapshot);
+            
+            // Verify snapshot belongs to pitch
+            if ($pitchSnapshot->pitch_id != $pitch->id) {
+                abort(404, 'Snapshot not found for this pitch');
+            }
+            
+            // Now we can safely set the properties
+            $this->pitch = $pitch;
+            $this->pitchSnapshot = $pitchSnapshot;
+            $this->snapshotData = $pitchSnapshot->snapshot_data;
+        } 
+        // Old route pattern is no longer supported
+        else {
+            abort(404, 'Invalid URL pattern. Please use the project/pitch/snapshot URL structure.');
+        }
 
         // Check if the user is authorized to view this snapshot
-        if (Auth::id() !== $pitch->user_id && Auth::id() !== $pitch->project->user_id) {
+        if (Auth::id() !== $this->pitch->user_id && Auth::id() !== $this->pitch->project->user_id) {
             abort(403, 'Unauthorized action.');
         }
     }
 
     public function render()
     {
+        // Safety check
+        if (!isset($this->pitch) || !isset($this->pitchSnapshot)) {
+            return view('livewire.pitch.snapshot.show-snapshot', [
+                'conversationThread' => [],
+                'error' => 'Cannot load snapshot data'
+            ]);
+        }
+        
         $conversationThread = $this->getConversationThread();
         return view('livewire.pitch.snapshot.show-snapshot', [
             'conversationThread' => $conversationThread
@@ -43,6 +84,17 @@ class ShowSnapshot extends Component
     protected function getConversationThread()
     {
         $conversationThread = [];
+        
+        // Safety checks
+        if (!isset($this->pitch) || !isset($this->pitchSnapshot) || !isset($this->snapshotData)) {
+            Log::error('Missing data for conversation thread', [
+                'has_pitch' => isset($this->pitch),
+                'has_snapshot' => isset($this->pitchSnapshot),
+                'has_snapshot_data' => isset($this->snapshotData)
+            ]);
+            return $conversationThread;
+        }
+        
         $pitch = $this->pitch;
         $pitchSnapshot = $this->pitchSnapshot;
 
@@ -51,7 +103,6 @@ class ShowSnapshot extends Component
             isset($pitchSnapshot->snapshot_data['response_to_feedback']) &&
             !empty($pitchSnapshot->snapshot_data['response_to_feedback'])
         ) {
-
             $response = $pitchSnapshot->snapshot_data['response_to_feedback'];
             $responseDate = $pitchSnapshot->created_at;
             $responseUser = $pitchSnapshot->user;
@@ -105,6 +156,15 @@ class ShowSnapshot extends Component
      */
     protected function getCurrentSnapshotFeedback()
     {
+        // Safety checks
+        if (!isset($this->pitch) || !isset($this->pitchSnapshot)) {
+            Log::error('Missing data for snapshot feedback', [
+                'has_pitch' => isset($this->pitch),
+                'has_snapshot' => isset($this->pitchSnapshot)
+            ]);
+            return null;
+        }
+        
         $pitch = $this->pitch;
         $pitchSnapshot = $this->pitchSnapshot;
 

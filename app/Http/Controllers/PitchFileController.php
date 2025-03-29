@@ -110,7 +110,7 @@ class PitchFileController extends Controller
             ]);
             
             // Redirect back to the pitch page
-            return redirect()->route('pitches.show', $pitch->id)->with('success', 'File deleted successfully.');
+            return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])->with('success', 'File deleted successfully.');
         } catch (\Exception $e) {
             \Log::error('Error deleting pitch file', [
                 'error' => $e->getMessage(),
@@ -118,7 +118,7 @@ class PitchFileController extends Controller
                 'pitch_id' => $pitch->id
             ]);
             
-            return redirect()->route('pitches.show', $pitch->id)->with('error', 'Error deleting file: ' . $e->getMessage());
+            return redirect()->route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])->with('error', 'Error deleting file: ' . $e->getMessage());
         }
     }
 
