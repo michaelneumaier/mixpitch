@@ -242,7 +242,7 @@
                         <i class="fas fa-version mr-2 text-gray-400"></i>
                         <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
                             class="font-medium hover:text-blue-600 transition-colors text-sm">
-                            Version {{ $snapshot->snapshot_data['version'] }}
+                            Version {{ $snapshot->snapshot_data['version'] ?? 1 }}
                         </a>
                         <span class="text-xs text-gray-500 ml-2 sm:ml-3">
                             {{ $snapshot->created_at->format('M d, Y H:i') }}
@@ -618,7 +618,7 @@
                         </div>
                     </div>
                     <div class="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="button" wire:click="deleteFile(deleteModal.fileId)"
+                        <button type="button" wire:click="deleteSelectedFile"
                             @click="deleteModal.isOpen = false"
                             class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-3 sm:px-4 py-2 bg-red-600 text-xs sm:text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto">
                             Delete

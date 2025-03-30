@@ -14,6 +14,8 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         \App\Models\Pitch::class => \App\Policies\PitchPolicy::class,
+        \App\Models\Project::class => \App\Policies\ProjectPolicy::class,
+        \App\Models\PitchFile::class => \App\Policies\PitchFilePolicy::class,
     ];
 
     /**

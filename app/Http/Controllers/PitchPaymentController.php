@@ -3,283 +3,226 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Services\InvoiceService;
+use App\Services\PitchWorkflowService;
+use App\Http\Requests\Pitch\ProcessPitchPaymentRequest;
+use App\Helpers\RouteHelpers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Laravel\Cashier\Cashier;
-use App\Models\Project;
+use Illuminate\Support\Facades\Log;
+use Laravel\Cashier\Exceptions\IncompletePayment;
+use Stripe\Exception\CardException;
 
 class PitchPaymentController extends Controller
 {
-    /**
-     * Show the payment overview page for a pitch
-     *
-     * @param Pitch $pitch
-     * @return \Illuminate\View\View
-     */
-    public function overview(Pitch $pitch)
+    protected $invoiceService;
+    protected $pitchWorkflowService;
+
+    public function __construct(InvoiceService $invoiceService, PitchWorkflowService $pitchWorkflowService)
     {
-        // Check if the authenticated user is the project owner
-        if (Auth::id() !== $pitch->project->user_id) {
-            abort(403, 'Only the project owner can process payments.');
+        $this->invoiceService = $invoiceService;
+        $this->pitchWorkflowService = $pitchWorkflowService;
+    }
+
+    /**
+     * Show the payment overview page.
+     * Authorization and status checks are similar, but simplified as payment processing logic moves.
+     *
+     * @param Project $project
+     * @param Pitch $pitch
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function projectPitchOverview(Project $project, Pitch $pitch)
+    {
+        // Basic Authorization: Ensure user is project owner
+        if (Auth::id() !== $project->user_id) {
+            abort(403, 'Only the project owner can view the payment page.');
         }
 
-        // Check if the pitch is in completed status
+        // Check pitch status consistency
+        if ($pitch->project_id !== $project->id) {
+            abort(404, 'Pitch does not belong to this project.');
+        }
+
+        // Redirect if already paid/processing or not applicable
+        if ($pitch->payment_status === Pitch::PAYMENT_STATUS_PAID || $pitch->payment_status === Pitch::PAYMENT_STATUS_PROCESSING) {
+            // Use RouteHelpers for URL generation
+            return redirect(RouteHelpers::pitchReceiptUrl($pitch));
+        }
+        if ($pitch->payment_status === Pitch::PAYMENT_STATUS_NOT_REQUIRED || $project->budget <= 0) {
+            // Use RouteHelpers for URL generation
+             return redirect(RouteHelpers::pitchUrl($pitch))
+                ->with('info', 'This project does not require payment.');
+        }
         if ($pitch->status !== Pitch::STATUS_COMPLETED) {
-            return redirect()->route('projects.pitches.show', [
-                'project' => $pitch->project,
-                'pitch' => $pitch
-            ])->with('error', 'Only completed pitches can be paid.');
+            // Use RouteHelpers for URL generation
+            return redirect(RouteHelpers::pitchUrl($pitch))
+                ->with('error', 'Payment can only be processed for completed pitches.');
         }
 
-        // Check if payment is already processed or in processing
-        if (in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING])) {
-            return redirect()->route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]);
-        }
-
-        // Free projects don't require payment
-        $isFreeProject = ($pitch->project->budget == 0);
-        if ($isFreeProject) {
-            return redirect()->route('projects.pitches.show', [
-                'project' => $pitch->project,
-                'pitch' => $pitch
-            ])->with('info', 'This is a free project and does not require payment.');
-        }
+        // Fetch payment intent if needed for Stripe Elements
+        // $intent = Auth::user()->createSetupIntent(); // Example, adjust as needed
 
         return view('pitches.payment.overview', [
             'pitch' => $pitch,
-            'project' => $pitch->project,
-            'paymentAmount' => $pitch->project->budget,
+            'project' => $project,
+            'paymentAmount' => $project->budget,
+           // 'intent' => $intent // Pass intent to view
         ]);
     }
 
     /**
-     * Process the payment for a pitch
+     * Process the payment for a pitch using the refactored services.
      *
-     * @param Request $request
+     * @param ProcessPitchPaymentRequest $request
+     * @param Project $project
      * @param Pitch $pitch
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function process(Request $request, Pitch $pitch)
+    public function projectPitchProcess(ProcessPitchPaymentRequest $request, Project $project, Pitch $pitch)
     {
-        // Check if the authenticated user is the project owner
-        if (Auth::id() !== $pitch->project->user_id) {
-            abort(403, 'Only the project owner can process payments.');
-        }
-
-        // Check if the pitch is in completed status
-        if ($pitch->status !== Pitch::STATUS_COMPLETED) {
-            return redirect()->route('projects.pitches.show', [
-                'project' => $pitch->project,
-                'pitch' => $pitch
-            ])->with('error', 'Only completed pitches can be paid.');
-        }
-
-        // Check if payment is already processed or in processing
-        if (in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING])) {
-            return redirect()->route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]);
-        }
-
-        // Validate the payment method
-        if (!$request->has('payment_method')) {
-            return redirect()->route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
-                ->with('error', 'No payment method was provided.');
-        }
+        // Authorization and validation are handled by ProcessPitchPaymentRequest
+        $paymentMethodId = $request->validated('payment_method_id');
+        $stripeInvoice = null; // To store the created/retrieved Stripe Invoice object
+        $stripeInvoiceId = null; // To store the ID for logging/workflow
 
         try {
-            // Start by updating the pitch status to processing
-            $pitch->update([
-                'payment_status' => Pitch::PAYMENT_STATUS_PROCESSING,
-                'payment_amount' => $pitch->project->budget
-            ]);
+            // Consider setting status to PROCESSING here if desired UI feedback is needed
+             // $pitch->payment_status = Pitch::PAYMENT_STATUS_PROCESSING;
+             // $pitch->save(); // Be careful about rollbacks on failure
 
-            // Use the centralized invoice service
-            $invoiceService = app(InvoiceService::class);
-            $result = $invoiceService->createPitchInvoice(
-                $pitch, 
-                $pitch->project->budget, 
-                $request->input('payment_method')
-            );
+            // Step 1: Create/Retrieve the Stripe Invoice via InvoiceService
+            // Assuming createPitchInvoice returns the Stripe Invoice object on success
+            // And includes pitch_id, project_id metadata
+            Log::info('Attempting to create/retrieve invoice for pitch.', ['pitch_id' => $pitch->id]);
+            $invoiceResult = $this->invoiceService->createPitchInvoice($pitch, $project->budget, $paymentMethodId);
             
-            if (!$result['success']) {
-                throw new \Exception($result['error'] ?? 'Failed to create invoice');
-            }
-            
-            // Process the payment
-            $paymentResult = $invoiceService->processInvoicePayment(
-                $result['invoice'], 
-                $request->input('payment_method')
-            );
-            
-            if (!$paymentResult['success']) {
-                throw new \Exception($paymentResult['error'] ?? 'Failed to process payment');
-            }
+            // Check if the service indicates success and returns the invoice object
+             if (!isset($invoiceResult['success']) || !$invoiceResult['success'] || !isset($invoiceResult['invoice'])) {
+                 throw new \Exception($invoiceResult['error'] ?? 'Failed to create or retrieve invoice from InvoiceService.');
+             }
+             $stripeInvoice = $invoiceResult['invoice'];
+             $stripeInvoiceId = $stripeInvoice->id; // Get ID for later use
+             Log::info('Invoice created/retrieved successfully.', ['pitch_id' => $pitch->id, 'invoice_id' => $stripeInvoiceId]);
 
-            $payResult = $paymentResult['paymentResult'];
-            
-            // Update pitch with the invoice ID
-            $pitch->update([
-                'payment_status' => Pitch::PAYMENT_STATUS_PAID,
-                'payment_completed_at' => now(),
-                'final_invoice_id' => $result['invoice']->id // Store actual Stripe invoice ID
-            ]);
-            
-            // Add payment event to the audit trail
-            $pitch->events()->create([
-                'event_type' => 'payment_processed',
-                'comment' => 'Payment of $' . number_format($pitch->project->budget, 2) . ' was processed successfully.',
-                'created_by' => auth()->id(),
-                'user_id' => auth()->id(),
-                'metadata' => [
-                    'invoice_id' => $result['invoice']->id,
-                    'amount' => $pitch->project->budget
-                ]
-            ]);
-            
-            // Send final payment notification to the pitch creator
-            try {
-                $notificationService = app(\App\Services\NotificationService::class);
-                $notificationService->notifyPaymentProcessed(
-                    $pitch, 
-                    $pitch->project->budget,
-                    $result['invoice']->id
-                );
-            } catch (\Exception $e) {
-                \Log::error('Failed to send payment notification', [
-                    'pitch_id' => $pitch->id,
-                    'error' => $e->getMessage()
-                ]);
-                // Continue process even if notification fails
-            }
-            
-            // Log the successful payment
-            \Log::info('Pitch payment processed successfully', [
-                'pitch_id' => $pitch->id,
-                'user_id' => Auth::id(),
-                'invoice_id' => $result['invoice']->id,
-                'amount' => $pitch->project->budget,
-                'payment_result' => [
-                    'status' => $payResult->status,
-                    'total' => $payResult->total,
-                    'amount_paid' => $payResult->amount_paid
-                ]
-            ]);
 
-            return redirect()->route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
-                ->with('success', 'Payment processed successfully!');
-            
-        } catch (\Stripe\Exception\CardException $e) {
-            \Log::error('Card error during pitch payment', [
-                'pitch_id' => $pitch->id,
-                'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+            // Step 2: Process the payment for the created invoice via InvoiceService
+             Log::info('Attempting to process payment for invoice.', ['pitch_id' => $pitch->id, 'invoice_id' => $stripeInvoiceId]);
+            $paymentResult = $this->invoiceService->processInvoicePayment($stripeInvoice, $paymentMethodId);
+
+            // Check if the service indicates success
+            if (!isset($paymentResult['success']) || !$paymentResult['success']) {
+                // Throw specific exceptions if InvoiceService provides them, otherwise generic
+                 $errorMessage = $paymentResult['error'] ?? 'Payment processing failed via InvoiceService.';
+                 if (isset($paymentResult['exception']) && $paymentResult['exception'] instanceof CardException) {
+                     throw $paymentResult['exception']; // Re-throw CardException
+                 }
+                 throw new \Exception($errorMessage);
+            }
+             Log::info('Payment processed successfully via InvoiceService.', ['pitch_id' => $pitch->id, 'invoice_id' => $stripeInvoiceId]);
+
+
+            // Step 3: Mark pitch as paid using PitchWorkflowService
+            $this->pitchWorkflowService->markPitchAsPaid($pitch, $stripeInvoiceId /*, optional charge id */);
+
+            // Use RouteHelpers for URL generation
+            return redirect(RouteHelpers::pitchReceiptUrl($pitch))
+                             ->with('success', 'Payment processed successfully!');
+
+        } catch (CardException $e) {
+            Log::error('Stripe CardException during pitch payment processing.', [
+                'pitch_id' => $pitch->id, 'invoice_id' => $stripeInvoiceId, 'error' => $e->getMessage()
+            ]);
+            // Mark payment as failed
+            $this->pitchWorkflowService->markPitchPaymentFailed($pitch, $stripeInvoiceId, $e->getMessage());
+            // Use RouteHelpers for URL generation
+            return redirect(RouteHelpers::pitchPaymentUrl($pitch))
+                             ->with('error', 'Card error: ' . $e->getMessage());
+
+        } catch (IncompletePayment $exception) {
+            Log::info('Incomplete payment requiring authentication.', [
+                'pitch_id' => $pitch->id, 'invoice_id' => $stripeInvoiceId, 'payment_id' => $exception->payment->id
             ]);
             
-            // Update payment status to failed
-            $pitch->update([
-                'payment_status' => Pitch::PAYMENT_STATUS_FAILED
-            ]);
+             // Mark payment as failed for now, or keep as processing? Depends on flow.
+            // $this->pitchWorkflowService->markPitchPaymentFailed($pitch, $stripeInvoiceId, 'Requires authentication');
             
-            return redirect()->route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
-                ->with('error', 'Card error: ' . $e->getMessage());
-                
-        } catch (\Laravel\Cashier\Exceptions\IncompletePayment $exception) {
-            // Handle 3D Secure authentication needs
-            \Log::info('Incomplete payment requiring authentication', [
-                'pitch_id' => $pitch->id,
-                'payment_id' => $exception->payment->id
-            ]);
-            
-            return redirect()->route(
-                'cashier.payment',
-                [$exception->payment->id, 'redirect' => route('projects.pitches.payment.receipt', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])]
-            );
-            
+            // Use RouteHelpers for URL generation for the redirect parameter
+             return redirect()->route(
+                 'cashier.payment',
+                 [$exception->payment->id, 'redirect' => RouteHelpers::pitchReceiptUrl($pitch)]
+             );
+
         } catch (\Exception $e) {
-            // Log the error
-            \Log::error('Payment processing failed', [
-                'pitch_id' => $pitch->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            Log::error('General Exception during pitch payment processing.', [
+                'pitch_id' => $pitch->id, 'invoice_id' => $stripeInvoiceId, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString() // Limit trace in production
             ]);
-
-            // Update payment status to failed
-            $pitch->update([
-                'payment_status' => Pitch::PAYMENT_STATUS_FAILED
-            ]);
-
-            return redirect()->route('projects.pitches.payment.overview', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug])
-                ->with('error', 'Payment processing failed: ' . $e->getMessage());
+            // Mark payment as failed
+            $this->pitchWorkflowService->markPitchPaymentFailed($pitch, $stripeInvoiceId, $e->getMessage());
+            // Use RouteHelpers for URL generation
+            return redirect(RouteHelpers::pitchPaymentUrl($pitch))
+                             ->with('error', 'An unexpected error occurred during payment processing. Please try again.');
         }
     }
 
     /**
-     * Show the payment receipt
+     * Show the payment receipt.
      *
+     * @param Project $project
      * @param Pitch $pitch
-     * @return \Illuminate\View\View
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
      */
-    public function receipt(Pitch $pitch)
+    public function projectPitchReceipt(Project $project, Pitch $pitch)
     {
-        // Check if the authenticated user is authorized
-        if (Auth::id() !== $pitch->project->user_id && Auth::id() !== $pitch->user_id) {
+        // Authorization: Ensure user is project owner OR pitch creator
+        if (Auth::id() !== $project->user_id && Auth::id() !== $pitch->user_id) {
             abort(403, 'You are not authorized to view this receipt.');
         }
+        if ($pitch->project_id !== $project->id) {
+             abort(404, 'Pitch does not belong to this project.');
+        }
 
-        // Retrieve the actual invoice from Stripe using our invoice service
-        $invoiceService = app(InvoiceService::class);
-        $invoice = null;
-        
+        // Check if payment was required and completed/failed
+        if ($pitch->payment_status === Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === Pitch::PAYMENT_STATUS_NOT_REQUIRED) {
+            // Use RouteHelpers for URL generation
+             return redirect(RouteHelpers::pitchUrl($pitch))
+                ->with('info', 'Payment is not yet completed or is not required for this pitch.');
+        }
+
+
+        // Retrieve the Stripe Invoice object via InvoiceService if ID exists
+        $stripeInvoice = null;
         if ($pitch->final_invoice_id) {
-            $invoice = $invoiceService->getInvoice($pitch->final_invoice_id);
+            try {
+                $stripeInvoice = $this->invoiceService->retrieveInvoice($pitch->final_invoice_id);
+            } catch (\Exception $e) {
+                Log::error('Failed to retrieve Stripe invoice for receipt view.', [
+                    'pitch_id' => $pitch->id,
+                    'invoice_id' => $pitch->final_invoice_id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't prevent showing the receipt, just log the error
+            }
         }
 
         return view('pitches.payment.receipt', [
             'pitch' => $pitch,
-            'project' => $pitch->project,
-            'invoice' => $invoice,
-            // Include a link to the billing history
-            'viewAllInvoicesUrl' => route('billing.invoices')
+            'project' => $project,
+            'stripeInvoice' => $stripeInvoice, // Pass the retrieved Stripe invoice object (or null)
         ]);
     }
 
-    /**
-     * Show the payment overview page with the new URL pattern
-     */
-    public function projectPitchOverview(Project $project, Pitch $pitch)
-    {
-        // Verify the pitch belongs to the specified project
-        if ($pitch->project_id !== $project->id) {
-            abort(404, 'Pitch not found for this project');
-        }
-        
-        return $this->overview($pitch);
+    // Deprecated methods - map routes to new ones if necessary
+    public function overview(Pitch $pitch) {
+        return $this->projectPitchOverview($pitch->project, $pitch);
     }
-    
-    /**
-     * Process the payment with the new URL pattern
-     */
-    public function projectPitchProcess(Request $request, Project $project, Pitch $pitch)
-    {
-        // Verify the pitch belongs to the specified project
-        if ($pitch->project_id !== $project->id) {
-            abort(404, 'Pitch not found for this project');
-        }
-        
-        return $this->process($request, $pitch);
+    public function process(Request $request, Pitch $pitch) {
+        // This needs more careful mapping if directly called, ideally update routes
+         // For now, redirect or abort might be safest
+         abort(410, 'This payment processing route is deprecated. Please use the new route.');
     }
-    
-    /**
-     * Show the receipt with the new URL pattern
-     */
-    public function projectPitchReceipt(Project $project, Pitch $pitch)
-    {
-        // Verify the pitch belongs to the specified project
-        if ($pitch->project_id !== $project->id) {
-            abort(404, 'Pitch not found for this project');
-        }
-        
-        return $this->receipt($pitch);
+     public function receipt(Pitch $pitch) {
+        return $this->projectPitchReceipt($pitch->project, $pitch);
     }
 }

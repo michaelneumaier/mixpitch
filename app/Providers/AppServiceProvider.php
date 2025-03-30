@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Illuminate\Support\Facades\Blade;
+use App\Services\PitchWorkflowService;
+use App\Services\NotificationService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +15,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Explicitly bind PitchWorkflowService - Laravel should normally auto-resolve this,
+        // but let's try forcing it to debug the controller DI issue.
+        $this->app->bind(PitchWorkflowService::class, function ($app) {
+            // Manually resolve NotificationService first (which should also be auto-resolvable)
+            $notificationService = $app->make(NotificationService::class);
+            return new PitchWorkflowService($notificationService);
+        });
     }
 
     /**

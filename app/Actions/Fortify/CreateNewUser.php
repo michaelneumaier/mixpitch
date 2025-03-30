@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Config;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -20,20 +21,23 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        // Validate the reCAPTCHA token if it exists
-        if (isset($input['g-recaptcha-response'])) {
-            // Get reCAPTCHA response
-            $response = app('recaptcha')->validate($input['g-recaptcha-response'], request()->ip());
-            
-            if (!$response) {
+        // Only validate reCAPTCHA if it's enabled and keys are set
+        if (config('recaptcha.api_site_key') && config('recaptcha.api_secret_key') && env('RECAPTCHA_ENABLED', true)) {
+            // Validate the reCAPTCHA token if it exists
+            if (isset($input['g-recaptcha-response'])) {
+                // Get reCAPTCHA response
+                $response = app('recaptcha')->validate($input['g-recaptcha-response'], request()->ip());
+                
+                if (!$response) {
+                    throw ValidationException::withMessages([
+                        'recaptcha' => ['The reCAPTCHA verification failed. Please try again.'],
+                    ]);
+                }
+            } else {
                 throw ValidationException::withMessages([
-                    'recaptcha' => ['The reCAPTCHA verification failed. Please try again.'],
+                    'recaptcha' => ['The reCAPTCHA verification is required.'],
                 ]);
             }
-        } else {
-            throw ValidationException::withMessages([
-                'recaptcha' => ['The reCAPTCHA verification is required.'],
-            ]);
         }
 
         Validator::make($input, [

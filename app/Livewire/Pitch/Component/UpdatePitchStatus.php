@@ -5,7 +5,9 @@ namespace App\Livewire\Pitch\Component;
 
 use Livewire\Component;
 use App\Models\Pitch;
+use App\Models\PitchSnapshot;
 use App\Services\NotificationService;
+use App\Services\PitchWorkflowService;
 use App\Exceptions\Pitch\InvalidStatusTransitionException;
 use App\Exceptions\Pitch\UnauthorizedActionException;
 use App\Exceptions\Pitch\SnapshotException;
@@ -13,19 +15,24 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Masmerise\Toaster\Toaster;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class UpdatePitchStatus extends Component
 {
+    use AuthorizesRequests;
+
     public $pitch;
     public $status;
     public $hasCompletedPitch;
-    public $denyReason;
+    public $denyReason = '';
+    public $revisionFeedback = '';
+    public $currentSnapshotIdToActOn;
 
     protected $listeners = [
         'confirmApproveSnapshot' => 'approveSnapshot',
         'confirmDenySnapshot' => 'denySnapshot',
         'confirmCancelSubmission' => 'cancelSubmission',
-        'confirmRequestRevisions' => 'requestRevisions',
+        'confirmRequestRevisions' => 'requestRevisionsAction',
         'snapshot-status-updated' => '$refresh'
     ];
 
@@ -34,144 +41,6 @@ class UpdatePitchStatus extends Component
         $this->pitch = $pitch;
         $this->status = $pitch->status;
         $this->hasCompletedPitch = $pitch->project->pitches()->where('status', Pitch::STATUS_COMPLETED)->exists();
-    }
-
-    public function changeStatus($direction, $newStatus = null)
-    {
-        $project = $this->pitch->project;
-
-        // Ensure the authenticated user is the owner of the project
-        if (!Auth::check() || $project->user_id !== Auth::id()) {
-            throw new UnauthorizedActionException('change status', 'You are not authorized to change the status of this pitch');
-        }
-
-        try {
-            // Immediately block changes to completed pitches with finalized payments
-            if ($this->pitch->status === Pitch::STATUS_COMPLETED && 
-                in_array($this->pitch->payment_status, [
-                    Pitch::PAYMENT_STATUS_PAID, 
-                    Pitch::PAYMENT_STATUS_PROCESSING
-                ])) {
-                throw new InvalidStatusTransitionException(
-                    $this->pitch->status, 
-                    $newStatus ?? 'unknown',
-                    'This pitch has been completed and payment has been processed. It cannot be modified.'
-                );
-            }
-            
-            // Validate the status transition before proceeding
-            $validationPassed = false;
-            $errorMessage = '';
-            
-            // Determine which validation method to use based on the target status
-            if ($newStatus) {
-                switch ($newStatus) {
-                    case Pitch::STATUS_APPROVED:
-                        // Check if the pitch was completed and paid
-                        if ($this->pitch->status === Pitch::STATUS_COMPLETED &&
-                            in_array($this->pitch->payment_status, [
-                                Pitch::PAYMENT_STATUS_PAID, 
-                                Pitch::PAYMENT_STATUS_PROCESSING
-                            ])) {
-                            $validationPassed = false;
-                            $errorMessage = 'This pitch has been paid and cannot be returned to approved status.';
-                        } else {
-                            [$validationPassed, $errorMessage] = $this->pitch->canApprove($this->pitch->current_snapshot_id);
-                        }
-                        break;
-                    case Pitch::STATUS_DENIED:
-                        [$validationPassed, $errorMessage] = $this->pitch->canDeny($this->pitch->current_snapshot_id);
-                        break;
-                    case Pitch::STATUS_REVISIONS_REQUESTED:
-                        [$validationPassed, $errorMessage] = $this->pitch->canRequestRevisions($this->pitch->current_snapshot_id);
-                        break;
-                    case Pitch::STATUS_IN_PROGRESS:
-                        if ($this->pitch->status === Pitch::STATUS_READY_FOR_REVIEW) {
-                            [$validationPassed, $errorMessage] = $this->pitch->canCancelSubmission();
-                        } else {
-                            $validationPassed = true;
-                        }
-                        break;
-                    case Pitch::STATUS_COMPLETED:
-                        [$validationPassed, $errorMessage] = $this->pitch->canComplete();
-                        break;
-                    default:
-                        $validationPassed = true; // For other transitions, rely on the model's validation
-                }
-            } else {
-                $validationPassed = true; // For automatic transitions, rely on the model's validation
-            }
-            
-            // If validation fails, throw an exception with the error message
-            if (!$validationPassed) {
-                throw new InvalidStatusTransitionException(
-                    $this->pitch->status, 
-                    $newStatus ?? 'unknown',
-                    $errorMessage
-                );
-            }
-
-            // Begin a database transaction to ensure atomicity
-            DB::beginTransaction();
-            
-            if ($newStatus) {
-                $this->pitch->changeStatus($direction, $newStatus);
-            } else {
-                $this->pitch->changeStatus($direction);
-            }
-            $this->status = $this->pitch->status;
-
-            // Commit the transaction if everything succeeded
-            DB::commit();
-
-            // Use redirect instead of events to refresh the page
-            Toaster::success('Pitch status updated successfully.');
-            return redirect()->route('projects.manage', $this->pitch->project);
-        } catch (InvalidStatusTransitionException $e) {
-            // Rollback the transaction if anything fails
-            if (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-            
-            // Log the error for debugging
-            Log::error('Invalid status transition', [
-                'pitch_id' => $this->pitch->id,
-                'current_status' => $e->getCurrentStatus(),
-                'target_status' => $e->getTargetStatus(),
-                'error' => $e->getMessage()
-            ]);
-            
-            Toaster::error($e->getMessage());
-        } catch (UnauthorizedActionException $e) {
-            if (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-            
-            Log::error('Unauthorized pitch action', [
-                'pitch_id' => $this->pitch->id,
-                'action' => $e->getAction(),
-                'user_id' => Auth::id() ?? 'unauthenticated',
-                'error' => $e->getMessage()
-            ]);
-            
-            Toaster::error($e->getMessage());
-        } catch (\Exception $e) {
-            // Rollback the transaction if anything fails
-            if (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-            
-            // Log the error for debugging
-            Log::error('Failed to update pitch status', [
-                'pitch_id' => $this->pitch->id,
-                'attempted_direction' => $direction,
-                'attempted_status' => $newStatus,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            Toaster::error('An unexpected error occurred while updating the pitch status.');
-        }
     }
 
     public function reviewPitch()
@@ -189,39 +58,34 @@ class UpdatePitchStatus extends Component
     /**
      * Request to approve a snapshot (opens confirmation dialog)
      *
-     * @param int $snapshotId
+     * @param array $data Contains snapshotId
      * @return void
      */
-    public function requestSnapshotApproval(int $snapshotId)
+    public function requestSnapshotApproval(array $data)
     {
-        // Validate that the pitch can be approved
-        [$canApprove, $errorMessage] = $this->pitch->canApprove($snapshotId);
-        if (!$canApprove) {
-            Toaster::error($errorMessage);
-            return;
-        }
+        $snapshotId = $data['snapshotId'] ?? null;
+        if (!$snapshotId) return;
 
-        $this->dispatch('openConfirmDialog', 'approve', ['snapshotId' => $snapshotId]);
+        $this->currentSnapshotIdToActOn = $snapshotId;
+        $this->dispatch('openConfirmDialog', 'approve');
     }
 
     /**
      * Request to deny a snapshot (opens confirmation dialog)
      *
-     * @param int $snapshotId
+     * @param array $data Contains snapshotId
      * @return void
      */
-    public function requestSnapshotDenial(int $snapshotId)
+    public function requestSnapshotDenial(array $data)
     {
-        // Validate that the pitch can be denied
-        [$canDeny, $errorMessage] = $this->pitch->canDeny($snapshotId);
-        if (!$canDeny) {
-            Toaster::error($errorMessage);
-            return;
-        }
+        $snapshotId = $data['snapshotId'] ?? null;
+        if (!$snapshotId) return;
 
-        $this->dispatch('openConfirmDialog', 'deny', ['snapshotId' => $snapshotId]);
+        $this->currentSnapshotIdToActOn = $snapshotId;
+        $this->denyReason = '';
+        $this->dispatch('openConfirmDialog', 'deny');
     }
-    
+
     /**
      * Request to cancel pitch submission (opens confirmation dialog)
      *
@@ -229,359 +93,287 @@ class UpdatePitchStatus extends Component
      */
     public function requestCancelSubmission()
     {
-        // Validate that the submission can be canceled
-        [$canCancel, $errorMessage] = $this->pitch->canCancelSubmission();
-        if (!$canCancel) {
-            Toaster::error($errorMessage);
-            return;
-        }
-
         $this->dispatch('openConfirmDialog', 'cancel');
     }
 
     /**
      * Request to request revisions for a snapshot (opens confirmation dialog)
      *
-     * @param int $snapshotId
+     * @param array $data Contains snapshotId
      * @return void
      */
-    public function requestRevisions($snapshotId)
+    public function requestRevisions(array $data)
     {
-        // Check if permissions allow requesting revisions
-        [$canRequestRevisions, $errorMessage] = $this->pitch->canRequestRevisions($snapshotId);
-        if (!$canRequestRevisions) {
-            $this->dispatch('showToast', message: $errorMessage, style: 'error');
-            return;
-        }
-        
-        // Prepare to open the revisions dialog
-        $this->confirmAction = 'confirmRequestRevisions';
-        $this->confirmTitle = 'Request Revisions';
-        $this->confirmMessage = 'Please provide details about what revisions you would like to request:';
-        $this->confirmButtonText = 'Submit Request';
-        $this->confirmButtonClass = 'btn-info';
-        $this->snapshotId = $snapshotId;
-        $this->denyReason = '';
-        $this->showConfirmModal = true;
+        $snapshotId = $data['snapshotId'] ?? null;
+        if (!$snapshotId) return;
+
+        $this->currentSnapshotIdToActOn = $snapshotId;
+        $this->revisionFeedback = '';
+        $this->dispatch('openConfirmDialog', 'revisions');
     }
 
     /**
-     * Approve a pitch snapshot
+     * Approve an initial PENDING pitch.
      *
-     * @param int $snapshotId
+     * @param PitchWorkflowService $pitchWorkflowService
      * @return void
      */
-    public function approveSnapshot(int $snapshotId)
+    public function approveInitialPitch(PitchWorkflowService $pitchWorkflowService)
     {
-        // Validate that the pitch can be approved
-        [$canApprove, $errorMessage] = $this->pitch->canApprove($snapshotId);
-        if (!$canApprove) {
-            Toaster::error($errorMessage);
-            return;
-        }
-
-        // Verify the snapshot exists
-        $snapshot = $this->pitch->snapshots()->findOrFail($snapshotId);
-
-        // Update the snapshot status
-        $snapshot->status = 'accepted';
-        $snapshot->save();
-
-        // Set as the current snapshot
-        $this->pitch->current_snapshot_id = $snapshot->id;
-
-        // Update the pitch status
-        $this->pitch->changeStatus(
-            'forward',
-            Pitch::STATUS_APPROVED,
-            'Pitch snapshot #' . $snapshot->snapshot_data['version'] . ' has been approved'
-        );
-
-        // Create event for the snapshot approval
-        $this->pitch->events()->create([
-            'event_type' => 'snapshot_approved',
-            'comment' => 'Snapshot version ' . $snapshot->snapshot_data['version'] . ' has been approved',
-            'snapshot_id' => $snapshot->id,
-            'created_by' => auth()->id(),
-            'user_id' => auth()->id(),
-        ]);
-        
-        // Create notification for snapshot approval
         try {
-            $notificationService = app(NotificationService::class);
-            $notificationService->notifySnapshotApproved($snapshot);
-        } catch (\Exception $e) {
-            // Log notification error but don't fail the request
-            Log::error('Failed to create snapshot approval notification: ' . $e->getMessage());
-        }
+            // Authorization check
+            $this->authorize('approveInitial', $this->pitch);
 
-        $this->resetState();
+            $pitchWorkflowService->approveInitialPitch(
+                $this->pitch,
+                auth()->user()
+            );
 
-        $this->dispatch('snapshot-status-updated');
-        $this->dispatch('pitchStatusUpdated');
-        Toaster::success('Pitch has been approved successfully.');
-        
-        // Redirect to manage project page for a full page refresh
-        return redirect()->route('projects.manage', $this->pitch->project);
-    }
-
-    /**
-     * Deny a pitch snapshot
-     *
-     * @param int $snapshotId
-     * @param string $reason
-     * @return void
-     */
-    public function denySnapshot(int $snapshotId, string $reason = '')
-    {
-        // Use the reason passed from the confirmation dialog
-        $this->denyReason = $reason;
-
-        $this->validate([
-            'denyReason' => 'required|min:3',
-        ]);
-
-        // Validate that the pitch can be denied
-        [$canDeny, $errorMessage] = $this->pitch->canDeny($snapshotId);
-        if (!$canDeny) {
-            Toaster::error($errorMessage);
-            return;
-        }
-
-        // Verify the snapshot exists
-        $snapshot = $this->pitch->snapshots()->findOrFail($snapshotId);
-
-        // Update the snapshot status - standardize on 'denied' over 'declined'
-        $snapshot->status = 'denied';
-        $snapshot->save();
-
-        // Set as the current snapshot
-        $this->pitch->current_snapshot_id = $snapshot->id;
-
-        // Update the pitch status
-        $this->pitch->changeStatus(
-            'backward',
-            Pitch::STATUS_DENIED,
-            'Pitch snapshot #' . $snapshot->snapshot_data['version'] . ' has been denied: ' . $this->denyReason
-        );
-
-        // Create event for the snapshot denial
-        $this->pitch->events()->create([
-            'event_type' => 'snapshot_denied',
-            'comment' => 'Snapshot denied. Reason: ' . $this->denyReason,
-            'snapshot_id' => $snapshot->id,
-            'created_by' => auth()->id(),
-            'user_id' => auth()->id(),
-        ]);
-
-        // Add a comment with the denial reason
-        $this->pitch->addComment('This pitch was denied: ' . $this->denyReason);
-        
-        // Create notification for snapshot denial
-        try {
-            $notificationService = app(NotificationService::class);
-            $notificationService->notifySnapshotDenied($snapshot, $this->denyReason);
-        } catch (\Exception $e) {
-            // Log notification error but don't fail the request
-            Log::error('Failed to create snapshot denial notification: ' . $e->getMessage());
-        }
-
-        $this->resetState();
-
-        $this->dispatch('snapshot-status-updated');
-        $this->dispatch('pitchStatusUpdated');
-        Toaster::success('Pitch has been denied.');
-        
-        // Redirect to manage project page for a full page refresh
-        return redirect()->route('projects.manage', $this->pitch->project);
-    }
-
-    /**
-     * Request revisions for a pitch snapshot
-     *
-     * @param int $snapshotId
-     * @param string $reason
-     * @return void
-     */
-    public function requestRevisions(int $snapshotId, string $reason = '')
-    {
-        // Use the reason passed from the confirmation dialog as the changes requested
-        $this->denyReason = $reason;
-
-        $this->validate([
-            'denyReason' => 'required|min:3',
-        ]);
-
-        // Validate that revisions can be requested for the pitch
-        [$canRequestRevisions, $errorMessage] = $this->pitch->canRequestRevisions($snapshotId);
-        if (!$canRequestRevisions) {
-            Toaster::error($errorMessage);
-            return;
-        }
-
-        // Verify the snapshot exists
-        $snapshot = $this->pitch->snapshots()->findOrFail($snapshotId);
-
-        // Update the snapshot status - mark as pending revisions
-        $snapshot->status = 'revisions_requested';
-        $snapshot->save();
-
-        // Set as the current snapshot
-        $this->pitch->current_snapshot_id = $snapshot->id;
-
-        // Update the pitch status to revisions requested
-        $this->pitch->changeStatus(
-            'forward',
-            Pitch::STATUS_REVISIONS_REQUESTED,
-            'Revisions requested for pitch snapshot #' . $snapshot->snapshot_data['version'] . ': ' . $this->denyReason
-        );
-
-        // Create event for the revisions request
-        $this->pitch->events()->create([
-            'event_type' => 'snapshot_revisions_requested',
-            'comment' => 'Revisions requested. Reason: ' . $this->denyReason,
-            'snapshot_id' => $snapshot->id,
-            'created_by' => auth()->id(),
-            'user_id' => auth()->id(),
-        ]);
-
-        // Add a comment with the revisions requested reason
-        $this->pitch->addComment('Revisions requested for this pitch: ' . $this->denyReason);
-        
-        // Create notification for revisions requested
-        try {
-            $notificationService = app(NotificationService::class);
-            $notificationService->notifySnapshotRevisionsRequested($snapshot, $this->denyReason);
-        } catch (\Exception $e) {
-            // Log notification error but don't fail the request
-            Log::error('Failed to create revisions requested notification: ' . $e->getMessage());
-        }
-
-        $this->resetState();
-
-        $this->dispatch('snapshot-status-updated');
-        $this->dispatch('pitchStatusUpdated');
-        Toaster::success('Changes have been requested for this pitch.');
-        
-        // Redirect to manage project page for a full page refresh
-        return redirect()->route('projects.manage', $this->pitch->project);
-    }
-
-    /**
-     * Cancel a pitch submission
-     *
-     * @return void
-     */
-    public function cancelSubmission()
-    {
-        // Validate that the submission can be canceled
-        [$canCancel, $errorMessage] = $this->pitch->canCancelSubmission();
-        if (!$canCancel) {
-            Toaster::error($errorMessage);
-            return;
-        }
-
-        try {
-            $this->pitch->changeStatus('backward', Pitch::STATUS_IN_PROGRESS, 'Pitch submission was canceled');
-            $this->status = $this->pitch->status;
-
-            // Create notification for pitch cancellation
-            try {
-                $notificationService = app(NotificationService::class);
-                $notificationService->notifyPitchCancellation($this->pitch);
-            } catch (\Exception $e) {
-                // Log notification error but don't fail the request
-                Log::error('Failed to create pitch cancellation notification: ' . $e->getMessage());
-            }
-
-            $this->resetState();
-            $this->dispatch('pitchStatusUpdated');
-
-            Toaster::success('Pitch submission has been canceled.');
-            return redirect()->route('projects.manage', $this->pitch->project);
-        } catch (\Exception $e) {
+            Toaster::success('Initial pitch approved successfully!');
+            $this->dispatch('pitchStatusUpdated'); // Dispatch generic event
+            $this->status = Pitch::STATUS_IN_PROGRESS;
+            $this->pitch->refresh(); // Restore this call
+        } catch (UnauthorizedActionException | \Illuminate\Auth\Access\AuthorizationException $e) { // Catch specific auth exceptions
+            Toaster::error('You are not authorized to approve this pitch.');
+        } catch (InvalidStatusTransitionException $e) {
             Toaster::error($e->getMessage());
-        }
-    }
-
-    /**
-     * Return a pitch to ready for review status
-     *
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function returnToReadyForReview()
-    {
-        try {
-            // Start a transaction for atomicity
-            DB::beginTransaction();
-            
-            // Log the current state before changes
-            Log::info('Return to ready for review - Starting', [
-                'pitch_id' => $this->pitch->id,
-                'current_status' => $this->pitch->status,
-                'current_snapshot_id' => $this->pitch->current_snapshot_id
-            ]);
-            
-            // Force update the snapshot directly
-            if ($this->pitch->status === Pitch::STATUS_DENIED && $this->pitch->current_snapshot_id) {
-                // Update the snapshot status to pending
-                DB::table('pitch_snapshots')
-                    ->where('id', $this->pitch->current_snapshot_id)
-                    ->update(['status' => 'pending']);
-                
-                Log::info('Snapshot status updated directly', [
-                    'snapshot_id' => $this->pitch->current_snapshot_id
-                ]);
-            }
-            
-            // Now use the changeStatus method for the pitch itself
-            $result = $this->changeStatus('backward', Pitch::STATUS_READY_FOR_REVIEW);
-            
-            // Make sure to commit the transaction
-            DB::commit();
-            
-            // Log the final state after all changes
-            $snapshot = DB::table('pitch_snapshots')
-                ->where('id', $this->pitch->current_snapshot_id)
-                ->first();
-                
-            Log::info('Return to ready for review - Completed', [
-                'pitch_id' => $this->pitch->id,
-                'new_status' => $this->pitch->fresh()->status,
-                'snapshot_id' => $this->pitch->current_snapshot_id,
-                'snapshot_status' => $snapshot ? $snapshot->status : 'unknown'
-            ]);
-            
-            return $result;
         } catch (\Exception $e) {
-            // Rollback if there's an error
-            if (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-            
-            Log::error('Failed to return pitch to ready for review status', [
-                'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            Toaster::error('An error occurred while returning the pitch to review status: ' . $e->getMessage());
-            return redirect()->route('projects.manage', $this->pitch->project);
+            Log::error('Error approving initial pitch via Livewire', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while approving the initial pitch.');
         }
     }
 
     /**
-     * Reset the component state
+     * Approve a submitted snapshot.
+     * Called via listener after confirmation.
+     *
+     * @param PitchWorkflowService $pitchWorkflowService
+     * @return void
      */
+    public function approveSnapshot(PitchWorkflowService $pitchWorkflowService)
+    {
+        if (!$this->currentSnapshotIdToActOn) {
+            Log::warning('approveSnapshot called without currentSnapshotIdToActOn.', ['pitch_id' => $this->pitch->id]);
+            Toaster::error('An error occurred. Please try again.');
+            return;
+        }
+
+        try {
+            $this->authorize('approveSubmission', $this->pitch);
+
+            $pitchWorkflowService->approveSubmittedPitch(
+                $this->pitch,
+                $this->currentSnapshotIdToActOn,
+                auth()->user()
+            );
+
+            Toaster::success('Pitch approved successfully!');
+            
+            // Clean up experimental code and use simple event dispatch
+            $this->dispatch('pitchStatusUpdated');
+            $this->dispatch('snapshot-status-updated');
+            $this->currentSnapshotIdToActOn = null;
+            $this->status = Pitch::STATUS_APPROVED;
+            $this->pitch->refresh(); // Restore this call
+        } catch (UnauthorizedActionException $e) {
+            Toaster::error('You are not authorized to approve this pitch.');
+        } catch (InvalidStatusTransitionException | SnapshotException $e) {
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error approving pitch via Livewire', ['pitch_id' => $this->pitch->id, 'snapshot_id' => $this->currentSnapshotIdToActOn, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while approving the pitch.');
+        } finally {
+            $this->currentSnapshotIdToActOn = null;
+        }
+    }
+
+    /**
+     * Deny a submitted snapshot.
+     * Called via listener after confirmation.
+     * Requires $this->denyReason to be set by the dialog.
+     *
+     * @param PitchWorkflowService $pitchWorkflowService
+     * @return void
+     */
+    public function denySnapshot(PitchWorkflowService $pitchWorkflowService)
+    {
+        if (!$this->currentSnapshotIdToActOn) {
+            Log::warning('denySnapshot called without currentSnapshotIdToActOn.', ['pitch_id' => $this->pitch->id]);
+            Toaster::error('An error occurred. Please try again.');
+            return;
+        }
+
+        try {
+            $this->authorize('denySubmission', $this->pitch);
+
+            $pitchWorkflowService->denySubmittedPitch(
+                $this->pitch,
+                $this->currentSnapshotIdToActOn,
+                auth()->user(),
+                $this->denyReason
+            );
+
+            Toaster::success('Pitch denied successfully.');
+            
+            // Clean up experimental code
+            $this->dispatch('pitchStatusUpdated');
+            $this->dispatch('snapshot-status-updated');
+            $this->status = Pitch::STATUS_DENIED;
+            $this->pitch->refresh(); // Restore this call
+        } catch (UnauthorizedActionException $e) {
+            Toaster::error('You are not authorized to deny this pitch.');
+        } catch (InvalidStatusTransitionException | SnapshotException $e) {
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error denying pitch via Livewire', ['pitch_id' => $this->pitch->id, 'snapshot_id' => $this->currentSnapshotIdToActOn, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while denying the pitch.');
+        } finally {
+            $this->currentSnapshotIdToActOn = null;
+            $this->denyReason = '';
+        }
+    }
+
+    /**
+     * Request revisions for a submitted snapshot.
+     * Called via listener after confirmation.
+     * Requires $this->revisionFeedback to be set by the dialog.
+     *
+     * @param PitchWorkflowService $pitchWorkflowService
+     * @return void
+     */
+    public function requestRevisionsAction(PitchWorkflowService $pitchWorkflowService)
+    {
+        if (!$this->currentSnapshotIdToActOn) {
+            Log::warning('requestRevisionsAction called without currentSnapshotIdToActOn.', ['pitch_id' => $this->pitch->id]);
+            Toaster::error('An error occurred. Please try again.');
+            return;
+        }
+
+        // Validate feedback is not empty - Service also validates, but good for quick UI feedback
+        if (trim($this->revisionFeedback) === '') {
+            Toaster::error('Revision feedback cannot be empty.');
+            // Optionally focus the input field
+            return;
+        }
+
+        try {
+            // Use 'requestRevisions' policy method name from guide
+            $this->authorize('requestRevisions', $this->pitch);
+
+            $pitchWorkflowService->requestPitchRevisions(
+                $this->pitch,
+                $this->currentSnapshotIdToActOn,
+                auth()->user(),
+                $this->revisionFeedback
+            );
+
+            Toaster::success('Revisions requested successfully.');
+
+            $this->dispatch('pitchStatusUpdated');
+            $this->dispatch('snapshot-status-updated');
+            $this->status = Pitch::STATUS_REVISIONS_REQUESTED;
+            $this->pitch->refresh();
+        } catch (UnauthorizedActionException | \Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to request revisions for this pitch.');
+        } catch (InvalidStatusTransitionException | SnapshotException | \InvalidArgumentException $e) {
+            // Catch specific exceptions from the service
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error requesting revisions via Livewire', ['pitch_id' => $this->pitch->id, 'snapshot_id' => $this->currentSnapshotIdToActOn, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while requesting revisions.');
+        } finally {
+            $this->currentSnapshotIdToActOn = null;
+            $this->revisionFeedback = '';
+        }
+    }
+
+    /**
+     * Cancel pitch submission.
+     * Called via listener after confirmation.
+     * NOTE: This action is typically performed by the PITCH CREATOR.
+     * It might be better placed in ManagePitch component.
+     *
+     * @param PitchWorkflowService $pitchWorkflowService
+     * @return void
+     */
+    public function cancelSubmission(PitchWorkflowService $pitchWorkflowService)
+    {
+        // Ensure this component is used in a context where the logged-in user
+        // could potentially be the pitch creator (might not be the case if
+        // this component is strictly for project owner actions).
+        // If not, this method might always fail authorization.
+
+        try {
+            // Use 'cancelSubmission' policy method name from guide
+            $this->authorize('cancelSubmission', $this->pitch);
+
+            $pitchWorkflowService->cancelPitchSubmission(
+                $this->pitch,
+                auth()->user()
+            );
+
+            Toaster::success('Pitch submission cancelled successfully.');
+
+            $this->dispatch('pitchStatusUpdated');
+            $this->dispatch('snapshot-status-updated');
+            $this->status = Pitch::STATUS_IN_PROGRESS;
+            $this->pitch->refresh();
+        } catch (UnauthorizedActionException | \Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to cancel this submission.');
+        } catch (InvalidStatusTransitionException | SnapshotException $e) {
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error cancelling submission via Livewire', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while cancelling the submission.');
+        }
+    }
+
     private function resetState()
     {
-        $this->pitch->refresh();
-        $this->status = $this->pitch->status;
         $this->denyReason = '';
+        $this->revisionFeedback = '';
+        $this->currentSnapshotIdToActOn = null;
     }
 
     public function render()
     {
-        return view('livewire.pitch.component.update-pitch-status');
+        $this->hasCompletedPitch = $this->pitch->project->pitches()->where('status', Pitch::STATUS_COMPLETED)->exists();
+
+        $currentSnapshot = $this->pitch->currentSnapshot()->first();
+
+        return view('livewire.pitch.component.update-pitch-status', [
+            'currentSnapshot' => $currentSnapshot
+        ]);
+    }
+
+    /**
+     * Generate a slug for the pitch if it doesn't have one
+     */
+    private function generateSlugForPitch()
+    {
+        $baseSlug = !empty($this->pitch->title) 
+            ? \Illuminate\Support\Str::slug($this->pitch->title)
+            : 'pitch-' . $this->pitch->id;
+        
+        $slug = $baseSlug;
+        $count = 1;
+        
+        while (
+            Pitch::where('project_id', $this->pitch->project_id)
+                ->where('id', '!=', $this->pitch->id)
+                ->where('slug', $slug)
+                ->exists()
+        ) {
+            $slug = $baseSlug . '-' . $count;
+            $count++;
+        }
+        
+        $this->pitch->slug = $slug;
+        $this->pitch->save();
+        
+        Log::info('Generated slug for pitch during status change in Livewire component', [
+            'pitch_id' => $this->pitch->id,
+            'generated_slug' => $slug
+        ]);
     }
 }

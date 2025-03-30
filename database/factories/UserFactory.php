@@ -65,4 +65,28 @@ class UserFactory extends Factory
             'ownedTeams'
         );
     }
+
+    /**
+     * Indicate that the user is a producer.
+     */
+    public function producer(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'role' => User::ROLE_PRODUCER,
+            ];
+        });
+    }
+
+    /**
+     * Indicate that the user is a client.
+     */
+    public function client(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'role' => User::ROLE_CLIENT,
+            ];
+        });
+    }
 }

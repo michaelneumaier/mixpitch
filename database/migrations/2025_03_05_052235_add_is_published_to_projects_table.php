@@ -13,7 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('projects', function (Blueprint $table) {
-            $table->boolean('is_published')->default(false)->after('status');
+            $table->boolean('is_published')->default(false)->after('budget');
+            $table->timestamp('published_at')->nullable()->after('is_published');
         });
         
         // Set is_published based on existing status
@@ -27,6 +28,7 @@ return new class extends Migration
     {
         Schema::table('projects', function (Blueprint $table) {
             $table->dropColumn('is_published');
+            $table->dropColumn('published_at');
         });
     }
 };

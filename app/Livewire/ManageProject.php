@@ -5,233 +5,556 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\Project;
 use App\Models\ProjectFile;
-use App\Http\Controllers\ProjectController;
+// use App\Http\Controllers\ProjectController; // Remove direct controller usage
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
-use Masmerise\Toaster\Toaster;
+use Masmerise\Toaster\Toaster; // Ensure the Facade is imported if needed
+use Illuminate\Support\Facades\Auth; // Add Auth facade
+
+// Added for refactoring
+use App\Services\Project\ProjectManagementService;
+use App\Services\FileManagementService; // <-- Import FileManagementService
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Log;
+use App\Livewire\Forms\ProjectForm;
+use App\Exceptions\File\FileUploadException;
+use App\Exceptions\File\StorageLimitException;
+use App\Exceptions\File\FileDeletionException;
 
 class ManageProject extends Component
 {
     use WithFileUploads;
     public Project $project;
+    public ProjectForm $form;
 
     public $hasPreviewTrack = false;
     public $audioUrl;
     public $isUploading = false;
-    public $uploadedFiles = [];
-    public $tempUploadedFiles = []; // For storing file metadata
-    public $newUploadedFiles = []; // For accumulating new files
-    public $track; // For single file upload (keeping for backward compatibility)
-    public $fileSizes = []; // Store file sizes
-    public $newlyAddedFileKeys = []; // Track which files were just added
-    public $newlyUploadedFileIds = []; // Track IDs of newly uploaded files
-    
+    public $tempUploadedFiles = []; // Array of Livewire\TemporaryUploadedFile objects for the queue
+    public $fileSizes = []; // Store display file sizes for the queue
+    public $newlyAddedFileKeys = []; // Track which files were just added to the queue visually
+    public $newlyUploadedFileIds = []; // Track DB IDs of newly persisted files for UI feedback
+
     // Sequential upload properties
     public $isProcessingQueue = false;
     public $uploadingFileKey = null;
     public $uploadProgress = 0;
     public $uploadProgressMessage = '';
-    
+
     // Storage tracking
     public $storageUsedPercentage = 0;
     public $storageLimitMessage = '';
     public $storageRemaining = 0;
 
-    public function mount()
+    public bool $showDeleteModal = false;
+
+    public function mount(Project $project)
     {
+        try {
+            $this->authorize('update', $project);
+        } catch (AuthorizationException $e) {
+            abort(403, 'You are not authorized to manage this project.');
+        }
+
+        $this->project = $project;
+
+        // Initialize the form object
+        $this->form = new ProjectForm($this, 'form');
+        // Use the fill method to populate the form from the model
+        $this->form->fill($this->project);
+
+        // Ensure the form's deadline is a 'Y-m-d' string
+        if ($this->project->deadline && $this->project->deadline instanceof \Carbon\Carbon) {
+            // If the model has a Carbon instance, format it for the form
+            $this->form->deadline = $this->project->deadline->format('Y-m-d');
+        } elseif (is_string($this->project->deadline)) {
+            // If the model has a string, assume it's correctly formatted and ensure the form has it
+            // fill() might have already handled this, but this makes it explicit
+            $this->form->deadline = $this->project->deadline;
+        } else {
+            $this->form->deadline = null; // Default to null if model deadline isn't set or Carbon
+        }
+
+        // Handle mapping collaboration types (assuming ProjectForm has boolean properties)
+        $this->mapCollaborationTypesToForm($this->project->collaboration_type);
+
+        // Handle budget type (assuming ProjectForm has budgetType property)
+        $this->form->budgetType = $this->project->budget > 0 ? 'paid' : 'free';
+
         if ($this->project->hasPreviewTrack()) {
             $this->audioUrl = $this->project->previewTrackPath();
             $this->hasPreviewTrack = true;
         }
-        
-        // Initialize storage information
         $this->updateStorageInfo();
     }
 
     /**
-     * Called when new files are selected
-     * This method accumulates files instead of replacing them
+     * Helper to map project collaboration types to form boolean properties.
+     * This might need adjustment based on ProjectForm properties.
      */
-    public function updatedNewUploadedFiles()
+    private function mapCollaborationTypesToForm(?array $types): void
     {
-        $this->newlyAddedFileKeys = []; // Reset the tracking array
-
-        $startIndex = count($this->uploadedFiles);
-
-        foreach ($this->newUploadedFiles as $file) {
-            $this->uploadedFiles[] = $file;
-            // Calculate and store file size
-            $this->fileSizes[] = $this->formatFileSize($file->getSize());
-            // Track the index of this newly added file
-            $this->newlyAddedFileKeys[] = $startIndex;
-            $startIndex++;
-        }
-
-        // Reset the new files input to allow for more files to be added
-        $this->newUploadedFiles = [];
-
-        // We'll use JavaScript setTimeout in the blade file instead
-        $this->dispatch('new-files-added');
+        if (empty($types)) return;
+        // Assuming ProjectForm has these boolean properties
+        $this->form->collaborationTypeMixing = in_array('Mixing', $types);
+        $this->form->collaborationTypeMastering = in_array('Mastering', $types);
+        $this->form->collaborationTypeProduction = in_array('Production', $types);
+        $this->form->collaborationTypeSongwriting = in_array('Songwriting', $types);
+        $this->form->collaborationTypeVocalTuning = in_array('Vocal Tuning', $types);
     }
 
     /**
-     * Clear the highlight for newly added files
+     * Update displayed storage information.
+     */
+    protected function updateStorageInfo()
+    {
+        $this->project->refresh(); // Ensure we have the latest storage usage
+        $this->storageUsedPercentage = $this->project->getStorageUsedPercentage();
+        $this->storageLimitMessage = $this->project->getStorageLimitMessage();
+        $this->storageRemaining = $this->project->getRemainingStorageBytes();
+    }
+
+    // TODO: Refactor in Step 5 (File Management)
+    /**
+     * Called when new files are selected via the file input.
+     * Accumulates files into the temporary queue.
+     */
+    public function updatedTempUploadedFiles()
+    {
+        $this->newlyAddedFileKeys = []; // Reset visual tracking
+        // Validate incoming files before adding to queue?
+        // Note: Validation should ideally happen *before* upload attempt in processQueuedFiles
+
+        // The $this->tempUploadedFiles property now holds the Livewire\TemporaryUploadedFile objects
+        // We just need to update UI cues if necessary
+        $this->dispatch('new-files-added');
+    }
+
+    // TODO: Refactor in Step 5 (File Management)
+    /**
+     * Clear the highlight for newly added files in the queue.
      */
     public function clearHighlights()
     {
         $this->newlyAddedFileKeys = [];
     }
 
+    // TODO: Refactor in Step 5 (File Management) - Use Str:: helper if available or keep
     /**
-     * Format file size in human-readable format
+     * Format file size in human-readable format.
      */
     protected function formatFileSize($bytes)
     {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-        for ($i = 0; $bytes > 1024; $i++) {
-            $bytes /= 1024;
-        }
-
-        return round($bytes, 2) . ' ' . $units[$i];
+        return \Illuminate\Support\Str::formatBytes($bytes);
     }
 
-    public function publish()
+    /**
+     * Publish the project.
+     */
+    public function publish(): void
     {
+        Log::debug('[ManageProject] Publish: Start - Project ID: ' . $this->project->id . ', Status: ' . $this->project->status . ', Auth User: ' . (auth()->check() ? auth()->id() : 'None'));
+
+        $this->authorize('publish', $this->project);
+        Log::debug('[ManageProject] Publish: Authorized');
+
+        // Use the model's publish method instead of directly setting properties
         $this->project->publish();
+        Log::debug('[ManageProject] Publish: After save - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
+
+        // Refresh the project to ensure we have the latest data
+        $this->project->refresh();
+        Log::debug('[ManageProject] Publish: After refresh - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
+
+        Toaster::success('Project published successfully.');
+        $this->dispatch('project-updated');
+
+        Log::debug('[ManageProject] Publish: End');
     }
 
-    public function unpublish()
+    /**
+     * Unpublish the project.
+     */
+    public function unpublish(): void
     {
+        Log::debug('[ManageProject] Unpublish: Start - Project ID: ' . $this->project->id . ', Status: ' . $this->project->status . ', Auth User: ' . (auth()->check() ? auth()->id() : 'None'));
+
+        $this->authorize('unpublish', $this->project);
+        Log::debug('[ManageProject] Unpublish: Authorized');
+
+        // Use the model's unpublish method instead of directly setting properties
         $this->project->unpublish();
-    }
+        Log::debug('[ManageProject] Unpublish: After save - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
 
-    public function togglePreviewTrack(ProjectFile $file)
-    {
-        if ($this->hasPreviewTrack == true && $this->project->preview_track == $file->id) {
-            $this->clearPreviewTrack();
-        } else {
-            $this->project->preview_track = $file->id;
-            $this->project->save();
-            $this->audioUrl = $file->fullFilePath;
+        // Refresh the project to ensure we have the latest data
+        $this->project->refresh();
+        Log::debug('[ManageProject] Unpublish: After refresh - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
 
-            $this->hasPreviewTrack = true;
-            $this->dispatch('audioUrlUpdated', $this->audioUrl);
-        }
+        Toaster::success('Project unpublished successfully.');
+        $this->dispatch('project-updated');
 
-        // Optionally, emit an event or flash a session message to confirm the change
-        session()->flash('message', 'Preview track updated successfully.');
-    }
-
-    public function clearPreviewTrack()
-    {
-        $this->project->preview_track = null; // Clear the preview track
-        $this->project->save();
-        $this->hasPreviewTrack = false;
-
-        // Optionally, emit an event or flash a session message to confirm the change
-        session()->flash('message', 'Preview track cleared successfully.');
+        Log::debug('[ManageProject] Unpublish: End');
     }
 
     /**
-     * Upload multiple files
+     * Toggle the preview track for the project.
      */
-    public function uploadFiles()
+    public function togglePreviewTrack(ProjectFile $file, FileManagementService $fileManagementService)
     {
-        $this->validate([
-            'uploadedFiles.*' => 'required|file|mimes:mp3,wav,ogg,aac|max:102400', // 100MB max
-        ]);
+        try {
+            // Authorization check: Can the current user update this project?
+            // We'll also assume a specific policy for setting the preview track exists.
+            $this->authorize('update', $this->project);
+            // $this->authorize('setPreviewTrack', $this->project); // More specific policy if desired
 
-        $this->newlyUploadedFileIds = []; // Reset the tracking array
-
-        foreach ($this->uploadedFiles as $file) {
-            $controller = new ProjectController();
-            $fileId = $controller->storeTrack($file, $this->project);
-            if ($fileId) {
-                $this->newlyUploadedFileIds[] = $fileId;
+            // Check if the clicked file is the current preview track
+            if ($this->hasPreviewTrack && $this->project->preview_track == $file->id) {
+                // If it is, clear the preview track
+                $fileManagementService->clearProjectPreviewTrack($this->project);
+                $this->hasPreviewTrack = false;
+                $this->audioUrl = null;
+                $this->dispatch('audioUrlUpdated', null);
+                Toaster::success('Preview track cleared successfully.');
+            } else {
+                // If it's not, set the new preview track
+                $fileManagementService->setProjectPreviewTrack($this->project, $file);
+                $this->audioUrl = $file->previewTrackPath(); // Assume this helper still exists or adjust
+                $this->hasPreviewTrack = true;
+                $this->dispatch('audioUrlUpdated', $this->audioUrl);
+                Toaster::success('Preview track updated successfully.');
             }
+             // Refresh the project model to reflect the change in preview_track ID
+            $this->project->refresh();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to change the preview track.');
+        } catch (\Exception $e) {
+            Log::error('Error toggling project preview track via Livewire', ['project_id' => $this->project->id, 'file_id' => $file->id, 'error' => $e->getMessage()]);
+            Toaster::error('Could not update preview track: ' . $e->getMessage());
         }
-
-        $this->isUploading = false;
-        $this->uploadedFiles = []; // Clear the files after upload
-        $this->fileSizes = []; // Clear file sizes
-        $this->project->refresh(); // Refresh project files relation
-
-        session()->flash('message', 'Tracks uploaded successfully.');
-
-        // Clear the highlight after 2 seconds
-        $this->dispatch('new-uploads-completed');
     }
 
     /**
-     * Upload a single track
+     * Clear the current preview track.
      */
-    public function uploadTrack()
+    public function clearPreviewTrack(FileManagementService $fileManagementService)
     {
-        $this->validate([
-            'track' => 'required|file|mimes:mp3,wav,ogg,aac|max:102400', // 100MB max
-        ]);
+        try {
+             // Authorization check
+            $this->authorize('update', $this->project);
+            // $this->authorize('clearPreviewTrack', $this->project); // More specific policy if desired
 
-        $this->newlyUploadedFileIds = []; // Reset the tracking array
+            $fileManagementService->clearProjectPreviewTrack($this->project);
+            $this->hasPreviewTrack = false;
+            $this->audioUrl = null;
+            $this->dispatch('audioUrlUpdated', null);
+            Toaster::success('Preview track cleared successfully.');
 
-        $controller = new ProjectController();
-        $fileId = $controller->storeTrack($this->track, $this->project);
-        if ($fileId) {
-            $this->newlyUploadedFileIds[] = $fileId;
+             // Refresh the project model
+            $this->project->refresh();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to clear the preview track.');
+        } catch (\Exception $e) {
+             Log::error('Error clearing project preview track via Livewire', ['project_id' => $this->project->id, 'error' => $e->getMessage()]);
+            Toaster::error('Could not clear preview track: ' . $e->getMessage());
+        }
+    }
+
+
+    // --- File Upload Queue Logic (Marked for Refactor in Step 5) --- START --- //
+
+    /**
+     * Starts the processing of the file upload queue.
+     */
+    public function queueFilesForUpload(FileManagementService $fileManagementService)
+    {
+        if (empty($this->tempUploadedFiles)) {
+            Toaster::warning('No files selected for upload.');
+            return;
         }
 
-        $this->track = null; // Clear the file input
-        $this->fileSizes = []; // Clear file sizes
-        $this->project->refresh(); // Refresh project files relation
+        // Authorization check: Ensure user can upload to this project
+        // Note: Policy checks *could* happen here, but also within the loop for each file might be safer
+        // depending on granular permissions. For now, assume upload permission applies to the project.
+        try {
+            $this->authorize('uploadFile', $this->project);
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to upload files to this project.');
+            return;
+        }
 
-        session()->flash('message', 'Track uploaded successfully.');
-
-        // Clear the highlight after 2 seconds
-        $this->dispatch('new-uploads-completed');
+        $this->isProcessingQueue = true;
+        $this->uploadingFileKey = 0; // Start with the first file index
+        $this->newlyUploadedFileIds = []; // Reset list of successful uploads for this batch
+        $this->processNextFileInQueue($fileManagementService); // Pass the service instance
     }
 
     /**
-     * Remove a file from the upload queue
+     * Processes the next file in the upload queue recursively or iteratively.
+     */
+    protected function processNextFileInQueue(FileManagementService $fileManagementService)
+    {
+        $queueKeys = array_keys($this->tempUploadedFiles);
+        $currentKeyIndex = $this->uploadingFileKey ?? 0;
+
+        if (!isset($queueKeys[$currentKeyIndex])) {
+            // No more files in the queue
+            $this->finishUploadProcess(true);
+            return;
+        }
+
+        $currentKey = $queueKeys[$currentKeyIndex];
+        $file = $this->tempUploadedFiles[$currentKey];
+        $fileName = $file->getClientOriginalName();
+        $totalFiles = count($this->tempUploadedFiles);
+
+        $this->uploadProgress = round((($currentKeyIndex + 1) / $totalFiles) * 100);
+        $this->uploadProgressMessage = "Uploading {$fileName} (" . ($currentKeyIndex + 1) . " of " . $totalFiles . ")...";
+
+        try {
+            // Perform the actual upload using the service
+            $projectFile = $fileManagementService->uploadProjectFile($this->project, $file, Auth::user());
+
+            // Success for this file
+            $this->newlyUploadedFileIds[] = $projectFile->id;
+            Log::info('Project file uploaded successfully via Livewire', ['project_id' => $this->project->id, 'file_id' => $projectFile->id, 'filename' => $fileName]);
+
+            // Move to the next file
+            $this->uploadingFileKey = $currentKeyIndex + 1;
+            // Use Livewire's dispatchSelf for potential UI updates/recursion without full re-render
+            $this->dispatchSelf('processNextFileInQueue'); // Trigger next step
+
+        } catch (FileUploadException | StorageLimitException $e) {
+            // Handle specific upload errors (size, storage limit, status)
+            Log::warning('Project file upload failed (validation) via Livewire', ['project_id' => $this->project->id, 'filename' => $fileName, 'error' => $e->getMessage()]);
+            Toaster::error("Upload failed for {$fileName}: " . $e->getMessage());
+            // Remove the failed file from the queue and continue
+            unset($this->tempUploadedFiles[$currentKey]);
+            $this->uploadingFileKey = $currentKeyIndex; // Stay on the same *index* for the *next* iteration (which will now point to the next item)
+            $this->dispatchSelf('processNextFileInQueue'); // Continue with the next file
+
+        } catch (AuthorizationException $e) {
+            // Should ideally be caught before the loop, but handle just in case
+            Log::error('Unauthorized file upload attempt caught mid-queue', ['project_id' => $this->project->id, 'filename' => $fileName]);
+            Toaster::error('Authorization failed during upload queue.');
+            $this->finishUploadProcess(false); // Stop processing
+
+        } catch (\Exception $e) {
+            // Handle generic upload errors
+            Log::error('Error uploading project file via Livewire', ['project_id' => $this->project->id, 'filename' => $fileName, 'error' => $e->getMessage()]);
+            Toaster::error("An unexpected error occurred uploading {$fileName}.");
+            // Remove the failed file from the queue and continue
+            unset($this->tempUploadedFiles[$currentKey]);
+            $this->uploadingFileKey = $currentKeyIndex;
+            $this->dispatchSelf('processNextFileInQueue'); // Continue with the next file
+        }
+    }
+
+    /**
+     * Finalize the upload process, update UI.
+     */
+    protected function finishUploadProcess($success = true)
+    {
+        $this->isProcessingQueue = false;
+        $this->uploadingFileKey = null;
+        $this->uploadProgress = $success ? 100 : $this->uploadProgress; // Show 100% on success
+        $this->uploadProgressMessage = $success ? 'Upload complete.' : 'Upload finished with errors.';
+        $this->tempUploadedFiles = []; // Clear the temporary queue
+        $this->fileSizes = [];
+        $this->newlyAddedFileKeys = [];
+
+        // Refresh project data and storage info
+        $this->updateStorageInfo();
+        $this->dispatch('upload-complete'); // Notify other parts of the UI
+    }
+
+    /**
+     * Remove a file from the temporary upload queue before processing.
      */
     public function removeUploadedFile($key)
     {
         if (isset($this->tempUploadedFiles[$key])) {
+            // Remove file and its size entry
             unset($this->tempUploadedFiles[$key]);
             unset($this->fileSizes[$key]);
-
-            // Re-index arrays
+            // Re-index array keys if needed for subsequent processing
             $this->tempUploadedFiles = array_values($this->tempUploadedFiles);
             $this->fileSizes = array_values($this->fileSizes);
-
-            // Clear the newly added keys since indexes have changed
-            $this->newlyAddedFileKeys = [];
         }
     }
 
+    // --- File Upload Queue Logic --- END --- //
+
+    /**
+     * Delete a persisted Project File.
+     */
     public function deleteFile($fileId)
     {
-        $file = ProjectFile::findOrFail($fileId);
-        $project = $this->project; // Ensure you have a way to get the current project context
-
-        // Instantiate the controller
-        $controller = new ProjectController();
-
-        // Call the method
-        $controller->deleteFile($project, $file);
-
-        // Refresh the project model to get updated file list
-        $this->project->refresh();
-        
-        // Update storage information display
-        $this->updateStorageInfo();
+        try {
+            $projectFile = ProjectFile::findOrFail($fileId);
+            
+            // Authorization: Use Policy
+            $this->authorize('deleteFile', $projectFile); // Assuming ProjectFilePolicy with deleteFile method exists
+            
+            // Call the service
+            $this->fileManagementService->deleteProjectFile($projectFile, Auth::user());
+            
+            Toaster::success("File '{$projectFile->file_name}' deleted successfully.");
+            $this->updateStorageInfo(); // Refresh storage display
+            $this->dispatch('file-deleted'); // Notify UI to refresh file list
+            // Refresh the project model in the component IF the files relationship is used directly in render()
+            $this->project->refresh(); 
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Toaster::error('File not found.');
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to delete this file.');
+        } catch (FileDeletionException $e) {
+            Log::warning('Project file deletion failed via Livewire', ['file_id' => $fileId, 'error' => $e->getMessage()]);
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error deleting project file via Livewire', ['file_id' => $fileId, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while deleting the file.');
+        }
     }
 
     /**
-     * Clear the highlight for newly uploaded files
+     * Generate and dispatch a temporary download URL for a file.
+     */
+    public function getDownloadUrl($fileId, FileManagementService $fileManagementService) // Inject service here
+    {
+        try {
+            $projectFile = ProjectFile::findOrFail($fileId);
+            
+            // Authorization: Use Policy
+            $this->authorize('download', $projectFile); // Assuming ProjectFilePolicy with download method exists
+
+            // Get URL from service
+            $url = $fileManagementService->getTemporaryDownloadUrl($projectFile, Auth::user());
+
+            // Dispatch event for JavaScript to handle opening the URL
+            $this->dispatch('openUrl', url: $url);
+            Toaster::info('Your download will begin shortly...'); // Optional feedback
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Toaster::error('File not found.');
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to download this file.');
+        } catch (\Exception $e) {
+            Log::error('Error getting project file download URL via Livewire', ['file_id' => $fileId, 'error' => $e->getMessage()]);
+            Toaster::error('Could not generate download link: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Clear the highlight for newly uploaded files in the main list.
      */
     public function clearUploadHighlights()
     {
         $this->newlyUploadedFileIds = [];
+    }
+
+    // Method to get approved/completed pitches seems fine
+    private function getApprovedAndCompletedPitches()
+    {
+        return $this->project->pitches()
+            ->whereIn('status', [\App\Models\Pitch::STATUS_APPROVED, \App\Models\Pitch::STATUS_COMPLETED])
+            ->with('user') // Eager load user
+            ->orderBy('status', 'desc') // Show completed first
+            ->orderBy('updated_at', 'desc')
+            ->get();
+    }
+
+    // Method to check for multiple approved pitches seems fine
+    private function hasMultipleApprovedPitches()
+    {
+        return $this->project->pitches()->where('status', \App\Models\Pitch::STATUS_APPROVED)->count() > 1;
+    }
+
+    // Method to count approved pitches seems fine
+    private function getApprovedPitchesCount()
+    {
+        return $this->project->pitches()->where('status', \App\Models\Pitch::STATUS_APPROVED)->count();
+    }
+
+    /**
+     * Update the project details using the service.
+     */
+    public function updateProjectDetails(ProjectManagementService $projectService)
+    {
+        Log::debug('ManageProject: Entered updateProjectDetails', ['project_id' => $this->project->id]); // Log entry
+        try {
+            $this->authorize('update', $this->project);
+
+            // --- Revert DEBUG: Validate the entire form --- START ---
+            Log::debug('ManageProject: Before validate()', ['form_state' => $this->form->all()]); // Log form state before validation
+            $validatedData = $this->form->validate(); // Restore original validation
+            Log::debug('ManageProject: After validate()', ['validated_data' => $validatedData]); // Log validated data
+            // Remove manually constructed data array
+            // --- Revert DEBUG: Validate the entire form --- END ---
+
+            // Transform collaboration types
+            $collaborationTypes = [];
+            if ($this->form->collaborationTypeMixing) $collaborationTypes[] = 'Mixing';
+            if ($this->form->collaborationTypeMastering) $collaborationTypes[] = 'Mastering';
+            if ($this->form->collaborationTypeProduction) $collaborationTypes[] = 'Production';
+            if ($this->form->collaborationTypeSongwriting) $collaborationTypes[] = 'Songwriting';
+            if ($this->form->collaborationTypeVocalTuning) $collaborationTypes[] = 'Vocal Tuning';
+            // Apply transformation to $validatedData
+            $validatedData['collaboration_type'] = $collaborationTypes;
+             unset(
+                $validatedData['collaborationTypeMixing'],
+                $validatedData['collaborationTypeMastering'],
+                $validatedData['collaborationTypeProduction'],
+                $validatedData['collaborationTypeSongwriting'],
+                $validatedData['collaborationTypeVocalTuning'],
+                $validatedData['budgetType']
+            );
+
+            // Separate image file
+            $imageFile = $this->form->projectImage ?? null;
+            
+            // Check if image file is valid
+            if ($this->form->projectImage && !($imageFile instanceof \Illuminate\Http\UploadedFile && $imageFile->isValid())) {
+                throw new \RuntimeException('Image file received from form is not a valid UploadedFile.');
+            }
+
+            // Unset image from validated data if it exists
+            if ($imageFile) {
+                unset($validatedData['projectImage']);
+            }
+
+            Log::debug('ManageProject: Before calling service->updateProject', ['project_id' => $this->project->id]); // Log before service call
+            // Call the service to update the project
+            $this->project = $projectService->updateProject(
+                $this->project,
+                $validatedData, // Use validated data again
+                $imageFile // Service handles old image deletion if new one provided
+            );
+
+            Log::debug('ManageProject: After calling service->updateProject', ['project_id' => $this->project->id]); // Log after service call
+
+            $this->project->refresh(); // Refresh the model state locally
+            Toaster::success('Project details updated successfully.');
+
+            // Optionally dispatch event or handle redirect
+            // $this->dispatch('projectUpdated');
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            if (app()->environment('testing')) throw $e;
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation errors are automatically handled by Livewire
+            Log::info('Validation failed updating project details', ['errors' => $e->errors()]);
+        } catch (\App\Exceptions\Project\ProjectUpdateException $e) {
+            Toaster::error($e->getMessage());
+            if (app()->environment('testing')) throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project details', ['project_id' => $this->project->id, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while updating the project.');
+            if (app()->environment('testing')) throw $e;
+        }
     }
 
     public function render()
@@ -243,222 +566,5 @@ class ManageProject extends Component
             'hasMultipleApprovedPitches' => $this->hasMultipleApprovedPitches(),
             'approvedPitchesCount' => $this->getApprovedPitchesCount()
         ]);
-    }
-
-    /**
-     * Check if the project has multiple approved pitches
-     *
-     * @return bool
-     */
-    protected function hasMultipleApprovedPitches()
-    {
-        return $this->getApprovedPitchesCount() > 1;
-    }
-
-    /**
-     * Get the count of approved pitches
-     *
-     * @return int
-     */
-    protected function getApprovedPitchesCount()
-    {
-        return $this->project->pitches()
-            ->where('status', \App\Models\Pitch::STATUS_APPROVED)
-            ->count();
-    }
-
-    /**
-     * Get approved and completed pitches with their accepted snapshots
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    protected function getApprovedAndCompletedPitches()
-    {
-        return $this->project->pitches()
-            ->whereIn('status', ['approved', 'completed'])
-            ->with(['snapshots' => function ($query) {
-                $query->where('status', 'accepted');
-            }, 'user'])
-            ->get();
-    }
-
-    /**
-     * Queue files for upload
-     */
-    public function queueFilesForUpload()
-    {
-        // This is now handled by JavaScript that directly sets tempUploadedFiles and fileSizes
-        $this->newlyAddedFileKeys = array_keys($this->tempUploadedFiles);
-        $this->dispatch('new-files-added');
-    }
-
-    /**
-     * Process the queued files one by one
-     */
-    public function processQueuedFiles()
-    {        
-        if (empty($this->tempUploadedFiles)) {
-            Toaster::warning('No files selected for upload.');
-            return;
-        }
-        
-        // Check file sizes against limits before starting uploads
-        $totalSizeToUpload = 0;
-        $tooLargeFiles = [];
-        
-        foreach ($this->tempUploadedFiles as $key => $file) {
-            $fileSize = $file['size'] ?? 0;
-            $totalSizeToUpload += $fileSize;
-            
-            // Check individual file size limit
-            if (!Project::isFileSizeAllowed($fileSize)) {
-                $tooLargeFiles[] = [
-                    'name' => $file['name'],
-                    'size' => Project::formatBytes($fileSize),
-                    'limit' => Project::formatBytes(Project::MAX_FILE_SIZE_BYTES)
-                ];
-            }
-        }
-        
-        // Check project storage capacity
-        if (!$this->project->hasStorageCapacity($totalSizeToUpload)) {
-            $this->project->refresh();
-            $this->updateStorageInfo();
-            
-            Toaster::error(
-                'Project storage limit exceeded. Available space: ' . 
-                Project::formatBytes($this->project->getRemainingStorageBytes()) . 
-                '. Required: ' . 
-                Project::formatBytes($totalSizeToUpload)
-            );
-            return;
-        }
-        
-        // Handle files that are too large
-        if (!empty($tooLargeFiles)) {
-            $message = count($tooLargeFiles) === 1 
-                ? 'One file exceeds the maximum allowed size of ' . Project::formatBytes(Project::MAX_FILE_SIZE_BYTES)
-                : count($tooLargeFiles) . ' files exceed the maximum allowed size of ' . Project::formatBytes(Project::MAX_FILE_SIZE_BYTES);
-                
-            foreach ($tooLargeFiles as $file) {
-                $message .= "\n• {$file['name']} ({$file['size']})";
-            }
-            
-            Toaster::error($message);
-            return;
-        }
-        
-        // Reset tracking variables
-        $this->isProcessingQueue = true;
-        $this->newlyUploadedFileIds = []; 
-        $this->uploadProgress = 0;
-        $this->uploadProgressMessage = 'Preparing to upload files...';
-        
-        $totalFiles = count($this->tempUploadedFiles);
-        
-        // Process the first file
-        $this->processNextFile(0, $totalFiles);
-    }
-    
-    /**
-     * Process the next file in the queue
-     */
-    public function processNextFile($currentIndex, $totalFiles)
-    {
-        if ($currentIndex >= count($this->tempUploadedFiles)) {
-            // All files processed
-            $this->finishUploadProcess();
-            return;
-        }
-        
-        $this->uploadingFileKey = $currentIndex;
-        $this->uploadProgress = round(($currentIndex / $totalFiles) * 100);
-        $this->uploadProgressMessage = "Uploading file " . ($currentIndex + 1) . " of " . $totalFiles;
-        
-        \Log::info('Processing next project file', [
-            'index' => $currentIndex,
-            'total' => $totalFiles,
-            'project_id' => $this->project->id
-        ]);
-        
-        // Dispatch event to trigger JS file upload
-        $this->dispatch('uploadNextFile', index: $currentIndex, total: $totalFiles);
-    }
-    
-    /**
-     * Handle successful file upload
-     */
-    public function uploadSuccess($index, $filePath, $fileId)
-    {
-        if (!isset($this->tempUploadedFiles[$index])) {
-            \Log::error('File index not found in tempUploadedFiles', [
-                'index' => $index,
-                'project_id' => $this->project->id
-            ]);
-            return;
-        }
-        
-        // Add to newly uploaded files
-        $this->newlyUploadedFileIds[] = $fileId;
-        
-        // Update progress
-        $totalFiles = count($this->tempUploadedFiles);
-        $this->uploadProgress = round((($index + 1) / $totalFiles) * 100);
-        
-        // Refresh the project and update storage info
-        $this->project->refresh();
-        $this->updateStorageInfo();
-        
-        // Process the next file
-        $this->processNextFile($index + 1, $totalFiles);
-    }
-    
-    /**
-     * Handle failed file upload
-     */
-    public function uploadFailed($index, $errorMessage)
-    {
-        \Log::error('File upload failed', [
-            'project_id' => $this->project->id,
-            'file_index' => $index,
-            'error' => $errorMessage
-        ]);
-        
-        Toaster::error("Failed to upload file: " . $errorMessage);
-        
-        // Process the next file, skipping this one
-        $totalFiles = count($this->tempUploadedFiles);
-        $this->processNextFile(($index !== null ? $index : 0) + 1, $totalFiles);
-    }
-    
-    /**
-     * Finish the upload process and clean up
-     */
-    protected function finishUploadProcess()
-    {
-        $this->isProcessingQueue = false;
-        $this->uploadingFileKey = null;
-        $this->uploadProgress = 100;
-        $this->uploadProgressMessage = 'Upload complete!';
-        
-        // Clear the queue
-        $this->tempUploadedFiles = [];
-        $this->fileSizes = [];
-        
-        // Refresh the project to update files
-        $this->project->refresh();
-        
-        Toaster::success('Files uploaded successfully.');
-        $this->dispatch('new-uploads-completed');
-    }
-
-    /**
-     * Update storage information for the view
-     */
-    public function updateStorageInfo()
-    {
-        $this->storageUsedPercentage = $this->project->getStorageUsedPercentage();
-        $this->storageLimitMessage = $this->project->getStorageLimitMessage();
-        $this->storageRemaining = Project::formatBytes($this->project->getRemainingStorageBytes());
     }
 }

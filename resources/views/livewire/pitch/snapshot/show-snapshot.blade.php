@@ -370,10 +370,12 @@
                     <!-- Back Buttons -->
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 pt-3">
                         @if(Auth::id() === $pitch->user_id)
-                        <a href="{{ route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}"
-                            class="btn btn-sm w-full sm:w-auto bg-base-200 hover:bg-base-300 text-gray-700 text-xs sm:text-sm">
-                            <i class="fas fa-arrow-left mr-1.5 sm:mr-2"></i> Back to Pitch
-                        </a>
+                        <div class="flex-grow text-center md:text-left mb-4 md:mb-0">
+                            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}"
+                               class="btn btn-sm bg-base-200 hover:bg-base-300 transition-colors text-sm">
+                                <i class="fas fa-arrow-left mr-1"></i> Back to Pitch Overview
+                            </a>
+                        </div>
                         @endif
 
                         @if(Auth::id() === $pitch->project->user_id)

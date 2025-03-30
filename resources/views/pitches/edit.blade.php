@@ -5,9 +5,19 @@
     <div class="flex justify-center">
         <div class="w-full lg:w-3/4 2xl:w-2/3">
             <div class="mb-6">
-                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn btn-sm bg-base-200 hover:bg-base-300 transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Pitch
-                </a>
+                <div class="flex items-center text-sm mb-4 text-gray-600">
+                    <a href="{{ route('dashboard') }}" class="hover:text-primary">Dashboard</a>
+                    <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn btn-sm bg-base-200 hover:bg-base-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-1"></i> Back to Pitch
+                    </a>
+                    <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    <span>Edit Pitch</span>
+                </div>
             </div>
 
             <div class="bg-white rounded-lg shadow-xl border border-base-300 overflow-hidden">
@@ -116,6 +126,12 @@
                 </p>
                 <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn bg-blue-500 hover:bg-blue-600 text-white">
                     <i class="fas fa-folder-open mr-2"></i>Manage Files
+                </a>
+            </div>
+
+            <div class="mt-8 text-center border-t pt-6">
+                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn bg-blue-500 hover:bg-blue-600 text-white">
+                     <i class="fas fa-arrow-left mr-2"></i> Go Back to Pitch Details
                 </a>
             </div>
         </div>

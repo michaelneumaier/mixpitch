@@ -31,6 +31,14 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     use Billable;
 
     /**
+     * Define user roles as constants.
+     * This makes role checks consistent across the application.
+     */
+    const ROLE_CLIENT = 'client';
+    const ROLE_PRODUCER = 'producer';
+    const ROLE_ADMIN = 'admin'; // Assuming you might need an admin role too
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -57,6 +65,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'provider_id',
         'provider_token',
         'provider_refresh_token',
+        'role',
     ];
 
     /**
@@ -227,28 +236,25 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     }
 
     /**
-     * Check if user has a specific role
-     * 
-     * This is a temporary implementation until proper role management is set up.
-     * For a more complete implementation, consider using Spatie's Laravel Permission package:
-     * https://spatie.be/docs/laravel-permission/
-     * 
-     * @param string $role The role to check for
+     * Check if user has a specific role.
+     *
+     * This overrides the temporary hasRole method previously in place.
+     * It now directly checks the 'role' column.
+     *
+     * If you were using Spatie permissions before, you might need to adjust
+     * or remove this method depending on your setup.
+     *
+     * @param string $role The role to check for (e.g., User::ROLE_CLIENT)
      * @return bool
      */
-    public function hasRole($role)
+    public function hasRole($role): bool
     {
-        // TEMPORARY IMPLEMENTATION
-        // For now, we're defining the admin user as either:
-        // 1. The user with ID 1 (typically the first user)
-        // 2. A user with a specific email (you should change this to your admin email)
-        
-        if ($role === 'admin') {
-            // Change 'admin@example.com' to your actual admin email
-            return $this->id === 1 || $this->email === 'admin@example.com';
-        }
-        
-        return false;
+        // Check if the user's role matches the provided role constant
+        return $this->role === $role;
+
+        // If you decide to use Spatie Permissions later, you would replace
+        // the above line with something like:
+        // return parent::hasRole($role);
     }
 
     public function projects()
@@ -277,13 +283,27 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     }
 
     /**
-     * Determine if the user can access the Filament admin panel.
+     * Determine if the user can access the given Filament panel.
+     *
+     * @param Panel $panel
+     * @return bool
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        // For now, using the existing hasRole method as a bridge
-        // Later this should be updated to use the proper Spatie permissions
-        return $this->hasRole('admin') || $this->hasPermissionTo('access_filament');
+        // Allow access if the user has the admin role OR if it's the main app panel
+        // For tests, handle the case when Panel could be missing an ID
+        if ($panel === null) {
+            return $this->role === self::ROLE_ADMIN;
+        }
+        
+        // Get panel ID safely
+        try {
+            $panelId = $panel->getId();
+            return $this->role === self::ROLE_ADMIN || $panelId === 'app';
+        } catch (\Exception $e) {
+            // If there's an issue getting the panel ID, only allow admins
+            return $this->role === self::ROLE_ADMIN;
+        }
     }
 
     /**
@@ -300,5 +320,27 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     public function getFilamentAvatarUrl(): ?string
     {
         return $this->profile_photo_url;
+    }
+
+    /**
+     * Scope a query to only include clients.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeClients($query)
+    {
+        return $query->where('role', self::ROLE_CLIENT);
+    }
+
+    /**
+     * Scope a query to only include producers.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeProducers($query)
+    {
+        return $query->where('role', self::ROLE_PRODUCER);
     }
 }

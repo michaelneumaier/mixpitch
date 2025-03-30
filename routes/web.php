@@ -61,7 +61,7 @@ Route::middleware(['auth'])->group(function () {
     // });
 
     Route::get('/create-project', CreateProject::class)->name('projects.create');
-    Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
+    Route::get('/edit-project/{project}', ManageProject::class)->name('projects.edit');
     Route::get('/manage-project/{project}', ManageProject::class)->name('projects.manage');
 
 
@@ -74,14 +74,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/{project}/mixes', [MixController::class, 'store'])->name('mixes.store');
     Route::patch('/mixes/{mix}/rate', [MixController::class, 'rate'])->name('mixes.rate');
 
-    Route::resource('/pitches', PitchController::class);
-    Route::get('/pitches/create/{project}', [PitchController::class, 'create'])->name('pitches.create.project');
     Route::post('/pitches/{pitch}/status', [PitchController::class, 'updateStatus'])->name('pitches.updateStatus');
 
     // Payment details for a specific pitch
-    Route::get('/pitches/{pitch}/payment', [PitchController::class, 'showPayment'])
-        ->name('pitches.payment')
-        ->middleware(['auth']);
+    // Route::get('/pitches/{pitch}/payment', [PitchController::class, 'showPayment'])
+    //     ->name('pitches.payment')
+    //     ->middleware(['auth']);
 
     // Special route for pitch deletion to handle the Livewire redirect approach
     Route::get('/pitches/{pitch}/delete-confirmed', [PitchController::class, 'destroyConfirmed'])->name('pitches.destroyConfirmed');
@@ -90,34 +88,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pitches/{pitch}/latest-snapshot', [PitchController::class, 'showLatestSnapshot'])->name('pitches.showLatestSnapshot');
     // Remove the old route pattern that should no longer work
     // Route::get('/pitches/{pitch}/{pitchSnapshot}', ShowSnapshot::class)->name('pitches.showSnapshot');
-
-    // New routes for non-Livewire pitch status changes
-    Route::get('/pitch/{pitch}/change-status/{direction}/{newStatus?}', [App\Http\Controllers\PitchStatusController::class, 'changeStatus'])
-        ->name('pitch.changeStatus')
-        ->middleware('auth');
-    Route::post('/pitch/{pitch}/approve-snapshot/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'approveSnapshot'])
-        ->name('pitch.approveSnapshot')
-        ->middleware('auth');
-    Route::post('/pitch/{pitch}/deny-snapshot/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'denySnapshot'])
-        ->name('pitch.denySnapshot')
-        ->middleware('auth');
-    Route::post('/pitch/{pitch}/request-changes/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'requestChanges'])
-        ->name('pitch.requestChanges')
-        ->middleware('auth');
-
-    // New routes with project/pitch pattern for pitch status changes
-    Route::get('/projects/{project}/pitches/{pitch}/change-status/{direction}/{newStatus?}', [App\Http\Controllers\PitchStatusController::class, 'changeStatusWithProject'])
-        ->name('projects.pitches.change-status')
-        ->middleware('auth');
-    Route::post('/projects/{project}/pitches/{pitch}/approve-snapshot/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'approveSnapshotWithProject'])
-        ->name('projects.pitches.approve-snapshot')
-        ->middleware('auth');
-    Route::post('/projects/{project}/pitches/{pitch}/deny-snapshot/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'denySnapshotWithProject'])
-        ->name('projects.pitches.deny-snapshot')
-        ->middleware('auth');
-    Route::post('/projects/{project}/pitches/{pitch}/request-changes/{snapshot}', [App\Http\Controllers\PitchStatusController::class, 'requestChangesWithProject'])
-        ->name('projects.pitches.request-changes')
-        ->middleware('auth');
 
     // New route for handling sequential file uploads
     Route::post('/pitch/upload-file', [App\Http\Controllers\PitchFileController::class, 'uploadSingle'])
@@ -138,15 +108,23 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/email/test', [App\Http\Controllers\EmailController::class, 'showTestForm'])->name('email.test');
     Route::post('/email/test', [App\Http\Controllers\EmailController::class, 'sendTest'])->name('email.test.send');
 
-    // Payment routes
-    Route::get('/pitches/{pitch}/payment/overview', [App\Http\Controllers\PitchPaymentController::class, 'overview'])
-        ->name('pitches.payment.overview');
-    
-    Route::post('/pitches/{pitch}/payment/process', [App\Http\Controllers\PitchPaymentController::class, 'process'])
-        ->name('pitches.payment.process');
-    
-    Route::get('/pitches/{pitch}/payment/receipt', [App\Http\Controllers\PitchPaymentController::class, 'receipt'])
-        ->name('pitches.payment.receipt');
+    // Payment routes (DEPRECATED - Use project-based routes below)
+    // Route::get('/pitches/{pitch}/payment/overview', [App\Http\Controllers\PitchPaymentController::class, 'overview'])
+    //     ->name('pitches.payment.overview');
+    // 
+    // Route::post('/pitches/{pitch}/payment/process', [App\Http\Controllers\PitchPaymentController::class, 'process'])
+    //     ->name('pitches.payment.process');
+    // 
+    // Route::get('/pitches/{pitch}/payment/receipt', [App\Http\Controllers\PitchPaymentController::class, 'receipt'])
+    //     ->name('pitches.payment.receipt');
+
+    // Creating a pitch for a project - keep existing route but add an alias
+    Route::get('/projects/{project}/pitches/create', [App\Http\Controllers\PitchController::class, 'create'])
+        ->name('projects.pitches.create');
+        
+    // Store a pitch for a project
+    Route::post('/projects/{project}/pitches', [App\Http\Controllers\PitchController::class, 'store'])
+        ->name('projects.pitches.store');
 
     // Add new routes with the new URL pattern
     Route::get('/projects/{project}/pitches/{pitch}', [App\Http\Controllers\PitchController::class, 'showProjectPitch'])
@@ -157,6 +135,10 @@ Route::middleware(['auth'])->group(function () {
         
     Route::get('/projects/{project}/pitches/{pitch}/edit', [App\Http\Controllers\PitchController::class, 'editProjectPitch'])
         ->name('projects.pitches.edit');
+        
+    // Add the missing route for changing pitch status with project context
+    Route::get('/projects/{project}/pitches/{pitch}/change-status', [App\Http\Controllers\PitchController::class, 'changePitchStatus'])
+        ->name('projects.pitches.change-status');
         
     Route::get('/projects/{project}/pitches/{pitch}/payment', [App\Http\Controllers\PitchController::class, 'showProjectPitchPayment'])
         ->name('projects.pitches.payment');
@@ -173,14 +155,6 @@ Route::middleware(['auth'])->group(function () {
     // Special route for pitch deletion with project context
     Route::get('/projects/{project}/pitches/{pitch}/delete-confirmed', [App\Http\Controllers\PitchController::class, 'destroyConfirmed'])
         ->name('projects.pitches.destroyConfirmed');
-        
-    // Creating a pitch for a project - keep existing route but add an alias
-    Route::get('/projects/{project}/pitches/create', [App\Http\Controllers\PitchController::class, 'create'])
-        ->name('projects.pitches.create');
-        
-    // Store a pitch for a project
-    Route::post('/projects/{project}/pitches', [App\Http\Controllers\PitchController::class, 'store'])
-        ->name('projects.pitches.store');
 });
 
 // User Profile Routes
@@ -575,9 +549,6 @@ Route::get('/check-s3-config', function () {
     ];
 });
 
-// Billing routes
-Route::get('/billing/download-invoice/{invoice}', [App\Http\Controllers\Billing\BillingController::class, 'downloadInvoice'])->name('billing.invoice.download');
-
 // Admin Billing Routes
 Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('admin/billing')->name('filament.admin.resources.users.')->group(function () {
     Route::post('/{record}/create-stripe-customer', [App\Http\Controllers\Billing\AdminBillingController::class, 'createStripeCustomer'])->name('create-stripe-customer');
@@ -587,13 +558,4 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('a
             'stats' => \App\Filament\Plugins\Billing\Widgets\RevenueOverviewWidget::getOverviewStats()
         ]);
     })->name('stats');
-});
-
-// Pitch routes
-Route::prefix('pitches')->name('pitches.')->middleware(['auth'])->group(function () {
-    Route::get('/', [PitchController::class, 'index'])->name('index');
-    Route::get('/create/{project}', [PitchController::class, 'create'])->name('create');
-    Route::get('/{pitch}', [PitchController::class, 'show'])->name('show');
-    Route::get('/{pitch}/edit', [PitchController::class, 'edit'])->name('edit');
-    Route::get('/{pitch}/payment', [PitchController::class, 'payment'])->name('payment');
 });

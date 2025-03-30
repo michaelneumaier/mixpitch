@@ -1,0 +1,136 @@
+<?php
+namespace App\Services;
+
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
+use App\Models\PitchSnapshot;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Exceptions\Pitch\CompletionValidationException; // Assuming this exists or will be created
+use App\Exceptions\Pitch\UnauthorizedActionException;
+use App\Services\Project\ProjectManagementService;
+
+class PitchCompletionService
+{
+    protected $projectManagementService;
+    protected $notificationService;
+
+    public function __construct(
+        ProjectManagementService $projectManagementService,
+        NotificationService $notificationService
+    ) {
+        $this->projectManagementService = $projectManagementService;
+        $this->notificationService = $notificationService;
+    }
+
+    /**
+     * Mark a pitch as completed, close others, and complete the project.
+     *
+     * @param Pitch $pitchToComplete The pitch being marked as complete.
+     * @param User $completingUser (Project Owner)
+     * @param string|null $feedback Optional feedback.
+     * @return Pitch The completed pitch.
+     * @throws CompletionValidationException|UnauthorizedActionException|\RuntimeException
+     */
+    public function completePitch(Pitch $pitchToComplete, User $completingUser, ?string $feedback = null): Pitch
+    {
+        $project = $pitchToComplete->project;
+
+        // Authorization: Ensure user is the project owner
+        if ($project->user_id !== $completingUser->id) {
+            throw new UnauthorizedActionException('complete this pitch');
+        }
+        // Policy check (Ensure 'complete' ability exists in PitchPolicy)
+        // if ($completingUser->cannot('complete', $pitchToComplete)) {
+        //    throw new UnauthorizedActionException('You are not authorized to complete this pitch.');
+        // }
+
+        // Validation: Pitch must be approved
+        if ($pitchToComplete->status !== Pitch::STATUS_APPROVED) {
+            throw new CompletionValidationException('Pitch must be approved before it can be completed.');
+        }
+        // Validation: Prevent re-completion if already paid/processing
+        if ($pitchToComplete->payment_status === Pitch::PAYMENT_STATUS_PAID || $pitchToComplete->payment_status === Pitch::PAYMENT_STATUS_PROCESSING) {
+            throw new CompletionValidationException('This pitch has already been completed and paid/is processing payment.');
+        }
+
+        try {
+            DB::transaction(function() use ($pitchToComplete, $project, $completingUser, $feedback) {
+                // 1. Mark the selected pitch as completed
+                $pitchToComplete->status = Pitch::STATUS_COMPLETED;
+                $pitchToComplete->completed_at = now();
+                $pitchToComplete->completion_feedback = $feedback; // Or store in separate PitchFeedback model
+
+                // Set initial payment status based on project budget
+                if ($project->budget > 0) {
+                    $pitchToComplete->payment_status = Pitch::PAYMENT_STATUS_PENDING;
+                } else {
+                    $pitchToComplete->payment_status = Pitch::PAYMENT_STATUS_NOT_REQUIRED;
+                }
+                $pitchToComplete->save();
+
+                // 2. Update the final snapshot status to completed
+                if ($pitchToComplete->currentSnapshot) {
+                    $pitchToComplete->currentSnapshot->status = PitchSnapshot::STATUS_COMPLETED;
+                    $pitchToComplete->currentSnapshot->save();
+                }
+
+                // 3. Close other active pitches for the same project
+                $otherPitches = $project->pitches()
+                    ->where('id', '!=', $pitchToComplete->id)
+                    ->whereNotIn('status', [
+                        Pitch::STATUS_COMPLETED,
+                        Pitch::STATUS_CLOSED,
+                        Pitch::STATUS_DENIED // Keep denied as is?
+                    ]) // Close pending, in_progress, approved, revisions_requested etc.
+                    ->get();
+
+                foreach ($otherPitches as $otherPitch) {
+                    $originalStatus = $otherPitch->status;
+                    $otherPitch->status = Pitch::STATUS_CLOSED;
+                    $otherPitch->save();
+
+                    // Decline/cancel any pending snapshots for these closed pitches
+                    if ($otherPitch->currentSnapshot && $otherPitch->currentSnapshot->status === PitchSnapshot::STATUS_PENDING) {
+                        $otherPitch->currentSnapshot->status = PitchSnapshot::STATUS_DENIED; // Or maybe 'cancelled'?
+                        $otherPitch->currentSnapshot->save();
+                    }
+
+                    Log::info('Pitch closed due to project completion', ['pitch_id' => $otherPitch->id, 'project_id' => $project->id, 'original_status' => $originalStatus]);
+                    // Notify creator of the closed pitch
+                    // Note: notifyPitchClosed() needs implementation in NotificationService
+                    $this->notificationService->notifyPitchClosed($otherPitch);
+                }
+
+                // 4. Mark the project as completed (using the ProjectManagementService)
+                $this->projectManagementService->completeProject($project);
+
+                // 5. Create Event for the completed pitch
+                $pitchToComplete->events()->create([
+                    'event_type' => 'status_change',
+                    'comment' => 'Pitch marked as completed by project owner.' . ($feedback ? " Feedback: {$feedback}" : ''),
+                    'status' => $pitchToComplete->status,
+                    'created_by' => $completingUser->id,
+                ]);
+
+                // 6. Notify creator of the completed pitch
+                // Note: notifyPitchCompleted() needs implementation in NotificationService
+                $this->notificationService->notifyPitchCompleted($pitchToComplete);
+
+            }); // End DB Transaction
+
+            return $pitchToComplete->refresh(); // Return the updated pitch object
+
+        } catch (\Exception $e) {
+            Log::error('Error completing pitch', [
+                'pitch_id' => $pitchToComplete->id,
+                'user_id' => $completingUser->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString() // Optional for detailed debugging
+            ]);
+            // Re-throw a runtime exception to indicate failure
+            throw new \RuntimeException('An unexpected error occurred while completing the pitch.', 0, $e);
+        }
+    }
+} 

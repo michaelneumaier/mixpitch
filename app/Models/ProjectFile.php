@@ -4,14 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Exception;
 use Illuminate\Support\Facades\Storage;
 
 class ProjectFile extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    protected $fillable = ['project_id', 'file_path', 'size'];
+    protected $fillable = [
+        'project_id', 
+        'file_path', 
+        'storage_path',
+        'file_name',
+        'original_file_name',
+        'mime_type',
+        'user_id',
+        'size',
+        'is_preview_track'
+    ];
 
     function formatBytes($bytes, $precision = 2)
     {

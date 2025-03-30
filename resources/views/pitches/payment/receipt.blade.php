@@ -202,13 +202,15 @@
                         </div>
 
                         <!-- Actions -->
-                        <div class="flex justify-center space-x-4">
-                            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn btn-outline">
-                                <i class="fas fa-arrow-left mr-2"></i> Return to Pitch
-                            </a>
-                            <button onclick="window.print()" class="btn btn-primary">
-                                <i class="fas fa-print mr-2"></i> Print Receipt
-                            </button>
+                        <div class="mt-8 text-center border-t border-gray-200 pt-6">
+                            <div class="flex justify-center space-x-4">
+                                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="btn btn-outline">
+                                    <i class="fas fa-arrow-left mr-2"></i> Return to Pitch
+                                </a>
+                                <button onclick="window.print()" class="btn btn-primary">
+                                    <i class="fas fa-print mr-2"></i> Print Receipt
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

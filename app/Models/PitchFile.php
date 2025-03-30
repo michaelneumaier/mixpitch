@@ -5,14 +5,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Exception;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PitchFile extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'file_path',
+        'storage_path',
         'file_name',
+        'original_file_name',
+        'mime_type',
         'note',
         'user_id',
         'size',

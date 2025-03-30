@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\Pitch;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 /**
  * Notification model for user notifications
@@ -41,6 +43,7 @@ class Notification extends Model
     /**
      * Notification types
      */
+    const TYPE_PITCH_SUBMITTED = 'pitch_submitted';
     const TYPE_PITCH_CREATED = 'pitch_created';
     const TYPE_PITCH_STATUS_CHANGE = 'pitch_status_change';
     const TYPE_PITCH_COMMENT = 'pitch_comment';
@@ -56,6 +59,14 @@ class Notification extends Model
     const TYPE_PITCH_CANCELLED = 'pitch_cancelled';
     const TYPE_PAYMENT_PROCESSED = 'payment_processed';
     const TYPE_PAYMENT_FAILED = 'payment_failed';
+    const TYPE_NEW_PITCH = 'new_pitch';
+    const TYPE_PITCH_APPROVED = 'pitch_approved';
+    const TYPE_PITCH_SUBMISSION_APPROVED = 'pitch_submission_approved';
+    const TYPE_PITCH_SUBMISSION_DENIED = 'pitch_submission_denied';
+    const TYPE_PITCH_REVISIONS_REQUESTED = 'pitch_revisions_requested';
+    const TYPE_PITCH_SUBMISSION_CANCELLED = 'pitch_submission_cancelled';
+    const TYPE_PITCH_READY_FOR_REVIEW = 'pitch_ready_for_review';
+    const TYPE_PITCH_CLOSED = 'pitch_closed';
     
     /**
      * Get the related model
@@ -107,21 +118,49 @@ class Notification extends Model
     {
         $data = $this->data ?? [];
         
-        // For all pitch-related notifications, direct to the pitch page
         if ($this->related_type === 'App\\Models\\Pitch') {
-            $pitch = Pitch::find($this->related_id);
-            if ($pitch) {
-                // For comments, include the comment anchor
-                if ($this->type === self::TYPE_PITCH_COMMENT && isset($data['comment_id'])) {
-                    return route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) . '#comment-' . $data['comment_id'];
+            // Find pitch with project eagerly loaded
+            $pitch = Pitch::with('project')->find($this->related_id);
+            
+            if ($pitch && $pitch->project) {
+                // Ensure the pitch has a slug
+                if (empty($pitch->slug)) {
+                    $this->generateSlugForPitch($pitch);
                 }
                 
-                // For all other pitch-related notifications, go to the pitch page
-                return route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]);
+                // Ensure the project has a slug
+                if (empty($pitch->project->slug)) {
+                    // Project should always have a slug, but just in case
+                    $pitch->project->slug = Str::slug($pitch->project->name ?? 'project') . '-' . $pitch->project->id;
+                    $pitch->project->save();
+                }
+                
+                // Now we can safely check both slugs are present
+                if ($pitch->slug && $pitch->project->slug) {
+                    // For comments, include the comment anchor
+                    if ($this->type === self::TYPE_PITCH_COMMENT && isset($data['comment_id'])) {
+                        return route('projects.pitches.show', ['project' => $pitch->project, 'pitch' => $pitch]) . '#comment-' . $data['comment_id'];
+                    }
+                    
+                    // For all other pitch-related notifications, go to the pitch page
+                    return route('projects.pitches.show', ['project' => $pitch->project, 'pitch' => $pitch]);
+                }
             }
+            
+            // Log the issue if pitch, project, or slugs are missing
+            \Illuminate\Support\Facades\Log::warning('Could not generate URL for pitch notification due to missing data.', [
+                'notification_id' => $this->id,
+                'pitch_id' => $this->related_id,
+                'pitch_found' => !is_null($pitch),
+                'project_found' => $pitch ? !is_null($pitch->project) : false,
+                'pitch_slug' => $pitch ? $pitch->slug : null,
+                'project_slug' => $pitch && $pitch->project ? $pitch->project->slug : null,
+            ]);
+            // Fallback to dashboard
+            return route('dashboard');
         }
         
-        // For pitch file comment notifications
+        // For pitch file comment notifications (ensure pitch file exists)
         if ($this->related_type === 'App\\Models\\PitchFile' && $this->type === self::TYPE_PITCH_FILE_COMMENT) {
             $pitchFile = \App\Models\PitchFile::find($this->related_id);
             if ($pitchFile) {
@@ -132,11 +171,53 @@ class Notification extends Model
                 
                 // Without specific comment ID, just go to the file page
                 return route('pitch-files.show', $pitchFile);
+            } else {
+                \Illuminate\Support\Facades\Log::warning('Could not generate URL for pitch file notification because PitchFile not found.', [
+                    'notification_id' => $this->id,
+                    'pitch_file_id' => $this->related_id,
+                ]);
+                // Fallback to dashboard
+                 return route('dashboard');
             }
         }
         
         // Default to dashboard if we can't determine a specific URL
         return route('dashboard');
+    }
+    
+    /**
+     * Generate a slug for a pitch if it doesn't have one
+     */
+    private function generateSlugForPitch($pitch)
+    {
+        $baseSlug = !empty($pitch->title) 
+            ? Str::slug($pitch->title)
+            : 'pitch-' . $pitch->id;
+        
+        $slug = $baseSlug;
+        $count = 1;
+        
+        // Find a unique slug by checking for existing values
+        while (
+            Pitch::where('project_id', $pitch->project_id)
+                ->where('id', '!=', $pitch->id)
+                ->where('slug', $slug)
+                ->exists()
+        ) {
+            $slug = $baseSlug . '-' . $count;
+            $count++;
+        }
+        
+        $pitch->slug = $slug;
+        $pitch->save();
+        
+        \Illuminate\Support\Facades\Log::info('Generated slug for pitch in notification URL generation', [
+            'notification_id' => $this->id,
+            'pitch_id' => $pitch->id,
+            'slug' => $slug
+        ]);
+        
+        return $pitch;
     }
     
     /**
