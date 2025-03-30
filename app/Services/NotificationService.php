@@ -934,14 +934,14 @@ class NotificationService
     }
 
     /**
-     * Notify a user about a payment being processed for their pitch
+     * Notify a user about successful payment processing
      *
      * @param Pitch $pitch The pitch
-     * @param float $amount Payment amount
-     * @param string $invoiceId Invoice ID
+     * @param float $amount The payment amount
+     * @param string|null $invoiceId The invoice ID
      * @return Notification|null
      */
-    public function notifyPaymentProcessed(Pitch $pitch, float $amount, string $invoiceId): ?Notification
+    public function notifyPaymentProcessed(Pitch $pitch, float $amount, ?string $invoiceId = null): ?Notification
     {
         // Notify the pitch creator
         $user = $pitch->user;
@@ -976,13 +976,13 @@ class NotificationService
     }
     
     /**
-     * Notify a user about a payment failure for their pitch
+     * Notify a user about failed payment
      *
      * @param Pitch $pitch The pitch
-     * @param string $error Error message
+     * @param string $reason The failure reason
      * @return Notification|null
      */
-    public function notifyPaymentFailed(Pitch $pitch, string $error): ?Notification
+    public function notifyPaymentFailed(Pitch $pitch, string $reason): ?Notification
     {
         // Notify the pitch creator
         $user = $pitch->user;
@@ -1000,13 +1000,411 @@ class NotificationService
                 Notification::TYPE_PAYMENT_FAILED,
                 $pitch,
                 [
-                    'error' => $error,
+                    'reason' => $reason,
                     'project_id' => $pitch->project_id,
                     'project_name' => $pitch->project->name,
                 ]
             );
         } catch (\Exception $e) {
             Log::error('Failed to notify about payment failure', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            
+            return null;
+        }
+    }
+
+    /**
+     * Notify the project owner when a new pitch is submitted for their project.
+     *
+     * @param Pitch $pitch The newly submitted pitch.
+     * @return Notification|null
+     */
+    public function notifyPitchSubmitted(Pitch $pitch): ?Notification
+    {
+        $projectOwner = $pitch->project->user;
+        $pitchCreator = $pitch->user;
+
+        if (!$projectOwner) {
+            Log::warning('Failed to notify about pitch submission: project owner not found', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+            ]);
+            return null;
+        }
+        if (!$pitchCreator) {
+            Log::warning('Failed to notify about pitch submission: pitch creator not found', [
+                'pitch_id' => $pitch->id,
+                'user_id' => $pitch->user_id,
+            ]);
+            // Continue, but creator name might be missing
+        }
+
+        try {
+            // Create the notification for the Project Owner
+            $notification = $this->createNotification(
+                $projectOwner,
+                Notification::TYPE_PITCH_SUBMITTED, // Ensure this type constant exists in Notification model
+                $pitch,
+                [
+                    'pitch_id' => $pitch->id,
+                    'pitch_slug' => $pitch->slug,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'producer_id' => $pitchCreator?->id,
+                    'producer_name' => $pitchCreator?->name ?? 'A producer',
+                ]
+            );
+            
+            // Also, dispatch the Laravel Notification class expected by the feature test
+            // This assumes the existence of App\Notifications\Pitch\PitchSubmittedNotification
+            $projectOwner->notify(new \App\Notifications\Pitch\PitchSubmittedNotification($pitch));
+            
+            return $notification; // Return the DB notification record
+
+        } catch (\Exception $e) {
+            Log::error('Failed to notify project owner about new pitch submission', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+                'project_owner_id' => $projectOwner->id,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Notify a user about a pitch being approved (initial approval)
+     *
+     * @param Pitch $pitch The pitch
+     * @return Notification|null
+     */
+    public function notifyPitchApproved(Pitch $pitch): ?Notification
+    {
+        // Notify the pitch creator about their pitch being approved
+        $user = $pitch->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about pitch approval: user not found', [
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PITCH_APPROVED,
+                $pitch,
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'status' => $pitch->status,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about pitch approval', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Notify about a pitch submission being approved
+     *
+     * @param Pitch $pitch The pitch
+     * @param int|PitchSnapshot $snapshot The snapshot ID or object
+     * @return Notification|null
+     */
+    public function notifyPitchSubmissionApproved(Pitch $pitch, $snapshot): ?Notification
+    {
+        // Resolve snapshot ID or object
+        $snapshotId = $snapshot instanceof PitchSnapshot ? $snapshot->id : $snapshot;
+        
+        // Get the snapshot object if we only have an ID
+        if (!($snapshot instanceof PitchSnapshot)) {
+            $snapshot = PitchSnapshot::find($snapshotId);
+            if (!$snapshot) {
+                Log::warning('Failed to notify about pitch submission approval: snapshot not found', [
+                    'pitch_id' => $pitch->id,
+                    'snapshot_id' => $snapshotId,
+                ]);
+                return null;
+            }
+        }
+        
+        // Notify the pitch creator
+        $user = $pitch->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about pitch submission approval: user not found', [
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $snapshotId,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PITCH_SUBMISSION_APPROVED,
+                $pitch,
+                [
+                    'snapshot_id' => $snapshotId,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about pitch submission approval', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $snapshotId,
+            ]);
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Notify about a pitch submission being denied
+     *
+     * @param Pitch $pitch The pitch
+     * @param int|PitchSnapshot $snapshot The snapshot ID or object
+     * @param string|null $reason The reason for denial
+     * @return Notification|null
+     */
+    public function notifyPitchSubmissionDenied(Pitch $pitch, $snapshot, ?string $reason = null): ?Notification
+    {
+        // Resolve snapshot ID or object
+        $snapshotId = $snapshot instanceof PitchSnapshot ? $snapshot->id : $snapshot;
+        
+        // Get the snapshot object if we only have an ID
+        if (!($snapshot instanceof PitchSnapshot)) {
+            $snapshot = PitchSnapshot::find($snapshotId);
+            if (!$snapshot) {
+                Log::warning('Failed to notify about pitch submission denial: snapshot not found', [
+                    'pitch_id' => $pitch->id,
+                    'snapshot_id' => $snapshotId,
+                ]);
+                return null;
+            }
+        }
+        
+        // Notify the pitch creator
+        $user = $pitch->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about pitch submission denial: user not found', [
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $snapshotId,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PITCH_SUBMISSION_DENIED,
+                $pitch,
+                [
+                    'snapshot_id' => $snapshotId,
+                    'reason' => $reason,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about pitch submission denial', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $snapshotId,
+            ]);
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Notify about revisions requested for a pitch submission
+     *
+     * @param Pitch $pitch The pitch
+     * @param int|PitchSnapshot $snapshot The snapshot ID or object
+     * @param string $feedback The feedback/reason for revisions
+     * @return Notification|null
+     */
+    public function notifyPitchRevisionsRequested(Pitch $pitch, $snapshot, string $feedback): ?Notification
+    {
+        // Resolve snapshot ID or object
+        $snapshotId = $snapshot instanceof PitchSnapshot ? $snapshot->id : $snapshot;
+        
+        // Get the snapshot object if we only have an ID
+        if (!($snapshot instanceof PitchSnapshot)) {
+            $snapshot = PitchSnapshot::find($snapshotId);
+            if (!$snapshot) {
+                Log::warning('Failed to notify about pitch revisions request: snapshot not found', [
+                    'pitch_id' => $pitch->id,
+                    'snapshot_id' => $snapshotId,
+                ]);
+                return null;
+            }
+        }
+        
+        // Notify the pitch creator
+        $user = $pitch->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about pitch revisions request: user not found', [
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $snapshotId,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PITCH_REVISIONS_REQUESTED,
+                $pitch,
+                [
+                    'snapshot_id' => $snapshotId,
+                    'feedback' => $feedback,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about pitch revisions request', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $snapshotId,
+            ]);
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Notify about a pitch submission being cancelled
+     *
+     * @param Pitch $pitch The pitch
+     * @return Notification|null
+     */
+    public function notifyPitchSubmissionCancelled(Pitch $pitch): ?Notification
+    {
+        // Notify the project owner about the cancellation
+        $projectOwner = $pitch->project->user;
+        
+        if (!$projectOwner) {
+            Log::warning('Failed to notify about pitch submission cancellation: project owner not found', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $projectOwner,
+                Notification::TYPE_PITCH_SUBMISSION_CANCELLED,
+                $pitch,
+                [
+                    'producer_name' => $pitch->user->name,
+                    'producer_id' => $pitch->user_id,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about pitch submission cancellation', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            
+            return null;
+        }
+    }
+
+    /**
+     * Notify project owner that a pitch is ready for review
+     *
+     * @param Pitch $pitch The pitch that's ready for review
+     * @param PitchSnapshot $snapshot The snapshot that was created
+     * @return Notification|null
+     */
+    public function notifyPitchReadyForReview(Pitch $pitch, PitchSnapshot $snapshot): ?Notification
+    {
+        // Notify the project owner
+        $user = $pitch->project->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about pitch ready for review: project owner not found', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+                'snapshot_id' => $snapshot->id,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PITCH_READY_FOR_REVIEW,
+                $pitch,
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'snapshot_id' => $snapshot->id,
+                    'snapshot_version' => $snapshot->snapshot_data['version'] ?? 1,
+                    'is_resubmission' => ($snapshot->snapshot_data['version'] ?? 1) > 1,
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about pitch ready for review', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $snapshot->id,
+            ]);
+            
+            return null;
+        }
+    }
+    
+    /**
+     * Notify a user about a pitch being closed
+     *
+     * @param Pitch $pitch The pitch that was closed
+     * @return Notification|null
+     */
+    public function notifyPitchClosed(Pitch $pitch): ?Notification
+    {
+        // Notify the pitch creator
+        $user = $pitch->user;
+        
+        if (!$user) {
+            Log::warning('Failed to notify about pitch being closed: user not found', [
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        
+        try {
+            return $this->createNotification(
+                $user,
+                Notification::TYPE_PITCH_CLOSED,
+                $pitch,
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'reason' => 'Another pitch was completed for this project.',
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about pitch being closed', [
                 'message' => $e->getMessage(),
                 'pitch_id' => $pitch->id,
             ]);

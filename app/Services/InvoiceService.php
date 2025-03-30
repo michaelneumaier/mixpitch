@@ -27,8 +27,8 @@ class InvoiceService
         }
         
         try {
-            // Create Stripe client
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            // Create Stripe client using the protected method for better testability
+            $stripe = $this->newStripeClient();
             
             // Add pitch and project metadata to the invoice
             $metadata = [
@@ -95,7 +95,8 @@ class InvoiceService
     public function processInvoicePayment($invoice, $paymentMethod)
     {
         try {
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            // Use the protected method for better testability
+            $stripe = $this->newStripeClient();
             
             // Finalize the invoice
             $finalizedInvoice = $stripe->invoices->finalizeInvoice($invoice->id);
@@ -133,7 +134,8 @@ class InvoiceService
     public function getInvoice($invoiceId)
     {
         try {
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            // Use the protected method for better testability
+            $stripe = $this->newStripeClient();
             $invoice = $stripe->invoices->retrieve($invoiceId, [
                 'expand' => ['lines', 'customer', 'payment_intent']
             ]);
@@ -174,7 +176,8 @@ class InvoiceService
         }
         
         try {
-            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            // Use the protected method for better testability
+            $stripe = $this->newStripeClient();
             $stripeInvoices = $stripe->invoices->all([
                 'customer' => $user->stripe_id,
                 'limit' => $limit,
@@ -209,5 +212,16 @@ class InvoiceService
             
             return collect([]);
         }
+    }
+
+    /**
+     * Create a new Stripe client instance.
+     * Protected method to allow mocking in tests.
+     * 
+     * @return \Stripe\StripeClient
+     */
+    protected function newStripeClient()
+    {
+        return new \Stripe\StripeClient(config('cashier.secret'));
     }
 }

@@ -9,8 +9,9 @@ class DashboardController extends Controller
     //
     public function index()
     {
-        $projects = auth()->user()->projects;
-        $pitches = auth()->user()->pitches;
+        $user = auth()->user();
+        $projects = $user->projects;
+        $pitches = $user->pitches()->with('project')->get();
         return view('dashboard', ['projects' => $projects, 'pitches' => $pitches]);
     }
 }

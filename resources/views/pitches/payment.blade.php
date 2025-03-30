@@ -9,11 +9,11 @@
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <a href="{{ route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="hover:text-primary">Pitch Details</a>
+            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="hover:text-primary">Pitch Details</a>
             <svg class="h-4 w-4 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <span>Payment Details</span>
+            <span>Payment</span>
         </div>
 
         <!-- Main Content -->
@@ -175,7 +175,7 @@
 
             <!-- Actions -->
             <div class="bg-gray-50 px-6 py-4 border-t flex justify-between">
-                <a href="{{ route('projects.pitches.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" class="text-gray-600 hover:text-gray-900">
+                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="text-gray-600 hover:text-gray-900">
                     <i class="fas fa-arrow-left mr-1"></i> Back to Pitch
                 </a>
                 

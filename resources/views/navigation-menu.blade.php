@@ -56,18 +56,16 @@ use Filament\Panel;
                                         </x-dropdown-link>
                                     @endcan
 
+                                    <div class="border-t border-gray-200 dark:border-gray-600"></div>
+
                                     <!-- Team Switcher -->
-                                    @if (Auth::user()->allTeams()->count() > 1)
-                                        <div class="border-t border-gray-200 dark:border-gray-600"></div>
+                                    <div class="block px-4 py-2 text-xs text-gray-400">
+                                        {{ __('Switch Teams') }}
+                                    </div>
 
-                                        <div class="block px-4 py-2 text-xs text-gray-400">
-                                            {{ __('Switch Teams') }}
-                                        </div>
-
-                                        @foreach (Auth::user()->allTeams() as $team)
-                                            <x-switchable-team :team="$team" />
-                                        @endforeach
-                                    @endif
+                                    @foreach (Auth::user()->allTeams() as $team)
+                                        <x-switchable-team :team="$team" />
+                                    @endforeach
                                 </div>
                             </x-slot>
                         </x-dropdown>
@@ -84,7 +82,7 @@ use Filament\Panel;
                                 </button>
                             @else
                                 <span class="inline-flex rounded-md">
-                                    <button type="button" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-700 bg-white dark:bg-gray-800 hover:text-gray-900 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition ease-in-out duration-150">
+                                    <button type="button" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition ease-in-out duration-150">
                                         {{ Auth::user()->name }}
 
                                         <svg class="ml-2 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -115,7 +113,10 @@ use Filament\Panel;
                             </x-dropdown-link>
                             @endif
 
-                            @if (Auth::user()->canAccessPanel(Filament\Panel::make()))
+                            @php
+                                $adminPanel = Panel::make()->id('admin');
+                            @endphp
+                            @if (Auth::user()->canAccessPanel($adminPanel))
                             <x-dropdown-link href="{{ route('filament.admin.pages.dashboard') }}">
                                 {{ __('Admin Dashboard') }}
                             </x-dropdown-link>
@@ -177,7 +178,7 @@ use Filament\Panel;
                 @endif
 
                 <div>
-                    <div class="font-medium text-base text-gray-700">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
                     <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
                 </div>
             </div>
@@ -198,7 +199,10 @@ use Filament\Panel;
                 </x-responsive-nav-link>
                 @endif
 
-                @if (Auth::user()->canAccessPanel(Filament\Panel::make()))
+                @php
+                    $adminPanel = Panel::make()->id('admin');
+                @endphp
+                @if (Auth::user()->canAccessPanel($adminPanel))
                 <x-responsive-nav-link href="{{ route('filament.admin.pages.dashboard') }}" :active="request()->routeIs('filament.admin.pages.dashboard')">
                     {{ __('Admin Dashboard') }}
                 </x-responsive-nav-link>
@@ -243,18 +247,16 @@ use Filament\Panel;
                         </x-responsive-nav-link>
                     @endcan
 
+                    <div class="border-t border-gray-200 dark:border-gray-600"></div>
+
                     <!-- Team Switcher -->
-                    @if (Auth::user()->allTeams()->count() > 1)
-                        <div class="border-t border-gray-200 dark:border-gray-600"></div>
+                    <div class="block px-4 py-2 text-xs text-gray-400">
+                        {{ __('Switch Teams') }}
+                    </div>
 
-                        <div class="block px-4 py-2 text-xs text-gray-400">
-                            {{ __('Switch Teams') }}
-                        </div>
-
-                        @foreach (Auth::user()->allTeams() as $team)
-                            <x-switchable-team :team="$team" component="responsive-nav-link" />
-                        @endforeach
-                    @endif
+                    @foreach (Auth::user()->allTeams() as $team)
+                        <x-switchable-team :team="$team" component="responsive-nav-link" />
+                    @endforeach
                 @endif
             </div>
         </div>

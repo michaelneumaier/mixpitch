@@ -9,16 +9,24 @@
                     <p class="text-sm text-gray-500">Added {{ $file->created_at->diffForHumans() }} &bull; {{
                         $file->formattedSize }}</p>
                 </div>
-                <div class="flex mt-2 md:mt-0 space-x-2">
-                    <a href="{{ route('projects.pitches.show', ['project' => $file->pitch->project->slug, 'pitch' => $file->pitch->slug]) }}" class="btn btn-secondary btn-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Back to Pitch
-                    </a>
-                </div>
+                @if($isInCard)
+                    {{-- Minimal buttons for card view --}}
+                @else
+                    {{-- Full controls for dedicated view --}}
+                    <div class="flex space-x-2 items-center">
+                        <a href="{{ route('pitch-files.download', $file) }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-download mr-1"></i> Download
+                        </a>
+                         @if(auth()->check() && auth()->user()->can('delete', $file))
+                            <button wire:click="$dispatch('open-delete-modal', { fileId: {{ $file->id }} })" class="btn btn-error btn-sm">
+                                <i class="fas fa-trash-alt mr-1"></i> Delete
+                            </button>
+                        @endif
+                        <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($file->pitch) }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left mr-1"></i> Back to Pitch
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
         <div class="p-6">

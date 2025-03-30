@@ -1,0 +1,226 @@
+<?php
+
+namespace Tests\Unit\Services;
+
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
+use App\Services\InvoiceService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+use Mockery;
+use Stripe\StripeClient;
+use Stripe\Exception\CardException;
+use Stripe\Exception\ApiErrorException;
+
+class InvoiceServiceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected $invoiceService;
+    protected $stripeMock;
+    protected $user;
+    protected $project;
+    protected $pitch;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Create test data
+        $this->user = User::factory()->create(['stripe_id' => 'cus_test123']);
+        $this->project = Project::factory()->for($this->user)->create([
+            'budget' => 500,
+            'name' => 'Test Project'
+        ]);
+        $this->pitch = Pitch::factory()->for($this->project)->create([
+            'status' => Pitch::STATUS_COMPLETED,
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+        ]);
+
+        // Create a partial mock of InvoiceService to mock Stripe client
+        $this->invoiceService = Mockery::mock(InvoiceService::class)
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods(); // Enable protected method mocking
+        
+        // Create a mock for Stripe client
+        $this->stripeMock = Mockery::mock(StripeClient::class);
+        
+        // Set up the mocked StripeClient with the required method chains
+        $this->stripeMock->invoices = Mockery::mock();
+        $this->stripeMock->invoiceItems = Mockery::mock();
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+
+    /** @test */
+    public function it_can_create_pitch_invoice_success()
+    {
+        // Mock the stripe client creation
+        $this->invoiceService->shouldReceive('newStripeClient')
+            ->once()
+            ->andReturn($this->stripeMock);
+
+        // Set up the stripe mock responses
+        $mockInvoice = (object)[
+            'id' => 'inv_test123',
+            'customer' => 'cus_test123',
+            'metadata' => (object)[
+                'pitch_id' => $this->pitch->id,
+                'project_id' => $this->project->id,
+                'invoice_id' => 'INV-ABCDEF1234'
+            ]
+        ];
+
+        $this->stripeMock->invoices->shouldReceive('create')
+            ->once()
+            ->with(Mockery::on(function($params) {
+                return $params['customer'] === 'cus_test123' && 
+                       $params['metadata']['pitch_id'] === $this->pitch->id;
+            }))
+            ->andReturn($mockInvoice);
+
+        $this->stripeMock->invoiceItems->shouldReceive('create')
+            ->once()
+            ->with(Mockery::on(function($params) {
+                return $params['customer'] === 'cus_test123' && 
+                       $params['amount'] === 50000 && // 500 * 100 cents
+                       $params['invoice'] === 'inv_test123';
+            }))
+            ->andReturn((object)[]); // Return a basic object
+
+        // Call the method
+        $result = $this->invoiceService->createPitchInvoice($this->pitch, 500, 'pm_test_card');
+
+        // Assert the result
+        $this->assertTrue($result['success']);
+        $this->assertEquals($mockInvoice, $result['invoice']);
+        $this->assertNotNull($result['invoiceId']);
+    }
+
+    /** @test */
+    public function it_handles_stripe_error_during_invoice_creation()
+    {
+        // Mock the stripe client creation
+        $this->invoiceService->shouldReceive('newStripeClient')
+            ->once()
+            ->andReturn($this->stripeMock);
+
+        // Set up the stripe mock to throw a custom exception class
+        $this->stripeMock->invoices->shouldReceive('create')
+            ->once()
+            ->andReturnUsing(function () {
+                $e = new \Exception('Stripe API error');
+                throw $e;
+            });
+
+        // Call the method
+        $result = $this->invoiceService->createPitchInvoice($this->pitch, 500, 'pm_test_card');
+
+        // Assert the result
+        $this->assertFalse($result['success']);
+        $this->assertNull($result['invoice']);
+        $this->assertNotNull($result['invoiceId']);
+        $this->assertEquals('Stripe API error', $result['error']);
+    }
+
+    /** @test */
+    public function it_can_process_invoice_payment_success()
+    {
+        // Mock the stripe client creation
+        $this->invoiceService->shouldReceive('newStripeClient')
+            ->once()
+            ->andReturn($this->stripeMock);
+
+        // Mock invoice objects
+        $mockInvoice = (object)['id' => 'inv_test123'];
+        $finalizedInvoice = (object)['id' => 'inv_test123', 'status' => 'finalized'];
+        $paidInvoice = (object)['id' => 'inv_test123', 'status' => 'paid'];
+
+        // Set up the stripe mock responses
+        $this->stripeMock->invoices->shouldReceive('finalizeInvoice')
+            ->once()
+            ->with('inv_test123')
+            ->andReturn($finalizedInvoice);
+
+        $this->stripeMock->invoices->shouldReceive('pay')
+            ->once()
+            ->with('inv_test123', [
+                'payment_method' => 'pm_test_card',
+                'off_session' => true,
+            ])
+            ->andReturn($paidInvoice);
+
+        // Call the method
+        $result = $this->invoiceService->processInvoicePayment($mockInvoice, 'pm_test_card');
+
+        // Assert the result
+        $this->assertTrue($result['success']);
+        $this->assertEquals($paidInvoice, $result['paymentResult']);
+    }
+
+    /** @test */
+    public function it_handles_card_error_during_payment_processing()
+    {
+        // Mock the stripe client creation
+        $this->invoiceService->shouldReceive('newStripeClient')
+            ->once()
+            ->andReturn($this->stripeMock);
+
+        // Mock invoice object
+        $mockInvoice = (object)['id' => 'inv_test123'];
+        
+        // Set up the stripe mock responses
+        $this->stripeMock->invoices->shouldReceive('finalizeInvoice')
+            ->once()
+            ->with('inv_test123')
+            ->andReturn((object)['id' => 'inv_test123', 'status' => 'finalized']);
+
+        // Simulate card error during payment using a standard exception
+        $this->stripeMock->invoices->shouldReceive('pay')
+            ->once()
+            ->andReturnUsing(function () {
+                $e = new \Exception('Your card was declined');
+                throw $e;
+            });
+
+        // Call the method
+        $result = $this->invoiceService->processInvoicePayment($mockInvoice, 'pm_test_card');
+
+        // Assert the result
+        $this->assertFalse($result['success']);
+        $this->assertEquals('Your card was declined', $result['error']);
+    }
+
+    /** @test */
+    public function it_handles_general_api_error_during_payment_processing()
+    {
+        // Mock the stripe client creation
+        $this->invoiceService->shouldReceive('newStripeClient')
+            ->once()
+            ->andReturn($this->stripeMock);
+
+        // Mock invoice object
+        $mockInvoice = (object)['id' => 'inv_test123'];
+        
+        // Set up the stripe mock to throw a standard exception
+        $this->stripeMock->invoices->shouldReceive('finalizeInvoice')
+            ->once()
+            ->with('inv_test123')
+            ->andReturnUsing(function () {
+                $e = new \Exception('Stripe API error');
+                throw $e;
+            });
+
+        // Call the method
+        $result = $this->invoiceService->processInvoicePayment($mockInvoice, 'pm_test_card');
+
+        // Assert the result
+        $this->assertFalse($result['success']);
+        $this->assertEquals('Stripe API error', $result['error']);
+    }
+} 

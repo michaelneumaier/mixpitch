@@ -108,17 +108,19 @@
                             whitespace-nowrap">
                                 Manage Project</a>
                             @else
-                                @if($userPitch)
-                                <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($userPitch) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
-                                                                grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
-                                                                whitespace-nowrap">Manage
-                                    Your Pitch</a>
-                                @else
-                                <button onclick="openPitchTermsModal()" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-6">
+                                    @if($userPitch)
+                                        <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($userPitch) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                                                                py-2.5 sm:py-3 px-4 rounded-lg shadow-md hover:shadow-lg whitespace-nowrap transition-all transform hover:scale-105 flex-1">
+                                            <i class="fas fa-eye mr-2"></i> View Your Pitch
+                                        </a>
+                                    @elseif ($canPitch)
+                                    <button onclick="openPitchTermsModal()" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
                                                                 grow py-2 px-4 shadow-glow shadow-accent hover:shadow-accent-focus
                                                                 whitespace-nowrap">Start
                                     Your Pitch</button>
-                                @endif
+                                    @endif
+                                </div>
                             @endif
                         </div>
                         <div class="font-sans w-full border-t border-b border-base-200">

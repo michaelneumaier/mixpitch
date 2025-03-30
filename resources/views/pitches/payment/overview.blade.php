@@ -244,9 +244,9 @@
                     </ul>
                 </div>
                 
-                <div class="mt-4 border-t border-gray-200 pt-4">
+                <div class="mt-6 text-center">
                     <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}" class="text-gray-600 hover:text-gray-900 font-medium">
-                        <i class="fas fa-arrow-left mr-1"></i> Back to Pitch
+                        <i class="fas fa-arrow-left mr-1"></i> Back to Pitch Details
                     </a>
                 </div>
             </div>

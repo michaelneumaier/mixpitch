@@ -14,6 +14,11 @@ use Masmerise\Toaster\Toaster;
 use App\Services\NotificationService;
 use App\Models\Project;
 use App\Models\PitchFeedback;
+use App\Services\PitchCompletionService;
+use Illuminate\Auth\Access\AuthorizationException;
+use App\Exceptions\Pitch\CompletionValidationException;
+use App\Services\PitchWorkflowService;
+use App\Helpers\RouteHelpers;
 
 class CompletePitch extends Component
 {
@@ -23,10 +28,15 @@ class CompletePitch extends Component
     public $hasOtherApprovedPitches = false;
     public $otherApprovedPitchesCount = 0;
     public $showCompletionModal = false;
+    public $finalComments = '';
+    public $rating = null;
+    public $hasCompletedPitch = false;
 
-    public function mount(Pitch $pitch)
+    public function mount(Pitch $pitch, bool $hasCompletedPitch = false)
     {
         $this->pitch = $pitch;
+        $this->project = $pitch->project;
+        $this->hasCompletedPitch = $hasCompletedPitch;
         $this->checkForOtherApprovedPitches();
     }
 
@@ -127,120 +137,68 @@ class CompletePitch extends Component
 
     /**
      * Complete a pitch directly (used by the button in the modal)
+     * Refactored to use PitchCompletionService.
      */
-    public function debugComplete()
+    public function debugComplete(PitchCompletionService $pitchCompletionService)
     {
-        \Log::info('CompletePitch::debugComplete called', [
+        Log::info('CompletePitch::debugComplete called', [
             'pitch_id' => $this->pitch->id
         ]);
 
         try {
-            // Call the actual completion method with the current feedback
-            $result = $this->completePitch($this->feedback);
+            // Authorize the action using PitchPolicy
+            $this->authorize('complete', $this->pitch);
 
-            // Close the modal when done
-            $this->closeCompletionModal();
+            // Call the service to handle the completion logic
+            $completedPitch = $pitchCompletionService->completePitch(
+                $this->pitch,
+                auth()->user(),
+                $this->feedback ?: null // Pass feedback, or null if empty
+            );
 
-            if ($result) {
-                // Set initial payment status for the pitch
-                if ($this->pitch->project->budget == 0) {
-                    // If it's a free project, mark it as not requiring payment
-                    $this->pitch->payment_status = Pitch::PAYMENT_STATUS_NOT_REQUIRED;
-                } else {
-                    // Otherwise, mark it as pending payment
-                    $this->pitch->payment_status = Pitch::PAYMENT_STATUS_PENDING;
-                }
-                $this->pitch->save();
+            // Refresh local pitch model state after service call
+            $this->pitch->refresh();
 
-                // For paid projects, dispatch an event to open the payment modal
-                if ($this->pitch->project->budget > 0) {
-                    $this->dispatch('openPaymentModal');
-                }
-
-                // Redirect back to the manage project page if successful
-                return redirect()->route('projects.pitches.show', ['project' => $this->pitch->project->slug, 'pitch' => $this->pitch->slug]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Error in debugComplete', [
-                'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // Close the modal and show error
-            $this->closeCompletionModal();
-            Toaster::error('An error occurred while completing the pitch: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Complete a pitch
-     *
-     * @param string $feedback Optional feedback about the completed pitch
-     * @return bool Whether completion was successful
-     */
-    public function completePitch($feedback = '')
-    {
-        \Log::info('Starting pitch completion process', [
-            'pitch_id' => $this->pitch->id,
-            'has_other_approved' => $this->hasOtherApprovedPitches,
-            'other_approved_count' => $this->otherApprovedPitchesCount
-        ]);
-
-        try {
-            // Step 1: Validate permissions and state
-            $this->validateCompletionRequirements();
-
-            // Step 2: Mark this pitch as completed (in its own transaction)
-            $this->markAsCompleted($feedback);
-
-            // Step 3: Close other active pitches (in its own transaction)
-            $this->closeOtherPitches();
-
-            // Step 4: Mark the project as completed (in its own transaction)
-            $this->markProjectAsCompleted();
-
-            // Step 5: Send notifications (non-critical, don't fail if this errors)
-            $this->sendCompletionNotifications($feedback);
-
-            // Success!
-            $this->dispatch('pitchStatusUpdated');
+            // Success feedback
             Toaster::success('Pitch has been completed successfully!');
+            $this->dispatch('pitchStatusUpdated'); // Notify parent/other components
 
-            return true;
-        } catch (UnauthorizedActionException $e) {
-            Toaster::error($e->getMessage());
-            Log::error('Unauthorized attempt to complete pitch', [
-                'pitch_id' => $this->pitch->id,
-                'user_id' => Auth::id() ?? 'unauthenticated',
-                'error' => $e->getMessage()
-            ]);
-            return false;
-        } catch (InvalidStatusTransitionException | SnapshotException $e) {
-            Toaster::error($e->getMessage());
-            Log::error('Invalid pitch completion attempt', [
-                'pitch_id' => $this->pitch->id,
-                'status' => $this->pitch->status,
-                'error' => $e->getMessage()
-            ]);
-            return false;
+            // For paid projects, dispatch an event to open the payment modal
+            // Check the status set by the service
+            if ($this->pitch->payment_status === Pitch::PAYMENT_STATUS_PENDING) {
+                 Log::info('Dispatching openPaymentModal event for pitch.', ['pitch_id' => $this->pitch->id]);
+                $this->dispatch('openPaymentModal');
+            }
+
+            // Close the modal after successful completion or if payment modal is triggered
+            $this->closeCompletionModal();
+
+            // Redirect back to the pitch show page (optional, could stay on manage page)
+             return redirect()->route('projects.pitches.show', [
+                 'project' => $this->pitch->project->slug,
+                 'pitch' => $this->pitch->slug
+             ]);
+
+        } catch (AuthorizationException | UnauthorizedActionException $e) {
+            Log::warning('Unauthorized pitch completion attempt', ['pitch_id' => $this->pitch->id, 'user_id' => auth()->id(), 'error' => $e->getMessage()]);
+            $this->closeCompletionModal();
+            Toaster::error('You are not authorized to complete this pitch.');
+        } catch (CompletionValidationException $e) {
+            Log::warning('Pitch completion validation failed', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
+            $this->closeCompletionModal();
+            Toaster::error($e->getMessage()); // Show specific validation error
         } catch (\Exception $e) {
-            Toaster::error('An unexpected error occurred');
-            Log::error('Error in pitch completion', [
+            Log::error('Error completing pitch via Livewire', [
                 'pitch_id' => $this->pitch->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'exception_class' => get_class($e),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'trace' => $e->getTraceAsString() // Optional for detailed debugging
             ]);
-            return false;
+            $this->closeCompletionModal();
+            Toaster::error('An unexpected error occurred while completing the pitch. Please try again.');
         }
     }
 
-    /**
-     * Validate that all requirements for pitch completion are met
-     */
+    /*
     protected function validateCompletionRequirements()
     {
         // Check if the user is authorized
@@ -248,20 +206,11 @@ class CompletePitch extends Component
 
         // Check if the pitch can be completed
         $this->pitch->canComplete();
-
-        // Make sure we have the latest data
-        $this->pitch->refresh();
-        $this->checkForOtherApprovedPitches();
-
-        \Log::info('Pitch completion requirements validated', [
-            'pitch_id' => $this->pitch->id,
-            'has_other_approved' => $this->hasOtherApprovedPitches,
-            'other_approved_count' => $this->otherApprovedPitchesCount
-        ]);
     }
+    */
 
     /**
-     * Mark this pitch as completed (Step 2)
+     * Mark this pitch as completed
      */
     protected function markAsCompleted($feedback)
     {
@@ -334,11 +283,6 @@ class CompletePitch extends Component
         }
 
         $this->showCompletionModal = false;
-    }
-
-    protected function isFreeProject()
-    {
-        return (int) $this->pitch->project->budget === 0;
     }
 
     /**
@@ -414,35 +358,6 @@ class CompletePitch extends Component
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error closing other pitches', [
-                'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage()
-            ]);
-            throw $e; // Re-throw to be handled by the calling method
-        }
-    }
-
-    /**
-     * Mark the project as completed (Step 4)
-     */
-    protected function markProjectAsCompleted()
-    {
-        DB::beginTransaction();
-        try {
-            // Re-get the project to ensure it's fresh
-            $project = Project::find($this->pitch->project_id);
-
-            // Mark as completed
-            $project->markAsCompleted($this->pitch->id);
-
-            DB::commit();
-            \Log::info('Project marked as completed successfully', [
-                'project_id' => $project->id,
-                'pitch_id' => $this->pitch->id
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error marking project as completed', [
-                'project_id' => $this->pitch->project_id,
                 'pitch_id' => $this->pitch->id,
                 'error' => $e->getMessage()
             ]);
