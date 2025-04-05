@@ -29,6 +29,7 @@ use App\Exceptions\SubmissionValidationException;
 use App\Models\Project;
 use App\Helpers\RouteHelpers;
 use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 
 class ManagePitch extends Component
 {
@@ -65,13 +66,21 @@ class ManagePitch extends Component
     public $snapshots = [];
     public $events = [];
     
-    public $fileToDelete = null; // Added property to hold the file object for deletion
-    public $showDeleteModal = false; // Added property to control delete modal visibility
-    public $showDeletePitchModal = false; // Property for deleting the entire pitch
+    // Modal State
+    public $showDeleteModal = false;
+    public $fileIdToDelete = null;
+    
+    public $internalNotes;
+
+    protected $rules = [
+        'responseToFeedback' => 'nullable|string|max:5000',
+        'internalNotes' => 'nullable|string|max:10000', // Add validation for internal notes
+    ];
 
     protected $listeners = [
         'refreshPitchData' => 'mount',
         'filesUploaded' => 'refreshPitchData',
+        'fileDeleted' => '$refresh', // Refresh when files are deleted
     ];
 
     public function mount(Pitch $pitch)
@@ -91,9 +100,8 @@ class ManagePitch extends Component
         $this->currentSnapshot = $this->pitch->currentSnapshot;
         $this->latestSnapshot = $this->snapshots->first(); // Get the most recent one
         $this->responseToFeedback = ''; // Reset form
-        $this->fileToDelete = null;
+        $this->fileIdToDelete = null;
         $this->showDeleteModal = false;
-        $this->showDeletePitchModal = false;
         
         // Reset revision feedback message
         $this->statusFeedbackMessage = null;
@@ -107,6 +115,9 @@ class ManagePitch extends Component
         } else {
             Log::debug('ManagePitch Mount: Status is not REVISIONS_REQUESTED or DENIED. Skipping feedback fetch.', ['pitch_id' => $this->pitch->id]);
         }
+
+        // Initialize internal notes
+        $this->internalNotes = $this->pitch->internal_notes;
     }
 
     public function render()
@@ -172,65 +183,93 @@ class ManagePitch extends Component
     }
 
     /**
-     * Set the file to be deleted and show the confirmation modal.
-     * Called by AlpineJS when delete icon is clicked.
+     * Set the file ID to be deleted and show the confirmation modal, after authorization.
      */
-    public function setFileToDelete($fileId)
+    public function confirmDeleteFile($fileId)
     {
-        // Fetch the file model to ensure it exists and belongs to the pitch
-        $file = PitchFile::where('id', $fileId)->where('pitch_id', $this->pitch->id)->first();
-        if ($file) {
-            $this->fileToDelete = $file; // Store the file model
-            // We don't need $this->showDeleteModal = true; as Alpine handles the modal visibility
+        $pitchFile = PitchFile::where('id', $fileId)->where('pitch_id', $this->pitch->id)->first();
+        if (!$pitchFile) {
+            Toaster::error('File not found or does not belong to this pitch.');
+            return;
+        }
+        
+        // Check authorization using the policy
+        if (Auth::user()->can('deleteFile', $pitchFile)) {
+            $this->fileIdToDelete = $fileId;
+            $this->showDeleteModal = true;
         } else {
-             Toaster::error('File not found or invalid.');
-             $this->fileToDelete = null;
+            // Explain *why* they can't delete (status or ownership)
+            $pitch = $pitchFile->pitch;
+            if (Auth::id() !== $pitch->user_id) {
+                Toaster::warning('You are not the owner of this pitch.');
+            } else {
+                Toaster::warning('Files can only be deleted when the pitch is In Progress, Revisions Requested, or Denied.');
+            }
         }
     }
 
     /**
+     * Hide the delete confirmation modal.
+     */
+    public function cancelDeleteFile()
+    {
+        $this->showDeleteModal = false;
+        $this->fileIdToDelete = null;
+    }
+
+    /**
      * Delete the selected file.
-     * Called by AlpineJS when the modal confirmation button is clicked.
+     * Called by the modal confirmation button.
      */
     public function deleteSelectedFile(FileManagementService $fileManagementService)
     {
-        if (!$this->fileToDelete) {
+        if (!$this->fileIdToDelete) {
             Toaster::error('No file selected for deletion.');
+            $this->cancelDeleteFile();
             return;
         }
 
-        // Authorize the deletion
+        $pitchFile = PitchFile::find($this->fileIdToDelete);
+        if (!$pitchFile || $pitchFile->pitch_id !== $this->pitch->id) {
+            Toaster::error('File not found or invalid.');
+            $this->cancelDeleteFile();
+            return;
+        }
+
+        // Re-authorize just in case, but show Toaster on failure
         try {
-            $this->authorize('deleteFile', $this->fileToDelete); // Use PitchFilePolicy
+            $this->authorize('deleteFile', $pitchFile); 
         } catch (AuthorizationException $e) {
-            Toaster::error('You are not authorized to delete this file.');
-            $this->fileToDelete = null; // Clear selection
+            // This catch block might be redundant now if confirmDeleteFile works correctly,
+            // but provides defense-in-depth.
+            Log::warning('Authorization failed unexpectedly during file delete confirmation', ['user_id' => Auth::id(), 'file_id' => $this->fileIdToDelete]);
+            Toaster::error('Authorization failed. You may not be allowed to delete this file in the current pitch status.');
+            $this->cancelDeleteFile(); 
             return;
         }
         
         try {
-            $fileName = $this->fileToDelete->file_name; // Get name before deleting
-            $deleted = $fileManagementService->deletePitchFile($this->fileToDelete, Auth::user());
+            $fileName = $pitchFile->file_name;
+            $deleted = $fileManagementService->deletePitchFile($pitchFile, Auth::user());
 
             if ($deleted) {
                 Toaster::success("File '{$fileName}' deleted successfully.");
                 $this->updateStorageInfo();
                 $this->dispatch('file-deleted');
-                $this->pitch->refresh(); // Refresh the pitch relationship
+                $this->pitch->refresh();
             } else {
-                // This case might not be reachable if service throws exceptions
                 Toaster::error("Failed to delete file '{$fileName}'.");
             }
 
         } catch (FileDeletionException $e) {
-            Log::warning('Pitch file deletion failed via Livewire', ['file_id' => $this->fileToDelete->id ?? null, 'error' => $e->getMessage()]);
+            Log::warning('Pitch file deletion failed via Livewire', ['file_id' => $this->fileIdToDelete, 'error' => $e->getMessage()]);
             Toaster::error($e->getMessage());
         } catch (\Exception $e) {
-            Log::error('Error deleting pitch file via Livewire', ['file_id' => $this->fileToDelete->id ?? null, 'error' => $e->getMessage()]);
+            Log::error('Error deleting pitch file via Livewire', ['file_id' => $this->fileIdToDelete, 'error' => $e->getMessage()]);
             Toaster::error('An unexpected error occurred while deleting the file.');
         }
         
-        $this->fileToDelete = null; // Clear the selection after attempt
+        $this->cancelDeleteFile();
     }
 
     /**
@@ -325,44 +364,32 @@ class ManagePitch extends Component
      */
     public function submitForReview(PitchWorkflowService $pitchWorkflowService)
     {
+        $this->authorize('submitForReview', $this->pitch);
+        $this->validateOnly('responseToFeedback');
+
         try {
-            // Authorization check using PitchPolicy
-            $this->authorize('submitForReview', $this->pitch);
+            $pitchWorkflowService->submitPitchForReview($this->pitch, Auth::user(), $this->responseToFeedback);
+            
+            Toaster::success('Pitch submitted for review successfully.');
+            $this->responseToFeedback = ''; // Clear the textarea
+            $this->pitch->refresh(); // Refresh pitch data
+            $this->mount($this->pitch); // Remount to refresh all data including feedback
 
-            // Call the service method
-            $pitch = $pitchWorkflowService->submitPitchForReview(
-                $this->pitch,
-                auth()->user(),
-                $this->responseToFeedback ?: null // Pass null if empty string
-            );
-
-            // Success feedback
-            Toaster::success('Pitch submitted successfully for review!');
-
-            // Dispatch event to notify other components if needed
-            $this->dispatch('pitchStatusUpdated');
-
-            // Redirect to the pitch show page
-            return redirect()->route('projects.pitches.show', [
-                'project' => $pitch->project->slug, // Use the returned pitch object
-                'pitch' => $pitch->slug
-            ]);
-
-        } catch (AuthorizationException | UnauthorizedActionException $e) {
-            Log::warning('Unauthorized pitch submission attempt', ['pitch_id' => $this->pitch->id, 'user_id' => auth()->id()]);
-            Toaster::error('You are not authorized to submit this pitch for review.');
-        } catch (SubmissionValidationException | InvalidStatusTransitionException $e) {
-            // Handle specific validation/logic errors from the service
-            Log::warning('Pitch submission failed validation', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
+        } catch (SubmissionValidationException $e) {
+            Log::warning('Pitch submission validation failed', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
+            Toaster::error($e->getMessage()); // Show specific validation error
+        } catch (InvalidStatusTransitionException $e) {
+            Log::warning('Invalid status transition on pitch submission', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
             Toaster::error($e->getMessage());
+        } catch (UnauthorizedActionException | AuthorizationException $e) { // Catch both potential authorization exceptions
+            Log::warning('Unauthorized pitch submission attempt', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
+            Toaster::error('You are not authorized to submit this pitch for review.');
+        } catch (SnapshotException $e) {
+            Log::error('Snapshot error during pitch submission', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
+            Toaster::error('Could not create a snapshot for the submission. Please try again.');
         } catch (\Exception $e) {
-            // Handle unexpected errors
-            Log::error('Error submitting pitch for review via Livewire', [
-                'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString() // Optional: include trace for detailed debugging
-            ]);
-            Toaster::error('An unexpected error occurred while submitting your pitch. Please try again.');
+            Log::error('Unexpected error submitting pitch for review', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Toaster::error('An unexpected error occurred while submitting the pitch.');
         }
     }
 
@@ -375,31 +402,23 @@ class ManagePitch extends Component
      */
     public function cancelPitchSubmission(PitchWorkflowService $pitchWorkflowService)
     {
+        $this->authorize('cancelSubmission', $this->pitch);
+        
         try {
-            // Authorize using Policy (ensure 'cancelSubmission' ability exists)
-            $this->authorize('cancelSubmission', $this->pitch);
-
-            $pitchWorkflowService->cancelPitchSubmission(
-                $this->pitch,
-                auth()->user()
-            );
-
+            $pitchWorkflowService->cancelPitchSubmission($this->pitch, Auth::user());
+            
             Toaster::success('Pitch submission cancelled successfully.');
-            $this->dispatch('pitchStatusUpdated');
-            $this->dispatch('snapshot-status-updated'); // Ensure snapshot list updates if shown
             $this->pitch->refresh(); // Refresh pitch data
-            $this->updateStorageInfo(); // Update storage info
-            $this->canManageFiles = $this->pitch->canManageFiles(); // Update file management capability
+            $this->mount($this->pitch); // Remount to refresh component state
 
-            // Potentially reset upload state if needed
-            // $this->resetUploadState(); 
-
-        } catch (UnauthorizedActionException $e) {
-            Toaster::error('You are not authorized to cancel this submission.');
-        } catch (InvalidStatusTransitionException | SnapshotException $e) {
+        } catch (InvalidStatusTransitionException $e) {
+            Log::warning('Invalid status transition on pitch cancellation', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
             Toaster::error($e->getMessage());
+        } catch (UnauthorizedActionException | AuthorizationException $e) {
+            Log::warning('Unauthorized pitch cancellation attempt', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
+            Toaster::error('You are not authorized to cancel this pitch submission.');
         } catch (\Exception $e) {
-            Log::error('Error cancelling submission via Livewire ManagePitch', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
+            Log::error('Unexpected error cancelling pitch submission', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             Toaster::error('An unexpected error occurred while cancelling the submission.');
         }
     }
@@ -486,5 +505,35 @@ class ManagePitch extends Component
         Log::debug('ManagePitch: Extracted feedback message.', ['pitch_id' => $this->pitch->id, 'message' => $message]);
 
         return !empty($message) ? $message : null; 
+    }
+
+    /**
+     * Helper method to format file sizes, delegates to the model.
+     */
+    public function formatFileSize(int $bytes, int $precision = 2): string
+    {
+        return Pitch::formatBytes($bytes, $precision);
+    }
+
+    public function saveInternalNotes()
+    {
+        $this->authorize('update', $this->pitch);
+        $this->validateOnly('internalNotes');
+
+        try {
+            $this->pitch->update(['internal_notes' => $this->internalNotes]);
+            Toaster::success('Internal notes saved successfully.'); // Use Toaster
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('Error saving internal notes: Pitch not found', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
+            Toaster::error('Could not find the pitch to save notes.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+             // This shouldn't normally be caught here if using $this->validateOnly, 
+             // but as a fallback
+             Log::warning('Validation failed during internal notes save', ['pitch_id' => $this->pitch->id, 'errors' => $e->errors()]);
+             Toaster::error('Validation failed: ' . implode(' ', Arr::flatten($e->errors())));
+        } catch (\Exception $e) {
+            Log::error('Error saving internal notes', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
+            Toaster::error('Failed to save internal notes. Please try again.');
+        }
     }
 }
