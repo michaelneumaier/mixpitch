@@ -30,10 +30,11 @@ class PitchCompletionService
      * @param Pitch $pitchToComplete The pitch being marked as complete.
      * @param User $completingUser (Project Owner)
      * @param string|null $feedback Optional feedback.
+     * @param int|null $rating Optional rating (1-5).
      * @return Pitch The completed pitch.
      * @throws CompletionValidationException|UnauthorizedActionException|\RuntimeException
      */
-    public function completePitch(Pitch $pitchToComplete, User $completingUser, ?string $feedback = null): Pitch
+    public function completePitch(Pitch $pitchToComplete, User $completingUser, ?string $feedback = null, ?int $rating = null): Pitch
     {
         $project = $pitchToComplete->project;
 
@@ -50,13 +51,17 @@ class PitchCompletionService
         if ($pitchToComplete->status !== Pitch::STATUS_APPROVED) {
             throw new CompletionValidationException('Pitch must be approved before it can be completed.');
         }
+        // Add validation for rating
+        if ($rating !== null && ($rating < 1 || $rating > 5)) {
+            throw new CompletionValidationException('Invalid rating provided. Rating must be between 1 and 5.');
+        }
         // Validation: Prevent re-completion if already paid/processing
         if ($pitchToComplete->payment_status === Pitch::PAYMENT_STATUS_PAID || $pitchToComplete->payment_status === Pitch::PAYMENT_STATUS_PROCESSING) {
             throw new CompletionValidationException('This pitch has already been completed and paid/is processing payment.');
         }
 
         try {
-            DB::transaction(function() use ($pitchToComplete, $project, $completingUser, $feedback) {
+            DB::transaction(function() use ($pitchToComplete, $project, $completingUser, $feedback, $rating) {
                 // 1. Mark the selected pitch as completed
                 $pitchToComplete->status = Pitch::STATUS_COMPLETED;
                 $pitchToComplete->completed_at = now();
@@ -106,12 +111,22 @@ class PitchCompletionService
                 // 4. Mark the project as completed (using the ProjectManagementService)
                 $this->projectManagementService->completeProject($project);
 
-                // 5. Create Event for the completed pitch
+                // 5. Create Event for the completed pitch, including the rating
                 $pitchToComplete->events()->create([
                     'event_type' => 'status_change',
                     'comment' => 'Pitch marked as completed by project owner.' . ($feedback ? " Feedback: {$feedback}" : ''),
                     'status' => $pitchToComplete->status,
                     'created_by' => $completingUser->id,
+                    'rating' => $rating, // Save the rating here
+                ]);
+
+                // Add explicit log for rating
+                \Log::info('Created pitch completion event with rating', [
+                    'pitch_id' => $pitchToComplete->id,
+                    'project_id' => $project->id,
+                    'rating' => $rating,
+                    'producer_id' => $pitchToComplete->user_id,
+                    'project_owner_id' => $completingUser->id,
                 ]);
 
                 // 6. Notify creator of the completed pitch

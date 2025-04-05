@@ -19,18 +19,29 @@ use Illuminate\Auth\Access\AuthorizationException;
 use App\Exceptions\Pitch\CompletionValidationException;
 use App\Services\PitchWorkflowService;
 use App\Helpers\RouteHelpers;
+use Illuminate\Validation\Rule;
 
 class CompletePitch extends Component
 {
     public $pitch;
     public $feedback = '';
-    public $errors = [];
     public $hasOtherApprovedPitches = false;
     public $otherApprovedPitchesCount = 0;
     public $showCompletionModal = false;
     public $finalComments = '';
     public $rating = null;
     public $hasCompletedPitch = false;
+
+    protected $rules = [
+        'feedback' => 'nullable|string|max:5000',
+        'rating' => ['required', 'integer', 'between:1,5'],
+    ];
+
+    protected $messages = [
+        'rating.required' => 'Please provide a rating for the producer.',
+        'rating.integer' => 'Rating must be a whole number.',
+        'rating.between' => 'Rating must be between 1 and 5 stars.',
+    ];
 
     public function mount(Pitch $pitch, bool $hasCompletedPitch = false)
     {
@@ -139,18 +150,23 @@ class CompletePitch extends Component
     public function debugComplete(PitchCompletionService $pitchCompletionService)
     {
         Log::info('CompletePitch::debugComplete called', [
-            'pitch_id' => $this->pitch->id
+            'pitch_id' => $this->pitch->id,
+            'rating' => $this->rating,
+            'feedback' => $this->feedback
         ]);
+
+        $this->validate();
 
         try {
             // Authorize the action using PitchPolicy
             $this->authorize('complete', $this->pitch);
 
-            // Call the service to handle the completion logic
+            // Call the service to handle the completion logic, passing rating and feedback
             $completedPitch = $pitchCompletionService->completePitch(
                 $this->pitch,
                 auth()->user(),
-                $this->feedback ?: null // Pass feedback, or null if empty
+                $this->feedback ?: null,
+                $this->rating
             );
 
             // Refresh local pitch model state after service call
@@ -160,21 +176,18 @@ class CompletePitch extends Component
             Toaster::success('Pitch has been completed successfully!');
             $this->dispatch('pitchStatusUpdated'); // Notify parent/other components
 
-            // For paid projects, dispatch an event to open the payment modal
-            // Check the status set by the service
+            // For paid projects, redirect to payment overview if needed
             if ($this->pitch->payment_status === Pitch::PAYMENT_STATUS_PENDING) {
-                 Log::info('Dispatching openPaymentModal event for pitch.', ['pitch_id' => $this->pitch->id]);
-                $this->dispatch('openPaymentModal');
+                Log::info('Redirecting to payment overview for pitch.', ['pitch_id' => $this->pitch->id]);
+                $this->closeCompletionModal();
+                // Use RouteHelpers for safer redirect generation
+                return redirect(RouteHelpers::getPaymentOverviewUrl($this->pitch->project, $this->pitch));
             }
 
-            // Close the modal after successful completion or if payment modal is triggered
+            // Close the modal after successful completion if not redirecting
             $this->closeCompletionModal();
-
-            // Redirect back to the pitch show page (optional, could stay on manage page)
-             return redirect()->route('projects.pitches.show', [
-                 'project' => $this->pitch->project->slug,
-                 'pitch' => $this->pitch->slug
-             ]);
+            
+            // No automatic redirect here anymore, let the page refresh or stay
 
         } catch (AuthorizationException | UnauthorizedActionException $e) {
             Log::warning('Unauthorized pitch completion attempt', ['pitch_id' => $this->pitch->id, 'user_id' => auth()->id(), 'error' => $e->getMessage()]);
@@ -184,6 +197,11 @@ class CompletePitch extends Component
             Log::warning('Pitch completion validation failed', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
             $this->closeCompletionModal();
             Toaster::error($e->getMessage()); // Show specific validation error
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation errors are automatically handled by Livewire, but log them
+            Log::warning('Pitch completion validation failed (Livewire)', ['pitch_id' => $this->pitch->id, 'errors' => $e->errors()]);
+            // Optionally show a generic toaster message if needed, but errors should appear near fields
+            // Toaster::error('Please correct the errors below.');
         } catch (\Exception $e) {
             Log::error('Error completing pitch via Livewire', [
                 'pitch_id' => $this->pitch->id,

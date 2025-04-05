@@ -53,6 +53,9 @@ class UserProfileController extends Controller
             $canEdit = Auth::id() === $user->id;
         }
 
+        // Calculate average rating for all users
+        $ratingData = $user->calculateAverageRating();
+
         // Get the portfolio layout preference
         $layout = $user->portfolio_layout ?? 'standard';
 
@@ -61,6 +64,7 @@ class UserProfileController extends Controller
             'projects' => $projects,
             'completedPitches' => $completedPitches,
             'canEdit' => $canEdit,
+            'ratingData' => $ratingData,
             'layout' => $layout
         ]);
     }

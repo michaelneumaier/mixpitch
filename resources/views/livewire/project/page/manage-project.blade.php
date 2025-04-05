@@ -398,21 +398,20 @@
                                     <div
                                         class="flex flex-col sm:flex-row justify-between items-start pt-6 sm:pt-8 p-3 sm:p-4 {{ in_array($pitch->status, ['completed', 'approved', 'closed']) ? 'mt-6' : '' }}">
                                         <div class="flex items-center w-full sm:w-auto mb-3 sm:mb-0">
-                                            <img class="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover mr-2 sm:mr-3 border-2 border-base-300"
-                                                src="{{ $pitch->user->profile_photo_url }}"
-                                                alt="{{ $pitch->user->name }}" />
-                                            <div class="min-w-0">
-                                                <div class="font-bold truncate text-sm sm:text-base">
-                                                    <x-user-link :user="$pitch->user" />
-                                                    @if($pitch->user->tipjar_link)
-                                                    <a href="{{ $pitch->user->tipjar_link }}" target="_blank"
-                                                       class="ml-2 text-xs inline-flex items-center justify-center px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded transition-colors">
-                                                       <i class="fas fa-donate mr-1"></i>TIP
-                                                    </a>
+                                            <div class="flex items-center space-x-2">
+                                                <img class="h-8 w-8 rounded-full object-cover border border-base-300"
+                                                    src="{{ $pitch->user->profile_photo_url }}" alt="{{ $pitch->user->name }}" />
+                                                <div class="text-sm">
+                                                    <a href="{{ route('profile.show', $pitch->user->id) }}" class="font-semibold hover:text-primary">{{ $pitch->user->name }}</a>
+                                                    <div class="text-xs text-gray-500">
+                                                        Pitched on: {{ $pitch->created_at->format('M d, Y') }}
+                                                    </div>
+                                                    {{-- Display Rating if Completed --}}
+                                                    @if($pitch->status === 'completed')
+                                                        <div class="mt-1">
+                                                            <x-rating-display :rating="$pitch->getCompletionRating()" />
+                                                        </div>
                                                     @endif
-                                                </div>
-                                                <div class="text-xs sm:text-sm text-gray-600 truncate">
-                                                    Submitted {{ $pitch->created_at->diffForHumans() }}
                                                 </div>
                                             </div>
                                         </div>
@@ -459,6 +458,23 @@
                                                     <x-update-pitch-status :pitch="$pitch"
                                                         :has-completed-pitch="$hasCompletedPitch" />
                                                 </div>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow text-right">
+                                                <x-pitch-status-badge :status="$pitch->status" />
+                                                {{-- Display Simplified Payment Status --}}
+                                                @if ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED)
+                                                    <div class="text-xs text-gray-500 mt-0.5">
+                                                        Payment: 
+                                                        <span class="font-medium {{
+                                                            $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'text-success' :
+                                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'text-warning' :
+                                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'text-info' :
+                                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'text-error' : 'text-gray-600')))
+                                                        }}">
+                                                            {{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }}
+                                                        </span>
+                                                    </div>
                                                 @endif
                                             </div>
                                         </div>

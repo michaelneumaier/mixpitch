@@ -18,6 +18,8 @@ use Illuminate\Support\Str;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Laravel\Cashier\Billable;
+use App\Models\Pitch;
+use App\Models\PitchEvent;
 
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
@@ -340,5 +342,53 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     public function scopeProducers($query)
     {
         return $query->where('role', self::ROLE_PRODUCER);
+    }
+
+    /**
+     * Calculate the average rating for the user based on completed pitches they created.
+     * This shows the ratings a user received for their submitted work, regardless of role.
+     *
+     * @return array{average: float|null, count: int}
+     */
+    public function calculateAverageRating(): array
+    {
+        // Get IDs of completed pitches created by this user
+        $completedPitchIds = $this->pitches()
+            ->where('status', Pitch::STATUS_COMPLETED)
+            ->pluck('id');
+
+        \Log::debug('User: ' . $this->id . ' (' . $this->name . ') - Completed pitch IDs:', $completedPitchIds->toArray());
+        
+        if ($completedPitchIds->isEmpty()) {
+            \Log::debug('User: ' . $this->id . ' - No completed pitches found');
+            return ['average' => null, 'count' => 0];
+        }
+
+        // Get the ratings from the completion events for those pitches
+        $ratings = PitchEvent::whereIn('pitch_id', $completedPitchIds)
+            ->where('event_type', 'status_change')
+            ->where('status', Pitch::STATUS_COMPLETED)
+            ->whereNotNull('rating')
+            ->get(['id', 'pitch_id', 'rating', 'created_at']);
+            
+        \Log::debug('User: ' . $this->id . ' - Ratings found:', $ratings->toArray());
+
+        if ($ratings->isEmpty()) {
+            \Log::debug('User: ' . $this->id . ' - No ratings found for completed pitches');
+            return ['average' => null, 'count' => 0];
+        }
+
+        $average = $ratings->avg('rating');
+        $count = $ratings->count();
+
+        \Log::debug('User: ' . $this->id . ' - Calculated ratings:', [
+            'average' => $average,
+            'count' => $count
+        ]);
+
+        return [
+            'average' => round($average, 1), // Round to one decimal place
+            'count' => $count
+        ];
     }
 }
