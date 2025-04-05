@@ -350,13 +350,44 @@ class ManageProject extends Component
             $fileManager = $this->getFileService();
             Log::debug('File service resolved');
             
+            // Store the file size for logging
+            $fileSize = $projectFile->size;
+            Log::debug('File to be deleted size', ['size' => $fileSize]);
+            
+            // Delete the file
             $fileManager->deleteProjectFile($projectFile);
             Log::debug('File deleted successfully');
             
+            // Important: Refresh the project model first to get the latest data
+            $this->project->refresh();
+            Log::debug('Project model refreshed', [
+                'total_storage_used' => $this->project->total_storage_used,
+                'storage_used_percentage' => $this->project->getStorageUsedPercentage()
+            ]);
+            
+            // Clear the storage cache
+            $this->clearStorageCache();
+            Log::debug('Storage cache cleared');
+            
+            // Force a direct recalculation of storage info without caching
+            $forcedStorageInfo = [
+                'percentage' => $this->project->getStorageUsedPercentage(),
+                'message' => $this->project->getStorageLimitMessage(),
+                'remaining' => $this->project->getRemainingStorageBytes()
+            ];
+            
+            Log::debug('Forced storage recalculation', $forcedStorageInfo);
+            
+            // Manually set the properties with the forced values
+            $this->storageUsedPercentage = $forcedStorageInfo['percentage'];
+            $this->storageLimitMessage = $forcedStorageInfo['message'];
+            $this->storageRemaining = $forcedStorageInfo['remaining'];
+            
+            // Update the info through normal method too
+            $this->updateStorageInfo();
+            
             Toaster::success("File '{$projectFile->file_name}' deleted successfully.");
-            $this->updateStorageInfo(); // Refresh storage display
             $this->dispatch('file-deleted'); // Notify UI to refresh file list
-            $this->project->refresh(); 
             
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('File not found for deletion', ['file_id' => $idToDelete]);

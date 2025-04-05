@@ -90,24 +90,6 @@
                     </div>
                 </div>
                 @endif
-                
-                <!-- Upload History Section - Only show 3 most recent -->
-                @if(count($uploadHistory) > 0)
-                <div class="mt-3 bg-base-100 p-2 rounded-lg border border-base-200">
-                    <h5 class="text-sm font-medium mb-2">Recently Uploaded</h5>
-                    <ul class="space-y-1 max-h-32 overflow-y-auto">
-                        @foreach(array_slice($uploadHistory, 0, 3) as $history)
-                        <li class="flex items-center justify-between text-xs bg-base-100/60 p-1.5 rounded">
-                            <div class="flex items-center truncate">
-                                <i class="fas fa-check-circle text-green-500 mr-1.5"></i>
-                                <span class="truncate">{{ $history['name'] }}</span>
-                            </div>
-                            <span class="text-gray-500 text-2xs whitespace-nowrap ml-1">{{ $history['time'] }}</span>
-                        </li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
             </div>
         </div>
     </div>
