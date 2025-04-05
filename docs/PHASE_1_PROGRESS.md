@@ -58,24 +58,25 @@ This document tracks the progress of tasks outlined in Phase 1 of the NEXT_STEPS
 
 ## 2. File Upload Component Refactor
 
-- **Status:** 🔴 Not Started
+- **Status:** 🟢 Completed
 - **Assignee:** TBD
 - **Notes:**
   - Document current implementations in:
     - `resources/views/livewire/pitch/component/manage-pitch.blade.php`
     - `resources/views/livewire/project/page/manage-project.blade.php`
   - Design decision needed between Livewire component, Alpine.js component, or shared JS
+  - 🟢 Implemented reusable Livewire component `livewire:file-uploader`.
 
 ### Analyze Phase
-- **Status:** 🔴 Not Started
+- **Status:** 🟢 Completed
 - **Deliverable:** Documentation of current implementation patterns
 
 ### Design Phase
-- **Status:** 🔴 Not Started
+- **Status:** 🟢 Completed
 - **Deliverable:** Technical design document for chosen approach
 
 ### Implementation Phase
-- **Status:** 🔴 Not Started
+- **Status:** 🟢 Completed
 - **Deliverable:** Reusable component with consistent error handling and progress indicators
 
 ## 3. Pitch Workflow Usability Enhancements
@@ -86,19 +87,20 @@ This document tracks the progress of tasks outlined in Phase 1 of the NEXT_STEPS
   - Focus on improving status displays, adding internal notes, and standardizing error handling
 
 ### UI/UX Review & Enhancement
-- **Status:** 🔴 Not Started
+- **Status:** 🟢 Completed
 - **Deliverable:** Standardized pitch status component to replace current conditional styling
 
 ### Internal Notes Feature
-- **Status:** 🔴 Not Started
+- **Status:** 🟢 Completed
 - **Deliverables:**
-  - Migration for `internal_notes` field in `pitches` table
-  - Updated Pitch model with revised `$fillable`
-  - UI component in manage-pitch.blade.php
+  - 🟢 Migration for `internal_notes` field in `pitches` table
+  - 🟢 Updated Pitch model with revised `$fillable`
+  - 🟢 UI component in manage-pitch.blade.php
+  - 🟢 Added save logic to ManagePitch Livewire component
 
 ### Error Handling Standardization
-- **Status:** 🔴 Not Started
-- **Deliverable:** Consistent error presentation throughout pitch workflow
+- **Status:** 🟢 Completed
+- **Deliverable:** 🟢 Consistent error presentation throughout pitch workflow (using Toaster in ManagePitch component)
 
 ## 4. Feedback Tools Enhancement (PitchFilePlayer)
 

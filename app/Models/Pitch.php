@@ -59,6 +59,19 @@ class Pitch extends Model
         'completion_feedback',
         'completion_date',
         'slug',
+        'terms_agreed',
+        'message',
+        'is_active',
+        'has_files',
+        'status_message',
+        'internal_notes',
+        'price',
+        'paid_at',
+        'denied_at',
+        'approved_at',
+        'revisions_requested_at',
+        'submitted_at',
+        'closed_at'
     ];
 
     protected $dates = [

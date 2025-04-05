@@ -255,17 +255,17 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- Admin Actions -->
-@if(Auth::check() && Auth::user()->is_admin)
-<div class="mt-4 sm:mt-6 bg-slate-100 p-3 sm:p-4 rounded-lg mx-2 sm:mx-auto max-w-screen-lg">
-    <h3 class="text-base sm:text-lg font-semibold mb-2">Admin Actions</h3>
-    <div class="flex flex-wrap gap-2">
-        <a href="#" class="btn btn-sm text-xs sm:text-sm py-1.5 sm:py-1">View All Snapshots</a>
-        <a href="#" class="btn btn-sm btn-info text-xs sm:text-sm py-1.5 sm:py-1">Edit Pitch Details</a>
+        <!-- Admin Actions -->
+    @if(Auth::check() && Auth::user()->is_admin)
+    <div class="mt-4 sm:mt-6 bg-slate-100 p-3 sm:p-4 rounded-lg mx-2 sm:mx-auto max-w-screen-lg">
+        <h3 class="text-base sm:text-lg font-semibold mb-2">Admin Actions</h3>
+        <div class="flex flex-wrap gap-2">
+            <a href="#" class="btn btn-sm text-xs sm:text-sm py-1.5 sm:py-1">View All Snapshots</a>
+            <a href="#" class="btn btn-sm btn-info text-xs sm:text-sm py-1.5 sm:py-1">Edit Pitch Details</a>
+        </div>
     </div>
-</div>
-@endif
+    @endif
 
-@endsection
+    @endsection
+</div>
+

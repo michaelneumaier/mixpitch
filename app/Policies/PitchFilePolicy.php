@@ -61,8 +61,8 @@ class PitchFilePolicy
         return $user->id === $pitch->user_id &&
                in_array($pitch->status, [
                    Pitch::STATUS_IN_PROGRESS,
-                   Pitch::STATUS_REVISIONS_REQUESTED
-                   // Add other statuses if needed
+                   Pitch::STATUS_REVISIONS_REQUESTED,
+                   Pitch::STATUS_DENIED
                ]);
     }
 
