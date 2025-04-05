@@ -104,20 +104,14 @@ This document tracks the progress of tasks outlined in Phase 1 of the NEXT_STEPS
 
 ## 4. Feedback Tools Enhancement (PitchFilePlayer)
 
-- **Status:** 🔴 Not Started
+- **Status:** 🟡 In Progress
 - **Assignee:** TBD
 - **Notes:**
   - Current system already has timestamp-based commenting on waveform
-
-### Comment Enhancements
-- **Status:** 🔴 Not Started
-- **Decision Required:** Which option to implement:
-  - Option A: WYSIWYG editor for comments (Trix/TipTap)
-  - Option B: @-mentions with autocomplete
-  - Option C: Visual marker categorization (different colors/types)
+  - Decision made to skip comment enhancements and focus on rating system.
 
 ### Rating System Implementation
-- **Status:** 🔴 Not Started
+- **Status:** 🟡 In Progress
 - **Deliverables:**
   - Rating UI component design and implementation
   - Backend logic for storing/retrieving ratings
@@ -158,8 +152,8 @@ This document tracks the progress of tasks outlined in Phase 1 of the NEXT_STEPS
 
 - **Started:** [DATE]
 - **Target Completion:** [DATE]
-- **Status:** 🔴 Not Started
-- **Completion Percentage:** 0%
+- **Status:** 🟡 In Progress
+- **Completion Percentage:** 60% (Approximate - 3/5 sections started/completed)
 
 ## Notes & Decisions
 

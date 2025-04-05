@@ -23,6 +23,21 @@
                                 @<span>{{ $user->username }}</span>
                             </div>
 
+                            {{-- Display Average Rating --}}
+                            <div class="mt-2 flex items-center justify-center sm:justify-start">
+                                @if(isset($ratingData) && $ratingData['count'] > 0)
+                                    @php
+                                        $average = $ratingData['average'] ?? 0;
+                                        $count = $ratingData['count'] ?? 0;
+                                    @endphp
+                                    
+                                    <span class="text-orange-500 font-medium">{{ number_format($average, 1) }} ★</span>
+                                    <span class="ml-2 text-sm text-gray-500">({{ $count }} {{ Str::plural('rating', $count) }})</span>
+                                @else
+                                    <span class="text-sm text-gray-500 italic">Not rated (0 ratings)</span>
+                                @endif
+                            </div>
+
                             @if($user->headline)
                             <div class="mt-2 text-gray-600">
                                 {{ $user->headline }}
@@ -256,22 +271,36 @@
                                         <div class="text-sm text-gray-600 mt-1">
                                             @if($pitch->project->user_id == $user->id)
                                             <span class="font-medium">Project Owner</span>
-                                            @if($pitch->user && $pitch->user->id != $user->id)
+                                            @if($pitch->user && $pitch->user->username && $pitch->user->id != $user->id)
                                             - Pitch by
                                             <a href="{{ route('profile.username', $pitch->user->username) }}"
                                                 class="font-medium hover:underline">
                                                 {{ $pitch->user->name }}
                                             </a>
+                                            @elseif($pitch->user && $pitch->user->id != $user->id)
+                                                - Pitch by {{ $pitch->user->name }} (Profile unavailable)
                                             @endif
                                             @else
                                             <span class="font-medium">Pitch Submitter</span>
-                                            @if($pitch->project->user)
+                                            @if($pitch->project->user && $pitch->project->user->username)
                                             - Project by
                                             <a href="{{ route('profile.username', $pitch->project->user->username) }}"
                                                 class="font-medium hover:underline">
                                                 {{ $pitch->project->user->name }}
                                             </a>
+                                            @elseif($pitch->project->user)
+                                                - Project by {{ $pitch->project->user->name }} (Profile unavailable)
                                             @endif
+                                            @endif
+                                        </div>
+
+                                        {{-- Display Individual Pitch Rating --}}
+                                        <div class="mt-2">
+                                            @php $rating = $pitch->getCompletionRating(); @endphp
+                                            @if($rating)
+                                                <span class="text-orange-500 font-medium">{{ number_format($rating, 1) }} ★</span>
+                                            @else
+                                                <span class="text-gray-500 italic text-sm">Not rated</span>
                                             @endif
                                         </div>
 
@@ -319,5 +348,4 @@
             @endif
         </div>
     </div>
-
 </x-app-layout>

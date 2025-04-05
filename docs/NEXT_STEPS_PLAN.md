@@ -47,10 +47,6 @@ This phase focuses on solidifying the existing foundation, addressing technical 
     *   *Error Handling:* Standardize how errors are presented to users during workflow actions. Review error handling in `PitchWorkflowService` (which has 800+ lines) and ensure all exceptions produce user-friendly messages. Implement consistent use of flash messages or Toaster notifications.
 
 4.  **Improve Feedback Tools (`PitchFilePlayer`):**
-    *   *Comment Enhancements:* The current `PitchFilePlayer` component already has a robust comment system with timestamp-based positioning on the waveform. Choose one of these enhancements:
-        *   *Option A (Rich Text):* Upgrade the simple textarea in the comment form to a WYSIWYG editor. Trix or TipTap would integrate well with the existing Alpine.js implementation.
-        *   *Option B (@-Mentions):* Implement user mention functionality in comments with auto-complete dropdown for relevant users (project owner and pitch creator).
-        *   *Option C (Visual Markers):* Add ability to categorize comments with different marker types/colors (e.g., "question", "feedback", "issue").
     *   *Rating System Implementation:* The `PitchEvent` model already includes a `rating` field but it appears unused. Define a clear implementation plan: 
         * Add a rating UI component in appropriate views (likely in pitch completion flow)
         * Implement the backend logic to store and retrieve ratings

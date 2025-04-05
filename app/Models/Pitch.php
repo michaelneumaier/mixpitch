@@ -255,6 +255,27 @@ class Pitch extends Model
         return $this->hasMany(PitchEvent::class);
     }
 
+    /**
+     * Get the completion rating for this pitch, if it exists.
+     *
+     * @return int|null
+     */
+    public function getCompletionRating(): ?int
+    {
+        if ($this->status !== self::STATUS_COMPLETED) {
+            return null;
+        }
+
+        // Find the event that marked the pitch as completed
+        $completionEvent = $this->events()
+                                ->where('event_type', 'status_change')
+                                ->where('status', self::STATUS_COMPLETED)
+                                ->orderBy('created_at', 'desc')
+                                ->first();
+
+        return $completionEvent?->rating;
+    }
+
     public function snapshots()
     {
         return $this->hasMany(PitchSnapshot::class);

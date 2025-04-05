@@ -94,7 +94,22 @@
                         <textarea id="feedback" wire:model="feedback" rows="4"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-success focus:border-success"
                             placeholder="Add any final feedback or notes about the completed work..."></textarea>
+                        @error('feedback') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>
+
+                    {{-- Rating Input --}}
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Rate the Producer's Work (Required)</label>
+                        <div class="rating rating-lg">
+                            <input type="radio" wire:model="rating" value="1" class="mask mask-star-2 bg-orange-400" />
+                            <input type="radio" wire:model="rating" value="2" class="mask mask-star-2 bg-orange-400" />
+                            <input type="radio" wire:model="rating" value="3" class="mask mask-star-2 bg-orange-400" />
+                            <input type="radio" wire:model="rating" value="4" class="mask mask-star-2 bg-orange-400" />
+                            <input type="radio" wire:model="rating" value="5" class="mask mask-star-2 bg-orange-400" />
+                        </div>
+                         @error('rating') <span class="block text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                    </div>
+
                 </div>
 
                 <!-- Modal Footer -->
@@ -103,9 +118,10 @@
                         class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm">
                         Cancel
                     </button>
-                    <button type="button" wire:click="debugComplete"
+                    <button type="button" wire:click="debugComplete" wire:loading.attr="disabled"
                         class="px-4 py-2 bg-success text-white rounded-md hover:bg-success/80 transition-colors shadow-sm flex items-center">
-                        <i class="fas fa-check-circle mr-2"></i> Complete Pitch
+                        <span wire:loading wire:target="debugComplete" class="loading loading-spinner loading-xs mr-2"></span>
+                        <i wire:loading.remove wire:target="debugComplete" class="fas fa-check-circle mr-2"></i> Complete Pitch
                     </button>
                 </div>
             </div>
