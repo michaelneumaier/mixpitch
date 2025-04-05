@@ -48,9 +48,6 @@ class PitchCreationTest extends TestCase
         $this->openProject->refresh();
         $this->closedProject->refresh();
 
-        // Seed necessary permissions
-        Permission::create(['name' => 'access_filament']);
-
         // Fake notifications
         Notification::fake();
 

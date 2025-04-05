@@ -1,8 +1,4 @@
 <div>
-    {{-- To attain knowledge, add things every day; To attain wisdom, subtract things every day. --}}
-</div>
-
-<div>
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <div class="bg-primary/10 p-4 border-b border-primary/20">
             <div class="flex flex-wrap justify-between items-center">

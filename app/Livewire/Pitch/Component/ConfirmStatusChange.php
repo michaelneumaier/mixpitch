@@ -61,7 +61,7 @@ class ConfirmStatusChange extends Component
                 $this->confirmButtonClass = 'bg-red-600 hover:bg-red-700';
                 break;
                 
-            case 'requestChanges':
+            case 'revisions':
                 $this->confirmMessage = 'What revisions would you like to request for this pitch? Please provide specific details to help the creator improve it.';
                 $this->actionLabel = 'Request Revisions';
                 $this->confirmButtonClass = 'bg-blue-600 hover:bg-blue-700';
@@ -121,8 +121,8 @@ class ConfirmStatusChange extends Component
         }
         
         // Validate inputs for actions that require them
-        if (($this->pendingAction === 'deny' || $this->pendingAction === 'requestChanges') && empty($this->actionData['reason'])) {
-            Toaster::error('Please provide a reason for ' . ($this->pendingAction === 'deny' ? 'denial' : 'requested changes') . '.');
+        if (($this->pendingAction === 'deny' || $this->pendingAction === 'revisions') && empty($this->actionData['reason'])) {
+            Toaster::error('Please provide a reason for ' . ($this->pendingAction === 'deny' ? 'denial' : 'requested revisions') . '.');
             return;
         }
         
@@ -142,11 +142,11 @@ class ConfirmStatusChange extends Component
                 }
                 break;
                 
-            case 'requestChanges':
+            case 'revisions':
                 if (isset($this->actionData['snapshotId'])) {
                     // Make sure we're passing the reason correctly
                     $reason = $this->actionData['reason'] ?? '';
-                    $this->dispatch('confirmRequestChanges', $this->actionData['snapshotId'], $reason);
+                    $this->dispatch('confirmRequestRevisions', $this->actionData['snapshotId'], $reason);
                 }
                 break;
                 

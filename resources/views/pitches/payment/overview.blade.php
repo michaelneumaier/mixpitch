@@ -194,7 +194,7 @@
                                 <div class="text-sm text-gray-600">Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}</div>
                             </div>
                             
-                            <input type="hidden" name="payment_method" value="{{ $paymentMethod->id }}">
+                            <input type="hidden" name="payment_method_id" value="{{ $paymentMethod->id }}">
                             <input type="hidden" name="use_existing_method" value="1">
                         </div>
                     </div>
@@ -316,7 +316,7 @@
                 '{{ $intent->client_secret }}',
                 {
                     payment_method: {
-                        card: cardElement,
+                        card: cardElement
                     }
                 }
             ).then(function(result) {
@@ -330,7 +330,7 @@
                     // Add payment method ID to form
                     const paymentMethodInput = document.createElement('input');
                     paymentMethodInput.setAttribute('type', 'hidden');
-                    paymentMethodInput.setAttribute('name', 'payment_method');
+                    paymentMethodInput.setAttribute('name', 'payment_method_id');
                     paymentMethodInput.setAttribute('value', result.setupIntent.payment_method);
                     form.appendChild(paymentMethodInput);
                     

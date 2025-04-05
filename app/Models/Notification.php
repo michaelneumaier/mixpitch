@@ -287,6 +287,45 @@ class Notification extends Model
             case self::TYPE_PAYMENT_FAILED:
                 return 'Payment processing failed for your completed pitch';
                 
+            case self::TYPE_PITCH_SUBMITTED:
+                $projectName = $data['project_name'] ?? 'a project';
+                return 'A pitch has been submitted for ' . $projectName;
+
+            case self::TYPE_PITCH_CREATED:
+                return 'A new pitch was created';
+
+            case self::TYPE_PITCH_EDITED:
+                return 'A pitch has been edited';
+
+            case self::TYPE_NEW_PITCH:
+                $projectName = $data['project_name'] ?? 'a project';
+                return 'A new pitch was added to ' . $projectName;
+
+            case self::TYPE_PITCH_APPROVED:
+                 return 'Your pitch submission has been approved';
+
+            case self::TYPE_PITCH_SUBMISSION_APPROVED:
+                 return 'A pitch submission was approved';
+
+            case self::TYPE_PITCH_SUBMISSION_DENIED:
+                 $reason = $data['reason'] ?? '';
+                 $reasonText = !empty($reason) ? ': "' . $reason . '"' : '';
+                 return 'A pitch submission was denied' . $reasonText;
+
+            case self::TYPE_PITCH_REVISIONS_REQUESTED:
+                 $reason = $data['reason'] ?? '';
+                 $reasonText = !empty($reason) ? ': "' . $reason . '"' : '';
+                 return 'Revisions requested for a pitch submission' . $reasonText;
+
+            case self::TYPE_PITCH_SUBMISSION_CANCELLED:
+                return 'A pitch submission was cancelled';
+
+            case self::TYPE_PITCH_READY_FOR_REVIEW:
+                return 'A pitch is ready for your review';
+
+            case self::TYPE_PITCH_CLOSED:
+                return 'A pitch has been closed';
+                
             default:
                 return 'New notification';
         }

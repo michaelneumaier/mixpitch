@@ -1,3 +1,6 @@
+@php 
+    use Illuminate\Support\Str; 
+@endphp
 <div class="bg-base-100 rounded-lg shadow-sm p-3 sm:p-6 mb-4 sm:mb-8 border border-base-300">
     <h3 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-6 flex items-center">
         <i class="fas fa-tasks mr-2 sm:mr-3 text-blue-500"></i>Pitch Management
@@ -41,6 +44,8 @@
                     }} mr-2 sm:mr-3 text-base sm:text-lg"></i>
                     <div>
                         <p class="font-semibold text-sm sm:text-base leading-tight sm:leading-normal">
+                            <span class="inline-block">Current Status:</span>
+                            <span class="inline-block ml-1 font-bold">
                             {{ match($pitch->status) {
                             'pending' => 'Awaiting Project Owner Access',
                             'ready_for_review' => 'Pitch Under Review',
@@ -49,8 +54,10 @@
                             'approved' => 'Pitch Approved!',
                             'revisions_requested' => 'Revisions Requested',
                             'completed' => 'Pitch Successfully Completed',
-                            default => 'Pitch Status'
+                            'in_progress' => 'In Progress',
+                            default => ucfirst(str_replace('_', ' ', $pitch->status))
                             } }}
+                            </span>
                         </p>
                         <p class="text-xs sm:text-sm text-gray-600 mt-1">
                             {{ $pitch->status_description }}
@@ -82,29 +89,11 @@
                     <h5 class="font-medium text-sm sm:text-base text-red-800 mb-1.5 sm:mb-2">Feedback from Project Owner
                     </h5>
                     <div class="text-xs sm:text-sm text-gray-700">
-                        @php
-                        // Try to get feedback from different potential sources
-                        $feedback = null;
-
-                        // First check if the current snapshot has feedback
-                        if ($pitch->currentSnapshot && isset($pitch->currentSnapshot->snapshot_data['feedback'])) {
-                        $feedback = $pitch->currentSnapshot->snapshot_data['feedback'];
-                        }
-                        // Then check events for the latest snapshot_denied event
-                        else if ($pitch->events()->where('event_type',
-                        'snapshot_denied')->latest()->first()) {
-                        $event = $pitch->events()->where('event_type',
-                        'snapshot_denied')->latest()->first();
-                        $feedback = preg_replace('/^Pitch denied\. Reason: /i', '', $event->comment);
-                        // If feedback is empty after stripping, set to null to use default message
-                        if (empty(trim($feedback))) {
-                        $feedback = null;
-                        }
-                        }
-                        @endphp
-
-                        {{ $feedback ?? 'No specific feedback was provided. Please review your pitch and consider making
-                        improvements before resubmitting.' }}
+                        @if (!empty($statusFeedbackMessage))
+                            {!! nl2br(e($statusFeedbackMessage)) !!}
+                        @else
+                            <span class="italic text-gray-500">No specific feedback was provided. Please review your pitch and consider making improvements before resubmitting.</span>
+                        @endif
                     </div>
                     <div class="mt-3">
                         @if($pitch->currentSnapshot)
@@ -149,56 +138,69 @@
                 <div class="bg-white border border-amber-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
                     <h5 class="font-medium text-sm sm:text-base text-amber-800 mb-1.5 sm:mb-2">Feedback from Project
                         Owner</h5>
-                    <div class="text-xs sm:text-sm text-gray-700">
-                        @php
-                        // Try to get feedback from different potential sources
-                        $feedback = null;
-
-                        // First check if the current snapshot has feedback
-                        if ($pitch->currentSnapshot && isset($pitch->currentSnapshot->snapshot_data['feedback'])) {
-                        $feedback = $pitch->currentSnapshot->snapshot_data['feedback'];
-                        }
-                        // Then check events for the latest snapshot_revisions_requested event
-                        else if ($pitch->events()->where('event_type',
-                        'snapshot_revisions_requested')->latest()->first()) {
-                        $event = $pitch->events()->where('event_type',
-                        'snapshot_revisions_requested')->latest()->first();
-                        $feedback = preg_replace('/^Revisions requested\. Reason: /i', '', $event->comment);
-                        // If feedback is empty after stripping, set to null to use default message
-                        if (empty(trim($feedback))) {
-                        $feedback = null;
-                        }
-                        }
-                        @endphp
-
-                        {{ $feedback ?? 'No specific feedback was provided. Please review the latest snapshot for
-                        details.' }}
+                    <div class="text-xs sm:text-sm text-gray-700 prose max-w-none prose-sm">
+                         @if (!empty($statusFeedbackMessage))
+                            {!! nl2br(e($statusFeedbackMessage)) !!}
+                        @else
+                            <span class="italic text-gray-500">No specific feedback was provided. Please review the latest snapshot for details.</span>
+                        @endif
                     </div>
                     <div class="mt-3">
-                        @if($pitch->currentSnapshot)
-                        <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitch->currentSnapshot->id]) }}"
-                            class="btn btn-sm btn-amber hover:bg-amber-600 text-xs sm:text-sm py-1.5">
-                            <i class="fas fa-eye mr-1"></i>View Snapshot Details
-                        </a>
+                        @if($latestSnapshot)
+                            <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $latestSnapshot->id]) }}"
+                                class="btn btn-sm btn-amber hover:bg-amber-600 text-xs sm:text-sm py-1.5">
+                                <i class="fas fa-eye mr-1"></i>View Snapshot Details
+                            </a>
                         @else
-                        <span class="text-gray-500 text-xs sm:text-sm italic">No snapshot available</span>
+                            <span class="text-gray-500 text-xs sm:text-sm italic">No snapshot available</span>
                         @endif
                     </div>
                 </div>
                 @endif
+                {{-- Start: Add Revision Form Here --}}
                 @if($pitch->status === 'revisions_requested')
-                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-2">
-                    <a href="{{ route('projects.pitches.edit', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}"
-                        class="btn bg-amber-500 hover:bg-amber-600 text-white text-sm py-2.5 sm:py-2">
-                        <i class="fas fa-edit mr-1"></i>Make Revisions & Resubmit
-                    </a>
-                    <button
-                        onclick="window.scrollTo({top: document.querySelector('.tracks-container').offsetTop - 100, behavior: 'smooth'})"
-                        class="btn btn-outline-amber text-sm py-2.5 sm:py-2">
-                        <i class="fas fa-upload mr-1"></i>Upload New Files
-                    </button>
-                </div>
+                    <div class="mt-6 border-t border-amber-200 pt-6">
+                        <h5 class="font-semibold text-base text-amber-800 mb-3">Respond to Feedback & Resubmit</h5>
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text text-sm font-medium text-gray-700">Your Response</span>
+                                <span class="label-text-alt text-amber-600 text-xs"><i class="fas fa-info-circle mr-1"></i>This message will be visible to the project owner</span>
+                            </label>
+                            <div class="bg-amber-50 border border-amber-200 p-2 rounded-t-lg">
+                                <p class="text-amber-800 text-xs mb-1"><i class="fas fa-comment-dots mr-1"></i>Your response will appear in the feedback conversation history.</p>
+                            </div>
+                            <textarea wire:model.lazy="responseToFeedback" rows="5"
+                                class="textarea textarea-bordered w-full bg-white border-amber-200 rounded-t-none text-sm"
+                                placeholder="Explain what changes you've made in response to the feedback..."></textarea>
+                            {{-- @error('responseToFeedback') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror --}}
+                            {{-- Note: Livewire validation errors are typically handled differently, often shown automatically or via $errors bag --}}
+                        </div>
+
+                        <div class="bg-gray-50 p-3 rounded-lg mb-4">
+                            <h6 class="text-sm font-medium mb-2">Before Resubmitting:</h6>
+                            <ul class="list-disc pl-4 space-y-1 text-gray-700 text-xs">
+                                <li>Ensure you have uploaded any necessary new files above.</li>
+                                <li>Explain the changes you made in the response field.</li>
+                            </ul>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-2">
+                            {{-- Removed the incorrect <a> tag link --}}
+                            <button wire:click="submitForReview" wire:loading.attr="disabled"
+                                class="btn bg-amber-500 hover:bg-amber-600 text-white text-sm py-2.5 sm:py-2">
+                                <span wire:loading wire:target="submitForReview" class="loading loading-spinner loading-xs mr-2"></span>
+                                <i wire:loading.remove wire:target="submitForReview" class="fas fa-paper-plane mr-2"></i>
+                                Submit Revisions
+                            </button>
+                             <button
+                                onclick="window.scrollTo({top: document.querySelector('.tracks-container').offsetTop - 100, behavior: 'smooth'})"
+                                class="btn btn-outline-amber text-sm py-2.5 sm:py-2">
+                                <i class="fas fa-upload mr-1"></i>Upload New Files
+                            </button>
+                        </div>
+                    </div>
                 @endif
+                 {{-- End: Add Revision Form Here --}}
             </div>
         </div>
     </div>
@@ -285,396 +287,163 @@
 
     <!-- File Management Section -->
     @if($pitch->status !== \App\Models\Pitch::STATUS_PENDING)
-    <div class="mb-4 sm:mb-8 tracks-container" x-data="{ 
-            isUploading: false, 
-            progress: 0,
-            deleteModal: {
-                isOpen: false,
-                fileId: null,
-                fileName: ''
-            },
-            uploadQueue: [],
-            queueIndex: 0,
-            currentUploadIndex: 0,
-
-            // Initialize listeners for file upload process
-            initFileUpload() {
-                const component = this;
-                
-                // Listen for the signal to upload the next file
-                window.addEventListener('uploadNextFile', function(event) {
-                    console.log('uploadNextFile event received:', event.detail);
-                    
-                    // Fix the check for event data
-                    if (!event.detail) {
-                        console.error('No event detail received');
-                        return;
-                    }
-                    
-                    let index, total;
-                    
-                    // Handle array format from Livewire 3
-                    if (Array.isArray(event.detail)) {
-                        index = event.detail[0]?.index;
-                        total = event.detail[0]?.total;
-                    } else {
-                        // Handle object format
-                        index = event.detail.index;
-                        total = event.detail.total;
-                    }
-                    
-                    if (typeof index === 'undefined') {
-                        console.error('Invalid event data, no index found:', event.detail);
-                        return;
-                    }
-                    
-                    console.log(`Preparing to upload file ${index + 1} of ${total}. Queue length: ${component.uploadQueue.length}`);
-                    
-                    if (index >= component.uploadQueue.length) {
-                        console.error(`Invalid index: ${index}. Queue only has ${component.uploadQueue.length} files.`);
-                        // Tell Livewire to move to the next file
-                        @this.uploadFailed(index, `Invalid index: ${index}`);
-                        return;
-                    }
-                    
-                    setTimeout(() => {
-                        component.uploadFileByIndex(index);
-                    }, 300);
-                });
-                
-                // Handle file selection
-                document.getElementById('newUploadedFiles').addEventListener('change', function(e) {
-                    console.log('Files selected:', e.target.files);
-                    
-                    if (e.target.files.length) {
-                        // Store the files in our local queue
-                        component.uploadQueue = Array.from(e.target.files);
-                        console.log('Upload queue updated:', component.uploadQueue);
-                        
-                        // Send file metadata to Livewire
-                        const fileMetadata = Array.from(e.target.files).map(file => {
-                            return {
-                                name: file.name,
-                                size: file.size,
-                                type: file.type,
-                                lastModified: file.lastModified
-                            };
-                        });
-                        console.log('Setting file metadata:', fileMetadata);
-                        
-                        @this.set('tempUploadedFiles', fileMetadata);
-                        @this.set('fileSizes', fileMetadata.map(file => component.formatFileSize(file.size)));
-                    }
-                });
-            },
-            
-            // Format file size for display (called from JS)
-            formatFileSize(bytes) {
-                const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-                let i = 0;
-                while (bytes > 1024 && i < units.length - 1) {
-                    bytes /= 1024;
-                    i++;
-                }
-                return Math.round(bytes * 100) / 100 + ' ' + units[i];
-            },
-            
-            // Upload a single file by index using FormData and fetch
-            uploadFileByIndex(index) {
-                if (!this.uploadQueue[index]) {
-                    console.error(`File at index ${index} not found in queue`);
-                    return;
-                }
-                
-                console.log(`Uploading file ${index + 1} of ${this.uploadQueue.length}: ${this.uploadQueue[index].name}`);
-                
-                const file = this.uploadQueue[index];
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('pitch_id', '{{ $pitch->id }}');
-                formData.append('_token', '{{ csrf_token() }}');
-                
-                fetch('/pitch/upload-file', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log(`File ${index + 1} uploaded successfully:`, data);
-                    // Tell Livewire the file was uploaded successfully
-                    @this.uploadSuccess(index, data.file_path, data.file_id);
-                })
-                .catch(error => {
-                    console.error(`Error uploading file ${index + 1}:`, error);
-                    // Tell Livewire the file upload failed
-                    @this.uploadFailed(index, error.message);
-                });
-            }
-        }" x-init="initFileUpload(); 
-            Livewire.on('upload:start', () => { isUploading = true; })
-            Livewire.on('upload:finish', () => { isUploading = false; })
-            Livewire.on('upload:error', () => { isUploading = false; })
-            Livewire.on('upload:progress', (progress) => { progress = progress; })"
-        x-on:new-files-added.window="setTimeout(() => { $wire.clearHighlights() }, 2000)"
-        x-on:new-uploads-completed.window="setTimeout(() => { $wire.clearUploadHighlights(); uploadQueue = []; }, 2000)">
+    <div class="mb-4 sm:mb-8 tracks-container">
         <h4 class="text-lg sm:text-xl font-semibold mb-2.5 sm:mb-4 flex items-center">
-            <i class="fas fa-folder-open mr-2 text-green-500"></i>File Management
+            <i class="fas fa-file-upload text-purple-500 mr-2"></i>Upload Files
         </h4>
 
         <!-- Storage usage display -->
-        <div class="mb-4 bg-base-200 p-3 rounded-lg">
+        <div class="mb-4 bg-base-200/50 p-3 rounded-lg">
             <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-medium">Storage Used: {{ $storageLimitMessage }}</span>
-                <span class="text-xs text-gray-500">{{ $storageRemaining }} remaining</span>
+                <span class="text-xs text-gray-500">{{ $this->formatFileSize($storageRemaining) }} remaining</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2.5">
-                <div class="bg-primary h-2.5 rounded-full" style="width: {{ $storageUsedPercentage }}%"></div>
+                <div class="bg-primary h-2.5 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? 'bg-red-500' : ($storageUsedPercentage > 70 ? 'bg-amber-500' : 'bg-primary') }}"
+                    style="width: {{ $storageUsedPercentage }}%"></div>
             </div>
-            <div class="mt-1 text-xs text-gray-500 flex justify-between">
-                <span>0 GB</span>
-                <span>1 GB</span>
-            </div>
-            <div class="mt-2 text-xs">
+            <div class="mt-2 text-xs text-gray-500">
                 <i class="fas fa-info-circle text-blue-500 mr-1"></i>
                 Maximum file size: 200MB. Total storage limit: 1GB.
             </div>
         </div>
 
-        <div class="mb-4">
-            <div class="flex flex-col">
-                <label class="mb-1.5 sm:mb-2 text-sm sm:text-base text-gray-700">Upload new files</label>
-                <div class="flex flex-col">
-                    <div class="flex flex-col sm:flex-row gap-2 mb-2">
-                        <div class="flex-grow min-w-0 overflow-hidden">
-                            <label for="newUploadedFiles"
-                                class="flex flex-col items-center justify-center w-full h-14 sm:h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                <div class="flex items-center justify-center">
-                                    <i class="fas fa-cloud-upload-alt text-gray-400 mr-2"></i>
-                                    <span class="text-xs sm:text-sm text-gray-500">
-                                        Click to add files
-                                    </span>
-                                </div>
-                                <input type="file" id="newUploadedFiles" class="hidden"
-                                    accept="audio/mpeg,audio/wav,audio/mp3,audio/aac,audio/ogg,application/pdf,image/jpeg,image/png,image/gif,application/zip"
-                                    multiple />
-                            </label>
-                            @error('singleFileUpload') <span class="text-red-500 text-xs sm:text-sm">{{ $message
-                                }}</span>
-                            @enderror
-                        </div>
-                        <div class="flex-shrink-0">
-                            <button wire:click="processQueuedFiles" wire:loading.attr="disabled"
-                                class="btn btn-primary hover:bg-primary-focus text-white w-full h-14 sm:h-16 text-sm sm:text-base"
-                                @if(empty($tempUploadedFiles)) disabled @endif>
-                                <i class="fas fa-upload mr-2"></i> Upload
-                            </button>
-                        </div>
-                    </div>
-
-                    @if(count($tempUploadedFiles) > 0)
-                    <div class="bg-base-200/50 p-2 sm:p-3 rounded-lg mb-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="font-medium text-sm sm:text-base">Files to upload ({{ count($tempUploadedFiles)
-                                }})</h4>
-                            <button wire:click="$set('tempUploadedFiles', []); $set('fileSizes', []);"
-                                class="text-red-500 hover:text-red-700 transition-colors text-xs sm:text-sm">
-                                Clear All
-                            </button>
-                        </div>
-                        <div class="space-y-1.5 sm:space-y-2 max-h-36 sm:max-h-48 overflow-y-auto">
-                            @foreach($tempUploadedFiles as $key => $file)
-                            <div class="flex items-center justify-between bg-white p-1.5 sm:p-2 rounded-md transition-all duration-500
-                                @if(in_array($key, $newlyAddedFileKeys)) animate-fade-in @endif
-                                @if(isset($uploadingFileKey) && $uploadingFileKey === $key) bg-blue-50 @endif">
-                                <div class="flex items-center flex-1 min-w-0">
-                                    <i
-                                        class="fas @if(isset($uploadingFileKey) && $uploadingFileKey === $key) fa-spinner fa-spin text-blue-500 @else fa-file text-blue-500 @endif mr-1.5 sm:mr-2 text-sm sm:text-base"></i>
-                                    <div class="truncate flex-1 text-xs sm:text-sm">
-                                        {{ $file['name'] }}
-                                        <span class="text-xs text-gray-500 ml-1">{{ $fileSizes[$key] ?? '' }}</span>
-                                        @if(isset($uploadingFileKey) && $uploadingFileKey === $key)
-                                        <span class="ml-1 text-xs text-blue-600">Uploading...</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                @if(!(isset($uploadingFileKey) && $uploadingFileKey === $key))
-                                <button wire:click="removeUploadedFile({{ $key }})"
-                                    class="text-red-500 hover:text-red-700 transition-colors ml-1.5 sm:ml-2 p-1.5">
-                                    <i class="fas fa-times text-sm sm:text-base"></i>
-                                </button>
-                                @endif
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endif
-
-                    @if($isUploading || $isProcessingQueue)
-                    <div class="w-full bg-gray-200 rounded-full h-1.5 sm:h-2.5 mb-4">
-                        <div class="bg-primary h-1.5 sm:h-2.5 rounded-full" style="width: {{ $uploadProgress }}%">
-                        </div>
-                    </div>
-                    <div class="text-xs sm:text-sm text-gray-600 mb-3 flex justify-between">
-                        <span>{{ $uploadProgressMessage }}</span>
-                        <span>{{ $uploadProgress }}%</span>
-                    </div>
-                    @endif
-                </div>
+        <!-- File Upload Section -->
+        <div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden mb-6">
+            <div class="p-4 border-b border-base-200 bg-base-100/50">
+                <h5 class="font-medium text-base">Upload New Files</h5>
+                <p class="text-xs text-gray-500 mt-1">Upload audio, PDFs, or images to include with your pitch</p>
+            </div>
+            <div class="p-4">
+                <livewire:file-uploader :model="$pitch" wire:key="'pitch-uploader-' . $pitch->id" />
             </div>
         </div>
 
-        <!-- File upload progress indicator -->
-        <div x-show="isUploading || $wire.isUploading" class="mb-4 p-3 bg-blue-50 rounded-lg">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-blue-700">
-                    <i class="fas fa-sync fa-spin mr-2"></i>
-                    {{ $uploadProgressMessage || 'Processing files...' }}
-                </span>
-                <span class="text-xs text-blue-600">{{ $uploadProgress }}%</span>
+        <!-- Existing Files List -->
+        <div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-base-200 bg-base-100/50 flex justify-between items-center">
+                <h5 class="font-medium text-base">Pitch Files ({{ $pitch->files->count() }})</h5>
+                @if($pitch->files->count() > 0)
+                <span class="text-xs text-gray-500">Total: {{ $this->formatFileSize($pitch->files->sum('size')) }}</span>
+                @endif
             </div>
-            <div class="w-full bg-blue-200 rounded-full h-2.5">
-                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                    x-bind:style="`width: ${$wire.uploadProgress}%`"></div>
-            </div>
-        </div>
-
-        <!-- Uploaded Files List -->
-        @if($existingFiles->isEmpty())
-        <div class="bg-base-200/50 p-2 sm:p-4 rounded-lg text-center text-gray-500">
-            <i class="fas fa-inbox text-2xl sm:text-3xl mb-2"></i>
-            <p class="text-sm sm:text-base">No files uploaded yet</p>
-        </div>
-        @else
-        <div class="border border-base-300 rounded-lg overflow-hidden">
-            <div class="bg-base-300/50 p-1.5 sm:p-2 flex items-center text-xs sm:text-sm font-medium">
-                <div class="flex-1 px-1.5 sm:px-2">Filename</div>
-                <div class="w-16 sm:w-24 text-right">Size</div>
-                <div class="w-24 sm:w-32 text-center">Actions</div>
-            </div>
-            @foreach ($existingFiles as $file)
-            <div class="flex items-center justify-between p-1.5 sm:p-3 even:bg-base-200/30 hover:bg-base-100 transition-colors
-                @if(in_array($file->id, $newlyUploadedFileIds)) bg-green-100 @endif">
-                <div class="flex-1 truncate px-1.5 sm:px-2 text-xs sm:text-sm">
-                    <i class="fas fa-file-alt text-gray-400 mr-1.5 sm:mr-2"></i>
-                    {{ $file->file_name ?? basename($file->file_path) }}
-                </div>
-                <div class="w-16 sm:w-24 text-right text-xs sm:text-sm text-gray-500">
-                    {{ $this->formatFileSize($file->size ?? 0) }}
-                </div>
-                <div class="w-24 sm:w-32 text-center space-x-1 sm:space-x-2">
-                    <button wire:click="downloadFile('{{ $file->id }}')"
-                        class="btn btn-xs btn-outline-primary p-1.5 sm:p-1">
-                        <i class="fas fa-download"></i>
-                    </button>
-                    <button
-                        @click="deleteModal.isOpen = true; deleteModal.fileId = '{{ $file->id }}'; deleteModal.fileName = '{{ $file->file_name ?? basename($file->file_path) }}'"
-                        class="btn btn-xs btn-outline-danger p-1.5 sm:p-1">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            @endforeach
-        </div>
-        @endif
-
-        <!-- Delete Confirmation Modal -->
-        <div x-show="deleteModal.isOpen" class="fixed inset-0 z-50 overflow-y-auto"
-            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-            <div class="flex items-center justify-center min-h-screen p-2 sm:p-0">
-                <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-                    <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-                </div>
-
-                <!-- Modal Panel -->
-                <div
-                    class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full max-w-sm sm:w-full">
-                    <div class="bg-white px-3 sm:px-4 pt-3 sm:pt-5 pb-2 sm:pb-4 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div
-                                class="mx-auto flex-shrink-0 flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-red-100 sm:mx-0">
-                                <i class="fas fa-exclamation-triangle text-red-600 text-lg sm:text-xl"></i>
-                            </div>
-                            <div class="mt-2 sm:mt-0 sm:ml-4 sm:text-left">
-                                <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                    Delete File
-                                </h3>
-                                <div class="mt-1 sm:mt-2">
-                                    <p class="text-xs sm:text-sm text-gray-500">
-                                        Are you sure you want to delete <span class="font-semibold break-all"
-                                            x-text="deleteModal.fileName"></span>? This action cannot be undone.
-                                    </p>
-                                </div>
+            
+            <div class="divide-y divide-base-200">
+                @forelse($pitch->files as $file)
+                <div class="flex items-center justify-between py-3 px-4 hover:bg-base-100/50 transition-all duration-300 track-item
+                    @if(in_array($file->id, $newlyUploadedFileIds ?? [])) animate-fade-in @endif">
+                    <div class="flex items-center overflow-hidden flex-1 pr-2">
+                        <div
+                            class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center bg-base-200 text-gray-500 mr-3">
+                            {{-- Adjust icon based on file type --}}
+                            @if (Str::startsWith($file->mime_type, 'audio/'))
+                                <i class="fas fa-music text-sm sm:text-base"></i>
+                            @elseif ($file->mime_type == 'application/pdf')
+                                <i class="fas fa-file-pdf text-sm sm:text-base text-red-500"></i>
+                            @elseif (Str::startsWith($file->mime_type, 'image/'))
+                                <i class="fas fa-file-image text-sm sm:text-base text-blue-500"></i>
+                            @else
+                                <i class="fas fa-file-alt text-sm sm:text-base"></i>
+                            @endif
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium truncate text-sm sm:text-base">{{ $file->file_name }}</div>
+                            <div class="flex items-center text-xs text-gray-500">
+                                <span>{{ $file->created_at->format('M d, Y') }}</span>
+                                <span class="mx-1.5">•</span>
+                                <span>{{ $this->formatFileSize($file->size) }}</span>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="button" wire:click="deleteSelectedFile"
-                            @click="deleteModal.isOpen = false"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-3 sm:px-4 py-2 bg-red-600 text-xs sm:text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto">
-                            Delete
+                    <div class="flex items-center space-x-1 sm:space-x-2">
+                        {{-- Download Button --}}
+                        <button wire:click="downloadFile({{ $file->id }})"
+                            class="btn btn-sm btn-ghost text-gray-600 hover:text-blue-600">
+                            <i class="fas fa-download"></i>
                         </button>
-                        <button type="button" @click="deleteModal.isOpen = false"
-                            class="mt-2 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-3 sm:px-4 py-2 bg-white text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto">
+                        {{-- Delete Button --}}
+                        <button wire:click="setFileToDelete({{ $file->id }})" 
+                                x-on:click="$dispatch('open-modal', 'delete-file-modal')"
+                                class="btn btn-sm btn-ghost text-gray-600 hover:text-red-600">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                @empty
+                <div class="p-8 sm:p-10 text-center text-gray-500 italic">
+                    <i class="fas fa-folder-open text-4xl sm:text-5xl text-gray-300 mb-3"></i>
+                    <p class="text-base sm:text-lg">No files uploaded yet</p>
+                    <p class="text-xs sm:text-sm mt-2">Upload files to include with your pitch</p>
+                </div>
+                @endforelse
+            </div>
+        </div>
+        
+        <!-- File Delete Confirmation Modal -->
+        <div x-data="{ fileToDelete: null }" x-on:close-modal.window="fileToDelete = null">
+            <x-modal name="delete-file-modal" :show="false" maxWidth="md">
+                <div class="p-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">
+                        <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                        Delete File
+                    </h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Are you sure you want to delete this file? This action cannot be undone.
+                    </p>
+                    <div class="mt-6 flex justify-end">
+                        <button x-on:click="$dispatch('close-modal')"
+                            class="mr-3 btn btn-sm btn-ghost">
                             Cancel
                         </button>
+                        <button wire:click="deleteSelectedFile"
+                            x-on:click="$dispatch('close-modal')"
+                            class="btn btn-sm btn-red">
+                            <i class="fas fa-trash-alt mr-1.5"></i>
+                            Delete File
+                        </button>
                     </div>
                 </div>
-            </div>
-            <div class="mb-4 sm:mb-8">
-                <h4 class="text-base sm:text-lg font-medium mb-2 flex items-center">
-                    <i class="fas fa-file-upload mr-2 text-gray-500"></i>File Management
-                </h4>
-                <div class="p-3 sm:p-4 text-center text-yellow-600 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <i class="fas fa-lock mr-2"></i>File management will be available once the project owner approves
-                    your pitch.
-                </div>
-            </div>
-            @endif
-
-            <!-- Submit for review button section -->
-            @if($pitch->status == 'in_progress' || $pitch->status == 'pending_review' || $pitch->status == 'denied' ||
-            $pitch->status == 'revisions_requested')
-            <div
-                class="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-end items-start sm:items-center space-y-2 sm:space-y-0">
-                @error('acceptedTerms')
-                <span class="text-red-500 text-xs sm:text-sm">{{ $message }}</span>
-                @enderror
-                <div class="flex items-center w-full sm:w-auto mb-2 sm:mb-0 sm:mr-4">
-                    <input type="checkbox" id="terms" class="form-checkbox h-4 w-4 sm:h-5 sm:w-5 text-green-600"
-                        wire:model.defer="acceptedTerms">
-                    <label for="terms" class="px-2 text-xs sm:text-sm text-gray-700">I accept the <a href="/terms"
-                            target="_blank" class="text-blue-500 hover:underline">terms and conditions</a></label>
-                </div>
-
-                <button wire:click="submitForReview" wire:confirm="Are you sure you want to Submit your Pitch?"
-                    class="w-full sm:w-auto bg-green-500 hover:bg-green-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded"
-                    :disabled="!acceptedTerms">
-                    <i class="fas fa-check pr-1.5 sm:pr-2"></i>
-                    {{ $pitch->status == 'denied' || $pitch->status == 'revisions_requested' ? 'Resubmit Pitch' : 'Ready
-                    To Submit' }}
-                </button>
-            </div>
-            @endif
-
-            <!-- Cancel submission button section -->
-            @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW && auth()->id() === $pitch->user_id)
-            <div class="mt-4 sm:mt-6 flex justify-end">
-                <button wire:click="cancelPitchSubmission"
-                    wire:confirm="Are you sure you want to cancel your submission? This will return your pitch to 'In Progress' status and delete the current pending snapshot."
-                    class="w-full sm:w-auto bg-red-500 hover:bg-red-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded">
-                    <i class="fas fa-xmark pr-1.5 sm:pr-2"></i>
-                    Cancel Submission
-                </button>
-            </div>
-            @endif
+            </x-modal>
         </div>
+    </div>
+    @endif
+
+    <!-- Submit for review button section -->
+    @if(in_array($pitch->status, [
+        \App\Models\Pitch::STATUS_IN_PROGRESS, 
+        \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, 
+        \App\Models\Pitch::STATUS_DENIED
+    ]))
+    <div class="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-end items-start sm:items-center space-y-2 sm:space-y-0">
+        @error('acceptedTerms')
+        <span class="text-red-500 text-xs sm:text-sm">{{ $message }}</span>
+        @enderror
+        <div class="flex items-center w-full sm:w-auto mb-2 sm:mb-0 sm:mr-4">
+            <input type="checkbox" id="terms" class="form-checkbox h-4 w-4 sm:h-5 sm:w-5 text-green-600"
+                wire:model.defer="acceptedTerms">
+            <label for="terms" class="px-2 text-xs sm:text-sm text-gray-700">I accept the <a href="/terms"
+                    target="_blank" class="text-blue-500 hover:underline">terms and conditions</a></label>
+        </div>
+
+        <button wire:click="submitForReview" wire:confirm="Are you sure you want to Submit your Pitch?"
+            class="w-full sm:w-auto bg-green-500 hover:bg-green-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded"
+            :disabled="!acceptedTerms">
+            <i class="fas fa-check pr-1.5 sm:pr-2"></i>
+            {{ $pitch->status == 'denied' || $pitch->status == 'revisions_requested' ? 'Resubmit Pitch' : 'Ready
+            To Submit' }}
+        </button>
+    </div>
+    @endif
+
+    <!-- Cancel submission button section -->
+    @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW && auth()->id() === $pitch->user_id)
+    <div class="mt-4 sm:mt-6 flex justify-end">
+        <button wire:click="cancelPitchSubmission"
+            wire:confirm="Are you sure you want to cancel your submission? This will return your pitch to 'In Progress' status and delete the current pending snapshot."
+            class="w-full sm:w-auto bg-red-500 hover:bg-red-700 text-white text-sm font-semibold py-2.5 sm:py-2 px-4 rounded">
+            <i class="fas fa-xmark pr-1.5 sm:pr-2"></i>
+            Cancel Submission
+        </button>
+    </div>
+    @endif
+</div>

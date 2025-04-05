@@ -188,6 +188,10 @@
                                     <option value="album">Album</option>
                                     <option value="ep">EP</option>
                                     <option value="mixtape">Mixtape</option>
+                                    <option value="remix">Remix</option>
+                                    <option value="cover">Cover</option>
+                                    <option value="soundtrack">Soundtrack</option>
+                                    <option value="other">Other</option>
                                 </select>
                                 @error('form.projectType')
                                 <div class="text-xs sm:text-sm text-error mt-1 flex items-start">

@@ -9,6 +9,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.1",
+        "aws/aws-php-sns-message-validator": "^1.10",
         "aws/aws-sdk-php": "^3.342",
         "biscolab/laravel-recaptcha": "^6.1",
         "cviebrock/eloquent-sluggable": "^10.0",
@@ -29,7 +30,6 @@
         "masmerise/livewire-toaster": "^2.0",
         "pusher/pusher-php-server": "^7.2",
         "sebdesign/laravel-state-machine": "^3.4",
-        "spatie/laravel-permission": "^6.0",
         "spatie/laravel-sluggable": "^3.5"
     },
     "require-dev": {

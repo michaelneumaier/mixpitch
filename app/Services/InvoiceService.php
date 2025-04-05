@@ -98,13 +98,59 @@ class InvoiceService
             // Use the protected method for better testability
             $stripe = $this->newStripeClient();
             
-            // Finalize the invoice
-            $finalizedInvoice = $stripe->invoices->finalizeInvoice($invoice->id);
+            // Log before finalizing
+            \Log::info('About to finalize invoice', [
+                'invoice_id' => $invoice->id,
+                'payment_method' => $paymentMethod,
+                'invoice_status' => $invoice->status ?? 'unknown'
+            ]);
+            
+            // Finalize the invoice if it's not already finalized
+            $finalizedInvoice = null;
+            try {
+                // Try to finalize the invoice - if it's already finalized,
+                // this will throw an exception that we can catch
+                $finalizedInvoice = $stripe->invoices->finalizeInvoice($invoice->id);
+                
+                \Log::info('Invoice finalized successfully', [
+                    'invoice_id' => $finalizedInvoice->id,
+                    'invoice_status' => $finalizedInvoice->status,
+                    'invoice_total' => $finalizedInvoice->total,
+                    'invoice_amount_due' => $finalizedInvoice->amount_due
+                ]);
+            } catch (\Exception $e) {
+                // If the error is because the invoice is already finalized, we can continue
+                if (strpos($e->getMessage(), 'already finalized') !== false) {
+                    \Log::info('Invoice is already finalized, retrieving it', [
+                        'invoice_id' => $invoice->id
+                    ]);
+                    
+                    // Retrieve the invoice instead
+                    $finalizedInvoice = $stripe->invoices->retrieve($invoice->id);
+                } else {
+                    // If it's some other error, re-throw it
+                    throw $e;
+                }
+            }
             
             // Pay the invoice using the specified payment method
-            $payResult = $stripe->invoices->pay($invoice->id, [
+            \Log::info('About to pay invoice', [
+                'invoice_id' => $finalizedInvoice->id,
+                'payment_method' => $paymentMethod,
+                'finalized_invoice_status' => $finalizedInvoice->status
+            ]);
+            
+            $payResult = $stripe->invoices->pay($finalizedInvoice->id, [
                 'payment_method' => $paymentMethod,
                 'off_session' => true,
+            ]);
+            
+            // Log payment result
+            \Log::info('Invoice payment processed', [
+                'invoice_id' => $payResult->id,
+                'status' => $payResult->status,
+                'paid' => $payResult->paid,
+                'payment_intent' => $payResult->payment_intent ?? null
             ]);
             
             return [
@@ -115,12 +161,15 @@ class InvoiceService
         } catch (\Exception $e) {
             \Log::error('Failed to process invoice payment', [
                 'invoice_id' => $invoice->id,
-                'error' => $e->getMessage()
+                'payment_method' => $paymentMethod,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'exception' => $e
             ];
         }
     }

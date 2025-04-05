@@ -53,10 +53,19 @@ class ProjectController extends Controller
         // TODO: Add authorization check? Policy might handle this via route model binding
         // $this->authorize('view', $project);
         $userPitch = null;
+        $canPitch = false; // Default to false
+        
         if (auth()->check()) {
             $userPitch = $project->userPitch(auth()->id());
+            
+            // Determine if the user can pitch
+            $canPitch = auth()->check() && 
+                        !$project->isOwnedByUser(auth()->user()) && 
+                        !$userPitch && 
+                        $project->status === Project::STATUS_OPEN;
         }
-        return view('projects.project', compact('project', 'userPitch'));
+        
+        return view('projects.project', compact('project', 'userPitch', 'canPitch'));
     }
 
     // TODO: This method seems redundant or incorrect. Review/Remove.
@@ -192,6 +201,62 @@ class ProjectController extends Controller
             return redirect()->back()->with('error', 'Failed to create project: ' . $e->getMessage())->withInput();
         }
         */
+    }
+
+    /**
+     * Handle a single file upload for a project via AJAX.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadSingle(Request $request)
+    {
+        try {
+            $request->validate([
+                'file' => 'required|file|max:204800', // 200MB max
+                'project_id' => 'required|exists:projects,id',
+            ]);
+
+            $project = Project::findOrFail($request->project_id);
+            
+            // Check if user is authorized to upload to this project
+            if (!Auth::user()->can('uploadFile', $project)) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'You are not authorized to upload files to this project'
+                ], 403);
+            }
+
+            // Get the FileManagementService instance
+            $fileManagementService = app(\App\Services\FileManagementService::class);
+
+            // Use the service to handle the upload
+            $projectFile = $fileManagementService->uploadProjectFile(
+                $project, 
+                $request->file('file'), 
+                Auth::user()
+            );
+
+            // Return success response with file information
+            return response()->json([
+                'success' => true,
+                'file_id' => $projectFile->id,
+                'file_path' => $projectFile->file_path,
+                'file_name' => $projectFile->file_name,
+                'storage_percentage' => $project->getStorageUsedPercentage(),
+                'storage_limit_message' => $project->getStorageLimitMessage(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error uploading project file via AJAX', [
+                'error' => $e->getMessage(),
+                'project_id' => $request->project_id ?? null
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
 }

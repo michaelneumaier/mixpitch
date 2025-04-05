@@ -244,14 +244,14 @@ class FileManagementService
     }
 
     /**
-     * Generate a temporary URL for downloading a file.
-     * Authorization should be checked before calling this method.
+     * Generate a temporary download or streaming URL for a file.
      *
      * @param ProjectFile|PitchFile $fileModel
      * @param int $minutes Expiration time in minutes
+     * @param bool $forceDownload If true, sets headers to force download; if false, allows streaming/inline display.
      * @return string
      */
-    public function getTemporaryDownloadUrl($fileModel, int $minutes = 15): string
+    public function getTemporaryDownloadUrl($fileModel, int $minutes = 15, bool $forceDownload = true): string
     {
         // Authorization is assumed to be handled by the caller
 
@@ -263,13 +263,18 @@ class FileManagementService
                  Log::error('Attempted to generate download URL for file with empty path.', ['file_model_id' => $fileModel->id, 'model_type' => get_class($fileModel)]);
                  throw new \InvalidArgumentException('File path is missing.');
             }
+            
+            $options = [];
+            if ($forceDownload) {
+                $options = [
+                    'ResponseContentDisposition' => 'attachment; filename="' . addslashes($fileName) . '"'
+                ];
+            }
 
             return Storage::disk('s3')->temporaryUrl(
                 $filePath,
                 now()->addMinutes($minutes),
-                [
-                    'ResponseContentDisposition' => 'attachment; filename="' . $fileName . '"'
-                ]
+                $options
             );
         } catch (\Exception $e) {
              Log::error('Failed to generate temporary download URL.', [

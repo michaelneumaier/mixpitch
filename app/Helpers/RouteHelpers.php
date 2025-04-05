@@ -28,7 +28,7 @@ class RouteHelpers
         }
         
         // If project is still null, log error and use project_id directly
-        if (!$pitch->project) {
+        if (!$pitch->project && $pitch->project_id) {
             \Illuminate\Support\Facades\Log::error('Project relationship is null for pitch', [
                 'pitch_id' => $pitch->id,
                 'project_id' => $pitch->project_id
@@ -46,18 +46,32 @@ class RouteHelpers
                 throw new \Exception("Missing required parameter for [Route: projects.pitches.show] [URI: projects/{project}/pitches/{pitch}] [Missing parameter: project]");
             }
             
-            $baseParams = [
+            return route('projects.pitches.show', array_merge([
                 'project' => $project,
                 'pitch' => $pitch
-            ];
-        } else {
-            $baseParams = [
-                'project' => $pitch->project,
-                'pitch' => $pitch
-            ];
+            ], $params));
+        } elseif (!$pitch->project) {
+            // If there's no project and no project_id, we can't generate the URL
+            \Illuminate\Support\Facades\Log::error('No project or project_id found for pitch', [
+                'pitch_id' => $pitch->id
+            ]);
+            throw new \Exception("Missing required parameter for [Route: projects.pitches.show] [URI: projects/{project}/pitches/{pitch}] [Missing parameter: project]");
         }
         
-        return route('projects.pitches.show', array_merge($baseParams, $params));
+        // If we got here, we have a valid project relationship
+        try {
+            return route('projects.pitches.show', array_merge([
+                'project' => $pitch->project,
+                'pitch' => $pitch
+            ], $params));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error generating route in pitchUrl', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
     
     /**
@@ -80,7 +94,7 @@ class RouteHelpers
         }
         
         // If project is still null, log error and use project_id directly
-        if (!$pitch->project) {
+        if (!$pitch->project && $pitch->project_id) {
             \Illuminate\Support\Facades\Log::error('Project relationship is null for pitch in paymentUrl', [
                 'pitch_id' => $pitch->id,
                 'project_id' => $pitch->project_id
@@ -101,12 +115,27 @@ class RouteHelpers
                 'project' => $project, 
                 'pitch' => $pitch
             ]);
+        } elseif (!$pitch->project) {
+            // If there's no project and no project_id, we can't generate the URL
+            \Illuminate\Support\Facades\Log::error('No project or project_id found for pitch in paymentUrl', [
+                'pitch_id' => $pitch->id
+            ]);
+            throw new \Exception("Missing required parameter for [Route: projects.pitches.payment.overview] [URI: projects/{project}/pitches/{pitch}/payment/overview] [Missing parameter: project]");
         }
         
-        return route('projects.pitches.payment.overview', [
-            'project' => $pitch->project, 
-            'pitch' => $pitch
-        ]);
+        try {
+            return route('projects.pitches.payment.overview', [
+                'project' => $pitch->project, 
+                'pitch' => $pitch
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error generating route in pitchPaymentUrl', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
     
     /**
@@ -129,7 +158,7 @@ class RouteHelpers
         }
         
         // If project is still null, log error and use project_id directly
-        if (!$pitch->project) {
+        if (!$pitch->project && $pitch->project_id) {
             \Illuminate\Support\Facades\Log::error('Project relationship is null for pitch in receiptUrl', [
                 'pitch_id' => $pitch->id,
                 'project_id' => $pitch->project_id
@@ -150,12 +179,27 @@ class RouteHelpers
                 'project' => $project, 
                 'pitch' => $pitch
             ]);
+        } elseif (!$pitch->project) {
+            // If there's no project and no project_id, we can't generate the URL
+            \Illuminate\Support\Facades\Log::error('No project or project_id found for pitch in receiptUrl', [
+                'pitch_id' => $pitch->id
+            ]);
+            throw new \Exception("Missing required parameter for [Route: projects.pitches.payment.receipt] [URI: projects/{project}/pitches/{pitch}/payment/receipt] [Missing parameter: project]");
         }
         
-        return route('projects.pitches.payment.receipt', [
-            'project' => $pitch->project, 
-            'pitch' => $pitch
-        ]);
+        try {
+            return route('projects.pitches.payment.receipt', [
+                'project' => $pitch->project, 
+                'pitch' => $pitch
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error generating route in pitchReceiptUrl', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
     
     /**
@@ -178,7 +222,7 @@ class RouteHelpers
         }
         
         // If project is still null, log error and use project_id directly
-        if (!$pitch->project) {
+        if (!$pitch->project && $pitch->project_id) {
             \Illuminate\Support\Facades\Log::error('Project relationship is null for pitch in editUrl', [
                 'pitch_id' => $pitch->id,
                 'project_id' => $pitch->project_id
@@ -199,11 +243,26 @@ class RouteHelpers
                 'project' => $project, 
                 'pitch' => $pitch
             ]);
+        } elseif (!$pitch->project) {
+            // If there's no project and no project_id, we can't generate the URL
+            \Illuminate\Support\Facades\Log::error('No project or project_id found for pitch in editUrl', [
+                'pitch_id' => $pitch->id
+            ]);
+            throw new \Exception("Missing required parameter for [Route: projects.pitches.edit] [URI: projects/{project}/pitches/{pitch}/edit] [Missing parameter: project]");
         }
         
-        return route('projects.pitches.edit', [
-            'project' => $pitch->project, 
-            'pitch' => $pitch
-        ]);
+        try {
+            return route('projects.pitches.edit', [
+                'project' => $pitch->project, 
+                'pitch' => $pitch
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error generating route in pitchEditUrl', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 } 

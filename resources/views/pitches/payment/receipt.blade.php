@@ -86,7 +86,7 @@
             <!-- Invoice Details Component -->
             @if(isset($invoice))
                 <div class="mt-6">
-                    <x-invoice-details :invoice="$invoice" :viewAllUrl="$viewAllInvoicesUrl" />
+                    <x-invoice-details :invoice="$invoice" :viewAllUrl="$viewAllInvoicesUrl ?? null" />
                 </div>
             @else
                 <!-- Fallback to Original Receipt Details -->

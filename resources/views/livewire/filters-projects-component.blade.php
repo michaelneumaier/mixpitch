@@ -59,7 +59,11 @@
                 'single' => 'Single',
                 'album' => 'Album',
                 'ep' => 'EP',
-                'mixtape' => 'Mixtape'
+                'mixtape' => 'Mixtape',
+                'remix' => 'Remix',
+                'cover' => 'Cover',
+                'soundtrack' => 'Soundtrack',
+                'other' => 'Other'
                 ];
                 @endphp
 

@@ -62,21 +62,46 @@
                         @if (Auth::check() && Auth::id() === $pitch->project->user_id)
                         <div class="flex flex-col sm:flex-row w-full">
                             @if ($pitchSnapshot->status === 'pending')
+                            @php
+                                $approveUrl = route('projects.pitches.approve-snapshot', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitchSnapshot->id]);
+                                $revisionsUrl = route('projects.pitches.request-changes', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitchSnapshot->id]);
+                                $denyUrl = route('projects.pitches.deny-snapshot', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitchSnapshot->id]);
+                            @endphp
+                            
+                            <!-- JavaScript-based buttons -->
                             <button
-                                onclick="openApproveModal({{ $pitchSnapshot->id }}, '{{ route('pitch.approveSnapshot', ['pitch' => $pitch->id, 'snapshot' => $pitchSnapshot->id]) }}')"
+                                onclick="openApproveModal({{ $pitchSnapshot->id }}, @js($approveUrl))"
                                 class="block sm:basis-1/3 bg-success hover:bg-success/80 text-white tracking-tight text-base sm:text-lg text-center font-bold grow py-2.5 sm:py-3 px-3 sm:px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap">
                                 <i class="fas fa-check mr-1.5 sm:mr-2"></i> Approve
                             </button>
                             <button
-                                onclick="openRevisionsModal({{ $pitchSnapshot->id }}, '{{ route('pitch.requestChanges', ['pitch' => $pitch->id, 'snapshot' => $pitchSnapshot->id]) }}')"
+                                onclick="openRevisionsModal({{ $pitchSnapshot->id }}, @js($revisionsUrl))"
                                 class="block sm:basis-1/3 bg-primary hover:bg-primary/80 text-white tracking-tight text-base sm:text-lg text-center font-bold grow py-2.5 sm:py-3 px-3 sm:px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap">
                                 <i class="fas fa-edit mr-1.5 sm:mr-2"></i> Request Revisions
                             </button>
                             <button
-                                onclick="openDenyModal({{ $pitchSnapshot->id }}, '{{ route('pitch.denySnapshot', ['pitch' => $pitch->id, 'snapshot' => $pitchSnapshot->id]) }}')"
+                                onclick="openDenyModal({{ $pitchSnapshot->id }}, @js($denyUrl))"
                                 class="block sm:basis-1/3 bg-decline hover:bg-decline/80 tracking-tight text-base sm:text-lg text-center text-gray-100 font-bold grow py-2.5 sm:py-3 px-3 sm:px-4 shadow-sm hover:shadow-md transition-all whitespace-nowrap">
                                 <i class="fas fa-times mr-1.5 sm:mr-2"></i> Deny
                             </button>
+                            
+                            <!-- Direct POST forms as fallback -->
+                            <div class="hidden">
+                                <form id="direct-approve-form" method="POST" action="{{ $approveUrl }}">
+                                    @csrf
+                                </form>
+                                
+                                <form id="direct-deny-form" method="POST" action="{{ $denyUrl }}">
+                                    @csrf
+                                    <textarea name="reason" id="direct-deny-reason"></textarea>
+                                </form>
+                                
+                                <form id="direct-revisions-form" method="POST" action="{{ $revisionsUrl }}">
+                                    @csrf
+                                    <textarea name="reason" id="direct-revisions-reason"></textarea>
+                                </form>
+                            </div>
+                            
                             @elseif ($pitchSnapshot->status === 'accepted')
                             <div
                                 class="block bg-accent tracking-tight text-base sm:text-lg text-center font-bold grow py-2.5 sm:py-3 px-3 sm:px-4 shadow-sm whitespace-nowrap">
@@ -352,7 +377,7 @@
                                 <!-- Embed our WaveSurfer component -->
                                 @livewire('snapshot-file-player', [
                                 'file' => $file,
-                                'showDownloadButton' => $pitchSnapshot->isApproved() && $pitch->project->status === 'completed'
+                                'showDownloadButton' => $pitchSnapshot->isAccepted() && $pitch->project->status === 'completed'
                                 ], key('file-player-' . $file->id))
                             </div>
                             @endif

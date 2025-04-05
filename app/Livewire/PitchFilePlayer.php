@@ -23,6 +23,7 @@ class PitchFilePlayer extends Component
     public $replyText = '';
     public $commentToDelete = null;
     public $showDeleteConfirmation = false;
+    public $isInCard = false;
     
     protected $listeners = [
         'waveformReady' => 'onWaveformReady',
@@ -31,9 +32,10 @@ class PitchFilePlayer extends Component
         'refresh' => '$refresh',
     ];
     
-    public function mount(PitchFile $file)
+    public function mount(PitchFile $file, $isInCard = false)
     {
         $this->file = $file;
+        $this->isInCard = $isInCard;
         $this->loadComments();
         
         // Initialize duration from the file's stored duration if available

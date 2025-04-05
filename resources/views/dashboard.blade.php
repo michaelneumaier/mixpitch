@@ -60,7 +60,7 @@
                                         <div class="flex items-center text-sm text-gray-600">
                                             <i class="fas fa-money-bill-wave mr-2"></i>
                                             <span>{{ $project->budget == 0 ? 'Free' :
-                                                '$'.number_format($project->budget, 0) }}</span>
+                                                '$'.number_format((float) $project->budget, 0) }}</span>
                                         </div>
 
                                         <!-- Deadline -->
@@ -196,7 +196,7 @@
                                         <div class="flex items-center text-sm text-gray-600">
                                             <i class="fas fa-money-bill-wave mr-2"></i>
                                             <span>{{ $pitch->project->budget == 0 ? 'Free' :
-                                                '$'.number_format($pitch->project->budget, 0) }}</span>
+                                                '$'.number_format((float) $pitch->project->budget, 0) }}</span>
                                         </div>
 
                                         <!-- Deadline -->
