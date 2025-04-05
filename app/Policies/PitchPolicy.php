@@ -183,11 +183,11 @@ class PitchPolicy
     {
         // Only the pitch owner (creator) can submit
         // Pitch must be in 'in_progress' or 'revisions_requested' status
-        // Add Pitch::STATUS_DENIED here if denied pitches should be resubmittable
         return $user->id === $pitch->user_id &&
                in_array($pitch->status, [
                    Pitch::STATUS_IN_PROGRESS,
                    Pitch::STATUS_REVISIONS_REQUESTED
+                   // Removed Pitch::STATUS_DENIED
                 ]);
     }
 
@@ -214,6 +214,26 @@ class PitchPolicy
     }
 
     /**
+     * Determine whether the user can return a completed pitch to approved status.
+     *
+     * @param  \App\Models\User  $user (Project Owner)
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function returnToApproved(User $user, Pitch $pitch): bool
+    {
+        // Only the project owner can perform this action.
+        // Pitch must be in 'completed' status.
+        // Payment must be 'pending' or 'failed'. Cannot revert if already paid or processing.
+        return $user->id === $pitch->project->user_id &&
+               $pitch->status === Pitch::STATUS_COMPLETED &&
+               in_array($pitch->payment_status, [
+                   Pitch::PAYMENT_STATUS_PENDING,
+                   Pitch::PAYMENT_STATUS_FAILED
+               ]);
+    }
+
+    /**
      * Determine whether the user can upload files to the pitch.
      * Added from PitchFilePolicy as the check relates to the Pitch status/ownership.
      *
@@ -231,6 +251,35 @@ class PitchPolicy
                    Pitch::STATUS_REVISIONS_REQUESTED
                    // Add other statuses if needed
                ]);
+    }
+
+    /**
+     * Determine whether the user can manage access for a pitch (grant/revoke access)
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function manageAccess(User $user, Pitch $pitch): bool
+    {
+        // Only the project owner can manage access
+        return $user->id === $pitch->project->user_id;
+    }
+
+    /**
+     * Determine whether the user can manage review status of a pitch
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function manageReview(User $user, Pitch $pitch): bool
+    {
+        // Only the project owner can manage review status
+        $isPaidAndCompleted = $pitch->status === Pitch::STATUS_COMPLETED &&
+                              in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING]);
+
+        return $user->id === $pitch->project->user_id && !$isPaidAndCompleted;
     }
 
     // Add other policy methods as needed, e.g., for completion, file management

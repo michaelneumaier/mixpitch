@@ -27,8 +27,8 @@ use App\Exceptions\File\FileDeletionException;
 use Illuminate\Database\Eloquent\AuthorizationException;
 use App\Exceptions\SubmissionValidationException;
 use App\Models\Project;
-use App\Services\PitchService;
 use App\Helpers\RouteHelpers;
+use Illuminate\Support\Str;
 
 class ManagePitch extends Component
 {
@@ -37,7 +37,6 @@ class ManagePitch extends Component
     use AuthorizesRequests;
 
     public Pitch $pitch;
-    public $files = [];
     public $comment;
     public $rating;
 
@@ -46,21 +45,6 @@ class ManagePitch extends Component
     public $budgetFlexibility = 'strict';
     public $licensingAgreement = 'exclusive';
 
-    // New properties for file upload
-    public $tempUploadedFiles = []; // Renamed from uploadedFiles to avoid conflict
-    public $newUploadedFiles = []; // For accumulating new files
-    public $fileSizes = []; // Store file sizes
-    public $newlyAddedFileKeys = []; // Track which files were just added
-    public $newlyUploadedFileIds = []; // Track IDs of newly uploaded files
-    
-    // Sequential upload properties
-    public $isProcessingQueue = false;
-    public $uploadingFileKey = null;
-    public $uploadProgress = 0;
-    public $uploadProgressMessage = '';
-    public $singleFileUpload = null;
-    public $isUploading = false;
-    
     // Storage tracking
     public $storageUsedPercentage = 0;
     public $storageLimitMessage = '';
@@ -72,16 +56,22 @@ class ManagePitch extends Component
     // Property to capture optional response to feedback when resubmitting
     public $responseToFeedback = '';
 
+    // Property to hold the latest feedback message (revision or denial)
+    public $statusFeedbackMessage = null;
+
     public $project;
     public $currentSnapshot = null;
     public $latestSnapshot = null;
     public $snapshots = [];
     public $events = [];
+    
+    public $fileToDelete = null; // Added property to hold the file object for deletion
+    public $showDeleteModal = false; // Added property to control delete modal visibility
+    public $showDeletePitchModal = false; // Property for deleting the entire pitch
 
     protected $listeners = [
         'refreshPitchData' => 'mount',
-        'processNextFileInQueue' => 'processNextFileInQueue',
-        'clearHighlights' => 'clearHighlights',
+        'filesUploaded' => 'refreshPitchData',
     ];
 
     public function mount(Pitch $pitch)
@@ -101,17 +91,22 @@ class ManagePitch extends Component
         $this->currentSnapshot = $this->pitch->currentSnapshot;
         $this->latestSnapshot = $this->snapshots->first(); // Get the most recent one
         $this->responseToFeedback = ''; // Reset form
-        $this->tempUploadedFiles = []; // Clear queue
-        $this->fileSizes = [];
-        $this->newlyAddedFileKeys = [];
-        $this->newlyUploadedFileIds = [];
-        $this->isProcessingQueue = false;
-        $this->uploadingFileKey = null;
-        $this->uploadProgress = 0;
-        $this->uploadProgressMessage = '';
         $this->fileToDelete = null;
         $this->showDeleteModal = false;
         $this->showDeletePitchModal = false;
+        
+        // Reset revision feedback message
+        $this->statusFeedbackMessage = null;
+        Log::debug('ManagePitch Mount: Checking pitch status.', ['pitch_id' => $this->pitch->id, 'status' => $this->pitch->status]);
+        
+        // Fetch feedback if status is revisions_requested OR denied
+        if ($this->pitch->status === Pitch::STATUS_REVISIONS_REQUESTED || $this->pitch->status === Pitch::STATUS_DENIED) {
+            Log::debug('ManagePitch Mount: Status is REVISIONS_REQUESTED or DENIED. Fetching feedback.', ['pitch_id' => $this->pitch->id, 'status' => $this->pitch->status]);
+            $this->statusFeedbackMessage = $this->getLatestStatusFeedback();
+            Log::debug('ManagePitch Mount: Feedback fetched.', ['pitch_id' => $this->pitch->id, 'feedback_message' => $this->statusFeedbackMessage]);
+        } else {
+            Log::debug('ManagePitch Mount: Status is not REVISIONS_REQUESTED or DENIED. Skipping feedback fetch.', ['pitch_id' => $this->pitch->id]);
+        }
     }
 
     public function render()
@@ -128,149 +123,16 @@ class ManagePitch extends Component
     }
 
     /**
-     * Called when new files are selected/dropped.
-     * Livewire automatically populates $tempUploadedFiles.
-     * We can add validation here if needed.
+     * Refresh component data after file uploads.
      */
-    public function updatedTempUploadedFiles()
+    public function refreshPitchData()
     {
-        // Optional: Validate individual file types/sizes immediately
-        // $this->validate('tempUploadedFiles.*'); 
-        $this->newlyAddedFileKeys = array_keys($this->tempUploadedFiles);
-        $this->dispatch('new-files-added'); // Notify frontend if needed
-    }
-
-    /**
-     * Upload all files currently in the temporary queue.
-     */
-    public function uploadQueuedFiles(FileManagementService $fileManagementService)
-    {
-        if (empty($this->tempUploadedFiles)) {
-            Toaster::warning('No files selected for upload.');
-            return;
-        }
-
-        // Authorize the action for the pitch
-        try {
-            $this->authorize('uploadFile', $this->pitch); // Assuming PitchPolicy exists
-        } catch (AuthorizationException $e) {
-            Toaster::error('You are not authorized to upload files to this pitch.');
-            return;
-        }
-
-        $this->newlyUploadedFileIds = []; // Reset successful uploads for this batch
-        $totalFiles = count($this->tempUploadedFiles);
-        $filesProcessed = 0;
-        $uploadErrors = 0;
-
-        foreach ($this->tempUploadedFiles as $key => $file) {
-            $fileName = $file->getClientOriginalName();
-            try {
-                // Upload using the service
-                $pitchFile = $fileManagementService->uploadPitchFile($this->pitch, $file, Auth::user());
-
-                // Success for this file
-                $this->newlyUploadedFileIds[] = $pitchFile->id;
-                Log::info('Pitch file uploaded successfully via Livewire', ['pitch_id' => $this->pitch->id, 'file_id' => $pitchFile->id, 'filename' => $fileName]);
-                 // Optionally provide per-file success toast
-                 // Toaster::success("Uploaded {$fileName}"); 
-
-            } catch (FileUploadException | StorageLimitException $e) {
-                // Handle specific upload errors (size, storage limit, status)
-                Log::warning('Pitch file upload failed (validation) via Livewire', ['pitch_id' => $this->pitch->id, 'filename' => $fileName, 'error' => $e->getMessage()]);
-                Toaster::error("Upload failed for {$fileName}: " . $e->getMessage());
-                $uploadErrors++;
-            } catch (AuthorizationException $e) {
-                 // Should have been caught above, but as safety
-                Log::error('Unauthorized file upload attempt caught mid-queue', ['pitch_id' => $this->pitch->id, 'filename' => $fileName]);
-                Toaster::error('Authorization failed during upload.');
-                $uploadErrors++;
-                break; // Stop processing if authorization fails mid-way
-            } catch (\Exception $e) {
-                // Handle generic upload errors
-                Log::error('Error uploading pitch file via Livewire', ['pitch_id' => $this->pitch->id, 'filename' => $fileName, 'error' => $e->getMessage()]);
-                Toaster::error("An unexpected error occurred uploading {$fileName}.");
-                $uploadErrors++;
-            }
-            $filesProcessed++;
-        }
-
-        $this->finishUploadProcess($uploadErrors === 0, $totalFiles, $uploadErrors);
-    }
-    
-    /**
-     * Finalize the upload process after the loop completes.
-     */
-    protected function finishUploadProcess(bool $allSucceeded, int $totalFiles, int $errorCount)
-    {
-        $this->tempUploadedFiles = []; // Clear the temporary queue
-        $this->fileSizes = [];
-        $this->newlyAddedFileKeys = [];
-
-        // Refresh pitch data and storage info
-        $this->updateStorageInfo(); 
-        $this->dispatch('upload-complete'); // Notify other parts of the UI (e.g., file list)
-
-        // Provide summary feedback
-        if ($totalFiles > 0) {
-             if ($allSucceeded) {
-                 Toaster::success("Successfully uploaded {$totalFiles} file(s).");
-             } elseif ($errorCount < $totalFiles) {
-                 Toaster::warning("Completed upload: " . ($totalFiles - $errorCount) . " succeeded, {$errorCount} failed.");
-             } else {
-                 Toaster::error("All {$totalFiles} file uploads failed.");
-             }
-        }
-    }
-
-    /**
-     * Clear the highlight for newly added files
-     */
-    public function clearHighlights()
-    {
-        $this->newlyAddedFileKeys = [];
-    }
-
-    /**
-     * Clear the highlight for newly uploaded files
-     */
-    public function clearUploadHighlights()
-    {
-        $this->newlyUploadedFileIds = [];
-    }
-
-    /**
-     * Format file size in human-readable format
-     */
-    protected function formatFileSize($bytes)
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-        for ($i = 0; $bytes > 1024; $i++) {
-            $bytes /= 1024;
-        }
-
-        return round($bytes, 2) . ' ' . $units[$i];
-    }
-
-    /**
-     * Remove a file from the upload queue
-     */
-    public function removeUploadedFile($key)
-    {
-        if (isset($this->tempUploadedFiles[$key])) {
-            // Remove file from Livewire's temp array
-            unset($this->tempUploadedFiles[$key]);
-            // Remove associated size if tracked
-            if(isset($this->fileSizes[$key])) {
-                 unset($this->fileSizes[$key]);
-            }
-            // Re-index array keys if needed for display consistency
-            $this->tempUploadedFiles = array_values($this->tempUploadedFiles);
-             $this->fileSizes = array_values($this->fileSizes); // Keep sizes in sync if used
-        } else {
-            Log::warning('Attempted to remove non-existent key from upload queue', ['key' => $key, 'pitch_id' => $this->pitch->id]);
-        }
+        $this->pitch->refresh(); // Refresh the pitch model relation
+        $this->updateStorageInfo(); // Update storage display
+        // Reload files specifically if needed, though refresh() might cover it
+        // $this->pitch->load('files'); 
+        // You might need to refresh other derived properties if necessary
+        // $this->dispatch('pitch-updated'); // Optional: If other components need notifying
     }
 
     /**
@@ -309,31 +171,66 @@ class ManagePitch extends Component
         }
     }
 
+    /**
+     * Set the file to be deleted and show the confirmation modal.
+     * Called by AlpineJS when delete icon is clicked.
+     */
+    public function setFileToDelete($fileId)
+    {
+        // Fetch the file model to ensure it exists and belongs to the pitch
+        $file = PitchFile::where('id', $fileId)->where('pitch_id', $this->pitch->id)->first();
+        if ($file) {
+            $this->fileToDelete = $file; // Store the file model
+            // We don't need $this->showDeleteModal = true; as Alpine handles the modal visibility
+        } else {
+             Toaster::error('File not found or invalid.');
+             $this->fileToDelete = null;
+        }
+    }
+
+    /**
+     * Delete the selected file.
+     * Called by AlpineJS when the modal confirmation button is clicked.
+     */
     public function deleteSelectedFile(FileManagementService $fileManagementService)
     {
-        if (!$this->fileToDelete) return;
-
-        try {
-            $this->authorize('deleteFile', $this->pitch);
-            
-            $fileManagementService->deletePitchFile($this->fileToDelete, Auth::user());
-            Toaster::success('File deleted successfully.');
-            $this->fileToDelete = null;
-            $this->showDeleteModal = false;
-            $this->updateStorageInfo();
-            $this->dispatch('refreshPitchData'); // Refresh the file list
-
-        } catch (AuthorizationException $e) {
-            Log::error('Authorization failed for pitch file deletion', ['pitch_id' => $this->pitch->id, 'user_id' => auth()->id(), 'file_id' => $this->fileToDelete->id]);
-            Toaster::error('You are not authorized to delete this file.');
-            $this->showDeleteModal = false;
-        } catch (FileDeletionException | \Exception $e) {
-            Log::error('Error deleting pitch file via Livewire', [
-                'pitch_id' => $this->pitch->id, 'user_id' => auth()->id(), 'file_id' => $this->fileToDelete->id, 'error' => $e->getMessage()
-            ]);
-            Toaster::error('Error deleting file: ' . $e->getMessage());
-            $this->showDeleteModal = false;
+        if (!$this->fileToDelete) {
+            Toaster::error('No file selected for deletion.');
+            return;
         }
+
+        // Authorize the deletion
+        try {
+            $this->authorize('deleteFile', $this->fileToDelete); // Use PitchFilePolicy
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to delete this file.');
+            $this->fileToDelete = null; // Clear selection
+            return;
+        }
+        
+        try {
+            $fileName = $this->fileToDelete->file_name; // Get name before deleting
+            $deleted = $fileManagementService->deletePitchFile($this->fileToDelete, Auth::user());
+
+            if ($deleted) {
+                Toaster::success("File '{$fileName}' deleted successfully.");
+                $this->updateStorageInfo();
+                $this->dispatch('file-deleted');
+                $this->pitch->refresh(); // Refresh the pitch relationship
+            } else {
+                // This case might not be reachable if service throws exceptions
+                Toaster::error("Failed to delete file '{$fileName}'.");
+            }
+
+        } catch (FileDeletionException $e) {
+            Log::warning('Pitch file deletion failed via Livewire', ['file_id' => $this->fileToDelete->id ?? null, 'error' => $e->getMessage()]);
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error deleting pitch file via Livewire', ['file_id' => $this->fileToDelete->id ?? null, 'error' => $e->getMessage()]);
+            Toaster::error('An unexpected error occurred while deleting the file.');
+        }
+        
+        $this->fileToDelete = null; // Clear the selection after attempt
     }
 
     /**
@@ -519,121 +416,75 @@ class ManagePitch extends Component
     }
 
     /**
-     * Start processing the queued files sequentially.
+     * Fetch the latest feedback message (revision or denial) from events.
      */
-    public function processQueuedFiles(FileManagementService $fileManagementService)
+    protected function getLatestStatusFeedback(): ?string
     {
-        if (empty($this->tempUploadedFiles) || $this->isProcessingQueue) {
-            return;
+        Log::debug('ManagePitch: getLatestStatusFeedback called.', ['pitch_id' => $this->pitch->id]);
+        
+        // Query for the latest relevant event (revision request OR denial)
+        $feedbackEvent = $this->pitch->events()
+            ->where(function ($query) {
+                // Look for revision requests
+                $query->where('event_type', 'revision_request');
+                // OR look for denial events (type = status_change, status = denied)
+                $query->orWhere(function($q) {
+                    $q->where('event_type', 'status_change')
+                      ->where('status', Pitch::STATUS_DENIED);
+                });
+            })
+            ->orderBy('created_at', 'desc') // Get the most recent one
+            ->first();
+
+        if (!$feedbackEvent) {
+            Log::debug('ManagePitch: No relevant feedback event found.', ['pitch_id' => $this->pitch->id]);
+            return null;
         }
 
-        $this->isProcessingQueue = true;
-        $this->uploadingFileKey = 0; // Start with the first file
-        $this->newlyUploadedFileIds = []; // Reset for this batch
-        $this->dispatch('processNextFileInQueue');
-    }
+        Log::debug('ManagePitch: Found relevant feedback event.', [
+            'pitch_id' => $this->pitch->id,
+            'event_id' => $feedbackEvent->id,
+            'event_type' => $feedbackEvent->event_type,
+            'event_status' => $feedbackEvent->status,
+            'event_comment' => $feedbackEvent->comment,
+            'event_metadata' => $feedbackEvent->metadata
+        ]);
 
-    /**
-     * Process the next file in the upload queue.
-     * This is triggered by dispatchSelf after each successful upload.
-     */
-    public function processNextFileInQueue(FileManagementService $fileManagementService)
-    {
-        if (!$this->isProcessingQueue || $this->uploadingFileKey === null) {
-            return; // Should not happen if called correctly
-        }
+        $message = null;
 
-        $queueKeys = array_keys($this->tempUploadedFiles);
-        $currentKeyIndex = $this->uploadingFileKey;
-
-        if (!isset($queueKeys[$currentKeyIndex])) {
-            // No more files in the queue
-            $this->finishUploadProcess(true);
-            return;
-        }
-
-        $currentKey = $queueKeys[$currentKeyIndex];
-        $file = $this->tempUploadedFiles[$currentKey];
-        $fileName = $file->getClientOriginalName();
-        $totalFiles = count($this->tempUploadedFiles);
-
-        $this->uploadProgress = round((($currentKeyIndex + 1) / $totalFiles) * 100);
-        $this->uploadProgressMessage = "Uploading {$fileName} (" . ($currentKeyIndex + 1) . " of " . $totalFiles . ")...";
-
-        try {
-            // Authorize the upload action
-            $this->authorize('uploadFile', $this->pitch);
+        // Extract message based on event type/status
+        if ($feedbackEvent->event_type === 'revision_request') {
+            // Prioritize metadata for revisions
+            $message = $feedbackEvent->metadata['feedback'] ?? null;
+            if (empty($message)) {
+                // Fallback to parsing comment
+                $message = preg_replace('/^Revisions requested\.\s*(Feedback:\s*)?/i', '', $feedbackEvent->comment);
+            }
+        } elseif ($feedbackEvent->event_type === 'status_change' && $feedbackEvent->status === Pitch::STATUS_DENIED) {
+            // Use the robust parsing logic similar to FeedbackConversation
+            $commentLower = strtolower($feedbackEvent->comment);
+            $prefix = 'pitch submission denied.';
+            $reasonPrefix = 'reason:';
+            $reasonPos = strpos($commentLower, $reasonPrefix, strlen($prefix));
             
-            // Perform the actual upload using the service
-            $pitchFile = $fileManagementService->uploadPitchFile($this->pitch, $file, auth()->user());
-
-            // Success for this file
-            $this->newlyUploadedFileIds[] = $pitchFile->id;
-            Log::info('Pitch file uploaded successfully via Livewire', ['pitch_id' => $this->pitch->id, 'file_id' => $pitchFile->id, 'filename' => $fileName]);
-
-            // Move to the next file
-            $this->uploadingFileKey = $currentKeyIndex + 1;
-            $this->dispatch('processNextFileInQueue'); // Trigger next step
-
-        } catch (AuthorizationException $e) {
-            Log::error('Authorization failed for pitch file upload', ['pitch_id' => $this->pitch->id, 'user_id' => auth()->id(), 'filename' => $fileName]);
-            Toaster::error('Error uploading ' . $fileName . ': You are not authorized.');
-            $this->finishUploadProcess(false, 'Authorization failed.');
-        } catch (StorageLimitException $e) {
-            Log::warning('Storage limit exceeded during pitch file upload', ['pitch_id' => $this->pitch->id, 'user_id' => auth()->id(), 'filename' => $fileName]);
-            Toaster::error('Error uploading ' . $fileName . ': ' . $e->getMessage());
-            $this->finishUploadProcess(false, 'Storage limit exceeded.');
-        } catch (FileUploadException | \Exception $e) {
-            Log::error('Error uploading pitch file via Livewire', [
-                'pitch_id' => $this->pitch->id, 'user_id' => auth()->id(), 'filename' => $fileName, 'error' => $e->getMessage()
-            ]);
-            Toaster::error('Error uploading ' . $fileName . ': ' . $e->getMessage());
-            // Decide whether to stop queue or skip file
-            // For now, stop the queue on any error
-            $this->finishUploadProcess(false, 'Upload failed for ' . $fileName);
+            if ($reasonPos !== false) {
+                $message = trim(substr($feedbackEvent->comment, $reasonPos + strlen($reasonPrefix)));
+            } else {
+                 $potentialReason = trim(substr($feedbackEvent->comment, strlen($prefix)));
+                 if (!empty($potentialReason)) {
+                     // Option: Show generic message if prefix missing
+                     $message = '[Pitch Denied - No explicit reason provided]'; 
+                     // Option: Show remaining text as reason
+                     // $message = $potentialReason;
+                 } else {
+                     $message = '[Pitch Denied]'; // Only the prefix was present
+                 }
+            }
         }
-    }
 
-    public function confirmDeleteFile(PitchFile $file)
-    {
-        $this->fileToDelete = $file;
-        $this->showDeleteModal = true;
-    }
+        $message = trim($message ?? '');
+        Log::debug('ManagePitch: Extracted feedback message.', ['pitch_id' => $this->pitch->id, 'message' => $message]);
 
-    /**
-     * Show modal to confirm pitch deletion.
-     */
-    public function confirmDeletePitch()
-    {
-        $this->showDeletePitchModal = true;
-    }
-
-    /**
-     * Delete the entire pitch.
-     */
-    public function deletePitch(PitchService $pitchService)
-    {
-        try {
-            $this->authorize('delete', $this->pitch);
-            $project = $this->pitch->project; // Get project before deleting pitch
-            $pitchService->deletePitch($this->pitch, auth()->user());
-
-            Toaster::success('Pitch deleted successfully.');
-            // Redirect to the project page
-            return redirect()->route('projects.show', $project);
-
-        } catch (AuthorizationException $e) {
-            Log::warning('Unauthorized attempt to delete pitch via Livewire', ['pitch_id' => $this->pitch->id, 'user_id' => auth()->id()]);
-            Toaster::error($e->getMessage());
-            $this->showDeletePitchModal = false;
-        } catch (\Exception $e) {
-            Log::error('Error deleting pitch via Livewire', [
-                'pitch_id' => $this->pitch->id,
-                'user_id' => auth()->id(),
-                'error' => $e->getMessage()
-            ]);
-            Toaster::error('Failed to delete pitch. Please try again.');
-            $this->showDeletePitchModal = false;
-        }
+        return !empty($message) ? $message : null; 
     }
 }

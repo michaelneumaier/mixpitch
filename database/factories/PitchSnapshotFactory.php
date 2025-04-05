@@ -35,6 +35,7 @@ class PitchSnapshotFactory extends Factory
             'snapshot_data' => [ // Example snapshot data
                 'version' => $this->faker->numberBetween(1, 5), // Add version number
                 'comment' => $this->faker->sentence,
+                'file_ids' => [], // Add empty file_ids array
                 'files' => [
                     ['name' => $this->faker->word . '.mp3', 'path' => 'dummy/path1.mp3', 'size' => $this->faker->numberBetween(100000, 5000000)],
                     ['name' => $this->faker->word . '.wav', 'path' => 'dummy/path2.wav', 'size' => $this->faker->numberBetween(5000000, 20000000)],

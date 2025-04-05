@@ -17,7 +17,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use Spatie\Permission\Traits\HasRoles;
 use Laravel\Cashier\Billable;
 
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
@@ -27,7 +26,6 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     use HasProfilePhoto;
     use Notifiable;
     use TwoFactorAuthenticatable;
-    use HasRoles;
     use Billable;
 
     /**

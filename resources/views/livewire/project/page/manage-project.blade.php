@@ -1,4 +1,17 @@
 <div class="container mx-auto px-2 sm:px-4">
+    <!-- Debug Panel (only visible in development) -->
+    @if(config('app.env') !== 'production')
+    <div class="mb-4 p-3 bg-gray-100 rounded-lg text-xs border border-gray-300">
+        <h4 class="font-bold mb-1">Debug Panel</h4>
+        <div>showDeleteModal: {{ $showDeleteModal ? 'true' : 'false' }}</div>
+        <div>fileToDelete: {{ $fileToDelete ?: 'null' }}</div>
+        <div class="mt-2">
+            <button wire:click="confirmDeleteFile(1)" class="px-2 py-1 bg-red-500 text-white rounded mr-2">Test confirmDeleteFile(1)</button>
+            <button wire:click="$set('showDeleteModal', true)" class="px-2 py-1 bg-blue-500 text-white rounded">Force Show Modal</button>
+        </div>
+    </div>
+    @endif
+    <!-- End Debug Panel -->
     <style>
         /* Custom breakpoint for extra small screens */
         @media (min-width: 475px) {
@@ -147,7 +160,7 @@
                         @if($this->hasPreviewTrack)
                         <div
                             class="flex absolute h-auto w-auto top-auto -bottom-1 -left-1 right-auto z-50 aspect-auto text-sm">
-                            <livewire:audio-player audioUrl="{{$this->audioUrl}}" isInCard=true />
+                            @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isInCard' => true])
                         </div>
                         @endif
 
@@ -233,7 +246,7 @@
                                         class="py-1 pb-0 px-2 md:px-4 flex-1 bg-base-200/30 border-r border-base-200 text-center">
                                         <div class="label-text text-gray-600 text-xs sm:text-sm">Budget</div>
                                         <div class="font-bold text-sm sm:text-base">{{ $project->budget == 0 ? 'Free' :
-                                            '$'.number_format($project->budget, 0) }}</div>
+                                            '$'.number_format((float)$project->budget, 0) }}</div>
                                     </div>
                                     <div class="py-1 pb-0 px-2 md:px-4 flex-1 bg-base-200/70 text-center sm:text-left">
                                         <div class="label-text text-gray-600 text-xs sm:text-sm">Deadline</div>
@@ -317,10 +330,10 @@
                                 @php
                                 // Sort pitches to show completed first, then approved, then others
                                 $sortedPitches = $project->pitches->sortBy(function($pitch) {
-                                if ($pitch->status === 'completed') return 1;
-                                if ($pitch->status === 'approved') return 2;
-                                if ($pitch->status === 'closed') return 4;
-                                return 3; // All other statuses
+                                    if ($pitch->status === 'completed') return 1;
+                                    if ($pitch->status === 'approved') return 2;
+                                    if ($pitch->status === 'closed') return 4;
+                                    return 3; // All other statuses
                                 });
                                 @endphp
                                 @forelse($sortedPitches as $pitch)
@@ -553,390 +566,122 @@
                         </div>
                     </div>
 
-                    <!-- Tracks Section -->
-                    <div class="flex w-full flex-col md:col-span-2 bg-base-100 rounded-lg shadow-md border border-base-300 max-w-full tracks-container"
-                        x-data="{ 
-                            isUploading: false, 
-                            progress: 0,
-                            deleteModal: {
-                                isOpen: false,
-                                fileId: null,
-                                fileName: ''
-                            },
-                            uploadQueue: [],
-                            
-                            // Initialize listeners for file upload process
-                            initFileUpload() {
-                                const component = this;
-                                
-                                // Listen for the signal to upload the next file
-                                window.addEventListener('uploadNextFile', function(event) {
-                                    console.log('uploadNextFile event received:', event.detail);
-                                    
-                                    // Fix the check for event data
-                                    if (!event.detail) {
-                                        console.error('No event detail received');
-                                        return;
-                                    }
-                                    
-                                    let index, total;
-                                    
-                                    // Handle array format from Livewire 3
-                                    if (Array.isArray(event.detail)) {
-                                        index = event.detail[0]?.index;
-                                        total = event.detail[0]?.total;
-                                    } else {
-                                        // Handle object format
-                                        index = event.detail.index;
-                                        total = event.detail.total;
-                                    }
-                                    
-                                    if (typeof index === 'undefined') {
-                                        console.error('Invalid event data, no index found:', event.detail);
-                                        return;
-                                    }
-                                    
-                                    console.log(`Preparing to upload file ${index + 1} of ${total}. Queue length: ${component.uploadQueue.length}`);
-                                    
-                                    if (index >= component.uploadQueue.length) {
-                                        console.error(`Invalid index: ${index}. Queue only has ${component.uploadQueue.length} files.`);
-                                        // Tell Livewire to move to the next file
-                                        @this.uploadFailed(index, `Invalid index: ${index}`);
-                                        return;
-                                    }
-                                    
-                                    setTimeout(() => {
-                                        component.uploadFileByIndex(index);
-                                    }, 300);
-                                });
-                                
-                                // Handle file selection
-                                document.getElementById('newUploadedFiles').addEventListener('change', function(e) {
-                                    console.log('Files selected:', e.target.files);
-                                    
-                                    if (e.target.files.length) {
-                                        // Store the files in our local queue
-                                        component.uploadQueue = Array.from(e.target.files);
-                                        console.log('Upload queue updated:', component.uploadQueue);
-                                        
-                                        // Send file metadata to Livewire
-                                        const fileMetadata = Array.from(e.target.files).map(file => {
-                                            return {
-                                                name: file.name,
-                                                size: file.size,
-                                                type: file.type,
-                                                lastModified: file.lastModified
-                                            };
-                                        });
-                                        console.log('Setting file metadata:', fileMetadata);
-                                        
-                                        @this.set('tempUploadedFiles', fileMetadata);
-                                        @this.set('fileSizes', fileMetadata.map(file => component.formatFileSize(file.size)));
-                                    }
-                                });
-                            },
-                            
-                            // Format file size for display (called from JS)
-                            formatFileSize(bytes) {
-                                const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-                                let i = 0;
-                                while (bytes > 1024 && i < units.length - 1) {
-                                    bytes /= 1024;
-                                    i++;
-                                }
-                                return Math.round(bytes * 100) / 100 + ' ' + units[i];
-                            },
-                            
-                            // Upload a single file by index using FormData and fetch
-                            uploadFileByIndex(index) {
-                                if (!this.uploadQueue[index]) {
-                                    console.error(`File at index ${index} not found in queue`);
-                                    return;
-                                }
-                                
-                                console.log(`Uploading file ${index + 1} of ${this.uploadQueue.length}: ${this.uploadQueue[index].name}`);
-                                
-                                const file = this.uploadQueue[index];
-                                const formData = new FormData();
-                                formData.append('file', file);
-                                formData.append('project_id', '{{ $project->id }}');
-                                formData.append('_token', '{{ csrf_token() }}');
-                                
-                                fetch('/project/upload-file', {
-                                    method: 'POST',
-                                    body: formData,
-                                    headers: {
-                                        'X-Requested-With': 'XMLHttpRequest'
-                                    }
-                                })
-                                .then(response => {
-                                    // Check for specific HTTP status codes
-                                    if (response.status === 413) {
-                                        // Handle storage/file size limit exceeded
-                                        return response.json().then(data => {
-                                            throw new Error(data.message || 'File size or storage limit exceeded');
-                                        });
-                                    }
-                                    
-                                    if (!response.ok) {
-                                        throw new Error('Network response was not ok');
-                                    }
-                                    
-                                    return response.json();
-                                })
-                                .then(data => {
-                                    console.log(`File ${index + 1} uploaded successfully:`, data);
-                                    
-                                    // Update storage UI if data contains storage info
-                                    if (data.storage_percentage !== undefined) {
-                                        @this.set('storageUsedPercentage', data.storage_percentage);
-                                    }
-                                    
-                                    if (data.storage_limit_message) {
-                                        @this.set('storageLimitMessage', data.storage_limit_message);
-                                    }
-                                    
-                                    // Tell Livewire the file was uploaded successfully
-                                    @this.uploadSuccess(index, data.file_path, data.file_id);
-                                })
-                                .catch(error => {
-                                    console.error(`Error uploading file ${index + 1}:`, error);
-                                    // Tell Livewire the file upload failed
-                                    @this.uploadFailed(index, error.message);
-                                });
-                            },
-                                                        
-                            openDeleteModal(fileId, fileName) {
-                                this.deleteModal.isOpen = true;
-                                this.deleteModal.fileId = fileId;
-                                this.deleteModal.fileName = fileName;
-                            },
-                            closeDeleteModal() {
-                                this.deleteModal.isOpen = false;
-                            },
-                            confirmDelete() {
-                                $wire.deleteFile(this.deleteModal.fileId);
-                                this.closeDeleteModal();
-                            }
-                        }" 
-                        x-init="initFileUpload(); 
-                            Livewire.on('upload:start', () => { isUploading = true; })
-                            Livewire.on('upload:finish', () => { isUploading = false; })
-                            Livewire.on('upload:error', () => { isUploading = false; })
-                            Livewire.on('upload:progress', (progress) => { progress = progress; })"
-                        x-on:new-files-added.window="setTimeout(() => { $wire.clearHighlights() }, 2000)"
-                        x-on:new-uploads-completed.window="setTimeout(() => { $wire.clearUploadHighlights(); uploadQueue = []; }, 2000)">
-                        <div class="p-3 sm:p-4 flex flex-col">
-                            <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
-                                <i class="fas fa-music w-5 text-center mr-3 text-purple-500"></i>Tracks
+                    <!-- Upload Files Section -->
+                    <div x-data="{ showUploader: true }" class="p-3 sm:p-4 flex flex-col md:col-span-2 bg-base-100 rounded-lg shadow-md border border-base-300">
+                        <div class="flex items-center justify-between mb-2 sm:mb-3">
+                            <span class="text-lg sm:text-xl font-bold flex items-center">
+                                <i class="fas fa-upload w-5 text-center mr-2 text-primary"></i>Project Files
                             </span>
-
-                            <!-- Storage Usage Indicator -->
-                            <div class="mb-4">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs sm:text-sm font-medium text-gray-700">Storage Usage</span>
-                                    <span class="text-xs text-gray-600">{{ $storageLimitMessage }}</span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                    <div class="h-2.5 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? 'bg-red-500' : ($storageUsedPercentage > 70 ? 'bg-amber-500' : 'bg-primary') }}"
-                                        style="width: {{ $storageUsedPercentage }}%"></div>
-                                </div>
-                                <p class="mt-1 text-xs text-gray-500">
-                                    <i class="fas fa-info-circle mr-1"></i>
-                                    Maximum 1GB per project. Individual files up to 200MB.
-                                </p>
+                            <button 
+                                @click="showUploader = !showUploader" 
+                                class="btn btn-sm bg-base-200 hover:bg-base-300 text-gray-700 transition-colors"
+                            >
+                                <span x-text="showUploader ? 'Hide Uploader' : 'Show Uploader'"></span>
+                                <i class="fas ml-1" :class="showUploader ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Storage Usage Indicator -->
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">Storage Used: {{ $storageLimitMessage }}</span>
+                                <span class="text-xs text-gray-500">{{ $this->formatFileSize($storageRemaining) }} remaining</span>
                             </div>
-
-                            <div class="mb-4">
-                                <div class="flex flex-col">
-                                    <label class="mb-1.5 sm:mb-2 text-sm sm:text-base text-gray-700">Upload new tracks</label>
-                                    <div class="flex flex-col">
-                                        <div class="flex flex-col sm:flex-row gap-2 mb-2">
-                                            <div class="flex-grow min-w-0 overflow-hidden">
-                                                <label for="newUploadedFiles"
-                                                    class="flex flex-col items-center justify-center w-full h-14 sm:h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                                    <div class="flex items-center justify-center">
-                                                        <i class="fas fa-cloud-upload-alt text-gray-400 mr-2"></i>
-                                                        <span class="text-xs sm:text-sm text-gray-500">
-                                                            Click to add audio files
-                                                        </span>
-                                                    </div>
-                                                    <input type="file" id="newUploadedFiles" class="hidden"
-                                                        accept="audio/mpeg,audio/wav,audio/mp3,audio/aac,audio/ogg"
-                                                        multiple />
-                                                </label>
-                                                @error('uploadedFiles.*') <span class="text-red-500 text-xs sm:text-sm">{{ $message
-                                                    }}</span>
-                                                @enderror
-                                            </div>
-                                            <div class="flex-shrink-0">
-                                                <button wire:click="processQueuedFiles" wire:loading.attr="disabled"
-                                                    class="btn bg-primary hover:bg-primary-focus text-white w-full h-14 sm:h-16 sm:h-full"
-                                                    @if(empty($tempUploadedFiles)) disabled @endif>
-                                                    <i class="fas fa-upload mr-2"></i> Upload
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        @if(count($tempUploadedFiles) > 0)
-                                        <div class="bg-base-200/50 p-2.5 sm:p-3 rounded-lg mb-3">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <h4 class="font-medium text-sm sm:text-base">Files to upload ({{ count($tempUploadedFiles) }})
-                                                </h4>
-                                                <button wire:click="$set('tempUploadedFiles', []); $set('fileSizes', []);"
-                                                    class="text-red-500 hover:text-red-700 transition-colors text-xs sm:text-sm">
-                                                    Clear All
-                                                </button>
-                                            </div>
-                                            <div class="space-y-1.5 sm:space-y-2 max-h-36 sm:max-h-48 overflow-y-auto">
-                                                @foreach($tempUploadedFiles as $key => $file)
-                                                <div class="flex items-center justify-between bg-white p-1.5 sm:p-2 rounded-md transition-all duration-500
-                                                    @if(in_array($key, $newlyAddedFileKeys)) animate-fade-in @endif
-                                                    @if(isset($uploadingFileKey) && $uploadingFileKey === $key) bg-blue-50 @endif">
-                                                    <div class="flex items-center flex-1 min-w-0">
-                                                        <i class="fas @if(isset($uploadingFileKey) && $uploadingFileKey === $key) fa-spinner fa-spin text-blue-500 @else fa-music text-purple-500 @endif mr-1.5 sm:mr-2"></i>
-                                                        <div class="truncate flex-1 text-xs sm:text-sm">
-                                                            {{ $file['name'] }}
-                                                            <span class="text-2xs sm:text-xs text-gray-500 ml-1">{{ $fileSizes[$key]
-                                                                ?? '' }}</span>
-                                                            @if(isset($uploadingFileKey) && $uploadingFileKey === $key)
-                                                            <span class="ml-1 text-xs text-blue-600">Uploading...</span>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                    @if(!(isset($uploadingFileKey) && $uploadingFileKey === $key))
-                                                    <button wire:click="removeUploadedFile({{ $key }})"
-                                                        class="text-red-500 hover:text-red-700 transition-colors ml-2 p-1">
-                                                        <i class="fas fa-times text-sm sm:text-base"></i>
-                                                    </button>
-                                                    @endif
-                                                </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                        @endif
-
-                                        @if($isUploading || $isProcessingQueue)
-                                        <div class="w-full bg-gray-200 rounded-full h-1.5 sm:h-2.5 mb-4">
-                                            <div class="bg-primary h-1.5 sm:h-2.5 rounded-full" style="width: {{ $uploadProgress }}%">
-                                            </div>
-                                        </div>
-                                        <div class="text-xs sm:text-sm text-gray-600 mb-3 flex justify-between">
-                                            <span>{{ $uploadProgressMessage }}</span>
-                                            <span>{{ $uploadProgress }}%</span>
-                                        </div>
-                                        @endif
-                                    </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-primary h-2.5 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? 'bg-red-500' : ($storageUsedPercentage > 70 ? 'bg-amber-500' : 'bg-primary') }}"
+                                    style="width: {{ $storageUsedPercentage }}%"></div>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                                Maximum file size: 200MB. Total storage limit: 1GB.
+                            </p>
+                        </div>
+                        
+                        <!-- File Uploader Component -->
+                        <div x-show="showUploader" x-transition class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden mb-4">
+                            <div class="p-4 border-b border-base-200 bg-base-100/50">
+                                <h5 class="font-medium text-base">Upload New Files</h5>
+                                <p class="text-xs text-gray-500 mt-1">Upload audio, PDFs, or images to share with collaborators</p>
+                            </div>
+                            <div class="p-4">
+                                <livewire:file-uploader :model="$project" wire:key="project-uploader-{{ $project->id }}" />
+                            </div>
+                        </div>
+                        
+                        <!-- Files List Section -->
+                        <div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden">
+                            <div class="p-4 border-b border-base-200 bg-base-100/50 flex justify-between items-center">
+                                <h5 class="font-medium text-base">Files ({{ $project->files->count() }})</h5>
+                                <div class="flex items-center gap-2">
+                                    <button wire:click="$refresh" class="text-xs text-blue-600 hover:underline">
+                                        <i class="fas fa-sync-alt mr-1"></i>Refresh
+                                    </button>
+                                    @if($project->files->count() > 0)
+                                    <span class="text-xs text-gray-500">Total: {{ $this->formatFileSize($project->files->sum('size')) }}</span>
+                                    @endif
                                 </div>
                             </div>
-
-                            <div class="flex flex-col divide-y divide-base-300/50 overflow-hidden">
+                            
+                            <div class="divide-y divide-base-200">
                                 @forelse($project->files as $file)
-                                <div class="flex items-center justify-between py-2 sm:py-3 px-2 hover:bg-base-200/30 transition-all duration-500 rounded-lg track-item
-                                    @if(in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif">
+                                <div class="flex items-center justify-between py-3 px-4 hover:bg-base-100/50 transition-all duration-300 track-item
+                                    @if(isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif">
+                                    <!-- Test button -->
+                                    <button wire:click="confirmDeleteFile({{ $file->id }})" class="btn btn-xs btn-error text-white mr-2">
+                                        Delete {{ $file->id }}
+                                    </button>
+                                    <!-- End test button -->
                                     <div class="flex items-center overflow-hidden flex-1 pr-2">
                                         <div
-                                            class="w-7 h-7 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center {{ $file->id == $project->preview_track ? 'bg-primary text-white' : 'bg-base-200 text-gray-500' }} mr-2 sm:mr-3">
+                                            class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center {{ $file->id == $project->preview_track ? 'bg-primary text-white' : 'bg-base-200 text-gray-500' }} mr-3">
                                             <i class="fas fa-music text-sm sm:text-base"></i>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <div class="font-medium truncate track-filename text-sm sm:text-base">{{ $file->file_name }}
+                                            <div class="font-medium truncate text-sm sm:text-base">{{ $file->file_name }}
+                                                @if($file->id == $project->preview_track)
+                                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/20 text-primary">
+                                                    <i class="fas fa-star mr-1"></i>Preview
+                                                </span>
+                                                @endif
                                             </div>
-                                            <div class="text-xs text-gray-600 truncate">{{ $file->created_at->format('M
-                                                d, Y') }}
-                                                •
-                                                {{ $file->formatted_size }}</div>
+                                            <div class="flex items-center text-xs text-gray-500">
+                                                <span>{{ $file->created_at->format('M d, Y') }}</span>
+                                                <span class="mx-1.5">•</span>
+                                                <span>{{ $file->formatted_size }}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="flex items-center flex-shrink-0 track-actions">
-                                        @if($file->id == $project->preview_track)
-                                        <span
-                                            class="mr-1 sm:mr-3 text-2xs sm:text-xs bg-primary/20 text-primary px-1 sm:px-2 py-0.5 sm:py-1 rounded whitespace-nowrap">
-                                            <i class="fas fa-star"></i><span
-                                                class="hidden sm:inline ml-1">Preview</span>
-                                        </span>
-                                        @else
+                                    <div class="flex items-center space-x-1 sm:space-x-2">
+                                        @if($file->id != $project->preview_track)
                                         <button wire:click="togglePreviewTrack({{ $file->id }})"
-                                            class="mr-3 text-xs bg-base-200 hover:bg-base-300 text-gray-700 px-2 py-1 rounded transition-colors hidden sm:block">
-                                            Set as preview
-                                        </button>
-                                        <button wire:click="togglePreviewTrack({{ $file->id }})"
-                                            class="mr-1 text-2xs sm:text-xs bg-base-200 hover:bg-base-300 text-gray-700 px-1 py-0.5 sm:py-1 rounded transition-colors sm:hidden">
+                                            class="btn btn-sm btn-ghost text-gray-600 hover:text-primary">
                                             <i class="fas fa-star"></i>
                                         </button>
+                                        @else
+                                        <button wire:click="clearPreviewTrack"
+                                            class="btn btn-sm btn-ghost text-primary hover:text-gray-600">
+                                            <i class="fas fa-star-half-alt"></i>
+                                        </button>
                                         @endif
-                                        <a href="{{ route('download.project-file', $file->id) }}" 
-                                            class="text-gray-500 hover:text-gray-700 transition-colors mr-2 p-1 sm:p-1.5">
-                                            <i class="fas fa-download text-sm sm:text-base"></i>
-                                        </a>
-                                        <button @click="openDeleteModal({{ $file->id }}, '{{ $file->file_name }}')"
-                                            class="text-red-500 hover:text-red-700 transition-colors p-1 sm:p-1.5">
-                                            <i class="fas fa-trash text-sm sm:text-base"></i>
+                                        
+                                        <button wire:click="getDownloadUrl({{ $file->id }})"
+                                            class="btn btn-sm btn-ghost text-gray-600 hover:text-blue-600">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        
+                                        <button wire:click="confirmDeleteFile({{ $file->id }})"
+                                            class="btn btn-sm btn-ghost text-gray-600 hover:text-red-600">
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </div>
                                 @empty
                                 <div class="p-8 sm:p-10 text-center text-gray-500 italic">
-                                    <i class="fas fa-music text-4xl sm:text-5xl text-gray-300 mb-3"></i>
-                                    <p class="text-base sm:text-lg">No tracks uploaded yet</p>
-                                    <p class="text-xs sm:text-sm mt-2">Upload tracks to share with potential collaborators</p>
+                                    <i class="fas fa-folder-open text-4xl sm:text-5xl text-gray-300 mb-3"></i>
+                                    <p class="text-base sm:text-lg">No files uploaded yet</p>
+                                    <p class="text-xs sm:text-sm mt-2">Upload files to share with collaborators</p>
                                 </div>
                                 @endforelse
-                            </div>
-                        </div>
-
-                        <!-- Delete Confirmation Modal -->
-                        <div x-show="deleteModal.isOpen" class="fixed inset-0 z-50 overflow-y-auto"
-                            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
-                            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
-                            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak>
-                            <div
-                                class="flex items-center justify-center min-h-screen p-2 sm:p-4">
-                                <div class="fixed inset-0 transition-opacity" aria-hidden="true"
-                                    @click="closeDeleteModal()">
-                                    <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-                                </div>
-
-                                <!-- Modal panel -->
-                                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full max-w-sm sm:w-full"
-                                    x-transition:enter="transition ease-out duration-300"
-                                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                                    x-transition:leave="transition ease-in duration-200"
-                                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                                    <div class="bg-white px-3 sm:px-4 pt-3 sm:pt-5 pb-3 sm:pb-4 sm:p-6 sm:pb-4">
-                                        <div class="sm:flex sm:items-start">
-                                            <div
-                                                class="mx-auto flex-shrink-0 flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-red-100 sm:mx-0">
-                                                <i class="fas fa-exclamation-triangle text-red-600 text-lg sm:text-xl"></i>
-                                            </div>
-                                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                                                <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900"
-                                                    id="modal-title">
-                                                    Delete Track
-                                                </h3>
-                                                <div class="mt-2">
-                                                    <p class="text-xs sm:text-sm text-gray-500">
-                                                        Are you sure you want to delete <span class="font-medium break-all"
-                                                            x-text="deleteModal.fileName"></span>? This action cannot be
-                                                        undone.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                                        <button @click="confirmDelete()" type="button"
-                                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-3 sm:px-4 py-2 bg-red-600 text-xs sm:text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto">
-                                            Delete
-                                        </button>
-                                        <button @click="closeDeleteModal()" type="button"
-                                            class="mt-2 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-3 sm:px-4 py-2 bg-white text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -1002,6 +747,44 @@
             </div>
         </div>
     </div>
+    <!-- File Delete Confirmation Modal -->
+@if($showDeleteModal)
+<div class="fixed z-[9999] inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen p-4 text-center">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex items-center">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div class="mt-3 ml-4 text-left">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">
+                            Delete File
+                        </h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">
+                                Are you sure you want to delete this file? This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                <button wire:click="deleteFile" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700">
+                    Delete
+                </button>
+                <button wire:click="cancelDeleteFile" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
+@endif
+
 </div>
-</div>
+

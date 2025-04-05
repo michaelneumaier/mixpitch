@@ -15,7 +15,7 @@ class ProjectForm extends Form
     #[Rule('nullable|string|max:30')]
     public $artistName;
 
-    #[Rule('required|in:single,album,ep,other')]
+    #[Rule('required|in:single,album,ep,mixtape,remix,cover,soundtrack,other')]
     public $projectType;
 
     #[Rule('required|string|min:5|max:1000')]

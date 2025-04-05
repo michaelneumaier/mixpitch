@@ -40,7 +40,8 @@ class ProcessPitchPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payment_method_id' => 'required|string', // The ID from Stripe Elements/JS
+            'payment_method_id' => 'required_without:payment_method|string',
+            'payment_method' => 'required_without:payment_method_id|string',
             // Pitch ID is typically handled by route model binding, no need to validate here unless passed in body
             // 'pitch_id' => 'required|exists:pitches,id',
         ];
@@ -54,7 +55,23 @@ class ProcessPitchPaymentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'payment_method_id.required' => 'A payment method is required to proceed.',
+            'payment_method_id.required_without' => 'A payment method is required to proceed.',
+            'payment_method.required_without' => 'A payment method is required to proceed.',
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     *
+     * @return void
+     */
+    protected function prepareForValidation()
+    {
+        // Handle either payment_method or payment_method_id by consolidating them
+        if ($this->has('payment_method') && !$this->has('payment_method_id')) {
+            $this->merge([
+                'payment_method_id' => $this->input('payment_method'),
+            ]);
+        }
     }
 } 

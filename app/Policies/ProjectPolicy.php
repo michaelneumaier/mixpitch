@@ -4,6 +4,8 @@ namespace App\Policies;
 
 use App\Models\Project;
 use App\Models\User;
+use App\Models\Pitch;
+use App\Models\ProjectFile;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Support\Facades\Log;
 
@@ -69,7 +71,8 @@ class ProjectPolicy
      */
     public function delete(User $user, Project $project)
     {
-        return true;
+        // Only project owner can delete
+        return $user->id === $project->user_id;
     }
 
     /**
@@ -81,7 +84,8 @@ class ProjectPolicy
      */
     public function restore(User $user, Project $project)
     {
-        return true;
+        // Only project owner can restore (consider admin role later)
+        return $user->id === $project->user_id;
     }
 
     /**
@@ -93,7 +97,8 @@ class ProjectPolicy
      */
     public function forceDelete(User $user, Project $project)
     {
-        return true;
+        // Only project owner can force delete (consider admin role later)
+        return $user->id === $project->user_id;
     }
 
     /**
@@ -155,5 +160,61 @@ class ProjectPolicy
         $isOwner = $user->id === $project->user_id;
         Log::debug("[ProjectPolicy] unpublish check result: " . ($isOwner ? 'true' : 'false'));
         return $isOwner;
+    }
+
+    /**
+     * Determine whether the user can upload files to the project.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Project  $project
+     * @return bool
+     */
+    public function uploadFile(User $user, Project $project): bool
+    {
+        // Only the project owner can upload files to their project
+        return $user->id === $project->user_id;
+    }
+
+    /**
+     * Determine whether the user can delete a project file.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\ProjectFile  $projectFile
+     * @return bool
+     */
+    public function deleteFile(User $user, ProjectFile $projectFile): bool
+    {
+        // Only the project owner can delete files from their project
+        return $user->id === $projectFile->project->user_id;
+    }
+
+    /**
+     * Determine whether the user can download a project file.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\ProjectFile  $projectFile
+     * @return bool
+     */
+    public function download(User $user, ProjectFile $projectFile): bool
+    {
+        // Allow project owner
+        if ($user->id === $projectFile->project->user_id) {
+            return true;
+        }
+        
+        // Allow producer with an active pitch for this project
+        $activePitchStatuses = [
+            Pitch::STATUS_IN_PROGRESS,
+            Pitch::STATUS_REVISIONS_REQUESTED,
+            Pitch::STATUS_PENDING_REVIEW,
+            Pitch::STATUS_APPROVED,
+        ];
+
+        $hasActivePitch = Pitch::where('project_id', $projectFile->project_id)
+                               ->where('user_id', $user->id)
+                               ->whereIn('status', $activePitchStatuses)
+                               ->exists();
+
+        return $hasActivePitch;
     }
 }

@@ -3,9 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class FilamentAdminSeeder extends Seeder
 {
@@ -16,86 +15,25 @@ class FilamentAdminSeeder extends Seeder
      */
     public function run()
     {
-        // Create permissions
-        $permissions = [
-            // Filament access permissions
-            'access_filament',
-            
-            // User management
-            'view_users',
-            'create_users',
-            'edit_users',
-            'delete_users',
-            
-            // Project management
-            'view_projects',
-            'create_projects',
-            'edit_projects',
-            'delete_projects',
-            
-            // Pitch management
-            'view_pitches',
-            'create_pitches',
-            'edit_pitches',
-            'delete_pitches',
-            
-            // Email management
-            'view_email_audit',
-            'manage_email_audit',
-            'view_email_events',
-            'view_email_suppressions',
-            'manage_email_suppressions',
-            'view_email_tests',
-            'create_email_tests',
-            
-            // Settings management
-            'manage_settings',
-        ];
+        // Find the first user (or create one if none exist, though usually seeded earlier)
+        $adminUser = User::first(); 
 
-        foreach ($permissions as $permission) {
-            Permission::findOrCreate($permission);
-        }
-
-        // Create roles
-        $adminRole = Role::findOrCreate('admin');
-        $editorRole = Role::findOrCreate('editor');
-        $moderatorRole = Role::findOrCreate('moderator');
-
-        // Assign all permissions to admin role
-        $adminRole->syncPermissions(Permission::all());
-        
-        // Assign limited permissions to editor role
-        $editorRole->syncPermissions([
-            'access_filament',
-            'view_projects',
-            'create_projects',
-            'edit_projects',
-            'view_pitches',
-            'create_pitches',
-            'edit_pitches',
-            'view_email_audit',
-            'view_email_events',
-            'view_email_suppressions',
-            'view_email_tests',
-        ]);
-        
-        // Assign limited permissions to moderator role
-        $moderatorRole->syncPermissions([
-            'access_filament',
-            'view_users',
-            'view_projects',
-            'view_pitches',
-            'edit_pitches',
-            'view_email_audit',
-            'view_email_events',
-            'view_email_suppressions',
-        ]);
-
-        // Assign admin role to the first user or a specific user
-        $adminUser = User::find(1); // Usually the first user in the system
-        
         if ($adminUser) {
-            $adminUser->assignRole('admin');
+            // Set the role directly on the user model
+            $adminUser->role = User::ROLE_ADMIN;
+            $adminUser->save();
+            Log::info('FilamentAdminSeeder: Assigned admin role to user ID ' . $adminUser->id);
+        } else {
+            Log::warning('FilamentAdminSeeder: No users found to assign admin role.');
+            // Optionally, you could create an admin user here if necessary
+            // User::factory()->create([
+            //     'name' => 'Admin User',
+            //     'email' => 'admin@example.com', 
+            //     'password' => bcrypt('password'), 
+            //     'role' => User::ROLE_ADMIN,
+            // ]);
         }
+
+        // Remove all previous Spatie permission/role logic
     }
 } 

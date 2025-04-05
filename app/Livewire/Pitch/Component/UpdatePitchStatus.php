@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Masmerise\Toaster\Toaster;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Models\PitchEvent;
 
 class UpdatePitchStatus extends Component
 {
@@ -325,6 +326,140 @@ class UpdatePitchStatus extends Component
         } catch (\Exception $e) {
             Log::error('Error cancelling submission via Livewire', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
             Toaster::error('An unexpected error occurred while cancelling the submission.');
+        }
+    }
+
+    /**
+     * Change the status of a pitch (direct status change for simple transitions)
+     *
+     * @param string $direction The direction of the transition ('forward' or 'backward')
+     * @param string $newStatus The new status to set
+     * @return void
+     */
+    public function changeStatus(string $direction, string $newStatus)
+    {
+        try {
+            // Change the authorization check based on the status transition
+            if ($this->status === Pitch::STATUS_PENDING && $newStatus === Pitch::STATUS_IN_PROGRESS) {
+                // For approving initial pitch, use the same permission as approveInitialPitch
+                $this->authorize('approveInitial', $this->pitch);
+            } else if ($direction === 'backward' && 
+                      ($this->status === Pitch::STATUS_IN_PROGRESS || 
+                       $this->status === Pitch::STATUS_PENDING_REVIEW)) {
+                // For revoking access, project owners should be able to do this
+                $this->authorize('manageAccess', $this->pitch);
+            } else if ($direction === 'backward' && 
+                      ($this->status === Pitch::STATUS_APPROVED || 
+                       $this->status === Pitch::STATUS_READY_FOR_REVIEW)) {
+                // For returning approved/ready for review pitches, project owners should have access
+                $this->authorize('manageReview', $this->pitch);
+            } else {
+                // Default fallback to update permission
+                $this->authorize('update', $this->pitch);
+            }
+            
+            // Get available transitions for this direction
+            $availableTransitions = Pitch::$transitions[$direction][$this->status] ?? null;
+            
+            // Check if this is a valid transition
+            $isValidTransition = false;
+            if (is_array($availableTransitions)) {
+                $isValidTransition = in_array($newStatus, $availableTransitions);
+            } else {
+                $isValidTransition = $availableTransitions === $newStatus;
+            }
+            
+            if (!$isValidTransition) {
+                throw new InvalidStatusTransitionException(
+                    $this->status, 
+                    $newStatus, 
+                    'Invalid status transition'
+                );
+            }
+            
+            // Update the status
+            $this->pitch->status = $newStatus;
+            $this->pitch->save();
+            
+            // Record this event
+            PitchEvent::createStatusChangeEvent(
+                $this->pitch, 
+                auth()->user(),
+                $this->status,
+                $newStatus
+            );
+            
+            // Update component state
+            $this->status = $newStatus;
+            
+            // Dispatch events
+            $this->dispatch('pitchStatusUpdated');
+            
+            Toaster::success('Pitch status updated successfully.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to change this pitch status.');
+        } catch (InvalidStatusTransitionException $e) {
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error changing pitch status', [
+                'pitch_id' => $this->pitch->id, 
+                'direction' => $direction,
+                'new_status' => $newStatus, 
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('An unexpected error occurred while changing the pitch status.');
+        }
+    }
+
+    /**
+     * Helper method to return a denied pitch back to 'ready for review' status
+     * 
+     * @return void
+     */
+    public function returnToReadyForReview()
+    {
+        // This is essentially a wrapper around changeStatus but provides
+        // a more descriptive method name for the specific transition
+        try {
+            $this->authorize('manageReview', $this->pitch);
+            
+            if ($this->status !== Pitch::STATUS_DENIED) {
+                throw new InvalidStatusTransitionException(
+                    $this->status, 
+                    Pitch::STATUS_READY_FOR_REVIEW, 
+                    'This action is only valid for denied pitches'
+                );
+            }
+            
+            // Update the status
+            $this->pitch->status = Pitch::STATUS_READY_FOR_REVIEW;
+            $this->pitch->save();
+            
+            // Record this event
+            PitchEvent::createStatusChangeEvent(
+                $this->pitch, 
+                auth()->user(),
+                $this->status,
+                Pitch::STATUS_READY_FOR_REVIEW
+            );
+            
+            // Update component state
+            $this->status = Pitch::STATUS_READY_FOR_REVIEW;
+            
+            // Dispatch events
+            $this->dispatch('pitchStatusUpdated');
+            
+            Toaster::success('Pitch returned to review successfully.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to return this pitch to review.');
+        } catch (InvalidStatusTransitionException $e) {
+            Toaster::error($e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error returning pitch to review', [
+                'pitch_id' => $this->pitch->id, 
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('An unexpected error occurred while returning the pitch to review.');
         }
     }
 

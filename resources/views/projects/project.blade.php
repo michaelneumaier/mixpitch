@@ -110,7 +110,18 @@
                             @else
                                 <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-6">
                                     @if($userPitch)
-                                        <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($userPitch) }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
+                                        @php
+                                            try {
+                                                $pitchUrl = \App\Helpers\RouteHelpers::pitchUrl($userPitch);
+                                            } catch (\Exception $e) {
+                                                \Illuminate\Support\Facades\Log::error('Error generating pitch URL', [
+                                                    'pitch_id' => $userPitch->id ?? null,
+                                                    'error' => $e->getMessage()
+                                                ]);
+                                                $pitchUrl = '#';
+                                            }
+                                        @endphp
+                                        <a href="{{ $pitchUrl }}" class="block bg-accent hover:bg-accent-focus tracking-tight text-xl text-center font-bold
                                                                 py-2.5 sm:py-3 px-4 rounded-lg shadow-md hover:shadow-lg whitespace-nowrap transition-all transform hover:scale-105 flex-1">
                                             <i class="fas fa-eye mr-2"></i> View Your Pitch
                                         </a>

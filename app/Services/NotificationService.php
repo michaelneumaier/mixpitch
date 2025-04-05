@@ -9,9 +9,20 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Services\EmailService;
 
 class NotificationService
 {
+    protected EmailService $emailService;
+
+    /**
+     * Constructor to inject services.
+     */
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
+
     /**
      * Create a notification for a user
      *
@@ -1057,9 +1068,18 @@ class NotificationService
                 ]
             );
             
-            // Also, dispatch the Laravel Notification class expected by the feature test
-            // This assumes the existence of App\Notifications\Pitch\PitchSubmittedNotification
-            $projectOwner->notify(new \App\Notifications\Pitch\PitchSubmittedNotification($pitch));
+            // Send email notification via EmailService
+            try {
+                $this->emailService->sendPitchSubmittedEmail($projectOwner, $pitch);
+                Log::info('Pitch submitted email sent via EmailService.', ['pitch_id' => $pitch->id, 'user_id' => $projectOwner->id]);
+            } catch (\Exception $emailException) {
+                Log::error('Failed to send pitch submitted email via EmailService', [
+                    'message' => $emailException->getMessage(),
+                    'pitch_id' => $pitch->id,
+                    'project_owner_id' => $projectOwner->id,
+                ]);
+                // Decide if we should re-throw or just log
+            }
             
             return $notification; // Return the DB notification record
 

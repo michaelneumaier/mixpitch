@@ -79,6 +79,43 @@
     @stack('scripts')
 
     <x-toaster-hub />
+    
+    {{-- Alpine component to handle URL opening/download --}}
+    <div x-data 
+         x-on:open-url.window="() => { 
+             let url = $event.detail.url;
+             let filename = $event.detail.filename;
+             console.log('Alpine caught open-url event with URL:', url, 'Filename:', filename); 
+             
+             if (url) { 
+                 const link = document.createElement('a');
+                 link.href = url;
+                 
+                 // Add the download attribute if filename is provided
+                 if (filename) {
+                    link.setAttribute('download', filename);
+                 } else {
+                    // Optional: try to extract filename from URL as a fallback
+                    try {
+                        const urlParts = new URL(url);
+                        const pathParts = urlParts.pathname.split('/');
+                        link.setAttribute('download', pathParts[pathParts.length - 1]);
+                    } catch (e) {
+                        console.warn('Could not parse URL to extract filename.');
+                    }
+                 }
+                 
+                 // Append to body, click, and remove (modern approach)
+                 document.body.appendChild(link);
+                 link.click();
+                 document.body.removeChild(link);
+                 
+             } else { 
+                 console.error('Received open-url event but URL was missing.'); 
+             } 
+         }">
+        {{-- This div doesn't render anything visible, it just listens for the event --}}
+    </div>
 </body>
 
 </html>

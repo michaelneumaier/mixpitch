@@ -11,64 +11,31 @@ use Illuminate\Support\Facades\Log;
 
 class ShowSnapshot extends Component
 {
-    public $pitch;
-    public $pitchSnapshot;
+    public Project $project;
+    public Pitch $pitch;
+    public PitchSnapshot $pitchSnapshot;
     public $snapshotData;
 
-    public function mount($pitch = null, $pitchSnapshot = null, $project = null, $snapshot = null)
+    public function mount(Project $project, Pitch $pitch, PitchSnapshot $snapshot)
     {
-        // Handle the case where we have slug-based routing (project and pitch are slugs)
-        if (isset($project) && isset($pitch) && isset($snapshot)) {
-            // When using the new URL pattern with slugs, we need to find models by slug
-            if (is_string($project)) {
-                // Find project by slug
-                $project = Project::where('slug', $project)->firstOrFail();
-            }
-            
-            if (is_string($pitch)) {
-                // Find pitch by slug
-                $pitch = Pitch::where('slug', $pitch)->where('project_id', $project->id)->firstOrFail();
-            }
-            
-            // Verify pitch belongs to project
-            if ($pitch->project_id != $project->id) {
-                abort(404, 'Pitch not found for this project');
-            }
-            
-            // Resolve snapshot by ID (snapshots don't have slugs)
-            $pitchSnapshot = PitchSnapshot::findOrFail($snapshot);
-            
-            // Verify snapshot belongs to pitch
-            if ($pitchSnapshot->pitch_id != $pitch->id) {
-                abort(404, 'Snapshot not found for this pitch');
-            }
-            
-            // Now we can safely set the properties
-            $this->pitch = $pitch;
-            $this->pitchSnapshot = $pitchSnapshot;
-            $this->snapshotData = $pitchSnapshot->snapshot_data;
-        } 
-        // Old route pattern is no longer supported
-        else {
-            abort(404, 'Invalid URL pattern. Please use the project/pitch/snapshot URL structure.');
+        // Verify relationships (optional but good practice)
+        if ($pitch->project_id !== $project->id || $snapshot->pitch_id !== $pitch->id) {
+            abort(404);
         }
 
-        // Check if the user is authorized to view this snapshot
-        if (Auth::id() !== $this->pitch->user_id && Auth::id() !== $this->pitch->project->user_id) {
+        // Check authorization
+        if (Auth::id() !== $pitch->user_id && Auth::id() !== $project->user_id) {
             abort(403, 'Unauthorized action.');
         }
+
+        $this->project = $project;
+        $this->pitch = $pitch;
+        $this->pitchSnapshot = $snapshot;
+        $this->snapshotData = $snapshot->snapshot_data;
     }
 
     public function render()
     {
-        // Safety check
-        if (!isset($this->pitch) || !isset($this->pitchSnapshot)) {
-            return view('livewire.pitch.snapshot.show-snapshot', [
-                'conversationThread' => [],
-                'error' => 'Cannot load snapshot data'
-            ]);
-        }
-        
         $conversationThread = $this->getConversationThread();
         return view('livewire.pitch.snapshot.show-snapshot', [
             'conversationThread' => $conversationThread
@@ -114,12 +81,12 @@ class ShowSnapshot extends Component
                 'date' => $responseDate,
                 'user' => $responseUser,
                 'snapshot_id' => $pitchSnapshot->id,
-                'status' => $pitchSnapshot->status,
+                'status' => $pitchSnapshot->status, // Status of the snapshot that contained the response
                 'previous_snapshot_id' => $pitchSnapshot->snapshot_data['previous_snapshot_id'] ?? null
             ];
         }
 
-        // STEP 2: Add feedback for the current snapshot (if it exists)
+        // STEP 2: Add feedback *about* the current snapshot (if it exists)
         $currentFeedback = $this->getCurrentSnapshotFeedback();
         if ($currentFeedback) {
             $conversationThread[] = [
@@ -127,82 +94,117 @@ class ShowSnapshot extends Component
                 'message' => $currentFeedback['message'],
                 'date' => $currentFeedback['date'],
                 'user' => $currentFeedback['user'],
-                'snapshot_id' => $pitchSnapshot->id,
-                'status' => $pitchSnapshot->status,
-                'feedback_type' => $pitchSnapshot->status === 'denied' ? 'denial' : 'revision'
+                'snapshot_id' => $pitchSnapshot->id, // Refers to the snapshot receiving the feedback
+                'status' => $pitchSnapshot->status, // Current status of the snapshot (might have changed)
+                'feedback_type' => $currentFeedback['feedback_type'] // Use the type from the helper
             ];
         }
 
         // STEP 3: For debugging, log the snapshot details
-        Log::debug('Snapshot details', [
-            'id' => $pitchSnapshot->id,
+        Log::debug('Snapshot conversation thread data', [
+            'snapshot_id' => $pitchSnapshot->id,
             'status' => $pitchSnapshot->status,
-            'has_response' => isset($pitchSnapshot->snapshot_data['response_to_feedback']),
-            'has_feedback' => !is_null($currentFeedback),
             'snapshot_data' => $pitchSnapshot->snapshot_data,
             'conversation_thread' => $conversationThread
         ]);
 
         // Sort conversation thread by date
         usort($conversationThread, function ($a, $b) {
-            return $a['date'] <=> $b['date'];
+            // Ensure dates are Carbon instances for comparison
+            $dateA = $a['date'] instanceof \Carbon\Carbon ? $a['date'] : \Carbon\Carbon::parse($a['date']);
+            $dateB = $b['date'] instanceof \Carbon\Carbon ? $b['date'] : \Carbon\Carbon::parse($b['date']);
+            return $dateA <=> $dateB;
         });
 
         return $conversationThread;
     }
 
     /**
-     * Get feedback for the current snapshot if it exists.
+     * Get feedback related to the current snapshot (Denial Reason or Revision Request).
      */
     protected function getCurrentSnapshotFeedback()
     {
         // Safety checks
         if (!isset($this->pitch) || !isset($this->pitchSnapshot)) {
-            Log::error('Missing data for snapshot feedback', [
+            Log::warning('Missing data for snapshot feedback', [
                 'has_pitch' => isset($this->pitch),
                 'has_snapshot' => isset($this->pitchSnapshot)
             ]);
             return null;
         }
         
-        $pitch = $this->pitch;
         $pitchSnapshot = $this->pitchSnapshot;
 
-        // Check for feedback in snapshot data
-        if (isset($pitchSnapshot->snapshot_data['feedback']) && !empty($pitchSnapshot->snapshot_data['feedback'])) {
-            return [
-                'message' => $pitchSnapshot->snapshot_data['feedback'],
-                'date' => $pitchSnapshot->updated_at,
-                'user' => $pitch->project->user
-            ];
-        }
-
-        // Check for feedback in events
-        $feedbackEvents = $pitch->events()
-            ->where(function ($query) {
-                $query->where('event_type', 'snapshot_revisions_requested')
-                    ->orWhere('event_type', 'snapshot_denied');
-            })
+        // Query for the specific event associated with this snapshot receiving feedback.
+        // This could be a denial or a revision request.
+        $feedbackEvent = $this->pitch->events()
             ->where('snapshot_id', $pitchSnapshot->id)
+            ->where(function ($query) {
+                $query->where('event_type', 'revision_request') // Specific type for revisions
+                      ->orWhere(function($q) { // Handle denial (stored as status_change)
+                          $q->where('event_type', 'status_change')
+                            ->where('comment', 'LIKE', 'Pitch submission denied%');
+                      });
+            })
+            ->orderBy('created_at', 'desc') // Get the most recent relevant event for this snapshot
             ->first();
 
-        if ($feedbackEvents) {
+        if ($feedbackEvent) {
+            Log::debug('[ShowSnapshot] Found relevant feedback event.', [
+                'event_id' => $feedbackEvent->id, 
+                'event_type' => $feedbackEvent->event_type,
+                'event_comment' => $feedbackEvent->comment, 
+                'event_metadata' => $feedbackEvent->metadata
+            ]);
+            
             $message = '';
-            if ($feedbackEvents->event_type === 'snapshot_revisions_requested') {
-                $message = preg_replace('/^Revisions requested\. Reason: /i', '', $feedbackEvents->comment);
-            } else {
-                $message = preg_replace('/^(Snapshot |)denied\. Reason: /i', '', $feedbackEvents->comment);
+            $feedbackType = 'unknown';
+
+            // Check if it's a revision request
+            if ($feedbackEvent->event_type === 'revision_request') {
+                $feedbackType = 'revision';
+                // Prioritize metadata for revisions if available
+                if (isset($feedbackEvent->metadata['feedback']) && !empty($feedbackEvent->metadata['feedback'])) {
+                    $message = $feedbackEvent->metadata['feedback'];
+                    Log::debug('[ShowSnapshot] Revision feedback extracted from metadata.', ['message' => $message]);
+                } else {
+                    // Fallback to parsing comment
+                    $message = preg_replace('/^Revisions requested\.\s*(Feedback:\s*)?/i', '', $feedbackEvent->comment);
+                    Log::debug('[ShowSnapshot] Revision feedback parsed from comment (fallback).', ['event_id' => $feedbackEvent->id, 'parsed_message' => $message]);
+                }
+            }
+            // Check if it's a denial (type is 'status_change')
+            elseif ($feedbackEvent->event_type === 'status_change' && str_starts_with($feedbackEvent->comment, 'Pitch submission denied')) {
+                $feedbackType = 'denial';
+                // Parse reason from comment
+                $message = preg_replace('/^Pitch submission denied\.\s*(Reason:\s*)?/i', '', $feedbackEvent->comment);
+                 Log::debug('[ShowSnapshot] Denial reason parsed from comment.', ['event_id' => $feedbackEvent->id, 'parsed_message' => $message]);
             }
 
-            return [
-                'message' => $message,
-                'date' => $feedbackEvents->created_at,
-                'user' => $feedbackEvents->user ?? ($feedbackEvents->created_by ?
-                    \App\Models\User::find($feedbackEvents->created_by) : null)
-            ];
+            // Trim potential whitespace from parsing
+            $message = trim($message);
+
+            // Only return if a message was actually extracted
+            if (!empty($message)) {
+                 Log::debug('[ShowSnapshot] Final feedback message extracted.', ['message' => $message, 'type' => $feedbackType]);
+                 return [
+                    'message' => $message,
+                    'date' => $feedbackEvent->created_at,
+                    'user' => $feedbackEvent->creator ?? \App\Models\User::find($feedbackEvent->created_by),
+                    'feedback_type' => $feedbackType
+                ];
+            } else {
+                Log::warning('[ShowSnapshot] Feedback event found but message parsing/extraction failed.', [
+                    'event_id' => $feedbackEvent->id,
+                    'event_type' => $feedbackEvent->event_type,
+                    'comment' => $feedbackEvent->comment,
+                    'metadata' => $feedbackEvent->metadata
+                ]);
+            }
+        } else {
+             Log::debug('[ShowSnapshot] No relevant feedback event found for snapshot.', ['snapshot_id' => $pitchSnapshot->id]);
         }
 
-        // If we reach here, no feedback was found
         return null;
     }
 }

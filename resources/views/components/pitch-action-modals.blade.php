@@ -13,6 +13,11 @@
 
             <div class="p-6">
                 <p class="text-gray-700 mb-4">Are you sure you want to approve this pitch?</p>
+                
+                <form id="approveForm" method="POST" class="hidden">
+                    @csrf
+                    <!-- Form fields will be added via JavaScript -->
+                </form>
             </div>
 
             <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
@@ -41,6 +46,12 @@
 
             <div class="p-6">
                 <p class="text-gray-700 mb-4">Are you sure you want to deny this pitch?</p>
+                
+                <form id="denyForm" method="POST" class="hidden">
+                    @csrf
+                    <!-- Form fields will be added via JavaScript -->
+                </form>
+                
                 <div class="mb-4">
                     <label for="denyReason" class="block text-sm font-medium text-gray-700 mb-1">Reason for
                         denial</label>
@@ -76,6 +87,12 @@
 
             <div class="p-6">
                 <p class="text-gray-700 mb-4">What revisions would you like to request for this pitch?</p>
+                
+                <form id="revisionsForm" method="POST" class="hidden">
+                    @csrf
+                    <!-- Form fields will be added via JavaScript -->
+                </form>
+                
                 <div class="mb-4">
                     <label for="revisionsRequested" class="block text-sm font-medium text-gray-700 mb-1">Requested
                         Revisions</label>

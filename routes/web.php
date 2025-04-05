@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\MixController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PitchController;
 use App\Http\Controllers\PitchFileController;
@@ -20,6 +19,8 @@ use App\Livewire\LivewireViewFactory;
 use App\Http\Controllers\Admin\StatsController;
 use App\Http\Controllers\Billing\BillingController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PitchSnapshotController;
+use App\Http\Controllers\PitchStatusController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,7 +62,7 @@ Route::middleware(['auth'])->group(function () {
     // });
 
     Route::get('/create-project', CreateProject::class)->name('projects.create');
-    Route::get('/edit-project/{project}', ManageProject::class)->name('projects.edit');
+    Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
     Route::get('/manage-project/{project}', ManageProject::class)->name('projects.manage');
 
 
@@ -69,10 +70,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
     Route::get('/projects/{project}/download', [ProjectController::class, 'download'])->name('projects.download');
-
-    Route::get('/projects/{project}/mixes/create', [MixController::class, 'create'])->name('mixes.create');
-    Route::post('/projects/{project}/mixes', [MixController::class, 'store'])->name('mixes.store');
-    Route::patch('/mixes/{mix}/rate', [MixController::class, 'rate'])->name('mixes.rate');
 
     Route::post('/pitches/{pitch}/status', [PitchController::class, 'updateStatus'])->name('pitches.updateStatus');
 
@@ -92,7 +89,7 @@ Route::middleware(['auth'])->group(function () {
     // New route for handling sequential file uploads
     Route::post('/pitch/upload-file', [App\Http\Controllers\PitchFileController::class, 'uploadSingle'])
         ->name('pitch.uploadFile')
-        ->middleware(['auth', 'pitch.file.access']);
+        ->middleware('auth');
 
     // New route for handling sequential project file uploads
     Route::post('/project/upload-file', [App\Http\Controllers\ProjectController::class, 'uploadSingle'])
@@ -135,9 +132,13 @@ Route::middleware(['auth'])->group(function () {
         
     Route::get('/projects/{project}/pitches/{pitch}/edit', [App\Http\Controllers\PitchController::class, 'editProjectPitch'])
         ->name('projects.pitches.edit');
-        
+
+    // Route for updating a specific pitch within a project
+    Route::put('/projects/{project}/pitches/{pitch}', [App\Http\Controllers\PitchController::class, 'update'])
+        ->name('projects.pitches.update');
+
     // Add the missing route for changing pitch status with project context
-    Route::get('/projects/{project}/pitches/{pitch}/change-status', [App\Http\Controllers\PitchController::class, 'changePitchStatus'])
+    Route::post('/projects/{project}/pitches/{pitch}/change-status', [App\Http\Controllers\PitchController::class, 'changeStatus'])
         ->name('projects.pitches.change-status');
         
     Route::get('/projects/{project}/pitches/{pitch}/payment', [App\Http\Controllers\PitchController::class, 'showProjectPitchPayment'])
@@ -155,6 +156,89 @@ Route::middleware(['auth'])->group(function () {
     // Special route for pitch deletion with project context
     Route::get('/projects/{project}/pitches/{pitch}/delete-confirmed', [App\Http\Controllers\PitchController::class, 'destroyConfirmed'])
         ->name('projects.pitches.destroyConfirmed');
+
+    // Pitch snapshot action routes
+    Route::post('/pitch/{pitch}/snapshots/{snapshot}/approve', [PitchSnapshotController::class, 'approve'])
+        ->name('pitch.approveSnapshot')
+        ->middleware('auth');
+    
+    Route::post('/pitch/{pitch}/snapshots/{snapshot}/request-changes', [PitchSnapshotController::class, 'requestChanges'])
+        ->name('pitch.requestChanges')
+        ->middleware('auth');
+    
+    Route::post('/pitch/{pitch}/snapshots/{snapshot}/deny', [PitchSnapshotController::class, 'deny'])
+        ->name('pitch.denySnapshot')
+        ->middleware('auth');
+
+    // Add the missing route for approving pitch snapshots
+    Route::post('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/approve', [PitchSnapshotController::class, 'approve'])
+        ->name('projects.pitches.approve-snapshot')
+        ->middleware('auth');
+        
+    Route::post('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/deny', [PitchSnapshotController::class, 'deny'])
+        ->name('projects.pitches.deny-snapshot')
+        ->middleware('auth');
+        
+    Route::post('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/request-changes', [PitchSnapshotController::class, 'requestChanges'])
+        ->name('projects.pitches.request-changes')
+        ->middleware('auth');
+
+    // NEW Route for returning a completed pitch to approved status
+    Route::post('/projects/{project:slug}/pitches/{pitch:slug}/return-to-approved', [\App\Http\Controllers\PitchController::class, 'returnToApproved'])
+        ->name('projects.pitches.return-to-approved')
+        ->middleware('auth');
+
+    // Special fallback routes to debug 404 errors
+    Route::get('/pitch/{pitch}/snapshots/{snapshot}/{action}', function($pitch, $snapshot, $action) {
+        $validActions = ['approve', 'deny', 'request-changes'];
+        $postUrl = "/pitch/{$pitch}/snapshots/{$snapshot}/{$action}";
+        
+        if (!in_array($action, $validActions)) {
+            abort(404, "Invalid action: {$action}. Valid actions are: " . implode(', ', $validActions));
+        }
+        
+        // Build a debug response with helpful information
+        return response()->view('error.debug-post-route', [
+            'message' => "The route {$postUrl} must be accessed via POST, not GET",
+            'debug_info' => [
+                'requestedUrl' => request()->fullUrl(),
+                'routeParameters' => [
+                    'pitch' => $pitch,
+                    'snapshot' => $snapshot,
+                    'action' => $action
+                ],
+                'expectedPostUrl' => $postUrl,
+                'validActions' => $validActions,
+                'note' => 'Please use the buttons/forms in the application to perform this action.'
+            ]
+        ], 405);
+    })->where('action', '(approve|deny|request-changes)');
+    
+    Route::get('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/{action}', function($project, $pitch, $snapshot, $action) {
+        $validActions = ['approve', 'deny', 'request-changes'];
+        $postUrl = "/projects/{$project}/pitches/{$pitch}/snapshots/{$snapshot}/{$action}";
+        
+        if (!in_array($action, $validActions)) {
+            abort(404, "Invalid action: {$action}. Valid actions are: " . implode(', ', $validActions));
+        }
+        
+        // Build a debug response with helpful information
+        return response()->view('error.debug-post-route', [
+            'message' => "The route {$postUrl} must be accessed via POST, not GET",
+            'debug_info' => [
+                'requestedUrl' => request()->fullUrl(),
+                'routeParameters' => [
+                    'project' => $project,
+                    'pitch' => $pitch,
+                    'snapshot' => $snapshot,
+                    'action' => $action
+                ],
+                'expectedPostUrl' => $postUrl,
+                'validActions' => $validActions,
+                'note' => 'Please use the buttons/forms in the application to perform this action.'
+            ]
+        ], 405);
+    })->where('action', '(approve|deny|request-changes)');
 });
 
 // User Profile Routes

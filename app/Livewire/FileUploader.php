@@ -1,0 +1,436 @@
+<?php
+
+namespace App\Livewire;
+
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\Project;
+use App\Models\Pitch;
+use App\Models\User;
+use App\Services\FileManagementService;
+use App\Exceptions\FileUploadException;
+use App\Exceptions\StorageLimitException;
+use Masmerise\Toaster\Toaster;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+
+class FileUploader extends Component
+{
+    use WithFileUploads;
+
+    public Model $model; // Project or Pitch model instance
+    public $file = null; // Single file upload approach
+
+    // Track progress
+    public $uploadProgress = [];
+    
+    // Track upload history
+    public $uploadHistory = [];
+
+    // Don't initialize in constructor to avoid potential infinite loop
+    protected $fileManagementService;
+
+    // Custom event listener for upload progress
+    protected $listeners = [
+        'upload:progress' => 'handleUploadProgress',
+    ];
+
+    // Use mount instead of boot to initialize properly
+    public function mount(Model $model)
+    {
+        $this->model = $model;
+
+        // Validate the model type to prevent misuse
+        if (!($model instanceof Project) && !($model instanceof Pitch)) {
+            throw new \InvalidArgumentException('The model must be a Project or Pitch instance');
+        }
+
+        // Initialize the service through dependency injection in mount
+        $this->fileManagementService = app(FileManagementService::class);
+        
+        // Initialize upload history from session if available
+        $sessionKey = $this->getSessionKey();
+        $this->uploadHistory = session($sessionKey, []);
+    }
+
+    public function rules()
+    {
+        // Common rules
+        $maxFileSizeKB = config('filesystems.limits.max_file_size_kb', 200 * 1024); // Default 200MB
+        $allowedMimes = 'mp3,wav,aac,ogg,pdf,jpg,jpeg,png,gif,zip'; // Combine allowed types
+
+        return [
+            'file' => [
+                'required',
+                'file',
+                'mimes:' . $allowedMimes,
+                'max:' . $maxFileSizeKB,
+            ],
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'file.required' => 'A file is required.',
+            'file.file' => 'The uploaded item must be a file.',
+            'file.mimes' => 'Invalid file type. Allowed types: :values.',
+            'file.max' => 'The file must not be greater than :max kilobytes.',
+        ];
+    }
+    
+    // Updated hook to reset progress on file changes
+    public function updatedFile()
+    {
+        try {
+            if ($this->file) {
+                $this->validate();
+                $this->uploadProgress = []; // Reset progress when file changes
+                
+                // Log success but don't proceed with actual saving yet
+                Log::info('FileUploader: File validated successfully', [
+                    'original_filename' => $this->file->getClientOriginalName(),
+                    'size' => $this->file->getSize(),
+                    'mime' => $this->file->getMimeType()
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error validating file in FileUploader', [
+                'error' => $e->getMessage(),
+                'model_type' => get_class($this->model),
+                'model_id' => $this->model->id
+            ]);
+            // Don't throw the exception, let Livewire handle validation errors
+        }
+    }
+
+    public function saveFile()
+    {
+        try {
+            if (!$this->file) {
+                Toaster::error('No file selected for upload.');
+                return;
+            }
+            
+            $this->validate();
+
+            Log::info('FileUploader: Starting saveFile process', [
+                'model_type' => get_class($this->model), 
+                'model_id' => $this->model->id
+            ]);
+
+            // Ensure we have the FileManagementService
+            if (!$this->fileManagementService) {
+                $this->fileManagementService = app(FileManagementService::class);
+            }
+
+            // Get the authenticated user
+            $user = Auth::user();
+            
+            if (!$user) {
+                throw new FileUploadException('User not authenticated. Cannot upload files.');
+            }
+            
+            // Get initial file information
+            $tempFilename = $this->file->getFilename();
+            $originalFilename = $this->file->getClientOriginalName();
+            $mimeType = $this->file->getMimeType();
+            $size = $this->file->getSize();
+            
+            Log::info("FileUploader: Processing Livewire temporary file", [
+                'filename' => $originalFilename,
+                'mime' => $mimeType,
+                'size' => $size
+            ]);
+            
+            try {
+                // Test S3 connection first (but only in production)
+                if ((config('filesystems.default') === 's3' || config('filesystems.cloud') === 's3') && 
+                    !app()->environment('local')) {
+                    if (!$this->testS3Connection()) {
+                        throw new FileUploadException('Cannot connect to storage service. Please try again later or contact support.');
+                    }
+                }
+                
+                // --- Store the file locally first using Livewire's method ---
+                $persistentTempDir = 'livewire-tmp-processing';
+                $persistentTempFilename = uniqid('processed-', true) . '.' . $this->file->getClientOriginalExtension();
+                
+                Log::info("FileUploader: Storing temporary file locally before processing.", [
+                    'directory' => $persistentTempDir,
+                    'filename' => $persistentTempFilename,
+                    'original' => $originalFilename
+                ]);
+
+                // Store the file in storage/app/livewire-tmp-processing
+                $storedPathRelative = $this->file->storeAs($persistentTempDir, $persistentTempFilename, 'local');
+                
+                if (!$storedPathRelative) {
+                    Log::error("FileUploader: Failed to store temporary file locally using Livewire storeAs.");
+                    throw new FileUploadException("Could not save temporary file for processing.");
+                }
+                
+                // Get the absolute path to the locally stored temporary file
+                $tmpPath = Storage::disk('local')->path($storedPathRelative);
+                
+                if (!file_exists($tmpPath)) {
+                    Log::error("FileUploader: Locally stored temporary file not found after storeAs.", ['path' => $tmpPath]);
+                    throw new FileUploadException("Could not locate saved temporary file.");
+                }
+                // --- End of local storage --- 
+                
+                Log::info("FileUploader: Confirmed locally stored temp file exists at {$tmpPath}");
+                
+                // Now create an UploadedFile instance from the locally stored temporary file
+                $uploadedFile = new UploadedFile(
+                    $tmpPath,
+                    $originalFilename, // Use the original name for the UploadedFile object
+                    $mimeType,
+                    null,
+                    true // Mark as test so UploadedFile doesn't try to move it
+                );
+                
+                Log::info("FileUploader: Created standard UploadedFile from locally stored temp file", [
+                    'path' => $tmpPath,
+                    'originalName' => $originalFilename,
+                    'mime' => $uploadedFile->getMimeType(),
+                    'size' => $uploadedFile->getSize()
+                ]);
+            
+                // Customize the stored filename if needed (currently not used, FileManagementService uses original)
+                $customFilename = $originalFilename;
+
+                // --- Pass to FileManagementService --- 
+                if ($this->model instanceof Project) {
+                    $this->fileManagementService->uploadProjectFile($this->model, $uploadedFile, $user);
+                    Log::info("FileUploader: Successfully uploaded project file {$originalFilename}");
+                } elseif ($this->model instanceof Pitch) {
+                    $this->fileManagementService->uploadPitchFile($this->model, $uploadedFile, $user);
+                    Log::info("FileUploader: Successfully uploaded pitch file {$originalFilename}");
+                }
+                
+                // --- Cleanup --- 
+                Log::info("FileUploader: Deleting locally stored temporary file.", ['path' => $tmpPath]);
+                Storage::disk('local')->delete($storedPathRelative); // Delete using relative path
+                
+                // Add to upload history
+                $this->addToUploadHistory($originalFilename);
+                
+                // Success feedback
+                Toaster::success("Successfully uploaded {$originalFilename}");
+                
+                // Clear the file input and progress
+                $this->reset('file');
+                $this->uploadProgress = [];
+
+            } catch (StorageLimitException $e) {
+                Log::error("FileUploader: Storage limit exceeded for file {$originalFilename}", ['error' => $e->getMessage()]);
+                Toaster::error($e->getMessage());
+                // Keep track of error in progress
+                $this->uploadProgress[$tempFilename] = 'Error: ' . $e->getMessage(); 
+            } catch (FileUploadException $e) {
+                Log::error("FileUploader: File upload exception for file {$originalFilename}", ['error' => $e->getMessage()]);
+                Toaster::error("Error uploading {$originalFilename}: " . $e->getMessage());
+                $this->uploadProgress[$tempFilename] = 'Error: ' . $e->getMessage();
+            } catch (\Exception $e) {
+                Log::error("FileUploader: General error uploading file {$originalFilename}", [
+                    'error' => $e->getMessage(), 
+                    'trace' => $e->getTraceAsString(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'error_class' => get_class($e)
+                ]);
+                
+                // Provide more specific error messages based on common issues
+                $errorMessage = $this->getErrorFriendlyMessage($e);
+                
+                Toaster::error($errorMessage);
+                $this->uploadProgress[$tempFilename] = 'Error: ' . $errorMessage;
+            }
+
+            Log::info('FileUploader: Finished saveFile process');
+
+            // Emit event to refresh parent component's file list
+            $this->dispatch('filesUploaded');
+        } catch (\Exception $e) {
+            Log::error('Error in FileUploader::saveFile', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'model_type' => get_class($this->model),
+                'model_id' => $this->model->id
+            ]);
+            Toaster::error('An error occurred while uploading the file.');
+        }
+    }
+    
+    /**
+     * Add successfully uploaded file to history
+     */
+    protected function addToUploadHistory($filename)
+    {
+        // Add to the beginning of the array (most recent first)
+        array_unshift($this->uploadHistory, [
+            'name' => $filename,
+            'time' => Carbon::now()->diffForHumans()
+        ]);
+        
+        // Limit history to most recent 10 items
+        if (count($this->uploadHistory) > 10) {
+            $this->uploadHistory = array_slice($this->uploadHistory, 0, 10);
+        }
+        
+        // Store in session for persistence
+        session([$this->getSessionKey() => $this->uploadHistory]);
+    }
+    
+    /**
+     * Get unique session key for this uploader instance
+     */
+    protected function getSessionKey()
+    {
+        $modelType = $this->model instanceof Project ? 'project' : 'pitch';
+        return "upload_history_{$modelType}_{$this->model->id}";
+    }
+    
+    /**
+     * Handle the Livewire upload:progress event.
+     *
+     * @param string $name The temporary name of the file being uploaded.
+     * @param int $progress The progress percentage (0-100).
+     */
+    public function handleUploadProgress($name, $progress)
+    {
+        try {
+            // Only log at debug level to avoid filling the logs
+            Log::debug("Upload progress for {$name}: {$progress}%");
+            $this->uploadProgress[$name] = $progress;
+        } catch (\Exception $e) {
+            // Silently log errors to avoid disrupting the upload
+            Log::error('Error handling upload progress', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public function render()
+    {
+        return view('livewire.file-uploader');
+    }
+    
+    /**
+     * Clean up resources when the component is dehydrated.
+     */
+    public function dehydrate()
+    {
+        // Explicitly clean up resources to prevent memory issues
+        if ($this->file && method_exists($this->file, 'cleanupTemporaryFile')) {
+            try {
+                $this->file->cleanupTemporaryFile();
+            } catch (\Exception $e) {
+                Log::error('Error cleaning up temporary file', ['error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    /**
+     * Format bytes to human readable format
+     *
+     * @param int $bytes
+     * @param int $precision
+     * @return string
+     */
+    public function formatFileSize($bytes, $precision = 2)
+    {
+        if ($bytes === null || $bytes <= 0) {
+            return '0 bytes';
+        }
+
+        $units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= (1 << (10 * $pow));
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+
+    /**
+     * Get a more friendly error message based on the exception type
+     *
+     * @param \Exception $e
+     * @return string
+     */
+    protected function getErrorFriendlyMessage(\Exception $e)
+    {
+        $errorMessage = "An unexpected error occurred uploading the file. Please try again later or contact support.";
+        $errorMsg = $e->getMessage();
+
+        // Add more specific messages based on common issues
+        if (strpos($errorMsg, 'file size') !== false) {
+            $errorMessage = "The file size exceeds the allowed limit. Please upload a file smaller than " . $this->formatFileSize(config('filesystems.limits.max_file_size_kb', 200 * 1024)) . ".";
+        } elseif (strpos($errorMsg, 'file type') !== false) {
+            $errorMessage = "Invalid file type. Allowed types: mp3, wav, aac, ogg, pdf, jpg, jpeg, png, gif, zip.";
+        } elseif (strpos($errorMsg, 'storage limit') !== false) {
+            $errorMessage = "Storage limit exceeded. Please contact support for assistance.";
+        } elseif (strpos($errorMsg, 'file upload') !== false) {
+            $errorMessage = "Error uploading the file. Please try again later or contact support.";
+        } 
+        // S3 specific errors
+        elseif (strpos($errorMsg, 'AWS') !== false || strpos($errorMsg, 'S3') !== false) {
+            $errorMessage = "Error connecting to storage service. Please try again later or contact support.";
+        }
+        elseif (strpos($errorMsg, 'credentials') !== false || strpos($errorMsg, 'authorization') !== false) {
+            $errorMessage = "Storage authentication error. Please contact support.";
+        }
+        elseif (strpos($errorMsg, 'connect') !== false || strpos($errorMsg, 'network') !== false) {
+            $errorMessage = "Network error connecting to storage. Please check your connection and try again.";
+        }
+        elseif (strpos($errorMsg, 'filesystem') !== false || strpos($errorMsg, 'disk') !== false) {
+            $errorMessage = "Storage filesystem error. Please contact support.";
+        }
+
+        return $errorMessage;
+    }
+
+    /**
+     * Check if basic S3 connection is working
+     * 
+     * @return bool
+     */
+    protected function testS3Connection()
+    {
+        try {
+            // Try to get storage disk info
+            $disk = \Illuminate\Support\Facades\Storage::disk('s3');
+            
+            // Check if the credentials are valid
+            $isConfigured = !empty(config('filesystems.disks.s3.key')) && 
+                          !empty(config('filesystems.disks.s3.secret')) && 
+                          !empty(config('filesystems.disks.s3.region')) && 
+                          !empty(config('filesystems.disks.s3.bucket'));
+            
+            if (!$isConfigured) {
+                Log::error('S3 is not properly configured. Missing credentials.');
+                return false;
+            }
+            
+            // Try a simple operation
+            $testPath = 'test-connection-' . uniqid();
+            $disk->put($testPath, 'test connection');
+            $exists = $disk->exists($testPath);
+            $disk->delete($testPath); // Clean up
+            
+            return $exists;
+        } catch (\Exception $e) {
+            // Log the error with detailed information
+            Log::error('S3 connection test failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return false;
+        }
+    }
+}

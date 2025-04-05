@@ -57,6 +57,7 @@ class Project extends Model
         'collaboration_type' => 'array',
         'is_published' => 'boolean',
         'completed_at' => 'datetime',
+        'deadline' => 'datetime',
     ];
 
     protected $attributes = [
@@ -159,7 +160,7 @@ class Project extends Model
 
     public function userPitch($userId)
     {
-        return $this->pitches()->where('user_id', $userId)->first();
+        return $this->pitches()->where('user_id', $userId)->with('project')->first();
     }
 
     /**

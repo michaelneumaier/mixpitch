@@ -63,44 +63,76 @@ class ProjectManagementService
      */
     public function updateProject(Project $project, array $validatedData, ?UploadedFile $newProjectImage, bool $deleteExistingImage = true): Project
     {
-         try {
-            return DB::transaction(function () use ($project, $validatedData, $newProjectImage, $deleteExistingImage) {
+        try {
+            // Ensure we are working with the latest db state of the project
+            $project = $project->fresh();
+            $originalDataForLog = $project->toArray(); // For logging
+
+            return DB::transaction(function () use ($project, $validatedData, $newProjectImage, $deleteExistingImage, $originalDataForLog) {
                 $oldImagePath = $project->image_path;
+                $newImagePath = null;
 
-                $project->fill($validatedData);
-
+                // Prepare data for fill, excluding image_path if new one is coming
+                $fillData = $validatedData;
                 if ($newProjectImage) {
-                    // Delete old image first (if requested and exists)
-                    if ($deleteExistingImage && $oldImagePath && Storage::disk('s3')->exists($oldImagePath)) {
-                         try {
-                            Storage::disk('s3')->delete($oldImagePath);
-                            Log::info('Old project image deleted from S3', ['path' => $oldImagePath, 'project_id' => $project->id]);
-                        } catch (\Exception $e) {
-                            Log::error('Failed to delete old project image', ['path' => $oldImagePath, 'project_id' => $project->id, 'error' => $e->getMessage()]);
-                            // Decide if this should halt the update or just log
-                        }
-                    }
-                    // Store new image
-                    $path = $newProjectImage->store('project_images', 's3');
-                    Log::debug('Service: Stored new image', ['new_path' => $path, 'project_id' => $project->id]); // Log new path
-                    $project->image_path = $path;
-                    Log::info('New project image uploaded to S3', ['path' => $path, 'project_id' => $project->id]);
+                    unset($fillData['image_path']);
+                } else {
+                    // Also unset if no new image, to prevent accidental nulling if key exists in $validatedData
+                    unset($fillData['image_path']);
                 }
 
-                Log::debug('Service: Before save', [
-                    'project_id' => $project->id,
-                    'old_image_path_var' => $oldImagePath,
-                    'current_image_path_prop' => $project->image_path,
-                    'is_dirty' => $project->isDirty('image_path')
+                // Handle project_type transformation if needed (just in case)
+                if (isset($fillData['projectType'])) {
+                    $fillData['project_type'] = $fillData['projectType'];
+                    unset($fillData['projectType']);
+                }
+
+                Log::debug('ProjectManagementService: Data before fill', [
+                    'validatedData' => $validatedData, // Original validated data
+                    'fillData' => $fillData,       // Data used for fill()
+                    'project_before_fill' => $originalDataForLog
                 ]);
+
+                // Fill the model with prepared data
+                $project->fill($fillData);
+
+                // Handle new image upload
+                if ($newProjectImage) {
+                    // Store new image
+                    $newImagePath = $newProjectImage->store('project_images', 's3');
+                    Log::info('New project image uploaded', ['path' => $newImagePath, 'project_id' => $project->id]);
+                    // Set the new path on the model
+                    $project->image_path = $newImagePath;
+                }
+
+                Log::debug('ProjectManagementService: Project state before save', [
+                    'project_attributes' => $project->getAttributes(),
+                    'is_dirty' => $project->isDirty(),
+                    'dirty_fields' => $project->getDirty()
+                ]);
+
+                // Save all changes
                 $project->save();
-                // Dispatch ProjectUpdated event if needed
-                // event(new ProjectUpdated($project));
-                return $project;
+
+                Log::debug('ProjectManagementService: Project state after save', [
+                    'project_attributes' => $project->fresh()->getAttributes() // Log state from DB
+                ]);
+
+                // Delete old image only after successful save of new state
+                if ($newProjectImage && $deleteExistingImage && $oldImagePath && $oldImagePath !== $newImagePath && Storage::disk('s3')->exists($oldImagePath)) {
+                    try {
+                        Storage::disk('s3')->delete($oldImagePath);
+                        Log::info('Old project image deleted', ['path' => $oldImagePath, 'project_id' => $project->id]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to delete old project image', ['path' => $oldImagePath, 'error' => $e->getMessage()]);
+                        // Non-critical, don't rollback transaction
+                    }
+                }
+
+                return $project; // Return the saved project instance
             });
         } catch (\Exception $e) {
-            Log::error('Error updating project in service', ['project_id' => $project->id, 'error' => $e->getMessage(), 'data' => $validatedData]);
-            // TODO: Ensure App\Exceptions\Project\ProjectUpdateException exists
+            Log::error('Error updating project in service', ['project_id' => $project->id ?? null, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             throw new ProjectUpdateException('Failed to update project: ' . $e->getMessage(), 0, $e);
         }
     }
@@ -158,5 +190,28 @@ class ProjectManagementService
         return $project;
     }
 
+    /**
+     * Reopen a completed project, setting its status back to open.
+     * Called when a completed pitch is returned to an active status.
+     *
+     * @param Project $project
+     * @return Project
+     */
+    public function reopenProject(Project $project): Project
+    {
+        if ($project->status === Project::STATUS_COMPLETED) {
+            Log::info('Reopening project', ['project_id' => $project->id, 'current_status' => $project->status]);
+            $project->status = Project::STATUS_OPEN; // Or appropriate previous status if needed
+            $project->completed_at = null;
+            $project->save();
+            Log::info('Project reopened successfully', ['project_id' => $project->id, 'new_status' => $project->status]);
+            // Dispatch ProjectReopened event if needed
+            // event(new ProjectReopened($project));
+        } else {
+            Log::warning('Attempted to reopen a project that was not completed', ['project_id' => $project->id, 'status' => $project->status]);
+        }
+        return $project;
+    }
+
     // Add other methods as needed (e.g., deleteProject)
-} 
+}

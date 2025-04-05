@@ -1,55 +1,55 @@
 // Pitch Modal Functionality
 document.addEventListener('DOMContentLoaded', function () {
-    // Form submission handlers
-    window.pitchForms = {
-        approveForm: null,
-        denyForm: null,
-        revisionsForm: null
-    };
-
     // Open modal functions
     window.openApproveModal = function (snapshotId, url) {
+        console.log('Opening approve modal for snapshot:', snapshotId, 'URL:', url);
+
+        // Get the pre-existing form
+        const form = document.getElementById('approveForm');
+        form.action = url;
+
+        // Clear any old inputs first (except CSRF token)
+        Array.from(form.querySelectorAll('input:not([name="_token"])')).forEach(input => input.remove());
+
+        // Show the modal
         document.getElementById('approveModal').classList.remove('hidden');
-
-        // Create form for submission
-        window.pitchForms.approveForm = document.createElement('form');
-        window.pitchForms.approveForm.method = 'POST';
-        window.pitchForms.approveForm.action = url;
-
-        // Add CSRF token
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = '_token';
-        csrfToken.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        window.pitchForms.approveForm.appendChild(csrfToken);
 
         // Set up submit button
         document.getElementById('approveSubmitBtn').onclick = function () {
-            document.body.appendChild(window.pitchForms.approveForm);
-            window.pitchForms.approveForm.submit();
+            console.log('Submitting approve form to URL:', url);
+            form.submit();
         };
     };
 
     window.openDenyModal = function (snapshotId, url) {
+        console.log('Opening deny modal for snapshot:', snapshotId, 'URL:', url);
+
+        // Get the pre-existing form
+        const form = document.getElementById('denyForm');
+        form.action = url;
+
+        // Clear any old inputs first (except CSRF token)
+        Array.from(form.querySelectorAll('input:not([name="_token"])')).forEach(input => input.remove());
+
+        // Reset textarea value
+        document.getElementById('denyReason').value = '';
+
+        // Show the modal
         document.getElementById('denyModal').classList.remove('hidden');
-
-        // Create form for submission
-        window.pitchForms.denyForm = document.createElement('form');
-        window.pitchForms.denyForm.method = 'POST';
-        window.pitchForms.denyForm.action = url;
-
-        // Add CSRF token
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = '_token';
-        csrfToken.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        window.pitchForms.denyForm.appendChild(csrfToken);
 
         // Set up submit button
         document.getElementById('denySubmitBtn').onclick = function () {
-            const reason = document.getElementById('denyReason').value;
+            const reasonInput = document.getElementById('denyReason');
+            const reason = reasonInput.value;
+
             if (!reason.trim()) {
                 alert('Please provide a reason for denying this pitch.');
+                reasonInput.focus(); // Focus the input for better UX
+                return;
+            }
+            if (reason.trim().length < 10) {
+                alert('The reason must be at least 10 characters long.');
+                reasonInput.focus(); // Focus the input
                 return;
             }
 
@@ -58,33 +58,42 @@ document.addEventListener('DOMContentLoaded', function () {
             reasonField.type = 'hidden';
             reasonField.name = 'reason';
             reasonField.value = reason;
-            window.pitchForms.denyForm.appendChild(reasonField);
+            form.appendChild(reasonField);
 
-            document.body.appendChild(window.pitchForms.denyForm);
-            window.pitchForms.denyForm.submit();
+            console.log('Submitting deny form to URL:', url, 'with reason:', reason);
+            form.submit();
         };
     };
 
     window.openRevisionsModal = function (snapshotId, url) {
+        console.log('Opening revisions modal for snapshot:', snapshotId, 'URL:', url);
+
+        // Get the pre-existing form
+        const form = document.getElementById('revisionsForm');
+        form.action = url;
+
+        // Clear any old inputs first (except CSRF token)
+        Array.from(form.querySelectorAll('input:not([name="_token"])')).forEach(input => input.remove());
+
+        // Reset textarea value
+        document.getElementById('revisionsRequested').value = '';
+
+        // Show the modal
         document.getElementById('revisionsModal').classList.remove('hidden');
-
-        // Create form for submission
-        window.pitchForms.revisionsForm = document.createElement('form');
-        window.pitchForms.revisionsForm.method = 'POST';
-        window.pitchForms.revisionsForm.action = url;
-
-        // Add CSRF token
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = '_token';
-        csrfToken.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        window.pitchForms.revisionsForm.appendChild(csrfToken);
 
         // Set up submit button
         document.getElementById('revisionsSubmitBtn').onclick = function () {
-            const reason = document.getElementById('revisionsRequested').value;
+            const reasonInput = document.getElementById('revisionsRequested');
+            const reason = reasonInput.value;
+
             if (!reason.trim()) {
                 alert('Please specify what revisions you would like to request.');
+                reasonInput.focus(); // Focus the input
+                return;
+            }
+            if (reason.trim().length < 10) {
+                alert('The requested revisions must be at least 10 characters long.');
+                reasonInput.focus(); // Focus the input
                 return;
             }
 
@@ -93,15 +102,16 @@ document.addEventListener('DOMContentLoaded', function () {
             reasonField.type = 'hidden';
             reasonField.name = 'reason';
             reasonField.value = reason;
-            window.pitchForms.revisionsForm.appendChild(reasonField);
+            form.appendChild(reasonField);
 
-            document.body.appendChild(window.pitchForms.revisionsForm);
-            window.pitchForms.revisionsForm.submit();
+            console.log('Submitting revisions form to URL:', url, 'with reason:', reason);
+            form.submit();
         };
     };
 
     // Close modal function
     window.closeModal = function (modalId) {
+        console.log('Closing modal:', modalId);
         document.getElementById(modalId).classList.add('hidden');
     };
 

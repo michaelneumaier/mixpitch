@@ -152,9 +152,7 @@ class GenerateAudioWaveform implements ShouldQueue
             ]);
             
             // Make the request to the Lambda function with the encoded URL
-            $response = Http::timeout(60)->withOptions([
-                'verify' => false // Only for testing, remove in production
-            ])
+            $response = Http::timeout(60)
             ->withHeaders([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'

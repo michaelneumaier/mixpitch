@@ -83,9 +83,29 @@ class PitchPaymentController extends Controller
     public function projectPitchProcess(ProcessPitchPaymentRequest $request, Project $project, Pitch $pitch)
     {
         // Authorization and validation are handled by ProcessPitchPaymentRequest
-        $paymentMethodId = $request->validated('payment_method_id');
+        $paymentMethodId = $request->validated('payment_method_id') ?? $request->validated('payment_method');
         $stripeInvoice = null; // To store the created/retrieved Stripe Invoice object
         $stripeInvoiceId = null; // To store the ID for logging/workflow
+        
+        // Log the request input for debugging
+        Log::info('Processing pitch payment request', [
+            'pitch_id' => $pitch->id,
+            'project_id' => $project->id,
+            'payment_method_id' => $paymentMethodId,
+            'all_inputs' => $request->all()
+        ]);
+        
+        // Ensure we have a payment method
+        if (empty($paymentMethodId)) {
+            Log::error('Missing payment method id', [
+                'pitch_id' => $pitch->id,
+                'request_data' => $request->validated()
+            ]);
+            
+            // Use RouteHelpers for URL generation
+            return redirect(RouteHelpers::pitchPaymentUrl($pitch))
+                ->with('error', 'No payment method selected. Please try again.');
+        }
 
         try {
             // Consider setting status to PROCESSING here if desired UI feedback is needed
@@ -195,7 +215,7 @@ class PitchPaymentController extends Controller
         $stripeInvoice = null;
         if ($pitch->final_invoice_id) {
             try {
-                $stripeInvoice = $this->invoiceService->retrieveInvoice($pitch->final_invoice_id);
+                $stripeInvoice = $this->invoiceService->getInvoice($pitch->final_invoice_id);
             } catch (\Exception $e) {
                 Log::error('Failed to retrieve Stripe invoice for receipt view.', [
                     'pitch_id' => $pitch->id,
@@ -206,10 +226,21 @@ class PitchPaymentController extends Controller
             }
         }
 
+        // Add logging to debug missing payment amount
+        Log::info('Showing payment receipt', [
+            'pitch_id' => $pitch->id,
+            'payment_status' => $pitch->payment_status,
+            'payment_amount' => $pitch->payment_amount,
+            'project_budget' => $project->budget,
+            'has_invoice' => !is_null($stripeInvoice)
+        ]);
+
         return view('pitches.payment.receipt', [
             'pitch' => $pitch,
             'project' => $project,
             'stripeInvoice' => $stripeInvoice, // Pass the retrieved Stripe invoice object (or null)
+            'invoice' => $stripeInvoice, // Also pass as 'invoice' to match what the view expects
+            'viewAllInvoicesUrl' => route('billing.invoices') // Use the correct route name with the 'billing.' prefix
         ]);
     }
 

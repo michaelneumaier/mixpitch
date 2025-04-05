@@ -33,6 +33,8 @@ class PitchFile extends Model
         'waveform_processed' => 'boolean',
         'waveform_processed_at' => 'datetime',
         'duration' => 'float',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -123,13 +125,19 @@ class PitchFile extends Model
             return $this->formatBytes($this->attributes['size']);
         }
 
-        // Otherwise try to get the size from storage
-        try {
-            $size = Storage::disk('s3')->size($this->file_path);
-            return $this->formatBytes($size);
-        } catch (Exception $e) {
-            return '-';
-        }
+        // Otherwise try to get the size from storage, only if file_path exists
+        if ($this->file_path) { 
+            try {
+                $size = Storage::disk('s3')->size($this->file_path);
+                return $this->formatBytes($size);
+            } catch (Exception $e) {
+                // Log error or handle as needed
+                \Log::warning("Could not get size for file path: {$this->file_path}", ['error' => $e->getMessage()]);
+                return '-';
+            }
+        } 
+
+        return '-'; // Return default if no size attribute and no file_path
     }
 
     /**

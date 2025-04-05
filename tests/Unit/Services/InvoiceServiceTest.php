@@ -136,10 +136,28 @@ class InvoiceServiceTest extends TestCase
             ->once()
             ->andReturn($this->stripeMock);
 
-        // Mock invoice objects
-        $mockInvoice = (object)['id' => 'inv_test123'];
-        $finalizedInvoice = (object)['id' => 'inv_test123', 'status' => 'finalized'];
-        $paidInvoice = (object)['id' => 'inv_test123', 'status' => 'paid'];
+        // Mock invoice objects with all required properties
+        $mockInvoice = (object)[
+            'id' => 'inv_test123',
+            'status' => 'draft',
+            'total' => 50000,
+            'amount_due' => 50000
+        ];
+        
+        $finalizedInvoice = (object)[
+            'id' => 'inv_test123',
+            'status' => 'finalized',
+            'total' => 50000,
+            'amount_due' => 50000
+        ];
+        
+        $paidInvoice = (object)[
+            'id' => 'inv_test123',
+            'status' => 'paid',
+            'total' => 50000,
+            'amount_due' => 0,
+            'paid' => true
+        ];
 
         // Set up the stripe mock responses
         $this->stripeMock->invoices->shouldReceive('finalizeInvoice')
@@ -171,16 +189,26 @@ class InvoiceServiceTest extends TestCase
             ->once()
             ->andReturn($this->stripeMock);
 
-        // Mock invoice object
-        $mockInvoice = (object)['id' => 'inv_test123'];
+        // Mock invoice object with all required properties
+        $mockInvoice = (object)[
+            'id' => 'inv_test123',
+            'status' => 'draft',
+            'total' => 50000,
+            'amount_due' => 50000
+        ];
         
-        // Set up the stripe mock responses
+        // Set up the stripe mock responses with properly mocked finalized invoice
         $this->stripeMock->invoices->shouldReceive('finalizeInvoice')
             ->once()
             ->with('inv_test123')
-            ->andReturn((object)['id' => 'inv_test123', 'status' => 'finalized']);
+            ->andReturn((object)[
+                'id' => 'inv_test123', 
+                'status' => 'finalized',
+                'total' => 50000,
+                'amount_due' => 50000
+            ]);
 
-        // Simulate card error during payment using a standard exception
+        // Simulate card error during payment
         $this->stripeMock->invoices->shouldReceive('pay')
             ->once()
             ->andReturnUsing(function () {
@@ -204,8 +232,13 @@ class InvoiceServiceTest extends TestCase
             ->once()
             ->andReturn($this->stripeMock);
 
-        // Mock invoice object
-        $mockInvoice = (object)['id' => 'inv_test123'];
+        // Mock invoice object with all required properties
+        $mockInvoice = (object)[
+            'id' => 'inv_test123',
+            'status' => 'draft',
+            'total' => 50000,
+            'amount_due' => 50000
+        ];
         
         // Set up the stripe mock to throw a standard exception
         $this->stripeMock->invoices->shouldReceive('finalizeInvoice')
@@ -222,5 +255,66 @@ class InvoiceServiceTest extends TestCase
         // Assert the result
         $this->assertFalse($result['success']);
         $this->assertEquals('Stripe API error', $result['error']);
+    }
+
+    /** @test */
+    public function it_handles_already_finalized_invoice_during_payment()
+    {
+        // Mock the stripe client creation
+        $this->invoiceService->shouldReceive('newStripeClient')
+            ->once()
+            ->andReturn($this->stripeMock);
+
+        // Mock invoice object with all required properties
+        $mockInvoice = (object)[
+            'id' => 'inv_test123',
+            'status' => 'finalized', // Already finalized
+            'total' => 50000,
+            'amount_due' => 50000
+        ];
+        
+        // Mock the finalizeInvoice to throw an "already finalized" error
+        $this->stripeMock->invoices->shouldReceive('finalizeInvoice')
+            ->once()
+            ->with('inv_test123')
+            ->andReturnUsing(function () {
+                $e = new \Exception('Invoice inv_test123 is already finalized');
+                throw $e;
+            });
+            
+        // Mock the retrieve call that happens when already finalized
+        $this->stripeMock->invoices->shouldReceive('retrieve')
+            ->once()
+            ->with('inv_test123')
+            ->andReturn((object)[
+                'id' => 'inv_test123', 
+                'status' => 'finalized',
+                'total' => 50000,
+                'amount_due' => 50000
+            ]);
+
+        // Mock the successful payment
+        $paidInvoice = (object)[
+            'id' => 'inv_test123',
+            'status' => 'paid',
+            'total' => 50000,
+            'amount_due' => 0,
+            'paid' => true
+        ];
+        
+        $this->stripeMock->invoices->shouldReceive('pay')
+            ->once()
+            ->with('inv_test123', [
+                'payment_method' => 'pm_test_card',
+                'off_session' => true,
+            ])
+            ->andReturn($paidInvoice);
+
+        // Call the method
+        $result = $this->invoiceService->processInvoicePayment($mockInvoice, 'pm_test_card');
+
+        // Assert the result
+        $this->assertTrue($result['success']);
+        $this->assertEquals($paidInvoice, $result['paymentResult']);
     }
 } 

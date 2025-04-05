@@ -183,6 +183,37 @@ class Pitch extends Model
         }
     }
 
+    /**
+     * Get a detailed description of the pitch status
+     *
+     * @return string
+     */
+    public function getStatusDescriptionAttribute()
+    {
+        switch ($this->status) {
+            case self::STATUS_PENDING:
+                return 'Your pitch is waiting for project owner approval.';
+            case self::STATUS_IN_PROGRESS:
+                return 'You\'re actively working on this pitch. Upload files and submit for review when ready.';
+            case self::STATUS_READY_FOR_REVIEW:
+                return 'Your pitch has been submitted and is awaiting review by the project owner.';
+            case self::STATUS_PENDING_REVIEW:
+                return 'Your response has been submitted and is awaiting review.';
+            case self::STATUS_APPROVED:
+                return 'The project owner has approved your pitch! You can now proceed with the project.';
+            case self::STATUS_DENIED:
+                return 'The project owner has declined this pitch. You may review feedback and resubmit if appropriate.';
+            case self::STATUS_REVISIONS_REQUESTED:
+                return 'The project owner has requested changes. Please review feedback and make the necessary revisions.';
+            case self::STATUS_COMPLETED:
+                return 'Congratulations! This pitch has been successfully completed.';
+            case self::STATUS_CLOSED:
+                return 'This pitch has been closed and is no longer active.';
+            default:
+                return 'This pitch is in the ' . strtolower(str_replace('_', ' ', $this->status)) . ' status.';
+        }
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -382,5 +413,35 @@ class Pitch extends Model
 
     /**
      * Get a readable version of the pitch status
+     */
+    public function isInactive(): bool
+    {
+        return $this->is_inactive;
+    }
+
+    /**
+     * Get all defined status constants.
+     *
+     * @return array
+     */
+    public static function getStatuses(): array
+    {
+        return [
+            self::STATUS_PENDING,
+            self::STATUS_IN_PROGRESS,
+            self::STATUS_READY_FOR_REVIEW,
+            self::STATUS_PENDING_REVIEW,
+            self::STATUS_APPROVED,
+            self::STATUS_DENIED,
+            self::STATUS_REVISIONS_REQUESTED,
+            self::STATUS_COMPLETED,
+            self::STATUS_CLOSED,
+        ];
+    }
+
+    /**
+     * Get human-readable status labels.
+     *
+     * @return array
      */
 }

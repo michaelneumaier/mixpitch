@@ -9,12 +9,12 @@
                     <p class="text-sm text-gray-500">Added {{ $file->created_at->diffForHumans() }} &bull; {{
                         $file->formattedSize }}</p>
                 </div>
-                @if($isInCard)
+                @if($isInCard ?? false)
                     {{-- Minimal buttons for card view --}}
                 @else
                     {{-- Full controls for dedicated view --}}
                     <div class="flex space-x-2 items-center">
-                        <a href="{{ route('pitch-files.download', $file) }}" class="btn btn-secondary btn-sm">
+                        <a href="{{ route('pitch-files.download', ['file' => $file->id]) }}" class="btn btn-secondary btn-sm">
                             <i class="fas fa-download mr-1"></i> Download
                         </a>
                          @if(auth()->check() && auth()->user()->can('delete', $file))
@@ -516,11 +516,7 @@
     </div>
 </div>
 
-
-
 @push('scripts')
-
-{{-- blade-formatter-disable --}}
 <script>
     let wavesurfer;
     let readyFired = false;
@@ -529,190 +525,6 @@
     let audioLoadPromise = null; // Add this to track the loading promise
     let lastPlayedPosition = 0; // Track the last played position
 
-    document.addEventListener('livewire:initialized', () => {
-        console.log('Initializing WaveSurfer component');
-
-        // Debounce function to limit UI updates or other operations
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        // Create a function to dispatch critical Livewire events with debouncing
-        const dispatchLivewireEvent = debounce((eventName, data = {}) => {
-            Livewire.dispatch(eventName, data);
-        }, 500); // Dispatch at most every 500ms
-
-        // Track current timestamp in a variable without sending to server
-        let currentPlayerTime = 0;
-
-        // Initialize WaveSurfer
-        wavesurfer = WaveSurfer.create({
-            container: '#waveform',
-            waveColor: '#d1d5db',
-            progressColor: '#4f46e5',
-            cursorColor: '#4f46e5',
-            barWidth: 4,
-            barRadius: 3,
-            cursorWidth: 1,
-            height: 128,
-            //barGap: 2,
-            normalize: true,
-            responsive: true,
-            fillParent: true,
-            //minPxPerSec: 2, // Ensure minimum zoom level
-            splitChannels: false, // Keep as one waveform
-            dragToSeek: true, // Allow seeking by dragging
-        });
-
-        // Load audio file
-        const audioUrl = @json($file -> fullFilePath);
-        console.log('Loading audio URL:', audioUrl);
-
-        // Check if we have pre-generated waveform data
-        /* eslint-disable */
-        @if ($file -> waveform_processed && $file -> waveform_peaks)
-            /* eslint-enable */
-            console.log('Using pre-generated waveform data');
-        // Load audio with pre-generated peaks
-        const peaks = @json($file -> waveform_peaks_array);
-
-        // Debug the peaks data
-        console.log('Peaks data type:', typeof peaks);
-        console.log('Is peaks an array?', Array.isArray(peaks));
-        console.log('Peaks sample:', peaks && peaks.length > 0 ? peaks.slice(0, 10) : peaks);
-
-        // Set peaks directly - this will visualize without loading audio
-        if (Array.isArray(peaks[0])) {
-            // We have min/max peaks format
-            const minPeaks = peaks.map(point => point[0]);
-            const maxPeaks = peaks.map(point => point[1]);
-
-            // Initialize the waveform with the pre-generated peaks
-            // Use options instead of setPeaks to avoid auto-loading
-            wavesurfer.options.peaks = [minPeaks, maxPeaks];
-            console.log('Set min/max peaks');
-
-            // Use the stored duration if available, otherwise estimate
-            const storedDuration = {{ $file-> duration ?? 'null'}};
-
-    // Set a fake duration based on the peaks array length if stored one is not available
-    const fakeLength = maxPeaks && maxPeaks.length ? maxPeaks.length : 0;
-    // Avoid division by zero and ensure we have a positive value
-    const estimatedDuration = fakeLength > 0 ? (fakeLength / 67) * 60 : 60; // Default to 60 seconds if we can't calculate
-
-    // Use actual duration if available, otherwise use estimate
-    const displayDuration = storedDuration || estimatedDuration;
-    console.log('Duration info:', { stored: storedDuration, estimated: estimatedDuration, using: displayDuration });
-
-    wavesurfer.options.duration = displayDuration;
-    persistedDuration = displayDuration;
-
-    // Force a redraw to show the peaks
-    if (typeof wavesurfer.drawBuffer === 'function') {
-        wavesurfer.drawBuffer();
-    }
-
-    // Mark waveform as "ready-like" state for the visualization
-    setTimeout(() => {
-        document.getElementById('waveform').classList.add('loaded');
-        document.getElementById('totalDuration').textContent = formatTime(displayDuration);
-
-        // Update comment markers with the duration
-        updateCommentMarkers(displayDuration);
-    }, 100);
-            } else {
-        console.log('Peaks format is not as expected, falling back to normal loading');
-        initializeAudio();
-    }
-
-    // Audio will be loaded on first play - we've already defined audioLoaded at the top level
-    /* eslint-disable */
-    @else
-    /* eslint-enable */
-    console.log('No pre-generated waveform data available, generating on the fly');
-    initializeAudio();
-    /* eslint-disable */
-    @endif
-    /* eslint-enable */
-
-    // Listen for the Alpine.js play/pause toggle event
-    window.addEventListener('toggle-playback', (event) => {
-        console.log('Toggle playback event received:', event.detail.playing);
-
-        try {
-            if (event.detail.playing) {
-                /* eslint-disable */
-                @if ($file -> waveform_processed && $file -> waveform_peaks)
-                    /* eslint-enable */
-                    // Check if audio is already loaded
-                    if (!audioLoaded) {
-                        console.log('First play - loading audio');
-
-                        // Initialize audio and then play
-                        initializeAudio().then(() => {
-                            console.log('Audio loaded, starting playback');
-                            setTimeout(() => {
-                                wavesurfer.play();
-                                // Ensure the time display is updated after playback starts
-                                updateTimeDisplay();
-                            }, 100);
-                        });
-
-                        return; // Wait for audio to load before playing
-                    }
-                /* eslint-disable */
-                @endif
-                /* eslint-enable */
-
-                // Audio might be in process of loading even if audioLoaded flag is true
-                if (audioLoadPromise && !audioLoadPromise.isResolved) {
-                    console.log('Audio still loading, waiting to play');
-                    audioLoadPromise.then(() => {
-                        console.log('Now playing after audio load completed');
-                        wavesurfer.play();
-                    });
-                    return;
-                }
-
-                // Normal play when audio is already loaded
-                console.log('Playing with already loaded audio');
-                const playPromise = wavesurfer.play();
-
-                // Modern browsers return a promise from audio.play()
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => {
-                            console.log('Playback started successfully');
-                        })
-                        .catch(error => {
-                            console.error('Playback failed:', error);
-                            // If playback fails, update UI to reflect paused state
-                            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                                detail: { playing: false }
-                            }));
-                        });
-                }
-            } else {
-                wavesurfer.pause();
-                console.log('Playback paused');
-            }
-        } catch (e) {
-            console.error('Error toggling playback:', e);
-            // If there's an error, ensure UI reflects paused state
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: false }
-            }));
-        }
-    });
-
     // Helper function to format time
     function formatTime(seconds) {
         const minutes = Math.floor(seconds / 60);
@@ -720,16 +532,8 @@
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
-    // Before unloading the page, stop any audio to prevent memory leaks
-    window.addEventListener('beforeunload', () => {
-        if (wavesurfer) {
-            wavesurfer.pause();
-            // Don't destroy as it might cause errors if already in process of unloading
-        }
-    });
-
     // We need to ensure we initialize audio properly, avoiding duplicate loads
-    const initializeAudio = () => {
+    const initializeAudio = (audioUrl) => {
         // If we've already started loading the audio, return the existing promise
         if (audioLoadPromise) {
             console.log('Audio loading already in progress, reusing promise');
@@ -777,295 +581,6 @@
         return audioLoadPromise;
     };
 
-    wavesurfer.on('ready', () => {
-        console.log('WaveSurfer ready event fired');
-
-        // Get actual duration or fallback to estimated duration
-        persistedDuration = wavesurfer.getDuration();
-        document.getElementById('totalDuration').textContent = formatTime(persistedDuration);
-        document.getElementById('waveform').classList.add('loaded');
-
-        // Prevent duplicate handling if loading audio after setting peaks
-        if (!readyFired) {
-            readyFired = true;
-
-            // Set initial state (paused)
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: false }
-            }));
-
-            // Update comment markers with the actual duration
-            updateCommentMarkers(persistedDuration);
-
-            // Use a deferred dispatch to avoid batching with other updates
-            setTimeout(() => {
-                // Dispatch our custom event to signal waveform is ready
-                dispatchLivewireEvent('waveformReady');
-            }, 100);
-        }
-    });
-
-    // Ensure current time display is always accurate
-    const updateTimeDisplay = () => {
-        if (!wavesurfer) return;
-
-        // We need to check if getCurrentTime is null/undefined, not if it's falsy
-        // since 0 is a valid time position but evaluates to false in JS
-        const currentTime = wavesurfer.getCurrentTime() !== undefined ?
-            wavesurfer.getCurrentTime() : lastPlayedPosition;
-
-        // Only update lastPlayedPosition if we have a valid non-zero time or if we're at the start
-        if (currentTime > 0 || wavesurfer.isPlaying()) {
-            lastPlayedPosition = currentTime;
-        }
-
-        const duration = persistedDuration || wavesurfer.getDuration() || 0;
-
-        document.getElementById('currentTime').textContent = formatTime(currentTime);
-        document.getElementById('totalDuration').textContent = formatTime(duration);
-    };
-
-    wavesurfer.on('play', () => {
-        console.log('WaveSurfer play event');
-
-        // Notify Alpine.js about the state change
-        window.dispatchEvent(new CustomEvent('playback-state-changed', {
-            detail: { playing: true }
-        }));
-
-        // Notify Livewire
-        dispatchLivewireEvent('playbackStarted');
-    });
-
-    wavesurfer.on('pause', () => {
-        console.log('WaveSurfer pause event');
-
-        // Explicitly grab the current time when pausing and store it
-        const pausePosition = wavesurfer.getCurrentTime();
-        if (pausePosition !== undefined && pausePosition > 0) {
-            lastPlayedPosition = pausePosition;
-            console.log('Storing pause position:', lastPlayedPosition);
-        }
-
-        // Make sure current time doesn't reset when pausing
-        updateTimeDisplay();
-
-        // Notify Alpine.js about the state change
-        window.dispatchEvent(new CustomEvent('playback-state-changed', {
-            detail: { playing: false }
-        }));
-
-        // Notify Livewire
-        dispatchLivewireEvent('playbackPaused');
-    });
-
-    wavesurfer.on('finish', () => {
-        console.log('WaveSurfer finish event');
-
-        // Make sure time display shows the end position
-        updateTimeDisplay();
-
-        // Notify Alpine.js about the state change
-        window.dispatchEvent(new CustomEvent('playback-state-changed', {
-            detail: { playing: false }
-        }));
-
-        // Notify Livewire
-        dispatchLivewireEvent('playbackPaused');
-    });
-
-    // Update time display during playback
-    wavesurfer.on('audioprocess', () => {
-        const currentTime = wavesurfer.getCurrentTime();
-        currentPlayerTime = currentTime; // Store locally without sending to server
-        lastPlayedPosition = currentTime; // Update the last position
-
-        // Update the time display
-        updateTimeDisplay();
-    });
-
-    // Comment marker click handler
-    window.addEventListener('comment-marker-clicked', event => {
-        console.log('Comment marker clicked at timestamp:', event.detail.timestamp);
-        const timestamp = event.detail.timestamp;
-
-        // Handle seeking for pre-generated peaks when audio isn't loaded yet
-        /* eslint-disable */
-        @if ($file -> waveform_processed && $file -> waveform_peaks)
-            /* eslint-enable */
-            if (!audioLoaded) {
-                // Load audio first, then seek when ready
-                console.log('Loading audio before seeking from comment marker');
-
-                initializeAudio().then(() => {
-                    console.log('Audio loaded from comment marker, seeking to', timestamp);
-                    wavesurfer.seekTo(timestamp / wavesurfer.getDuration());
-                    // Update display after seeking
-                    updateTimeDisplay();
-                });
-
-                // Notify Alpine.js about state change
-                window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                    detail: { playing: false }
-                }));
-
-                return;
-            }
-        /* eslint-disable */
-        @endif
-        /* eslint-enable */
-
-        // Audio might be in process of loading even if audioLoaded flag is true
-        if (audioLoadPromise && !audioLoadPromise.isResolved) {
-            console.log('Audio still loading, waiting to seek from comment marker');
-            audioLoadPromise.then(() => {
-                console.log('Seeking after audio load completed from comment marker');
-                wavesurfer.seekTo(timestamp / wavesurfer.getDuration());
-                updateTimeDisplay();
-            });
-            return;
-        }
-
-        // Normal seeking when audio is already loaded
-        console.log('Normal seeking from comment marker, audio already loaded');
-        wavesurfer.seekTo(timestamp / wavesurfer.getDuration());
-        wavesurfer.pause();
-
-        // Update time display
-        updateTimeDisplay();
-
-        // Notify Alpine.js about state change
-        window.dispatchEvent(new CustomEvent('playback-state-changed', {
-            detail: { playing: false }
-        }));
-    });
-
-    // Livewire event listeners
-    Livewire.on('seekToPosition', ({ timestamp }) => {
-        console.log('Livewire event: seekToPosition', timestamp);
-
-        // Handle seeking for pre-generated peaks when audio isn't loaded yet
-        /* eslint-disable */
-        @if ($file -> waveform_processed && $file -> waveform_peaks)
-            /* eslint-enable */
-            if (!audioLoaded) {
-                // Load audio first, then seek when ready
-                console.log('Loading audio before seeking from seekToPosition event');
-
-                initializeAudio().then(() => {
-                    console.log('Audio loaded from seekToPosition, seeking to', timestamp);
-                    wavesurfer.seekTo(timestamp / wavesurfer.getDuration());
-                    // Update display after seeking
-                    updateTimeDisplay();
-                });
-
-                // Notify Alpine.js about state change
-                window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                    detail: { playing: false }
-                }));
-
-                return;
-            }
-        /* eslint-disable */
-        @endif
-        /* eslint-enable */
-
-        // Audio might be in process of loading even if audioLoaded flag is true
-        if (audioLoadPromise && !audioLoadPromise.isResolved) {
-            console.log('Audio still loading, waiting to seek from seekToPosition');
-            audioLoadPromise.then(() => {
-                console.log('Seeking after audio load completed from seekToPosition');
-                wavesurfer.seekTo(timestamp / wavesurfer.getDuration());
-                updateTimeDisplay();
-            });
-            return;
-        }
-
-        // Normal seeking when audio is already loaded
-        console.log('Normal seeking from seekToPosition, audio already loaded');
-        wavesurfer.seekTo(timestamp / wavesurfer.getDuration());
-        wavesurfer.pause();
-
-        // Update time display
-        updateTimeDisplay();
-
-        // Notify Alpine.js about state change
-        window.dispatchEvent(new CustomEvent('playback-state-changed', {
-            detail: { playing: false }
-        }));
-    });
-
-    Livewire.on('pausePlayback', () => {
-        console.log('Livewire event: pausePlayback');
-        wavesurfer.pause();
-
-        // Notify Alpine.js about state change
-        window.dispatchEvent(new CustomEvent('playback-state-changed', {
-            detail: { playing: false }
-        }));
-    });
-
-    // Listen for comment added event
-    Livewire.on('commentAdded', () => {
-        console.log('Livewire event: commentAdded');
-        dispatchLivewireEvent('refresh');
-    });
-
-    // Add timeline implementation
-    const timeline = document.querySelector('#waveform-timeline');
-    if (timeline) {
-        wavesurfer.on('ready', () => {
-            // Simple timeline implementation
-            const duration = wavesurfer.getDuration();
-            timeline.innerHTML = ''; // Clear any existing content
-
-            // Create a container for the timeline
-            const container = document.createElement('div');
-            container.className = 'timeline-container';
-            container.style.position = 'relative';
-            container.style.height = '100%';
-
-            // Determine appropriate time interval based on duration
-            let interval = 30; // Default 30 seconds
-
-            if (duration < 60) {
-                interval = 10; // 10 seconds for short audio
-            } else if (duration < 180) {
-                interval = 20; // 20 seconds for medium audio
-            } else if (duration > 600) {
-                interval = 60; // 1 minute for long audio
-            }
-
-            // Create time marks at regular intervals
-            for (let time = 0; time <= duration; time += interval) {
-                if (time > duration) break;
-
-                const percent = time / duration;
-                const mark = document.createElement('div');
-                mark.className = 'timeline-mark';
-                mark.style.left = `${percent * 100}%`;
-                mark.textContent = formatTime(time);
-
-                container.appendChild(mark);
-            }
-
-            // Always add the end time if it's not exactly divisible by the interval
-            const lastTime = Math.floor(duration);
-            const lastInterval = lastTime - (lastTime % interval);
-            if (lastInterval < lastTime && lastTime < duration) {
-                const percent = lastTime / duration;
-                const mark = document.createElement('div');
-                mark.className = 'timeline-mark';
-                mark.style.left = `${percent * 100}%`;
-                mark.textContent = formatTime(lastTime);
-
-                container.appendChild(mark);
-            }
-
-            timeline.appendChild(container);
-        });
-    }
-
     // Helper function to update comment markers when duration changes
     const updateCommentMarkers = (duration) => {
         console.log('updateCommentMarkers called with duration:', duration);
@@ -1076,15 +591,575 @@
             duration = 1; // Fallback to prevent division by zero
         }
 
-        // Update the Livewire component's duration property
-        /* eslint-disable */
-        @this.set('duration', duration);
-        /* eslint-enable */
+        // Update the Livewire component's duration property using the instance ID finder method
+        const livewireComponent = Livewire.find('{{ $_instance->getId() }}');
+        if (livewireComponent) {
+            livewireComponent.set('duration', duration);
+        } else {
+            console.error("Could not find Livewire component instance to update duration.");
+        }
 
-        // Force a refresh to update the comment markers
-        Livewire.dispatch('refresh');
-        console.log('Comment markers updated with duration:', duration);
+        // Force a refresh to update the comment markers (may need adjustment based on how comments load)
+        // If comments are part of the main component render cycle, setting duration might be enough.
+        // If they need explicit refresh, dispatching an event might be better.
+        Livewire.dispatch('refresh'); // Consider if this is the best approach or if a targeted event is better
+        console.log('Comment markers update triggered with duration:', duration);
     };
+
+    document.addEventListener('livewire:initialized', () => {
+        console.log('Initializing WaveSurfer component');
+        const livewireComponentId = '{{ $_instance->getId() }}'; // Get the Livewire component ID
+
+        // Debounce function to limit UI updates or other operations
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Create a function to dispatch critical Livewire events with debouncing
+        const dispatchLivewireEvent = debounce((eventName, data = {}) => {
+             const component = Livewire.find(livewireComponentId);
+             if (component) {
+                 component.dispatch(eventName, data);
+             } else {
+                 // Fallback or global dispatch if needed, though usually targetted is better
+                 Livewire.dispatch(eventName, data);
+             }
+        }, 500); // Dispatch at most every 500ms
+
+        // Track current timestamp in a variable without sending to server
+        let currentPlayerTime = 0;
+
+        // Initialize WaveSurfer
+        wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: '#d1d5db',
+            progressColor: '#4f46e5',
+            cursorColor: '#4f46e5',
+            barWidth: 4,
+            barRadius: 3,
+            cursorWidth: 1,
+            height: 128,
+            //barGap: 2,
+            normalize: true,
+            responsive: true,
+            fillParent: true,
+            //minPxPerSec: 2, // Ensure minimum zoom level
+            splitChannels: false, // Keep as one waveform
+            dragToSeek: true, // Allow seeking by dragging
+        });
+
+        // Load audio file
+        const audioUrl = @js($file -> fullFilePath);
+        console.log('Loading audio URL:', audioUrl);
+
+        // Check if we have pre-generated waveform data
+        const hasPreGeneratedPeaks = @js($file -> waveform_processed && $file -> waveform_peaks);
+
+        if (hasPreGeneratedPeaks) {
+            console.log('Using pre-generated waveform data');
+            // Load audio with pre-generated peaks
+            const peaks = @js($file -> waveform_peaks_array);
+
+            // Debug the peaks data
+            console.log('Peaks data type:', typeof peaks);
+            console.log('Is peaks an array?', Array.isArray(peaks));
+            console.log('Peaks sample:', peaks && peaks.length > 0 ? peaks.slice(0, 10) : peaks);
+
+            // Set peaks directly - this will visualize without loading audio
+            if (peaks && Array.isArray(peaks[0])) {
+                // We have min/max peaks format
+                const minPeaks = peaks.map(point => point[0]);
+                const maxPeaks = peaks.map(point => point[1]);
+
+                // Initialize the waveform with the pre-generated peaks
+                // Use options instead of setPeaks to avoid auto-loading
+                wavesurfer.options.peaks = [minPeaks, maxPeaks];
+                console.log('Set min/max peaks');
+
+                // Use the stored duration if available, otherwise estimate
+                const storedDuration = @js($file-> duration ?? null);
+
+                // Set a fake duration based on the peaks array length if stored one is not available
+                const fakeLength = maxPeaks && maxPeaks.length ? maxPeaks.length : 0;
+                // Avoid division by zero and ensure we have a positive value
+                const estimatedDuration = fakeLength > 0 ? (fakeLength / 67) * 60 : 60; // Default to 60 seconds if we can't calculate
+
+                // Use actual duration if available, otherwise use estimate
+                const displayDuration = storedDuration || estimatedDuration;
+                console.log('Duration info:', { stored: storedDuration, estimated: estimatedDuration, using: displayDuration });
+
+                wavesurfer.options.duration = displayDuration;
+                persistedDuration = displayDuration;
+
+                // Force a redraw to show the peaks
+                if (typeof wavesurfer.drawBuffer === 'function') {
+                    wavesurfer.drawBuffer();
+                }
+
+                 // Mark waveform as "ready-like" state for the visualization
+                 setTimeout(() => {
+                     document.getElementById('waveform').classList.add('loaded');
+                     document.getElementById('totalDuration').textContent = formatTime(displayDuration);
+
+                     // Update comment markers with the duration
+                     updateCommentMarkers(displayDuration);
+
+                     // Set initial state (paused) - important for peak-only load
+                     window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                         detail: { playing: false }
+                     }));
+                 }, 100);
+             } else {
+                console.log('Peaks format is not as expected, falling back to normal loading');
+                initializeAudio(audioUrl); // Call initializeAudio here
+             }
+
+            // Audio will be loaded on first play - audioLoaded is false initially
+        } else {
+             console.log('No pre-generated waveform data available, generating on the fly');
+             initializeAudio(audioUrl); // Call initializeAudio here
+        }
+
+        // Listen for the Alpine.js play/pause toggle event
+        window.addEventListener('toggle-playback', (event) => {
+            console.log('Toggle playback event received:', event.detail.playing);
+
+            try {
+                if (event.detail.playing) {
+                    // Check if audio is already loaded (only relevant if peaks were pre-gen)
+                    if (hasPreGeneratedPeaks && !audioLoaded) {
+                        console.log('First play - loading audio');
+
+                        // Initialize audio and then play
+                        initializeAudio(audioUrl).then(() => { // Pass audioUrl
+                            console.log('Audio loaded, starting playback');
+                            setTimeout(() => {
+                                wavesurfer.play();
+                                // Ensure the time display is updated after playback starts
+                                updateTimeDisplay();
+                            }, 100);
+                        });
+
+                        return; // Wait for audio to load before playing
+                    }
+
+                    // Audio might be in process of loading even if audioLoaded flag is true
+                    // Or if peaks weren't pre-generated, initializeAudio might have been called earlier
+                    if (audioLoadPromise && !audioLoadPromise.isResolved) {
+                        console.log('Audio still loading, waiting to play');
+                        audioLoadPromise.then(() => {
+                            console.log('Now playing after audio load completed');
+                            wavesurfer.play();
+                        });
+                        return;
+                    }
+
+                    // Normal play when audio is already loaded or load wasn't needed initially
+                    console.log('Playing with already loaded audio or pre-generated peaks');
+                    const playPromise = wavesurfer.play();
+
+                    // Modern browsers return a promise from audio.play()
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => {
+                                console.log('Playback started successfully');
+                            })
+                            .catch(error => {
+                                console.error('Playback failed:', error);
+                                // If playback fails, update UI to reflect paused state
+                                window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                                    detail: { playing: false }
+                                }));
+                            });
+                    }
+                } else {
+                    wavesurfer.pause();
+                    console.log('Playback paused');
+                }
+            } catch (e) {
+                console.error('Error toggling playback:', e);
+                // If there's an error, ensure UI reflects paused state
+                window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                    detail: { playing: false }
+                }));
+            }
+        });
+
+        // Before unloading the page, stop any audio to prevent memory leaks
+        window.addEventListener('beforeunload', () => {
+            if (wavesurfer) {
+                wavesurfer.pause();
+                // Don't destroy as it might cause errors if already in process of unloading
+            }
+        });
+
+        wavesurfer.on('ready', () => {
+            console.log('WaveSurfer ready event fired');
+
+            // Get actual duration or fallback to estimated duration if needed
+            persistedDuration = wavesurfer.getDuration() || persistedDuration; // Use WS duration if available
+            document.getElementById('totalDuration').textContent = formatTime(persistedDuration);
+            document.getElementById('waveform').classList.add('loaded');
+
+            // Prevent duplicate handling if loading audio after setting peaks
+            if (!readyFired) {
+                readyFired = true;
+
+                // Set initial state (paused) if not already set by peak load
+                 if (!hasPreGeneratedPeaks) {
+                     window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                         detail: { playing: false }
+                     }));
+                 }
+
+                // Update comment markers with the actual duration
+                updateCommentMarkers(persistedDuration);
+
+                // Use a deferred dispatch to avoid batching with other updates
+                setTimeout(() => {
+                    // Dispatch our custom event to signal waveform is ready
+                    dispatchLivewireEvent('waveformReady');
+                }, 100);
+            }
+        });
+
+        // Ensure current time display is always accurate
+        const updateTimeDisplay = () => {
+            if (!wavesurfer) return;
+
+            // We need to check if getCurrentTime is null/undefined, not if it's falsy
+            // since 0 is a valid time position but evaluates to false in JS
+            const currentTime = wavesurfer.getCurrentTime() !== undefined ?
+                wavesurfer.getCurrentTime() : lastPlayedPosition;
+
+            // Only update lastPlayedPosition if we have a valid non-zero time or if we're at the start
+            if (currentTime > 0 || wavesurfer.isPlaying()) {
+                lastPlayedPosition = currentTime;
+            }
+
+            // Ensure duration is available, fallback if necessary
+             const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
+
+            document.getElementById('currentTime').textContent = formatTime(currentTime);
+            document.getElementById('totalDuration').textContent = formatTime(duration);
+        };
+
+        wavesurfer.on('play', () => {
+            console.log('WaveSurfer play event');
+
+            // Notify Alpine.js about the state change
+            window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                detail: { playing: true }
+            }));
+
+            // Notify Livewire
+            // dispatchLivewireEvent('playbackStarted'); // Decide if needed
+        });
+
+        wavesurfer.on('pause', () => {
+            console.log('WaveSurfer pause event');
+
+            // Explicitly grab the current time when pausing and store it
+            const pausePosition = wavesurfer.getCurrentTime();
+            if (pausePosition !== undefined && pausePosition >= 0) { // Check >= 0
+                 lastPlayedPosition = pausePosition;
+                 console.log('Storing pause position:', lastPlayedPosition);
+             }
+
+            // Make sure current time doesn't reset when pausing
+            updateTimeDisplay();
+
+            // Notify Alpine.js about the state change
+            window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                detail: { playing: false }
+            }));
+
+            // Notify Livewire
+            // dispatchLivewireEvent('playbackPaused'); // Decide if needed
+        });
+
+        wavesurfer.on('finish', () => {
+            console.log('WaveSurfer finish event');
+
+            // Reset last played position to the start or end? Let's set to end.
+             lastPlayedPosition = persistedDuration || 0;
+             updateTimeDisplay(); // Show end time
+
+            // Notify Alpine.js about the state change
+            window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                detail: { playing: false }
+            }));
+
+            // Notify Livewire
+            // dispatchLivewireEvent('playbackFinished'); // Decide if needed
+        });
+
+        // Update time display during playback
+        wavesurfer.on('audioprocess', () => {
+            const currentTime = wavesurfer.getCurrentTime();
+            currentPlayerTime = currentTime; // Store locally without sending to server
+             if (currentTime !== undefined && currentTime >= 0) {
+                 lastPlayedPosition = currentTime; // Update the last position
+             }
+
+            // Update the time display
+            updateTimeDisplay();
+        });
+
+        // Comment marker click handler
+        window.addEventListener('comment-marker-clicked', event => {
+            console.log('Comment marker clicked at timestamp:', event.detail.timestamp);
+            const timestamp = event.detail.timestamp;
+            const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
+
+            if (duration <= 0) {
+                 console.warn("Cannot seek, duration unknown or zero.");
+                 return;
+             }
+
+            // Handle seeking for pre-generated peaks when audio isn't loaded yet
+            if (hasPreGeneratedPeaks && !audioLoaded) {
+                // Load audio first, then seek when ready
+                console.log('Loading audio before seeking from comment marker');
+
+                initializeAudio(audioUrl).then(() => { // Pass audioUrl
+                    console.log('Audio loaded from comment marker, seeking to', timestamp);
+                    const seekDuration = wavesurfer.getDuration(); // Get fresh duration after load
+                     if (seekDuration > 0) {
+                         wavesurfer.seekTo(timestamp / seekDuration);
+                     } else {
+                        console.warn("Cannot seek after load, duration still zero.");
+                     }
+                     wavesurfer.pause(); // Ensure paused after seek
+                    // Update display after seeking
+                    updateTimeDisplay();
+                     // Ensure Alpine state is paused
+                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                });
+
+                // Notify Alpine.js about state change (to paused) immediately
+                window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                    detail: { playing: false }
+                }));
+
+                return;
+            }
+
+            // Audio might be in process of loading even if audioLoaded flag is true
+            if (audioLoadPromise && !audioLoadPromise.isResolved) {
+                console.log('Audio still loading, waiting to seek from comment marker');
+                audioLoadPromise.then(() => {
+                    console.log('Seeking after audio load completed from comment marker');
+                     const seekDuration = wavesurfer.getDuration();
+                     if (seekDuration > 0) {
+                         wavesurfer.seekTo(timestamp / seekDuration);
+                     } else {
+                         console.warn("Cannot seek after load, duration still zero.");
+                     }
+                     wavesurfer.pause(); // Ensure paused after seek
+                    updateTimeDisplay();
+                     // Ensure Alpine state is paused
+                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                });
+                return;
+            }
+
+            // Normal seeking when audio is already loaded
+            console.log('Normal seeking from comment marker, audio already loaded');
+            wavesurfer.seekTo(timestamp / duration);
+            wavesurfer.pause();
+
+            // Update time display
+            updateTimeDisplay();
+
+            // Notify Alpine.js about state change
+            window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                detail: { playing: false }
+            }));
+        });
+
+        // Livewire event listeners
+        Livewire.on('seekToPosition', ({ timestamp }) => {
+            console.log('Livewire event: seekToPosition', timestamp);
+            const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
+
+             if (duration <= 0) {
+                 console.warn("Cannot seek via Livewire, duration unknown or zero.");
+                 return;
+             }
+
+            // Handle seeking for pre-generated peaks when audio isn't loaded yet
+            if (hasPreGeneratedPeaks && !audioLoaded) {
+                // Load audio first, then seek when ready
+                console.log('Loading audio before seeking from seekToPosition event');
+
+                initializeAudio(audioUrl).then(() => { // Pass audioUrl
+                    console.log('Audio loaded from seekToPosition, seeking to', timestamp);
+                    const seekDuration = wavesurfer.getDuration(); // Get fresh duration
+                     if (seekDuration > 0) {
+                         wavesurfer.seekTo(timestamp / seekDuration);
+                     } else {
+                         console.warn("Cannot seek after load, duration still zero.");
+                     }
+                     wavesurfer.pause(); // Ensure paused
+                    // Update display after seeking
+                    updateTimeDisplay();
+                     // Ensure Alpine state is paused
+                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                });
+
+                // Notify Alpine.js about state change (to paused) immediately
+                window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                    detail: { playing: false }
+                }));
+
+                return;
+            }
+
+            // Audio might be in process of loading even if audioLoaded flag is true
+            if (audioLoadPromise && !audioLoadPromise.isResolved) {
+                console.log('Audio still loading, waiting to seek from seekToPosition');
+                audioLoadPromise.then(() => {
+                    console.log('Seeking after audio load completed from seekToPosition');
+                     const seekDuration = wavesurfer.getDuration();
+                     if (seekDuration > 0) {
+                         wavesurfer.seekTo(timestamp / seekDuration);
+                     } else {
+                         console.warn("Cannot seek after load, duration still zero.");
+                     }
+                     wavesurfer.pause(); // Ensure paused
+                    updateTimeDisplay();
+                     // Ensure Alpine state is paused
+                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                });
+                return;
+            }
+
+            // Normal seeking when audio is already loaded
+            console.log('Normal seeking from seekToPosition, audio already loaded');
+            wavesurfer.seekTo(timestamp / duration);
+            wavesurfer.pause();
+
+            // Update time display
+            updateTimeDisplay();
+
+            // Notify Alpine.js about state change
+            window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                detail: { playing: false }
+            }));
+        });
+
+        Livewire.on('pausePlayback', () => {
+            console.log('Livewire event: pausePlayback');
+            wavesurfer.pause();
+
+            // Notify Alpine.js about state change
+            window.dispatchEvent(new CustomEvent('playback-state-changed', {
+                detail: { playing: false }
+            }));
+        });
+
+        // Listen for comment added event (if needed for refresh)
+        Livewire.on('commentAdded', () => {
+             console.log('Livewire event: commentAdded - triggering refresh');
+             // Check if a full component refresh is desired/needed here
+             // Maybe only re-fetch/re-render comments part?
+             Livewire.dispatch('refresh'); // Or a more specific event
+         });
+
+        // Add timeline implementation
+        const timeline = document.querySelector('#waveform-timeline');
+        if (timeline) {
+            const setupTimeline = (renderDuration) => {
+                 if (!renderDuration || isNaN(renderDuration) || renderDuration <= 0) {
+                     console.warn("Timeline setup skipped: Invalid duration", renderDuration);
+                     return;
+                 }
+                 timeline.innerHTML = ''; // Clear any existing content
+
+                // Create a container for the timeline
+                const container = document.createElement('div');
+                container.className = 'timeline-container';
+                container.style.position = 'relative';
+                container.style.height = '100%';
+
+                // Determine appropriate time interval based on duration
+                let interval = 30; // Default 30 seconds
+
+                if (renderDuration < 60) {
+                    interval = 10; // 10 seconds for short audio
+                } else if (renderDuration < 180) {
+                    interval = 20; // 20 seconds for medium audio
+                } else if (renderDuration > 600) {
+                    interval = 60; // 1 minute for long audio
+                }
+
+                // Create time marks at regular intervals
+                for (let time = 0; time <= renderDuration; time += interval) {
+                    if (time > renderDuration && time !== interval) break; // Avoid mark way past end unless it's the first
+
+                    const percent = time / renderDuration;
+                    const mark = document.createElement('div');
+                    mark.className = 'timeline-mark';
+                    mark.style.left = `${percent * 100}%`;
+                    mark.textContent = formatTime(time);
+
+                    container.appendChild(mark);
+                }
+
+                // Always add the end time if it's not exactly divisible by the interval and > 0
+                 const lastTime = Math.floor(renderDuration);
+                 if (lastTime > 0 && lastTime % interval !== 0) {
+                     const percent = lastTime / renderDuration;
+                     const mark = document.createElement('div');
+                     mark.className = 'timeline-mark';
+                     mark.style.left = `${percent * 100}%`;
+                     // To avoid clutter, only show end time if sufficiently far from last interval mark
+                     const lastIntervalTime = Math.floor(lastTime / interval) * interval;
+                     if ((lastTime - lastIntervalTime) / renderDuration > 0.05) { // e.g., if end is > 5% past last mark
+                         mark.textContent = formatTime(lastTime);
+                     }
+                     container.appendChild(mark);
+                 }
+
+
+                timeline.appendChild(container);
+             };
+
+             // Setup timeline if duration is known from pre-generated peaks
+             if (hasPreGeneratedPeaks && persistedDuration > 0) {
+                 console.log("Setting up timeline with pre-generated duration:", persistedDuration);
+                 setupTimeline(persistedDuration);
+             }
+
+             // Also set up timeline when wavesurfer is ready (for non-pre-generated case)
+            wavesurfer.on('ready', () => {
+                 const readyDuration = wavesurfer.getDuration();
+                 console.log("Setting up timeline on ready event with duration:", readyDuration);
+                 setupTimeline(readyDuration);
+             });
+
+             // Re-render timeline if comments update causes duration change (unlikely but possible)
+             Livewire.hook('morph.updated', ({ el, component }) => {
+                 // Check if the duration property specifically changed if possible,
+                 // or just re-render timeline if this component updates.
+                 if (component.id === livewireComponentId) {
+                     const currentDuration = persistedDuration || (wavesurfer && wavesurfer.getDuration());
+                     if (currentDuration > 0) {
+                        // Small delay to ensure DOM might be settled
+                        setTimeout(() => setupTimeline(currentDuration), 50);
+                     }
+                 }
+             });
+        }
     });
 </script>
 {{-- blade-formatter-enable --}}
