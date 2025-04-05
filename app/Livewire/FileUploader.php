@@ -27,9 +27,6 @@ class FileUploader extends Component
 
     // Track progress
     public $uploadProgress = [];
-    
-    // Track upload history
-    public $uploadHistory = [];
 
     // Don't initialize in constructor to avoid potential infinite loop
     protected $fileManagementService;
@@ -51,10 +48,6 @@ class FileUploader extends Component
 
         // Initialize the service through dependency injection in mount
         $this->fileManagementService = app(FileManagementService::class);
-        
-        // Initialize upload history from session if available
-        $sessionKey = $this->getSessionKey();
-        $this->uploadHistory = session($sessionKey, []);
     }
 
     public function rules()
@@ -217,9 +210,6 @@ class FileUploader extends Component
                 Log::info("FileUploader: Deleting locally stored temporary file.", ['path' => $tmpPath]);
                 Storage::disk('local')->delete($storedPathRelative); // Delete using relative path
                 
-                // Add to upload history
-                $this->addToUploadHistory($originalFilename);
-                
                 // Success feedback
                 Toaster::success("Successfully uploaded {$originalFilename}");
                 
@@ -265,35 +255,6 @@ class FileUploader extends Component
             ]);
             Toaster::error('An error occurred while uploading the file.');
         }
-    }
-    
-    /**
-     * Add successfully uploaded file to history
-     */
-    protected function addToUploadHistory($filename)
-    {
-        // Add to the beginning of the array (most recent first)
-        array_unshift($this->uploadHistory, [
-            'name' => $filename,
-            'time' => Carbon::now()->diffForHumans()
-        ]);
-        
-        // Limit history to most recent 10 items
-        if (count($this->uploadHistory) > 10) {
-            $this->uploadHistory = array_slice($this->uploadHistory, 0, 10);
-        }
-        
-        // Store in session for persistence
-        session([$this->getSessionKey() => $this->uploadHistory]);
-    }
-    
-    /**
-     * Get unique session key for this uploader instance
-     */
-    protected function getSessionKey()
-    {
-        $modelType = $this->model instanceof Project ? 'project' : 'pitch';
-        return "upload_history_{$modelType}_{$this->model->id}";
     }
     
     /**

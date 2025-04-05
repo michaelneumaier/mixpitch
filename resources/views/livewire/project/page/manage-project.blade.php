@@ -1,17 +1,4 @@
 <div class="container mx-auto px-2 sm:px-4">
-    <!-- Debug Panel (only visible in development) -->
-    @if(config('app.env') !== 'production')
-    <div class="mb-4 p-3 bg-gray-100 rounded-lg text-xs border border-gray-300">
-        <h4 class="font-bold mb-1">Debug Panel</h4>
-        <div>showDeleteModal: {{ $showDeleteModal ? 'true' : 'false' }}</div>
-        <div>fileToDelete: {{ $fileToDelete ?: 'null' }}</div>
-        <div class="mt-2">
-            <button wire:click="confirmDeleteFile(1)" class="px-2 py-1 bg-red-500 text-white rounded mr-2">Test confirmDeleteFile(1)</button>
-            <button wire:click="$set('showDeleteModal', true)" class="px-2 py-1 bg-blue-500 text-white rounded">Force Show Modal</button>
-        </div>
-    </div>
-    @endif
-    <!-- End Debug Panel -->
     <style>
         /* Custom breakpoint for extra small screens */
         @media (min-width: 475px) {
@@ -612,10 +599,7 @@
                         <div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden">
                             <div class="p-4 border-b border-base-200 bg-base-100/50 flex justify-between items-center">
                                 <h5 class="font-medium text-base">Files ({{ $project->files->count() }})</h5>
-                                <div class="flex items-center gap-2">
-                                    <button wire:click="$refresh" class="text-xs text-blue-600 hover:underline">
-                                        <i class="fas fa-sync-alt mr-1"></i>Refresh
-                                    </button>
+                                <div class="flex items-center">
                                     @if($project->files->count() > 0)
                                     <span class="text-xs text-gray-500">Total: {{ $this->formatFileSize($project->files->sum('size')) }}</span>
                                     @endif
@@ -626,11 +610,6 @@
                                 @forelse($project->files as $file)
                                 <div class="flex items-center justify-between py-3 px-4 hover:bg-base-100/50 transition-all duration-300 track-item
                                     @if(isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif">
-                                    <!-- Test button -->
-                                    <button wire:click="confirmDeleteFile({{ $file->id }})" class="btn btn-xs btn-error text-white mr-2">
-                                        Delete {{ $file->id }}
-                                    </button>
-                                    <!-- End test button -->
                                     <div class="flex items-center overflow-hidden flex-1 pr-2">
                                         <div
                                             class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center {{ $file->id == $project->preview_track ? 'bg-primary text-white' : 'bg-base-200 text-gray-500' }} mr-3">
