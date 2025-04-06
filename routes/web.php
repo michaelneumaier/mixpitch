@@ -21,6 +21,8 @@ use App\Http\Controllers\Billing\BillingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PitchSnapshotController;
 use App\Http\Controllers\PitchStatusController;
+use App\Livewire\User\ManagePortfolioItems;
+use App\Http\Controllers\AudioFileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -246,6 +248,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/profile/edit', function () {
         return view('user-profile.edit-livewire');
     })->name('profile.edit');
+
+    Route::get('/profile/portfolio', ManagePortfolioItems::class)->name('profile.portfolio');
 
     Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.username');
 });
@@ -643,3 +647,8 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('a
         ]);
     })->name('stats');
 });
+
+// Add new routes for audio files
+Route::get('/audio-file/{id}', [AudioFileController::class, 'getPortfolioAudioUrl'])->name('audio.getUrl');
+Route::get('/audio-file/presigned/{filePath}', [AudioFileController::class, 'getPreSignedUrl'])->name('audio.getPreSignedUrl')
+    ->where('filePath', '.*'); // Accept any file path pattern

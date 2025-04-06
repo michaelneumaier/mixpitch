@@ -20,6 +20,9 @@ use Filament\Panel;
 use Laravel\Cashier\Billable;
 use App\Models\Pitch;
 use App\Models\PitchEvent;
+use App\Models\Project;
+use App\Models\PortfolioItem;
+use App\Models\Tag;
 
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
@@ -54,9 +57,6 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'location',
         'social_links',
         'username_locked',
-        'skills',
-        'equipment',
-        'specialties',
         'featured_work',
         'headline',
         'portfolio_layout', 
@@ -87,9 +87,6 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'skills' => 'array',
-        'equipment' => 'array',
-        'specialties' => 'array',
         'social_links' => 'array',
         'is_username_locked' => 'boolean',
         'profile_completed' => 'boolean',
@@ -391,4 +388,29 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             'count' => $count
         ];
     }
+
+    /**
+     * Get the portfolio items for the user.
+     */
+    public function portfolioItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PortfolioItem::class);
+    }
+
+    /**
+     * Get all tags for this user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphToMany
+     */
+    public function tags()
+    {
+        $relation = $this->morphToMany(Tag::class, 'taggable');
+        Log::debug('User::tags() relation called', [
+            'user_id' => $this->id,
+            'sql' => $relation->toSql(),
+            'bindings' => $relation->getBindings()
+        ]);
+        return $relation;
+    }
+
 }

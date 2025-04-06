@@ -7,6 +7,8 @@ use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Log;
+use App\Models\Tag;
+use Illuminate\Support\Collection;
 
 class UpdateProfileInformationForm extends Component
 {
@@ -27,6 +29,30 @@ class UpdateProfileInformationForm extends Component
     public $photo;
 
     /**
+     * User's selected skill tags (array of IDs).
+     * @var array
+     */
+    public $skillTags = [];
+
+    /**
+     * User's selected equipment tags (array of IDs).
+     * @var array
+     */
+    public $equipmentTags = [];
+
+    /**
+     * User's selected specialty tags (array of IDs).
+     * @var array
+     */
+    public $specialtyTags = [];
+
+    /**
+     * All available tags, grouped by type.
+     * @var Collection
+     */
+    public Collection $allTags;
+
+    /**
      * Determine if the verification email was sent.
      *
      * @var bool
@@ -41,10 +67,16 @@ class UpdateProfileInformationForm extends Component
     public function mount()
     {
         $user = Auth::user();
+        $this->state = $user->withoutRelations()->toArray();
 
-        $this->state = array_merge([
-            'email' => $user->email,
-        ], $user->withoutRelations()->toArray());
+        // Load all tags grouped by type for the select inputs
+        $this->allTags = Tag::all()->groupBy('type');
+
+        // Load user's current tags and populate the respective arrays
+        $userTags = $user->tags()->get()->groupBy('type');
+        $this->skillTags = $userTags->get('skill', collect())->pluck('id')->toArray();
+        $this->equipmentTags = $userTags->get('equipment', collect())->pluck('id')->toArray();
+        $this->specialtyTags = $userTags->get('specialty', collect())->pluck('id')->toArray();
     }
 
     /**
@@ -58,38 +90,45 @@ class UpdateProfileInformationForm extends Component
         $this->resetErrorBag();
 
         try {
+            // Merge state with photo and tag data
+            $updateData = $this->state;
             if ($this->photo) {
-                // Log information about the photo for debugging
-                Log::info('Profile photo upload processing', [
-                    'user_id' => Auth::id(),
-                    'photo_pathname' => $this->photo->getPathname(),
-                    'photo_extension' => $this->photo->getClientOriginalExtension(),
-                    'photo_type' => get_class($this->photo)
-                ]);
+                $updateData['photo'] = $this->photo;
             }
+            $updateData['skillTags'] = $this->skillTags;
+            $updateData['equipmentTags'] = $this->equipmentTags;
+            $updateData['specialtyTags'] = $this->specialtyTags;
 
-            $updater->update(
-                Auth::user(),
-                $this->photo
-                    ? array_merge($this->state, ['photo' => $this->photo])
-                    : $this->state
-            );
+            Log::info('Updating profile with data:', $updateData); // Debugging
+
+            $updater->update(Auth::user(), $updateData);
 
             if (isset($this->photo)) {
-                // Redirect to refresh the page
                 return redirect()->route('profile.show');
             }
 
             $this->dispatch('saved');
             $this->dispatch('refresh-navigation-menu');
+
+            // Refresh tag data after save
+            $this->mount(); 
+
         } catch (\Exception $e) {
             Log::error('Error updating profile information', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(), // Add trace for debugging
                 'user_id' => Auth::id(),
                 'photo_present' => isset($this->photo)
             ]);
             
-            $this->addError('photo', 'There was an error uploading your photo. Please try again.');
+            // Add specific error handling if validation fails in the action
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                 $this->setErrorBag($e->validator->errors());
+            } else {
+                session()->flash('error', 'An unexpected error occurred while updating your profile.');
+                // Potentially add a more specific error for photo uploads if needed
+                 $this->addError('general', 'An unexpected error occurred. Please try again.');
+            }
         }
     }
 

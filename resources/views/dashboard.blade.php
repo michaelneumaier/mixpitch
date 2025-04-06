@@ -217,6 +217,13 @@
                                             <span class="mx-2">•</span>
                                             <span>Completed on {{ \Carbon\Carbon::parse($pitch->completed_at)->format('M
                                                 d, Y') }}</span>
+                                            
+                                            @if($pitch->getCompletionRating())
+                                            <span class="mx-2">•</span>
+                                            <span class="text-orange-500 font-medium">
+                                                {{ number_format($pitch->getCompletionRating(), 1) }} ★
+                                            </span>
+                                            @endif
                                             @endif
                                         </div>
 

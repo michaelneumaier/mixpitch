@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Database\Seeders\MigrateUserTagsSeeder;
+use Database\Seeders\TagSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,5 +23,10 @@ class DatabaseSeeder extends Seeder
 
         // Seed Filament admin roles and permissions
         $this->call(FilamentAdminSeeder::class);
+
+        $this->call([
+            MigrateUserTagsSeeder::class,
+            TagSeeder::class,
+        ]);
     }
 }
