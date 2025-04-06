@@ -126,6 +126,25 @@
                     </div>
 
                     <div class="px-3 sm:px-6 py-3 sm:py-4">
+                        <!-- Rating Card - Only shown for completed pitches with ratings -->
+                        @if($pitch->status === 'completed' && $pitch->getCompletionRating())
+                        <div class="bg-base-200/30 p-3 sm:p-4 rounded-lg mb-4">
+                            <h3 class="font-semibold text-gray-700 mb-2 flex items-center text-base sm:text-lg">
+                                <i class="fas fa-star text-orange-500 mr-2"></i>Rating
+                            </h3>
+                            <div class="flex items-center">
+                                <span class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center">
+                                    {{ number_format($pitch->getCompletionRating(), 1) }}
+                                    <span class="text-orange-500 ml-1">★</span>
+                                </span>
+                                <span class="ml-2 text-gray-600">/ 5</span>
+                            </div>
+                            <p class="text-sm sm:text-base text-gray-600 mt-2">
+                                This pitch received a rating of {{ number_format($pitch->getCompletionRating(), 1) }} out of 5 stars upon completion.
+                            </p>
+                        </div>
+                        @endif
+                        
                         <!-- File Downloads -->
                         <div class="bg-base-200/30 p-3 sm:p-4 rounded-lg mb-4">
                             <h3 class="font-semibold text-gray-700 mb-2 sm:mb-3 flex items-center text-base sm:text-lg">

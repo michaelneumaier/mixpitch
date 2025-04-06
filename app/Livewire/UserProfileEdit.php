@@ -5,7 +5,6 @@ namespace App\Livewire;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Masmerise\Toaster\Toaster;
 
@@ -29,9 +28,6 @@ class UserProfileEdit extends Component
     public $profile_completed = false;
     public $profile_completion_percentage = 0;
     public $profilePhoto;
-    public $newSkill = '';
-    public $newEquipment = '';
-    public $newSpecialty = '';
 
     // Add a protected property for temporary URL validation
     protected $temporaryUploadDirectory = 'livewire-tmp';
@@ -96,57 +92,28 @@ class UserProfileEdit extends Component
         $this->location = $user->location;
         $this->website = $user->website;
         $this->tipjar_link = $user->tipjar_link;
-        $this->skills = $user->skills ?? [];
-        $this->equipment = $user->equipment ?? [];
-        $this->specialties = $user->specialties ?? [];
         $this->social_links = $user->social_links ?? [];
         $this->is_username_locked = $user->is_username_locked;
         $this->profile_completed = $user->profile_completed ?? false;
 
+        // Load user's tags from taggables relationship
+        $userTags = $user->tags()->get()->groupBy('type');
+        
+        // Convert tag IDs to strings for proper comparison in the frontend
+        $this->skills = $userTags->get('skill', collect())->pluck('id')->map(function($id) {
+            return (string)$id;
+        })->toArray();
+        
+        $this->equipment = $userTags->get('equipment', collect())->pluck('id')->map(function($id) {
+            return (string)$id;
+        })->toArray();
+        
+        $this->specialties = $userTags->get('specialty', collect())->pluck('id')->map(function($id) {
+            return (string)$id;
+        })->toArray();
+
         // Calculate profile completion percentage on initial load
         $this->calculateProfileCompletion();
-    }
-
-    public function addSkill()
-    {
-        if (!empty($this->newSkill)) {
-            $this->skills[] = $this->newSkill;
-            $this->newSkill = '';
-        }
-    }
-
-    public function removeSkill($index)
-    {
-        unset($this->skills[$index]);
-        $this->skills = array_values($this->skills);
-    }
-
-    public function addEquipment()
-    {
-        if (!empty($this->newEquipment)) {
-            $this->equipment[] = $this->newEquipment;
-            $this->newEquipment = '';
-        }
-    }
-
-    public function removeEquipment($index)
-    {
-        unset($this->equipment[$index]);
-        $this->equipment = array_values($this->equipment);
-    }
-
-    public function addSpecialty()
-    {
-        if (!empty($this->newSpecialty)) {
-            $this->specialties[] = $this->newSpecialty;
-            $this->newSpecialty = '';
-        }
-    }
-
-    public function removeSpecialty($index)
-    {
-        unset($this->specialties[$index]);
-        $this->specialties = array_values($this->specialties);
     }
 
     /**
@@ -208,27 +175,14 @@ class UserProfileEdit extends Component
 
         $user = auth()->user();
 
-        // Clean empty values from array fields
-        $skills = array_values(array_filter($this->skills));
-        $equipment = array_values(array_filter($this->equipment));
-        $specialties = array_values(array_filter($this->specialties));
-
-        // Clean empty values from social links
-        $social_links = [];
-        foreach ($this->social_links as $key => $value) {
-            if (!empty($value)) {
-                $social_links[$key] = $value;
-            }
-        }
-
-        // If username is being set for the first time, lock it
+        // Clean and gather non-tag data
         if (!empty($this->username) && !$user->is_username_locked) {
             $this->is_username_locked = true;
         }
 
         // Prepend http:// to website if it doesn't have a protocol
         if (!empty($this->website) && !preg_match("~^(?:f|ht)tps?://~i", $this->website)) {
-            $this->website = "http://" . $this->website;
+            $this->website = "https://" . $this->website;
         }
 
         // Prepend http:// to tipjar link if it doesn't have a protocol
@@ -236,55 +190,76 @@ class UserProfileEdit extends Component
             $this->tipjar_link = "https://" . $this->tipjar_link;
         }
 
-        // Update user model with validated data
-        $user->name = $this->name;
-        $user->email = $this->email;
-        $user->username = $this->username;
-        $user->headline = $this->headline;
-        $user->bio = $this->bio;
-        $user->location = $this->location;
-        $user->website = $this->website;
-        $user->tipjar_link = $this->tipjar_link;
-        $user->skills = $skills;
-        $user->equipment = $equipment;
-        $user->specialties = $specialties;
-        $user->social_links = $social_links;
-        $user->is_username_locked = $this->is_username_locked;
+        // Prepare all non-tag data for saving
+        $userData = [
+            'name' => $this->name,
+            'email' => $this->email,
+            'username' => $this->username,
+            'headline' => $this->headline,
+            'bio' => $this->bio,
+            'location' => $this->location,
+            'website' => $this->website,
+            'tipjar_link' => $this->tipjar_link,
+            'social_links' => array_filter($this->social_links ?? []),
+            'is_username_locked' => $this->is_username_locked,
+        ];
 
         // Recalculate profile completion before saving
         $this->calculateProfileCompletion();
-        $user->profile_completed = $this->profile_completed;
+        $userData['profile_completed'] = $this->profile_completed;
 
         try {
-            // Handle profile photo upload first
+            // Handle profile photo upload if needed
             if ($this->profilePhoto) {
                 try {
                     $user->updateProfilePhoto($this->profilePhoto);
-                    // Reset the profile photo property after successful upload
                     $this->profilePhoto = null;
                 } catch (\Exception $e) {
-                    Log::error('Error updating profile photo: ' . $e->getMessage());
-                    $this->dispatch('profile-updated', ['error' => 'Failed to upload profile photo. Please try again.']);
+                    Toaster::error('Failed to upload profile photo. Please try again.');
                     return;
                 }
             }
 
-            // Save other user data
+            // Save user basic data
+            $user->fill($userData);
             $user->save();
+            
+            // Handle tags - convert to integers for database
+            $skillIds = array_map('intval', $this->skills ?? []);
+            $equipmentIds = array_map('intval', $this->equipment ?? []);
+            $specialtyIds = array_map('intval', $this->specialties ?? []);
+            
+            // Merge all tag IDs into one array
+            $allTagIds = array_merge($skillIds, $equipmentIds, $specialtyIds);
+            
+            // Sync tags with the user
+            $user->tags()->sync($allTagIds);
 
-            // Flash a success message to the session
             Toaster::success('Profile updated successfully!');
-
-            // Redirect back to the same page to refresh everything
             return redirect()->route('profile.edit');
         } catch (\Exception $e) {
-            Log::error('Error updating user profile: ' . $e->getMessage());
-            $this->dispatch('profile-updated', ['error' => 'An error occurred while updating your profile. Please try again.']);
+            Toaster::error('An error occurred while updating your profile. Please try again.');
         }
     }
 
     public function render()
     {
-        return view('livewire.user-profile-edit');
+        // Get all tags from the database, grouped by type
+        $allTags = \App\Models\Tag::all()->groupBy('type');
+        
+        // Convert the tag collection to arrays for JavaScript
+        $allTagsForJs = $allTags->map(function($tags) {
+            return $tags->map(function($tag) {
+                return [
+                    'id' => (string)$tag->id,  // Convert to string for JavaScript consistency
+                    'name' => $tag->name
+                ];
+            })->values()->toArray();
+        })->toArray();
+        
+        return view('livewire.user-profile-edit', [
+            'allTags' => $allTags,
+            'allTagsForJs' => $allTagsForJs
+        ]);
     }
 }

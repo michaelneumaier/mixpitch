@@ -5,6 +5,11 @@
         <div class="mb-8">
             <h2 class="text-2xl font-bold text-gray-900">Portfolio Profile</h2>
             <p class="text-gray-600">Customize your profile to showcase your work and talents.</p>
+            <div class="mt-3">
+                <a href="{{ route('profile.portfolio') }}" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
+                    <i class="fas fa-images mr-2"></i> Manage Portfolio Items
+                </a>
+            </div>
         </div>
         
         <!-- Flash Messages -->
@@ -32,7 +37,11 @@
             </div>
         </div>
         
-        <form wire:submit.prevent="save" class="space-y-8">
+        <form 
+            wire:submit.prevent="save"
+            name="profile-edit-form"
+            id="profile-edit-form"
+            class="space-y-8">
             <!-- Profile Photo Section -->
             <div class="mb-8">
                 <div class="flex items-start">
@@ -203,92 +212,67 @@
                 </div>
             </div>
             
-            <!-- Professional Skills -->
+            <!-- Professional Skills / Tags -->
             <div class="bg-gray-50 rounded-lg p-6 space-y-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2 border-gray-200">
-                    <i class="fas fa-tools mr-2"></i> Professional Skills & Equipment
+                    <i class="fas fa-tags mr-2"></i> Skills, Equipment & Specialties
                 </h3>
+            
+                <!-- Alpine/Choices.js component for selects -->
+                @php
+                // Define tags by type for the select components
+                $tagsByType = \App\Models\Tag::all()->groupBy('type')->toArray();
+                @endphp
                 
-                <!-- Skills -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Skills <span class="text-gray-400 text-xs">(Production, Mixing, Mastering, etc.)</span>
-                    </label>
+                <div 
+                    x-data="tagSelects({
+                        allTags: {{ json_encode($tagsByType) }},
+                        currentSkills: {{ json_encode(array_map('strval', $skills ?? [])) }},
+                        currentEquipment: {{ json_encode(array_map('strval', $equipment ?? [])) }},
+                        currentSpecialties: {{ json_encode(array_map('strval', $specialties ?? [])) }}
+                    })"
+                    x-init="initChoices()"
+                    >
                     
-                    <div class="flex flex-wrap gap-2 mb-3">
-                        @foreach($skills as $index => $skill)
-                            <div class="bg-blue-100 text-blue-800 rounded-full text-sm px-3 py-1 flex items-center">
-                                <span>{{ $skill }}</span>
-                                <button type="button" wire:click="removeSkill({{ $index }})" class="ml-2 text-blue-600 hover:text-blue-800">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        @endforeach
+                    <!-- Skills -->
+                    <div class="mb-6">
+                        <label for="skills-select" class="block text-sm font-medium text-gray-700 mb-1">
+                            Skills <span class="text-gray-400 text-xs">(Production, Mixing, Mastering, etc.)</span>
+                        </label>
+                        <div wire:ignore class="mt-1 border border-gray-300 bg-white rounded-md shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:ring-opacity-50">
+                            <select id="skills-select" multiple="multiple" x-ref="skillsSelect" class="block w-full border-0 focus:ring-0"></select>
+                        </div>
+                        @error('skills') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                        @error('skills.*') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    
-                    <div class="flex">
-                        <input type="text" wire:model="newSkill" wire:keydown.enter.prevent="addSkill" placeholder="Add a skill" 
-                               class="flex-grow rounded-l-md border-gray-300 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50" />
-                        <button type="button" wire:click="addSkill" 
-                                class="bg-primary hover:bg-primary-focus text-white rounded-r-md px-4 py-2 text-sm">
-                            <i class="fas fa-plus"></i>
-                        </button>
+            
+                    <!-- Equipment -->
+                    <div class="mb-6">
+                        <label for="equipment-select" class="block text-sm font-medium text-gray-700 mb-1">
+                            Equipment <span class="text-gray-400 text-xs">(DAW, Hardware, etc.)</span>
+                        </label>
+                        <div wire:ignore class="mt-1 border border-gray-300 bg-white rounded-md shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:ring-opacity-50">
+                            <select id="equipment-select" multiple="multiple" x-ref="equipmentSelect" class="block w-full border-0 focus:ring-0"></select>
+                        </div>
+                        @error('equipment') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                        @error('equipment.*') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                     </div>
+            
+                    <!-- Specialties -->
+                    <div>
+                        <label for="specialties-select" class="block text-sm font-medium text-gray-700 mb-1">
+                            Specialties <span class="text-gray-400 text-xs">(Genres, Styles, etc.)</span>
+                        </label>
+                        <div wire:ignore class="mt-1 border border-gray-300 bg-white rounded-md shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:ring-opacity-50">
+                            <select id="specialties-select" multiple="multiple" x-ref="specialtiesSelect" class="block w-full border-0 focus:ring-0"></select>
+                        </div>
+                        @error('specialties') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                        @error('specialties.*') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+            
                 </div>
-                
-                <!-- Equipment -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Equipment <span class="text-gray-400 text-xs">(DAW, Hardware, etc.)</span>
-                    </label>
-                    
-                    <div class="flex flex-wrap gap-2 mb-3">
-                        @foreach($equipment as $index => $item)
-                            <div class="bg-green-100 text-green-800 rounded-full text-sm px-3 py-1 flex items-center">
-                                <span>{{ $item }}</span>
-                                <button type="button" wire:click="removeEquipment({{ $index }})" class="ml-2 text-green-600 hover:text-green-800">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        @endforeach
-                    </div>
-                    
-                    <div class="flex">
-                        <input type="text" wire:model="newEquipment" wire:keydown.enter.prevent="addEquipment" placeholder="Add equipment" 
-                               class="flex-grow rounded-l-md border-gray-300 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50" />
-                        <button type="button" wire:click="addEquipment" 
-                                class="bg-primary hover:bg-primary-focus text-white rounded-r-md px-4 py-2 text-sm">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Specialties -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Specialties <span class="text-gray-400 text-xs">(Genres, Styles, etc.)</span>
-                    </label>
-                    
-                    <div class="flex flex-wrap gap-2 mb-3">
-                        @foreach($specialties as $index => $specialty)
-                            <div class="bg-purple-100 text-purple-800 rounded-full text-sm px-3 py-1 flex items-center">
-                                <span>{{ $specialty }}</span>
-                                <button type="button" wire:click="removeSpecialty({{ $index }})" class="ml-2 text-purple-600 hover:text-purple-800">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        @endforeach
-                    </div>
-                    
-                    <div class="flex">
-                        <input type="text" wire:model="newSpecialty" wire:keydown.enter.prevent="addSpecialty" placeholder="Add specialty" 
-                               class="flex-grow rounded-l-md border-gray-300 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50" />
-                        <button type="button" wire:click="addSpecialty" 
-                                class="bg-primary hover:bg-primary-focus text-white rounded-r-md px-4 py-2 text-sm">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
+                {{-- End Alpine Component --}}
+            
             </div>
             
             <!-- Social Media Links -->
@@ -393,3 +377,113 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    // Ensure the function doesn't get defined multiple times
+    if (typeof window.tagSelects === 'undefined') {
+        window.tagSelects = function(config) {
+            return {
+                allTags: config.allTags || {},
+                skills: Array.isArray(config.currentSkills) ? config.currentSkills.map(String) : [],
+                equipment: Array.isArray(config.currentEquipment) ? config.currentEquipment.map(String) : [],
+                specialties: Array.isArray(config.currentSpecialties) ? config.currentSpecialties.map(String) : [],
+                choicesInstances: {},
+                debounceTimeout: null, // Added for debouncing
+    
+                initChoices() {
+                    // Convert allTags if needed
+                    if (Array.isArray(this.allTags)) {
+                        const tagsMap = {};
+                        this.allTags.forEach(tag => {
+                            if (!tagsMap[tag.type]) tagsMap[tag.type] = [];
+                            tagsMap[tag.type].push(tag);
+                        });
+                        this.allTags = tagsMap;
+                    }
+                    
+                    this.$nextTick(() => { // Ensure elements are available
+                        this.choicesInstances.skills = this.createChoices(this.$refs.skillsSelect, 'skill', this.skills);
+                        this.choicesInstances.equipment = this.createChoices(this.$refs.equipmentSelect, 'equipment', this.equipment);
+                        this.choicesInstances.specialties = this.createChoices(this.$refs.specialtiesSelect, 'specialty', this.specialties);
+                    });
+                },
+    
+                createChoices(element, type, selectedValues) {
+                    if (!element) {
+                        return null;
+                    }
+    
+                    // Ensure selected values are treated as strings
+                    const selectedStringValues = Array.isArray(selectedValues) ? selectedValues.map(String) : [];
+
+                    const availableTags = this.allTags[type] || [];
+                    
+                    // Pre-check which values should be selected
+                    const choicesOptions = [];
+                    
+                    // Add available tags and mark them as selected if they're in the selectedStringValues
+                    availableTags.forEach(tag => {
+                        const tagId = String(tag.id);
+                        const isSelected = selectedStringValues.includes(tagId);
+                        
+                        choicesOptions.push({
+                            value: tagId,
+                            label: tag.name,
+                            selected: isSelected
+                        });
+                    });
+                    
+                    const choices = new Choices(element, {
+                        removeItemButton: true,
+                        allowHTML: false,
+                        placeholder: true,
+                        placeholderValue: 'Select tags...',
+                        choices: choicesOptions.sort((a, b) => a.label.localeCompare(b.label)),
+                    });
+                    
+                    // Double-check that selections are applied
+                    setTimeout(() => {
+                        const currentSelections = choices.getValue(true);
+                        
+                        // Force selection if needed
+                        if (selectedStringValues.length > 0 && currentSelections.length === 0) {
+                            selectedStringValues.forEach(id => {
+                                choices.setChoiceByValue(id);
+                            });
+                        }
+                    }, 100);
+    
+                    // Debounce function definition
+                    const debounce = (func, delay) => {
+                        clearTimeout(this.debounceTimeout);
+                        this.debounceTimeout = setTimeout(func, delay);
+                    };
+                    
+                    element.addEventListener('change', () => {
+                        // Get the selected values as strings
+                        const selectedIds = choices.getValue(true).map(String);
+                        
+                        // Use the correct property names when setting Livewire data
+                        const propertyMap = {
+                            'skill': 'skills',
+                            'equipment': 'equipment',
+                            'specialty': 'specialties'
+                        };
+                        
+                        const propertyName = propertyMap[type] || (type + 's');
+                        
+                        // Debounce the Livewire update
+                        debounce(() => {
+                            this.$wire.set(propertyName, selectedIds);
+                        }, 250); // 250ms debounce delay
+                        
+                    }, false);
+    
+                    return choices;
+                }
+            }
+        }
+    }
+</script>
+@endpush

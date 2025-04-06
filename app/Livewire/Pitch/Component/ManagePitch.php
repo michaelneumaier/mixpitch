@@ -515,25 +515,30 @@ class ManagePitch extends Component
         return Pitch::formatBytes($bytes, $precision);
     }
 
+    /**
+     * Save the internal notes for the pitch.
+     */
     public function saveInternalNotes()
     {
+        // Authorize: Only the pitch creator should be able to update internal notes
         $this->authorize('update', $this->pitch);
-        $this->validateOnly('internalNotes');
 
-        try {
-            $this->pitch->update(['internal_notes' => $this->internalNotes]);
-            Toaster::success('Internal notes saved successfully.'); // Use Toaster
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::error('Error saving internal notes: Pitch not found', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
-            Toaster::error('Could not find the pitch to save notes.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-             // This shouldn't normally be caught here if using $this->validateOnly, 
-             // but as a fallback
-             Log::warning('Validation failed during internal notes save', ['pitch_id' => $this->pitch->id, 'errors' => $e->errors()]);
-             Toaster::error('Validation failed: ' . implode(' ', Arr::flatten($e->errors())));
-        } catch (\Exception $e) {
-            Log::error('Error saving internal notes', ['pitch_id' => $this->pitch->id, 'error' => $e->getMessage()]);
-            Toaster::error('Failed to save internal notes. Please try again.');
-        }
+        // Validate the notes field
+        $this->validate([
+            'internalNotes' => 'nullable|string|max:10000',
+        ]);
+
+        // Update the pitch model
+        $this->pitch->internal_notes = $this->internalNotes;
+        $this->pitch->save();
+        
+        // Show success message using Toaster directly
+        Toaster::success('Internal notes saved successfully.');
+        
+        // Log success
+        Log::info('Internal notes saved', [
+            'pitch_id' => $this->pitch->id, 
+            'user_id' => Auth::id()
+        ]);
     }
 }

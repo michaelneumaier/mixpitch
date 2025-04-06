@@ -22,8 +22,8 @@ class UserProfileController extends Controller
         // Remove the @ symbol if it's at the beginning of the username
         $username = ltrim($username, '@');
 
-        // Find the user with the given username
-        $user = User::where('username', $username)->firstOrFail();
+        // Find the user with the given username, eager load tags
+        $user = User::where('username', $username)->with('tags')->firstOrFail();
 
         // Fetch user's projects
         $projects = Project::where('user_id', $user->id)
@@ -32,20 +32,16 @@ class UserProfileController extends Controller
             ->take(5)
             ->get();
 
-        // Fetch completed pitches that are either:
-        // 1. Submitted by this user and have been completed
-        // 2. For projects owned by this user and have been completed
+        // Fetch completed pitches that are submitted by this user
         $completedPitches = Pitch::where('status', Pitch::STATUS_COMPLETED)
-            ->where(function($query) use ($user) {
-                $query->where('user_id', $user->id) // Pitches submitted by the user
-                      ->orWhereHas('project', function($subQuery) use ($user) {
-                          $subQuery->where('user_id', $user->id); // Pitches for projects owned by the user
-                      });
-            })
+            ->where('user_id', $user->id) // Only pitches submitted by the user
             ->with(['project', 'project.user', 'user'])
             ->latest()
             ->take(5)
             ->get();
+
+        // Group the user's tags by type for easier access in the view
+        $userTagsGrouped = $user->tags->groupBy('type');
 
         // Check if the logged-in user can edit this profile
         $canEdit = false;
@@ -59,13 +55,21 @@ class UserProfileController extends Controller
         // Get the portfolio layout preference
         $layout = $user->portfolio_layout ?? 'standard';
 
+        // Fetch portfolio items for the user
+        $portfolioItems = $user->portfolioItems()
+            ->where('is_public', true)
+            ->orderBy('display_order')
+            ->get();
+
         return view('user-profile.show', [
             'user' => $user,
             'projects' => $projects,
             'completedPitches' => $completedPitches,
             'canEdit' => $canEdit,
             'ratingData' => $ratingData,
-            'layout' => $layout
+            'layout' => $layout,
+            'portfolioItems' => $portfolioItems,
+            'userTagsGrouped' => $userTagsGrouped,
         ]);
     }
 
@@ -118,11 +122,11 @@ class UserProfileController extends Controller
             'social_links.spotify' => 'nullable|string|max:255',
             'social_links.youtube' => 'nullable|string|max:255',
             'skills' => 'nullable|array',
-            'skills.*' => 'nullable|string|max:100',
+            'skills.*' => 'nullable|exists:tags,id,type,skill',
             'equipment' => 'nullable|array',
-            'equipment.*' => 'nullable|string|max:255',
+            'equipment.*' => 'nullable|exists:tags,id,type,equipment',
             'specialties' => 'nullable|array',
-            'specialties.*' => 'nullable|string|max:255',
+            'specialties.*' => 'nullable|exists:tags,id,type,specialty',
             'featured_work' => 'nullable|string',
             'portfolio_layout' => 'nullable|string|in:standard,grid,timeline',
         ]);
@@ -190,13 +194,30 @@ class UserProfileController extends Controller
                 $lockUsername = true;
             }
 
+            // Get the tag data
+            $skillIds = isset($validated['skills']) ? array_filter($validated['skills']) : [];
+            $equipmentIds = isset($validated['equipment']) ? array_filter($validated['equipment']) : [];
+            $specialtyIds = isset($validated['specialties']) ? array_filter($validated['specialties']) : [];
+            
+            // Merge all tag IDs for syncing
+            $allTagIds = array_merge(
+                array_map('intval', $skillIds),
+                array_map('intval', $equipmentIds),
+                array_map('intval', $specialtyIds)
+            );
+
+            // Remove tag data from the validated array (as we'll update them separately)
+            unset($validated['skills']);
+            unset($validated['equipment']);
+            unset($validated['specialties']);
+
             // Check if the profile can be considered complete
             $profileComplete = !empty($validated['username']) &&
                 !empty($validated['bio']) &&
                 (
-                    !empty($validated['skills']) ||
-                    !empty($validated['specialties']) ||
-                    !empty($validated['equipment'])
+                    !empty($skillIds) ||
+                    !empty($equipmentIds) ||
+                    !empty($specialtyIds)
                 );
 
             // Update the user profile
@@ -211,12 +232,16 @@ class UserProfileController extends Controller
             $user->profile_completed = $profileComplete;
 
             $user->save();
+            
+            // Sync the tags using the polymorphic relationship
+            $user->tags()->sync($allTagIds);
 
             return redirect()->back()->with('success', 'Profile updated successfully.' . ($lockUsername ? ' Your username has been locked and cannot be changed in the future.' : ''));
         } catch (\Exception $e) {
             \Log::error('Error updating user profile', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return redirect()->back()->with('error', 'There was a problem updating your profile. Please try again.');

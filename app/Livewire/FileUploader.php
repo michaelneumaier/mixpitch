@@ -79,37 +79,30 @@ class FileUploader extends Component
     // Updated hook to reset progress on file changes
     public function updatedFile()
     {
-        try {
-            if ($this->file) {
-                $this->validate();
-                $this->uploadProgress = []; // Reset progress when file changes
-                
-                // Log success but don't proceed with actual saving yet
-                Log::info('FileUploader: File validated successfully', [
-                    'original_filename' => $this->file->getClientOriginalName(),
-                    'size' => $this->file->getSize(),
-                    'mime' => $this->file->getMimeType()
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Error validating file in FileUploader', [
-                'error' => $e->getMessage(),
-                'model_type' => get_class($this->model),
-                'model_id' => $this->model->id
+        // Reset progress when file changes
+        $this->uploadProgress = [];
+        
+        if ($this->file) {
+            // Only log success but don't validate yet
+            Log::info('FileUploader: File selected', [
+                'original_filename' => $this->file->getClientOriginalName(),
+                'size' => $this->file->getSize(),
+                'mime' => $this->file->getMimeType()
             ]);
-            // Don't throw the exception, let Livewire handle validation errors
         }
     }
 
     public function saveFile()
     {
         try {
+            // Validate the file
+            $this->validate();
+            
+            // This line will only execute if validation passes
             if (!$this->file) {
                 Toaster::error('No file selected for upload.');
                 return;
             }
-            
-            $this->validate();
 
             Log::info('FileUploader: Starting saveFile process', [
                 'model_type' => get_class($this->model), 

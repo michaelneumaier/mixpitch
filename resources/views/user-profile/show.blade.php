@@ -68,6 +68,11 @@
                                     <i class="fas fa-pencil-alt mr-1"></i>
                                     Edit Profile
                                 </a>
+                                <a href="{{ route('profile.portfolio') }}"
+                                    class="inline-flex items-center px-3 py-1 bg-gray-100 border border-gray-300 rounded-full text-sm text-gray-700 hover:bg-gray-200">
+                                    <i class="fas fa-images mr-1"></i>
+                                    Manage Portfolio
+                                </a>
                                 @endif
                             </div>
                         </div>
@@ -154,50 +159,63 @@
                     <!-- Skills and Expertise -->
                     <div class="bg-white shadow-sm rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-900 mb-4">Skills & Expertise</h2>
+                        
+                        @php
+                            // Prepare tag groups from the controller data
+                            $skillTags = $userTagsGrouped['skill'] ?? collect();
+                            $equipmentTags = $userTagsGrouped['equipment'] ?? collect();
+                            $specialtyTags = $userTagsGrouped['specialty'] ?? collect();
+                        @endphp
 
-                        @if(count($user->skills ?? []) > 0)
+                        @if($skillTags->isNotEmpty() && $skillTags->count() > 0)
                         <div class="mb-6">
                             <h3 class="text-lg font-medium text-gray-800 mb-3">Skills</h3>
                             <div class="flex flex-wrap gap-2">
-                                @foreach($user->skills as $skill)
+                                {{-- Loop through skill tags --}}
+                                @foreach($skillTags as $tag)
                                 <span
                                     class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                    {{ $skill }}
+                                    {{ $tag->name }}
                                 </span>
                                 @endforeach
                             </div>
                         </div>
                         @endif
 
-                        @if(count($user->equipment ?? []) > 0)
+                        @if($equipmentTags->isNotEmpty() && $equipmentTags->count() > 0)
                         <div class="mb-6">
                             <h3 class="text-lg font-medium text-gray-800 mb-3">Equipment</h3>
                             <div class="flex flex-wrap gap-2">
-                                @foreach($user->equipment as $item)
+                                {{-- Loop through equipment tags --}}
+                                @foreach($equipmentTags as $tag)
                                 <span
                                     class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                    {{ $item }}
+                                    {{ $tag->name }}
                                 </span>
                                 @endforeach
                             </div>
                         </div>
                         @endif
 
-                        @if(count($user->specialties ?? []) > 0)
+                        @if($specialtyTags->isNotEmpty() && $specialtyTags->count() > 0)
                         <div>
                             <h3 class="text-lg font-medium text-gray-800 mb-3">Specialties</h3>
                             <div class="flex flex-wrap gap-2">
-                                @foreach($user->specialties as $specialty)
+                                {{-- Loop through specialty tags --}}
+                                @foreach($specialtyTags as $tag)
                                 <span
                                     class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                                    {{ $specialty }}
+                                    {{ $tag->name }}
                                 </span>
                                 @endforeach
                             </div>
                         </div>
                         @endif
 
-                        @if(empty($user->skills) && empty($user->equipment) && empty($user->specialties))
+                        {{-- Check if all tag groups are empty --}}
+                        @if(($skillTags->isEmpty() || $skillTags->count() === 0) && 
+                            ($equipmentTags->isEmpty() || $equipmentTags->count() === 0) && 
+                            ($specialtyTags->isEmpty() || $specialtyTags->count() === 0))
                         <p class="text-gray-500 italic">No skills or expertise listed yet.</p>
                         @endif
                     </div>
@@ -205,13 +223,53 @@
 
                 <!-- Right Column: Projects and Completed Pitches -->
                 <div class="lg:col-span-2 space-y-6">
+                    <!-- Portfolio Items -->
+                    @if(isset($portfolioItems) && count($portfolioItems) > 0)
+                    <div class="bg-white shadow-sm rounded-lg p-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4">Portfolio</h2>
+                        
+                        <div class="space-y-6">
+                            @foreach($portfolioItems as $item)
+                            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                                <h3 class="font-medium text-gray-900 text-lg mb-2">{{ $item->title }}</h3>
+                                
+                                @if($item->description)
+                                <p class="text-gray-600 mb-3">{{ $item->description }}</p>
+                                @endif
+                                
+                                <div class="mt-2">
+                                    @if($item->item_type === 'audio_upload' && $item->file_path)
+                                        <div class="mt-2 audio-container bg-gray-100 rounded-md min-h-[54px]">
+                                            <audio class="w-full" data-portfolio-audio="{{ $item->id }}">
+                                                Your browser does not support the audio element.
+                                            </audio>
+                                        </div>
+                                    @elseif($item->item_type === 'external_link' && $item->external_url)
+                                        <a href="{{ $item->external_url }}" target="_blank" class="text-blue-600 hover:underline flex items-center">
+                                            <i class="fas fa-external-link-alt mr-1"></i> Visit Link
+                                        </a>
+                                    @elseif($item->item_type === 'mixpitch_project_link' && $item->linkedProject)
+                                        <a href="{{ route('projects.show', $item->linkedProject) }}" class="text-blue-600 hover:underline flex items-center">
+                                            <i class="fas fa-project-diagram mr-1"></i> View Project: {{ $item->linkedProject->name }}
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Client Activity Section --}}
+                    <livewire:profile.client-activity-summary :client="$user" />
+
                     <!-- User's Projects -->
-                    @if(count($projects) > 0)
+                    @if($user->role === \App\Models\User::ROLE_CLIENT && $user->projects->count() > 0)
                     <div class="bg-white shadow-sm rounded-lg p-6">
                         <h2 class="text-xl font-semibold text-gray-900 mb-4">Projects</h2>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            @foreach($projects as $project)
+                            @foreach($user->projects as $project)
                             <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
                                 <a href="{{ route('projects.show', $project) }}" class="block">
                                     @if($project->image_path)
@@ -254,7 +312,7 @@
                     <!-- Completed Pitches -->
                     @if(count($completedPitches) > 0)
                     <div class="bg-white shadow-sm rounded-lg p-6">
-                        <h2 class="text-xl font-semibold text-gray-900 mb-4">Completed Projects & Pitches</h2>
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4">Completed Pitches</h2>
 
                         <div class="space-y-4">
                             @foreach($completedPitches as $pitch)
@@ -348,4 +406,70 @@
             @endif
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all audio elements that need pre-signed URLs
+            const audioElements = document.querySelectorAll('[data-portfolio-audio]');
+            
+            audioElements.forEach(function(audioElement) {
+                const portfolioItemId = audioElement.getAttribute('data-portfolio-audio');
+                let urlFetched = false;
+                
+                // Add loading state styling
+                audioElement.classList.add('cursor-pointer');
+                
+                // Add play button overlay
+                const container = audioElement.parentElement;
+                const playButton = document.createElement('div');
+                playButton.className = 'flex items-center justify-center absolute inset-0';
+                playButton.innerHTML = '<button class="bg-primary bg-opacity-80 hover:bg-opacity-100 text-white rounded-full p-3 shadow-md transition">' +
+                                      '<i class="fas fa-play text-lg"></i></button>';
+                                      
+                container.style.position = 'relative';
+                container.appendChild(playButton);
+                
+                // Hide the audio controls initially
+                audioElement.controls = false;
+                
+                // Function to load the audio
+                const loadAudio = function() {
+                    if (urlFetched) return;
+                    
+                    // Show loading spinner
+                    playButton.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>';
+                    
+                    // Fetch the pre-signed URL
+                    fetch(`/audio-file/${portfolioItemId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.url) {
+                                // Set the src attribute with the pre-signed URL
+                                audioElement.src = data.url;
+                                audioElement.controls = true;
+                                audioElement.load(); // Important to reload with the new source
+                                audioElement.play(); // Auto-play after loading
+                                
+                                // Remove the play button overlay
+                                container.removeChild(playButton);
+                                urlFetched = true;
+                            } else {
+                                console.error('Failed to get audio URL:', data.error);
+                                playButton.innerHTML = '<div class="text-red-500 bg-white bg-opacity-70 px-3 py-1 rounded text-sm">Error loading audio</div>';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching audio URL:', error);
+                            playButton.innerHTML = '<div class="text-red-500 bg-white bg-opacity-70 px-3 py-1 rounded text-sm">Error loading audio</div>';
+                        });
+                };
+                
+                // Add click events to load the audio
+                playButton.addEventListener('click', loadAudio);
+                audioElement.addEventListener('click', loadAudio);
+            });
+        });
+    </script>
+    @endpush
 </x-app-layout>
