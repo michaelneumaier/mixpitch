@@ -238,11 +238,21 @@
                                 @endif
                                 
                                 <div class="mt-2">
-                                    @if($item->item_type === 'audio_upload' && $item->file_path)
+                                    @if($item->item_type === \App\Models\PortfolioItem::TYPE_AUDIO && $item->file_path)
                                         <div class="mt-2 audio-container bg-gray-100 rounded-md min-h-[54px]">
                                             <audio class="w-full" data-portfolio-audio="{{ $item->id }}">
                                                 Your browser does not support the audio element.
                                             </audio>
+                                        </div>
+                                    @elseif($item->item_type === \App\Models\PortfolioItem::TYPE_YOUTUBE && $item->video_id)
+                                        <div class="mt-2 relative w-full pt-[56.25%]">
+                                            <iframe class="absolute top-0 left-0 w-full h-full rounded-md"
+                                                    src="https://www.youtube.com/embed/{{ $item->video_id }}" 
+                                                    title="YouTube video player for {{ $item->title }}" 
+                                                    frameborder="0" 
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                                    allowfullscreen>
+                                            </iframe>
                                         </div>
                                     @elseif($item->item_type === 'external_link' && $item->external_url)
                                         <a href="{{ $item->external_url }}" target="_blank" class="text-blue-600 hover:underline flex items-center">

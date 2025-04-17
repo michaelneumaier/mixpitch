@@ -8,12 +8,16 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-xl sm:rounded-lg p-6">
+                
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-semibold text-gray-900">{{ __('Your Portfolio Items') }}</h2>
-                    <button wire:click="$set('showForm', true)" class="inline-flex items-center px-4 py-2 bg-primary border border-transparent rounded-md font-medium text-sm text-white hover:bg-primary-focus focus:outline-none focus:border-primary-focus focus:ring focus:ring-primary-focus transition">
-                        <i class="fas fa-plus mr-2"></i>
-                        Add Item
-                    </button>
+                    <div>
+                        
+                        <button wire:click="addItem()" class="inline-flex items-center px-4 py-2 bg-primary border border-transparent rounded-md font-medium text-sm text-white hover:bg-primary-focus focus:outline-none focus:border-primary-focus focus:ring focus:ring-primary-focus transition">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Item
+                        </button>
+                    </div>
                 </div>
 
                 @if(count($portfolioItems ?? []) > 0)
@@ -38,10 +42,10 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        @if($item->item_type === 'audio_upload') bg-blue-100 text-blue-800
-                                        @elseif($item->item_type === 'external_link') bg-green-100 text-green-800
-                                        @else bg-purple-100 text-purple-800 @endif">
-                                        {{ ucfirst(str_replace('_', ' ', $item->item_type)) }}
+                                        @if($item->item_type === \App\Models\PortfolioItem::TYPE_AUDIO) bg-blue-100 text-blue-800
+                                        @elseif($item->item_type === \App\Models\PortfolioItem::TYPE_YOUTUBE) bg-red-100 text-red-800
+                                        @else bg-gray-100 text-gray-800 @endif">
+                                        {{ ucfirst($item->item_type) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -74,7 +78,7 @@
                     </div>
                     <h3 class="text-lg font-medium text-gray-900 mb-1">No portfolio items yet</h3>
                     <p class="text-gray-500 mb-4">Add your first item to showcase your work</p>
-                    <button wire:click="$set('showForm', true)" class="inline-flex items-center px-4 py-2 bg-primary border border-transparent rounded-md font-medium text-sm text-white hover:bg-primary-focus focus:outline-none transition">
+                    <button wire:click="addItem()" class="inline-flex items-center px-4 py-2 bg-primary border border-transparent rounded-md font-medium text-sm text-white hover:bg-primary-focus focus:outline-none transition">
                         <i class="fas fa-plus mr-2"></i> Add Your First Item
                     </button>
                 </div>
@@ -84,16 +88,26 @@
                 <div class="mt-8 border-t border-gray-200 pt-8">
                     <h3 class="text-lg font-semibold text-gray-900 mb-6">{{ $editingItemId ? 'Edit' : 'Add' }} Portfolio Item</h3>
                     
-                    <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
+                    <div x-data="{ 
+                        currentType: @entangle('type').live,
+                        init() {
+                            // Listen for type changes
+                            this.$watch('currentType', value => {
+                                // console.log('Type changed to:', value); // Removed log
+                            });
+                        }
+                    }" class="bg-gray-50 rounded-lg p-6 shadow-sm">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <x-label for="itemType" :value="__('Item Type')" class="font-medium" />
-                                <select id="itemType" wire:model.live="itemType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50">
-                                    <option value="audio_upload">Audio Upload</option>
-                                    <option value="external_link">External Link</option>
-                                    <option value="mixpitch_project_link">Mixpitch Project Link</option>
+                                <x-label for="type" :value="__('Item Type')" class="font-medium" />
+                                <select id="type" 
+                                    x-model="currentType"
+                                    wire:model.live="type" 
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50">
+                                    <option value="{{\App\Models\PortfolioItem::TYPE_AUDIO}}">Audio File</option>
+                                    <option value="{{\App\Models\PortfolioItem::TYPE_YOUTUBE}}">YouTube Video</option>
                                 </select>
-                                <x-livewire-error class="mt-2" :messages="$errors->get('itemType')" />
+                                <x-livewire-error class="mt-2" :messages="$errors->get('type')" />
                             </div>
 
                             <div>
@@ -109,8 +123,8 @@
                             <x-livewire-error class="mt-2" :messages="$errors->get('description')" />
                         </div>
 
-                        @if($itemType === 'audio_upload')
-                        <div class="mb-6">
+                        <!-- Audio File Section -->
+                        <div x-show="currentType === '{{\App\Models\PortfolioItem::TYPE_AUDIO}}'" class="mb-6">
                             <x-label for="audioFile" :value="__('Audio File (MP3, WAV - Max 100MB)')" class="font-medium" />
                             @if($editingItemId && $existingFilePath)
                                 <div class="mt-1 mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700 text-sm flex items-start">
@@ -142,37 +156,18 @@
                             </div>
                             <x-livewire-error class="mt-2" :messages="$errors->get('audioFile')" />
                         </div>
-                        @endif
 
-                        @if($itemType === 'external_link')
-                        <div class="mb-6">
-                            <x-label for="externalUrl" :value="__('External URL')" class="font-medium" />
+                        <!-- YouTube Video Section -->
+                        <div x-show="currentType === '{{\App\Models\PortfolioItem::TYPE_YOUTUBE}}'" class="mb-6">
+                            <x-label for="video_url" :value="__('YouTube Video URL')" class="font-medium" />
                             <div class="mt-1 flex rounded-md shadow-sm">
                                 <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                                    <i class="fas fa-link"></i>
+                                    <i class="fab fa-youtube text-red-600"></i>
                                 </span>
-                                <x-input id="externalUrl" type="url" class="rounded-l-none flex-1" wire:model="externalUrl" placeholder="https://..." />
+                                <x-input id="video_url" type="url" class="rounded-l-none flex-1" wire:model.live="video_url" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." />
                             </div>
-                            <x-livewire-error class="mt-2" :messages="$errors->get('externalUrl')" />
+                            <x-livewire-error class="mt-2" :messages="$errors->get('video_url')" />
                         </div>
-                        @endif
-
-                        @if($itemType === 'mixpitch_project_link')
-                        <div class="mb-6">
-                            <x-label for="linkedProjectId" :value="__('Mixpitch Project')" class="font-medium" />
-                            <select id="linkedProjectId" wire:model="linkedProjectId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50">
-                                <option value="">Select a project</option>
-                                @foreach($availableProjects ?? [] as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
-                                @endforeach
-                            </select>
-                            <div class="mt-1 text-sm text-gray-600">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                Select a Mixpitch project you were involved with
-                            </div>
-                            <x-livewire-error class="mt-2" :messages="$errors->get('linkedProjectId')" />
-                        </div>
-                        @endif
 
                         <div class="mb-6">
                             <div class="flex items-start">
@@ -188,10 +183,12 @@
                         </div>
 
                         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                            <button wire:click="resetForm" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:border-gray-400 focus:ring focus:ring-gray-200 focus:ring-opacity-50 transition">
+                            <button wire:click="resetForm()" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:border-gray-400 focus:ring focus:ring-gray-200 focus:ring-opacity-50 transition">
                                 Cancel
                             </button>
-                            <button wire:click="saveItem" class="inline-flex items-center px-4 py-2 bg-primary border border-transparent rounded-md font-medium text-sm text-white hover:bg-primary-focus focus:outline-none focus:border-primary-focus focus:ring focus:ring-primary-focus focus:ring-opacity-50 transition">
+                            <button \
+                                wire:click="saveItem()" \
+                                class="inline-flex items-center px-4 py-2 bg-primary border border-transparent rounded-md font-medium text-sm text-white hover:bg-primary-focus focus:outline-none focus:border-primary-focus focus:ring focus:ring-primary-focus focus:ring-opacity-50 transition">
                                 <i class="fas fa-save mr-2"></i> Save Item
                             </button>
                         </div>
@@ -205,7 +202,8 @@
     <!-- SortableJS for drag-and-drop reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
     <script>
-        document.addEventListener('livewire:initialized', function () {
+        document.addEventListener('livewire:init', function () {
+            // Initialize sortable
             const initSortable = function() {
                 const container = document.getElementById('portfolio-items-container');
                 if (container) {
@@ -222,8 +220,11 @@
                                 }));
                             
                             // Send the new order to the Livewire component
-                            const componentId = container.closest('[wire\\:id]').getAttribute('wire:id');
-                            Livewire.find(componentId).updateSort(newOrder);
+                            const componentEl = container.closest('[wire\\:id]');
+                            if (componentEl) {
+                                const componentId = componentEl.getAttribute('wire:id');
+                                window.Livewire.find(componentId).updateSort(newOrder);
+                            }
                         }
                     });
                 }
@@ -231,8 +232,27 @@
             
             // Initialize sortable and reinitialize after Livewire updates
             initSortable();
-            Livewire.hook('morph.updated', () => {
+            
+            // Event listeners for UI updates
+            document.addEventListener('livewire:navigated', () => {
+                console.log('Livewire navigation complete');
                 initSortable();
+            });
+            
+            // Listen for custom form opened event
+            window.addEventListener('portfolio-form-opened', () => {
+                console.log('Portfolio form opened');
+                
+                // Force Alpine to reevaluate x-show conditions
+                setTimeout(() => {
+                    // Using Alpine's global nextTick if available
+                    if (window.Alpine && window.Alpine.nextTick) {
+                        window.Alpine.nextTick(() => {
+                            // This will run after Alpine has processed the DOM
+                            console.log('Alpine nextTick executed');
+                        });
+                    }
+                }, 50);
             });
         });
     </script>

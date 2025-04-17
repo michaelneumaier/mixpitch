@@ -55,12 +55,33 @@ class UserProfileEdit extends Component
             'website' => 'nullable|string|max:255',
             'tipjar_link' => 'nullable|string|max:255|allowed_tipjar_domain',
             'profilePhoto' => 'nullable|image|max:1024',
-            'skills' => 'nullable|array',
-            'skills.*' => 'nullable|string|max:50',
-            'equipment' => 'nullable|array',
-            'equipment.*' => 'nullable|string|max:50',
-            'specialties' => 'nullable|array',
-            'specialties.*' => 'nullable|string|max:50',
+            'skills' => [
+                'nullable', 'array',
+                function ($attribute, $value, $fail) {
+                    if (count($value) > 6) {
+                        $fail("You can select a maximum of 6 skills.");
+                    }
+                },
+            ],
+            'skills.*' => 'exists:tags,id',
+            'equipment' => [
+                'nullable', 'array',
+                function ($attribute, $value, $fail) {
+                    if (count($value) > 6) {
+                        $fail("You can select a maximum of 6 equipment items.");
+                    }
+                },
+            ],
+            'equipment.*' => 'exists:tags,id',
+            'specialties' => [
+                'nullable', 'array',
+                function ($attribute, $value, $fail) {
+                    if (count($value) > 6) {
+                        $fail("You can select a maximum of 6 specialties.");
+                    }
+                },
+            ],
+            'specialties.*' => 'exists:tags,id',
             'social_links' => 'nullable|array',
             'social_links.instagram' => 'nullable|string|max:255',
             'social_links.twitter' => 'nullable|string|max:255',
@@ -258,7 +279,6 @@ class UserProfileEdit extends Component
         })->toArray();
         
         return view('livewire.user-profile-edit', [
-            'allTags' => $allTags,
             'allTagsForJs' => $allTagsForJs
         ]);
     }

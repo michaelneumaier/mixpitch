@@ -3,7 +3,7 @@
         'name' => 'laravel/laravel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '131aaf47d0b5f053bcac16898e12e48702ff88c0',
+        'reference' => '3f3c69ce1d7f53c80d612dc201640ef37abd2762',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -742,7 +742,7 @@
         'laravel/laravel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '131aaf47d0b5f053bcac16898e12e48702ff88c0',
+            'reference' => '3f3c69ce1d7f53c80d612dc201640ef37abd2762',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -1384,8 +1384,8 @@
         'psr/log-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '3.0.0',
-                1 => '1.0|2.0|3.0',
+                0 => '1.0|2.0|3.0',
+                1 => '3.0.0',
             ),
         ),
         'psr/simple-cache' => array(
@@ -1697,6 +1697,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'spatie/eloquent-sortable' => array(
+            'pretty_version' => '4.4.2',
+            'version' => '4.4.2.0',
+            'reference' => '69e0e258e19513cf261305dd17717ee731aaede3',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../spatie/eloquent-sortable',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'spatie/error-solutions' => array(
             'pretty_version' => '1.1.3',
             'version' => '1.1.3.0',
@@ -1793,6 +1802,15 @@
             'reference' => 'bd320144bc5d473ebc41da927bd1c0bae2cb169c',
             'type' => 'library',
             'install_path' => __DIR__ . '/../spatie/laravel-sluggable',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'spatie/laravel-tags' => array(
+            'pretty_version' => '4.10.0',
+            'version' => '4.10.0.0',
+            'reference' => '9fc59a9328e892bbb5b01c948b0d703e22d543ec',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../spatie/laravel-tags',
             'aliases' => array(),
             'dev_requirement' => false,
         ),

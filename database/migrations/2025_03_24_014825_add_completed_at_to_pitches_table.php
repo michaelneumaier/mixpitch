@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB; // Import DB facade
 
 return new class extends Migration
 {
@@ -39,12 +40,30 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('pitches', function (Blueprint $table) {
-            $table->dropColumn('completed_at');
-            $table->dropColumn('payment_status');
-            $table->dropColumn('payment_amount');
-            $table->dropColumn('payment_completed_at');
-            $table->dropColumn('final_invoice_id');
-        });
+        $tableName = 'pitches';
+        $columns = [
+            'completed_at',
+            'payment_status',
+            'payment_amount',
+            'payment_completed_at',
+            'final_invoice_id'
+        ];
+        $connection = Schema::getConnection()->getName();
+
+        if ($connection === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys=off;');
+        }
+
+        foreach ($columns as $column) {
+            if (Schema::hasColumn($tableName, $column)) {
+                Schema::table($tableName, function (Blueprint $table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
+
+        if ($connection === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys=on;');
+        }
     }
 };

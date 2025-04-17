@@ -85,10 +85,13 @@ class UserProfileEditTest extends TestCase
         $component = Livewire::actingAs($user)
             ->test(UserProfileEdit::class);
         
-        // Set some tags and save
-        $component->set('skills', [$skillTag1->id, $skillTag2->id])
-            ->set('equipment', [$equipmentTag->id])
-            ->set('specialties', [$specialtyTag->id])
+        // Set required fields + some tags and save
+        $component->set('name', $user->name)
+            ->set('email', $user->email)
+            ->set('username', $user->username ?? 'testuser2')
+            ->set('skills', array_map('strval', [$skillTag1->id, $skillTag2->id]))
+            ->set('equipment', array_map('strval', [$equipmentTag->id]))
+            ->set('specialties', array_map('strval', [$specialtyTag->id]))
             ->call('save');
         
         // Refresh user from database
@@ -118,10 +121,11 @@ class UserProfileEditTest extends TestCase
             ->test(UserProfileEdit::class);
             
         // Assert the render method passes the expected variables to the view
-        $this->assertArrayHasKey('allTags', $component->payload['effects']['html']);
-        $this->assertArrayHasKey('skills', $component->payload['effects']['html']);
-        $this->assertArrayHasKey('equipment', $component->payload['effects']['html']);
-        $this->assertArrayHasKey('specialties', $component->payload['effects']['html']);
+        $this->assertNotNull($component->viewData('allTags'));
+        $this->assertNotNull($component->viewData('skills'));
+        $this->assertNotNull($component->viewData('equipment'));
+        $this->assertNotNull($component->viewData('specialties'));
+        $this->assertNotNull($component->viewData('allTagsForJs'));
     }
     
     /** @test */
@@ -146,6 +150,67 @@ class UserProfileEditTest extends TestCase
         // Set valid tag and verify no errors
         $component->set('skills', [$skillTag->id])
             ->call('save')
-            ->assertHasNoErrors(['skills.0']);
+            ->assertHasNoErrors(['skills', 'skills.0']);
+    }
+
+    /** @test */
+    public function can_save_profile_with_maximum_allowed_tags_per_category()
+    {
+        $user = User::factory()->create();
+        $skills = Tag::factory()->count(6)->create(['type' => 'skill']);
+        $equipment = Tag::factory()->count(6)->create(['type' => 'equipment']);
+        $specialties = Tag::factory()->count(6)->create(['type' => 'specialty']);
+
+        Livewire::actingAs($user)
+            ->test(UserProfileEdit::class)
+            ->set('name', $user->name)
+            ->set('email', $user->email)
+            ->set('username', $user->username ?? 'testuser')
+            ->set('skills', $skills->pluck('id')->map(fn($id) => (string)$id)->toArray())
+            ->set('equipment', $equipment->pluck('id')->map(fn($id) => (string)$id)->toArray())
+            ->set('specialties', $specialties->pluck('id')->map(fn($id) => (string)$id)->toArray())
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $user->refresh();
+        $this->assertCount(6, $user->tags()->where('type', 'skill')->get());
+        $this->assertCount(6, $user->tags()->where('type', 'equipment')->get());
+        $this->assertCount(6, $user->tags()->where('type', 'specialty')->get());
+    }
+
+    /** @test */
+    public function cannot_save_profile_with_more_than_maximum_allowed_tags_per_category()
+    {
+        $user = User::factory()->create();
+        $skills = Tag::factory()->count(7)->create(['type' => 'skill']);
+        $equipment = Tag::factory()->count(7)->create(['type' => 'equipment']);
+        $specialties = Tag::factory()->count(7)->create(['type' => 'specialty']);
+
+        // Test exceeding skills limit
+        Livewire::actingAs($user)
+            ->test(UserProfileEdit::class)
+            ->set('skills', $skills->pluck('id')->toArray())
+            ->set('equipment', Tag::factory()->count(6)->create(['type' => 'equipment'])->pluck('id')->toArray())
+            ->set('specialties', Tag::factory()->count(6)->create(['type' => 'specialty'])->pluck('id')->toArray())
+            ->call('save')
+            ->assertHasErrors(['skills']);
+
+        // Test exceeding equipment limit
+        Livewire::actingAs($user)
+            ->test(UserProfileEdit::class)
+            ->set('skills', Tag::factory()->count(6)->create(['type' => 'skill'])->pluck('id')->toArray())
+            ->set('equipment', $equipment->pluck('id')->toArray())
+            ->set('specialties', Tag::factory()->count(6)->create(['type' => 'specialty'])->pluck('id')->toArray())
+            ->call('save')
+            ->assertHasErrors(['equipment']);
+
+        // Test exceeding specialties limit
+        Livewire::actingAs($user)
+            ->test(UserProfileEdit::class)
+            ->set('skills', Tag::factory()->count(6)->create(['type' => 'skill'])->pluck('id')->toArray())
+            ->set('equipment', Tag::factory()->count(6)->create(['type' => 'equipment'])->pluck('id')->toArray())
+            ->set('specialties', $specialties->pluck('id')->toArray())
+            ->call('save')
+            ->assertHasErrors(['specialties']);
     }
 } 

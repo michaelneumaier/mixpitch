@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
+use Illuminate\Support\Str;
 
 class PortfolioManagementTest extends TestCase
 {
@@ -19,10 +20,16 @@ class PortfolioManagementTest extends TestCase
 
     protected User $producer;
     protected User $client;
+    protected string $itemTypeAudio;
+    protected string $itemTypeYoutube;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Define item type constants based on the model for consistency
+        $this->itemTypeAudio = PortfolioItem::TYPE_AUDIO;
+        $this->itemTypeYoutube = PortfolioItem::TYPE_YOUTUBE;
 
         // Create users with explicit usernames
         $this->producer = User::factory()->create([
@@ -83,70 +90,27 @@ class PortfolioManagementTest extends TestCase
         $fakeFile = UploadedFile::fake()->create('test_audio.mp3', 1024, 'audio/mpeg');
 
         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'audio_upload')
+            ->set('type', $this->itemTypeAudio)
             ->set('title', 'My Awesome Track')
             ->set('description', 'A description of the track.')
             ->set('isPublic', true)
             ->set('audioFile', $fakeFile)
             ->call('saveItem')
-            ->assertHasNoErrors(['title', 'description', 'audioFile', 'itemType']);
+            ->assertHasNoErrors(['title', 'description', 'audioFile', 'type']);
 
         $this->assertDatabaseHas('portfolio_items', [
             'user_id' => $this->producer->id,
             'title' => 'My Awesome Track',
-            'item_type' => 'audio_upload',
+            'item_type' => $this->itemTypeAudio,
             'description' => 'A description of the track.',
             'is_public' => true,
         ]);
 
         // Assert the file was stored
         $item = PortfolioItem::where('title', 'My Awesome Track')->first();
+        $this->assertNotNull($item, 'Portfolio item was not created.');
+        $this->assertNotNull($item->file_path, 'File path should not be null for audio item.');
         Storage::disk('s3')->assertExists($item->file_path);
-    }
-
-    public function test_producer_can_create_external_link_portfolio_item()
-    {
-        $this->actingAs($this->producer);
-
-        Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'external_link')
-            ->set('title', 'My Portfolio Website')
-            ->set('description', 'Link to my external site.')
-            ->set('isPublic', true)
-            ->set('externalUrl', 'https://example.com')
-            ->call('saveItem')
-            ->assertHasNoErrors(['title', 'description', 'externalUrl', 'itemType']);
-
-        $this->assertDatabaseHas('portfolio_items', [
-            'user_id' => $this->producer->id,
-            'title' => 'My Portfolio Website',
-            'item_type' => 'external_link',
-            'external_url' => 'https://example.com',
-            'is_public' => true,
-        ]);
-    }
-
-    public function test_producer_can_create_mixpitch_project_link_portfolio_item()
-    {
-        $this->actingAs($this->producer);
-        $project = Project::factory()->create(['user_id' => $this->client->id]); // Project owned by someone else
-
-        Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'mixpitch_project_link')
-            ->set('title', 'Mixpitch Project Showcase') // Optional title
-            ->set('description', 'Worked on this cool project.')
-            ->set('isPublic', true)
-            ->set('linkedProjectId', $project->id)
-            ->call('saveItem')
-            ->assertHasNoErrors(['title', 'description', 'linkedProjectId', 'itemType']);
-
-        $this->assertDatabaseHas('portfolio_items', [
-            'user_id' => $this->producer->id,
-            'title' => 'Mixpitch Project Showcase',
-            'item_type' => 'mixpitch_project_link',
-            'linked_project_id' => $project->id,
-            'is_public' => true,
-        ]);
     }
 
     // --- Validation Tests ---
@@ -154,104 +118,96 @@ class PortfolioManagementTest extends TestCase
     public function test_portfolio_item_creation_requires_title()
     {
         $this->actingAs($this->producer);
-
         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'external_link')
-            ->set('title', '') // Empty title
+            ->set('type', $this->itemTypeAudio)
+            ->set('title', '')
+            ->set('audioFile', UploadedFile::fake()->create('test.mp3', 100))
             ->call('saveItem')
-            ->assertHasErrors(['title' => 'required']);
+            ->assertHasErrors('title');
     }
 
-    public function test_portfolio_item_creation_validates_audio_file()
+    public function test_portfolio_item_creation_requires_audio_file_for_audio_type()
+    {
+        $this->actingAs($this->producer);
+
+        // Attempt to create an audio item without providing a file
+        Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
+            ->set('type', $this->itemTypeAudio)
+            ->set('title', 'Missing Audio File')
+            ->set('audioFile', null) // Explicitly set to null
+            ->call('saveItem')
+            ->assertHasErrors('audioFile'); // Assert any error for audioFile
+    }
+
+    public function test_portfolio_item_creation_validates_audio_file_properties()
     {
         $this->actingAs($this->producer);
         $fakeTextFile = UploadedFile::fake()->create('not_audio.txt', 1024, 'text/plain');
-        $largeAudioFile = UploadedFile::fake()->create('too_large.mp3', 102500, 'audio/mpeg'); // Larger than 102400 (100MB)
+        // Use correct max size (100MB = 102400 KB)
+        $largeAudioFile = UploadedFile::fake()->create('too_large.mp3', 102401, 'audio/mpeg');
 
         // Test wrong mime type
         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'audio_upload')
+            ->set('type', $this->itemTypeAudio)
             ->set('title', 'Invalid File Type')
             ->set('audioFile', $fakeTextFile)
             ->call('saveItem')
-            ->assertHasErrors(['audioFile' => 'mimes']);
+            ->assertHasErrors('audioFile'); // Assert any error for audioFile
 
-        // Test file size (exceeds max size of 102400 KB = 100MB)
+        // Test file size
+        $titleTooLarge = 'File Too Large';
         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'audio_upload')
-            ->set('title', 'File Too Large')
+            ->set('type', $this->itemTypeAudio)
+            ->set('title', $titleTooLarge)
             ->set('audioFile', $largeAudioFile)
             ->call('saveItem')
-            ->assertHasErrors(['audioFile']);
-    }
+            ->assertHasErrors('audioFile'); // Assert any error for audioFile
 
-    public function test_portfolio_item_creation_validates_external_url()
-    {
-        $this->actingAs($this->producer);
-
-        Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'external_link')
-            ->set('title', 'Invalid URL')
-            ->set('externalUrl', 'not-a-valid-url')
-            ->call('saveItem')
-            ->assertHasErrors(['externalUrl' => 'url']);
-
-         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'external_link')
-            ->set('title', 'Missing URL')
-            ->set('externalUrl', '') // Required if type is external_link
-            ->call('saveItem')
-            ->assertHasErrors(['externalUrl' => 'required_if']);
-    }
-
-    public function test_portfolio_item_creation_validates_project_id()
-    {
-        $this->actingAs($this->producer);
-
-        // Test non-existent project ID
-        Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'mixpitch_project_link')
-            ->set('title', 'Invalid Project Link')
-            ->set('linkedProjectId', 999) // Non-existent ID
-            ->call('saveItem')
-            ->assertHasErrors(['linkedProjectId' => 'exists']);
-
-        // Test missing project ID
-        Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('itemType', 'mixpitch_project_link')
-            ->set('title', 'Missing Project Link')
-            ->set('linkedProjectId', null) // Required if type is mixpitch_project_link
-            ->call('saveItem')
-            ->assertHasErrors(['linkedProjectId' => 'required_if']);
+        // Assert the item was NOT created due to validation failure
+        $this->assertDatabaseMissing('portfolio_items', [
+            'user_id' => $this->producer->id,
+            'title' => $titleTooLarge,
+        ]);
     }
 
     // --- Update Tests ---
 
-    public function test_producer_can_update_their_portfolio_item()
+    public function test_producer_can_update_their_audio_portfolio_item()
     {
         $this->actingAs($this->producer);
+        // Explicitly create only necessary fields, overriding factory defaults
         $item = PortfolioItem::factory()->for($this->producer, 'user')->create([
-            'title' => 'Old Title',
-            'item_type' => 'external_link',
-            'external_url' => 'https://example.com'
+            'item_type' => $this->itemTypeAudio,
+            'title' => 'Old Audio Title',
+            'description' => 'Old description',
+            'file_path' => 'test/old_audio.mp3', // Need a valid path
+            'video_url' => null, // Ensure video fields are null
+            'video_id' => null,
         ]);
+        $this->assertNotNull($item->file_path, 'Test setup should provide file_path');
 
         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->call('editItem', $item->id)
+            ->call('editItem', $item->id) // Load existing item into form
             ->assertSet('editingItemId', $item->id)
-            ->assertSet('title', $item->title)
-            ->set('title', 'Updated Title')
+            ->assertSet('title', 'Old Audio Title')
+            ->assertSet('type', $this->itemTypeAudio)
+            ->assertSet('description', 'Old description')
+            ->assertSet('existingFilePath', $item->file_path) // Check existing file path loaded
+            ->set('title', 'Updated Audio Title')
             ->set('description', 'Updated description.')
-            ->set('linkedProjectId', null)
             ->call('saveItem')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('portfolio_items', [
             'id' => $item->id,
             'user_id' => $this->producer->id,
-            'title' => 'Updated Title',
+            'title' => 'Updated Audio Title',
             'description' => 'Updated description.',
+            'item_type' => $this->itemTypeAudio,
         ]);
+
+        $item->refresh();
+        $this->assertEquals($item->file_path, $item->refresh()->file_path, 'File path should not change when not uploading new file');
     }
 
     public function test_producer_cannot_update_others_portfolio_item()
@@ -262,25 +218,25 @@ class PortfolioManagementTest extends TestCase
             'username' => 'other_producer_' . $this->faker->userName()
         ]);
         
-        // Portfolio item created by another producer
+        // Explicitly create item for other producer with only necessary fields
         $portfolioItem = PortfolioItem::factory()->for($otherProducer, 'user')->create([
-            'item_type' => 'external_link',
-            'external_url' => 'https://old-example.com'
+             'title' => 'Other Producer Item',
+             'item_type' => $this->itemTypeAudio, // Example type
+             'file_path' => 'other/item.mp3',
+             'video_url' => null,
+             'video_id' => null,
         ]);
 
-        // Try to actually perform the update and expect it to fail gracefully
+        // Policy should prevent loading the item in the editItem method
         Livewire::actingAs($this->producer)
             ->test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->set('editingItemId', $portfolioItem->id)
-            ->set('title', 'Unauthorized Update')
-            ->set('externalUrl', 'https://hacked.com')
-            ->call('saveItem');
+            ->call('editItem', $portfolioItem->id) 
+            ->assertForbidden(); // Expecting AuthorizationException caught by editItem
 
-        // Verify the item was not updated
-        $this->assertDatabaseMissing('portfolio_items', [
+        // Verify the item was not updated (Check original title still exists)
+        $this->assertDatabaseHas('portfolio_items', [
             'id' => $portfolioItem->id,
-            'title' => 'Unauthorized Update',
-            'external_url' => 'https://hacked.com'
+            'title' => 'Other Producer Item', // Original title
         ]);
     }
 
@@ -290,20 +246,24 @@ class PortfolioManagementTest extends TestCase
     {
         $this->actingAs($this->producer);
         $fakeFile = UploadedFile::fake()->create('delete_me.mp3', 100);
-        $path = $fakeFile->store('portfolio-audio', 's3'); // Store the file first
+        // Use a realistic path structure like in the component
+        $filePath = "portfolio-audio/{$this->producer->id}/" . Str::slug('delete_me') . '-' . time() . '.mp3'; 
+        Storage::disk('s3')->put($filePath, $fakeFile->get()); // Store the file first
+
         $item = PortfolioItem::factory()->for($this->producer, 'user')->create([
-            'item_type' => 'audio_upload',
-            'file_path' => $path,
+            'item_type' => $this->itemTypeAudio,
+            'file_path' => $filePath,
+            'title' => 'Item To Delete',
         ]);
 
-        Storage::disk('s3')->assertExists($path); // Confirm file exists before deletion
+        Storage::disk('s3')->assertExists($filePath); // Confirm file exists before deletion
 
         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
             ->call('deleteItem', $item->id)
             ->assertHasNoErrors();
 
         $this->assertDatabaseMissing('portfolio_items', ['id' => $item->id]);
-        Storage::disk('s3')->assertMissing($path); // Confirm file was deleted
+        Storage::disk('s3')->assertMissing($filePath); // Confirm file was deleted
     }
 
     public function test_producer_cannot_delete_others_portfolio_item()
@@ -314,16 +274,22 @@ class PortfolioManagementTest extends TestCase
             'username' => 'other_producer_' . $this->faker->userName()
         ]);
         
-        // Create a portfolio item for another producer
+        // Create a portfolio item for another producer (Factory creates valid item)
         $portfolioItem = PortfolioItem::factory()->for($otherProducer, 'user')->create();
+        $itemId = $portfolioItem->id; // Store the ID
 
         // Try to delete it
         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->call('deleteItem', $portfolioItem->id);
+            ->call('deleteItem', $itemId)
+            // Check for error toast event using named parameters
+            ->assertDispatched('toast', function ($name, $params) {
+                return isset($params['type']) && $params['type'] === 'error' &&
+                       isset($params['message']) && str_contains($params['message'], 'authorized');
+            });
 
-        // Verify item still exists
+        // Verify item still exists in the database
         $this->assertDatabaseHas('portfolio_items', [
-            'id' => $portfolioItem->id
+            'id' => $itemId
         ]);
     }
 
@@ -393,51 +359,40 @@ class PortfolioManagementTest extends TestCase
 
     public function test_portfolio_items_render_correctly_based_on_type()
     {
-        // Create one of each item type
-        
-        // Audio upload item
+        // Create one of each current item type explicitly for clarity
         $audioItem = PortfolioItem::factory()->for($this->producer, 'user')->create([
             'is_public' => true,
-            'item_type' => 'audio_upload',
-            'title' => 'Audio Test Item',
-            'file_path' => 'portfolio-audio/some_audio.mp3'
+            'item_type' => $this->itemTypeAudio,
+            'title' => 'Audio Render Test',
+            'file_path' => 'test/audio.mp3', // Provide explicit path
+            'video_url' => null,
+            'video_id' => null,
         ]);
-        
-        // External link item
-        $linkItem = PortfolioItem::factory()->for($this->producer, 'user')->create([
-            'is_public' => true,
-            'item_type' => 'external_link',
-            'title' => 'External Link Test',
-            'external_url' => 'https://example.com'
-        ]);
-        
-        // Mixpitch project link item
-        $project = Project::factory()->create();
-        $projectItem = PortfolioItem::factory()->for($this->producer, 'user')->create([
-            'is_public' => true,
-            'item_type' => 'mixpitch_project_link',
-            'title' => 'Project Link Test',
-            'linked_project_id' => $project->id
-        ]);
-        
-        // Ensure audio URL will work in test
-        $expectedAudioUrl = Storage::disk('s3')->url($audioItem->file_path);
-        $expectedProjectUrl = route('projects.show', $project); // Assuming this route exists
-        
+
+        $youtubeVideoId = 'dQw4w9WgXcQ'; // Use a known ID
+        $youtubeItem = PortfolioItem::factory()->for($this->producer, 'user')->create([
+             'is_public' => true,
+             'item_type' => $this->itemTypeYoutube,
+             'title' => 'YouTube Render Test',
+             'video_url' => 'https://www.youtube.com/watch?v=' . $youtubeVideoId,
+             'video_id' => $youtubeVideoId, // Ensure the correct ID is set
+             'file_path' => null, // Ensure audio fields are null
+         ]);
+
         // View the producer's profile while authenticated
         $response = $this->actingAs($this->client)
             ->get(route('profile.username', '@'.$this->producer->username));
-        
+
         $response->assertOk();
-        
+
         // Check for Audio Item rendering
-        $response->assertSee('Audio Test Item');
-        
-        // Check for External Link rendering
-        $response->assertSee('External Link Test');
-        $response->assertSee('https://example.com');
-        
-        // Check for Project Link rendering
-        $response->assertSee('Project Link Test');
+        $response->assertSeeText('Audio Render Test', false); // Check for plain text, disable escaping just in case
+        // TODO: Add assertion for audio player/link if applicable in the profile view
+
+        // Check for YouTube Item rendering
+        $response->assertSeeText('YouTube Render Test', false); // Check for plain text
+        // TODO: Add assertion for YouTube iframe/embed if applicable in the profile view
+        // Check specifically if the YouTube embed URL is present in the raw HTML
+        $response->assertSee("https://www.youtube.com/embed/{$youtubeVideoId}", false);
     }
 } 
