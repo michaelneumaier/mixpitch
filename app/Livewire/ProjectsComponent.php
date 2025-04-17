@@ -18,6 +18,11 @@ class ProjectsComponent extends Component
     public $sortBy = 'latest';
     public $perPage = 12;
     public $viewMode = 'list'; // 'card' or 'list'
+    public $min_budget = null;
+    public $max_budget = null;
+    public $deadline_start = null;
+    public $deadline_end = null;
+    public $selected_collaboration_types = [];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -25,48 +30,32 @@ class ProjectsComponent extends Component
         'genres' => ['except' => []],
         'statuses' => ['except' => []],
         'projectTypes' => ['except' => []],
+        'min_budget' => ['except' => null],
+        'max_budget' => ['except' => null],
+        'deadline_start' => ['except' => null],
+        'deadline_end' => ['except' => null],
+        'selected_collaboration_types' => ['except' => []],
         'viewMode' => ['except' => 'list'],
     ];
 
     public function render()
     {
-        $query = Project::query();
+        $filters = [
+            'genres' => $this->genres,
+            'statuses' => $this->statuses,
+            'projectTypes' => $this->projectTypes,
+            'search' => $this->search,
+            'min_budget' => $this->min_budget,
+            'max_budget' => $this->max_budget,
+            'deadline_start' => $this->deadline_start,
+            'deadline_end' => $this->deadline_end,
+            'selected_collaboration_types' => $this->selected_collaboration_types,
+            'sortBy' => $this->sortBy,
+        ];
 
-        $query->whereNotIn('status', ['unpublished']);
-
-        if (!empty($this->genres)) {
-            $query->whereIn('genre', $this->genres);
-        }
-        if (!empty($this->statuses)) {
-            $query->whereIn('status', $this->statuses);
-        }
-        if (!empty($this->projectTypes)) {
-            $query->whereIn('project_type', $this->projectTypes);
-        }
-        if (!empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('description', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        switch ($this->sortBy) {
-            case 'budget_high_low':
-                $query->orderBy('budget', 'desc');
-                break;
-            case 'budget_low_high':
-                $query->orderBy('budget', 'asc');
-                break;
-            case 'deadline':
-                $query->orderBy('deadline', 'asc');
-                break;
-            case 'oldest':
-                $query->oldest();
-                break;
-            default:
-                $query->latest();
-                break;
-        }
+        $query = Project::query()
+            ->whereNotIn('status', ['unpublished'])
+            ->filterAndSort($filters);
 
         return view('livewire.projects-component', [
             'projects' => $query->paginate($this->perPage),
@@ -98,12 +87,46 @@ class ProjectsComponent extends Component
         $this->resetPage();
     }
 
+    public function updatedMinBudget($value)
+    {
+        // Coerce empty string from input to null for query string consistency
+        $this->min_budget = ($value === '' || $value === false) ? null : $value;
+        $this->resetPage();
+    }
+
+    public function updatedMaxBudget($value)
+    {
+        // Coerce empty string from input to null for query string consistency
+        $this->max_budget = ($value === '' || $value === false) ? null : $value;
+        $this->resetPage();
+    }
+
+    public function updatedDeadlineStart()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDeadlineEnd()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSelectedCollaborationTypes()
+    {
+        $this->resetPage();
+    }
+
     #[On('filters-updated')]
     public function applyFilters($filters)
     {
-        $this->genres = $filters['genres'];
-        $this->statuses = $filters['statuses'];
-        $this->projectTypes = $filters['projectTypes'];
+        $this->genres = $filters['genres'] ?? [];
+        $this->statuses = $filters['statuses'] ?? [];
+        $this->projectTypes = $filters['projectTypes'] ?? [];
+        $this->min_budget = $filters['min_budget'] ?? null;
+        $this->max_budget = $filters['max_budget'] ?? null;
+        $this->deadline_start = $filters['deadline_start'] ?? null;
+        $this->deadline_end = $filters['deadline_end'] ?? null;
+        $this->selected_collaboration_types = $filters['selected_collaboration_types'] ?? [];
         $this->resetPage();
     }
 
@@ -114,7 +137,15 @@ class ProjectsComponent extends Component
         $this->projectTypes = [];
         $this->search = '';
         $this->sortBy = 'latest';
+        $this->min_budget = null;
+        $this->max_budget = null;
+        $this->deadline_start = null;
+        $this->deadline_end = null;
+        $this->selected_collaboration_types = [];
         $this->resetPage();
+        
+        // Dispatch an event to notify child components that filters have been cleared
+        $this->dispatch('filters-cleared');
     }
 
     public function loadMore()
@@ -155,8 +186,48 @@ class ProjectsComponent extends Component
         $this->resetPage();
     }
 
+    /**
+     * Remove budget filter
+     */
+    public function removeBudgetFilter()
+    {
+        $this->min_budget = null;
+        $this->max_budget = null;
+        $this->resetPage();
+    }
+
+    /**
+     * Remove deadline filter
+     */
+    public function removeDeadlineFilter()
+    {
+        $this->deadline_start = null;
+        $this->deadline_end = null;
+        $this->resetPage();
+    }
+
+    /**
+     * Remove a specific collaboration type filter
+     */
+    public function removeCollaborationTypeFilter($type)
+    {
+        $this->selected_collaboration_types = array_filter($this->selected_collaboration_types, function ($item) use ($type) {
+            return $item !== $type;
+        });
+        $this->resetPage();
+    }
+
     public function toggleViewMode()
     {
         $this->viewMode = $this->viewMode === 'card' ? 'list' : 'card';
+    }
+    
+    /**
+     * Listen for the clear-parent-filters event from child components
+     */
+    #[On('clear-parent-filters')]
+    public function handleClearParentFilters()
+    {
+        $this->clearFilters();
     }
 }

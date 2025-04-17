@@ -15,8 +15,8 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
         '662a729f963d39afe703c9d9b7ab4a8c' => __DIR__ . '/..' . '/symfony/polyfill-php83/bootstrap.php',
-        'f598d06aa772fa33d905e87be6398fb1' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/bootstrap.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
+        'f598d06aa772fa33d905e87be6398fb1' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/bootstrap.php',
         '47e1160838b5e5a10346ac4084b58c23' => __DIR__ . '/..' . '/laravel/prompts/src/helpers.php',
         '29ffe97919493792170d47eb03a68da9' => __DIR__ . '/..' . '/blade-ui-kit/blade-icons/src/helpers.php',
         '40275907c8566c390185147049ef6e5d' => __DIR__ . '/..' . '/livewire/livewire/src/helpers.php',
@@ -129,6 +129,7 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
             'Stripe\\' => 7,
             'Spatie\\Translatable\\' => 20,
             'Spatie\\TemporaryDirectory\\' => 26,
+            'Spatie\\Tags\\' => 12,
             'Spatie\\Sluggable\\' => 17,
             'Spatie\\MediaLibrary\\' => 20,
             'Spatie\\LaravelSettings\\' => 23,
@@ -140,6 +141,7 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
             'Spatie\\Ignition\\' => 16,
             'Spatie\\FlareClient\\' => 19,
             'Spatie\\ErrorSolutions\\' => 22,
+            'Spatie\\EloquentSortable\\' => 24,
             'Spatie\\Color\\' => 13,
             'Spatie\\Backtrace\\' => 17,
             'Sebdesign\\SM\\' => 13,
@@ -322,9 +324,9 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         ),
         'phpDocumentor\\Reflection\\' => 
         array (
-            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
-            1 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
-            2 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
+            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
+            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
         ),
         'ZipStream\\' => 
         array (
@@ -506,6 +508,10 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         array (
             0 => __DIR__ . '/..' . '/spatie/temporary-directory/src',
         ),
+        'Spatie\\Tags\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/spatie/laravel-tags/src',
+        ),
         'Spatie\\Sluggable\\' => 
         array (
             0 => __DIR__ . '/..' . '/spatie/laravel-sluggable/src',
@@ -524,8 +530,8 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         ),
         'Spatie\\LaravelIgnition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
-            1 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
         ),
         'Spatie\\Invade\\' => 
         array (
@@ -541,8 +547,8 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         ),
         'Spatie\\Ignition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
-            1 => __DIR__ . '/..' . '/spatie/ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -551,6 +557,10 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Spatie\\ErrorSolutions\\' => 
         array (
             0 => __DIR__ . '/..' . '/spatie/error-solutions/src',
+        ),
+        'Spatie\\EloquentSortable\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/spatie/eloquent-sortable/src',
         ),
         'Spatie\\Color\\' => 
         array (
@@ -890,10 +900,10 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         ),
         'Filament\\' => 
         array (
-            0 => __DIR__ . '/..' . '/filament/filament/src',
-            1 => __DIR__ . '/..' . '/filament/spatie-laravel-media-library-plugin/src',
-            2 => __DIR__ . '/..' . '/filament/spatie-laravel-settings-plugin/src',
-            3 => __DIR__ . '/..' . '/filament/spatie-laravel-translatable-plugin/src',
+            0 => __DIR__ . '/..' . '/filament/spatie-laravel-translatable-plugin/src',
+            1 => __DIR__ . '/..' . '/filament/spatie-laravel-settings-plugin/src',
+            2 => __DIR__ . '/..' . '/filament/spatie-laravel-media-library-plugin/src',
+            3 => __DIR__ . '/..' . '/filament/filament/src',
         ),
         'Fidry\\CpuCoreCounter\\' => 
         array (
@@ -2707,10 +2717,12 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Database\\Factories\\PortfolioItemFactory' => __DIR__ . '/../..' . '/database/factories/PortfolioItemFactory.php',
         'Database\\Factories\\ProjectFactory' => __DIR__ . '/../..' . '/database/factories/ProjectFactory.php',
         'Database\\Factories\\ProjectFileFactory' => __DIR__ . '/../..' . '/database/factories/ProjectFileFactory.php',
+        'Database\\Factories\\TagFactory' => __DIR__ . '/../..' . '/database/factories/TagFactory.php',
         'Database\\Factories\\UserFactory' => __DIR__ . '/../..' . '/database/factories/UserFactory.php',
         'Database\\Seeders\\DatabaseSeeder' => __DIR__ . '/../..' . '/database/seeders/DatabaseSeeder.php',
         'Database\\Seeders\\FilamentAdminSeeder' => __DIR__ . '/../..' . '/database/seeders/FilamentAdminSeeder.php',
         'Database\\Seeders\\MigrateUserTagsSeeder' => __DIR__ . '/../..' . '/database/seeders/MigrateUserTagsSeeder.php',
+        'Database\\Seeders\\TagSeeder' => __DIR__ . '/../..' . '/database/seeders/TagSeeder.php',
         'DateError' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateError.php',
         'DateException' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateException.php',
         'DateInvalidOperationException' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateInvalidOperationException.php',
@@ -10239,6 +10251,10 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Spatie\\Color\\Rgba' => __DIR__ . '/..' . '/spatie/color/src/Rgba.php',
         'Spatie\\Color\\Validate' => __DIR__ . '/..' . '/spatie/color/src/Validate.php',
         'Spatie\\Color\\Xyz' => __DIR__ . '/..' . '/spatie/color/src/Xyz.php',
+        'Spatie\\EloquentSortable\\EloquentModelSortedEvent' => __DIR__ . '/..' . '/spatie/eloquent-sortable/src/EloquentModelSortedEvent.php',
+        'Spatie\\EloquentSortable\\EloquentSortableServiceProvider' => __DIR__ . '/..' . '/spatie/eloquent-sortable/src/EloquentSortableServiceProvider.php',
+        'Spatie\\EloquentSortable\\Sortable' => __DIR__ . '/..' . '/spatie/eloquent-sortable/src/Sortable.php',
+        'Spatie\\EloquentSortable\\SortableTrait' => __DIR__ . '/..' . '/spatie/eloquent-sortable/src/SortableTrait.php',
         'Spatie\\ErrorSolutions\\Contracts\\BaseSolution' => __DIR__ . '/..' . '/spatie/error-solutions/src/Contracts/BaseSolution.php',
         'Spatie\\ErrorSolutions\\Contracts\\HasSolutionsForThrowable' => __DIR__ . '/..' . '/spatie/error-solutions/src/Contracts/HasSolutionsForThrowable.php',
         'Spatie\\ErrorSolutions\\Contracts\\ProvidesSolution' => __DIR__ . '/..' . '/spatie/error-solutions/src/Contracts/ProvidesSolution.php',
@@ -10664,6 +10680,10 @@ class ComposerStaticInitee9584ace3967cd0c6a11a11c27408e2
         'Spatie\\Sluggable\\HasSlug' => __DIR__ . '/..' . '/spatie/laravel-sluggable/src/HasSlug.php',
         'Spatie\\Sluggable\\HasTranslatableSlug' => __DIR__ . '/..' . '/spatie/laravel-sluggable/src/HasTranslatableSlug.php',
         'Spatie\\Sluggable\\SlugOptions' => __DIR__ . '/..' . '/spatie/laravel-sluggable/src/SlugOptions.php',
+        'Spatie\\Tags\\HasSlug' => __DIR__ . '/..' . '/spatie/laravel-tags/src/HasSlug.php',
+        'Spatie\\Tags\\HasTags' => __DIR__ . '/..' . '/spatie/laravel-tags/src/HasTags.php',
+        'Spatie\\Tags\\Tag' => __DIR__ . '/..' . '/spatie/laravel-tags/src/Tag.php',
+        'Spatie\\Tags\\TagsServiceProvider' => __DIR__ . '/..' . '/spatie/laravel-tags/src/TagsServiceProvider.php',
         'Spatie\\TemporaryDirectory\\Exceptions\\InvalidDirectoryName' => __DIR__ . '/..' . '/spatie/temporary-directory/src/Exceptions/InvalidDirectoryName.php',
         'Spatie\\TemporaryDirectory\\Exceptions\\PathAlreadyExists' => __DIR__ . '/..' . '/spatie/temporary-directory/src/Exceptions/PathAlreadyExists.php',
         'Spatie\\TemporaryDirectory\\TemporaryDirectory' => __DIR__ . '/..' . '/spatie/temporary-directory/src/TemporaryDirectory.php',

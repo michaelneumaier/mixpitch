@@ -222,22 +222,24 @@
                 @php
                 // Define tags by type for the select components
                 $tagsByType = \App\Models\Tag::all()->groupBy('type')->toArray();
+                $maxTags = 6; // Define the maximum number of tags
                 @endphp
                 
                 <div 
                     x-data="tagSelects({
-                        allTags: {{ json_encode($tagsByType) }},
+                        allTags: {{ json_encode($allTagsForJs) }},
                         currentSkills: {{ json_encode(array_map('strval', $skills ?? [])) }},
                         currentEquipment: {{ json_encode(array_map('strval', $equipment ?? [])) }},
-                        currentSpecialties: {{ json_encode(array_map('strval', $specialties ?? [])) }}
+                        currentSpecialties: {{ json_encode(array_map('strval', $specialties ?? [])) }},
+                        maxItems: {{ $maxTags }}
                     })"
                     x-init="initChoices()"
-                    >
+                >
                     
                     <!-- Skills -->
                     <div class="mb-6">
                         <label for="skills-select" class="block text-sm font-medium text-gray-700 mb-1">
-                            Skills <span class="text-gray-400 text-xs">(Production, Mixing, Mastering, etc.)</span>
+                            Skills <span class="text-gray-400 text-xs">({{ count($skills ?? []) }}/6)</span> <span class="text-gray-400 text-xs"> (Production, Mixing, Mastering, etc.)</span>
                         </label>
                         <div wire:ignore class="mt-1 border border-gray-300 bg-white rounded-md shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:ring-opacity-50">
                             <select id="skills-select" multiple="multiple" x-ref="skillsSelect" class="block w-full border-0 focus:ring-0"></select>
@@ -249,7 +251,7 @@
                     <!-- Equipment -->
                     <div class="mb-6">
                         <label for="equipment-select" class="block text-sm font-medium text-gray-700 mb-1">
-                            Equipment <span class="text-gray-400 text-xs">(DAW, Hardware, etc.)</span>
+                            Equipment <span class="text-gray-400 text-xs">({{ count($equipment ?? []) }}/6)</span> <span class="text-gray-400 text-xs"> (DAWs, Instruments, Hardware, etc.)</span>
                         </label>
                         <div wire:ignore class="mt-1 border border-gray-300 bg-white rounded-md shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:ring-opacity-50">
                             <select id="equipment-select" multiple="multiple" x-ref="equipmentSelect" class="block w-full border-0 focus:ring-0"></select>
@@ -259,9 +261,9 @@
                     </div>
             
                     <!-- Specialties -->
-                    <div>
+                    <div class="mb-6">
                         <label for="specialties-select" class="block text-sm font-medium text-gray-700 mb-1">
-                            Specialties <span class="text-gray-400 text-xs">(Genres, Styles, etc.)</span>
+                            Specialties <span class="text-gray-400 text-xs">({{ count($specialties ?? []) }}/6)</span> <span class="text-gray-400 text-xs"> (Genres, Vocal Tuning, etc.)</span>
                         </label>
                         <div wire:ignore class="mt-1 border border-gray-300 bg-white rounded-md shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:ring-opacity-50">
                             <select id="specialties-select" multiple="multiple" x-ref="specialtiesSelect" class="block w-full border-0 focus:ring-0"></select>
@@ -388,20 +390,11 @@
                 skills: Array.isArray(config.currentSkills) ? config.currentSkills.map(String) : [],
                 equipment: Array.isArray(config.currentEquipment) ? config.currentEquipment.map(String) : [],
                 specialties: Array.isArray(config.currentSpecialties) ? config.currentSpecialties.map(String) : [],
+                maxItems: config.maxItems || 6, // Default to 6 if not provided
                 choicesInstances: {},
                 debounceTimeout: null, // Added for debouncing
     
                 initChoices() {
-                    // Convert allTags if needed
-                    if (Array.isArray(this.allTags)) {
-                        const tagsMap = {};
-                        this.allTags.forEach(tag => {
-                            if (!tagsMap[tag.type]) tagsMap[tag.type] = [];
-                            tagsMap[tag.type].push(tag);
-                        });
-                        this.allTags = tagsMap;
-                    }
-                    
                     this.$nextTick(() => { // Ensure elements are available
                         this.choicesInstances.skills = this.createChoices(this.$refs.skillsSelect, 'skill', this.skills);
                         this.choicesInstances.equipment = this.createChoices(this.$refs.equipmentSelect, 'equipment', this.equipment);
@@ -440,6 +433,10 @@
                         placeholder: true,
                         placeholderValue: 'Select tags...',
                         choices: choicesOptions.sort((a, b) => a.label.localeCompare(b.label)),
+                        maxItemCount: this.maxItems, // Limit the number of items
+                        maxItemText: (maxItemCount) => { // Custom message when limit is reached
+                            return `Only ${maxItemCount} items can be selected`;
+                        },
                     });
                     
                     // Double-check that selections are applied

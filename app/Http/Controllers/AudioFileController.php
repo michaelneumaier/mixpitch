@@ -59,12 +59,18 @@ class AudioFileController extends Controller
         try {
             $portfolioItem = PortfolioItem::findOrFail($id);
             
-            if ($portfolioItem->item_type !== 'audio_upload' || !$portfolioItem->file_path) {
+            if ($portfolioItem->item_type !== PortfolioItem::TYPE_AUDIO || !$portfolioItem->file_path) {
+                Log::warning('Attempted to get URL for non-audio item or item missing path', [
+                    'item_id' => $id,
+                    'item_type' => $portfolioItem->item_type,
+                    'has_path' => !empty($portfolioItem->file_path)
+                ]);
                 return response()->json([
                     'error' => 'Not an audio file or no file found'
                 ], 404);
             }
             
+            Log::info('Generating pre-signed URL for portfolio audio', ['item_id' => $id, 'path' => $portfolioItem->file_path]);
             return $this->getPreSignedUrl($portfolioItem->file_path);
         } catch (\Exception $e) {
             Log::error('Error generating pre-signed URL for portfolio item', [

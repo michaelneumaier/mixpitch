@@ -79,7 +79,7 @@
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
     @yield('scripts')
-    @livewireScripts()
+    @livewireScripts
     @stack('scripts')
 
     <x-toaster-hub />

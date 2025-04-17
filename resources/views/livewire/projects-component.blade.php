@@ -110,7 +110,16 @@
                         <h2 class="text-lg font-semibold">Filters</h2>
                     </div>
                     <div class="p-4">
-                        @livewire('filters-projects-component')
+                        @livewire('filters-projects-component', [
+                            'genres' => $genres,
+                            'statuses' => $statuses,
+                            'projectTypes' => $projectTypes,
+                            'selected_collaboration_types' => $selected_collaboration_types,
+                            'min_budget' => $min_budget,
+                            'max_budget' => $max_budget,
+                            'deadline_start' => $deadline_start,
+                            'deadline_end' => $deadline_end,
+                        ])
                     </div>
                 </div>
 
@@ -121,6 +130,15 @@
                     class="mt-4 bg-white rounded-xl shadow-md p-4">
                     <h3 class="font-medium text-sm text-gray-500 uppercase mb-2">Active Filters</h3>
                     <div class="flex flex-wrap gap-2">
+                        @if(!empty($search))
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                Search: "{{ Str::limit($search, 20) }}"
+                                <button type="button" wire:click="$set('search', '')" class="ml-1 inline-flex items-center justify-center">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        @endif
+
                         @if(count($genres) > 0)
                         @foreach($genres as $genre)
                         <span
@@ -169,12 +187,68 @@
                         @endforeach
                         @endif
 
-                        @if(count($genres) == 0 && count($statuses) == 0 && count($projectTypes) == 0)
+                        {{-- Display Budget Filter --}}
+                        @if(!is_null($min_budget) || !is_null($max_budget))
+                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                                Budget: 
+                                @if(!is_null($min_budget) && $min_budget !== '') ${{ number_format($min_budget) }} @else Any @endif
+                                - 
+                                @if(!is_null($max_budget) && $max_budget !== '') ${{ number_format($max_budget) }} @else Any @endif
+                                <button type="button" wire:click="removeBudgetFilter" class="ml-1 inline-flex items-center justify-center">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        @endif
+
+                        {{-- Display Deadline Filter --}}
+                        @if(!is_null($deadline_start) || !is_null($deadline_end))
+                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                                Deadline: 
+                                @if(!is_null($deadline_start) && $deadline_start !== '') {{ \Carbon\Carbon::parse($deadline_start)->format('M d, Y') }} @else Anytime @endif
+                                - 
+                                @if(!is_null($deadline_end) && $deadline_end !== '') {{ \Carbon\Carbon::parse($deadline_end)->format('M d, Y') }} @else Anytime @endif
+                                <button type="button" wire:click="removeDeadlineFilter" class="ml-1 inline-flex items-center justify-center">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        @endif
+                        
+                        {{-- Display Collaboration Type Filters --}}
+                        @if(!empty($selected_collaboration_types))
+                        @foreach($selected_collaboration_types as $collabType)
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            {{ $collabType }}
+                            <button type="button" wire:click="removeCollaborationTypeFilter('{{ $collabType }}')"
+                                class="ml-1 inline-flex items-center justify-center">
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </span>
+                        @endforeach
+                        @endif
+
+                        {{-- Check if ANY filter is active --}}
+                        @php
+                            $isAnyFilterActive = !empty($search) || 
+                                               count($genres) > 0 || 
+                                               count($statuses) > 0 || 
+                                               count($projectTypes) > 0 ||
+                                               !is_null($min_budget) || 
+                                               !is_null($max_budget) || 
+                                               !is_null($deadline_start) || 
+                                               !is_null($deadline_end) ||
+                                               count($selected_collaboration_types) > 0;
+                        @endphp
+
+                        @if(!$isAnyFilterActive)
                         <span class="text-sm text-gray-500 italic">No filters applied</span>
                         @endif
 
-                        @if(count($genres) > 0 || count($statuses) > 0 || count($projectTypes) > 0)
-                        <button type="button" wire:click="clearFilters"
+                        @if($isAnyFilterActive)
+                        <button wire:click="clearFilters"
                             class="text-sm text-red-600 hover:text-red-800 font-medium ml-auto">
                             Clear All
                         </button>

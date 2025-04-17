@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Storage;
 use Sebdesign\SM\StateMachine\StateMachine;
 use Sebdesign\SM\StateMachine\StateMachineInterface;
 use Illuminate\Support\Number;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class Project extends Model
 {
@@ -288,8 +290,115 @@ class Project extends Model
      */
     public function decrementStorageUsed(int $bytes): bool
     {
-        // Ensure storage doesn't go below zero
-        $bytesToDecrement = min($bytes, $this->total_storage_used);
-        return $this->decrement('total_storage_used', $bytesToDecrement);
+        return $this->update([
+            'total_storage_used' => DB::raw("GREATEST(0, total_storage_used - $bytes)")
+        ]);
+    }
+
+    /**
+     * Scope a query to apply filters and sorting.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array $filters
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilterAndSort(Builder $query, array $filters): Builder
+    {
+        // Apply filters
+        $query->when($filters['genres'] ?? null, function ($q, $genres) {
+            $q->whereIn('genre', $genres);
+        });
+
+        $query->when($filters['statuses'] ?? null, function ($q, $statuses) {
+            $q->whereIn('status', $statuses);
+        });
+
+        $query->when($filters['projectTypes'] ?? null, function ($q, $projectTypes) {
+            $q->whereIn('project_type', $projectTypes);
+        });
+
+        $query->when($filters['search'] ?? null, function ($q, $search) {
+            $q->where(function ($sq) use ($search) {
+                $sq->where('name', 'like', '%' . $search . '%')
+                   ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        });
+
+        $minBudget = $filters['min_budget'] ?? null;
+        $maxBudget = $filters['max_budget'] ?? null;
+        $query->when($minBudget && $maxBudget, function ($q) use ($minBudget, $maxBudget) {
+            $q->whereBetween('budget', [(int)$minBudget, (int)$maxBudget]);
+        })->when($minBudget && !$maxBudget, function ($q) use ($minBudget) {
+            $q->where('budget', '>=', (int)$minBudget);
+        })->when(!$minBudget && $maxBudget, function ($q) use ($maxBudget) {
+            $q->where('budget', '<=', (int)$maxBudget);
+        });
+
+        $deadlineStart = $filters['deadline_start'] ?? null;
+        $deadlineEnd = $filters['deadline_end'] ?? null;
+
+        // Try using Carbon objects directly for comparison
+        $start = $deadlineStart ? \Carbon\Carbon::parse($deadlineStart)->startOfDay() : null;
+        $end = $deadlineEnd ? \Carbon\Carbon::parse($deadlineEnd)->endOfDay() : null;
+
+        $query->when($start && $end, function ($q) use ($start, $end) {
+            $q->whereBetween('deadline', [$start, $end]);
+        })->when($start && !$end, function ($q) use ($start) {
+            $q->where('deadline', '>=', $start); // where() should handle Carbon comparison
+        })->when(!$start && $end, function ($q) use ($end) {
+            $q->where('deadline', '<=', $end); // where() should handle Carbon comparison
+        });
+
+        // Collaboration Type Filtering (JSON array)
+        $query->when($filters['selected_collaboration_types'] ?? null, function ($q, $types) {
+            // Ensure $types is an array
+            if (!is_array($types) || empty($types)) {
+                return;
+            }
+            
+            // Check if we're using SQLite
+            $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+            
+            if ($isSqlite) {
+                // SQLite-compatible alternative approach
+                // This is a fallback that works in SQLite but might be less efficient
+                $q->where(function (Builder $subQuery) use ($types) {
+                    foreach ($types as $type) {
+                        // Use LIKE for SQLite as a simple workaround
+                        // This is less precise but allows filtering to work
+                        $subQuery->orWhere('collaboration_type', 'LIKE', '%"' . $type . '"%');
+                    }
+                });
+            } else {
+                // Standard approach for MySQL/PostgreSQL
+                $q->where(function (Builder $subQuery) use ($types) {
+                    foreach ($types as $type) {
+                        $subQuery->orWhereJsonContains('collaboration_type', $type);
+                    }
+                });
+            }
+        });
+
+        // Apply sorting
+        $sortBy = $filters['sortBy'] ?? 'latest';
+        switch ($sortBy) {
+            case 'budget_high_low':
+                $query->orderBy('budget', 'desc');
+                break;
+            case 'budget_low_high':
+                $query->orderBy('budget', 'asc');
+                break;
+            case 'deadline':
+                $query->orderBy('deadline', 'asc');
+                break;
+            case 'oldest':
+                $query->oldest();
+                break;
+            default: // 'latest'
+                $query->latest();
+                break;
+        }
+
+        return $query;
     }
 }
