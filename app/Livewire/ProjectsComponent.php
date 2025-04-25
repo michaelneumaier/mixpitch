@@ -38,6 +38,18 @@ class ProjectsComponent extends Component
         'viewMode' => ['except' => 'list'],
     ];
 
+    /**
+     * Initialize the component and normalize the query parameters
+     */
+    public function mount()
+    {
+        // Convert empty string parameters to null
+        $this->min_budget = $this->min_budget === '' ? null : $this->min_budget;
+        $this->max_budget = $this->max_budget === '' ? null : $this->max_budget;
+        $this->deadline_start = $this->deadline_start === '' ? null : $this->deadline_start;
+        $this->deadline_end = $this->deadline_end === '' ? null : $this->deadline_end;
+    }
+
     public function render()
     {
         $filters = [
