@@ -128,7 +128,59 @@
         </div>
 
         <!-- Budget Range -->
-        <div x-data="{ open: {{ !is_null($min_budget) || !is_null($max_budget) ? 'true' : 'false' }} }">
+        <div x-ref="budgetFilter"
+            x-data="{ 
+                open: {{ !is_null($min_budget) || !is_null($max_budget) ? 'true' : 'false' }},
+                minBudget: {{ $min_budget === '' || $min_budget === null ? 'null' : $min_budget }},
+                maxBudget: {{ $max_budget === '' || $max_budget === null ? 'null' : $max_budget }},
+                displayMin: {{ $min_budget && $min_budget !== '' ? $min_budget : 0 }},
+                displayMax: {{ $max_budget && $max_budget !== '' ? $max_budget : 1000 }},
+                maxSliderValue: 1000,
+                
+                formatCurrency(val) {
+                    return '$' + val;
+                },
+                
+                // Apply changes to Livewire component
+                applyChanges() {
+                    // Ensure proper handling of null vs empty string
+                    $wire.min_budget = this.minBudget === 0 || this.minBudget === '' ? null : this.minBudget;
+                    $wire.max_budget = this.maxBudget >= this.maxSliderValue || this.maxBudget === '' ? null : this.maxBudget;
+                    $wire.dispatchFiltersUpdated();
+                },
+                
+                // Toggle preset or set new values
+                setPreset(min, max) {
+                    if (this.minBudget === min && this.maxBudget === max) {
+                        // Toggle off if same values
+                        this.minBudget = null;
+                        this.maxBudget = null;
+                        this.displayMin = 0;
+                        this.displayMax = this.maxSliderValue;
+                    } else {
+                        // Set new values
+                        this.minBudget = min;
+                        this.maxBudget = max;
+                        this.displayMin = min === null ? 0 : min;
+                        this.displayMax = max === null ? this.maxSliderValue : max;
+                    }
+                    this.applyChanges();
+                }
+            }"
+            x-init="
+                $watch('minBudget', () => applyChanges());
+                $watch('maxBudget', () => applyChanges());
+                
+                // Listen for the filters-reset event
+                $wire.$on('filters-reset', () => {
+                    minBudget = null;
+                    maxBudget = null;
+                    displayMin = 0;
+                    displayMax = maxSliderValue;
+                    open = false;
+                });
+            "
+        >
             <button type="button" @click="open = !open"
                 class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
@@ -144,22 +196,208 @@
                         clip-rule="evenodd" />
                 </svg>
             </button>
-            <div x-show="open" x-transition class="mt-2 space-y-2 px-4">
-                <div class="flex items-center space-x-2">
-                     <span class="text-sm text-gray-500 w-8">Min:</span>
-                     <input type="number" wire:model.live.debounce.500ms="$parent.min_budget" placeholder="Any" min="0"
-                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+            <div x-show="open" x-transition class="mt-2 space-y-4 px-2 pt-2 pb-4">
+                <!-- Budget Range Display -->
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700" x-text="minBudget === null ? 'Any' : formatCurrency(minBudget)"></span>
+                    <span class="text-xs text-gray-500">to</span>
+                    <span class="text-sm font-medium text-gray-700" x-text="maxBudget === null || maxBudget >= maxSliderValue ? 'Any' : formatCurrency(maxBudget)"></span>
                 </div>
-                 <div class="flex items-center space-x-2">
-                     <span class="text-sm text-gray-500 w-8">Max:</span>
-                     <input type="number" wire:model.live.debounce.500ms="$parent.max_budget" placeholder="Any" min="0"
-                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                
+                <!-- Range Slider -->
+                <div class="relative pt-1">
+                    <div class="h-1 bg-gray-200 rounded-full">
+                        <div class="absolute h-1 rounded-full bg-primary" 
+                            :style="`left: ${(displayMin / maxSliderValue) * 100}%; right: ${100 - (displayMax / maxSliderValue) * 100}%`"></div>
+                    </div>
+                    
+                    <input type="range" 
+                        x-model="displayMin"
+                        min="0" 
+                        :max="maxSliderValue"
+                        @change="minBudget = displayMin === 0 ? null : parseInt(displayMin); applyChanges()"
+                        @keydown.arrow-right.prevent="displayMin = Math.min(parseInt(displayMin) + 10, displayMax)"
+                        @keydown.arrow-left.prevent="displayMin = Math.max(parseInt(displayMin) - 10, 0)"
+                        @touchend="minBudget = displayMin === 0 ? null : parseInt(displayMin); applyChanges()"
+                        aria-label="Minimum budget"
+                        class="absolute w-full h-1 touch-action-none cursor-pointer appearance-none bg-transparent pointer-events-none outline-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md" />
+                    
+                    <input type="range" 
+                        x-model="displayMax"
+                        min="0" 
+                        :max="maxSliderValue"
+                        @change="maxBudget = displayMax >= maxSliderValue ? null : parseInt(displayMax); applyChanges()"
+                        @keydown.arrow-right.prevent="displayMax = Math.min(parseInt(displayMax) + 10, maxSliderValue)"
+                        @keydown.arrow-left.prevent="displayMax = Math.max(parseInt(displayMax) - 10, displayMin)"
+                        @touchend="maxBudget = displayMax >= maxSliderValue ? null : parseInt(displayMax); applyChanges()"
+                        aria-label="Maximum budget"
+                        class="absolute w-full h-1 touch-action-none cursor-pointer appearance-none bg-transparent pointer-events-none outline-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md" />
+                </div>
+                
+                <!-- Preset Buttons -->
+                <div class="grid grid-cols-2 gap-2 mt-4 sm:grid-cols-3">
+                    <button type="button" @click="setPreset(null, 10)" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': minBudget === null && maxBudget === 10}">
+                        Under $10
+                    </button>
+                    <button type="button" @click="setPreset(10, 50)" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': minBudget === 10 && maxBudget === 50}">
+                        $10 - $50
+                    </button>
+                    <button type="button" @click="setPreset(50, 100)" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': minBudget === 50 && maxBudget === 100}">
+                        $50 - $100
+                    </button>
+                    <button type="button" @click="setPreset(100, 200)"  
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': minBudget === 100 && maxBudget === 200}">
+                        $100 - $200
+                    </button>
+                    <button type="button" @click="setPreset(200, 500)" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': minBudget === 200 && maxBudget === 500}">
+                        $200 - $500
+                    </button>
+                    <button type="button" @click="setPreset(500, null)" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': minBudget === 500 && maxBudget === null}">
+                        $500+
+                    </button>
+                </div>
+                
+                <!-- Manual Input -->
+                <div class="flex items-center space-x-2 mt-4">
+                    <div class="w-1/2">
+                        <label class="block text-xs text-gray-500 mb-1">Min ($)</label>
+                        <input type="number" 
+                               x-model="minBudget"
+                               @change="applyChanges()"
+                               min="0"
+                               placeholder="Any" 
+                               class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs text-gray-500 mb-1">Max ($)</label>
+                        <input type="number" 
+                               x-model="maxBudget"
+                               @change="applyChanges()"
+                               min="0"
+                               placeholder="Any" 
+                               class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- Deadline Range -->
-        <div x-data="{ open: {{ !is_null($deadline_start) || !is_null($deadline_end) ? 'true' : 'false' }} }">
+        <div x-ref="deadlineFilter"
+            x-data="{ 
+                open: {{ !is_null($deadline_start) || !is_null($deadline_end) ? 'true' : 'false' }},
+                deadlineStart: '{{ $deadline_start === '' || $deadline_start === null ? '' : $deadline_start }}',
+                deadlineEnd: '{{ $deadline_end === '' || $deadline_end === null ? '' : $deadline_end }}',
+                selectedPreset: '',
+                
+                applyChanges() {
+                    // Ensure proper handling of null vs empty string
+                    $wire.deadline_start = this.deadlineStart === '' ? null : this.deadlineStart;
+                    $wire.deadline_end = this.deadlineEnd === '' ? null : this.deadlineEnd;
+                    $wire.dispatchFiltersUpdated();
+                },
+                
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                },
+                
+                getRelativeDateDescription() {
+                    if (!this.deadlineStart && !this.deadlineEnd) return 'Any deadline';
+                    
+                    if (this.deadlineStart && !this.deadlineEnd) {
+                        return `After ${this.formatDate(this.deadlineStart)}`;
+                    } else if (!this.deadlineStart && this.deadlineEnd) {
+                        return `Before ${this.formatDate(this.deadlineEnd)}`;
+                    } else {
+                        return `${this.formatDate(this.deadlineStart)} to ${this.formatDate(this.deadlineEnd)}`;
+                    }
+                },
+                
+                setPreset(preset) {
+                    // Toggle off if already selected
+                    if (this.selectedPreset === preset) {
+                        this.deadlineStart = '';
+                        this.deadlineEnd = '';
+                        this.selectedPreset = '';
+                        this.applyChanges();
+                        return;
+                    }
+                    
+                    // Set new preset
+                    this.selectedPreset = preset;
+                    const today = new Date();
+                    
+                    switch(preset) {
+                        case 'next7days':
+                            this.deadlineStart = today.toISOString().split('T')[0];
+                            const next7days = new Date(today);
+                            next7days.setDate(today.getDate() + 7);
+                            this.deadlineEnd = next7days.toISOString().split('T')[0];
+                            break;
+                        case 'next30days':
+                            this.deadlineStart = today.toISOString().split('T')[0];
+                            const next30days = new Date(today);
+                            next30days.setDate(today.getDate() + 30);
+                            this.deadlineEnd = next30days.toISOString().split('T')[0];
+                            break;
+                        case 'next3months':
+                            this.deadlineStart = today.toISOString().split('T')[0];
+                            const next3months = new Date(today);
+                            next3months.setMonth(today.getMonth() + 3);
+                            this.deadlineEnd = next3months.toISOString().split('T')[0];
+                            break;
+                        case 'custom':
+                            // Keep current dates, just switch to custom mode
+                            break;
+                        case 'upcoming':
+                            this.deadlineStart = today.toISOString().split('T')[0];
+                            this.deadlineEnd = '';
+                            break;
+                        case 'clear':
+                            this.deadlineStart = '';
+                            this.deadlineEnd = '';
+                            this.selectedPreset = '';
+                            break;
+                    }
+                    
+                    this.applyChanges();
+                }
+            }"
+            x-init="
+                $watch('deadlineStart', () => {
+                    applyChanges();
+                    if (deadlineStart || deadlineEnd) {
+                        selectedPreset = 'custom';
+                    }
+                });
+                
+                $watch('deadlineEnd', () => {
+                    applyChanges();
+                    if (deadlineStart || deadlineEnd) {
+                        selectedPreset = 'custom';
+                    }
+                });
+                
+                // Listen for the filters-reset event
+                $wire.$on('filters-reset', () => {
+                    deadlineStart = '';
+                    deadlineEnd = '';
+                    selectedPreset = '';
+                    open = false;
+                });
+            ">
             <button type="button" @click="open = !open"
                 class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
@@ -175,20 +413,77 @@
                         clip-rule="evenodd" />
                 </svg>
             </button>
-            <div x-show="open" x-transition class="mt-2 space-y-2 px-4">
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-500 w-8">Start:</span>
-                    <input type="date" wire:model.live="$parent.deadline_start"
-                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+            <div x-show="open" x-transition class="mt-2 space-y-4 px-2 pt-2 pb-4">
+                <!-- Current Selection Display -->
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700" x-text="getRelativeDateDescription()"></span>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-500 w-8">End:</span>
-                    <input type="date" wire:model.live="$parent.deadline_end"
-                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                
+                <!-- Preset Buttons -->
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <button type="button" @click="setPreset('next7days')" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': selectedPreset === 'next7days'}">
+                        Next 7 days
+                    </button>
+                    <button type="button" @click="setPreset('next30days')" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': selectedPreset === 'next30days'}">
+                        Next 30 days
+                    </button>
+                    <button type="button" @click="setPreset('next3months')" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': selectedPreset === 'next3months'}">
+                        Next 3 months
+                    </button>
+                    <button type="button" @click="setPreset('upcoming')" 
+                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        :class="{'bg-primary/10 border-primary': selectedPreset === 'upcoming'}">
+                        Upcoming (all)
+                    </button>
+                </div>
+                
+                <!-- Custom Date Range Selection -->
+                <div x-show="selectedPreset === 'custom' || selectedPreset === '' || deadlineStart || deadlineEnd">
+                    <p class="text-xs text-gray-500 mb-2 font-medium">
+                        <button type="button" @click="setPreset('custom')" class="text-primary hover:underline">
+                            Custom Date Range
+                        </button>
+                    </p>
+                    
+                    <div class="space-y-2 sm:space-y-0 sm:flex sm:space-x-2">
+                        <div class="sm:flex-1">
+                            <label class="block text-xs text-gray-500 mb-1">Start Date:</label>
+                            <input type="date" 
+                                   x-model="deadlineStart"
+                                   @change="applyChanges()"
+                                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                        </div>
+                        <div class="sm:flex-1">
+                            <label class="block text-xs text-gray-500 mb-1">End Date:</label>
+                            <input type="date" 
+                                   x-model="deadlineEnd"
+                                   @change="applyChanges()"
+                                   :min="deadlineStart || undefined"
+                                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Clear Button -->
+                <div class="pt-2" x-show="deadlineStart || deadlineEnd">
+                    <button type="button" @click="setPreset('clear')"
+                        class="w-full inline-flex justify-center items-center px-2 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear Dates
+                    </button>
                 </div>
             </div>
         </div>
-
+        
         <!-- Collaboration Type Dropdown -->
         <div x-data="{ open: {{ !empty($selected_collaboration_types) ? 'true' : 'false' }} }">
             <button type="button" @click="open = !open"

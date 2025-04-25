@@ -39,10 +39,10 @@ class FiltersProjectsComponent extends Component
         $this->genres = $genres;
         $this->statuses = $statuses;
         $this->projectTypes = $projectTypes;
-        $this->min_budget = $min_budget;
-        $this->max_budget = $max_budget;
-        $this->deadline_start = $deadline_start;
-        $this->deadline_end = $deadline_end;
+        $this->min_budget = $min_budget === '' ? null : $min_budget;
+        $this->max_budget = $max_budget === '' ? null : $max_budget;
+        $this->deadline_start = $deadline_start === '' ? null : $deadline_start;
+        $this->deadline_end = $deadline_end === '' ? null : $deadline_end;
         $this->selected_collaboration_types = $selected_collaboration_types;
     }
 
@@ -58,6 +58,10 @@ class FiltersProjectsComponent extends Component
             'statuses' => $this->statuses,
             'projectTypes' => $this->projectTypes,
             'selected_collaboration_types' => $this->selected_collaboration_types,
+            'min_budget' => $this->min_budget,
+            'max_budget' => $this->max_budget,
+            'deadline_start' => $this->deadline_start,
+            'deadline_end' => $this->deadline_end,
             // 'selected_skills' => $this->selected_skills, // Add this when skills input is implemented
         ]);
     }
@@ -89,6 +93,30 @@ class FiltersProjectsComponent extends Component
         $this->dispatchFiltersUpdated();
     }
 
+    public function updatedMinBudget($value)
+    {
+        $this->min_budget = $value === '' ? null : $value;
+        $this->dispatchFiltersUpdated();
+    }
+
+    public function updatedMaxBudget($value)
+    {
+        $this->max_budget = $value === '' ? null : $value;
+        $this->dispatchFiltersUpdated();
+    }
+
+    public function updatedDeadlineStart($value)
+    {
+        $this->deadline_start = $value === '' ? null : $value;
+        $this->dispatchFiltersUpdated();
+    }
+
+    public function updatedDeadlineEnd($value)
+    {
+        $this->deadline_end = $value === '' ? null : $value;
+        $this->dispatchFiltersUpdated();
+    }
+
     #[On('filters-updated')]
     public function updateFilters($filters)
     {
@@ -96,6 +124,10 @@ class FiltersProjectsComponent extends Component
         $this->statuses = $filters['statuses'] ?? [];
         $this->projectTypes = $filters['projectTypes'] ?? [];
         $this->selected_collaboration_types = $filters['selected_collaboration_types'] ?? [];
+        $this->min_budget = $filters['min_budget'] ?? null;
+        $this->max_budget = $filters['max_budget'] ?? null;
+        $this->deadline_start = $filters['deadline_start'] ?? null;
+        $this->deadline_end = $filters['deadline_end'] ?? null;
         // $this->selected_skills = $filters['selected_skills'] ?? []; // Add when implemented
     }
     
@@ -113,6 +145,9 @@ class FiltersProjectsComponent extends Component
         $this->max_budget = null;
         $this->deadline_start = null;
         $this->deadline_end = null;
+        
+        // Dispatch an event that Alpine components can listen for
+        $this->dispatch('filters-reset');
     }
 
     /**
