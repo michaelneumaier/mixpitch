@@ -7,9 +7,12 @@ This document outlines the current implementation of the notification system in 
 - **Core:** Custom system built around `App\Models\Notification` and `App\Services\NotificationService`.
 - **Storage:** Notifications are stored in the `notifications` database table.
 - **Creation:** Centralized through `NotificationService::createNotification()`. Specific public methods in `NotificationService` handle triggering notifications for different events.
-- **Preferences:** `NotificationService::createNotification()` checks `App\Models\NotificationPreference` to see if a user has disabled a specific notification type before creating it.
+- **Preferences:** The `NotificationCreatedListener` checks `App\Models\NotificationChannelPreference` to see if a user has disabled a specific notification type *for a specific channel (e.g., email)* before processing.
 - **Real-time:** Uses `App\Events\NotificationCreated` event broadcast via Laravel Echo/Pusher for real-time UI updates (handled by `NotificationList` and `NotificationCount` Livewire components).
-- **Delivery Channels:** Currently only Database (for in-app display) + Broadcast Event (for real-time updates). Email is not yet integrated via `NotificationService`.
+- **Delivery Channels:** 
+    - Database (for in-app display via `NotificationService`).
+    - Broadcast Event (`NotificationCreated` for real-time UI).
+    - Email (queued via `NotificationCreatedListener` -> `SendNotificationEmailJob`, requires Mailable implementation).
 - **Redundancy Handling:** `NotificationService::createNotification()` prevents creating duplicate notifications (same user, related object, type) within a 5-minute window.
 
 ## Notification Types & Triggers
@@ -48,11 +51,12 @@ The following notification types are defined in `App\Models\Notification`. They 
 
 ## Potential Areas for Improvement (Refined)
 
-- **User Preferences:** Implemented for database notifications via `NotificationPreference` model and checks in `NotificationService`. UI component `NotificationPreferences` created. (Needs placement in settings).
-- **Email Channel:** Email notifications are not sent via this service yet. (Next step in Phase 3).
+- **User Preferences:** Implemented via `NotificationChannelPreference` model. Check occurs in `NotificationCreatedListener` before dispatching channel-specific jobs (e.g., email). UI component `NotificationPreferences` created (needs placement in settings).
+- **Email Channel:** `NotificationCreatedListener` dispatches `SendNotificationEmailJob` based on preferences. Actual email sending logic (Mailables, templates) within the job needs implementation. (Next step in Phase 3).
 - **Centralized Logic:** While `NotificationService` centralizes creation, the logic for *who* gets notified is spread across many specific methods. Could this be more configuration-driven? (Consider for future refactoring).
 - **Cancellation Notification:** `TYPE_PITCH_CANCELLED` exists but is not triggered. Decide if/how cancellation should notify the project owner.
 - **Pitch File Comment Recipients:** `notifyPitchFileComment` has complex logic for notifying multiple parties. Review if this covers all desired cases (e.g., should project owner always be notified?).
+- **Notification Type Model:** Clarify that the system uses a string `type` on the `Notification` model, not a dedicated `NotificationType` model.
 
 ## Potential Areas for Improvement (Based on Initial Review)
 

@@ -1,7 +1,7 @@
 <div>
-    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Notification Preferences</h3>
-    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        Choose which notifications you would like to receive.
+    <h3 class="text-lg font-medium text-gray-900">Notification Preferences</h3>
+    <p class="mt-1 text-sm text-gray-600">
+        Choose how you would like to receive notifications for different events.
     </p>
 
     @if (session()->has('message'))
@@ -18,41 +18,38 @@
 
     <div class="mt-6 space-y-6">
         @forelse ($notificationTypes as $type => $label)
-            <div class="flex items-center justify-between">
-                <span class="flex flex-grow flex-col">
-                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $label }}</span>
-                    {{-- Optional: Add a description for each type if needed --}}
-                    {{-- <span class="text-sm text-gray-500">Description for {{ $label }}</span> --}}
-                </span>
-                <label for="preference-{{ $type }}" class="flex items-center cursor-pointer">
-                     <!-- Tailwind Toggle Switch -->
-                    <div class="relative">
-                        <input 
-                            type="checkbox" 
-                            id="preference-{{ $type }}" 
-                            class="sr-only" 
-                            wire:model.live="preferences.{{ $type }}" 
-                        />
-                        <div class="block bg-gray-300 dark:bg-gray-600 w-10 h-6 rounded-full transition"></div>
-                        <div 
-                            class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform "
-                            :class="{ 'translate-x-full !bg-indigo-500': @json($preferences[$type]) }"
-                        ></div>
-                    </div>
-                    <!-- End Toggle Switch -->
-                    
-                    {{-- Fallback Checkbox (uncomment if toggle is problematic) --}}
-                    {{-- <input 
-                        id="preference-{{ $type }}" 
-                        type="checkbox" 
-                        class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800"
-                        wire:model.live="preferences.{{ $type }}"
-                        >
-                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Enable</span> --}}
-                </label>
+            <div class="p-4 border rounded-md border-gray-200">
+                <span class="text-sm font-medium text-gray-900 block mb-3">{{ $label }}</span>
+                <div class="flex items-center justify-start space-x-6">
+                    {{-- Loop through available channels --}}
+                    @foreach ($channels as $channel)
+                        <div class="flex items-center">
+                            <label for="preference-{{ $type }}-{{ $channel }}" class="flex items-center cursor-pointer">
+                                <!-- Tailwind Toggle Switch -->
+                                <div class="relative">
+                                    <input 
+                                        type="checkbox" 
+                                        id="preference-{{ $type }}-{{ $channel }}" 
+                                        class="sr-only" 
+                                        wire:model.live="preferences.{{ $type }}.{{ $channel }}" 
+                                    />
+                                    <div class="block bg-gray-300 w-10 h-6 rounded-full transition"></div>
+                                    <div 
+                                        {{-- Conditionally build the class string for Alpine --}}
+                                        class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform {{ (isset($preferences[$type][$channel]) && $preferences[$type][$channel]) ? 'translate-x-full !bg-indigo-500' : '' }}"
+                                    ></div>
+                                </div>
+                                <!-- End Toggle Switch -->
+                                <span class="ml-3 text-sm text-gray-600">{{ ucfirst($channel) }}</span>
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                 {{-- Optional: Add description for the notification type --}}
+                 {{-- <p class="mt-2 text-xs text-gray-500">Description of when '{{ $label }}' notification is sent.</p> --}}
             </div>
         @empty
-            <p class="text-sm text-gray-500 dark:text-gray-400">No notification types available to configure.</p>
+            <p class="text-sm text-gray-500">No notification types available to configure.</p>
         @endforelse
     </div>
     

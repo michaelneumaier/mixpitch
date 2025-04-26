@@ -160,21 +160,24 @@ This document tracks the progress of tasks outlined in Phase 2 of the NEXT_STEPS
             - [x] Test count updates after `markAsRead`/`markAllAsRead` events.
         - [x] Add End-to-End Feature Tests:
             - [x] Test full flow (e.g., pitch submission -> DB notification created -> event dispatched) without mocking `NotificationService`.
+        - [x] Create `tests/Unit/Listeners/NotificationCreatedListenerTest.php` (Tests listener logic for email job dispatch based on preferences).
     - **Phase 2: User Preferences Implementation**
-        - [x] Create migration for `notification_preferences` table (`user_id`, `notification_type`, `is_enabled`, indexes).
-        - [x] Create `App\Models\NotificationPreference` model.
-        - [x] Update `NotificationService::createNotification` to check preferences before creating/saving/dispatching.
+        - [x] Create migration for `notification_channel_preferences` table (`user_id`, `notification_type`, `channel`, `is_enabled`, indexes).
+        - [x] Create `App\Models\NotificationChannelPreference` model.
+        - [x] Update `NotificationCreatedListener` to check preferences before dispatching channel-specific jobs (e.g., `SendNotificationEmailJob`).
         - [x] Create Livewire component for user notification preference settings UI.
         - [x] Implement frontend UI for preference management (likely in user settings page).
-        - [x] Add tests for preference checking in `NotificationServiceTest`.
+        - [x] Add tests for preference checking in `NotificationCreatedListenerTest`.
         - [x] Add tests for the preference management UI/component.
     - **Phase 3: Channel Expansion & Refinement**
         - [ ] Implement Email Notification Channel:
-            - [ ] Design basic email templates for key notification types.
-            - [ ] Update `NotificationService` (or create a dedicated listener/job) to send emails based on user preferences (using injected `EmailService`).
+            - [x] Created `App\Listeners\NotificationCreatedListener` to handle `NotificationCreated` event and dispatch `SendNotificationEmailJob` based on channel preference.
+            - [x] Design basic email templates for key notification types (Created `emails.notifications.generic.blade.php`).
+            - [x] Implement actual email sending logic in `SendNotificationEmailJob` (using `GenericNotificationEmail` Mailable).
             - [ ] Consider adding `email_sent_at` timestamp or separate tracking.
-            - [ ] Add tests for email sending logic.
+            - [x] Add tests for email sending logic (Created `tests/Unit/Mail/GenericNotificationEmailTest.php`).
         - [ ] Refine Notification Logic:
+            - [ ] **Note:** System uses `Notification->type` (string), not a dedicated `NotificationType` model.
             - [x] Investigate/remove unused notification types (`TYPE_PITCH_CREATED`, `TYPE_NEW_PITCH`).
             - [x] Investigate/consolidate potentially redundant types (`TYPE_PITCH_SUBMITTED` vs `TYPE_NEW_SUBMISSION`).
             - [x] Review triggers for clarity where multiple methods use the same type (`TYPE_FILE_UPLOADED`, `TYPE_PITCH_REVISION`, `TYPE_PITCH_CANCELLED`).
@@ -224,9 +227,11 @@ This document tracks the progress of tasks outlined in Phase 2 of the NEXT_STEPS
 ## Next Steps
 
 1. **Improved Notifications (Current Priority)**
-   - Expand notification coverage for more events
-   - Implement user preferences for notification delivery (in-app, email)
-   - Enhance notification UI/UX
+   - Place Notification Preferences UI component in user settings (Done, verified placement in `user-profile-edit`).
+   - Refine Notification Logic (Review types/triggers in `NOTIFICATIONS.md`).
+   - Expand notification coverage for more events (if needed based on review).
+   - Enhance notification UI/UX (Future Consideration: Notification Center page).
+   - Consider adding `email_sent_at` timestamp or separate tracking for emails.
    
 2. **Features for Post-MVP Development:**
    - **Producer Search:** Functionality for clients to browse/search producer profiles based on skills, genres, ratings, etc.

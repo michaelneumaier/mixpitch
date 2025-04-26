@@ -370,6 +370,16 @@
                 </div>
             </div>
             
+            <!-- Notification Settings -->
+            <div class="bg-gray-50 rounded-lg p-6 space-y-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2 border-gray-200">
+                    <i class="fas fa-bell mr-2"></i> Notification Settings
+                </h3>
+                
+                <livewire:user.notification-preferences />
+                
+            </div>
+            
             <!-- Save Button -->
             <div class="mt-6 flex justify-end">
                 <button type="submit" class="inline-flex items-center px-6 py-3 bg-primary border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-primary-focus active:bg-primary-focus focus:outline-none focus:border-primary-focus focus:shadow-outline-gray disabled:opacity-25 transition">
