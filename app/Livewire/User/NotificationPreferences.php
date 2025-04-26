@@ -3,7 +3,7 @@
 namespace App\Livewire\User;
 
 use App\Models\Notification;
-use App\Models\NotificationPreference;
+use App\Models\NotificationChannelPreference;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -12,6 +12,7 @@ class NotificationPreferences extends Component
 {
     public array $preferences = [];
     public array $notificationTypes = [];
+    public array $channels = ['database', 'email'];
 
     public function mount(): void
     {
@@ -30,32 +31,52 @@ class NotificationPreferences extends Component
         }
 
         $this->notificationTypes = Notification::getManageableTypes();
+        $types = array_keys($this->notificationTypes);
 
-        // Fetch existing preferences for this user
-        $existingPreferences = NotificationPreference::where('user_id', $user->id)
-            ->whereIn('notification_type', array_keys($this->notificationTypes))
-            ->pluck('is_enabled', 'notification_type') // Get as [type => is_enabled]
-            ->all(); // Convert collection to array
+        // Fetch existing preferences for this user for the manageable types and defined channels
+        $existingPreferences = NotificationChannelPreference::where('user_id', $user->id)
+            ->whereIn('notification_type', $types)
+            ->whereIn('channel', $this->channels)
+            ->get()
+            ->keyBy(fn($pref) => $pref->notification_type . '_' . $pref->channel); // Key by type_channel for easy lookup
 
-        // Initialize preferences array, defaulting to true if no preference exists
+        // Initialize preferences array
         $this->preferences = [];
         foreach ($this->notificationTypes as $type => $label) {
-            // Default to true (enabled) if no specific preference is found
-            $this->preferences[$type] = $existingPreferences[$type] ?? true;
+            $this->preferences[$type] = [];
+            foreach ($this->channels as $channel) {
+                $key = $type . '_' . $channel;
+                // Default to true (enabled) if no specific preference is found
+                $this->preferences[$type][$channel] = $existingPreferences->has($key) 
+                    ? $existingPreferences[$key]->is_enabled
+                    : true;
+            }
         }
     }
 
     /**
      * This method is triggered when a preference toggle changes.
-     * Livewire handles the direct binding, but we need to persist the change.
+     * Livewire property binding format will be preferences.{type}.{channel}
+     * The $value will be the new boolean state (true/false).
+     * The $key will be the composite key like "pitch_submitted.email".
      */
-    public function updatedPreferences($value, $type): void
+    public function updatedPreferences($value, $key): void
     {
         $user = Auth::user();
-        if (!$user || !array_key_exists($type, $this->notificationTypes)) {
-            Log::warning('Invalid attempt to update notification preference.', [
+        // Extract type and channel from the key
+        $parts = explode('.', $key);
+        if (count($parts) !== 2) {
+             Log::warning('Invalid preference key format during update.', ['key' => $key, 'user_id' => $user?->id]);
+             return; // Invalid key structure
+        }
+        $type = $parts[0];
+        $channel = $parts[1];
+
+        if (!$user || !array_key_exists($type, $this->notificationTypes) || !in_array($channel, $this->channels)) {
+            Log::warning('Invalid attempt to update notification channel preference.', [
                 'user_id' => $user?->id,
                 'type' => $type,
+                'channel' => $channel,
                 'value' => $value
             ]);
             // Optionally: Add a user-facing error message
@@ -64,10 +85,11 @@ class NotificationPreferences extends Component
         }
 
         try {
-            NotificationPreference::updateOrCreate(
+            NotificationChannelPreference::updateOrCreate(
                 [
                     'user_id' => $user->id,
                     'notification_type' => $type,
+                    'channel' => $channel,
                 ],
                 [
                     'is_enabled' => (bool) $value,
@@ -76,9 +98,10 @@ class NotificationPreferences extends Component
             // Optionally: Add a success message
             // $this->dispatch('toast', type: 'success', message: 'Preference updated.');
         } catch (\Exception $e) {
-            Log::error('Failed to update notification preference.', [
+            Log::error('Failed to update notification channel preference.', [
                 'user_id' => $user->id,
                 'type' => $type,
+                'channel' => $channel,
                 'value' => $value,
                 'error' => $e->getMessage()
             ]);
@@ -89,7 +112,6 @@ class NotificationPreferences extends Component
             $this->loadPreferences();
         }
     }
-
 
     public function render()
     {
