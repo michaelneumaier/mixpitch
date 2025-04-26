@@ -28,5 +28,6 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="RECAPTCHA_ENABLED" value="false"/>
+        <env name="BROADCAST_DRIVER" value="log"/>
     </php>
 </phpunit>

@@ -350,8 +350,8 @@ class PitchWorkflowService
                     'metadata' => ['feedback' => $feedback], // Store feedback in metadata
                 ]);
 
-                // Note: notifyPitchRevisionsRequested() needs implementation in NotificationService
-                $this->notificationService->notifyPitchRevisionsRequested($pitch, $snapshot, $feedback);
+                // Use the snapshot-specific notification method
+                $this->notificationService->notifySnapshotRevisionsRequested($snapshot, $feedback);
 
                 return $pitch;
             });
