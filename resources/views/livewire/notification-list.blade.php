@@ -64,9 +64,9 @@
                                     <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-purple-100 text-purple-500">
                                         <i class="fas fa-comment"></i>
                                     </span>
-                                @elseif($notification->type === \App\Models\Notification::TYPE_NEW_SUBMISSION)
+                                @elseif($notification->type === \App\Models\Notification::TYPE_PITCH_SUBMITTED)
                                     <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-yellow-100 text-yellow-500">
-                                        <i class="fas fa-file-alt"></i>
+                                        <i class="fas fa-file-signature"></i>
                                     </span>
                                 @else
                                     <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500">

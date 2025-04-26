@@ -44,7 +44,6 @@ class Notification extends Model
      * Notification types
      */
     const TYPE_PITCH_SUBMITTED = 'pitch_submitted';
-    const TYPE_PITCH_CREATED = 'pitch_created';
     const TYPE_PITCH_STATUS_CHANGE = 'pitch_status_change';
     const TYPE_PITCH_COMMENT = 'pitch_comment';
     const TYPE_PITCH_FILE_COMMENT = 'pitch_file_comment';
@@ -52,21 +51,55 @@ class Notification extends Model
     const TYPE_SNAPSHOT_DENIED = 'snapshot_denied';
     const TYPE_SNAPSHOT_REVISIONS_REQUESTED = 'snapshot_revisions_requested';
     const TYPE_PITCH_COMPLETED = 'pitch_completed';
-    const TYPE_NEW_SUBMISSION = 'new_submission';
     const TYPE_PITCH_EDITED = 'pitch_edited';
     const TYPE_FILE_UPLOADED = 'file_uploaded';
     const TYPE_PITCH_REVISION = 'pitch_revision';
     const TYPE_PITCH_CANCELLED = 'pitch_cancelled';
     const TYPE_PAYMENT_PROCESSED = 'payment_processed';
     const TYPE_PAYMENT_FAILED = 'payment_failed';
-    const TYPE_NEW_PITCH = 'new_pitch';
     const TYPE_PITCH_APPROVED = 'pitch_approved';
     const TYPE_PITCH_SUBMISSION_APPROVED = 'pitch_submission_approved';
     const TYPE_PITCH_SUBMISSION_DENIED = 'pitch_submission_denied';
-    const TYPE_PITCH_REVISIONS_REQUESTED = 'pitch_revisions_requested';
     const TYPE_PITCH_SUBMISSION_CANCELLED = 'pitch_submission_cancelled';
     const TYPE_PITCH_READY_FOR_REVIEW = 'pitch_ready_for_review';
     const TYPE_PITCH_CLOSED = 'pitch_closed';
+    
+    /**
+     * Get all defined notification types with user-friendly labels.
+     *
+     * @return array<string, string> Map of notification type constant => label
+     */
+    public static function getManageableTypes(): array
+    {
+        // Define labels for each type
+        $labels = [
+            self::TYPE_PITCH_SUBMITTED => 'New Pitch Submitted',
+            self::TYPE_PITCH_STATUS_CHANGE => 'Pitch Status Changed',
+            self::TYPE_PITCH_COMMENT => 'New Comment on Your Pitch',
+            self::TYPE_PITCH_FILE_COMMENT => 'New Comment on Your File',
+            self::TYPE_SNAPSHOT_APPROVED => 'Snapshot Approved',
+            self::TYPE_SNAPSHOT_DENIED => 'Snapshot Denied',
+            self::TYPE_SNAPSHOT_REVISIONS_REQUESTED => 'Snapshot Revisions Requested',
+            self::TYPE_PITCH_COMPLETED => 'Pitch Completed',
+            self::TYPE_PITCH_EDITED => 'Pitch Edited by Producer',
+            self::TYPE_FILE_UPLOADED => 'New File Uploaded to Pitch/Project',
+            self::TYPE_PITCH_REVISION => 'New Pitch Revision Submitted',
+            self::TYPE_PITCH_CANCELLED => 'Pitch Cancelled',
+            self::TYPE_PAYMENT_PROCESSED => 'Payment Processed',
+            self::TYPE_PAYMENT_FAILED => 'Payment Failed',
+            self::TYPE_PITCH_APPROVED => 'Pitch Approved',
+            self::TYPE_PITCH_SUBMISSION_APPROVED => 'Pitch Submission Approved',
+            self::TYPE_PITCH_SUBMISSION_DENIED => 'Pitch Submission Denied',
+            self::TYPE_PITCH_SUBMISSION_CANCELLED => 'Pitch Submission Cancelled by Producer',
+            self::TYPE_PITCH_READY_FOR_REVIEW => 'Pitch Ready for Review',
+            self::TYPE_PITCH_CLOSED => 'Pitch Closed',
+        ];
+
+        // Sort alphabetically by label for display
+        asort($labels);
+
+        return $labels;
+    }
     
     /**
      * Get the related model
@@ -226,106 +259,69 @@ class Notification extends Model
     public function getReadableDescription()
     {
         $data = $this->data ?? [];
-        
+        $projectName = isset($data['project_name']) ? (' "' . Str::limit($data['project_name'], 30) . '"') : '';
+
         switch ($this->type) {
-            case self::TYPE_PITCH_STATUS_CHANGE:
-                return 'Pitch status updated to "' . ($data['status'] ?? 'unknown') . '"';
-                
-            case self::TYPE_PITCH_COMPLETED:
-                return 'Your pitch has been marked as completed';
-                
-            case self::TYPE_SNAPSHOT_APPROVED:
-                return 'Your pitch has been approved';
-                
-            case self::TYPE_SNAPSHOT_DENIED:
-                return 'Your pitch has been denied';
-                
-            case self::TYPE_SNAPSHOT_REVISIONS_REQUESTED:
-                $reason = $data['reason'] ?? '';
-                $reasonText = !empty($reason) ? ': "' . $reason . '"' : '';
-                return 'Revisions have been requested for your pitch' . $reasonText;
-                
-            case self::TYPE_PITCH_COMMENT:
-                return isset($data['user_name']) 
-                    ? $data['user_name'] . ' commented on your pitch' 
-                    : 'New comment on your pitch';
-                
-            case self::TYPE_PITCH_FILE_COMMENT:
-                if (isset($data['replying_to_your_comment']) && $data['replying_to_your_comment']) {
-                    return isset($data['user_name']) 
-                        ? $data['user_name'] . ' replied to your comment' 
-                        : 'Someone replied to your comment';
-                } else if (isset($data['nested_reply_to_your_thread']) && $data['nested_reply_to_your_thread']) {
-                    return isset($data['user_name']) 
-                        ? $data['user_name'] . ' replied in a thread you started' 
-                        : 'New reply in your comment thread';
-                } else if (isset($data['is_reply']) && $data['is_reply']) {
-                    return isset($data['user_name']) 
-                        ? $data['user_name'] . ' replied to a comment on your audio file' 
-                        : 'New reply on your audio file';
-                } else {
-                    return isset($data['user_name']) 
-                        ? $data['user_name'] . ' commented on your audio file' 
-                        : 'New comment on your audio file';
-                }
-                
-            case self::TYPE_NEW_SUBMISSION:
-                return 'New pitch submission needs your review';
-                
-            case self::TYPE_FILE_UPLOADED:
-                return 'New file has been uploaded to a pitch';
-                
-            case self::TYPE_PITCH_REVISION:
-                return 'A revised pitch has been submitted for review';
-                
-            case self::TYPE_PITCH_CANCELLED:
-                return 'A pitch submission has been cancelled';
-                
-            case self::TYPE_PAYMENT_PROCESSED:
-                return 'Payment has been processed for your completed pitch';
-                
-            case self::TYPE_PAYMENT_FAILED:
-                return 'Payment processing failed for your completed pitch';
-                
             case self::TYPE_PITCH_SUBMITTED:
-                $projectName = $data['project_name'] ?? 'a project';
-                return 'A pitch has been submitted for ' . $projectName;
-
-            case self::TYPE_PITCH_CREATED:
-                return 'A new pitch was created';
-
+                $submitterName = $data['submitter_name'] ?? 'A producer';
+                return $submitterName . ' submitted a pitch for project' . $projectName;
+            case self::TYPE_PITCH_STATUS_CHANGE:
+                 $statusText = $data['status'] ?? 'updated';
+                 // Add context for cancellation if present
+                 $actionText = ($data['action'] ?? '') === 'canceled' ? ' cancelled their pitch for' : ' status updated to "' . $statusText . '" for project';
+                 return 'Pitch' . $actionText . $projectName;
+            case self::TYPE_PITCH_COMMENT:
+                $commenterName = $data['commenter_name'] ?? 'Someone';
+                return $commenterName . ' commented on your pitch for project' . $projectName;
+            case self::TYPE_PITCH_FILE_COMMENT:
+                $commenterName = $data['commenter_name'] ?? 'Someone';
+                $fileName = $data['file_name'] ?? 'your audio file'; // Use data or fallback
+                // Add logic for replies vs new comments if needed later, based on data
+                if (isset($data['replying_to_your_comment']) && $data['replying_to_your_comment']) {
+                    return $commenterName . ' replied to your comment on ' . $fileName;
+                } else if (isset($data['nested_reply_to_your_thread']) && $data['nested_reply_to_your_thread']) {
+                    return $commenterName . ' replied in a thread you started on ' . $fileName;
+                } else if (isset($data['is_reply']) && $data['is_reply']) {
+                     return $commenterName . ' replied to a comment on ' . $fileName;
+                } else {
+                    return $commenterName . ' commented on ' . $fileName;
+                }
+            case self::TYPE_SNAPSHOT_APPROVED:
+                return 'Your snapshot for pitch on project' . $projectName . ' was approved.';
+            case self::TYPE_SNAPSHOT_DENIED:
+                return 'Your snapshot for pitch on project' . $projectName . ' was denied.';
+            case self::TYPE_SNAPSHOT_REVISIONS_REQUESTED:
+                return 'Revisions requested for your snapshot on project' . $projectName . '.';
+            case self::TYPE_PITCH_COMPLETED:
+                return 'Your pitch for project' . $projectName . ' was marked as completed.';
             case self::TYPE_PITCH_EDITED:
-                return 'A pitch has been edited';
-
-            case self::TYPE_NEW_PITCH:
-                $projectName = $data['project_name'] ?? 'a project';
-                return 'A new pitch was added to ' . $projectName;
-
+                $editorName = $data['editor_name'] ?? 'The producer';
+                return $editorName . ' edited their pitch for project' . $projectName;
+            case self::TYPE_FILE_UPLOADED:
+                 $uploaderName = $data['uploader_name'] ?? 'Someone';
+                 $fileName = $data['file_name'] ?? 'a file';
+                 return $uploaderName . ' uploaded ' . $fileName . ' to a pitch on project' . $projectName;
+            case self::TYPE_PITCH_CANCELLED:
+                 $cancellerName = $data['canceller_name'] ?? ($data['creator_name'] ?? 'The producer');
+                 return $cancellerName . ' cancelled their pitch for project' . $projectName;
+            case self::TYPE_PAYMENT_PROCESSED:
+                 return 'Payment processed for your pitch on project' . $projectName;
+            case self::TYPE_PAYMENT_FAILED:
+                 return 'Payment failed for pitch on project' . $projectName;
             case self::TYPE_PITCH_APPROVED:
-                 return 'Your pitch submission has been approved';
-
+                 return 'Your pitch for project' . $projectName . ' was approved.';
             case self::TYPE_PITCH_SUBMISSION_APPROVED:
                  return 'A pitch submission was approved';
-
             case self::TYPE_PITCH_SUBMISSION_DENIED:
                  $reason = $data['reason'] ?? '';
                  $reasonText = !empty($reason) ? ': "' . $reason . '"' : '';
                  return 'A pitch submission was denied' . $reasonText;
-
-            case self::TYPE_PITCH_REVISIONS_REQUESTED:
-                 $reason = $data['reason'] ?? '';
-                 $reasonText = !empty($reason) ? ': "' . $reason . '"' : '';
-                 return 'Revisions requested for a pitch submission' . $reasonText;
-
             case self::TYPE_PITCH_SUBMISSION_CANCELLED:
                 return 'A pitch submission was cancelled';
-
             case self::TYPE_PITCH_READY_FOR_REVIEW:
                 return 'A pitch is ready for your review';
-
             case self::TYPE_PITCH_CLOSED:
                 return 'A pitch has been closed';
-                
             default:
                 return 'New notification';
         }

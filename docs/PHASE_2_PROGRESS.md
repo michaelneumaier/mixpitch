@@ -133,16 +133,56 @@ This document tracks the progress of tasks outlined in Phase 2 of the NEXT_STEPS
 - **Notes:** Implement a basic direct messaging system allowing one-on-one communication between users (e.g., client/producer discussing a pitch revision, pre-pitch questions).
 
 ## 4. Improved Notifications
-
-### Expanded Notification Coverage
-- **Status:** 🔴 Not Started
+- **Status:** 🟡 In Progress
 - **Assignee:** TBD
-- **Notes:** Expand notification coverage for new events (e.g., new messages, profile views if desired).
-
-### User Notification Preferences
-- **Status:** 🔴 Not Started
-- **Assignee:** TBD
-- **Notes:** Implement user preferences for notification delivery (in-app, email).
+- **Notes:** Overhaul the notification system for better user control, testability, and potential expansion (e.g., email).
+- **Detailed Checklist:**
+    - **Phase 0: Assessment & Documentation (Current)**
+        - [x] Analyze existing custom notification implementation (`Notification`, `NotificationService`, Livewire components).
+        - [x] Create `docs/NOTIFICATIONS.md` documenting current types, triggers, recipients, data, and redundancy handling.
+        - [x] Analyze existing test coverage for notifications (mocking vs. actual implementation testing).
+    - **Phase 1: Enhanced Testing**
+        - [x] Create `tests/Unit/Services/NotificationServiceTest.php`:
+            - [x] Test `createNotification` core logic (DB save, event dispatch, duplicate prevention).
+            - [x] Test representative `notify...` methods for recipient/data accuracy.
+        - [x] Create `tests/Unit/Models/NotificationTest.php`:
+            - [x] Test model scopes (`unread`).
+            - [x] Test relationships (`user`, `related`).
+            - [x] Test helper methods (`getUrl`, `getReadableDescription`, `markAsRead`).
+        - [x] Enhance `tests/Feature/Livewire/NotificationListTest.php`:
+            - [x] Test loading notifications for authenticated user.
+            - [x] Test `markAsRead` functionality.
+            - [x] Test `markAllAsRead` functionality.
+            - [x] Test listening for `NotificationCreated` Echo event and refreshing.
+        - [x] Enhance `tests/Feature/Livewire/NotificationCountTest.php`:
+            - [x] Test updating count based on unread notifications.
+            - [x] Test listening for `NotificationCreated` Echo event and refreshing.
+            - [x] Test count updates after `markAsRead`/`markAllAsRead` events.
+        - [x] Add End-to-End Feature Tests:
+            - [x] Test full flow (e.g., pitch submission -> DB notification created -> event dispatched) without mocking `NotificationService`.
+    - **Phase 2: User Preferences Implementation**
+        - [x] Create migration for `notification_preferences` table (`user_id`, `notification_type`, `is_enabled`, indexes).
+        - [x] Create `App\Models\NotificationPreference` model.
+        - [x] Update `NotificationService::createNotification` to check preferences before creating/saving/dispatching.
+        - [x] Create Livewire component for user notification preference settings UI.
+        - [x] Implement frontend UI for preference management (likely in user settings page).
+        - [x] Add tests for preference checking in `NotificationServiceTest`.
+        - [x] Add tests for the preference management UI/component.
+    - **Phase 3: Channel Expansion & Refinement**
+        - [ ] Implement Email Notification Channel:
+            - [ ] Design basic email templates for key notification types.
+            - [ ] Update `NotificationService` (or create a dedicated listener/job) to send emails based on user preferences (using injected `EmailService`).
+            - [ ] Consider adding `email_sent_at` timestamp or separate tracking.
+            - [ ] Add tests for email sending logic.
+        - [ ] Refine Notification Logic:
+            - [x] Investigate/remove unused notification types (`TYPE_PITCH_CREATED`, `TYPE_NEW_PITCH`).
+            - [x] Investigate/consolidate potentially redundant types (`TYPE_PITCH_SUBMITTED` vs `TYPE_NEW_SUBMISSION`).
+            - [x] Review triggers for clarity where multiple methods use the same type (`TYPE_FILE_UPLOADED`, `TYPE_PITCH_REVISION`, `TYPE_PITCH_CANCELLED`).
+            - [x] Add tests for any refactoring done.
+        - [ ] Frontend Enhancements (Future Consideration):
+            - [ ] Build dedicated Notification Center page (`/notifications`).
+            - [ ] Add filtering/searching to Notification Center.
+            - [ ] Implement bulk actions (mark read, delete) in Notification Center.
 
 ## Weekly Progress
 
