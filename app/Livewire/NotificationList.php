@@ -71,6 +71,19 @@ class NotificationList extends Component
         $this->dispatch('notificationRead');
     }
     
+    public function deleteNotification(int $id)
+    {
+        $notification = Notification::where('user_id', Auth::id())
+            ->where('id', $id)
+            ->first();
+
+        if ($notification) {
+            $notification->delete();
+            $this->loadNotifications(); // Reload the list after deleting
+            $this->dispatch('notificationRead'); // Dispatch event to update count etc.
+        }
+    }
+    
     public function getListeners()
     {
         if (!Auth::check()) {

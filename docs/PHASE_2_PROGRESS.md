@@ -41,9 +41,9 @@ This document tracks the progress of tasks outlined in Phase 2 of the NEXT_STEPS
 ## 2. Search & Discovery
 
 ### Producer Search
-- **Status:** 🔴 Not Started
+- **Status:** ⚫ Deferred
 - **Assignee:** TBD
-- **Notes:** Implement functionality for clients to browse/search producer profiles based on skills, genres, ratings, keywords, etc.
+- **Notes:** Implement functionality for clients to browse/search producer profiles based on skills, genres, ratings, keywords, etc. (Skipped for MVP)
 
 ### Project Search
 - **Status:** 🟢 Completed
@@ -128,12 +128,12 @@ This document tracks the progress of tasks outlined in Phase 2 of the NEXT_STEPS
 ## 3. Direct Messaging
 
 ### Basic DM System
-- **Status:** 🔴 Not Started
+- **Status:** ⚫ Deferred
 - **Assignee:** TBD
-- **Notes:** Implement a basic direct messaging system allowing one-on-one communication between users (e.g., client/producer discussing a pitch revision, pre-pitch questions).
+- **Notes:** Implement a basic direct messaging system allowing one-on-one communication between users (e.g., client/producer discussing a pitch revision, pre-pitch questions). (Skipped for MVP)
 
 ## 4. Improved Notifications
-- **Status:** 🟡 In Progress
+- **Status:** 🟢 Completed
 - **Assignee:** TBD
 - **Notes:** Overhaul the notification system for better user control, testability, and potential expansion (e.g., email).
 - **Detailed Checklist:**
@@ -171,21 +171,22 @@ This document tracks the progress of tasks outlined in Phase 2 of the NEXT_STEPS
         - [x] Add tests for the preference management UI/component.
     - **Phase 3: Channel Expansion & Refinement**
         - [ ] Implement Email Notification Channel:
-            - [x] Created `App\Listeners\NotificationCreatedListener` to handle `NotificationCreated` event and dispatch `SendNotificationEmailJob` based on channel preference.
+            - [x] Created `App\\Listeners\\NotificationCreatedListener` to handle `NotificationCreated` event and dispatch `SendNotificationEmailJob` based on channel preference.
             - [x] Design basic email templates for key notification types (Created `emails.notifications.generic.blade.php`).
             - [x] Implement actual email sending logic in `SendNotificationEmailJob` (using `GenericNotificationEmail` Mailable).
-            - [ ] Consider adding `email_sent_at` timestamp or separate tracking.
+            - [ ] Consider adding `email_sent_at` timestamp or separate tracking. (Deferred)
             - [x] Add tests for email sending logic (Created `tests/Unit/Mail/GenericNotificationEmailTest.php`).
-        - [ ] Refine Notification Logic:
+        - [ ] Refine Notification Logic: (Deferred - Minor Refinements)
             - [ ] **Note:** System uses `Notification->type` (string), not a dedicated `NotificationType` model.
             - [x] Investigate/remove unused notification types (`TYPE_PITCH_CREATED`, `TYPE_NEW_PITCH`).
             - [x] Investigate/consolidate potentially redundant types (`TYPE_PITCH_SUBMITTED` vs `TYPE_NEW_SUBMISSION`).
             - [x] Review triggers for clarity where multiple methods use the same type (`TYPE_FILE_UPLOADED`, `TYPE_PITCH_REVISION`, `TYPE_PITCH_CANCELLED`).
             - [x] Add tests for any refactoring done.
         - [ ] Frontend Enhancements (Future Consideration):
-            - [ ] Build dedicated Notification Center page (`/notifications`).
-            - [ ] Add filtering/searching to Notification Center.
-            - [ ] Implement bulk actions (mark read, delete) in Notification Center.
+            - [x] Add delete button for individual notifications in the dropdown.
+            - [ ] Build dedicated Notification Center page (`/notifications`) (Future Consideration).
+            - [ ] Add filtering/searching to Notification Center (Future Consideration).
+            - [ ] Implement bulk actions (mark read, delete) in Notification Center (Future Consideration).
 
 ## Weekly Progress
 
@@ -209,9 +210,9 @@ This document tracks the progress of tasks outlined in Phase 2 of the NEXT_STEPS
 ## Overall Phase 2 Progress
 
 - **Started:** July 15, 2024
-- **Target Completion:** September 30, 2024
-- **Status:** 🟡 In Progress
-- **Completion Percentage:** 40%
+- **Target Completion:** September 30, 2024 (Completed Aug [Current Date])
+- **Status:** 🟢 Completed
+- **Completion Percentage:** 100%
 
 ## Notes & Decisions
 
