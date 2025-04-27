@@ -8,23 +8,6 @@ This document tracks the progress of tasks outlined in Phase 3 of the NEXT_STEPS
 - 🟢 **Completed** - Task finished and verified
 - ⚫ **Blocked** - Cannot proceed due to dependencies or issues
 
-## 1. Advanced Project Types
-
-### Contests
-- **Status:** 🔴 Not Started
-- **Assignee:** TBD
-- **Notes:** Introduce a project type where multiple producers submit pitches, and the client picks a winner (requires distinct workflow).
-
-### Direct Hire
-- **Status:** 🔴 Not Started
-- **Assignee:** TBD
-- **Notes:** Allow clients to bypass the open pitch process and directly offer a project to a specific producer.
-
-### Service Packages
-- **Status:** 🔴 Not Started
-- **Assignee:** TBD
-- **Notes:** Enable producers to define and sell pre-defined service packages (e.g., "Single Track Mastering", "Vocal Tuning").
-
 ## 2. Monetization Strategy Implementation
 
 ### Commission System
@@ -92,4 +75,4 @@ This document tracks the progress of tasks outlined in Phase 3 of the NEXT_STEPS
 ## Next Steps
 
 1.  Begin work on Phase 3 tasks after Phase 2 completion.
-2.  Prioritize features within Phase 3. 
+2.  Prioritize features within Phase 3.

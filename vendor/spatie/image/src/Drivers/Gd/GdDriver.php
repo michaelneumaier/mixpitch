@@ -76,14 +76,9 @@ class GdDriver implements ImageDriver
         $this->quality = -1;
         $this->originalPath = $path;
 
-        $handle = fopen($path, 'r');
-
-        $contents = '';
-        if (filesize($path)) {
-            $contents = fread($handle, filesize($path));
-        }
-
-        fclose($handle);
+        $contents = is_file($path) && filesize($path) > 0
+            ? file_get_contents($path)
+            : '';
 
         $this->setExif($path);
 
@@ -562,33 +557,24 @@ class GdDriver implements ImageDriver
 
     public function setExif(string $path): void
     {
-        if (! extension_loaded('exif')) {
-            return;
-        }
-
-        if (! extension_loaded('fileinfo')) {
+        if (! extension_loaded('exif') || ! extension_loaded('fileinfo')) {
             return;
         }
 
         $fInfo = finfo_open(FILEINFO_RAW);
-        if ($fInfo) {
-            $info = finfo_file($fInfo, $path);
-            finfo_close($fInfo);
+        if (! $fInfo) {
+            return;
         }
 
-        if (! isset($info) || ! is_string($info) || ! str_contains($info, 'Exif')) {
+        $info = finfo_file($fInfo, $path);
+        finfo_close($fInfo);
+
+        if (! is_string($info) || ! str_contains($info, 'Exif')) {
             return;
         }
 
         $result = @exif_read_data($path);
-
-        if (! is_array($result)) {
-            $this->exif = [];
-
-            return;
-        }
-
-        $this->exif = $result;
+        $this->exif = is_array($result) ? $result : [];
     }
 
     /**

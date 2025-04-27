@@ -135,4 +135,37 @@ class NotificationListTest extends TestCase
         $this->assertNotEmpty($updatedNotifications);
         $this->assertEquals($newNotification->id, $updatedNotifications->first()->id);
     }
+
+    /** @test */
+    public function user_can_delete_their_own_notification()
+    {
+        $user = User::factory()->create();
+        $notification = Notification::factory()->for($user)->create();
+
+        $this->assertDatabaseHas('notifications', ['id' => $notification->id]);
+
+        Livewire::actingAs($user)
+            ->test(NotificationList::class)
+            ->call('deleteNotification', $notification->id)
+            ->assertDispatched('notificationRead');
+
+        $this->assertDatabaseMissing('notifications', ['id' => $notification->id]);
+    }
+
+    /** @test */
+    public function user_cannot_delete_another_users_notification()
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+        $notificationForUserB = Notification::factory()->for($userB)->create();
+
+        $this->assertDatabaseHas('notifications', ['id' => $notificationForUserB->id]);
+
+        Livewire::actingAs($userA)
+            ->test(NotificationList::class)
+            ->call('deleteNotification', $notificationForUserB->id)
+            ->assertNotDispatched('notificationRead'); // Should not dispatch if no deletion occurs
+
+        $this->assertDatabaseHas('notifications', ['id' => $notificationForUserB->id]); // Notification should still exist
+    }
 } 
