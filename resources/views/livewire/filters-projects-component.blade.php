@@ -420,24 +420,28 @@
                 </div>
                 
                 <!-- Preset Buttons -->
-                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div class="flex space-x-2">
                     <button type="button" @click="setPreset('next7days')" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        class="flex-1 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                         :class="{'bg-primary/10 border-primary': selectedPreset === 'next7days'}">
                         Next 7 days
                     </button>
                     <button type="button" @click="setPreset('next30days')" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        class="flex-1 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                         :class="{'bg-primary/10 border-primary': selectedPreset === 'next30days'}">
                         Next 30 days
                     </button>
                     <button type="button" @click="setPreset('next3months')" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        class="flex-1 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                         :class="{'bg-primary/10 border-primary': selectedPreset === 'next3months'}">
                         Next 3 months
                     </button>
+                </div>
+                
+                <!-- Upcoming Button on its own line -->
+                <div class="mt-2">
                     <button type="button" @click="setPreset('upcoming')" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                        class="w-full px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                         :class="{'bg-primary/10 border-primary': selectedPreset === 'upcoming'}">
                         Upcoming (all)
                     </button>
@@ -451,7 +455,7 @@
                         </button>
                     </p>
                     
-                    <div class="space-y-2 sm:space-y-0 sm:flex sm:space-x-2">
+                    <div class="space-y-2">
                         <div class="sm:flex-1">
                             <label class="block text-xs text-gray-500 mb-1">Start Date:</label>
                             <input type="date" 

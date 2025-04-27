@@ -30,6 +30,7 @@
         "masmerise/livewire-toaster": "^2.0",
         "pusher/pusher-php-server": "^7.2",
         "sebdesign/laravel-state-machine": "^3.4",
+        "spatie/laravel-permission": "^6.17",
         "spatie/laravel-sluggable": "^3.5",
         "spatie/laravel-tags": "^4.10"
     },
