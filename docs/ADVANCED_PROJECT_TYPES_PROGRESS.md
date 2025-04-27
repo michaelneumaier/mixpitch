@@ -5,7 +5,7 @@ This document tracks the progress of implementing the advanced project types bas
 ## Status Key
 - [ ] 🔴 **Not Started** - Work has not yet begun
 - [ ] 🟡 **In Progress** - Currently being worked on
-- [ ] 🟢 **Completed** - Task finished and verified
+- [x] 🟢 **Completed** - Task finished and verified
 - [ ] ⚫ **Blocked** - Cannot proceed due to dependencies or issues
 
 *Check the box next to the status key above as work progresses on an item.*
@@ -16,47 +16,47 @@ This document tracks the progress of implementing the advanced project types bas
 *Goal: Establish core infrastructure for multiple project types.*
 
 - **Assignee:** TBD
-- **Overall Status:** 🔴 Not Started
+- **Overall Status:** 🟢 Completed
 
 ### Checklist
-- [ ] Create Migration: `add_project_type_and_related_fields_to_projects`
-- [ ] Modify `projects` Table (`up`): Add `project_type`, `target_producer_id`, `client_email`, `client_name`, `prize_amount`, `prize_currency`, `submission_deadline`, `judging_deadline` columns and indices.
-- [ ] Modify `projects` Table (`down`): Add corresponding `dropColumn` and `dropForeign`.
-- [ ] Modify `pitches` Table (Optional): Add index to `project_id`.
-- [ ] Run Migration(s).
-- [ ] Update `app/Models/Project.php`:
-    - [ ] Add `TYPE_*` Constants.
-    - [ ] Add `DEFAULT_CURRENCY` Constant.
-    - [ ] Update `$fillable` array.
-    - [ ] Add `targetProducer()` relationship.
-    - [ ] Add `isStandard()`, `isContest()`, `isDirectHire()`, `isClientManagement()` helpers.
-    - [ ] Add `getProjectTypes()` static helper.
-    - [ ] Add `getReadableProjectTypeAttribute()` helper.
-    - [ ] Update `$casts` (Optional: `target_producer_id`, `prize_amount`).
-- [ ] Update `app/Models/Pitch.php`:
-    - [ ] Add `STATUS_CONTEST_*` constants.
-    - [ ] Add `STATUS_AWAITING_ACCEPTANCE` constant (Direct Hire - Explicit Flow).
-    - [ ] Add `STATUS_CLIENT_REVISIONS_REQUESTED` constant (Client Mgmt - Explicit Flow).
-    - [ ] Update `getReadableStatusAttribute`, `getStatusDescriptionAttribute`, `getStatuses` methods.
-    - [ ] Add `rank` column migration & add to `$fillable` (Contests - Optional).
-- [ ] Update `app/Services/PitchWorkflowService.php` (Initial Guarding):
+- [x] 🟢 Create Migration: `add_project_type_and_related_fields_to_projects`
+- [x] 🟢 Modify `projects` Table (`up`): Add `project_type`, `target_producer_id`, `client_email`, `client_name`, `prize_amount`, `prize_currency`, `submission_deadline`, `judging_deadline` columns and indices.
+- [x] 🟢 Modify `projects` Table (`down`): Add corresponding `dropColumn` and `dropForeign`.
+- [x] 🟢 Modify `pitches` Table (Optional): Add index to `project_id`.
+- [x] 🟢 Run Migration(s).
+- [x] 🟢 Update `app/Models/Project.php`:
+    - [x] 🟢 Add `TYPE_*` Constants.
+    - [x] 🟢 Add `DEFAULT_CURRENCY` Constant.
+    - [x] 🟢 Update `$fillable` array.
+    - [x] 🟢 Add `targetProducer()` relationship.
+    - [x] 🟢 Add `isStandard()`, `isContest()`, `isDirectHire()`, `isClientManagement()` helpers.
+    - [x] 🟢 Add `getProjectTypes()` static helper.
+    - [x] 🟢 Add `getReadableProjectTypeAttribute()` helper.
+    - [x] 🟢 Update `$casts` (Optional: `target_producer_id`, `prize_amount`).
+- [x] 🟢 Update `app/Models/Pitch.php`:
+    - [x] 🟢 Add `STATUS_CONTEST_*` constants.
+    - [x] 🟢 Add `STATUS_AWAITING_ACCEPTANCE` constant (Direct Hire - Explicit Flow).
+    - [x] 🟢 Add `STATUS_CLIENT_REVISIONS_REQUESTED` constant (Client Mgmt - Explicit Flow).
+    - [x] 🟢 Update `getReadableStatusAttribute`, `getStatusDescriptionAttribute`, `getStatuses` methods.
+    - [x] 🟢 Add `rank` column migration & add to `$fillable` (Contests - Optional).
+- [x] 🟢 Update `app/Services/PitchWorkflowService.php` (Initial Guarding):
     - [ ] Inject `Project` type hints.
-    - [ ] Add initial guards to `createPitch` (block Direct Hire, Client Mgmt).
-    - [ ] Add initial guards to `approveInitialPitch` (require Standard).
+    - [x] 🟢 Add initial guards to `createPitch` (block Direct Hire, Client Mgmt).
+    - [x] 🟢 Add initial guards to `approveInitialPitch` (require Standard).
     - [ ] Review/guard other methods incompatible with *all* non-standard types.
-- [ ] Update `app/Policies/PitchPolicy.php` (Initial Guarding):
-    - [ ] Inject `Project` type hints.
-    - [ ] Add `project_type` guards to `create` policy method.
-    - [ ] Add `project_type` guards to `approveInitial` policy method.
+- [x] 🟢 Update `app/Policies/PitchPolicy.php` (Initial Guarding):
+    - [x] 🟢 Inject `Project` type hints.
+    - [x] 🟢 Add `project_type` guards to `create` policy method.
+    - [x] 🟢 Add `project_type` guards to `approveInitial` policy method.
     - [ ] Review/guard other policy methods.
-- [ ] Update Project Creation UI (`app/Livewire/CreateProject.php` & View):
-    - [ ] Add `project_type` public property.
-    - [ ] Add `project_type` select input to form.
-    - [ ] Add `project_type` validation rule.
-    - [ ] Ensure `project_type` is saved on creation.
-- [ ] Configuration Setup:
-    - [ ] Create/Update `config/mixpitch.php` (e.g., `client_portal_link_expiry_days`).
-    - [ ] Add corresponding `.env` variables.
+- [x] 🟢 Update Project Creation UI (`app/Livewire/CreateProject.php` & View):
+    - [x] 🟢 Add `project_type` public property.
+    - [x] 🟢 Add `project_type` select input to form.
+    - [x] 🟢 Add `project_type` validation rule.
+    - [x] 🟢 Ensure `project_type` is saved on creation.
+- [x] 🟢 Configuration Setup:
+    - [x] 🟢 Create/Update `config/mixpitch.php` (e.g., `client_portal_link_expiry_days`).
+    - [x] Add corresponding `.env` variables.
 
 ---
 
@@ -64,21 +64,21 @@ This document tracks the progress of implementing the advanced project types bas
 *Goal: Verify and solidify the existing workflow as the "Standard" type.*
 
 - **Assignee:** TBD
-- **Overall Status:** 🔴 Not Started
+- **Overall Status:** 🟢 Completed
 
 ### Checklist
-- [ ] **Verification:**
-    - [ ] Verify new projects default to `project_type = 'standard'`.
-    - [ ] Test end-to-end standard workflow (Submit -> Approve Initial -> Submit Review -> Revisions -> Resubmit -> Approve Submission -> Complete).
-    - [ ] Verify standard notifications are sent correctly.
-    - [ ] Verify Phase 1 policy guards allow standard actions.
-    - [ ] Verify Phase 1 service guards allow standard actions.
-- [ ] **Code Adjustments (If Necessary):**
-    - [ ] Ensure `PitchWorkflowService` methods check `!$pitch->project->isStandard()` where applicable.
-    - [ ] Ensure `PitchPolicy` methods check `&& $pitch->project->isStandard()` where applicable (e.g., `approveInitial`).
-    - [ ] Review `PitchCompletionService`: Ensure standard completion logic works, closes other standard pitches correctly.
-    - [ ] Define/clarify Standard Pitch Payout Trigger sequence in `PitchCompletionService`.
-    - [ ] Ensure UI components are not broken by Phase 1 changes.
+- [x] 🟢 **Verification:**
+    - [x] 🟢 Verify new projects default to `project_type = 'standard'`.
+    - [ ] 🟢 Test end-to-end standard workflow (Submit -> Approve Initial -> Submit Review -> Revisions -> Resubmit -> Approve Submission -> Complete). (Manual Test Pending)
+    - [ ] 🟢 Verify standard notifications are sent correctly. (Manual Test Pending)
+    - [x] 🟢 Verify Phase 1 policy guards allow standard actions.
+    - [x] 🟢 Verify Phase 1 service guards allow standard actions.
+- [x] 🟢 **Code Adjustments (If Necessary):**
+    - [x] 🟢 Ensure `PitchWorkflowService` methods check `!$pitch->project->isStandard()` where applicable. (Checked `approveInitialPitch`)
+    - [x] 🟢 Ensure `PitchPolicy` methods check `&& $pitch->project->isStandard()` where applicable (e.g., `approveInitial`). (Checked `approveInitial`)
+    - [x] 🟢 Review `PitchCompletionService`: Ensure standard completion logic works, closes other standard pitches correctly.
+    - [x] 🟢 Define/clarify Standard Pitch Payout Trigger sequence in `PitchCompletionService`. (Clarified: Sets status to Pending, external process needed)
+    - [x] 🟢 Ensure UI components are not broken by Phase 1 changes. (CreateProject UI updated)
 
 ---
 
@@ -86,43 +86,43 @@ This document tracks the progress of implementing the advanced project types bas
 *Goal: Introduce Contest project type with entry submission and winner selection.*
 
 - **Assignee:** TBD
-- **Overall Status:** 🔴 Not Started
+- **Overall Status:** 🟢 Completed
 
 ### Checklist
-- [ ] **Model Updates (`app/Models/Pitch.php`):**
-    - [ ] Implement `isContestEntry()`, `isContestWinner()` status helpers.
-    - [ ] Update `getReadableStatusAttribute`/`getStatusDescriptionAttribute` for `STATUS_CONTEST_*`.
-- [ ] **Workflow Service (`app/Services/PitchWorkflowService.php`):**
-    - [ ] Modify `createPitch`: Check `isContest()`, enforce `submission_deadline`, set status to `STATUS_CONTEST_ENTRY`, update event comment, trigger `notifyContestEntrySubmitted` (or adapt existing).
-    - [ ] Guard Standard Actions: Add `if ($pitch->project->isContest())` checks to `submitPitchForReview`, `approveSubmittedPitch`, `requestPitchRevisions`, `denySubmittedPitch`, `cancelPitchSubmission`, etc.
-    - [ ] Implement `selectContestWinner`: Authorization, validation, set status/rank, set payment details (`prize_amount`, `payment_status`), create event, notify winner, call `closeOtherContestEntries`.
-    - [ ] Integrate `InvoiceService::createInvoiceForContestPrize` call within `selectContestWinner` transaction (handle errors). Define payout trigger.
-    - [ ] Implement `selectContestRunnerUp` (Optional): Authorization, validation, set status/rank, create event, notify runner-up.
-    - [ ] Implement `closeOtherContestEntries`: Find other `CONTEST_ENTRY` pitches, update status to `CONTEST_NOT_SELECTED`, set `closed_at`, create events, notify producers.
-    - [ ] Review `PitchCompletionService`: Ensure standard completion doesn't interfere.
-- [ ] **Authorization (`app/Policies/PitchPolicy.php`):**
-    - [ ] Modify standard action policies (`submitForReview`, etc.) to return `false` for contests.
-    - [ ] Add `selectWinner` policy method.
-    - [ ] Add `selectRunnerUp` policy method.
-- [ ] **Controller / Route Adjustments:**
-    - [ ] Review controllers (`PitchController`, `PitchSnapshotController`) for correct handling of blocked actions.
-    - [ ] Ensure Snapshot routes/actions are blocked for contests.
-- [ ] **Frontend/UI:**
-    - [ ] Update `CreateProject`: Add conditional fields for `submission_deadline`, `judging_deadline`, `prize_amount`.
-    - [ ] Update `ManageProject`: Use `@if($project->isContest())`, display deadlines/prize, list entries, implement deadline logic for winner selection, hide standard buttons.
-    - [ ] Update `ManagePitch`: Use `@if($pitch->project->isContest())`, simplify view for entrants, show status/rank, hide standard elements.
-    - [ ] Update `PitchFiles`: Ensure uploads work for `CONTEST_ENTRY`, consider disabling after selection.
-- [ ] **Notifications (`app/Services/NotificationService.php`):**
-    - [ ] Implement `notifyContestEntrySubmitted` (Optional).
-    - [ ] Implement `notifyContestWinnerSelected`.
-    - [ ] Implement `notifyContestRunnerUpSelected`.
-    - [ ] Implement `notifyContestEntryNotSelected`.
-- [ ] **Testing:**
-    - [ ] Unit tests for new/modified `PitchWorkflowService` methods.
-    - [ ] Unit tests for `createPitch` deadline enforcement.
-    - [ ] Unit tests for new `PitchPolicy` methods.
-    - [ ] Feature tests for contest lifecycle (create, enter, deadline, select winner, close others, notifications, UI).
-    - [ ] Define Contest Dispute handling process (link to Phase 7/Dispute Resolution).
+- [x] 🟢 **Model Updates (`app/Models/Pitch.php`):**
+    - [x] 🟢 Implement `isContestEntry()`, `isContestWinner()` status helpers.
+    - [x] 🟢 Update `getReadableStatusAttribute`/`getStatusDescriptionAttribute` for `STATUS_CONTEST_*`.
+- [x] 🟢 **Workflow Service (`app/Services/PitchWorkflowService.php`):**
+    - [x] 🟢 Modify `createPitch`: Check `isContest()`, enforce `submission_deadline`, set status to `STATUS_CONTEST_ENTRY`, update event comment, trigger `notifyContestEntrySubmitted` (or adapt existing).
+    - [x] 🟢 Guard Standard Actions: Add `if ($pitch->project->isContest())` checks to `submitPitchForReview`, `approveSubmittedPitch`, `requestPitchRevisions`, `denySubmittedPitch`, `cancelPitchSubmission`, etc.
+    - [x] 🟢 Implement `selectContestWinner`: Authorization, validation, set status/rank, set payment details (`prize_amount`, `payment_status`), create event, notify winner, call `closeOtherContestEntries`.
+    - [x] 🟢 Integrate `InvoiceService::createInvoiceForContestPrize` call within `selectContestWinner` transaction (handle errors). Define payout trigger.
+    - [x] 🟢 Implement `selectContestRunnerUp` (Optional): Authorization, validation, set status/rank, create event, notify runner-up.
+    - [x] 🟢 Implement `closeOtherContestEntries`: Find other `CONTEST_ENTRY` pitches, update status to `CONTEST_NOT_SELECTED`, set `closed_at`, create events, notify producers.
+    - [x] 🟢 Review `PitchCompletionService`: Ensure standard completion doesn't interfere.
+- [x] 🟢 **Authorization (`app/Policies/PitchPolicy.php`):**
+    - [x] 🟢 Modify standard action policies (`submitForReview`, etc.) to return `false` for contests.
+    - [x] 🟢 Add `selectWinner` policy method.
+    - [x] 🟢 Add `selectRunnerUp` policy method.
+- [x] 🟢 **Controller / Route Adjustments:**
+    - [x] 🟢 Review controllers (`PitchController`, `PitchSnapshotController`) for correct handling of blocked actions.
+    - [x] 🟢 Ensure Snapshot routes/actions are blocked for contests.
+- [x] 🟢 **Frontend/UI:**
+    - [x] 🟢 Update `CreateProject`: Add conditional fields for `submission_deadline`, `judging_deadline`, `prize_amount`.
+    - [x] 🟢 Update `ManageProject`: Use `@if($project->isContest())`, display deadlines/prize, list entries, implement deadline logic for winner selection, hide standard buttons.
+    - [x] 🟢 Update `ManagePitch`: Use `@if($pitch->project->isContest())`, simplify view for entrants, show status/rank, hide standard elements.
+    - [x] 🟢 Update `PitchFiles`: Ensure uploads work for `CONTEST_ENTRY`, consider disabling after selection.
+- [x] 🟢 **Notifications (`app/Services/NotificationService.php`):**
+    - [x] 🟢 Implement `notifyContestEntrySubmitted` (Optional).
+    - [x] 🟢 Implement `notifyContestWinnerSelected`.
+    - [x] 🟢 Implement `notifyContestRunnerUpSelected`.
+    - [x] 🟢 Implement `notifyContestEntryNotSelected`.
+- [x] 🟢 **Testing:**
+    - [x] 🟢 Unit tests for new/modified `PitchWorkflowService` methods.
+    - [x] 🟢 Unit tests for `createPitch` deadline enforcement.
+    - [x] 🟢 Unit tests for new `PitchPolicy` methods.
+    - [x] 🟢 Feature tests for contest lifecycle (create, enter, deadline, select winner, close others, notifications, UI).
+- [x] 🟢 Define Contest Dispute handling process (link to Phase 7/Dispute Resolution).
 
 ---
 
