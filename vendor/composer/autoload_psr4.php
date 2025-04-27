@@ -56,6 +56,7 @@ return array(
     'Spatie\\TemporaryDirectory\\' => array($vendorDir . '/spatie/temporary-directory/src'),
     'Spatie\\Tags\\' => array($vendorDir . '/spatie/laravel-tags/src'),
     'Spatie\\Sluggable\\' => array($vendorDir . '/spatie/laravel-sluggable/src'),
+    'Spatie\\Permission\\' => array($vendorDir . '/spatie/laravel-permission/src'),
     'Spatie\\MediaLibrary\\' => array($vendorDir . '/spatie/laravel-medialibrary/src'),
     'Spatie\\LaravelSettings\\' => array($vendorDir . '/spatie/laravel-settings/src'),
     'Spatie\\LaravelPackageTools\\' => array($vendorDir . '/spatie/laravel-package-tools/src'),

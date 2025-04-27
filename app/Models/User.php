@@ -23,6 +23,8 @@ use App\Models\PitchEvent;
 use App\Models\Project;
 use App\Models\PortfolioItem;
 use App\Models\Tag;
+use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
@@ -32,6 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     use Notifiable;
     use TwoFactorAuthenticatable;
     use Billable;
+    use HasRoles;
 
     /**
      * Define user roles as constants.
@@ -413,4 +416,16 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         return $relation;
     }
 
+    // If the trait doesn't automatically provide the relationship,
+    // you might need to explicitly define it (uncomment if needed):
+    // public function roles(): BelongsToMany
+    // {
+    //     return $this->morphToMany(
+    //         config('permission.models.role'),
+    //         'model',
+    //         config('permission.table_names.model_has_roles'),
+    //         config('permission.column_names.model_morph_key'),
+    //         'role_id'
+    //     );
+    // }
 }
