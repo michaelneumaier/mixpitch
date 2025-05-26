@@ -48,23 +48,23 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('email_tests', function (Blueprint $table) {
-            // Only drop columns if they exist
-            $columns = [
-                'recipient_email', 
-                'subject', 
-                'template', 
-                'content_variables', 
-                'status', 
-                'result', 
-                'sent_at'
-            ];
-            
-            foreach ($columns as $column) {
-                if (Schema::hasColumn('email_tests', $column)) {
+        $columns = [
+            'recipient_email', 
+            'subject', 
+            'template', 
+            'content_variables', 
+            'status', 
+            'result', 
+            'sent_at'
+        ];
+        
+        // Drop columns one by one in separate Schema::table blocks for SQLite compatibility
+        foreach ($columns as $column) {
+            if (Schema::hasColumn('email_tests', $column)) {
+                Schema::table('email_tests', function (Blueprint $table) use ($column) {
                     $table->dropColumn($column);
-                }
+                });
             }
-        });
+        }
     }
 };

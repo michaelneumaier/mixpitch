@@ -7,10 +7,15 @@ use App\Models\Pitch;
 use App\Models\PitchSnapshot;
 use App\Models\User;
 use App\Models\NotificationPreference;
+use App\Notifications\UserNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Services\EmailService;
+use App\Models\Project;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 class NotificationService
 {
@@ -251,8 +256,9 @@ class NotificationService
             return null;
         }
         
+        $notification = null; // Initialize
         try {
-            return $this->createNotification(
+            $notification = $this->createNotification(
                 $user,
                 Notification::TYPE_PITCH_COMPLETED,
                 $pitch,
@@ -262,6 +268,16 @@ class NotificationService
                     'project_name' => $pitch->project->name,
                 ]
             );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch completion', [
                 'message' => $e->getMessage(),
@@ -270,6 +286,7 @@ class NotificationService
             
             return null;
         }
+        return $notification; // Return the DB notification record
     }
     
     /**
@@ -447,11 +464,12 @@ class NotificationService
             return null;
         }
         
+        $notification = null; // Initialize
         try {
-            return $this->createNotification(
+            $notification = $this->createNotification(
                 $user,
                 Notification::TYPE_SNAPSHOT_REVISIONS_REQUESTED,
-                $snapshot,
+                $snapshot, // <-- Related model is the snapshot
                 [
                     'reason' => $reason,
                     'pitch_id' => $pitch->id,
@@ -460,6 +478,16 @@ class NotificationService
                     'version' => $snapshot->snapshot_data['version'] ?? null,
                 ]
             );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id, // This will be snapshot ID
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
         } catch (\Exception $e) {
             Log::error('Failed to create snapshot revisions requested notification: ' . $e->getMessage(), [
                 'snapshot_id' => $snapshot->id,
@@ -468,6 +496,7 @@ class NotificationService
             ]);
             return null;
         }
+        return $notification; // Return the DB notification record
     }
     
     /**
@@ -855,11 +884,12 @@ class NotificationService
             // Continue, but creator name might be missing
         }
 
+        $notification = null; // Initialize notification variable
         try {
             // Create the notification for the Project Owner
             $notification = $this->createNotification(
                 $projectOwner,
-                Notification::TYPE_PITCH_SUBMITTED, // Ensure this type constant exists in Notification model
+                Notification::TYPE_PITCH_SUBMITTED,
                 $pitch,
                 [
                     'pitch_id' => $pitch->id,
@@ -870,19 +900,19 @@ class NotificationService
                     'producer_name' => $pitchCreator?->name ?? 'A producer',
                 ]
             );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                 $projectOwner->notify(new UserNotification(
+                     $notification->type,
+                     $notification->related_id,
+                     $notification->related_type,
+                     $notification->data
+                 ));
+            }
             
-            // Send email notification via EmailService
-            // try {
-            //     $this->emailService->sendPitchSubmittedEmail($projectOwner, $pitch);
-            //     Log::info('Pitch submitted email sent via EmailService.', ['pitch_id' => $pitch->id, 'user_id' => $projectOwner->id]);
-            // } catch (\Exception $emailException) {
-            //     Log::error('Failed to send pitch submitted email via EmailService', [
-            //         'message' => $emailException->getMessage(),
-            //         'pitch_id' => $pitch->id,
-            //         'project_owner_id' => $projectOwner->id,
-            //     ]);
-            //     // Decide if we should re-throw or just log
-            // }
+            // Send email notification via EmailService (Keep this commented unless implemented)
+            // try { ... email service call ... } catch { ... } ...
             
             return $notification; // Return the DB notification record
 
@@ -915,8 +945,9 @@ class NotificationService
             return null;
         }
         
+        $notification = null; // Initialize
         try {
-            return $this->createNotification(
+            $notification = $this->createNotification(
                 $user,
                 Notification::TYPE_PITCH_APPROVED,
                 $pitch,
@@ -926,14 +957,24 @@ class NotificationService
                     'status' => $pitch->status,
                 ]
             );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch approval', [
                 'message' => $e->getMessage(),
                 'pitch_id' => $pitch->id,
             ]);
-            
             return null;
         }
+        return $notification; // Return the DB notification record
     }
     
     /**
@@ -971,17 +1012,30 @@ class NotificationService
             return null;
         }
         
+        $notification = null; // Initialize
         try {
-            return $this->createNotification(
+            $notification = $this->createNotification(
                 $user,
-                Notification::TYPE_PITCH_SUBMISSION_APPROVED,
-                $pitch,
+                Notification::TYPE_SNAPSHOT_APPROVED,
+                $snapshot,
                 [
                     'snapshot_id' => $snapshotId,
+                    'pitch_id' => $pitch->id,
                     'project_id' => $pitch->project_id,
                     'project_name' => $pitch->project->name,
+                    'version' => $snapshot->snapshot_data['version'] ?? null,
                 ]
             );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch submission approval', [
                 'message' => $e->getMessage(),
@@ -991,6 +1045,7 @@ class NotificationService
             
             return null;
         }
+        return $notification; // Return the DB notification record
     }
     
     /**
@@ -1005,8 +1060,6 @@ class NotificationService
     {
         // Resolve snapshot ID or object
         $snapshotId = $snapshot instanceof PitchSnapshot ? $snapshot->id : $snapshot;
-        
-        // Get the snapshot object if we only have an ID
         if (!($snapshot instanceof PitchSnapshot)) {
             $snapshot = PitchSnapshot::find($snapshotId);
             if (!$snapshot) {
@@ -1020,7 +1073,6 @@ class NotificationService
         
         // Notify the pitch creator
         $user = $pitch->user;
-        
         if (!$user) {
             Log::warning('Failed to notify about pitch submission denial: user not found', [
                 'pitch_id' => $pitch->id,
@@ -1029,18 +1081,31 @@ class NotificationService
             return null;
         }
         
+        $notification = null; // Initialize
         try {
-            return $this->createNotification(
+            $notification = $this->createNotification(
                 $user,
-                Notification::TYPE_PITCH_SUBMISSION_DENIED,
-                $pitch,
+                Notification::TYPE_SNAPSHOT_DENIED,
+                $snapshot,
                 [
                     'snapshot_id' => $snapshotId,
                     'reason' => $reason,
+                    'pitch_id' => $pitch->id,
                     'project_id' => $pitch->project_id,
                     'project_name' => $pitch->project->name,
+                    'version' => $snapshot->snapshot_data['version'] ?? null,
                 ]
             );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch submission denial', [
                 'message' => $e->getMessage(),
@@ -1050,6 +1115,7 @@ class NotificationService
             
             return null;
         }
+        return $notification; // Return the DB notification record
     }
     
     /**
@@ -1114,11 +1180,12 @@ class NotificationService
             return null;
         }
         
+        $notification = null; // Initialize
         try {
-            return $this->createNotification(
+            $notification = $this->createNotification(
                 $user,
                 Notification::TYPE_PITCH_READY_FOR_REVIEW,
-                $pitch,
+                $pitch, // <-- Related model is the pitch
                 [
                     'project_id' => $pitch->project_id,
                     'project_name' => $pitch->project->name,
@@ -1127,6 +1194,16 @@ class NotificationService
                     'is_resubmission' => ($snapshot->snapshot_data['version'] ?? 1) > 1,
                 ]
             );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id, // This will be pitch ID
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch ready for review', [
                 'message' => $e->getMessage(),
@@ -1136,6 +1213,7 @@ class NotificationService
             
             return null;
         }
+        return $notification; // Return the DB notification record
     }
     
     /**
@@ -1176,4 +1254,613 @@ class NotificationService
             return null;
         }
     }
-}
+
+    // <<< PHASE 3: CONTEST NOTIFICATIONS >>>
+
+    /**
+     * Notify the winner of a contest (with prize).
+     *
+     * @param Pitch $pitch The winning pitch.
+     * @return Notification|null
+     */
+    public function notifyContestWinnerSelected(Pitch $pitch): ?Notification
+    {
+        $user = $pitch->user;
+        if (!$user) {
+            Log::warning('notifyContestWinnerSelected: user not found', ['pitch_id' => $pitch->id]);
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_WINNER_SELECTED,
+                $pitch,
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'prize_amount' => $pitch->project->prize_amount,
+                    'prize_currency' => $pitch->project->prize_currency,
+                ]
+            );
+
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest winner', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify the winner of a contest (no prize).
+     *
+     * @param Pitch $pitch The winning pitch.
+     * @return Notification|null
+     */
+    public function notifyContestWinnerSelectedNoPrize(Pitch $pitch): ?Notification
+    {
+        $user = $pitch->user;
+        if (!$user) {
+            Log::warning('notifyContestWinnerSelectedNoPrize: user not found', ['pitch_id' => $pitch->id]);
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_WINNER_SELECTED_NO_PRIZE,
+                $pitch,
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest winner (no prize)', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify the project owner about winner selection (with prize).
+     *
+     * @param Pitch $pitch The winning pitch.
+     * @return Notification|null
+     */
+    public function notifyContestWinnerSelectedOwner(Pitch $pitch): ?Notification
+    {
+        $owner = $pitch->project->user;
+        if (!$owner) {
+            Log::warning('notifyContestWinnerSelectedOwner: owner not found', ['project_id' => $pitch->project_id]);
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $owner,
+                Notification::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION,
+                $pitch,
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'winner_id' => $pitch->user_id,
+                    'winner_name' => $pitch->user->name,
+                    'prize_amount' => $pitch->project->prize_amount, 
+                    'prize_currency' => $pitch->project->prize_currency,
+                ]
+            );
+
+            if ($notification) {
+                $owner->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify owner about contest winner', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify the project owner about winner selection (no prize).
+     *
+     * @param Pitch $pitch The winning pitch.
+     * @return Notification|null
+     */
+    public function notifyContestWinnerSelectedOwnerNoPrize(Pitch $pitch): ?Notification
+    {
+        $owner = $pitch->project->user;
+        if (!$owner) {
+            Log::warning('notifyContestWinnerSelectedOwnerNoPrize: owner not found', ['project_id' => $pitch->project_id]);
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $owner,
+                Notification::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE,
+                $pitch,
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'winner_id' => $pitch->user_id,
+                    'winner_name' => $pitch->user->name,
+                ]
+            );
+
+             if ($notification) {
+                $owner->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify owner about contest winner (no prize)', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify a user that their contest entry was not selected
+     *
+     * @param Pitch $pitch The pitch that was not selected.
+     * @return Notification|null
+     */
+    public function notifyContestEntryNotSelected(Pitch $pitch): ?Notification
+    {
+        $user = $pitch->user; // Producer whose entry wasn't selected
+        if (!$user) {
+            Log::warning('Failed to notify contest entry not selected: user not found', ['pitch_id' => $pitch->id]);
+            return null;
+        }
+
+        $notification = null;
+        try {
+            // Avoid notifying if they were winner or runner-up (shouldn't happen with workflow, but safety check)
+            if ($pitch->status === Pitch::STATUS_CONTEST_WINNER || $pitch->status === Pitch::STATUS_CONTEST_RUNNER_UP) {
+                return null;
+            }
+
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_ENTRY_NOT_SELECTED, // Assumes this type exists
+                $pitch,
+                [
+                    'project_name' => $pitch->project->title,
+                    'project_id' => $pitch->project_id,
+                ]
+            );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest entry not selected', ['message' => $e->getMessage(), 'pitch_id' => $pitch->id]);
+            return null;
+        }
+        return $notification;
+    }
+
+     // Optional: Implement notifyContestEntrySubmitted if specific logic needed
+     /*
+     public function notifyContestEntrySubmitted(Pitch $pitch): ?Notification
+     {
+         // Notify project owner about a new contest entry
+         $projectOwner = $pitch->project->user;
+         if (!$projectOwner) {
+             Log::warning('Failed to notify about contest entry submission: project owner not found', ['pitch_id' => $pitch->id]);
+             return null;
+         }
+
+         try {
+             return $this->createNotification(
+                 $projectOwner,
+                 Notification::TYPE_CONTEST_ENTRY_SUBMITTED, // Assumes this type exists
+                 $pitch,
+                 [
+                     'project_name' => $pitch->project->title,
+                     'project_id' => $pitch->project_id,
+                     'producer_name' => $pitch->user->name,
+                 ]
+             );
+         } catch (\Exception $e) {
+             Log::error('Failed to notify about contest entry submission', ['message' => $e->getMessage(), 'pitch_id' => $pitch->id]);
+             return null;
+         }
+     }
+     */
+
+    // <<< END PHASE 3: CONTEST NOTIFICATIONS >>>
+
+    /**
+     * Notify the producer when they are assigned to a Direct Hire project (Implicit Flow).
+     *
+     * @param Pitch $pitch The automatically created pitch for the direct hire.
+     * @return Notification|null
+     */
+    public function notifyDirectHireAssignment(Pitch $pitch): ?Notification
+    {
+        $producer = $pitch->user;
+        if (!$producer) {
+            Log::warning('Failed to send Direct Hire assignment notification: producer not found', ['pitch_id' => $pitch->id]);
+            return null;
+        }
+
+        Log::info('Attempting to send Direct Hire assignment notification', ['pitch_id' => $pitch->id, 'producer_id' => $producer->id]);
+
+        // Placeholder for actual notification logic (e.g., createNotification, emailService call)
+        // $notification = $this->createNotification(...);
+        // $this->emailService->sendDirectHireAssignmentEmail($pitch);
+        try {
+            $notification = $this->createNotification(
+                $producer, // User to notify
+                Notification::TYPE_DIRECT_HIRE_ASSIGNMENT, // Define this constant in Notification model
+                $pitch, // Related model
+                [
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                    'project_owner_id' => $pitch->project->user_id,
+                    'project_owner_name' => $pitch->project->user->name,
+                ]
+            );
+
+            // Optional: Trigger email notification
+            // $this->emailService->sendDirectHireAssignmentEmail($pitch);
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error('Failed to create Direct Hire assignment notification', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+                'producer_id' => $producer->id,
+            ]);
+            return null;
+        }
+        // Return null for now as no actual notification is created yet.
+        // return null;
+    }
+
+    /**
+     * Notify the producer when offered a Direct Hire project (Explicit Flow).
+     */
+    public function notifyDirectHireOffer(Pitch $pitch): ?Notification
+    {
+        // Notify the producer (pitch->user)
+        $producer = $pitch->user;
+        if (!$producer) return null;
+
+        return $this->createNotification(
+            $producer,
+            Notification::TYPE_DIRECT_HIRE_OFFER,
+            $pitch,
+            [
+                'project_title' => $pitch->project->title,
+                'project_id' => $pitch->project_id,
+                'owner_name' => $pitch->project->user->name // Assuming owner relationship exists
+            ]
+        );
+    }
+
+    // --- Client Management Notifications ---
+
+    /**
+     * Notify the client that their project invite is ready.
+     * Sends an email directly to the client's email address.
+     *
+     * @param Project $project The client management project.
+     * @param string $signedUrl The secure link to the client portal.
+     */
+    public function notifyClientProjectInvite(Project $project, string $signedUrl): void
+    {
+        if (!$project->isClientManagement() || !$project->client_email) {
+            Log::warning('Attempted to send client invite for non-client project or missing email', [
+                'project_id' => $project->id,
+                'workflow_type' => $project->workflow_type,
+            ]);
+            return;
+        }
+
+        // Use EmailService to send the email
+        $this->emailService->sendClientInviteEmail(
+            $project->client_email,
+            $project->client_name,
+            $project,
+            $signedUrl
+        );
+    }
+
+    /**
+     * Notify the client that the producer has submitted work for review.
+     *
+     * @param Pitch $pitch The pitch containing the work.
+     * @param string $signedUrl The secure link to the client portal view.
+     */
+    public function notifyClientReviewReady(Pitch $pitch, string $signedUrl): void
+    {
+        $project = $pitch->project;
+        if (!$project->isClientManagement() || !$project->client_email) {
+            Log::warning('Attempted to send client review ready notification for non-client project or missing email', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+            ]);
+            return;
+        }
+
+        // Use EmailService to send the email
+        $this->emailService->sendClientReviewReadyEmail(
+            $project->client_email,
+            $project->client_name,
+            $project,
+            $pitch,
+            $signedUrl
+        );
+    }
+
+    /**
+     * Notify the producer that the client has added a comment.
+     *
+     * @param Pitch $pitch The relevant pitch.
+     * @param string $commentContent The content of the client's comment.
+     * @return Notification|null
+     */
+    public function notifyProducerClientCommented(Pitch $pitch, string $commentContent): ?Notification
+    {
+        $producer = $pitch->user;
+        if (!$producer) return null;
+
+        return $this->createNotification(
+            $producer,
+            Notification::TYPE_CLIENT_COMMENT_ADDED,
+            $pitch,
+            [
+                'project_id' => $pitch->project_id,
+                'project_title' => $pitch->project->title,
+                'client_name' => $pitch->project->client_name ?? 'Client',
+                'comment_excerpt' => Str::limit($commentContent, 100),
+            ]
+        );
+    }
+
+    /**
+     * Notify the producer that the client has approved the pitch/submission.
+     *
+     * @param Pitch $pitch The approved pitch.
+     * @return Notification|null
+     */
+    public function notifyProducerClientApproved(Pitch $pitch): ?Notification
+    {
+        $producer = $pitch->user;
+        if (!$producer) return null;
+
+        return $this->createNotification(
+            $producer,
+            Notification::TYPE_CLIENT_APPROVED_PITCH,
+            $pitch,
+            [
+                'project_id' => $pitch->project_id,
+                'project_title' => $pitch->project->title,
+                'client_name' => $pitch->project->client_name ?? 'Client',
+            ]
+        );
+    }
+
+    /**
+     * Notify the producer that the client has requested revisions.
+     *
+     * @param Pitch $pitch The pitch requiring revisions.
+     * @param string $feedback The client's feedback.
+     * @return Notification|null
+     */
+    public function notifyProducerClientRevisionsRequested(Pitch $pitch, string $feedback): ?Notification
+    {
+        $producer = $pitch->user;
+        if (!$producer) return null;
+
+        return $this->createNotification(
+            $producer,
+            Notification::TYPE_CLIENT_REQUESTED_REVISIONS,
+            $pitch,
+            [
+                'project_id' => $pitch->project_id,
+                'project_title' => $pitch->project->title,
+                'client_name' => $pitch->project->client_name ?? 'Client',
+                'feedback_excerpt' => Str::limit($feedback, 100),
+            ]
+        );
+    }
+
+    /**
+     * Notify the client that the producer has added a comment.
+     *
+     * @param Pitch $pitch The relevant pitch.
+     * @param string $comment The producer's comment.
+     * @return void
+     */
+    public function notifyClientProducerCommented(Pitch $pitch, string $comment): void
+    {
+        $project = $pitch->project;
+        if (!$project->isClientManagement() || !$project->client_email) {
+            Log::warning('Attempted to send producer comment notification for non-client project or missing email', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+            ]);
+            return;
+        }
+
+        // Generate signed portal URL
+        $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'client.portal.view',
+            now()->addDays(7),
+            ['project' => $project->id]
+        );
+
+        // Send email notification
+        $this->emailService->sendClientProducerCommentEmail(
+            $project->client_email,
+            $project->client_name,
+            $project,
+            $pitch,
+            $comment,
+            $signedUrl
+        );
+
+        Log::info('Producer comment notification sent to client', [
+            'project_id' => $project->id,
+            'pitch_id' => $pitch->id,
+            'client_email' => $project->client_email,
+            'comment_length' => strlen($comment)
+        ]);
+    }
+
+    /**
+     * Notify the client that the project managed by the producer is complete.
+     *
+     * @param Pitch $pitch The completed pitch (contains project relation).
+     * @param string $signedUrl A potentially non-actionable link to the portal.
+     * @param string|null $feedback Feedback left by the producer for the client (if any).
+     * @param int|null $rating Rating given by the producer (if any).
+     */
+    public function notifyClientProjectCompleted(Pitch $pitch, string $signedUrl, ?string $feedback, ?int $rating): void
+    {
+        $project = $pitch->project;
+        if (!$project->isClientManagement() || !$project->client_email) {
+            Log::warning('Attempted to send client project completed notification for non-client project or missing email', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+            ]);
+            return;
+        }
+
+        // Use EmailService to send the email
+        $this->emailService->sendClientProjectCompletedEmail(
+            $project->client_email,
+            $project->client_name,
+            $project,
+            $pitch,
+            $signedUrl,
+            $feedback, // Pass feedback
+            $rating    // Pass rating
+        );
+    }
+
+    // --- End Client Management Notifications ---
+
+    /**
+     * Send a notification to a user using Laravel's notification system.
+     *
+     * @param mixed $notifiable The user or entity to notify
+     * @param mixed $notification The notification instance to send
+     * @return void
+     */
+    public function notify($notifiable, $notification): void
+    {
+        try {
+            $notifiable->notify($notification);
+            Log::info('Notification sent', [
+                'notifiable_type' => get_class($notifiable),
+                'notifiable_id' => $notifiable->id,
+                'notification_type' => get_class($notification)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send notification', [
+                'notifiable_type' => get_class($notifiable),
+                'notifiable_id' => $notifiable->id,
+                'notification_type' => get_class($notification),
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Notify about initial pitch application denial
+     *
+     * @param Pitch $pitch The denied pitch
+     * @param string|null $reason Optional reason for denial
+     * @return Notification|null
+     */
+    public function notifyInitialPitchDenied(Pitch $pitch, ?string $reason = null): ?Notification
+    {
+        // Notify the pitch creator
+        $user = $pitch->user;
+        if (!$user) { /* ... logging ... */ return null; }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_INITIAL_PITCH_DENIED,
+                $pitch,
+                [
+                    'reason' => $reason,
+                    'project_id' => $pitch->project_id,
+                    'project_name' => $pitch->project->name,
+                ]
+            );
+
+            // Dispatch UserNotification if DB record created
+            if ($notification) {
+                $user->notify(new UserNotification(
+                    $notification->type,
+                    $notification->related_id,
+                    $notification->related_type,
+                    $notification->data
+                ));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify about initial pitch denial', [
+                'message' => $e->getMessage(),
+                'pitch_id' => $pitch->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+} // End of NotificationService class

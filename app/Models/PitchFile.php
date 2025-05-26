@@ -15,6 +15,7 @@ class PitchFile extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'pitch_id',
         'file_path',
         'storage_path',
         'file_name',

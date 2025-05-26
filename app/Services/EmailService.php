@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
+use App\Mail\ClientProjectCompleted;
 
 class EmailService
 {
@@ -390,4 +391,151 @@ class EmailService
             throw $e;
         }
     }
+
+    // --- Client Management Specific Emails ---
+
+    /**
+     * Sends the initial project invitation email to the client.
+     */
+    public function sendClientInviteEmail(string $clientEmail, ?string $clientName, \App\Models\Project $project, string $signedUrl): void
+    {
+        try {
+            $mailable = new \App\Mail\ClientProjectInvite($project, $signedUrl);
+            
+            // Create metadata including the signed URL
+            $metadata = [
+                'project_id' => $project->id,
+                'client_portal_url' => $signedUrl // Include URL in metadata for audit records
+            ];
+            
+            $this->queue($mailable, $clientEmail, 'client_project_invite', $metadata);
+            
+            // Log the invite with the URL
+            Log::info('Client project invite email queued', [
+                'email' => $clientEmail,
+                'project_id' => $project->id,
+                'client_portal_url' => $signedUrl
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to queue client project invite email', [
+                'email' => $clientEmail,
+                'project_id' => $project->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Sends the review ready notification email to the client.
+     */
+    public function sendClientReviewReadyEmail(string $clientEmail, ?string $clientName, \App\Models\Project $project, \App\Models\Pitch $pitch, string $signedUrl): void
+    {
+        try {
+            Mail::to($clientEmail)->send(new \App\Mail\ClientReviewReady(
+                $project,
+                $pitch,
+                $signedUrl,
+                $clientName
+            ));
+            
+            Log::info('Client review ready email sent', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'client_email' => $clientEmail
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send client review ready email', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'client_email' => $clientEmail,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Send email to client when producer adds a comment
+     */
+    public function sendClientProducerCommentEmail(
+        string $clientEmail,
+        ?string $clientName,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        string $comment,
+        string $signedUrl
+    ): void {
+        try {
+            Mail::to($clientEmail)->send(new \App\Mail\ClientProducerComment(
+                $project,
+                $pitch,
+                $comment,
+                $signedUrl,
+                $clientName
+            ));
+            
+            Log::info('Producer comment email sent to client', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'client_email' => $clientEmail,
+                'comment_length' => strlen($comment)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer comment email', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'client_email' => $clientEmail,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Sends the project completed notification email to the client.
+     *
+     * @param string $clientEmail
+     * @param string|null $clientName
+     * @param \App\Models\Project $project
+     * @param \App\Models\Pitch $pitch
+     * @param string $signedUrl
+     * @param string|null $feedback Producer feedback
+     * @param int|null $rating Producer rating
+     */
+    public function sendClientProjectCompletedEmail(
+        string $clientEmail,
+        ?string $clientName,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        string $signedUrl,
+        ?string $feedback,
+        ?int $rating
+    ): void {
+        try {
+            $mailable = new ClientProjectCompleted(
+                $project,
+                $pitch,
+                $signedUrl,
+                $clientName,
+                $feedback,
+                $rating
+            );
+            $this->queue($mailable, $clientEmail, 'client_project_completed', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id
+            ]);
+            Log::info('Client project completed email queued', ['email' => $clientEmail, 'project_id' => $project->id]);
+        } catch (\Exception $e) {
+            Log::error('Failed to queue client project completed email', [
+                'email' => $clientEmail,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    // --- Generic/Other Emails ---
 } 

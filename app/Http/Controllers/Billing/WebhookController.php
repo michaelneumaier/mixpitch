@@ -7,9 +7,14 @@ use Illuminate\Http\Request;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
 use App\Models\User;
 use App\Models\Pitch;
+use App\Models\Order;
+use App\Models\Invoice;
 use App\Services\PitchWorkflowService;
+use App\Services\InvoiceService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\DB;
 
 class WebhookController extends CashierWebhookController
 {
@@ -78,10 +83,9 @@ class WebhookController extends CashierWebhookController
      * This is the primary webhook for confirming pitch payments.
      *
      * @param  array  $payload
-     * @param  PitchWorkflowService $pitchWorkflowService Injected service
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function handleInvoicePaymentSucceeded($payload, PitchWorkflowService $pitchWorkflowService)
+    public function handleInvoicePaymentSucceeded($payload)
     {
         $invoicePayload = $payload['data']['object'] ?? null;
         $invoiceId = $invoicePayload['id'] ?? null;
@@ -93,6 +97,9 @@ class WebhookController extends CashierWebhookController
         }
 
         try {
+            // Resolve service from container
+            $pitchWorkflowService = app(PitchWorkflowService::class); 
+
             // --- Pitch Payment Logic ---
             $pitchId = $invoicePayload['metadata']['pitch_id'] ?? null;
 
@@ -139,10 +146,9 @@ class WebhookController extends CashierWebhookController
      * Handle invoice payment failed event.
      *
      * @param  array  $payload
-     * @param  PitchWorkflowService $pitchWorkflowService Injected service
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function handleInvoicePaymentFailed($payload, PitchWorkflowService $pitchWorkflowService)
+    public function handleInvoicePaymentFailed($payload)
     {
          $invoicePayload = $payload['data']['object'] ?? null;
          $invoiceId = $invoicePayload['id'] ?? null;
@@ -154,6 +160,9 @@ class WebhookController extends CashierWebhookController
         }
 
         try {
+             // Resolve service from container
+             $pitchWorkflowService = app(PitchWorkflowService::class);
+
              // --- Pitch Payment Logic ---
             $pitchId = $invoicePayload['metadata']['pitch_id'] ?? null;
 
@@ -201,7 +210,210 @@ class WebhookController extends CashierWebhookController
     public function handleCustomerSubscriptionUpdated($payload) { Log::info('Webhook received: customer.subscription.updated', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
     public function handleCustomerSubscriptionDeleted($payload) { Log::info('Webhook received: customer.subscription.deleted', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
     public function handleCustomerUpdated($payload) { Log::info('Webhook received: customer.updated', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
+    public function handleCustomerDeleted($payload) { Log::info('Webhook received: customer.deleted', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
 
+    /**
+     * Handle checkout session completed event.
+     * Handles payments completed via Stripe Checkout for:
+     * - Client Management Pitches
+     * - Service Package Orders
+     *
+     * @param  array $payload
+     * @param  InvoiceService $invoiceService
+     * @param  NotificationService $notificationService
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function handleCheckoutSessionCompleted(
+        array $payload,
+        InvoiceService $invoiceService,
+        NotificationService $notificationService
+    ): Response
+    {
+        $session = $payload['data']['object'] ?? null;
+        $sessionId = $session['id'] ?? null;
+        Log::info('Webhook received: checkout.session.completed', ['session_id' => $sessionId]);
+
+        if (!$session || !$sessionId) {
+            Log::error('Invalid checkout.session.completed payload received.', ['payload_id' => $payload['id'] ?? 'N/A']);
+            return new Response('Invalid payload', 400);
+        }
+
+        // Check payment status - should be 'paid' for this event
+        if ($session['payment_status'] !== 'paid') {
+            Log::info('Checkout session completed but payment not marked as paid.', ['session_id' => $sessionId, 'payment_status' => $session['payment_status']]);
+            return $this->successMethod(); // Acknowledge webhook
+        }
+
+        // Extract metadata and payment intent ID
+        $metadata = $session['metadata'] ?? [];
+        $paymentIntentId = $session['payment_intent'] ?? null;
+        $pitchId = $metadata['pitch_id'] ?? null;
+        $orderId = $metadata['order_id'] ?? null;
+        $invoiceId = $metadata['invoice_id'] ?? null; // Local Invoice Model ID
+
+        // --- Service Package Order Payment Processing ---
+        if ($orderId && $invoiceId) {
+            Log::info('Processing checkout.session.completed for Service Order.', [
+                'session_id' => $sessionId,
+                'order_id' => $orderId,
+                'invoice_id' => $invoiceId,
+                'payment_intent_id' => $paymentIntentId
+            ]);
+
+            try {
+                DB::transaction(function () use ($orderId, $invoiceId, $sessionId, $paymentIntentId, $notificationService, $session) {
+                    $order = Order::with('servicePackage')->find($orderId);
+                    $invoice = Invoice::find($invoiceId);
+
+                    if (!$order || !$invoice) {
+                        Log::error('Order or Invoice not found for checkout session.', [
+                            'session_id' => $sessionId,
+                            'order_id' => $orderId,
+                            'invoice_id' => $invoiceId
+                        ]);
+                        // Throw exception to rollback transaction and log error
+                        throw new \Exception("Order or Invoice not found"); 
+                    }
+
+                    // Idempotency check: ensure we haven't already processed this
+                    if ($order->payment_status === Order::PAYMENT_STATUS_PAID || $invoice->status === Invoice::STATUS_PAID) {
+                        Log::info('Order/Invoice already marked as paid, skipping duplicate processing.', [
+                            'session_id' => $sessionId,
+                            'order_id' => $orderId,
+                            'invoice_id' => $invoiceId
+                        ]);
+                        return; // Exit transaction successfully
+                    }
+
+                    // Update Order Status
+                    $order->payment_status = Order::PAYMENT_STATUS_PAID;
+                    // Move to next logical step - usually pending requirements unless package has none
+                    $order->status = Order::STATUS_PENDING_REQUIREMENTS; // Or check if requirements_prompt exists
+                    if (empty($order->servicePackage->requirements_prompt)) {
+                        $order->status = Order::STATUS_IN_PROGRESS;
+                    }
+                    $order->save();
+
+                    // Update Invoice Status
+                    $invoice->status = Invoice::STATUS_PAID;
+                    $invoice->paid_at = now();
+                    $invoice->stripe_checkout_session_id = $sessionId;
+                    $invoice->stripe_payment_intent_id = $paymentIntentId;
+                    // Store relevant session data if needed
+                    $invoice->metadata = array_merge($invoice->metadata ?? [], ['checkout_session' => $session]); 
+                    $invoice->save();
+                    
+                    // Create Order Event
+                    $order->events()->create([
+                        'event_type' => OrderEvent::EVENT_PAYMENT_RECEIVED,
+                        'comment' => 'Payment successfully received via Stripe Checkout.',
+                        'status_to' => $order->status, 
+                        'metadata' => ['stripe_checkout_session_id' => $sessionId, 'payment_intent_id' => $paymentIntentId]
+                    ]);
+                    
+                    // Send notifications to client and producer
+                    $notificationService->notify($order->client, new \App\Notifications\Notifications\Order\OrderPaymentConfirmed($order));
+                    $notificationService->notify($order->producer, new \App\Notifications\Notifications\Order\ProducerOrderReceived($order));
+
+                    Log::info('Successfully processed Service Order payment via webhook.', ['order_id' => $orderId, 'invoice_id' => $invoiceId]);
+                });
+
+            } catch (\Exception $e) {
+                Log::error('Error processing checkout.session.completed for Service Order: ' . $e->getMessage(), [
+                    'session_id' => $sessionId,
+                    'order_id' => $orderId,
+                    'invoice_id' => $invoiceId,
+                    'exception' => $e
+                ]);
+                // Don't throw error back to Stripe, return success to prevent retries
+            }
+        }
+        // --- End Service Package Order Payment Processing ---
+
+        // --- Client Management Pitch Payment Processing ---
+        elseif ($pitchId && ($metadata['type'] ?? null) === 'client_pitch_payment') {
+            Log::info('Processing checkout.session.completed for Client Pitch Payment.', [
+                'session_id' => $sessionId,
+                'pitch_id' => $pitchId,
+                'payment_intent_id' => $paymentIntentId
+            ]);
+
+            try {
+                DB::transaction(function () use ($pitchId, $sessionId, $paymentIntentId, $session, $invoiceService, $notificationService) {
+                    // Resolve service from container where needed
+                    $pitchWorkflowService = app(PitchWorkflowService::class); 
+                    
+                    $pitch = Pitch::find($pitchId);
+                    if (!$pitch) {
+                        Log::error('Pitch not found for client payment checkout session.', [
+                            'session_id' => $sessionId,
+                            'pitch_id' => $pitchId
+                        ]);
+                        throw new \Exception("Pitch not found");
+                    }
+
+                    // Idempotency check
+                    if ($pitch->payment_status === Pitch::PAYMENT_STATUS_PAID) {
+                         Log::info('Pitch already marked as paid, skipping duplicate processing.', [
+                            'session_id' => $sessionId,
+                            'pitch_id' => $pitchId
+                        ]);
+                        return; // Exit transaction successfully
+                    }
+
+                    // Update pitch payment status (already done in service? Double check)
+                     $pitch->payment_status = Pitch::PAYMENT_STATUS_PAID;
+                     $pitch->payment_completed_at = now();
+                     $pitch->save(); // Save payment status update
+                     
+                    // Call workflow service to update pitch status, create event, notify
+                    // The service method should be idempotent regarding status updates
+                    $pitchWorkflowService->clientApprovePitch($pitch, $pitch->project->client_email ?? 'webhook'); // Removed extra params no longer needed?
+                    
+                    // Update or Create Invoice (using InvoiceService might be cleaner)
+                    // Find existing or create new Invoice model based on pitch_id?
+                    // This depends on whether an Invoice model was created *before* checkout
+                    $invoice = Invoice::firstOrCreate(
+                        ['pitch_id' => $pitch->id], // Assuming only one invoice per pitch for this flow
+                        [
+                            'user_id' => $pitch->project->user_id, // Or client_user_id if applicable
+                            'amount' => $pitch->payment_amount, // Assuming payment_amount is on Pitch
+                            'currency' => $pitch->project->prize_currency ?? 'USD', // Adjust as needed
+                            'description' => 'Invoice for Client Pitch Payment #' . $pitch->id,
+                            'metadata' => ['client_email' => $pitch->project->client_email],
+                        ]
+                    );
+                    
+                    $invoice->status = Invoice::STATUS_PAID;
+                    $invoice->paid_at = now();
+                    $invoice->stripe_checkout_session_id = $sessionId;
+                    $invoice->stripe_payment_intent_id = $paymentIntentId;
+                    $invoice->metadata = array_merge($invoice->metadata ?? [], ['checkout_session' => $session]); 
+                    $invoice->save();
+                    
+                    Log::info('Successfully processed Client Pitch Payment via webhook.', ['pitch_id' => $pitchId, 'invoice_id' => $invoice->id]);
+                });
+
+            } catch (\Exception $e) {
+                 Log::error('Error processing checkout.session.completed for Client Pitch: ' . $e->getMessage(), [
+                    'session_id' => $sessionId,
+                    'pitch_id' => $pitchId,
+                    'exception' => $e
+                ]);
+                 // Return success to prevent retries
+            }
+        }
+        // --- End Client Management Pitch Payment Processing ---
+
+        else {
+            Log::info('Checkout session completed did not match expected metadata for Order or Client Pitch.', [
+                'session_id' => $sessionId,
+                'metadata' => $metadata
+            ]);
+        }
+
+        return $this->successMethod(); // Always return success to Stripe
+    }
 
     // --- Helper Methods ---
 

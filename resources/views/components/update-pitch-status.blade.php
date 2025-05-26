@@ -9,7 +9,7 @@
             <i class="fas fa-info-circle mr-2"></i>This pitch has been closed because another pitch was selected
         </div>
         @elseif ($status === \App\Models\Pitch::STATUS_PENDING)
-            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project, 'pitch' => $pitch]) }}">
+            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project->id, 'pitch' => $pitch->id]) }}">
                 @csrf
                 <input type="hidden" name="direction" value="forward">
                 <input type="hidden" name="newStatus" value="{{ \App\Models\Pitch::STATUS_IN_PROGRESS }}">
@@ -18,7 +18,7 @@
                 </button>
             </form>
         @elseif ($status === \App\Models\Pitch::STATUS_IN_PROGRESS)
-            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project, 'pitch' => $pitch]) }}">
+            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project->id, 'pitch' => $pitch->id]) }}">
                 @csrf
                 <input type="hidden" name="direction" value="backward">
                 <input type="hidden" name="newStatus" value="{{ \App\Models\Pitch::STATUS_PENDING }}">
@@ -27,7 +27,7 @@
                 </button>
             </form>
         @elseif ($status === \App\Models\Pitch::STATUS_PENDING_REVIEW)
-            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project, 'pitch' => $pitch]) }}">
+            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project->id, 'pitch' => $pitch->id]) }}">
                 @csrf
                 <input type="hidden" name="direction" value="backward">
                 <input type="hidden" name="newStatus" value="{{ \App\Models\Pitch::STATUS_PENDING }}">
@@ -62,7 +62,7 @@
             @endif
 
         @elseif ($status === \App\Models\Pitch::STATUS_APPROVED)
-            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project, 'pitch' => $pitch]) }}">
+            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project->id, 'pitch' => $pitch->id]) }}">
                 @csrf
                 <input type="hidden" name="direction" value="backward">
                 <input type="hidden" name="newStatus" value="{{ \App\Models\Pitch::STATUS_READY_FOR_REVIEW }}">
@@ -71,7 +71,7 @@
                 </button>
             </form>
         @elseif ($status === \App\Models\Pitch::STATUS_REVISIONS_REQUESTED)
-            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project, 'pitch' => $pitch]) }}">
+            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project->id, 'pitch' => $pitch->id]) }}">
                 @csrf
                 <input type="hidden" name="direction" value="backward">
                 <input type="hidden" name="newStatus" value="{{ \App\Models\Pitch::STATUS_READY_FOR_REVIEW }}">
@@ -80,7 +80,7 @@
                 </button>
             </form>
         @elseif ($status === \App\Models\Pitch::STATUS_DENIED)
-            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project, 'pitch' => $pitch]) }}">
+            <form method="POST" action="{{ route('projects.pitches.change-status', ['project' => $pitch->project->id, 'pitch' => $pitch->id]) }}">
                 @csrf
                 <input type="hidden" name="direction" value="backward">
                 <input type="hidden" name="newStatus" value="{{ \App\Models\Pitch::STATUS_READY_FOR_REVIEW }}">

@@ -5,55 +5,110 @@ namespace App\Livewire\Forms;
 use Livewire\Attributes\Rule;
 use Livewire\Form;
 use Livewire\WithFileUploads;
+use App\Models\Project;
+use Illuminate\Validation\Rule as ValidationRule;
 
 class ProjectForm extends Form
 {
 
-    #[Rule('required|string|min:5|max:80')]
     public $name;
 
-    #[Rule('nullable|string|max:30')]
     public $artistName;
 
-    #[Rule('required|in:single,album,ep,mixtape,remix,cover,soundtrack,other')]
-    public $projectType;
+    public $projectType = 'single';
 
-    #[Rule('required|string|min:5|max:1000')]
     public $description;
 
-    #[Rule('required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk')]
     public $genre;
 
-    #[Rule('nullable|image|max:2048')]
     public $projectImage;
 
-    #[Rule('boolean')]
     public $collaborationTypeMixing = false;
 
-    #[Rule('boolean')]
     public $collaborationTypeMastering = false;
 
-    #[Rule('boolean')]
     public $collaborationTypeProduction = false;
 
-    #[Rule('boolean')]
     public $collaborationTypeSongwriting = false;
 
-    #[Rule('boolean')]
     public $collaborationTypeVocalTuning = false;
 
-    #[Rule('required|in:free,paid')]
     public $budgetType;
 
-    #[Rule('required|numeric|min:0|max:10000')]
     public $budget;
 
-    #[Rule('required|date|after:today')]
     public $deadline;
 
-    #[Rule('nullable|mimes:mp3,wav,aiff|max:20480')]
     public $track;
 
-    #[Rule('nullable|string|max:1000')]
     public $notes;
+
+    public $submissionDeadline;
+    public $judgingDeadline;
+    public $prizeAmount;
+
+    public function rules()
+    {
+        $rules = [
+            'name' => 'required|string|min:5|max:80',
+            'artistName' => 'nullable|string|max:30',
+            'projectType' => ['required', 'string', 'max:50'],
+            'description' => 'required|string|min:5|max:1000',
+            'genre' => 'required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk',
+            'projectImage' => 'nullable|image|max:2048',
+            'collaborationTypeMixing' => 'boolean',
+            'collaborationTypeMastering' => 'boolean',
+            'collaborationTypeProduction' => 'boolean',
+            'collaborationTypeSongwriting' => 'boolean',
+            'collaborationTypeVocalTuning' => 'boolean',
+            'budgetType' => 'required|in:free,paid',
+            'budget' => 'nullable',
+            'deadline' => 'nullable|date',
+            'track' => 'nullable|mimes:mp3,wav,aiff|max:20480',
+            'notes' => 'nullable|string|max:1000',
+        ];
+
+        return $rules;
+    }
+
+    /**
+     * Format budget for database storage
+     * Ensures budget is properly cast to a numeric value
+     * 
+     * @return int|float
+     */
+    public function getFormattedBudget()
+    {
+        if ($this->budgetType === 'free') {
+            return 0;
+        }
+        
+        if (empty($this->budget)) {
+            return 0;
+        }
+        
+        // Strip currency symbols and formatting
+        $stripped = preg_replace('/[^\d.]/', '', $this->budget);
+        
+        // Convert to float if numeric
+        return is_numeric($stripped) ? (float)$stripped : 0;
+    }
+
+    public function setProject(Project $project)
+    {
+        $this->project = $project;
+        $this->name = $project->name;
+        $this->artistName = $project->artist_name;
+        $this->projectType = $project->project_type;
+        $this->description = $project->description;
+        $this->genre = $project->genre;
+        $this->collaborationTypeMixing = in_array('Mixing', $project->collaboration_type ?? []);
+        $this->collaborationTypeMastering = in_array('Mastering', $project->collaboration_type ?? []);
+        $this->collaborationTypeProduction = in_array('Production', $project->collaboration_type ?? []);
+        $this->collaborationTypeSongwriting = in_array('Songwriting', $project->collaboration_type ?? []);
+        $this->collaborationTypeVocalTuning = in_array('Vocal Tuning', $project->collaboration_type ?? []);
+        $this->budget = $project->budget ?? 0;
+        $this->budgetType = $this->budget > 0 ? 'paid' : 'free';
+        $this->notes = $project->notes;
+    }
 }

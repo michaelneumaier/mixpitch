@@ -6,6 +6,10 @@ use App\Models\Pitch;
 use App\Models\User;
 use App\Models\PitchSnapshot;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use App\Models\Project;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class PitchPolicy
 {
@@ -20,7 +24,7 @@ class PitchPolicy
      */
     public function view(User $user, Pitch $pitch)
     {
-        // Allow both the pitch owner and the project owner to view the pitch
+        // Allow both the pitch owner (producer for DH/CM) and the project owner to view the pitch
         return $user->id === $pitch->user_id || $user->id === $pitch->project->user_id;
     }
 
@@ -31,8 +35,13 @@ class PitchPolicy
      * @param  \App\Models\Project  $project
      * @return bool
      */
-    public function createPitch(User $user, \App\Models\Project $project): bool
+    public function createPitch(User $user, Project $project): bool
     {
+        // Deny public creation for Direct Hire / Client Management workflows
+        if ($project->isDirectHire() || $project->isClientManagement()) {
+            return false;
+        }
+
         // User must be authenticated (implied by User type hint)
         // User cannot be the project owner
         // Project must be open for pitches
@@ -51,16 +60,23 @@ class PitchPolicy
      */
     public function update(User $user, Pitch $pitch)
     {
-        // Only the pitch owner can update the pitch
-        // Additional logic for status-based permissions
+        // Only the pitch owner (producer for DH/CM) can update the pitch details
         if ($user->id === $pitch->user_id) {
             // Allow editing if the pitch is in these statuses
-            return in_array($pitch->status, [
+            $allowedStatuses = [
                 Pitch::STATUS_IN_PROGRESS,
-                Pitch::STATUS_DENIED,
                 Pitch::STATUS_REVISIONS_REQUESTED,
-                Pitch::STATUS_PENDING_REVIEW
-            ]);
+                Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Added for Client Mgmt
+                // Pitch::STATUS_DENIED, // Should denied pitches be editable?
+                // Pitch::STATUS_PENDING_REVIEW // Should review-pending be editable?
+            ];
+            
+            // For Client Management projects, also allow editing when READY_FOR_REVIEW (for recall functionality)
+            if ($pitch->project->isClientManagement() && $pitch->status === Pitch::STATUS_READY_FOR_REVIEW) {
+                $allowedStatuses[] = Pitch::STATUS_READY_FOR_REVIEW;
+            }
+            
+            return in_array($pitch->status, $allowedStatuses);
         }
 
         return false;
@@ -75,11 +91,13 @@ class PitchPolicy
      */
     public function delete(User $user, Pitch $pitch)
     {
-        // Only the pitch owner can delete the pitch and only in certain statuses
+        // Only the pitch owner (producer for DH/CM) can delete the pitch and only in certain statuses
         return $user->id === $pitch->user_id && in_array($pitch->status, [
             Pitch::STATUS_IN_PROGRESS,
-            Pitch::STATUS_DENIED,
-            Pitch::STATUS_REVISIONS_REQUESTED
+            Pitch::STATUS_REVISIONS_REQUESTED,
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Added
+            Pitch::STATUS_AWAITING_ACCEPTANCE, // Added for explicit DH
+            // Pitch::STATUS_DENIED, // Should denied pitches be deletable?
         ]);
     }
 
@@ -92,9 +110,10 @@ class PitchPolicy
      */
     public function approveInitial(User $user, Pitch $pitch): bool
     {
-        // Only the project owner can approve initial pitch
-        // Pitch must be in 'pending' status
-        return $user->id === $pitch->project->user_id && $pitch->status === Pitch::STATUS_PENDING;
+        // Only project owner can approve, and only for Standard workflow projects
+        return $user->id === $pitch->project->user_id &&
+               $pitch->project->isStandard() && // Ensure it's standard
+               $pitch->status === Pitch::STATUS_PENDING;
     }
 
     /**
@@ -106,7 +125,12 @@ class PitchPolicy
      */
     public function approveSubmission(User $user, Pitch $pitch): bool
     {
-        // Only the project owner can approve submissions
+        // Block for Contests and Client Management (Client approves via portal)
+        if ($pitch->project->isContest() || $pitch->project->isClientManagement()) {
+            return false;
+        }
+
+        // Only project owner can approve submissions
         // Pitch must be 'ready_for_review'
         // Cannot modify paid & completed pitches
         $isPaidAndCompleted = $pitch->status === Pitch::STATUS_COMPLETED ||
@@ -126,6 +150,11 @@ class PitchPolicy
      */
     public function denySubmission(User $user, Pitch $pitch): bool
     {
+        // Block for Contests and Client Management
+        if ($pitch->project->isContest() || $pitch->project->isClientManagement()) {
+            return false;
+        }
+
         // Same logic as approveSubmission for who can deny and when
         $isPaidAndCompleted = $pitch->status === Pitch::STATUS_COMPLETED ||
                               in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING]);
@@ -144,6 +173,11 @@ class PitchPolicy
      */
     public function requestRevisions(User $user, Pitch $pitch): bool
     {
+        // Block for Contests and Client Management (Client requests via portal)
+        if ($pitch->project->isContest() || $pitch->project->isClientManagement()) {
+            return false;
+        }
+
         // Same logic as approveSubmission/denySubmission
         $isPaidAndCompleted = $pitch->status === Pitch::STATUS_COMPLETED ||
                               in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING]);
@@ -162,14 +196,44 @@ class PitchPolicy
      */
     public function cancelSubmission(User $user, Pitch $pitch): bool
     {
-        // Only the pitch owner (creator) can cancel
+        // Block for Contests
+        if ($pitch->project->isContest()) {
+            return false;
+        }
+
+        // Only the pitch owner (producer for DH/CM) can cancel
         // Pitch must be 'ready_for_review'
         // Snapshot must be 'pending'
         $currentSnapshotIsPending = $pitch->currentSnapshot && $pitch->currentSnapshot->status === PitchSnapshot::STATUS_PENDING;
 
+        // Note: Client Management uses a different review flow (no snapshots)
+        if ($pitch->project->isClientManagement()) {
+            return false; // Cancellation might need different logic/policy for Client Mgmt
+        }
+
         return $user->id === $pitch->user_id &&
                $pitch->status === Pitch::STATUS_READY_FOR_REVIEW &&
                $currentSnapshotIsPending;
+    }
+
+    /**
+     * Determine whether the pitch creator can recall their submission (Client Management specific).
+     *
+     * @param  \App\Models\User  $user (Pitch Creator)
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function recallSubmission(User $user, Pitch $pitch): bool
+    {
+        // Only for Client Management projects
+        if (!$pitch->project->isClientManagement()) {
+            return false;
+        }
+
+        // Only the pitch owner can recall
+        // Pitch must be 'ready_for_review'
+        return $user->id === $pitch->user_id &&
+               $pitch->status === Pitch::STATUS_READY_FOR_REVIEW;
     }
 
     /**
@@ -178,17 +242,48 @@ class PitchPolicy
      * @param  \App\Models\User  $user (Pitch Creator)
      * @param  \App\Models\Pitch  $pitch
      * @return bool
+     * @throws \Illuminate\Auth\Access\AuthorizationException
      */
     public function submitForReview(User $user, Pitch $pitch): bool
     {
-        // Only the pitch owner (creator) can submit
-        // Pitch must be in 'in_progress' or 'revisions_requested' status
-        return $user->id === $pitch->user_id &&
-               in_array($pitch->status, [
-                   Pitch::STATUS_IN_PROGRESS,
-                   Pitch::STATUS_REVISIONS_REQUESTED
-                   // Removed Pitch::STATUS_DENIED
-                ]);
+        \Illuminate\Support\Facades\Log::debug('PitchPolicy::submitForReview called in test.', [
+            'user_id' => $user->id,
+            'pitch_id' => $pitch->id,
+            'pitch_user_id' => $pitch->user_id,
+            'is_contest' => $pitch->project->isContest(),
+            'would_return' => $user->id === $pitch->user_id && !$pitch->project->isContest()
+        ]);
+        
+        // Block for Contests
+        if ($pitch->project->isContest()) {
+            throw new AuthorizationException('Contest pitches cannot be submitted directly.');
+        }
+
+        // Only the pitch owner (producer for DH/CM) can submit
+        // Pitch must be in an active state allowing submission
+        $isTargetProducer = $user->id === $pitch->user_id;
+        if (!$isTargetProducer) {
+            throw new AuthorizationException('Only the pitch owner can submit it for review.');
+        }
+        
+        $isCorrectStatus = in_array($pitch->status, [
+            Pitch::STATUS_IN_PROGRESS,
+            Pitch::STATUS_REVISIONS_REQUESTED,
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED // Added for Client Mgmt
+        ]);
+
+        if (!$isCorrectStatus) {
+            throw new AuthorizationException('Pitch cannot be submitted in its current status.');
+        }
+        
+        \Illuminate\Support\Facades\Log::debug('PitchPolicy::submitForReview results.', [
+            'isTargetProducer' => $isTargetProducer,
+            'isCorrectStatus' => $isCorrectStatus,
+            'pitch_status' => $pitch->status,
+            'would_return' => $isTargetProducer && $isCorrectStatus
+        ]);
+        
+        return true; // If we reached here, all checks passed
     }
 
     /**
@@ -200,17 +295,26 @@ class PitchPolicy
      */
     public function complete(User $user, Pitch $pitch): bool
     {
-        // Only the project owner can complete the pitch
-        // Pitch must be in 'approved' status
-        // Cannot complete if already paid or processing payment
-        $isPaidOrProcessing = in_array($pitch->payment_status, [
-            Pitch::PAYMENT_STATUS_PAID,
-            Pitch::PAYMENT_STATUS_PROCESSING
-        ]);
+        // Block completion for Contests (use selectWinner)
+        // For Client Management, only the producer (pitch owner) should complete?
+        if ($pitch->project->isContest()) {
+            return false;
+        }
 
-        return $user->id === $pitch->project->user_id &&
-               $pitch->status === Pitch::STATUS_APPROVED &&
-               !$isPaidOrProcessing;
+        // Determine who can complete based on workflow
+        $canComplete = false;
+        if ($pitch->project->isStandard() || $pitch->project->isDirectHire()) {
+            // Only project owner can complete standard/direct hire
+            $canComplete = $user->id === $pitch->project->user_id;
+        } elseif ($pitch->project->isClientManagement()) {
+            // Only the producer (pitch owner) can complete client mgmt projects
+            $canComplete = $user->id === $pitch->user_id;
+        }
+
+        // Pitch must be approved
+        $isCorrectStatus = $pitch->status === Pitch::STATUS_APPROVED;
+
+        return $canComplete && $isCorrectStatus;
     }
 
     /**
@@ -222,15 +326,13 @@ class PitchPolicy
      */
     public function returnToApproved(User $user, Pitch $pitch): bool
     {
-        // Only the project owner can perform this action.
-        // Pitch must be in 'completed' status.
-        // Payment must be 'pending' or 'failed'. Cannot revert if already paid or processing.
+        // Block for Contests and Client Management
+        if ($pitch->project->isContest() || $pitch->project->isClientManagement()) {
+            return false;
+        }
+        // Only the project owner can perform this action
         return $user->id === $pitch->project->user_id &&
-               $pitch->status === Pitch::STATUS_COMPLETED &&
-               in_array($pitch->payment_status, [
-                   Pitch::PAYMENT_STATUS_PENDING,
-                   Pitch::PAYMENT_STATUS_FAILED
-               ]);
+               $pitch->status === Pitch::STATUS_COMPLETED; // Must be completed
     }
 
     /**
@@ -243,14 +345,21 @@ class PitchPolicy
      */
     public function uploadFile(User $user, Pitch $pitch): bool
     {
-        // Only the pitch owner can upload
-        // Pitch must be in a status that allows uploads
-        return $user->id === $pitch->user_id &&
-               in_array($pitch->status, [
-                   Pitch::STATUS_IN_PROGRESS,
-                   Pitch::STATUS_REVISIONS_REQUESTED
-                   // Add other statuses if needed
-               ]);
+        // Generally, only the pitch owner (producer) should upload files during active phases.
+        // Project owner might upload reference files if logic allows, but primary uploads are by producer.
+
+        $canUpload = $user->id === $pitch->user_id;
+
+        // Define allowed statuses for upload
+        $allowedStatuses = [
+            Pitch::STATUS_IN_PROGRESS,
+            Pitch::STATUS_REVISIONS_REQUESTED,
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Allow producer upload after client request
+            Pitch::STATUS_CONTEST_ENTRY // Allow contest entry upload
+            // Maybe Pitch::STATUS_PENDING if initial files are allowed before approval?
+        ];
+
+        return $canUpload && in_array($pitch->status, $allowedStatuses);
     }
 
     /**
@@ -262,7 +371,7 @@ class PitchPolicy
      */
     public function manageAccess(User $user, Pitch $pitch): bool
     {
-        // Only the project owner can manage access
+        // Example: Only project owner can manage access
         return $user->id === $pitch->project->user_id;
     }
 
@@ -275,12 +384,82 @@ class PitchPolicy
      */
     public function manageReview(User $user, Pitch $pitch): bool
     {
-        // Only the project owner can manage review status
-        $isPaidAndCompleted = $pitch->status === Pitch::STATUS_COMPLETED &&
-                              in_array($pitch->payment_status, [Pitch::PAYMENT_STATUS_PAID, Pitch::PAYMENT_STATUS_PROCESSING]);
+        // Only project owner can manage reviews
+        // Check if pitch status allows review actions
+        $isOwner = $user->id === $pitch->project->user_id;
+        $isCorrectStatus = $pitch->status === Pitch::STATUS_READY_FOR_REVIEW;
 
-        return $user->id === $pitch->project->user_id && !$isPaidAndCompleted;
+        // Deny if contest or client management (different review flows)
+        if ($pitch->project->isContest() || $pitch->project->isClientManagement()) {
+            return false;
+        }
+
+        return $isOwner && $isCorrectStatus;
     }
+
+    // <<< PHASE 3: CONTEST POLICIES >>>
+
+    /**
+     * Determine whether the project owner can select a contest winner.
+     *
+     * @param  \App\Models\User  $user (Project Owner)
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function selectWinner(User $user, Pitch $pitch): bool
+    {
+        // Only project owner can select winner for their contest pitch
+        return $user->id === $pitch->project->user_id &&
+               $pitch->project->isContest() &&
+               $pitch->status === Pitch::STATUS_CONTEST_ENTRY; // Can only select from entries
+    }
+
+    /**
+     * Determine whether the project owner can select a contest runner-up.
+     *
+     * @param  \App\Models\User  $user (Project Owner)
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function selectRunnerUp(User $user, Pitch $pitch): bool
+    {
+        // Only project owner can select runner-up for their contest pitch
+        return $user->id === $pitch->project->user_id &&
+               $pitch->project->isContest() &&
+               $pitch->status === Pitch::STATUS_CONTEST_ENTRY;
+    }
+
+    /**
+     * Determine whether the user can accept a Direct Hire offer.
+     *
+     * @param User $user
+     * @param Pitch $pitch
+     * @return boolean
+     */
+    public function acceptDirectHire(User $user, Pitch $pitch): bool
+    {
+        // Only the assigned producer can accept, and only if awaiting acceptance
+        return $user->id === $pitch->user_id &&
+               $pitch->project->isDirectHire() &&
+               $pitch->status === Pitch::STATUS_AWAITING_ACCEPTANCE;
+    }
+
+    /**
+     * Determine whether the user can reject a Direct Hire offer.
+     *
+     * @param User $user
+     * @param Pitch $pitch
+     * @return boolean
+     */
+    public function rejectDirectHire(User $user, Pitch $pitch): bool
+    {
+        // Only the assigned producer can reject, and only if awaiting acceptance
+        return $user->id === $pitch->user_id &&
+               $pitch->project->isDirectHire() &&
+               $pitch->status === Pitch::STATUS_AWAITING_ACCEPTANCE;
+    }
+
+    // <<< END PHASE 3: CONTEST POLICIES >>>
 
     // Add other policy methods as needed, e.g., for completion, file management
 }

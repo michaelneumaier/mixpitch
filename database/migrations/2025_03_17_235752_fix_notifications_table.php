@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 return new class extends Migration
 {
@@ -37,10 +38,24 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop index first
         Schema::table('notifications', function (Blueprint $table) {
-            $table->dropIndex(['notifiable_type', 'notifiable_id']);
-            $table->dropColumn('notifiable_type');
-            $table->dropColumn('notifiable_id');
+             try {
+                // Index name convention: table_column1_column2_index
+                $table->dropIndex('notifications_notifiable_type_notifiable_id_index');
+            } catch (\Illuminate\Database\QueryException $e) {
+                Log::warning("Could not drop notifiable index during migration rollback: " . $e->getMessage());
+            }
         });
+
+        // Drop columns separately for SQLite compatibility
+        $columns = ['notifiable_type', 'notifiable_id'];
+        foreach ($columns as $column) {
+            if (Schema::hasColumn('notifications', $column)) {
+                Schema::table('notifications', function (Blueprint $table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
     }
 };

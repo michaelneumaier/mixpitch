@@ -166,7 +166,7 @@
                             </div>
 
                             <div class="mb-4 sm:mb-6" x-data="{ touched: false }" x-init="if ($wire.isEdit) {touched = true;}">
-                                <label for="projectType" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                <label for="project_type" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                                     <!-- Required Icon (Asterisk) -->
                                     <span x-show="!touched"
                                         class="text-red-500 fas fa-asterisk text-2xs sm:text-xs align-top"></span>
@@ -180,18 +180,12 @@
                                     @endif
 
                                     Project Type:</label>
-                                <select id="projectType" wire:model.blur="form.projectType"
-                                    @blur="touched = ($event.target.value !== 'null')"
+                                <select id="project_type" wire:model.blur="form.projectType"
+                                    @blur="touched = ($event.target.value !== '')"
                                     class="select select-bordered w-full text-sm sm:text-base py-2 sm:py-2.5 h-auto">
-                                    <option value="null" disabled>Select a project type</option>
+                                    <option value="">Select a project type</option>
                                     <option value="single">Single</option>
                                     <option value="album">Album</option>
-                                    <option value="ep">EP</option>
-                                    <option value="mixtape">Mixtape</option>
-                                    <option value="remix">Remix</option>
-                                    <option value="cover">Cover</option>
-                                    <option value="soundtrack">Soundtrack</option>
-                                    <option value="other">Other</option>
                                 </select>
                                 @error('form.projectType')
                                 <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
@@ -200,6 +194,161 @@
                                 </div>
                                 @enderror
                             </div>
+
+                            <!-- Workflow Type -->
+                            <div class="mb-4 sm:mb-6" x-data="{ touched: false }" x-init="if ($wire.isEdit) {touched = true;}">
+                                <label for="workflow_type" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                    <!-- Required Icon (Asterisk) -->
+                                    <span x-show="!touched"
+                                        class="text-red-500 fas fa-asterisk text-2xs sm:text-xs align-top"></span>
+
+                                    <!-- Invalid Icon (Red X) -->
+                                    @if($errors->has('workflow_type'))
+                                    <span x-show="touched" class="text-red-500 fas fa-times validation-icon"></span>
+                                    @else
+                                    <!-- Valid Icon (Checkmark) -->
+                                    <span x-show="touched" class="text-green-500 fas fa-check validation-icon"></span>
+                                    @endif
+
+                                    Workflow Type:</label>
+                                <select id="workflow_type" wire:model.live="workflow_type"
+                                    @blur="touched = ($event.target.value !== 'null')"
+                                    class="select select-bordered w-full text-sm sm:text-base py-2 sm:py-2.5 h-auto">
+                                    <option value="null" disabled>Select a workflow type</option>
+                                    <option value="{{ \App\Models\Project::WORKFLOW_TYPE_STANDARD }}">Standard</option>
+                                    <option value="{{ \App\Models\Project::WORKFLOW_TYPE_CONTEST }}">Contest</option>
+                                    <option value="{{ \App\Models\Project::WORKFLOW_TYPE_DIRECT_HIRE }}">Direct Hire</option>
+                                    <option value="{{ \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT }}">Client Management</option>
+                                </select>
+                                @error('workflow_type')
+                                <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
+                                    <i class="fas fa-exclamation-circle mt-0.5 mr-1"></i>
+                                    <span>{{ $message }}</span>
+                                </div>
+                                @enderror
+                            </div>
+
+                            {{-- Conditional Fields for Contest Type --}}
+                            <div x-data="{ workflowType: @entangle('workflow_type') }" x-show="workflowType === '{{ \App\Models\Project::WORKFLOW_TYPE_CONTEST }}'" x-transition>
+                                <hr class="my-4 border-base-300">
+                                <h3 class="text-sm font-semibold text-gray-800 mb-3">Contest Details</h3>
+
+                                <div class="mb-4 sm:mb-6">
+                                    <label for="submissionDeadline" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                        Submission Deadline <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="datetime-local" id="submissionDeadline" wire:model.blur="submission_deadline"
+                                           class="input input-bordered w-full input-focus-effect text-sm sm:text-base py-2 sm:py-2.5">
+                                    @error('submission_deadline')
+                                    <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
+                                        <i class="fas fa-exclamation-circle mt-0.5 mr-1"></i>
+                                        <span>{{ $message }}</span>
+                                    </div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-4 sm:mb-6">
+                                    <label for="judgingDeadline" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                        Judging Deadline (Optional)
+                                    </label>
+                                    <input type="datetime-local" id="judgingDeadline" wire:model.blur="judging_deadline"
+                                           class="input input-bordered w-full input-focus-effect text-sm sm:text-base py-2 sm:py-2.5">
+                                    @error('judging_deadline')
+                                    <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
+                                        <i class="fas fa-exclamation-circle mt-0.5 mr-1"></i>
+                                        <span>{{ $message }}</span>
+                                    </div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-4 sm:mb-6">
+                                    <label for="prizeAmount" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                        Prize Amount ({{ \App\Models\Project::DEFAULT_CURRENCY }}) <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="flex items-center">
+                                        <span class="mr-2 text-gray-600 text-sm sm:text-base">{{ $prize_currency ?? \App\Models\Project::DEFAULT_CURRENCY }}</span>
+                                        <input type="number" id="prizeAmount" wire:model.blur="prize_amount" min="0" step="0.01"
+                                               class="input input-bordered w-full input-focus-effect text-sm sm:text-base py-2 sm:py-2.5">
+                                    </div>
+                                    @error('prize_amount')
+                                    <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
+                                        <i class="fas fa-exclamation-circle mt-0.5 mr-1"></i>
+                                        <span>{{ $message }}</span>
+                                    </div>
+                                    @enderror
+                                    <p class="mt-1 text-xs text-gray-500">Enter the total prize amount for the winner.</p>
+                                </div>
+                                <hr class="my-4 border-base-300">
+                            </div>
+
+                            {{-- Conditional Fields for Direct Hire Type --}}
+                            <div x-data="{ workflowType: @entangle('workflow_type') }" x-show="workflowType === '{{ \App\Models\Project::WORKFLOW_TYPE_DIRECT_HIRE }}'" x-transition>
+                                <hr class="my-4 border-base-300">
+                                <h3 class="text-sm font-semibold text-gray-800 mb-3">Direct Hire Details</h3>
+                                <div class="mb-4 sm:mb-6">
+                                    <label for="target_producer_search" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                        Target Producer <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" id="target_producer_search" wire:model.live.debounce.300ms="target_producer_query"
+                                           class="input input-bordered w-full input-focus-effect text-sm sm:text-base py-2 sm:py-2.5 mb-2"
+                                           placeholder="Search for producer by name...">
+
+                                    @if(!empty($producers))
+                                        <select id="target_producer_id" wire:model="target_producer_id"
+                                                class="select select-bordered w-full text-sm sm:text-base py-2 sm:py-2.5 h-auto mt-1">
+                                            <option value="">Select Producer</option>
+                                            @foreach($producers as $producer)
+                                                <option value="{{ $producer->id }}">{{ $producer->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    @elseif(strlen($target_producer_query) >= 2)
+                                        <p class="text-xs text-gray-500 mt-1">No producers found matching "{{ $target_producer_query }}".</p>
+                                    @endif
+
+                                    @error('target_producer_id')
+                                    <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
+                                        <i class="fas fa-exclamation-circle mt-0.5 mr-1"></i>
+                                        <span>{{ $message }}</span>
+                                    </div>
+                                    @enderror
+                                </div>
+                                <hr class="my-4 border-base-300">
+                            </div>
+
+                            {{-- Conditional Fields for Client Management Type --}}
+                            <div x-data="{ workflowType: @entangle('workflow_type') }" x-show="workflowType === '{{ \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT }}'" x-transition>
+                                <hr class="my-4 border-base-300">
+                                <h3 class="text-sm font-semibold text-gray-800 mb-3">Client Details</h3>
+                                <div class="mb-4 sm:mb-6">
+                                    <label for="client_email" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                        Client Email <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="email" id="client_email" wire:model.blur="client_email"
+                                           class="input input-bordered w-full input-focus-effect text-sm sm:text-base py-2 sm:py-2.5">
+                                    @error('client_email')
+                                    <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
+                                        <i class="fas fa-exclamation-circle mt-0.5 mr-1"></i>
+                                        <span>{{ $message }}</span>
+                                    </div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-4 sm:mb-6">
+                                    <label for="client_name" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                        Client Name (Optional)
+                                    </label>
+                                    <input type="text" id="client_name" wire:model.blur="client_name"
+                                           class="input input-bordered w-full input-focus-effect text-sm sm:text-base py-2 sm:py-2.5">
+                                    @error('client_name')
+                                    <div class="text-xs sm:text-sm text-error mt-1 flex items-start">
+                                        <i class="fas fa-exclamation-circle mt-0.5 mr-1"></i>
+                                        <span>{{ $message }}</span>
+                                    </div>
+                                    @enderror
+                                </div>
+                                <hr class="my-4 border-base-300">
+                            </div>
+                            {{-- End Conditional Fields --}}
 
                             <div class="mb-4 sm:mb-6" x-data="{ touched: false }" x-init="if ($wire.isEdit) {touched = true;}">
                                 <label for="description" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
@@ -576,8 +725,10 @@
                         </div>
                     </div>
 
-                    <!-- Submit Button -->
+                    <!-- Hidden fields for required values -->
+                    <input type="hidden" wire:model="visibility" value="public">
 
+                    <!-- Submit Button -->
                     <div class="mt-6 sm:mt-8 flex justify-center sm:justify-start">
                         @if($isEdit)
                         <button type="submit"

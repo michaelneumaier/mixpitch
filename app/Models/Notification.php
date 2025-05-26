@@ -63,7 +63,31 @@ class Notification extends Model
     const TYPE_PITCH_SUBMISSION_CANCELLED = 'pitch_submission_cancelled';
     const TYPE_PITCH_READY_FOR_REVIEW = 'pitch_ready_for_review';
     const TYPE_PITCH_CLOSED = 'pitch_closed';
+    const TYPE_PROJECT_UPDATE = 'project_update';
+    const TYPE_CONTEST_WINNER_SELECTED = 'contest_winner_selected';
+    const TYPE_CONTEST_RUNNER_UP_SELECTED = 'contest_runner_up_selected';
+    const TYPE_CONTEST_ENTRY_NOT_SELECTED = 'contest_entry_not_selected';
+    const TYPE_CONTEST_ENTRY_SUBMITTED = 'contest_entry_submitted';
+
+    // Phase 3: Added Types for No-Prize/Owner Notifications
+    const TYPE_CONTEST_WINNER_SELECTED_NO_PRIZE = 'contest_winner_selected_no_prize';
+    const TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION = 'contest_winner_selected_owner_notification';
+    const TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE = 'contest_winner_selected_owner_notification_no_prize';
+
+    // Phase 4: Direct Hire Types
+    const TYPE_DIRECT_HIRE_ASSIGNMENT = 'direct_hire_assignment';
+    const TYPE_DIRECT_HIRE_OFFER = 'direct_hire_offer'; // Placeholder for explicit flow
+    const TYPE_DIRECT_HIRE_ACCEPTED = 'direct_hire_accepted'; // Placeholder for explicit flow
+    const TYPE_DIRECT_HIRE_REJECTED = 'direct_hire_rejected'; // Placeholder for explicit flow
     
+    // Phase 7: Added Denial Type
+    const TYPE_INITIAL_PITCH_DENIED = 'initial_pitch_denied';
+    
+    // Client Management Notification Types
+    const TYPE_CLIENT_COMMENT_ADDED = 'client_comment_added';
+    const TYPE_CLIENT_APPROVED_PITCH = 'client_approved_pitch';
+    const TYPE_CLIENT_REQUESTED_REVISIONS = 'client_requested_revisions';
+
     /**
      * Get all defined notification types with user-friendly labels.
      *
@@ -93,6 +117,30 @@ class Notification extends Model
             self::TYPE_PITCH_SUBMISSION_CANCELLED => 'Pitch Submission Cancelled by Producer',
             self::TYPE_PITCH_READY_FOR_REVIEW => 'Pitch Ready for Review',
             self::TYPE_PITCH_CLOSED => 'Pitch Closed',
+            self::TYPE_PROJECT_UPDATE => 'Project Update',
+            self::TYPE_CONTEST_WINNER_SELECTED => 'Contest Winner Selected',
+            self::TYPE_CONTEST_RUNNER_UP_SELECTED => 'Contest Runner-Up Selected',
+            self::TYPE_CONTEST_ENTRY_NOT_SELECTED => 'Contest Entry Not Selected',
+            self::TYPE_CONTEST_ENTRY_SUBMITTED => 'Contest Entry Submitted',
+
+            // Phase 3 Added Labels
+            self::TYPE_CONTEST_WINNER_SELECTED_NO_PRIZE => 'Contest Winner Selected (No Prize)',
+            self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION => 'You Selected a Contest Winner',
+            self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE => 'You Selected a Contest Winner (No Prize)',
+
+            // Phase 4 Labels
+            self::TYPE_DIRECT_HIRE_ASSIGNMENT => 'New Direct Hire Assignment',
+            self::TYPE_DIRECT_HIRE_OFFER => 'New Direct Hire Offer', // Placeholder
+            self::TYPE_DIRECT_HIRE_ACCEPTED => 'Direct Hire Offer Accepted', // Placeholder
+            self::TYPE_DIRECT_HIRE_REJECTED => 'Direct Hire Offer Rejected', // Placeholder
+
+            // Phase 7 Added Label
+            self::TYPE_INITIAL_PITCH_DENIED => 'Initial Pitch Application Denied',
+            
+            // Client Management Labels
+            self::TYPE_CLIENT_COMMENT_ADDED => 'Client Added a Comment',
+            self::TYPE_CLIENT_APPROVED_PITCH => 'Client Approved Your Submission',
+            self::TYPE_CLIENT_REQUESTED_REVISIONS => 'Client Requested Revisions',
         ];
 
         // Sort alphabetically by label for display
@@ -322,6 +370,21 @@ class Notification extends Model
                 return 'A pitch is ready for your review';
             case self::TYPE_PITCH_CLOSED:
                 return 'A pitch has been closed';
+            case self::TYPE_PROJECT_UPDATE:
+                return 'Project update';
+            case self::TYPE_CONTEST_WINNER_SELECTED:
+                return 'Contest Winner Selected';
+            case self::TYPE_CONTEST_RUNNER_UP_SELECTED:
+                return 'Contest Runner-Up Selected';
+            case self::TYPE_CONTEST_ENTRY_NOT_SELECTED:
+                return 'Contest Entry Not Selected';
+            case self::TYPE_CONTEST_ENTRY_SUBMITTED:
+                return 'Contest Entry Submitted';
+            case self::TYPE_DIRECT_HIRE_ASSIGNMENT:
+                return 'New Direct Hire Assignment';
+            case self::TYPE_DIRECT_HIRE_OFFER:
+                return 'New Direct Hire Offer';
+            case self::TYPE_DIRECT_HIRE_ACCEPTED:
             default:
                 return 'New notification';
         }

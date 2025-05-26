@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Pitch;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PitchEvent extends Model
 {
@@ -13,12 +14,23 @@ class PitchEvent extends Model
 
     protected $fillable = [
         'pitch_id',
+        'user_id',
         'event_type',
-        'status',
         'comment',
-        'rating',
-        'created_by',
-        'snapshot_id'
+        'status', // Pitch status AT THE TIME of the event
+        'snapshot_id',
+        'created_by', // User ID who triggered the event
+        'metadata', // For extra context like client email, feedback, etc.
+        'rating' // <-- Add rating
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'metadata' => 'array', // Cast metadata JSON column to array
     ];
 
     public function pitch()

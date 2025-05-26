@@ -127,7 +127,7 @@
         }
     </style>
     <div class="flex justify-center">
-        <div class="w-full lg:w-3/4 2xl:w-2/3">
+        <div class="w-full">
             <div class="border-transparent shadow-2xl shadow-base-300 rounded-lg mb-6 sm:mb-12 flex flex-col">
                 <div class="flex flex-col md:flex-row shadow-lightGlow shadow-base-300 h-full">
                     <!-- Project Image on the Left -->
@@ -232,8 +232,15 @@
                                     <div
                                         class="py-1 pb-0 px-2 md:px-4 flex-1 bg-base-200/30 border-r border-base-200 text-center">
                                         <div class="label-text text-gray-600 text-xs sm:text-sm">Budget</div>
-                                        <div class="font-bold text-sm sm:text-base">{{ $project->budget == 0 ? 'Free' :
-                                            '$'.number_format((float)$project->budget, 0) }}</div>
+                                        <div class="font-bold text-sm sm:text-base">
+                                            <div>@if(is_numeric($project->budget) && $project->budget > 0) 
+                                                ${{ number_format((float)$project->budget, 0) }} 
+                                                @elseif(is_numeric($project->budget) && $project->budget == 0)
+                                                Free
+                                                @else
+                                                Price TBD 
+                                                @endif</div>
+                                        </div>
                                     </div>
                                     <div class="py-1 pb-0 px-2 md:px-4 flex-1 bg-base-200/70 text-center sm:text-left">
                                         <div class="label-text text-gray-600 text-xs sm:text-sm">Deadline</div>
@@ -246,503 +253,476 @@
                     </div>
                 </div>
 
-                <div class="p-0 sm:p-2 md:p-4 grid md:grid-cols-2 gap-3 sm:gap-4">
+                <div class="p-0 sm:p-2 md:p-4 grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+                    <!-- Main Content Area (2/3 width on large screens) -->
+                    <div class="lg:col-span-2 space-y-6">
+                        {{-- Quick Actions - Show first on mobile for immediate access --}}
+                        @if($project->isStandard())
+                            <div class="lg:hidden bg-white border border-gray-200 rounded-lg p-3">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                    <i class="fas fa-bolt text-blue-500 mr-2 text-xs"></i>Quick Actions
+                                </h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <a href="{{ route('projects.show', $project) }}" 
+                                       class="text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                        <i class="fas fa-eye mr-1"></i>View Public
+                                    </a>
+                                    <a href="{{ route('projects.edit', $project) }}" 
+                                       class="text-center bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                        <i class="fas fa-edit mr-1"></i>Edit Project
+                                    </a>
+                                    @if($project->is_published)
+                                        <button wire:click="unpublish" 
+                                                class="col-span-2 text-center bg-amber-600 hover:bg-amber-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                            <i class="fas fa-eye-slash mr-2"></i>Unpublish Project
+                                        </button>
+                                    @else
+                                        <button wire:click="publish" 
+                                                class="col-span-2 text-center bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                            <i class="fas fa-globe mr-2"></i>Publish Project
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
 
-                    <div
-                        class="flex w-full flex-col md:col-span-2 bg-base-100 rounded-lg shadow-md border border-base-300">
-                        <div class="p-3 sm:p-4 flex flex-col">
-                            <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
-                                <i
-                                    class="fas {{ $project->status == 'completed' ? 'fa-check-circle text-success' : 'fa-toggle-off text-gray-500' }} mr-2"></i>
-                                Project Status
-                            </span>
+                        {{-- Workflow Status Component --}}
+                        @if($project->isStandard() || $project->isContest() || $project->isDirectHire())
+                            <div>
+                                <x-project.workflow-status :project="$project" />
+                            </div>
+                        @endif
 
-                            @if($project->status == 'completed')
-                            <div class="mb-3 sm:mb-4">
-                                <div class="p-2.5 sm:p-3 bg-success/20 border-l-4 border-success rounded-r-lg">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-trophy mr-1.5 sm:mr-2"></i>
-                                        <span class="font-medium text-sm sm:text-base">This project has been completed!</span>
-                                    </div>
-                                    <p class="text-xs sm:text-sm mt-1 text-gray-700">
-                                        A pitch has been selected and marked as completed
-                                        @if($project->completed_at)
-                                        on {{ $project->completed_at->format('M d, Y') }}.
+                        {{-- Project Insights - Show early on mobile for key metrics --}}
+                        @if($project->isStandard())
+                            <div class="lg:hidden">
+                                <x-project.quick-stats-mobile :project="$project" />
+                            </div>
+                        @endif
+
+                        {{-- Pitches Section --}}
+                        <div class="flex w-full flex-col bg-base-100 rounded-lg shadow-md border border-base-300">
+                            <div class="p-3 sm:p-4 flex flex-col">
+                                <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
+                                    <i class="fas fa-paper-plane w-5 text-center mr-3 text-blue-500"></i>Pitches
+                                </span>
+                                <div class="flex flex-col divide-y divide-base-300/50">
+                                    @if($project->isStandard() || $project->isContest())
+                                        @forelse ($project->pitches as $pitch)
+                                            @livewire('pitch.component.manage-pitch', ['pitch' => $pitch, 'project' => $project, 'key' => 'pitch-' . $pitch->id])
+                                        @empty
+                                            <div class="p-8 sm:p-10 text-center text-gray-500 italic">
+                                                <i class="fas fa-paper-plane text-4xl sm:text-5xl text-gray-300 mb-3"></i>
+                                                <p class="text-base sm:text-lg">No pitches have been submitted yet</p>
+                                                <p class="text-xs sm:text-sm mt-2">When users submit pitches for your project, they will appear here</p>
+                                            </div>
+                                        @endforelse
+                                    @elseif($project->isDirectHire())
+                                        @if($project->pitches->count() > 0)
+                                            @livewire('pitch.component.manage-pitch', ['pitch' => $project->pitches->first(), 'project' => $project, 'key' => 'pitch-' . $project->pitches->first()->id])
+                                        @else
+                                            <div class="p-8 sm:p-10 text-center text-gray-500 italic">
+                                                <i class="fas fa-paper-plane text-4xl sm:text-5xl text-gray-300 mb-3"></i>
+                                                <p class="text-base sm:text-lg">No pitches have been submitted yet</p>
+                                                <p class="text-xs sm:text-sm mt-2">When users submit pitches for your project, they will appear here</p>
+                                            </div>
                                         @endif
-                                    </p>
+                                    @elseif($project->isClientManagement())
+                                        @if($project->pitches->count() > 0)
+                                            @livewire('pitch.component.manage-pitch', ['pitch' => $project->pitches->first(), 'project' => $project, 'key' => 'pitch-' . $project->pitches->first()->id])
+                                        @else
+                                            <div class="p-8 sm:p-10 text-center text-gray-500 italic">
+                                                <i class="fas fa-paper-plane text-4xl sm:text-5xl text-gray-300 mb-3"></i>
+                                                <p class="text-base sm:text-lg">No pitches have been submitted yet</p>
+                                                <p class="text-xs sm:text-sm mt-2">When users submit pitches for your project, they will appear here</p>
+                                            </div>
+                                        @endif
+                                    @endif
                                 </div>
                             </div>
-                            @endif
+                        </div>
 
-                            @if($hasMultipleApprovedPitches && !$hasCompletedPitch)
-                            <div class="mb-3 sm:mb-4">
-                                <div class="p-2.5 sm:p-3 bg-amber-100 border-l-4 border-amber-400 rounded-r-lg">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-exclamation-circle text-amber-600 mr-1.5 sm:mr-2"></i>
-                                        <span class="font-medium text-sm sm:text-base text-amber-800">Multiple Approved Pitches</span>
-                                    </div>
-                                    <p class="text-xs sm:text-sm mt-1 text-amber-800">
-                                        There are {{ $approvedPitchesCount }} approved pitches for this project. You'll
-                                        need to choose one to mark as completed. The other approved pitches will be
-                                        automatically closed.
-                                    </p>
+                        @if(!$project->isContest())
+                        <!-- Upload Files Section -->
+                        <div x-data="{ showUploader: true }" class="p-3 sm:p-4 flex flex-col bg-base-100 rounded-lg shadow-md border border-base-300">
+                            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                                <span class="text-lg sm:text-xl font-bold flex items-center">
+                                    <i class="fas fa-upload w-5 text-center mr-2 text-primary"></i>Project Files
+                                </span>
+                                <button 
+                                    @click="showUploader = !showUploader" 
+                                    class="btn btn-sm bg-base-200 hover:bg-base-300 text-gray-700 transition-colors"
+                                >
+                                    <span x-text="showUploader ? 'Hide Uploader' : 'Show Uploader'"></span>
+                                    <i class="fas ml-1" :class="showUploader ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Storage Usage Indicator -->
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-sm font-medium text-gray-700">Storage Used: {{ $storageLimitMessage }}</span>
+                                    <span class="text-xs text-gray-500">{{ $this->formatFileSize($storageRemaining) }} remaining</span>
                                 </div>
-                            </div>
-                            @endif
-
-                            @if(!$project->is_published)
-                            <p class="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">Your project is currently unpublished and not visible to
-                                potential collaborators.</p>
-                            <div class="btn flex-row bg-primary hover:bg-primary-focus text-white text-center transition-colors py-2.5 sm:py-2 text-sm sm:text-base"
-                                wire:click="publish()">
-                                <i class="fas fa-globe mr-2"></i> Publish Project
-                            </div>
-                            @else
-                            <p class="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">Your project is currently published and visible to potential
-                                collaborators.</p>
-                            <div class="btn flex-row bg-warning hover:bg-warning/80 text-black text-center transition-colors py-2.5 sm:py-2 text-sm sm:text-base"
-                                wire:click="unpublish()">
-                                <i class="fas fa-eye-slash mr-2"></i> Unpublish Project
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                    <div
-                        class="flex w-full flex-col md:col-span-2 bg-base-100 rounded-lg shadow-md border border-base-300">
-                        <div class="p-3 sm:p-4 flex flex-col">
-                            <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
-                                <i class="fas fa-paper-plane w-5 text-center mr-3 text-blue-500"></i>Pitches
-                            </span>
-                            <div class="flex flex-col divide-y divide-base-300/50">
-                                @php
-                                // Sort pitches to show completed first, then approved, then others
-                                $sortedPitches = $project->pitches->sortBy(function($pitch) {
-                                    if ($pitch->status === 'completed') return 1;
-                                    if ($pitch->status === 'approved') return 2;
-                                    if ($pitch->status === 'closed') return 4;
-                                    return 3; // All other statuses
-                                });
-                                @endphp
-                                @forelse($sortedPitches as $pitch)
-                                <div wire:key="pitch-{{$pitch->id}}" class="flex flex-col w-full {{ $loop->even ? 'bg-base-200/30' : 'bg-base-100' }} hover:bg-base-100 transition-colors relative
-                                    {{ $pitch->status === 'completed' ? 'border-l-4 border-l-success' : '' }}
-                                    {{ $pitch->status === 'approved' && !$hasMultipleApprovedPitches ? 'border-l-4 border-l-blue-500' : '' }}
-                                    {{ $pitch->status === 'approved' && $hasMultipleApprovedPitches ? 'border-l-4 border-l-amber-500 border-t border-t-amber-500 border-r border-r-amber-500 border-b border-b-amber-500 shadow-md' : '' }}
-                                    {{ $pitch->status === 'closed' ? 'border-l-4 border-l-gray-400' : '' }}
-                                    {{ $pitch->status === 'denied' ? 'border-l-4 border-l-error' : '' }}
-                                    {{ $pitch->status === 'revisions_requested' ? 'border-l-4 border-l-amber-500' : '' }}
-                                    {{ $pitch->status === 'pending_review' ? 'border-l-4 border-l-warning' : '' }}
-                                    {{ $pitch->status === 'ready_for_review' ? 'border-l-4 border-l-info' : '' }}
-                                    {{ $pitch->status === 'in_progress' ? 'border-l-4 border-l-info' : '' }}
-                                    {{ $pitch->status === 'pending' ? 'border-l-4 border-l-gray-300' : '' }}">
-
-                                    @if($pitch->status === 'completed')
-                                    <div
-                                        class="absolute top-0 right-0 bg-success text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-trophy mr-1"></i> <span
-                                            class="hidden xs:inline">COMPLETED</span>
-                                        <span class="hidden sm:inline text-xs font-normal ml-1">
-                                            ({{ \Carbon\Carbon::parse($pitch->completion_date)->format('M d, Y') }})
-                                        </span>
-                                    </div>
-                                    @elseif($pitch->status === 'approved')
-                                    <div
-                                        class="absolute top-0 {{ $hasMultipleApprovedPitches ? 'right-0' : 'left-0' }} {{ $hasMultipleApprovedPitches ? 'bg-amber-500' : 'bg-blue-500' }} text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i
-                                            class="fas {{ $hasMultipleApprovedPitches ? 'fa-exclamation-circle' : 'fa-thumbs-up' }} mr-1"></i>
-                                        <span class="hidden xs:inline">{{ $hasMultipleApprovedPitches ? 'CHOOSE THIS
-                                            PITCH' : 'APPROVED' }}</span>
-                                    </div>
-                                    @elseif($pitch->status === 'closed')
-                                    <div
-                                        class="absolute top-0 left-0 bg-gray-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-lock mr-1"></i> <span class="hidden xs:inline">CLOSED</span>
-                                    </div>
-                                    @elseif($pitch->status === 'denied')
-                                    <div
-                                        class="absolute top-0 left-0 bg-error text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-thumbs-down mr-1"></i> <span
-                                            class="hidden xs:inline">DENIED</span>
-                                    </div>
-                                    @elseif($pitch->status === 'revisions_requested')
-                                    <div
-                                        class="absolute top-0 left-0 bg-amber-500 text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-edit mr-1"></i> <span class="hidden xs:inline">REVISIONS
-                                            REQUESTED</span>
-                                    </div>
-                                    @elseif($pitch->status === 'pending_review')
-                                    <div
-                                        class="absolute top-0 left-0 bg-warning text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-hourglass-half mr-1"></i> <span
-                                            class="hidden xs:inline">PENDING REVIEW</span>
-                                    </div>
-                                    @elseif($pitch->status === 'ready_for_review')
-                                    <div
-                                        class="absolute top-0 left-0 bg-info text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-clipboard-check mr-1"></i> <span class="hidden xs:inline">READY
-                                            FOR REVIEW</span>
-                                    </div>
-                                    @elseif($pitch->status === 'in_progress')
-                                    <div
-                                        class="absolute top-0 left-0 bg-info text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-spinner mr-1"></i> <span class="hidden xs:inline">IN
-                                            PROGRESS</span>
-                                    </div>
-                                    @elseif($pitch->status === 'pending')
-                                    <div
-                                        class="absolute top-0 left-0 bg-gray-400 text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold rounded-bl shadow-sm">
-                                        <i class="fas fa-clock mr-1"></i> <span class="hidden xs:inline">PENDING</span>
-                                    </div>
-                                    @endif
-
-                                    <div
-                                        class="flex flex-col sm:flex-row justify-between items-start pt-6 sm:pt-8 p-3 sm:p-4 {{ in_array($pitch->status, ['completed', 'approved', 'closed']) ? 'mt-6' : '' }}">
-                                        <div class="flex items-center w-full sm:w-auto mb-3 sm:mb-0">
-                                            <div class="flex items-center space-x-2">
-                                                <img class="h-8 w-8 rounded-full object-cover border border-base-300"
-                                                    src="{{ $pitch->user->profile_photo_url }}" alt="{{ $pitch->user->name }}" />
-                                                <div class="text-sm">
-                                                    <a href="{{ route('profile.show', $pitch->user->id) }}" class="font-semibold hover:text-primary">{{ $pitch->user->name }}</a>
-                                                    <div class="text-xs text-gray-500">
-                                                        Pitched on: {{ $pitch->created_at->format('M d, Y') }}
-                                                    </div>
-                                                    {{-- Display Rating if Completed --}}
-                                                    @if($pitch->status === 'completed')
-                                                        <div class="mt-1">
-                                                            <x-rating-display :rating="$pitch->getCompletionRating()" />
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="flex flex-col sm:flex-row items-end sm:items-center w-full sm:w-auto mt-2 sm:mt-0 gap-2 sm:gap-3 pitch-status-wrapper">
-                                            <div class="flex gap-2 w-full sm:w-auto pitch-actions">
-                                                @if($pitch->status === \App\Models\Pitch::STATUS_APPROVED &&
-                                                !$hasCompletedPitch)
-                                                <div>
-                                                    <livewire:pitch.component.complete-pitch
-                                                        :key="'complete-pitch-'.$pitch->id" :pitch="$pitch" />
-                                                </div>
-                                                @endif
-
-                                                <!-- Payment Component for Completed Pitches -->
-                                                @if(auth()->id() === $project->user_id && 
-                                                    $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
-                                                    (empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
-                                                <div>
-                                                    <a href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project, 'pitch' => $pitch]) }}" class="btn btn-primary w-full">
-                                                        <i class="fas fa-credit-card mr-2"></i> Process Payment
-                                                    </a>
-                                                </div>
-                                                @elseif(auth()->id() === $project->user_id && 
-                                                    $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
-                                                    in_array($pitch->payment_status, [\App\Models\Pitch::PAYMENT_STATUS_PAID, \App\Models\Pitch::PAYMENT_STATUS_PROCESSING]))
-                                                <div>
-                                                    <a href="{{ route('projects.pitches.payment.receipt', ['project' => $pitch->project, 'pitch' => $pitch]) }}" class="text-primary hover:underline flex items-center">
-                                                        <i class="fas fa-file-invoice-dollar mr-1"></i> View Receipt
-                                                    </a>
-                                                </div>
-                                                @endif
-
-                                                @if(auth()->id() === $project->user_id && in_array($pitch->status, [
-                                                \App\Models\Pitch::STATUS_PENDING,
-                                                \App\Models\Pitch::STATUS_IN_PROGRESS,
-                                                \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
-                                                \App\Models\Pitch::STATUS_APPROVED,
-                                                \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
-                                                \App\Models\Pitch::STATUS_DENIED,
-                                                \App\Models\Pitch::STATUS_COMPLETED
-                                                ]))
-                                                <div>
-                                                    <x-update-pitch-status :pitch="$pitch"
-                                                        :has-completed-pitch="$hasCompletedPitch" />
-                                                </div>
-                                                @endif
-                                            </div>
-                                            <div class="flex-grow text-right">
-                                                <x-pitch-status-badge :status="$pitch->status" />
-                                                {{-- Display Simplified Payment Status --}}
-                                                @if ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED)
-                                                    <div class="text-xs text-gray-500 mt-0.5">
-                                                        Payment: 
-                                                        <span class="font-medium {{
-                                                            $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'text-success' :
-                                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'text-warning' :
-                                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'text-info' :
-                                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'text-error' : 'text-gray-600')))
-                                                        }}">
-                                                            {{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }}
-                                                        </span>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    @if($pitch->snapshots->count() > 0)
-                                    <div class="p-3 sm:p-4 pt-0">
-                                        <div class="flex flex-col">
-                                            <div class="text-xs sm:text-sm font-medium text-gray-700 mb-2 flex items-center">
-                                                <i class="fas fa-history mr-2 text-blue-500"></i> Snapshots
-                                                <span
-                                                    class="ml-2 text-xs bg-base-200 text-gray-600 px-1.5 sm:px-2 py-0.5 rounded-full">{{
-                                                    $pitch->snapshots->count() }}</span>
-
-                                                @if($pitch->snapshots->where('status', 'pending')->count() > 0 &&
-                                                auth()->id() === $project->user_id)
-
-
-                                                <div
-                                                    class="ml-auto text-xs bg-warning text-white px-1.5 sm:px-2 py-0.5 rounded-full animate-pulse">
-                                                    {{ $pitch->snapshots->where('status', 'pending')->count() }} pending
-                                                    review
-                                                </div>
-                                                @endif
-                                            </div>
-                                            <div
-                                                class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 bg-base-200/30 p-1.5 sm:p-2 rounded-lg">
-                                                @foreach($pitch->snapshots->sortByDesc('created_at') as $snapshot)
-                                                <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
-                                                    class="flex items-center p-1.5 sm:p-2 hover:bg-base-200 rounded-md transition-colors">
-                                                    <div
-                                                        class="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-blue-100 text-blue-700 mr-1.5 sm:mr-2">
-                                                        <i class="fas fa-camera text-xs sm:text-base"></i>
-                                                    </div>
-                                                    <div class="min-w-0">
-                                                        <div class="font-medium truncate text-xs sm:text-sm">Version {{
-                                                            $snapshot->snapshot_data['version']
-                                                            }}</div>
-                                                        <div class="text-xs text-gray-600 truncate">
-                                                            {{ $snapshot->created_at->format('M d, Y H:i') }}</div>
-                                                    </div>
-                                                    @if($snapshot->status === 'accepted')
-                                                    <span
-                                                        class="ml-auto bg-green-100 text-green-800 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">Accepted</span>
-                                                    @elseif($snapshot->status === 'declined')
-                                                    <span
-                                                        class="ml-auto bg-red-100 text-red-800 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">Declined</span>
-                                                    @elseif($snapshot->status === 'revisions_requested')
-                                                    <span
-                                                        class="ml-auto bg-amber-100 text-amber-800 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">Revisions
-                                                        Requested</span>
-                                                    @elseif($snapshot->status === 'revision_addressed')
-                                                    <span
-                                                        class="ml-auto bg-blue-100 text-blue-800 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">Revision
-                                                        Addressed</span>
-                                                    @elseif($snapshot->status === 'pending')
-                                                    <span
-                                                        class="ml-auto bg-yellow-100 text-yellow-800 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">Pending</span>
-                                                    @else
-                                                    <span
-                                                        class="ml-auto bg-amber-100 text-amber-800 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">{{
-                                                        $snapshot->status }}</span>
-                                                    @endif
-                                                </a>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @endif
-
-                                    @if($pitch->status === 'completed' && !empty($pitch->completion_feedback))
-                                    <div class="px-3 sm:px-4 pb-3 sm:pb-4">
-                                        <div class="p-2.5 sm:p-3 bg-success/10 border border-success/20 rounded-lg">
-                                            <div class="text-xs sm:text-sm font-semibold text-gray-700 mb-1 flex items-center">
-                                                <i class="fas fa-comment-alt text-success mr-2"></i>Completion Feedback:
-                                            </div>
-                                            <div class="text-gray-800 text-xs sm:text-sm">{{ $pitch->completion_feedback }}</div>
-                                        </div>
-                                    </div>
-                                    @endif
-
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? 'bg-red-500' : ($storageUsedPercentage > 70 ? 'bg-amber-500' : 'bg-primary') }}"
+                                        style="width: {{ $storageUsedPercentage }}%"></div>
                                 </div>
-                                @empty
-                                <div class="p-8 sm:p-10 text-center text-gray-500 italic">
-                                    <i class="fas fa-paper-plane text-4xl sm:text-5xl text-gray-300 mb-3"></i>
-                                    <p class="text-base sm:text-lg">No pitches have been submitted yet</p>
-                                    <p class="text-xs sm:text-sm mt-2">When users submit pitches for your project, they will appear
-                                        here</p>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                                    Maximum file size: 200MB. Total storage limit: 1GB.
+                                </p>
+                            </div>
+                            
+                            <!-- File Uploader Component -->
+                            <div x-show="showUploader" x-transition class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden mb-4">
+                                <div class="p-4 border-b border-base-200 bg-base-100/50">
+                                    <h5 class="font-medium text-base">Upload New Files</h5>
+                                    <p class="text-xs text-gray-500 mt-1">Upload audio, PDFs, or images to share with collaborators</p>
                                 </div>
-                                @endforelse
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Upload Files Section -->
-                    <div x-data="{ showUploader: true }" class="p-3 sm:p-4 flex flex-col md:col-span-2 bg-base-100 rounded-lg shadow-md border border-base-300">
-                        <div class="flex items-center justify-between mb-2 sm:mb-3">
-                            <span class="text-lg sm:text-xl font-bold flex items-center">
-                                <i class="fas fa-upload w-5 text-center mr-2 text-primary"></i>Project Files
-                            </span>
-                            <button 
-                                @click="showUploader = !showUploader" 
-                                class="btn btn-sm bg-base-200 hover:bg-base-300 text-gray-700 transition-colors"
-                            >
-                                <span x-text="showUploader ? 'Hide Uploader' : 'Show Uploader'"></span>
-                                <i class="fas ml-1" :class="showUploader ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                            </button>
-                        </div>
-                        
-                        <!-- Storage Usage Indicator -->
-                        <div class="mb-4">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-sm font-medium text-gray-700">Storage Used: {{ $storageLimitMessage }}</span>
-                                <span class="text-xs text-gray-500">{{ $this->formatFileSize($storageRemaining) }} remaining</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                <div class="bg-primary h-2.5 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? 'bg-red-500' : ($storageUsedPercentage > 70 ? 'bg-amber-500' : 'bg-primary') }}"
-                                    style="width: {{ $storageUsedPercentage }}%"></div>
-                            </div>
-                            <p class="mt-1 text-xs text-gray-500">
-                                <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                                Maximum file size: 200MB. Total storage limit: 1GB.
-                            </p>
-                        </div>
-                        
-                        <!-- File Uploader Component -->
-                        <div x-show="showUploader" x-transition class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden mb-4">
-                            <div class="p-4 border-b border-base-200 bg-base-100/50">
-                                <h5 class="font-medium text-base">Upload New Files</h5>
-                                <p class="text-xs text-gray-500 mt-1">Upload audio, PDFs, or images to share with collaborators</p>
-                            </div>
-                            <div class="p-4">
-                                <livewire:file-uploader :model="$project" wire:key="project-uploader-{{ $project->id }}" />
-                            </div>
-                        </div>
-                        
-                        <!-- Files List Section -->
-                        <div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden">
-                            <div class="p-4 border-b border-base-200 bg-base-100/50 flex justify-between items-center">
-                                <h5 class="font-medium text-base">Files ({{ $project->files->count() }})</h5>
-                                <div class="flex items-center">
-                                    @if($project->files->count() > 0)
-                                    <span class="text-xs text-gray-500">Total: {{ $this->formatFileSize($project->files->sum('size')) }}</span>
-                                    @endif
+                                <div class="p-4">
+                                    <livewire:file-uploader :model="$project" wire:key="project-uploader-{{ $project->id }}" />
                                 </div>
                             </div>
                             
-                            <div class="divide-y divide-base-200">
-                                @forelse($project->files as $file)
-                                <div class="flex items-center justify-between py-3 px-4 hover:bg-base-100/50 transition-all duration-300 track-item
-                                    @if(isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif">
-                                    <div class="flex items-center overflow-hidden flex-1 pr-2">
-                                        <div
-                                            class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center {{ $file->id == $project->preview_track ? 'bg-primary text-white' : 'bg-base-200 text-gray-500' }} mr-3">
-                                            <i class="fas fa-music text-sm sm:text-base"></i>
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="font-medium truncate text-sm sm:text-base">{{ $file->file_name }}
-                                                @if($file->id == $project->preview_track)
-                                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/20 text-primary">
-                                                    <i class="fas fa-star mr-1"></i>Preview
-                                                </span>
-                                                @endif
-                                            </div>
-                                            <div class="flex items-center text-xs text-gray-500">
-                                                <span>{{ $file->created_at->format('M d, Y') }}</span>
-                                                <span class="mx-1.5">•</span>
-                                                <span>{{ $file->formatted_size }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center space-x-1 sm:space-x-2">
-                                        @if($file->id != $project->preview_track)
-                                        <button wire:click="togglePreviewTrack({{ $file->id }})"
-                                            class="btn btn-sm btn-ghost text-gray-600 hover:text-primary">
-                                            <i class="fas fa-star"></i>
-                                        </button>
-                                        @else
-                                        <button wire:click="clearPreviewTrack"
-                                            class="btn btn-sm btn-ghost text-primary hover:text-gray-600">
-                                            <i class="fas fa-star-half-alt"></i>
-                                        </button>
+                            <!-- Files List Section -->
+                            <div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden">
+                                <div class="p-4 border-b border-base-200 bg-base-100/50 flex justify-between items-center">
+                                    <h5 class="font-medium text-base">Files ({{ $project->files->count() }})</h5>
+                                    <div class="flex items-center">
+                                        @if($project->files->count() > 0)
+                                        <span class="text-xs text-gray-500">Total: {{ $this->formatFileSize($project->files->sum('size')) }}</span>
                                         @endif
-                                        
-                                        <button wire:click="getDownloadUrl({{ $file->id }})"
-                                            class="btn btn-sm btn-ghost text-gray-600 hover:text-blue-600">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                        
-                                        <button wire:click="confirmDeleteFile({{ $file->id }})"
-                                            class="btn btn-sm btn-ghost text-gray-600 hover:text-red-600">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
                                     </div>
                                 </div>
-                                @empty
-                                <div class="p-8 sm:p-10 text-center text-gray-500 italic">
-                                    <i class="fas fa-folder-open text-4xl sm:text-5xl text-gray-300 mb-3"></i>
-                                    <p class="text-base sm:text-lg">No files uploaded yet</p>
-                                    <p class="text-xs sm:text-sm mt-2">Upload files to share with collaborators</p>
+                                
+                                <div class="divide-y divide-base-200">
+                                    @forelse($project->files as $file)
+                                    <div class="flex items-center justify-between py-3 px-4 hover:bg-base-100/50 transition-all duration-300 track-item
+                                        @if(isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif">
+                                        <div class="flex items-center overflow-hidden flex-1 pr-2">
+                                            <div
+                                                class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center {{ $file->id == $project->preview_track ? 'bg-primary text-white' : 'bg-base-200 text-gray-500' }} mr-3">
+                                                <i class="fas fa-music text-sm sm:text-base"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="font-medium truncate text-sm sm:text-base">{{ $file->file_name }}
+                                                    @if($file->id == $project->preview_track)
+                                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/20 text-primary">
+                                                        <i class="fas fa-star mr-1"></i>Preview
+                                                    </span>
+                                                    @endif
+                                                </div>
+                                                <div class="flex items-center text-xs text-gray-500">
+                                                    <span>{{ $file->created_at->format('M d, Y') }}</span>
+                                                    <span class="mx-1.5">•</span>
+                                                    <span>{{ $file->formatted_size }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center space-x-1 sm:space-x-2">
+                                            @if($file->id != $project->preview_track)
+                                            <button wire:click="togglePreviewTrack({{ $file->id }})"
+                                                class="btn btn-sm btn-ghost text-gray-600 hover:text-primary">
+                                                <i class="fas fa-star"></i>
+                                            </button>
+                                            @else
+                                            <button wire:click="clearPreviewTrack"
+                                                class="btn btn-sm btn-ghost text-primary hover:text-gray-600">
+                                                <i class="fas fa-star-half-alt"></i>
+                                            </button>
+                                            @endif
+                                            
+                                            <button wire:click="getDownloadUrl({{ $file->id }})"
+                                                class="btn btn-sm btn-ghost text-gray-600 hover:text-blue-600">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            
+                                            <button wire:click="confirmDeleteFile({{ $file->id }})"
+                                                class="btn btn-sm btn-ghost text-gray-600 hover:text-red-600">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    @empty
+                                    <div class="p-8 sm:p-10 text-center text-gray-500 italic">
+                                        <i class="fas fa-folder-open text-4xl sm:text-5xl text-gray-300 mb-3"></i>
+                                        <p class="text-base sm:text-lg">No files uploaded yet</p>
+                                        <p class="text-xs sm:text-sm mt-2">Upload files to share with collaborators</p>
+                                    </div>
+                                    @endforelse
                                 </div>
-                                @endforelse
                             </div>
+                        </div>
+                        @endif
+
+                        {{-- Tips for Success - Show on mobile after main content --}}
+                        @if($project->isStandard())
+                            <div class="lg:hidden bg-green-50 border border-green-200 rounded-lg p-3">
+                                <h4 class="text-sm font-medium text-green-700 mb-3 flex items-center">
+                                    <i class="fas fa-lightbulb text-green-600 mr-2 text-xs"></i>Tips for Success
+                                </h4>
+                                <div class="space-y-2 text-xs text-green-700">
+                                    @if($project->pitches->count() === 0)
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Share your project on social media to attract more producers</span>
+                                        </div>
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Add reference tracks to help producers understand your vision</span>
+                                        </div>
+                                    @elseif($project->pitches->where('status', 'approved')->count() === 0)
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Review pitches carefully and communicate with producers</span>
+                                        </div>
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Ask questions to ensure the producer understands your needs</span>
+                                        </div>
+                                    @else
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Provide clear feedback to help your producer deliver the best results</span>
+                                        </div>
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Upload reference files to guide the production process</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Standard Project Info - Show on mobile after tips --}}
+                        @if($project->isStandard())
+                            <div class="lg:hidden bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <h4 class="text-sm font-medium text-blue-700 mb-3 flex items-center">
+                                    <i class="fas fa-info-circle text-blue-600 mr-2 text-xs"></i>About Standard Projects
+                                </h4>
+                                <div class="space-y-3 text-xs">
+                                    <div class="flex items-start">
+                                        <i class="fas fa-users text-blue-600 mr-2 mt-0.5 text-xs"></i>
+                                        <div>
+                                            <strong class="text-blue-800">Open Collaboration:</strong>
+                                            <p class="text-blue-700 mt-1">Any producer can submit a pitch for your project. Review and approve the best fit.</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start">
+                                        <i class="fas fa-handshake text-blue-600 mr-2 mt-0.5 text-xs"></i>
+                                        <div>
+                                            <strong class="text-blue-800">Direct Communication:</strong>
+                                            <p class="text-blue-700 mt-1">Work directly with your chosen producer throughout the project lifecycle.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Danger Zone - Always last --}}
+                        <div class="flex w-full flex-col bg-base-100 rounded-lg shadow-md border border-base-300"
+                            x-data="{ open: false }">
+                            <div class="p-3 sm:p-4 flex flex-col">
+                                <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
+                                    <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Danger Zone
+                                </span>
+                                <p class="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">Permanently delete this project and all associated files. This
+                                    action cannot be undone.</p>
+                                <div class="btn bg-error/80 hover:bg-error flex-row text-white text-center transition-colors py-2.5 sm:py-2 text-sm sm:text-base"
+                                    @click="open = true" onclick="event.stopPropagation();">
+                                    <i class="fas fa-trash-alt mr-2"></i> Delete Project
+                                </div>
+                            </div>
+                            <!-- Modal -->
+                            <div x-show="open" x-cloak class="fixed z-10 inset-0 overflow-y-auto"
+                                aria-labelledby="modal-title" role="dialog" aria-modal="true"
+                                @click="$event.stopPropagation()">
+                                <div class="flex items-center justify-center min-h-screen p-2 sm:p-0">
+                                    <!-- Background overlay -->
+                                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                        aria-hidden="true"></div>
+
+                                    <!-- Modal -->
+                                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen"
+                                        aria-hidden="true">&#8203;</span>
+                                    <div
+                                        class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full max-w-sm sm:w-full">
+                                        <div
+                                            class="bg-white rounded-lg text-left overflow-hidden shadow-xl p-3 sm:p-4 transform transition-all sm:align-middle sm:max-w-lg sm:w-full">
+                                            <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                                Confirm Deletion
+                                            </h3>
+                                            <div class="mt-2">
+                                                <p class="text-xs sm:text-sm text-gray-500">
+                                                    Are you sure you want to delete this project?
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row-reverse gap-2">
+                                            <!-- Confirm Button -->
+                                            <form action="{{ route('projects.destroy', $project) }}" method="POST">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn-sm bg-red-400 border py-1.5 sm:py-1 text-xs sm:text-sm w-full sm:w-auto">
+                                                    Confirm
+                                                </button>
+                                            </form>
+                                            <!-- Cancel Button -->
+                                            <button @click="open = false" class="btn-sm border py-1.5 sm:py-1 text-xs sm:text-sm w-full sm:w-auto">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
-                    <div class="flex w-full flex-col md:col-span-2 bg-base-100 rounded-lg shadow-md border border-base-300"
-                        x-data="{ open: false }">
-                        <div class="p-3 sm:p-4 flex flex-col">
-                            <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
-                                <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Danger Zone
-                            </span>
-                            <p class="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">Permanently delete this project and all associated files. This
-                                action cannot be undone.</p>
-                            <div class="btn bg-error/80 hover:bg-error flex-row text-white text-center transition-colors py-2.5 sm:py-2 text-sm sm:text-base"
-                                @click="open = true" onclick="event.stopPropagation();">
-                                <i class="fas fa-trash-alt mr-2"></i> Delete Project
-                            </div>
-                        </div>
-                        <!-- Modal -->
-                        <div x-show="open" x-cloak class="fixed z-10 inset-0 overflow-y-auto"
-                            aria-labelledby="modal-title" role="dialog" aria-modal="true"
-                            @click="$event.stopPropagation()">
-                            <div class="flex items-center justify-center min-h-screen p-2 sm:p-0">
-                                <!-- Background overlay -->
-                                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                    aria-hidden="true"></div>
-
-                                <!-- Modal -->
-                                <span class="hidden sm:inline-block sm:align-middle sm:h-screen"
-                                    aria-hidden="true">&#8203;</span>
-                                <div
-                                    class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full max-w-sm sm:w-full">
-                                    <div
-                                        class="bg-white rounded-lg text-left overflow-hidden shadow-xl p-3 sm:p-4 transform transition-all sm:align-middle sm:max-w-lg sm:w-full">
-                                        <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                            Confirm Deletion
-                                        </h3>
-                                        <div class="mt-2">
-                                            <p class="text-xs sm:text-sm text-gray-500">
-                                                Are you sure you want to delete this project?
-                                            </p>
+                    <!-- Sidebar (1/3 width on large screens) -->
+                    <div class="lg:col-span-1 space-y-6">
+                        {{-- Workflow Type Specific Information --}}
+                        @if($project->isStandard())
+                            <div class="hidden lg:block bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                                <h4 class="text-sm font-medium text-blue-700 mb-3 flex items-center">
+                                    <i class="fas fa-info-circle text-blue-600 mr-2 text-xs"></i>Standard Project
+                                </h4>
+                                <div class="space-y-3 text-xs">
+                                    <div class="flex items-start">
+                                        <i class="fas fa-users text-blue-600 mr-2 mt-0.5 text-xs"></i>
+                                        <div>
+                                            <strong class="text-blue-800">Open Collaboration:</strong>
+                                            <p class="text-blue-700 mt-1">Any producer can submit a pitch for your project. Review and approve the best fit.</p>
                                         </div>
                                     </div>
-                                    <div class="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row-reverse gap-2">
-                                        <!-- Confirm Button -->
-                                        <form action="{{ route('projects.destroy', $project) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn-sm bg-red-400 border py-1.5 sm:py-1 text-xs sm:text-sm w-full sm:w-auto">
-                                                Confirm
-                                            </button>
-                                        </form>
-                                        <!-- Cancel Button -->
-                                        <button @click="open = false" class="btn-sm border py-1.5 sm:py-1 text-xs sm:text-sm w-full sm:w-auto">
-                                            Cancel
-                                        </button>
+                                    <div class="flex items-start">
+                                        <i class="fas fa-handshake text-blue-600 mr-2 mt-0.5 text-xs"></i>
+                                        <div>
+                                            <strong class="text-blue-800">Direct Communication:</strong>
+                                            <p class="text-blue-700 mt-1">Work directly with your chosen producer throughout the project lifecycle.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
+                            <!-- Project Insights -->
+                            <div class="hidden lg:block mb-6">
+                                <x-project.quick-stats :project="$project" />
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="hidden lg:block bg-white border border-gray-200 rounded-lg p-3 mb-6">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                    <i class="fas fa-bolt text-blue-500 mr-2 text-xs"></i>Quick Actions
+                                </h4>
+                                <div class="space-y-2">
+                                    <a href="{{ route('projects.show', $project) }}" 
+                                       class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                        <i class="fas fa-eye mr-2"></i>View Public Page
+                                    </a>
+                                    <a href="{{ route('projects.edit', $project) }}" 
+                                       class="block w-full text-center bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                        <i class="fas fa-edit mr-2"></i>Edit Project
+                                    </a>
+                                    @if($project->is_published)
+                                        <button wire:click="unpublish" 
+                                                class="block w-full text-center bg-amber-600 hover:bg-amber-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                            <i class="fas fa-eye-slash mr-2"></i>Unpublish
+                                        </button>
+                                    @else
+                                        <button wire:click="publish" 
+                                                class="block w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-md text-xs font-medium transition-colors">
+                                            <i class="fas fa-globe mr-2"></i>Publish Project
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Tips & Best Practices -->
+                            <div class="hidden lg:block bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
+                                <h4 class="text-sm font-medium text-green-700 mb-3 flex items-center">
+                                    <i class="fas fa-lightbulb text-green-600 mr-2 text-xs"></i>Tips for Success
+                                </h4>
+                                <div class="space-y-2 text-xs text-green-700">
+                                    @if($project->pitches->count() === 0)
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Share your project on social media to attract more producers</span>
+                                        </div>
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Add reference tracks to help producers understand your vision</span>
+                                        </div>
+                                    @elseif($project->pitches->where('status', 'approved')->count() === 0)
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Review pitches carefully and communicate with producers</span>
+                                        </div>
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Ask questions to ensure the producer understands your needs</span>
+                                        </div>
+                                    @else
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Provide clear feedback to help your producer deliver the best results</span>
+                                        </div>
+                                        <div class="flex items-start">
+                                            <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-xs"></i>
+                                            <span>Upload reference files to guide the production process</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @elseif($project->isContest())
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <h3 class="font-semibold text-lg text-blue-800 mb-2"><i class="fas fa-trophy mr-2"></i>Contest Details</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                    <div><strong>Prize Amount:</strong> {{ $project->prize_currency ?? '$' }}{{ number_format($project->prize_amount, 2) }}</div>
+                                    <div><strong>Submission Deadline:</strong> {{ $project->submission_deadline ? $project->submission_deadline->format('M d, Y H:i T') : 'Not set' }}</div>
+                                    <div><strong>Judging Deadline:</strong> {{ $project->judging_deadline ? $project->judging_deadline->format('M d, Y H:i T') : 'Not set' }}</div>
+                                </div>
+                                {{-- Add logic here for selecting winner if deadline passed and owner is viewing --}}
+                            </div>
+                        @elseif($project->isDirectHire())
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                                 <h3 class="font-semibold text-lg text-green-800 mb-2"><i class="fas fa-user-check mr-2"></i>Direct Hire Details</h3>
+                                @if($project->targetProducer)
+                                    <p class="text-sm text-gray-700 mt-1">Assigned Producer:
+                                        @if($project->targetProducer->username)
+                                            <a href="{{ route('profile.username', $project->targetProducer->username) }}" class="font-semibold text-primary hover:underline">
+                                                {{ $project->targetProducer->name }}
+                                            </a>
+                                        @else
+                                            <span class="font-semibold text-primary">{{ $project->targetProducer->name }}</span>
+                                        @endif
+                                    </p>
+                                @else
+                                    <p class="text-sm text-gray-500 mt-1">No producer assigned yet.</p>
+                                @endif
+                            </div>
+                        @elseif($project->isClientManagement())
+                                 <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+                                     <h3 class="font-semibold text-lg text-purple-800 mb-2"><i class="fas fa-briefcase mr-2"></i>Client Management Details</h3>
+                                     <p class="text-sm"><strong>Client Name:</strong> {{ $project->client_name ?? 'N/A' }}</p>
+                                     <p class="text-sm"><strong>Client Email:</strong> {{ $project->client_email ?? 'N/A' }}</p>
+                                     {{-- Add Resend Invite Button --}}
+                                     @can('update', $project) {{-- Only project owner (producer) can resend --}}
+                                        <button wire:click="resendClientInvite" class="btn btn-sm btn-outline btn-primary mt-2">
+                                            <i class="fas fa-paper-plane mr-1"></i> Resend Client Invite
+                                        </button>
+                                     @endcan
+                                 </div>
+                        @endif
+                        {{-- End Workflow Type Specific Information --}}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- File Delete Confirmation Modal -->
+
+{{-- File Delete Confirmation Modal --}}
 @if($showDeleteModal)
 <div class="fixed z-[9999] inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen p-4 text-center">
@@ -781,5 +761,19 @@
 </div>
 @endif
 
+{{-- Show Contest Entries component only for contest projects --}}
+@if($project->isContest())
+    <div class="mt-6">
+         @livewire('project.component.contest-entries', ['project' => $project], key('contest-entries-'.$project->id))
+    </div>
+@endif
+{{-- End Contest Entries --}}
+
+{{-- Project Content Tabs (Consider hiding these if project is a contest) --}}
+<div class="mt-6">
+    <div class="border-b border-gray-200">
+
 </div>
 
+
+</div>

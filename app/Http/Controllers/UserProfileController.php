@@ -5,9 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Tag;
+use App\Models\PortfolioItem;
+use App\Models\ServicePackage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class UserProfileController extends Controller
 {
@@ -61,6 +65,13 @@ class UserProfileController extends Controller
             ->orderBy('display_order')
             ->get();
 
+        // Fetch published service packages for the user
+        $servicePackages = $user->servicePackages()
+            ->published()
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('user-profile.show', [
             'user' => $user,
             'projects' => $projects,
@@ -70,6 +81,7 @@ class UserProfileController extends Controller
             'layout' => $layout,
             'portfolioItems' => $portfolioItems,
             'userTagsGrouped' => $userTagsGrouped,
+            'servicePackages' => $servicePackages,
         ]);
     }
 

@@ -20,13 +20,17 @@ use App\Exceptions\Pitch\InvalidStatusTransitionException;
 use App\Exceptions\Pitch\SnapshotException;
 use App\Models\PitchFile;
 use App\Exceptions\Pitch\SubmissionValidationException;
+use App\Services\InvoiceService;
+use App\Exceptions\Payment\InvoiceCreationException;
+use Illuminate\Support\Str;
 
 class PitchWorkflowServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase; // Re-enable
 
     protected $notificationServiceMock;
     protected $service;
+    protected $invoiceServiceMock;
 
     protected function setUp(): void
     {
@@ -35,8 +39,19 @@ class PitchWorkflowServiceTest extends TestCase
         $this->notificationServiceMock = Mockery::mock(NotificationService::class);
         $this->app->instance(NotificationService::class, $this->notificationServiceMock);
 
-        // Instantiate the service with the mock
-        $this->service = new PitchWorkflowService($this->notificationServiceMock);
+        // Mock the InvoiceService
+        $this->invoiceServiceMock = Mockery::mock(InvoiceService::class);
+        $this->app->instance(InvoiceService::class, $this->invoiceServiceMock);
+
+        // Instantiate the service with the mocks
+        $this->service = new PitchWorkflowService(
+            $this->notificationServiceMock,
+            // Pass InvoiceService mock if constructor is updated, otherwise rely on app instance
+            // $this->invoiceServiceMock 
+        ); 
+        // Note: If InvoiceService isn't injected via constructor, the app->instance() above handles it.
+        // Keep service instantiation as is unless constructor changes.
+         $this->service = new PitchWorkflowService($this->notificationServiceMock); // Keep original if InvoiceService is resolved via app() inside method
     }
 
     protected function tearDown(): void
@@ -54,10 +69,10 @@ class PitchWorkflowServiceTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
-        $project = Project::factory()->for($projectOwner, 'user') // Associate project with owner
-                           ->create();
+        $project = Project::factory()->for($projectOwner, 'user')
+                           ->create(['workflow_type' => Project::WORKFLOW_TYPE_STANDARD]); // Explicitly set type
         $pitch = Pitch::factory()->for($project)
-                           ->for($pitchCreator, 'user') // Associate pitch with creator
+                           ->for($pitchCreator, 'user')
                            ->create(['status' => Pitch::STATUS_PENDING]);
 
         $this->notificationServiceMock->shouldReceive('notifyPitchApproved')->once()->with(Mockery::on(function ($arg) use ($pitch) {
@@ -80,9 +95,9 @@ class PitchWorkflowServiceTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
-        $otherUser = User::factory()->create(); // Not the project owner
+        $otherUser = User::factory()->create();
         $project = Project::factory()->for($projectOwner, 'user')
-                           ->create();
+                           ->create(['workflow_type' => Project::WORKFLOW_TYPE_STANDARD]); // Explicitly set type
         $pitch = Pitch::factory()->for($project)
                            ->for($pitchCreator, 'user')
                            ->create(['status' => Pitch::STATUS_PENDING]);
@@ -99,10 +114,10 @@ class PitchWorkflowServiceTest extends TestCase
         $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
         $project = Project::factory()->for($projectOwner, 'user')
-                           ->create();
+                           ->create(['workflow_type' => Project::WORKFLOW_TYPE_STANDARD]); // Explicitly set type
         $pitch = Pitch::factory()->for($project)
                            ->for($pitchCreator, 'user')
-                           ->create(['status' => Pitch::STATUS_IN_PROGRESS]); // Not pending
+                           ->create(['status' => Pitch::STATUS_IN_PROGRESS]);
 
         $this->expectException(InvalidStatusTransitionException::class);
         $this->expectExceptionMessage('Pitch must be pending for initial approval.');
@@ -412,30 +427,42 @@ class PitchWorkflowServiceTest extends TestCase
         $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
         $project = Project::factory()->for($projectOwner, 'user')->create();
-        $snapshot = PitchSnapshot::factory()->create(['status' => PitchSnapshot::STATUS_PENDING]);
+        $snapshot = PitchSnapshot::factory()->create(['status' => PitchSnapshot::STATUS_PENDING, 'pitch_id' => null]); // Create snapshot first
         $pitch = Pitch::factory()->for($project)
                            ->for($pitchCreator, 'user')
                            ->create([
                                'status' => Pitch::STATUS_READY_FOR_REVIEW,
                                'current_snapshot_id' => $snapshot->id,
                            ]);
-        $snapshot->pitch_id = $pitch->id;
-        $snapshot->save();
-        $feedback = 'Adjust the timing.';
+        $snapshot->update(['pitch_id' => $pitch->id]); // Associate snapshot with pitch
+        
+        $feedback = 'Needs more cowbell';
 
-        $this->notificationServiceMock->shouldReceive('notifyPitchRevisionsRequested')
+        // Set expectation for the specific notification
+        $this->notificationServiceMock->shouldReceive('notifySnapshotRevisionsRequested')
             ->once()
             ->with(
-                Mockery::on(fn($p) => $p instanceof Pitch && $p->id === $pitch->id),
                 Mockery::on(fn($s) => $s instanceof PitchSnapshot && $s->id === $snapshot->id),
                 $feedback
             );
 
-        DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb());
-
+        // Act
         $updatedPitch = $this->service->requestPitchRevisions($pitch, $snapshot->id, $projectOwner, $feedback);
 
+        // Assert
         $this->assertEquals(Pitch::STATUS_REVISIONS_REQUESTED, $updatedPitch->status);
+        $snapshot->refresh(); // Re-fetch snapshot from DB
+        $this->assertEquals(PitchSnapshot::STATUS_REVISIONS_REQUESTED, $snapshot->status);
+        // Check event was created
+        $this->assertDatabaseHas('pitch_events', [
+            'pitch_id' => $pitch->id,
+            'snapshot_id' => $snapshot->id,
+            'event_type' => 'revision_request',
+            'status' => Pitch::STATUS_REVISIONS_REQUESTED,
+            'created_by' => $projectOwner->id,
+            // Check if feedback is stored in metadata (using json_contains or similar)
+             // ->whereJsonContains('metadata->feedback', $feedback) // Requires DB setup or specific assertion
+        ]);
     }
 
     /** @test */
@@ -534,12 +561,13 @@ class PitchWorkflowServiceTest extends TestCase
         $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
         $project = Project::factory()->for($projectOwner, 'user')->create();
-        $pitch = Pitch::factory()->for($project)
-                           ->for($pitchCreator, 'user')
-                           ->create([
-                               'status' => Pitch::STATUS_COMPLETED,
-                               'payment_status' => Pitch::PAYMENT_STATUS_PAID,
-                           ]);
+        $pitch = Pitch::factory()
+            ->for($project)
+            ->for($pitchCreator, 'user')
+            ->create([
+                'status' => Pitch::STATUS_COMPLETED,
+                'payment_status' => Pitch::PAYMENT_STATUS_PAID,
+            ]);
 
         $this->expectException(InvalidStatusTransitionException::class);
         $this->expectExceptionMessage('Paid & completed pitch cannot be modified');
@@ -692,50 +720,74 @@ class PitchWorkflowServiceTest extends TestCase
     /** @test */
     public function it_can_resubmit_a_pitch_after_revisions_successfully()
     {
+        $projectOwner = User::factory()->create();
         $pitchCreator = User::factory()->create();
-        $project = Project::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')->create();
+
+        // Create the Pitch first
+        $pitch = Pitch::factory()->for($project)
+                           ->for($pitchCreator, 'user')
+                           ->create([
+                               // Set initial pitch status appropriately, maybe IN_PROGRESS first
+                               // We'll update it after creating the snapshot
+                               'status' => Pitch::STATUS_IN_PROGRESS,
+                           ]);
+
+        // Create the previous snapshot *associated with the pitch*
         $previousSnapshot = PitchSnapshot::factory()->create([
-            'status' => PitchSnapshot::STATUS_REVISIONS_REQUESTED, 
-            'snapshot_data' => ['version' => 1]
+            'pitch_id' => $pitch->id, // Associate immediately
+            'status' => PitchSnapshot::STATUS_REVISIONS_REQUESTED,
+            'snapshot_data' => ['version' => 1], // Ensure version exists
         ]);
-        $pitch = Pitch::factory()
-            ->for($project)
-            ->for($pitchCreator, 'user')
-            ->create([
-                'status' => Pitch::STATUS_REVISIONS_REQUESTED,
-                'current_snapshot_id' => $previousSnapshot->id
-            ]);
-        $previousSnapshot->pitch_id = $pitch->id;
-        $previousSnapshot->save();
-        PitchFile::factory()->count(1)->for($pitch)->create(); // Ensure files exist
 
-        $this->notificationServiceMock->shouldReceive('notifyPitchReadyForReview')->once();
-        DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb());
+        // Update the pitch to reflect the revisions requested state
+        $pitch->update([
+            'status' => Pitch::STATUS_REVISIONS_REQUESTED,
+            'current_snapshot_id' => $previousSnapshot->id,
+        ]);
 
-        $feedbackResponse = 'Addressed the feedback points.';
-        $updatedPitch = $this->service->submitPitchForReview($pitch, $pitchCreator, $feedbackResponse);
+        // Attach a file to the pitch (needed for submission validation)
+        PitchFile::factory()->for($pitch)->create();
 
+        $responseMessage = 'Addressed feedback.';
+
+        // Expect notification for the *new* snapshot
+        $this->notificationServiceMock->shouldReceive('notifyPitchReadyForReview')
+            ->once()
+            ->with(
+                Mockery::on(fn($p) => $p->id === $pitch->id),
+                Mockery::on(fn($s) => $s instanceof PitchSnapshot && $s->status === PitchSnapshot::STATUS_PENDING)
+            );
+
+        // Remove DB::transaction mock
+        // DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb());
+
+        // Act
+        $updatedPitch = $this->service->submitPitchForReview($pitch, $pitchCreator, $responseMessage);
+
+        // Assert new status
         $this->assertEquals(Pitch::STATUS_READY_FOR_REVIEW, $updatedPitch->status);
-        $this->assertNotEquals($previousSnapshot->id, $updatedPitch->current_snapshot_id); // Ensure new snapshot ID
         
-        // Verify the new snapshot
-        $newSnapshot = PitchSnapshot::find($updatedPitch->current_snapshot_id);
+        // Verify a new snapshot was created and linked
+        $newSnapshot = $updatedPitch->currentSnapshot;
         $this->assertNotNull($newSnapshot);
-        $this->assertEquals($pitch->id, $newSnapshot->pitch_id);
+        $this->assertNotEquals($previousSnapshot->id, $newSnapshot->id);
         $this->assertEquals(PitchSnapshot::STATUS_PENDING, $newSnapshot->status);
-        $this->assertEquals(2, $newSnapshot->snapshot_data['version'] ?? null);
+        $this->assertEquals(2, $newSnapshot->snapshot_data['version'] ?? null); // Check version increment
         
         // Verify previous snapshot was updated
-        $previousSnapshot->refresh();
-        $this->assertEquals(PitchSnapshot::STATUS_REVISION_ADDRESSED, $previousSnapshot->status);
+        $reloadedPreviousSnapshot = PitchSnapshot::find($previousSnapshot->id);
+        $this->assertNotNull($reloadedPreviousSnapshot, 'Failed to reload previous snapshot from DB');
+        $this->assertEquals(PitchSnapshot::STATUS_REVISION_ADDRESSED, $reloadedPreviousSnapshot->status);
         
         // Check for event creation with proper comment
-        $event = $pitch->events()
-            ->where('event_type', 'status_change')
-            ->where('status', Pitch::STATUS_READY_FOR_REVIEW)
-            ->where('comment', 'Pitch submitted for review (Version 2). Response: Addressed the feedback points.')
-            ->first();
-        $this->assertNotNull($event);
+        $this->assertDatabaseHas('pitch_events', [
+             'pitch_id' => $pitch->id,
+             'snapshot_id' => $newSnapshot->id,
+             'event_type' => 'status_change',
+             'status' => Pitch::STATUS_READY_FOR_REVIEW,
+             'comment' => 'Pitch submitted for review (Version 2). Response: Addressed feedback.'
+        ]);
     }
 
     /** @test */
@@ -966,7 +1018,581 @@ class PitchWorkflowServiceTest extends TestCase
     }
 
     //-----------------------------------------
-    // Helper Methods
+    // Contest Workflow Tests
     //-----------------------------------------
+
+    /** @test */
+    public function test_it_can_select_contest_winner_with_prize()
+    {
+        // Arrange: Create owner, producer, contest project, and pitch entry
+        $projectOwner = User::factory()->create();
+        $producer = User::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+            'prize_amount' => 100.00,
+            'prize_currency' => 'USD',
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($producer, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY
+        ]);
+        $otherPitch = Pitch::factory()->for($project)->for(User::factory(), 'user')->create([
+             'status' => Pitch::STATUS_CONTEST_ENTRY
+        ]);
+        $alreadyClosedPitch = Pitch::factory()->for($project)->for(User::factory(), 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_NOT_SELECTED // Already closed
+        ]);
+
+        // Mock dependencies
+        $this->notificationServiceMock->shouldReceive('notifyContestWinnerSelected')->once()->with(Mockery::on(fn($p) => $p->id === $pitch->id));
+        $this->notificationServiceMock->shouldReceive('notifyContestEntryNotSelected')->once()->with(Mockery::on(fn($p) => $p->id === $otherPitch->id));
+        
+        // Mock InvoiceService call
+        $mockInvoice = (object)['id' => 999]; // Mock invoice object
+        $this->invoiceServiceMock->shouldReceive('createInvoiceForContestPrize')
+            ->once()
+            ->with(
+                Mockery::on(fn($p) => $p->id === $project->id),
+                Mockery::on(fn($u) => $u->id === $producer->id),
+                $project->prize_amount,
+                $project->prize_currency
+            )
+            ->andReturn($mockInvoice);
+
+        // Remove DB::transaction mock
+        // DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb()); 
+
+        // Act: Select the winner
+        $winningPitch = $this->service->selectContestWinner($pitch, $projectOwner);
+
+        // Assertions...
+        $this->assertEquals(Pitch::STATUS_CONTEST_WINNER, $winningPitch->status);
+        $this->assertEquals(1, $winningPitch->rank);
+        $this->assertEquals($project->prize_amount, $winningPitch->payment_amount);
+        // Payment status depends on InvoiceService logic (mocked here)
+        // Assuming processing status is set when invoice is created
+        $this->assertEquals(Pitch::PAYMENT_STATUS_PROCESSING, $winningPitch->payment_status); 
+        $this->assertEquals($mockInvoice->id, $winningPitch->final_invoice_id);
+        $this->assertNotNull($winningPitch->approved_at); // Check approval timestamp
+        
+        // Assert other pitch was closed
+        $this->assertEquals(Pitch::STATUS_CONTEST_NOT_SELECTED, $otherPitch->fresh()->status);
+        $this->assertNotNull($otherPitch->fresh()->closed_at);
+
+        // Assert the already closed pitch wasn't touched
+        $this->assertEquals(Pitch::STATUS_CONTEST_NOT_SELECTED, $alreadyClosedPitch->fresh()->status);
+
+        // Assert event was created for winner
+        $this->assertDatabaseHas('pitch_events', [
+            'pitch_id' => $winningPitch->id,
+            'event_type' => 'contest_winner_selected',
+            'status' => Pitch::STATUS_CONTEST_WINNER,
+            'created_by' => $projectOwner->id,
+        ]);
+        // Assert event was created for non-selected
+         $this->assertDatabaseHas('pitch_events', [
+            'pitch_id' => $otherPitch->id,
+            'event_type' => 'contest_entry_not_selected',
+            'status' => Pitch::STATUS_CONTEST_NOT_SELECTED,
+        ]);
+    }
+
+    /** @test */
+    public function test_it_can_select_contest_winner_without_prize()
+    {
+        // Arrange
+        $projectOwner = User::factory()->create();
+        $producer = User::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+            'prize_amount' => 0, // No prize
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($producer, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY
+        ]);
+        $otherPitch = Pitch::factory()->for($project)->for(User::factory(), 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY
+        ]);
+
+        // Mock dependencies
+        $this->notificationServiceMock->shouldReceive('notifyContestWinnerSelected')->once();
+        $this->notificationServiceMock->shouldReceive('notifyContestEntryNotSelected')->once();
+        $this->invoiceServiceMock->shouldNotReceive('createInvoiceForContestPrize'); // Ensure invoice NOT created
+        // Remove DB::transaction mock
+        // DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb()); 
+
+        // Act
+        $winningPitch = $this->service->selectContestWinner($pitch, $projectOwner);
+
+        // Assertions
+        $this->assertEquals(Pitch::STATUS_CONTEST_WINNER, $winningPitch->status);
+        $this->assertEquals(0, $winningPitch->payment_amount);
+        $this->assertEquals(Pitch::PAYMENT_STATUS_NOT_REQUIRED, $winningPitch->payment_status);
+        $this->assertNull($winningPitch->final_invoice_id); 
+        
+        // Assert other pitch was closed
+        $this->assertEquals(Pitch::STATUS_CONTEST_NOT_SELECTED, $otherPitch->fresh()->status);
+        $this->assertNotNull($otherPitch->fresh()->closed_at);
+
+        // Assert event was created for winner
+        $this->assertDatabaseHas('pitch_events', [
+            'pitch_id' => $winningPitch->id,
+            'event_type' => 'contest_winner_selected',
+            'status' => Pitch::STATUS_CONTEST_WINNER,
+        ]);
+    }
+
+    /** @test */
+    public function select_contest_winner_fails_if_user_not_owner()
+    {
+        $this->expectException(UnauthorizedActionException::class);
+        // Adjust assertion to match specific exception message if needed
+        // $this->expectExceptionMessage('Only the project owner can select a winner');
+        $owner = User::factory()->create();
+        $project = Project::factory()->for($owner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($owner, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY,
+        ]);
+        $notOwner = User::factory()->create();
+        $this->service->selectContestWinner($pitch, $notOwner);
+    }
+
+    /** @test */
+    public function select_contest_winner_fails_if_project_not_contest()
+    {
+        $this->expectException(UnauthorizedActionException::class);
+        // Adjust assertion to match specific exception message if needed
+        // $this->expectExceptionMessage('select contest winner');
+        $owner = User::factory()->create();
+        $project = Project::factory()->for($owner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_STANDARD, // Not a contest
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($owner, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY, // Status might not be valid here but test project type
+        ]);
+        $notOwner = User::factory()->create();
+        $this->service->selectContestWinner($pitch, $notOwner);
+    }
+
+    /** @test */
+    public function select_contest_winner_fails_if_pitch_not_entry_status()
+    {
+        $this->expectException(InvalidStatusTransitionException::class);
+        // Adjust assertion to match specific exception message if needed
+        // $this->expectExceptionMessage('Only contest entries can be selected as winners');
+        $owner = User::factory()->create();
+        $project = Project::factory()->for($owner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($owner, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_WINNER, // Already a winner
+        ]);
+        $notOwner = User::factory()->create();
+        $this->service->selectContestWinner($pitch, $notOwner);
+    }
+
+    /** @test */
+    public function it_can_select_contest_runner_up_successfully()
+    {
+        $projectOwner = User::factory()->create();
+        $producer = User::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')
+                           ->create(['workflow_type' => Project::WORKFLOW_TYPE_CONTEST]);
+        $pitch = Pitch::factory()->for($project)->for($producer, 'user')
+                           ->create(['status' => Pitch::STATUS_CONTEST_ENTRY]);
+        $rank = 2;
+
+        $this->notificationServiceMock->shouldReceive('notifyContestRunnerUpSelected')
+            ->once()
+            ->with(Mockery::on(fn($p) => $p->id === $pitch->id));
+
+        // Remove DB::transaction mock
+        // DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb()); 
+
+        // Act
+        $updatedPitch = $this->service->selectContestRunnerUp($pitch, $projectOwner, $rank);
+
+        // Assert
+        $this->assertEquals(Pitch::STATUS_CONTEST_RUNNER_UP, $updatedPitch->status);
+        $this->assertEquals($rank, $updatedPitch->rank);
+
+        // Assert event was created
+        $this->assertDatabaseHas('pitch_events', [
+            'pitch_id' => $pitch->id,
+            'event_type' => 'contest_runner_up_selected',
+            'status' => Pitch::STATUS_CONTEST_RUNNER_UP,
+            'comment' => "Selected as contest runner-up (Rank: {$rank}).",
+            'created_by' => $projectOwner->id,
+        ]);
+    }
+
+    /** @test */
+    public function select_contest_runner_up_fails_if_user_not_owner()
+    {
+        $projectOwner = User::factory()->create();
+        $producer = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($producer, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY,
+        ]);
+
+        $this->expectException(UnauthorizedActionException::class);
+        $this->expectExceptionMessage('select contest runner-up');
+
+        $this->service->selectContestRunnerUp($pitch, $otherUser, 2);
+    }
+
+    /** @test */
+    public function select_contest_runner_up_fails_if_project_not_contest()
+    {
+        $projectOwner = User::factory()->create();
+        $producer = User::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($producer, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY,
+        ]);
+
+        $this->expectException(UnauthorizedActionException::class);
+        $this->expectExceptionMessage('select contest runner-up');
+
+        $this->service->selectContestRunnerUp($pitch, $projectOwner, 2);
+    }
+
+     /** @test */
+    public function select_contest_runner_up_fails_if_pitch_not_entry_status()
+    {
+        $projectOwner = User::factory()->create();
+        $producer = User::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($producer, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_WINNER, // Not an entry
+        ]);
+
+        $this->expectException(InvalidStatusTransitionException::class);
+        $this->expectExceptionMessage('Only contest entries can be selected as runner-ups.');
+
+        $this->service->selectContestRunnerUp($pitch, $projectOwner, 2);
+    }
+
+    /** @test */
+    public function select_contest_runner_up_fails_if_rank_is_invalid()
+    {
+        $projectOwner = User::factory()->create();
+        $producer = User::factory()->create();
+        $project = Project::factory()->for($projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+        ]);
+        $pitch = Pitch::factory()->for($project)->for($producer, 'user')->create([
+            'status' => Pitch::STATUS_CONTEST_ENTRY,
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Runner-up rank must be greater than 1.');
+
+        $this->service->selectContestRunnerUp($pitch, $projectOwner, 1); // Invalid rank
+    }
+
+    //-----------------------------------------
+    // Client Management Tests
+    //-----------------------------------------
+
+    /** @test */
+    public function client_can_approve_pitch_submission()
+    {
+        $this->withoutEvents(); // Disable model events for this test
+
+        // Arrange
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+            'client_email' => 'client@test.com',
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_READY_FOR_REVIEW,
+        ]);
+        $clientEmail = $project->client_email;
+
+        // Mock dependencies
+        $this->notificationServiceMock->shouldReceive('notifyProducerClientApproved')
+            ->once()
+            ->with(Mockery::on(fn($p) => $p->id === $pitch->id));
+            
+        // Mock DB transaction
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb());
+        // Mock refresh within transaction
+        $mockPitch = Mockery::mock($pitch)->makePartial();
+        $mockPitch->shouldReceive('refresh')->andReturnSelf();
+        $mockPitch->shouldReceive('save')->andReturn(true);
+        $mockPitch->shouldReceive('events->create')->andReturn(true);
+        $mockPitch->status = Pitch::STATUS_READY_FOR_REVIEW; // Ensure status is correct before update
+
+        // Act - Use the mocked pitch instance
+        $updatedPitch = $this->service->clientApprovePitch($mockPitch, $clientEmail);
+
+        // Assert
+        // Check if the mock's status was updated as expected
+        $this->assertEquals(Pitch::STATUS_APPROVED, $mockPitch->status); 
+        $this->assertNotNull($mockPitch->approved_at);
+        // Verify event creation was attempted (mocked above)
+        // Verify notification was sent (mocked above)
+    }
+
+    /** @test */
+    public function client_approve_pitch_is_idempotent()
+    {
+        $this->withoutEvents(); // Disable model events for this test
+
+        // Arrange
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+            'client_email' => 'client@test.com',
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_APPROVED, // Already approved
+            'approved_at' => now(),
+        ]);
+        $clientEmail = $project->client_email;
+
+        // Expectations: No database transactions, no notifications
+        $this->notificationServiceMock->shouldNotReceive('notifyProducerClientApproved');
+        DB::shouldNotReceive('transaction'); 
+
+        // Act
+        $resultPitch = $this->service->clientApprovePitch($pitch, $clientEmail);
+
+        // Assert
+        $this->assertEquals($pitch->id, $resultPitch->id); // Should return the same pitch
+        $this->assertEquals(Pitch::STATUS_APPROVED, $resultPitch->status); // Status should remain APPROVED
+        // Ensure approved_at timestamp wasn't changed (or check it wasn't updated significantly)
+        $this->assertEquals($pitch->approved_at->timestamp, $resultPitch->approved_at->timestamp);
+    }
+
+    /** @test */
+    public function client_approve_pitch_fails_for_non_client_management_project()
+    {
+        // Arrange
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([ // Standard project
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_READY_FOR_REVIEW,
+        ]);
+
+        $mockNotificationService = $this->mock(NotificationService::class);
+        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $clientIdentifier = 'irrelevant@example.com';
+
+        // Assert
+        $this->expectException(UnauthorizedActionException::class);
+        $this->expectExceptionMessage('Client approval is only applicable for client management projects.');
+
+        // Act
+        $workflowService->clientApprovePitch($pitch, $clientIdentifier);
+    }
+
+    /** @test */
+    public function client_approve_pitch_fails_for_pitch_not_ready_for_review()
+    {
+        // Arrange
+        // 1. Mock NotificationService *before* project creation
+        $mockNotificationService = $this->mock(NotificationService::class);
+        // Expect observer call during project creation
+        $mockNotificationService->shouldReceive('notifyClientProjectInvite')->once();
+
+        // 2. Create Project & Pitch
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+            'client_email' => 'testclient@example.com',
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_IN_PROGRESS, // Incorrect status
+        ]);
+
+        // 3. Instantiate service with mock
+        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $clientIdentifier = $project->client_email;
+
+        // Assert
+        $this->expectException(InvalidStatusTransitionException::class);
+        $this->expectExceptionMessage('Pitch must be ready for review for client approval.');
+
+        // Act
+        $workflowService->clientApprovePitch($pitch, $clientIdentifier);
+    }
+
+    /** @test */
+    public function client_can_request_revisions()
+    {
+        // Arrange
+        $mockNotificationService = $this->mock(NotificationService::class);
+        $mockNotificationService->shouldReceive('notifyClientProjectInvite')->once();
+
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+            'client_email' => 'client@test.com',
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_READY_FOR_REVIEW,
+        ]);
+
+        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $clientIdentifier = $project->client_email;
+        $feedback = 'Please adjust the levels.';
+
+        // Expect notification
+        $mockNotificationService->shouldReceive('notifyProducerClientRevisionsRequested')
+            ->once()
+            ->withArgs(function (Pitch $notifiedPitch, string $sentFeedback) use ($pitch, $feedback) {
+                return $notifiedPitch->id === $pitch->id && $sentFeedback === $feedback;
+            });
+
+        // Act
+        $updatedPitch = $workflowService->clientRequestRevisions($pitch, $feedback, $clientIdentifier);
+
+        // Assert
+        $this->assertEquals(Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, $updatedPitch->status);
+        $this->assertNotNull($updatedPitch->revisions_requested_at);
+
+        // Check event
+        $event = \App\Models\PitchEvent::where('pitch_id', $pitch->id)
+            ->where('event_type', 'client_revisions_requested')
+            ->orderBy('created_at', 'desc')
+            ->first();
+        $this->assertNotNull($event);
+        $this->assertEquals($feedback, $event->comment);
+        $this->assertEquals(Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, $event->status);
+        $this->assertNull($event->created_by);
+        $this->assertEquals($clientIdentifier, $event->metadata['client_email']);
+    }
+
+    /** @test */
+    public function client_request_revisions_fails_for_non_client_management_project()
+    {
+        // Arrange
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([ // Standard project
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_READY_FOR_REVIEW,
+        ]);
+
+        $mockNotificationService = $this->mock(NotificationService::class);
+        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $feedback = 'Irrelevant feedback.';
+        $clientIdentifier = 'irrelevant@example.com';
+
+        // Assert
+        $this->expectException(UnauthorizedActionException::class);
+        $this->expectExceptionMessage('Client revisions are only applicable for client management projects.');
+
+        // Act
+        $workflowService->clientRequestRevisions($pitch, $feedback, $clientIdentifier);
+    }
+
+    /** @test */
+    public function client_request_revisions_fails_for_pitch_not_ready_for_review()
+    {
+        // Arrange
+        $mockNotificationService = $this->mock(NotificationService::class);
+        $mockNotificationService->shouldReceive('notifyClientProjectInvite')->once();
+
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+            'client_email' => 'client@test.com',
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_IN_PROGRESS, // Incorrect status
+        ]);
+
+        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $feedback = 'Feedback for wrong status.';
+        $clientIdentifier = $project->client_email;
+
+        // Assert
+        $this->expectException(InvalidStatusTransitionException::class);
+        $this->expectExceptionMessage('Pitch must be ready for review to request client revisions.');
+
+        // Act
+        $workflowService->clientRequestRevisions($pitch, $feedback, $clientIdentifier);
+    }
+
+    /** @test */
+    public function submit_pitch_for_review_notifies_client_for_client_management_project()
+    {
+        // Arrange
+        $mockNotificationService = $this->mock(NotificationService::class);
+        $mockNotificationService->shouldReceive('notifyClientProjectInvite')->once(); // Observer call
+
+        $producer = User::factory()->create();
+        $project = Project::factory()->create([
+            'user_id' => $producer->id,
+            'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+            'client_email' => 'client@test.com',
+        ]);
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_IN_PROGRESS, // Start in progress
+        ]);
+        // Simulate adding a file, as submit requires at least one
+        PitchFile::factory()->create(['pitch_id' => $pitch->id, 'user_id' => $producer->id]);
+        $pitch->load('files'); // Reload files relationship
+
+        $workflowService = new PitchWorkflowService($mockNotificationService);
+
+        // Expect client notification
+        $mockNotificationService->shouldReceive('notifyClientReviewReady')
+            ->once()
+            ->withArgs(function (Pitch $notifiedPitch, string $signedUrl) use ($pitch) {
+                // Basic checks: correct pitch, URL looks like a signed URL
+                return $notifiedPitch->id === $pitch->id &&
+                       Str::contains($signedUrl, '/client-portal/project/') &&
+                       Str::contains($signedUrl, 'signature=');
+            });
+        // Ensure the standard owner notification is NOT called
+        $mockNotificationService->shouldNotReceive('notifyPitchReadyForReview');
+
+        // Act
+        $updatedPitch = $workflowService->submitPitchForReview($pitch, $producer);
+
+        // Assert
+        $this->assertEquals(Pitch::STATUS_READY_FOR_REVIEW, $updatedPitch->status);
+        $this->assertNotNull($updatedPitch->current_snapshot_id); // Ensure snapshot was created
+    }
 
 } 

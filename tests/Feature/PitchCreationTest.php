@@ -275,4 +275,38 @@ class PitchCreationTest extends TestCase
         // Note: This requires PitchPolicy::view() to be implemented correctly.
     }
 
+    /** @test */
+    public function test_contest_pitch_creation_fails_if_deadline_passed()
+    {
+        // Create a project owner
+        $projectOwner = User::factory()->create();
+
+        // Create a contest project with a passed deadline
+        $contestProject = Project::factory()->for($projectOwner, 'user')->create([
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
+            'submission_deadline' => now()->subDays(1), // Deadline was yesterday
+            'status' => Project::STATUS_OPEN,
+            'is_published' => true
+        ]);
+
+        // Create a producer user who will try to submit a pitch
+        $producer = User::factory()->create();
+        
+        // Attempt to submit a pitch
+        $response = $this->actingAs($producer)
+                        ->post(route('projects.pitches.store', ['project' => $contestProject]), [
+                            'agree_terms' => '1',
+                        ]);
+
+        // Expect a redirect with error message
+        $response->assertRedirect();
+        $response->assertSessionHas('error'); // Verify there's an error message
+        
+        // Verify no pitch was created
+        $this->assertDatabaseMissing('pitches', [
+            'project_id' => $contestProject->id,
+            'user_id' => $producer->id
+        ]);
+    }
+
 } 

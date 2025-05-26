@@ -6,6 +6,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 use App\Models\Project;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectsComponent extends Component
 {
@@ -67,6 +68,32 @@ class ProjectsComponent extends Component
 
         $query = Project::query()
             ->whereNotIn('status', ['unpublished'])
+            ->where(function ($q) {
+                $userId = Auth::id();
+                $q->whereIn('workflow_type', [
+                    Project::WORKFLOW_TYPE_STANDARD,
+                    Project::WORKFLOW_TYPE_CONTEST
+                ])
+                ->orWhere(function ($subQ) use ($userId) {
+                    $subQ->where('workflow_type', Project::WORKFLOW_TYPE_DIRECT_HIRE);
+                    if ($userId) {
+                        $subQ->where(function ($userCheck) use ($userId) {
+                            $userCheck->where('user_id', $userId)
+                                      ->orWhere('target_producer_id', $userId);
+                        });
+                    } else {
+                        $subQ->whereRaw('1 = 0');
+                    }
+                })
+                ->orWhere(function ($subQ) use ($userId) {
+                    $subQ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+                    if ($userId) {
+                         $subQ->where('user_id', $userId);
+                    } else {
+                         $subQ->whereRaw('1 = 0');
+                    }
+                });
+            })
             ->filterAndSort($filters);
 
         return view('livewire.projects-component', [

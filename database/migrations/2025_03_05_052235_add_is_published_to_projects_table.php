@@ -26,9 +26,14 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('projects', function (Blueprint $table) {
-            $table->dropColumn('is_published');
-            $table->dropColumn('published_at');
-        });
+        $columns = ['is_published', 'published_at'];
+        // Drop columns separately for SQLite
+        foreach ($columns as $column) {
+            if (Schema::hasColumn('projects', $column)) {
+                Schema::table('projects', function (Blueprint $table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
     }
 };

@@ -32,17 +32,15 @@
             </div>
         </div>
 
-        <!-- Project Type Dropdown -->
+        <!-- Workflow Type Dropdown -->
         <div x-data="{ open: {{ !empty($projectTypes) ? 'true' : 'false' }} }">
             <button type="button" @click="open = !open"
                 class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-primary" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 mr-2 text-primary">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
                     </svg>
-                    Project Type
+                    Workflow Type
                 </span>
                 <svg class="h-5 w-5 transform transition-transform" :class="{'rotate-180': open}"
                     xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -55,24 +53,20 @@
                 x-transition:enter-start="transform opacity-0 scale-95"
                 x-transition:enter-end="transform opacity-100 scale-100" class="mt-2 space-y-1 pl-2">
                 @php
-                $projectTypeLabels = [
-                'single' => 'Single',
-                'album' => 'Album',
-                'ep' => 'EP',
-                'mixtape' => 'Mixtape',
-                'remix' => 'Remix',
-                'cover' => 'Cover',
-                'soundtrack' => 'Soundtrack',
-                'other' => 'Other'
+                // Use the constants from the Project model
+                $workflowTypeOptions = [
+                    \App\Models\Project::WORKFLOW_TYPE_STANDARD => 'Standard',
+                    \App\Models\Project::WORKFLOW_TYPE_CONTEST => 'Contest',
+                    // Add others here if they become publicly filterable
                 ];
                 @endphp
 
-                @foreach(array_keys($projectTypeLabels) as $projectType)
+                @foreach($workflowTypeOptions as $value => $label)
                 <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100">
-                    <input type="checkbox" wire:model.live="projectTypes" value="{{ $projectType }}"
+                    <input type="checkbox" wire:model.live="projectTypes" value="{{ $value }}"
                         class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
                     <span class="ml-2 text-sm text-gray-700">
-                        {{ $projectTypeLabels[$projectType] }}
+                        {{ $label }}
                     </span>
                 </label>
                 @endforeach

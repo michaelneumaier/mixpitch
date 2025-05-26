@@ -20,8 +20,8 @@ return new class extends Migration
             return;
         }
         
-        // Get all existing pitches that don't have a slug yet
-        $pitches = Pitch::whereNull('slug')->with('user')->get();
+        // Get all existing pitches that don't have a slug yet, including potentially soft-deleted ones during migration
+        $pitches = Pitch::withTrashed()->whereNull('slug')->with('user')->get();
         
         foreach ($pitches as $pitch) {
             // Skip if user doesn't exist

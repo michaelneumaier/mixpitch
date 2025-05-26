@@ -8,9 +8,10 @@ use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Storage;
-use Livewire\Attributes\Rule;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Carbon\Carbon;
 
 // Added for refactoring
 use App\Services\Project\ProjectManagementService;
@@ -35,6 +36,71 @@ class CreateProject extends Component
     public $track; // Uploaded track file
     public $audioUrl; // Existing audio URL for display
 
+    // Add project_type property (defaulting to standard)
+    // Note: It seems ProjectForm already has this based on mount(), ensure it's public there
+    // public string $project_type = Project::TYPE_STANDARD;
+
+    public $title = '';
+    public $description = '';
+    public $artist_name = '';
+    // Removed: public $project_type = ''; // Keep original if used for subtypes
+    public $collaboration_type = '';
+    public $budget = '';
+    public $genre_id = '';
+    public $subgenre_id = '';
+    public $visibility = 'public';
+
+    // New property for workflow type
+    public string $workflow_type = Project::WORKFLOW_TYPE_STANDARD;
+
+    // Properties for Contest
+    public $submission_deadline = null;
+    public $judging_deadline = null;
+    public $prize_amount = null;
+    public $prize_currency = Project::DEFAULT_CURRENCY;
+
+    // Properties for Direct Hire
+    public $target_producer_id = null;
+    public $target_producer_query = '';
+    public $producers = [];
+
+    // Properties for Client Management
+    public ?string $client_email = null;
+    public ?string $client_name = null;
+    public $payment_amount = null; // Added for Client Management Payment
+
+    protected function rules(): array
+    {
+        return [
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:5000',
+            'artist_name' => 'required|string|max:255',
+            // 'project_type' => 'required|string|max:50', // Keep validation for original project_type if needed
+            'collaboration_type' => 'required|string|max:50',
+            'budget' => 'required|string|max:100',
+            'genre_id' => 'required|exists:genres,id',
+            'subgenre_id' => 'nullable|exists:subgenres,id,parent_genre_id,'.intval($this->genre_id),
+            'visibility' => ['required', Rule::in(['public', 'unlisted'])] ,
+
+            // Validation for workflow_type
+            'workflow_type' => ['required', Rule::in(Project::getWorkflowTypes())],
+
+            // Conditional Validation
+            'submission_deadline' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CONTEST.'|nullable|date|after:now',
+            'judging_deadline' => 'nullable|date|after:submission_deadline',
+            'prize_amount' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CONTEST.'|nullable|numeric|min:0',
+            'prize_currency' => 'required_with:prize_amount|nullable|string|size:3',
+
+            'target_producer_id' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_DIRECT_HIRE.'|nullable|exists:users,id',
+
+            'client_email' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT.'|nullable|email|max:255',
+            'client_name' => 'nullable|string|max:255',
+
+            // Added: Validation for Client Management Payment Amount
+            'payment_amount' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT.'|nullable|numeric|min:0',
+        ];
+    }
+
     public function mount($project = null)
     {
         $this->project = new Project(); // Keep for reference, maybe not needed
@@ -51,6 +117,45 @@ class CreateProject extends Component
             $this->originalProject = $project; // Store original for comparison if needed
             $this->project = $project; // Keep a reference to the model
             $this->isEdit = true;
+
+            // Populate form object with project subtype and other details
+            $this->form->setProject($project); // Use the form object's method
+
+            // Populate component properties for workflow and conditional fields
+            $this->workflow_type = $project->workflow_type ?? Project::WORKFLOW_TYPE_STANDARD;
+            $this->title = $project->title; // Populate component title as well
+            $this->description = $project->description;
+            $this->artist_name = $project->artist_name;
+            $this->collaboration_type = $project->collaboration_type;
+            $this->budget = $project->budget;
+            $this->genre_id = $project->genre_id;
+            $this->subgenre_id = $project->subgenre_id;
+            $this->visibility = $project->visibility;
+
+            // Populate workflow-specific fields
+            if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
+                $this->submission_deadline = $project->submission_deadline ? $project->submission_deadline->format('Y-m-d\TH:i') : null;
+                $this->judging_deadline = $project->judging_deadline ? $project->judging_deadline->format('Y-m-d\TH:i') : null;
+                $this->prize_amount = $project->prize_amount;
+                $this->prize_currency = $project->prize_currency;
+            }
+            if ($this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE) {
+                $this->target_producer_id = $project->target_producer_id;
+                if ($project->targetProducer) {
+                    $this->target_producer_query = $project->targetProducer->name; // Pre-fill search query
+                }
+            }
+            if ($this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+                $this->client_email = $project->client_email;
+                $this->client_name = $project->client_name;
+                // Added: Populate payment_amount for edit mode
+                // Need to retrieve this from the Pitch model, not the Project model.
+                // Assuming a single pitch is auto-created and linked.
+                $associatedPitch = $project->pitches()->first();
+                if ($associatedPitch) {
+                    $this->payment_amount = $associatedPitch->payment_amount;
+                }
+            }
 
             // Correctly populate the form object
             $this->form->name = $project->name;
@@ -83,6 +188,9 @@ class CreateProject extends Component
             // Initialize form for create (set defaults if needed)
             $this->form->budgetType = 'free';
             $this->form->budget = 0;
+            // Default the form's projectType (subtype) to 'single' or another appropriate default
+            $this->form->projectType = 'single';
+            // Component's workflow_type already defaults to WORKFLOW_TYPE_STANDARD
         }
     }
 
@@ -97,6 +205,25 @@ class CreateProject extends Component
         $this->form->collaborationTypeProduction = in_array('Production', $types);
         $this->form->collaborationTypeSongwriting = in_array('Songwriting', $types);
         $this->form->collaborationTypeVocalTuning = in_array('Vocal Tuning', $types);
+    }
+
+    /**
+     * Search for producers when the query is updated.
+     */
+    public function updatedTargetProducerQuery(string $query): void
+    {
+        if (strlen($query) < 2) {
+            $this->producers = [];
+            return;
+        }
+
+        // Assuming producers are regular users for now.
+        // Add role filtering if applicable (e.g., where('role', 'producer'))
+        $this->producers = \App\Models\User::where('name', 'like', '%'.$query.'%')
+            ->where('id', '!=', auth()->id()) // Exclude self
+            ->select('id', 'name')
+            ->take(10)
+            ->get();
     }
 
     #[On('refreshComponent')]
@@ -158,202 +285,116 @@ class CreateProject extends Component
      */
     public function save(ProjectManagementService $projectService)
     {
-        // Debug: Log the initial form values
-        Log::debug('Form values before validation:', [
-            'projectType' => $this->form->projectType,
-            'isEdit' => $this->isEdit,
-        ]);
-        
-        // 1. Validation
-        $validatedData = $this->form->validate(); // Use ProjectForm validation
-        
-        // Debug: Log validated data
-        Log::debug('Validated form data:', [
-            'projectType' => $validatedData['projectType'] ?? 'not set',
-        ]);
-        
-        // Ensure project_type is correctly set
-        if (isset($validatedData['projectType'])) {
-            $validatedData['project_type'] = $validatedData['projectType'];
-            unset($validatedData['projectType']);
-            Log::debug('Transformed project_type value:', [
-                'project_type' => $validatedData['project_type']
-            ]);
-        }
-
-        // --- Transform collaboration types --- START ---
-        $collaborationTypes = [];
-        if ($this->form->collaborationTypeMixing) $collaborationTypes[] = 'Mixing';
-        if ($this->form->collaborationTypeMastering) $collaborationTypes[] = 'Mastering';
-        if ($this->form->collaborationTypeProduction) $collaborationTypes[] = 'Production';
-        if ($this->form->collaborationTypeSongwriting) $collaborationTypes[] = 'Songwriting';
-        if ($this->form->collaborationTypeVocalTuning) $collaborationTypes[] = 'Vocal Tuning'; // Ensure correct name
-
-        // Add the transformed array to validated data and remove the booleans
-        $validatedData['collaboration_type'] = $collaborationTypes;
-        unset(
-            $validatedData['collaborationTypeMixing'],
-            $validatedData['collaborationTypeMastering'],
-            $validatedData['collaborationTypeProduction'],
-            $validatedData['collaborationTypeSongwriting'],
-            $validatedData['collaborationTypeVocalTuning'],
-            // Also unset budgetType as service derives budget from the value
-            $validatedData['budgetType']
-        );
-        // --- Transform collaboration types --- END ---
-
-        // Separate image data if present in the form object
-        $imageFile = $this->form->projectImage ?? null;
-        
-        // More detailed logging for image handling in both create/edit modes
-        Log::debug('CreateProject::save - Detailed Image Analysis', [
-            'isEdit' => $this->isEdit,
-            'project_id' => $this->isEdit ? $this->project->id : null,
-            'originalImage' => $this->isEdit ? $this->project->image_path : null,
-            'formHasImage' => isset($this->form->projectImage),
-            'imageFile_type' => is_object($imageFile) ? get_class($imageFile) : gettype($imageFile),
-            'imageFile_null' => is_null($imageFile),
-            'imageFile_uploadedFile' => $imageFile instanceof \Illuminate\Http\UploadedFile,
-            'form_image_properties' => is_object($this->form->projectImage) ? get_object_vars($this->form->projectImage) : null
-        ]);
-        
-        // WORKAROUND: For tests, ensure the projectImage field gets special treatment in edit mode
-        if ($this->isEdit && $imageFile && app()->environment('testing')) {
-            Log::debug('CreateProject::save - Special test environment handling for image update', [
-                'original_image_path' => $this->project->image_path,
-                'is_testing_env' => app()->environment('testing')
-            ]);
-            
-            // In test environment, ensure image is different by adding a timestamp to guarantee a new image path
-            if ($imageFile instanceof \Illuminate\Http\UploadedFile || 
-                $imageFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
-                // Force a new image hash in test environment to guarantee different path
-                $uniqueImagePath = $imageFile->storeAs(
-                    'project_images', 
-                    'test_' . time() . '_' . $imageFile->getClientOriginalName(), 
-                    's3'
-                );
-                
-                // Set the image_path directly on the project instance
-                $this->project->image_path = $uniqueImagePath;
-                
-                // Set $imageFile to null since we've handled the upload manually
-                $imageFile = null;
-                
-                Log::debug('CreateProject::save - Created unique test image path', [
-                    'new_unique_path' => $uniqueImagePath
-                ]);
-            }
-        }
-        
-        if ($imageFile) {
-            // Assume validation key is 'projectImage' if handled by ProjectForm
-            unset($validatedData['projectImage']);
-            Log::debug('CreateProject::save - Unset projectImage from validatedData');
-        }
-
-        Log::debug('CreateProject::save - Data before calling updateProject', [
-            'project_id' => $this->project->id,
-            'validatedData' => $validatedData,
-            'imageFile_passed' => !is_null($imageFile)
-        ]);
-
-        // TODO: Handle preview track upload/deletion using FileManagementService in Step 5
-        $trackFile = $this->track ?? null; // Temporarily store the uploaded track file
-        $shouldDeleteExistingTrack = $this->deletePreviewTrack;
-        // Remove track from validated data for now
-        unset($validatedData['track']);
-
         try {
-            if ($this->isEdit) {
-                // --- UPDATE --- (Refactored)
-                $this->authorize('update', $this->project);
-
-                // Add debug logging here
-                Log::debug('Update Project ValidatedData:', $validatedData);
-                
-                $project = $projectService->updateProject(
-                    $this->project,
-                    $validatedData,
-                    $imageFile // Service handles deleting old if this is provided
-                    // Explicit deletion without replacement is not handled here yet
-                );
-
-                // Log the result of the project update
-                Log::debug('CreateProject::save - Project after service update', [
-                    'project_id' => $project->id,
-                    'image_path_after_update' => $project->image_path,
-                    'form_image_still_exists' => isset($this->form->projectImage),
-                    'image_changed' => $this->project->image_path !== $project->image_path
-                ]);
-
-                // TODO: Handle preview track update/deletion using FileManagementService (Step 5)
-                if ($trackFile) {
-                    // Call file service to delete old track if exists ($this->project->preview_track)
-                    // Call file service to upload $trackFile and associate with $project->id
-                    // Update $project->preview_track = new_file_id;
-                    Log::info('TODO: Upload new preview track', ['project_id' => $project->id]);
-                } elseif ($shouldDeleteExistingTrack && $this->project->preview_track) {
-                    // Call file service to delete old track ($this->project->preview_track)
-                    // Set $project->preview_track = null;
-                     Log::info('TODO: Delete existing preview track', ['project_id' => $project->id, 'track_id' => $this->project->preview_track]);
+            // Format deadline if it exists
+            if (!empty($this->form->deadline)) {
+                try {
+                    $this->form->deadline = \Carbon\Carbon::parse($this->form->deadline)->startOfDay()->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $this->form->deadline = null;
                 }
-                // TODO: Save project again if preview_track ID was updated by file service
-                // $project->save();
+            }
 
-                Toaster::success('Project updated successfully!');
-                return redirect()->route('projects.manage', $project);
-
+            // Format budget based on budgetType
+            if ($this->form->budgetType === 'free') {
+                $this->form->budget = 0;
             } else {
-                // --- CREATE --- (Refactored)
-                $this->authorize('create', Project::class);
+                // Remove any non-numeric characters except decimal point
+                $this->form->budget = preg_replace('/[^\d.]/', '', $this->form->budget);
+            }
 
+            // Validate form data
+            $validatedFormData = $this->form->validate();
+            
+            // Sync component title with form name if needed
+            if (empty($this->title) && !empty($this->form->name)) {
+                $this->title = $this->form->name;
+            } else if (empty($this->form->name) && !empty($this->title)) {
+                $this->form->name = $this->title;
+            }
+            
+            // Build collaboration type array from checkboxes
+            $collaborationTypes = [];
+            if (!empty($this->form->collaborationTypeMixing)) $collaborationTypes[] = 'Mixing';
+            if (!empty($this->form->collaborationTypeMastering)) $collaborationTypes[] = 'Mastering';
+            if (!empty($this->form->collaborationTypeProduction)) $collaborationTypes[] = 'Production';
+            if (!empty($this->form->collaborationTypeSongwriting)) $collaborationTypes[] = 'Songwriting';
+            if (!empty($this->form->collaborationTypeVocalTuning)) $collaborationTypes[] = 'Vocal Tuning';
+            
+            // If none selected, use default
+            if (empty($collaborationTypes)) {
+                $collaborationTypes[] = 'Production'; // Default
+            }
+        
+            // Prepare project data
+            $projectData = [
+                'user_id' => auth()->id(),
+                'name' => $this->form->name,
+                'title' => $this->title,
+                'description' => $this->form->description,
+                'artist_name' => $this->form->artistName,
+                'project_type' => $this->form->projectType,
+                'collaboration_type' => $collaborationTypes,
+                
+                // Format budget as numeric value
+                'budget' => is_numeric($this->form->budget) ? (float)$this->form->budget : 0,
+                
+                // Format deadline for database (use Carbon object)
+                'deadline' => !empty($this->form->deadline) ? \Carbon\Carbon::parse($this->form->deadline) : null,
+                
+                'genre' => $this->form->genre,
+                'genre_id' => $this->genre_id,
+                'subgenre_id' => $this->subgenre_id,
+                'visibility' => $this->visibility ?? 'public',
+                
+                // Workflow specific fields
+                'workflow_type' => $this->workflow_type,
+                'submission_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->submission_deadline : null,
+                'judging_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->judging_deadline : null,
+                'prize_amount' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->prize_amount : null,
+                'prize_currency' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->prize_currency : null,
+                'target_producer_id' => $this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE ? $this->target_producer_id : null,
+                'client_email' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_email : null,
+                'client_name' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_name : null,
+            ];
+            
+            if ($this->isEdit && $this->originalProject) {
+                // Update existing project
+                $this->authorize('update', $this->originalProject);
+                $project = $projectService->updateProject(
+                    $this->originalProject,
+                    $projectData,
+                    $this->form->projectImage,
+                    true
+                );
+                Toaster::success('Project updated successfully!');
+            } else {
+                // Create new project
+                $this->authorize('create', Project::class);
                 $project = $projectService->createProject(
                     auth()->user(),
-                    $validatedData,
-                    $imageFile
+                    $projectData,
+                    $this->form->projectImage
                 );
-
-                 // TODO: Handle preview track upload using FileManagementService (Step 5)
-                 if ($trackFile) {
-                    // Call file service to upload $trackFile and associate with $project->id
-                    // Update $project->preview_track = new_file_id;
-                    // $project->save();
-                     Log::info('TODO: Upload preview track for new project', ['project_id' => $project->id]);
-                 }
-
+                $project->update(['status' => Project::STATUS_UNPUBLISHED, 'is_published' => false]);
                 Toaster::success('Project created successfully!');
-            return redirect()->route('projects.show', $project);
             }
-
-        } catch (ProjectCreationException | ProjectUpdateException $e) {
-            Log::error('Project Save/Update Error: ' . $e->getMessage(), ['exception' => get_class($e), 'isEdit' => $this->isEdit, 'project_id' => $this->project->id ?? null]); // Removed trace for brevity
-            Toaster::error($e->getMessage());
-            // Re-throw in testing environment for clearer test failures
-            if (app()->environment('testing')) {
-                throw $e;
-            }
-            return; // Stop execution to prevent redirect on failure
+            
+            // Redirect to the project management page
+            return redirect()->route('projects.manage', $project->slug);
+            
         } catch (AuthorizationException $e) {
-            Log::warning('Authorization failed for saving project', ['user_id' => auth()->id(), 'isEdit' => $this->isEdit, 'project_id' => $this->project->id ?? null]);
             Toaster::error('You are not authorized to perform this action.');
-             // Re-throw in testing environment
-            if (app()->environment('testing')) {
-                throw $e;
-            }
-            return; // Stop execution
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Log validation errors specifically if desired, but Livewire usually handles display
-             Log::info('Validation failed saving project', ['errors' => $e->errors()]);
-             // Let Livewire handle validation errors, don't re-throw or return here
+        } catch (ProjectCreationException | ProjectUpdateException $e) {
+            Toaster::error('There was an error saving the project: ' . $e->getMessage());
         } catch (\Exception $e) {
-            Log::error('Unexpected Error Saving Project: ' . $e->getMessage(), ['exception' => get_class($e), 'isEdit' => $this->isEdit, 'project_id' => $this->project->id ?? null]); // Removed trace
-            Toaster::error('An unexpected error occurred. Please try again.');
-             // Re-throw in testing environment
-             if (app()->environment('testing')) {
-                throw $e;
-            }
-            return; // Stop execution
+            // Log the error for debugging
+            \Illuminate\Support\Facades\Log::error("Error saving project: " . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            Toaster::error('An unexpected error occurred: ' . $e->getMessage());
         }
     }
 

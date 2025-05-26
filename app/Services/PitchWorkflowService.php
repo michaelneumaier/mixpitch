@@ -15,6 +15,7 @@ use App\Models\PitchSnapshot;
 use App\Exceptions\Pitch\InvalidStatusTransitionException;
 use App\Exceptions\Pitch\SnapshotException;
 use App\Exceptions\Pitch\SubmissionValidationException;
+use App\Services\InvoiceService;
 
 class PitchWorkflowService
 {
@@ -43,6 +44,20 @@ class PitchWorkflowService
         // Perform checks previously in controller/model (can user pitch? project open? user already pitched?)
         // Use policies or dedicated model methods for checks.
         // Note: isOpenForPitches() needs to be implemented in Project model.
+
+        // <<< PHASE 1 GUARD >>>
+        // Block public pitch creation for Direct Hire and Client Management projects.
+        // Contests will use this method initially but with different logic later.
+        if ($project->isDirectHire() || $project->isClientManagement()) {
+            throw new PitchCreationException('Pitches cannot be publicly submitted for this workflow type.');
+        }
+        // <<< END PHASE 1 GUARD >>>
+
+        // Check for contest deadline - PHASE 3
+        if ($project->isContest() && $project->submission_deadline && $project->submission_deadline->isPast()) {
+            throw new PitchCreationException('The submission deadline for this contest has passed.');
+        }
+
         if (!$project->isOpenForPitches()) {
              throw new PitchCreationException('This project is not currently open for pitches.');
         }
@@ -60,7 +75,16 @@ class PitchWorkflowService
                 $pitch = new Pitch();
                 $pitch->project_id = $project->id;
                 $pitch->user_id = $user->id;
-                $pitch->status = Pitch::STATUS_PENDING; // Default initial status
+                
+                // Set initial status based on project workflow type - PHASE 3
+                if ($project->isContest()) {
+                    $pitch->status = Pitch::STATUS_CONTEST_ENTRY;
+                    $initialComment = 'Contest entry submitted.';
+                } else {
+                    $pitch->status = Pitch::STATUS_PENDING; // Default initial status
+                    $initialComment = 'Pitch created and pending project owner approval.';
+                }
+                
                 $pitch->fill($validatedData); // If title/desc are captured at creation
 
                 // Slug generation is handled by the Sluggable trait on saving
@@ -69,7 +93,7 @@ class PitchWorkflowService
                 // Create initial event (Consider moving to an Observer: PitchObserver::created)
                 $pitch->events()->create([
                     'event_type' => 'status_change',
-                    'comment' => 'Pitch created and pending project owner approval.',
+                    'comment' => $initialComment,
                     'status' => $pitch->status,
                     // Ensure Auth::id() is available or use $user->id appropriately
                     'created_by' => Auth::check() ? Auth::id() : $user->id,
@@ -97,6 +121,13 @@ class PitchWorkflowService
      */
     public function approveInitialPitch(Pitch $pitch, User $approvingUser): Pitch
     {
+        // <<< PHASE 1/5 GUARD >>>
+        // Only Standard projects require initial pitch approval.
+        if (!$pitch->project->isStandard()) {
+             throw new UnauthorizedActionException('Initial pitch approval is not applicable for this workflow type.');
+        }
+        // <<< END PHASE 1/5 GUARD >>>
+
         // Authorization check (is user the project owner?)
         if ($pitch->project->user_id !== $approvingUser->id) {
             throw new UnauthorizedActionException('approve initial pitch');
@@ -143,6 +174,19 @@ class PitchWorkflowService
      */
     public function approveSubmittedPitch(Pitch $pitch, int $snapshotId, User $approvingUser): Pitch
     {
+        Log::debug('Entering approveSubmittedPitch', [
+            'pitch_id' => $pitch->id,
+            'initial_pitch_status' => $pitch->status, // Log status on entry
+            'snapshot_id' => $snapshotId,
+            'approving_user_id' => $approvingUser->id
+        ]);
+
+        // <<< PHASE 3 GUARD >>>
+        if ($pitch->project->isContest()) {
+            throw new UnauthorizedActionException('Standard pitch approval is not applicable for contests.');
+        }
+        // <<< END PHASE 3 GUARD >>>
+
         // Authorization
         Log::debug('Approve Action - Authorization Check', [
             'pitch_id' => $pitch->id,
@@ -227,6 +271,12 @@ class PitchWorkflowService
      */
     public function denySubmittedPitch(Pitch $pitch, int $snapshotId, User $denyingUser, ?string $reason = null): Pitch
     {
+        // <<< PHASE 3 GUARD >>>
+        if ($pitch->project->isContest()) {
+            throw new UnauthorizedActionException('Standard pitch denial is not applicable for contests.');
+        }
+        // <<< END PHASE 3 GUARD >>>
+
         // Authorization
         Log::debug('Deny Action - Authorization Check', [
             'pitch_id' => $pitch->id,
@@ -309,6 +359,12 @@ class PitchWorkflowService
      */
     public function requestPitchRevisions(Pitch $pitch, int $snapshotId, User $requestingUser, string $feedback): Pitch
     {
+        // <<< PHASE 3 GUARD >>>
+        if ($pitch->project->isContest()) {
+            throw new UnauthorizedActionException('Revisions cannot be requested for contest entries.');
+        }
+        // <<< END PHASE 3 GUARD >>>
+
          // Authorization
          if ($pitch->project->user_id !== $requestingUser->id) {
              throw new UnauthorizedActionException('request revisions for this pitch');
@@ -372,7 +428,13 @@ class PitchWorkflowService
      */
     public function cancelPitchSubmission(Pitch $pitch, User $cancellingUser): Pitch
     {
-        // Authorization
+        // <<< PHASE 3 GUARD >>>
+        if ($pitch->project->isContest()) {
+            throw new UnauthorizedActionException('Standard pitch cancellation is not applicable for contests.');
+        }
+        // <<< END PHASE 3 GUARD >>>
+
+        // Authorization: Only pitch creator can cancel
         if ($pitch->user_id !== $cancellingUser->id) {
             throw new UnauthorizedActionException('cancel pitch submission');
         }
@@ -428,7 +490,13 @@ class PitchWorkflowService
      */
     public function submitPitchForReview(Pitch $pitch, User $submitter, ?string $responseToFeedback = null): Pitch
     {
-        // Authorization
+        // <<< PHASE 3 GUARD >>>
+        if ($pitch->project->isContest()) {
+            throw new UnauthorizedActionException('Standard review submission is not applicable for contests.');
+        }
+        // <<< END PHASE 3 GUARD >>>
+
+        // Authorization check (Is the submitter the pitch owner?)
         if ($pitch->user_id !== $submitter->id) {
             throw new UnauthorizedActionException('submit this pitch for review');
         }
@@ -448,60 +516,105 @@ class PitchWorkflowService
         // }
 
         try {
-            return DB::transaction(function() use ($pitch, $responseToFeedback, $submitter) {
+            $debugOriginalStatus = 'NOT_SET'; // Initialize debug variable
+            return DB::transaction(function() use ($pitch, $submitter, $responseToFeedback, &$debugOriginalStatus) { // Pass by reference
+
+                // --- Snapshot Creation Logic --- 
                 $previousSnapshot = $pitch->currentSnapshot;
-                // Safely get version from snapshot_data or default to 0
                 $previousVersion = $previousSnapshot ? ($previousSnapshot->snapshot_data['version'] ?? 0) : 0;
                 $newVersion = $previousVersion + 1;
 
-                // Create new Snapshot
                 $snapshotData = [
                     'version' => $newVersion,
-                    'file_ids' => $pitch->files->pluck('id')->toArray(),
+                    'file_ids' => $pitch->files->pluck('id')->toArray(), // Ensure files are loaded
                     'response_to_feedback' => $responseToFeedback,
                     'previous_snapshot_id' => $previousSnapshot?->id,
                 ];
 
-                $newSnapshot = $pitch->snapshots()->create([
-                    'project_id' => $pitch->project_id,
+                $snapshot = $pitch->snapshots()->create([
                     'user_id' => $submitter->id,
+                    'project_id' => $pitch->project_id,
                     'snapshot_data' => $snapshotData,
-                    'status' => PitchSnapshot::STATUS_PENDING, // Initially pending review
+                    'status' => PitchSnapshot::STATUS_PENDING,
                 ]);
 
-                // Update Pitch
-                $originalStatus = $pitch->getOriginal('status'); // Get status before potential changes
+                // Explicitly ensure the pitch_id is set (Workaround for potential Eloquent issue)
+                if (!$snapshot->pitch_id) {
+                    $snapshot->pitch_id = $pitch->id;
+                    $snapshot->save(); // Save the change
+                    Log::warning('Explicitly set pitch_id on newly created snapshot.', [
+                        'pitch_id' => $pitch->id,
+                        'snapshot_id' => $snapshot->id,
+                    ]);
+                }
+
+                Log::info('New snapshot created for pitch submission.', [
+                    'pitch_id' => $pitch->id,
+                    'new_snapshot_id' => $snapshot->id, // Log the ID (using $snapshot)
+                    'new_version' => $newVersion,
+                    'new_snapshot_pitch_id' => $snapshot->pitch_id, // Explicitly log the pitch_id (using $snapshot)
+                ]);
+
+                // Update Pitch Status
                 $pitch->status = Pitch::STATUS_READY_FOR_REVIEW;
-                $pitch->current_snapshot_id = $newSnapshot->id;
+                $pitch->current_snapshot_id = $snapshot->id; // Link the new snapshot
                 $pitch->save();
 
                 // Update previous snapshot status if applicable
-                if ($previousSnapshot && $originalStatus === Pitch::STATUS_REVISIONS_REQUESTED) {
-                    // Mark the snapshot that *received* the revisions feedback as addressed
+                Log::debug('Checking previous snapshot status update condition.', [
+                    'pitch_id' => $pitch->id,
+                    'previous_snapshot_exists' => !is_null($previousSnapshot),
+                    'previous_snapshot_status' => $previousSnapshot?->status,
+                    'expected_previous_snapshot_status' => PitchSnapshot::STATUS_REVISIONS_REQUESTED,
+                    'condition_met' => ($previousSnapshot && $previousSnapshot->status === PitchSnapshot::STATUS_REVISIONS_REQUESTED)
+                ]);
+                if ($previousSnapshot && $previousSnapshot->status === PitchSnapshot::STATUS_REVISIONS_REQUESTED) {
                     $previousSnapshot->status = PitchSnapshot::STATUS_REVISION_ADDRESSED;
-                    $previousSnapshot->save();
+                    $previousSnapshot->saveOrFail();
+                    Log::info('Updated previous snapshot status to revision_addressed.', ['previous_snapshot_id' => $previousSnapshot->id]);
+                } else {
+                    Log::debug('Skipped updating previous snapshot status.', [
+                        'previous_snapshot_id' => $previousSnapshot?->id,
+                        'reason' => !$previousSnapshot ? 'No previous snapshot' : 'Previous snapshot status was not revisions_requested'
+                    ]);
                 }
 
-                // Create Event
-                $comment = 'Pitch submitted for review (Version ' . $newVersion . ').';
-                if ($responseToFeedback) $comment .= " Response: {$responseToFeedback}";
+                // Create event
+                $eventComment = 'Pitch submitted for review (Version ' . $newVersion . ').';
+                if ($responseToFeedback) $eventComment .= " Response: {$responseToFeedback}";
                 $pitch->events()->create([
                     'event_type' => 'status_change',
-                    'comment' => $comment,
+                    'comment' => $eventComment,
                     'status' => $pitch->status,
-                    'snapshot_id' => $newSnapshot->id,
-                    'created_by' => $submitter->id, // Use submitter's ID
+                    'snapshot_id' => $snapshot->id,
+                    'created_by' => $submitter->id,
                 ]);
 
-                // Notify Project Owner
-                // Note: notifyPitchReadyForReview() needs implementation in NotificationService
-                $this->notificationService->notifyPitchReadyForReview($pitch, $newSnapshot);
+                // Notify appropriate party
+                if ($pitch->project->isClientManagement()) {
+                    // Generate signed URL for client
+                    $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'client.portal.view',
+                        now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7)),
+                        ['project' => $pitch->project_id]
+                    );
+                    // Trigger client notification
+                    $this->notificationService->notifyClientReviewReady($pitch, $signedUrl);
+                    Log::info('Client review ready notification sent.', ['pitch_id' => $pitch->id, 'client_email' => $pitch->project->client_email]);
+                } else {
+                    // Standard notification to project owner
+                    $this->notificationService->notifyPitchReadyForReview($pitch, $snapshot); // Use $snapshot
+                    Log::info('Project owner pitch ready for review notification sent.', ['pitch_id' => $pitch->id, 'project_owner_id' => $pitch->project->user_id]);
+                }
 
-                return $pitch;
+                return $pitch->fresh(['currentSnapshot']); // Reload with snapshot relationship
             });
+
+        } catch (SnapshotException $e) { // Catch specific snapshot errors if defined
+            Log::error('Error creating snapshot for pitch submission', ['pitch_id' => $pitch->id, 'error' => $e->getMessage()]);
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Error submitting pitch for review', ['pitch_id' => $pitch->id, 'error' => $e->getMessage()]);
-            // Consider re-throwing a more specific exception if needed
             throw new \RuntimeException('Failed to submit pitch for review.', 0, $e);
         }
     }
@@ -517,7 +630,13 @@ class PitchWorkflowService
      */
     public function returnPitchToReview(Pitch $pitch, User $revertingUser): Pitch
     {
-        // Authorization
+        // <<< PHASE 3 GUARD >>>
+        if ($pitch->project->isContest()) {
+            throw new UnauthorizedActionException('Standard pitch status changes are not applicable for contests.');
+        }
+        // <<< END PHASE 3 GUARD >>>
+
+        // Authorization check
         if ($pitch->project->user_id !== $revertingUser->id) {
             throw new UnauthorizedActionException('return this pitch to review');
         }
@@ -757,12 +876,17 @@ class PitchWorkflowService
      */
     public function returnPitchToApproved(Pitch $pitch, User $revertingUser): Pitch
     {
-        // Authorization (Use specific policy method)
-        // Policy check: if ($revertingUser->cannot('returnToApproved', $pitch)) { throw new UnauthorizedActionException('return this pitch to approved'); }
-        // Simplified check for now:
+        // <<< PHASE 3 GUARD >>>
+        if ($pitch->project->isContest()) {
+            throw new UnauthorizedActionException('Standard pitch status changes are not applicable for contests.');
+        }
+        // <<< END PHASE 3 GUARD >>>
+
+        // Authorization check
         if ($pitch->project->user_id !== $revertingUser->id) {
             throw new UnauthorizedActionException('return this pitch to approved');
         }
+        // Policy: if ($revertingUser->cannot('returnToApproved', $pitch)) { throw new UnauthorizedActionException('return this pitch to approved'); }
 
         // Validation: Pitch must be completed, payment must be pending or failed.
         if ($pitch->status !== Pitch::STATUS_COMPLETED) {
@@ -817,4 +941,367 @@ class PitchWorkflowService
     }
 
     // Add updatePitchDetails method later if needed for title/description edits
+
+    // <<< PHASE 3: CONTEST METHODS >>>
+
+    /**
+     * Select a winner for a contest pitch
+     * 
+     * @param Pitch $pitch The pitch to select as winner
+     * @param User $projectOwner The project owner performing the action
+     * @return Pitch The updated pitch
+     */
+    public function selectContestWinner(Pitch $pitch, User $projectOwner): Pitch
+    {
+        // Verify project owner
+        if ($pitch->project->user_id !== $projectOwner->id) {
+            throw new UnauthorizedActionException('Only the project owner can select a winner');
+        }
+
+        // Verify this is a contest entry
+        if ($pitch->status !== Pitch::STATUS_CONTEST_ENTRY) {
+            throw new InvalidStatusTransitionException(
+                $pitch->status, 
+                Pitch::STATUS_CONTEST_WINNER, 
+                'Only contest entries can be selected as winners'
+            );
+        }
+
+        try {
+            return DB::transaction(function() use ($pitch, $projectOwner) {
+                // Set as winner
+                $pitch->status = Pitch::STATUS_CONTEST_WINNER;
+                $pitch->rank = 1; // Winner is always rank 1
+                $pitch->approved_at = now();
+                
+                $isNoPrize = $pitch->project->prize_amount <= 0;
+                $eventType = $isNoPrize ? 'contest_winner_selected_no_prize' : 'contest_winner_selected';
+                $notificationMethod = $isNoPrize ? 'notifyContestWinnerSelectedNoPrize' : 'notifyContestWinnerSelected'; // Use different methods
+
+                // Handle prize payment if applicable
+                if (!$isNoPrize) {
+                    $pitch->payment_amount = $pitch->project->prize_amount;
+                    $pitch->payment_status = Pitch::PAYMENT_STATUS_PROCESSING;
+
+                    // Create invoice if a prize amount is set
+                    $invoiceService = app(InvoiceService::class);
+                    $invoice = $invoiceService->createInvoiceForContestPrize(
+                        $pitch->project,
+                        $pitch->user, // Correct: Winning Producer
+                        $pitch->project->prize_amount,
+                        $pitch->project->prize_currency ?? 'USD'
+                    );
+
+                    $pitch->final_invoice_id = $invoice->id;
+                } else {
+                    // No prize money
+                    $pitch->payment_amount = 0;
+                    $pitch->payment_status = Pitch::PAYMENT_STATUS_NOT_REQUIRED;
+                }
+                
+                $pitch->save();
+
+                // Create event with correct type
+                $pitch->events()->create([
+                    'event_type' => $eventType, // Use dynamic event type
+                    'status' => Pitch::STATUS_CONTEST_WINNER,
+                    'comment' => 'Selected as contest winner.',
+                    'created_by' => $projectOwner->id,
+                ]);
+
+                // Notify the winner (using dynamic method name)
+                // Ensure NotificationService has both methods or handles the distinction
+                $this->notificationService->{$notificationMethod}($pitch);
+
+                // Notify the owner (Add this notification)
+                $ownerNotificationMethod = $isNoPrize ? 'notifyContestWinnerSelectedOwnerNoPrize' : 'notifyContestWinnerSelectedOwner';
+                $this->notificationService->{$ownerNotificationMethod}($pitch);
+
+                // Close other entries
+                $this->closeOtherContestEntries($pitch); // This already notifies non-winners
+
+                return $pitch;
+            });
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::error('Failed to select contest winner', [
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Re-throw specific exceptions
+            if ($e instanceof UnauthorizedActionException || $e instanceof InvalidStatusTransitionException) {
+                throw $e;
+            }
+            
+            // For other exceptions, throw a generic error
+            throw new \Exception('Failed to select contest winner: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Select a runner-up for a contest
+     * 
+     * Select a pitch as a contest runner-up (optional).
+     *
+     * @param Pitch $pitch The runner-up pitch entry.
+     * @param User $projectOwner The user selecting the runner-up.
+     * @param int $rank The rank to assign (must be > 1).
+     * @return Pitch The updated runner-up pitch.
+     * @throws UnauthorizedActionException|InvalidStatusTransitionException|\InvalidArgumentException|\Exception
+     */
+    public function selectContestRunnerUp(Pitch $pitch, User $projectOwner, int $rank): Pitch
+    {
+        if ($rank <= 1) {
+             throw new \InvalidArgumentException('Runner-up rank must be greater than 1.');
+        }
+        $project = $pitch->project;
+        // Authorization & Validation
+        if ($projectOwner->id !== $project->user_id || !$project->isContest()) {
+            throw new UnauthorizedActionException('select contest runner-up');
+        }
+         if ($pitch->status !== Pitch::STATUS_CONTEST_ENTRY) {
+            throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_CONTEST_RUNNER_UP, 'Only contest entries can be selected as runner-ups.');
+        }
+
+        return DB::transaction(function () use ($pitch, $projectOwner, $rank) {
+            $pitch->status = Pitch::STATUS_CONTEST_RUNNER_UP;
+            $pitch->rank = $rank;
+            // Runner-ups typically don't get payment via this flow, but could be added
+            $pitch->save();
+
+            // Create event
+            $pitch->events()->create([
+                'event_type' => 'contest_runner_up_selected',
+                'comment' => "Selected as contest runner-up (Rank: {$rank}).",
+                'status' => $pitch->status,
+                'created_by' => $projectOwner->id,
+            ]);
+
+            // Notify runner-up
+            // Note: notifyContestRunnerUpSelected needs implementation in NotificationService
+            $this->notificationService->notifyContestRunnerUpSelected($pitch);
+
+            return $pitch;
+        });
+    }
+
+    /**
+     * Close all other contest entries when a winner is selected
+     * 
+     * @param Pitch $winningPitch The pitch that was selected as winner
+     */
+    protected function closeOtherContestEntries(Pitch $winningPitch): void
+    {
+        // Find all other contest entries for the same project
+        $otherEntries = Pitch::where('project_id', $winningPitch->project_id)
+            ->where('id', '!=', $winningPitch->id)
+            ->where('status', Pitch::STATUS_CONTEST_ENTRY)
+            ->get();
+        
+        foreach ($otherEntries as $entry) {
+            // Update status and set closed timestamp
+            $entry->status = Pitch::STATUS_CONTEST_NOT_SELECTED;
+            $entry->closed_at = now();
+            $entry->save();
+            
+            // Create event
+            $entry->events()->create([
+                'event_type' => 'contest_entry_not_selected',
+                'status' => Pitch::STATUS_CONTEST_NOT_SELECTED,
+                'comment' => 'Entry was not selected as winner.',
+                'created_by' => $winningPitch->project->user_id, // Project owner made the selection
+            ]);
+            
+            // Notify the pitch owner
+            $this->notificationService->notifyContestEntryNotSelected($entry);
+        }
+    }
+
+    // <<< END PHASE 3: CONTEST METHODS >>>
+
+    // --- Client Management Specific Methods ---
+
+    /**
+     * Approve a pitch submission via the Client Portal.
+     * Called by the webhook (handleCheckoutSessionCompleted) after successful payment,
+     * or directly by ClientPortalController if no payment is required.
+     *
+     * @param Pitch $pitch
+     * @param string $clientIdentifier (Usually the client email)
+     * @return Pitch
+     * @throws InvalidStatusTransitionException|UnauthorizedActionException
+     */
+    public function clientApprovePitch(Pitch $pitch, string $clientIdentifier): Pitch
+    {
+        // Validation: Ensure it's a client management project
+        if (!$pitch->project->isClientManagement()) {
+             throw new UnauthorizedActionException('Client approval is only applicable for client management projects.');
+        }
+
+        // Idempotency Check 1: If already approved, just return the pitch.
+        if ($pitch->status === Pitch::STATUS_APPROVED) {
+            Log::info('clientApprovePitch called but pitch is already approved.', ['pitch_id' => $pitch->id]);
+            return $pitch;
+        }
+
+        // Validation: Ensure correct status for approval
+        // Can be approved from Ready for Review OR (less common) from Revisions Requested if webhook retried?
+        if (!in_array($pitch->status, [Pitch::STATUS_READY_FOR_REVIEW, Pitch::STATUS_CLIENT_REVISIONS_REQUESTED])) {
+            throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_APPROVED, 'Pitch must be ready for review (or pending revision processing) for client approval.');
+        }
+
+        // Optional: Verify $clientIdentifier matches $pitch->project->client_email if needed?
+        // Not strictly necessary if called internally/by webhook only, but could add robustness.
+
+        try {
+            return DB::transaction(function () use ($pitch, $clientIdentifier) {
+                // Idempotency Check 2 (within transaction): Re-check status before update
+                $pitch->refresh(); // Get latest state
+                if ($pitch->status === Pitch::STATUS_APPROVED) {
+                    Log::info('Pitch became approved during transaction. Skipping update.', ['pitch_id' => $pitch->id]);
+                    return $pitch;
+                }
+                
+                // Perform the update
+                $pitch->status = Pitch::STATUS_APPROVED;
+                $pitch->approved_at = now();
+                // Remove payment status logic - handled by webhook controller
+                // $pitch->payment_status = ...? No.
+                $pitch->save();
+
+                // Create event
+                $pitch->events()->create([
+                    'event_type' => 'client_approved',
+                    'comment' => 'Client approved the submission.',
+                    'status' => $pitch->status,
+                    'created_by' => null, // Client action (via system/webhook)
+                    'metadata' => ['client_email' => $clientIdentifier]
+                ]);
+
+                // Notify producer
+                $this->notificationService->notifyProducerClientApproved($pitch);
+                Log::info('Producer notified of client approval.', ['pitch_id' => $pitch->id]);
+
+                return $pitch;
+            });
+        } catch (\Exception $e) {
+            Log::error('Error during clientApprovePitch transaction', [
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Rethrow as a generic exception to signal failure
+            throw new \RuntimeException('Could not approve pitch due to an internal error.', 0, $e);
+        }
+    }
+
+    /**
+     * Request revisions via the Client Portal.
+     *
+     * @param Pitch $pitch
+     * @param string $feedback The client's feedback.
+     * @param string $clientIdentifier Email or other identifier for logging/verification
+     * @return Pitch
+     * @throws InvalidStatusTransitionException|UnauthorizedActionException
+     */
+    public function clientRequestRevisions(Pitch $pitch, string $feedback, string $clientIdentifier): Pitch
+    {
+        // Validation
+        if (!$pitch->project->isClientManagement()) {
+             throw new UnauthorizedActionException('Client revisions are only applicable for client management projects.');
+        }
+         if ($pitch->status !== Pitch::STATUS_READY_FOR_REVIEW) {
+            throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, 'Pitch must be ready for review to request client revisions.');
+        }
+
+        return DB::transaction(function () use ($pitch, $feedback, $clientIdentifier) {
+            $pitch->status = Pitch::STATUS_CLIENT_REVISIONS_REQUESTED; // Use the new status
+            // Note: Does not use standard snapshots/revision cycles. Status change drives the flow.
+            $pitch->revisions_requested_at = now(); // Use standard field?
+            $pitch->save();
+
+            // Create event with feedback
+            $pitch->events()->create([
+                'event_type' => 'client_revisions_requested',
+                'comment' => $feedback, // Store client feedback here
+                'status' => $pitch->status,
+                'created_by' => null, // Client action
+                'metadata' => ['client_email' => $clientIdentifier]
+            ]);
+
+            // Notify producer
+            $this->notificationService->notifyProducerClientRevisionsRequested($pitch, $feedback); // Requires implementation
+
+            return $pitch;
+        });
+    }
+
+    /**
+     * Deny an initial pitch application (Pending -> Denied).
+     *
+     * @param Pitch $pitch
+     * @param User $denyingUser (Project Owner)
+     * @param string|null $reason Optional reason for denial.
+     * @return Pitch
+     * @throws InvalidStatusTransitionException|UnauthorizedActionException
+     */
+    public function denyInitialPitch(Pitch $pitch, User $denyingUser, ?string $reason = null): Pitch
+    {
+        // <<< PHASE 1/5 GUARD >>>
+        if (!$pitch->project->isStandard()) {
+            throw new UnauthorizedActionException('Initial pitch denial is not applicable for this workflow type.');
+        }
+        // <<< END PHASE 1/5 GUARD >>>
+
+        // Authorization check
+        if ($pitch->project->user_id !== $denyingUser->id) {
+            throw new UnauthorizedActionException('deny initial pitch');
+        }
+        // Policy check: if ($denyingUser->cannot('denyInitial', $pitch)) { throw new UnauthorizedActionException(...); }
+
+        if ($pitch->status !== Pitch::STATUS_PENDING) {
+            throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_DENIED, 'Pitch must be pending for initial denial.');
+        }
+
+        $savedPitch = null;
+        try {
+            $savedPitch = DB::transaction(function () use ($pitch, $denyingUser, $reason) {
+                $pitch->status = Pitch::STATUS_DENIED;
+                // Removed denied_at assignment since the column doesn't exist in test DB
+                $pitch->save();
+
+                // Create event
+                $comment = 'Pitch application denied by project owner.';
+                if ($reason) $comment .= " Reason: {$reason}";
+                $pitch->events()->create([
+                    'event_type' => 'status_change', // Or a specific 'initial_denial' type?
+                    'comment' => $comment,
+                    'status' => $pitch->status,
+                    'created_by' => $denyingUser->id,
+                ]);
+
+                return $pitch; // Return the updated pitch from transaction
+            });
+
+            // Notify AFTER transaction succeeds
+            if ($savedPitch) {
+                 $this->notificationService->notifyInitialPitchDenied($savedPitch, $reason);
+            }
+
+        } catch (\Exception $e) {
+            // Log the actual error from the transaction or notification
+            Log::error('Error denying initial pitch or sending notification', [
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString() // Include trace
+            ]);
+            // Rethrow a more specific exception or handle as needed
+            throw new \RuntimeException('Failed to deny initial pitch application.', 0, $e);
+        }
+
+        return $savedPitch ?? $pitch; // Return the saved pitch if possible
+    }
+
 } 

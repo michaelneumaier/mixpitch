@@ -69,6 +69,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'provider_token',
         'provider_refresh_token',
         'role',
+        'stripe_account_id',
     ];
 
     /**

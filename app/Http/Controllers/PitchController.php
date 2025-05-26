@@ -136,7 +136,10 @@ class PitchController extends Controller
 
         $user = auth()->user();
 
-        if ($user && $user->id === $project->user_id) {
+        // Only redirect project owners for standard workflow types
+        // Allow direct access for client management and direct hire workflows
+        if ($user && $user->id === $project->user_id && 
+            !$project->isClientManagement() && !$project->isDirectHire()) {
             return redirect()->route('projects.manage', $project)
                 ->with('info', 'Project owners should manage pitches from the project management page.');
         }
@@ -152,7 +155,10 @@ class PitchController extends Controller
 
         $user = auth()->user();
 
-        if ($user && $user->id === $pitch->project->user_id) {
+        // Only redirect project owners for standard workflow types
+        // Allow direct access for client management and direct hire workflows
+        if ($user && $user->id === $pitch->project->user_id && 
+            !$pitch->project->isClientManagement() && !$pitch->project->isDirectHire()) {
             return redirect()->route('projects.manage', $pitch->project)
                 ->with('info', 'Project owners should manage pitches from the project management page.');
         }

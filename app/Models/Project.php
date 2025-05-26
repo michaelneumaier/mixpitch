@@ -26,6 +26,15 @@ class Project extends Model
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_COMPLETED = 'completed';
 
+    // Workflow Types
+    const WORKFLOW_TYPE_STANDARD = 'standard';
+    const WORKFLOW_TYPE_CONTEST = 'contest';
+    const WORKFLOW_TYPE_DIRECT_HIRE = 'direct_hire';
+    const WORKFLOW_TYPE_CLIENT_MANAGEMENT = 'client_management';
+
+    // Default Currency
+    const DEFAULT_CURRENCY = 'USD';
+
     /**
      * The maximum storage allowed per project in bytes (1GB)
      */
@@ -39,6 +48,7 @@ class Project extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'title',
         'description',
         'genre',
         'status',
@@ -46,13 +56,22 @@ class Project extends Model
         'slug',
         'artist_name',
         'project_type',
+        'workflow_type',
         'collaboration_type',
         'budget',
         'deadline',
         'preview_track',
         'notes',
         'is_published',
-        'completed_at'
+        'completed_at',
+        'target_producer_id',
+        'client_email',
+        'client_name',
+        'prize_amount',
+        'prize_currency',
+        'submission_deadline',
+        'judging_deadline',
+        'payment_amount',
     ];
 
     protected $casts = [
@@ -60,9 +79,14 @@ class Project extends Model
         'is_published' => 'boolean',
         'completed_at' => 'datetime',
         'deadline' => 'datetime',
+        'target_producer_id' => 'integer',
+        'prize_amount' => 'decimal:2',
+        'submission_deadline' => 'datetime',
+        'judging_deadline' => 'datetime',
     ];
 
     protected $attributes = [
+        'workflow_type' => self::WORKFLOW_TYPE_STANDARD,
         'status' => self::STATUS_UNPUBLISHED,
         'is_published' => false
     ];
@@ -314,7 +338,7 @@ class Project extends Model
         });
 
         $query->when($filters['projectTypes'] ?? null, function ($q, $projectTypes) {
-            $q->whereIn('project_type', $projectTypes);
+            $q->whereIn('workflow_type', $projectTypes);
         });
 
         $query->when($filters['search'] ?? null, function ($q, $search) {
@@ -400,5 +424,106 @@ class Project extends Model
         }
 
         return $query;
+    }
+
+    /**
+     * Relationship for Direct Hire target producer.
+     */
+    public function targetProducer()
+    {
+        return $this->belongsTo(User::class, 'target_producer_id');
+    }
+
+    /**
+     * Check if the project type is Standard.
+     *
+     * @return bool
+     */
+    public function isStandard(): bool
+    {
+        return $this->workflow_type === self::WORKFLOW_TYPE_STANDARD;
+    }
+
+    /**
+     * Check if the project type is Contest.
+     *
+     * @return bool
+     */
+    public function isContest(): bool
+    {
+        return $this->workflow_type === self::WORKFLOW_TYPE_CONTEST;
+    }
+
+    /**
+     * Check if the project type is Direct Hire.
+     *
+     * @return bool
+     */
+    public function isDirectHire(): bool
+    {
+        return $this->workflow_type === self::WORKFLOW_TYPE_DIRECT_HIRE;
+    }
+
+    /**
+     * Check if the project type is Client Management.
+     *
+     * @return bool
+     */
+    public function isClientManagement(): bool
+    {
+        return $this->workflow_type === self::WORKFLOW_TYPE_CLIENT_MANAGEMENT;
+    }
+
+    /**
+     * Get an array of all project types.
+     *
+     * @return array
+     */
+    public static function getWorkflowTypes(): array
+    {
+        return [
+            self::WORKFLOW_TYPE_STANDARD,
+            self::WORKFLOW_TYPE_CONTEST,
+            self::WORKFLOW_TYPE_DIRECT_HIRE,
+            self::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+        ];
+    }
+
+    /**
+     * Get human-readable project type name.
+     *
+     * @return string
+     */
+    public function getReadableWorkflowTypeAttribute(): string
+    {
+        $types = [
+            self::WORKFLOW_TYPE_STANDARD => 'Standard Project',
+            self::WORKFLOW_TYPE_CONTEST => 'Contest',
+            self::WORKFLOW_TYPE_DIRECT_HIRE => 'Direct Hire',
+            self::WORKFLOW_TYPE_CLIENT_MANAGEMENT => 'Client Management',
+        ];
+        
+        return $types[$this->workflow_type] ?? 'Unknown Type';
+    }
+
+    /**
+     * Get the CSS color class for the current status
+     * 
+     * @return string
+     */
+    public function getStatusColorClass(): string
+    {
+        switch ($this->status) {
+            case self::STATUS_UNPUBLISHED:
+                return 'text-gray-600 bg-gray-100';
+            case self::STATUS_OPEN:
+                return 'text-green-700 bg-green-100';
+            case self::STATUS_IN_PROGRESS:
+                return 'text-blue-700 bg-blue-100';
+            case self::STATUS_COMPLETED:
+                return 'text-purple-700 bg-purple-100';
+            default:
+                return 'text-gray-700 bg-gray-100';
+        }
     }
 }

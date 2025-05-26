@@ -4,6 +4,10 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use App\Models\ServicePackage;
+use App\Policies\ServicePackagePolicy;
+use App\Models\Order;
+use App\Policies\OrderPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -17,6 +21,8 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Project::class => \App\Policies\ProjectPolicy::class,
         \App\Models\PitchFile::class => \App\Policies\PitchFilePolicy::class,
         \App\Models\ProjectFile::class => \App\Policies\ProjectPolicy::class,
+        \App\Models\ServicePackage::class => \App\Policies\ServicePackagePolicy::class,
+        Order::class => OrderPolicy::class,
     ];
 
     /**

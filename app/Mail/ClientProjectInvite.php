@@ -1,0 +1,98 @@
+<?php
+
+namespace App\Mail;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use App\Models\Project;
+
+class ClientProjectInvite extends Mailable
+{
+    use Queueable, SerializesModels;
+
+    public Project $project;
+    public string $signedUrl;
+
+    /**
+     * Create a new message instance.
+     */
+    public function __construct(Project $project, string $signedUrl)
+    {
+        $this->project = $project;
+        $this->signedUrl = $signedUrl;
+        
+        // Log the email details for development
+        $this->logEmailContent();
+    }
+
+    /**
+     * Get the message envelope.
+     */
+    public function envelope(): Envelope
+    {
+        return new Envelope(
+            subject: 'Invitation to Collaborate on Project: ' . $this->project->title,
+        );
+    }
+
+    /**
+     * Get the message content definition.
+     */
+    public function content(): Content
+    {
+        return new Content(
+            markdown: 'emails.client.project_invite',
+            with: [
+                'projectTitle' => $this->project->title,
+                'producerName' => $this->project->user->name, // Assuming Project has user relationship for producer
+                'clientName' => $this->project->client_name, // Optional client name
+                'portalUrl' => $this->signedUrl,
+            ],
+        );
+    }
+
+    /**
+     * Get the attachments for the message.
+     *
+     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     */
+    public function attachments(): array
+    {
+        return [];
+    }
+
+    /**
+     * Log the email content for development purposes
+     */
+    protected function logEmailContent(): void
+    {
+        try {
+            // Log the email details without rendering the view (to avoid mail hint issues)
+            Log::info('📧 CLIENT PROJECT INVITE EMAIL', [
+                'to' => $this->project->client_email,
+                'subject' => 'Invitation to Collaborate on Project: ' . $this->project->title,
+                'project_id' => $this->project->id,
+                'client_name' => $this->project->client_name,
+                'producer_name' => $this->project->user->name,
+                'portal_url' => $this->signedUrl,
+                'email_data' => [
+                    'projectTitle' => $this->project->title,
+                    'producerName' => $this->project->user->name,
+                    'clientName' => $this->project->client_name,
+                    'portalUrl' => $this->signedUrl,
+                ],
+                'template' => 'emails.client.project_invite'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log ClientProjectInvite email content', [
+                'error' => $e->getMessage(),
+                'project_id' => $this->project->id
+            ]);
+        }
+    }
+}

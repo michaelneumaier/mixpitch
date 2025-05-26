@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Cviebrock\EloquentSluggable\Sluggable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Pitch extends Model
+class Pitch extends Model implements HasMedia
 {
-    use HasFactory;
-    use Sluggable;
+    use HasFactory, Sluggable, SoftDeletes, InteractsWithMedia;
     const STATUS_PENDING = 'pending';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_READY_FOR_REVIEW = 'ready_for_review';
@@ -25,6 +27,18 @@ class Pitch extends Model
     const STATUS_COMPLETED = 'completed';
     const STATUS_CLOSED = 'closed';
     const STATUS_INPROGRESS = 'inprogress';
+
+    // Contest Statuses
+    const STATUS_CONTEST_ENTRY = 'contest_entry';
+    const STATUS_CONTEST_WINNER = 'contest_winner';
+    const STATUS_CONTEST_RUNNER_UP = 'contest_runner_up';
+    const STATUS_CONTEST_NOT_SELECTED = 'contest_not_selected';
+
+    // Direct Hire Status (Optional - for explicit acceptance flow)
+    const STATUS_AWAITING_ACCEPTANCE = 'awaiting_acceptance';
+
+    // Client Management Status (Optional - for explicit client feedback loop)
+    const STATUS_CLIENT_REVISIONS_REQUESTED = 'client_revisions_requested';
 
     // Payment status constants
     const PAYMENT_STATUS_PENDING = 'pending';
@@ -50,6 +64,7 @@ class Pitch extends Model
         'title',
         'description',
         'status',
+        'rank',
         'current_snapshot_id',
         'completed_at',
         'payment_status',
@@ -71,7 +86,15 @@ class Pitch extends Model
         'approved_at',
         'revisions_requested_at',
         'submitted_at',
-        'closed_at'
+        'closed_at',
+        'rank', // Add rank for contests (optional)
+        'amount',
+        'currency',
+        'contest_ranking', // e.g., 1 for winner, 2 for runner-up
+        // Client management specific
+        'client_approved_at',
+        'client_revision_requested_at',
+        'client_submitted_at',
     ];
 
     protected $dates = [
@@ -79,11 +102,29 @@ class Pitch extends Model
         'updated_at',
         'completed_at',
         'payment_completed_at',
+        'approved_at',
+        'rejected_at',
+        'client_approved_at',
+        'client_revision_requested_at',
+        'client_submitted_at',
     ];
 
     protected $attributes = [
         'max_files' => 25,
         'is_inactive' => false,
+    ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'closed_at' => 'datetime',
+        'revision_requested_at' => 'datetime',
+        'submitted_at' => 'datetime',
+        'client_approved_at' => 'datetime',
+        'client_revision_requested_at' => 'datetime',
+        'client_submitted_at' => 'datetime',
+        'amount' => 'decimal:2',
     ];
 
     public static $transitions = [
@@ -191,6 +232,18 @@ class Pitch extends Model
                 return 'Completed';
             case self::STATUS_CLOSED:
                 return 'Closed';
+            case self::STATUS_CONTEST_ENTRY:
+                return 'Contest Entry';
+            case self::STATUS_CONTEST_WINNER:
+                return 'Contest Winner';
+            case self::STATUS_CONTEST_RUNNER_UP:
+                return 'Contest Runner-Up';
+            case self::STATUS_CONTEST_NOT_SELECTED:
+                return 'Not Selected';
+            case self::STATUS_AWAITING_ACCEPTANCE:
+                return 'Awaiting Producer Acceptance';
+            case self::STATUS_CLIENT_REVISIONS_REQUESTED:
+                return 'Client Revisions Requested';
             default:
                 return ucfirst($this->status);
         }
@@ -222,6 +275,18 @@ class Pitch extends Model
                 return 'Congratulations! This pitch has been successfully completed.';
             case self::STATUS_CLOSED:
                 return 'This pitch has been closed and is no longer active.';
+            case self::STATUS_CONTEST_ENTRY:
+                return 'This pitch is an entry in a contest.';
+            case self::STATUS_CONTEST_WINNER:
+                return 'This entry has been selected as the contest winner!';
+            case self::STATUS_CONTEST_RUNNER_UP:
+                return 'This entry was selected as a runner-up in the contest.';
+            case self::STATUS_CONTEST_NOT_SELECTED:
+                return 'This contest entry was not selected as a winner or runner-up.';
+            case self::STATUS_AWAITING_ACCEPTANCE:
+                return 'The project owner has offered you this direct hire project. Please accept or reject.';
+            case self::STATUS_CLIENT_REVISIONS_REQUESTED:
+                return 'The client has requested revisions. Please review their feedback and submit an update.';
             default:
                 return 'This pitch is in the ' . strtolower(str_replace('_', ' ', $this->status)) . ' status.';
         }
@@ -460,17 +525,16 @@ class Pitch extends Model
      */
     public static function getStatuses(): array
     {
-        return [
-            self::STATUS_PENDING,
-            self::STATUS_IN_PROGRESS,
-            self::STATUS_READY_FOR_REVIEW,
-            self::STATUS_PENDING_REVIEW,
-            self::STATUS_APPROVED,
-            self::STATUS_DENIED,
-            self::STATUS_REVISIONS_REQUESTED,
-            self::STATUS_COMPLETED,
-            self::STATUS_CLOSED,
-        ];
+        // Use reflection to get all constants starting with STATUS_
+        $reflection = new \ReflectionClass(static::class);
+        $constants = $reflection->getConstants();
+        $statuses = [];
+        foreach ($constants as $name => $value) {
+            if (strpos($name, 'STATUS_') === 0) {
+                $statuses[$value] = $value; // Use value as both key and value, or generate readable name
+            }
+        }
+        return $statuses;
     }
 
     /**
@@ -478,4 +542,52 @@ class Pitch extends Model
      *
      * @return array
      */
+
+    // Add status helper methods here
+
+    /**
+     * Check if the pitch is a contest entry.
+     *
+     * @return bool
+     */
+    public function isContestEntry(): bool
+    {
+        return $this->status === self::STATUS_CONTEST_ENTRY;
+    }
+
+    /**
+     * Check if the pitch is a contest winner.
+     *
+     * @return bool
+     */
+    public function isContestWinner(): bool
+    {
+        return $this->status === self::STATUS_CONTEST_WINNER;
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('pitch_files');
+        // ->useDisk('s3'); // Configure disk if needed
+    }
+
+    /**
+     * Get the appropriate Tailwind CSS background and text color class based on pitch status.
+     *
+     * @return string
+     */
+    public function getStatusColorClass(): string
+    {
+        return match ($this->status) {
+            self::STATUS_PENDING, self::STATUS_AWAITING_ACCEPTANCE => 'bg-gray-100 text-gray-800',
+            self::STATUS_IN_PROGRESS, self::STATUS_CONTEST_ENTRY => 'bg-blue-100 text-blue-800',
+            self::STATUS_READY_FOR_REVIEW => 'bg-yellow-100 text-yellow-800',
+            self::STATUS_REVISIONS_REQUESTED, self::STATUS_CLIENT_REVISIONS_REQUESTED => 'bg-orange-100 text-orange-800',
+            self::STATUS_APPROVED => 'bg-sky-100 text-sky-800', // Using sky for approved to differentiate from completed green
+            self::STATUS_COMPLETED, self::STATUS_CONTEST_WINNER => 'bg-green-100 text-green-800',
+            self::STATUS_CONTEST_RUNNER_UP => 'bg-teal-100 text-teal-800', // Teal for runner-up
+            self::STATUS_DENIED, self::STATUS_CLOSED, self::STATUS_CONTEST_NOT_SELECTED => 'bg-red-100 text-red-800',
+            default => 'bg-gray-200 text-gray-600', // Default fallback
+        };
+    }
 }

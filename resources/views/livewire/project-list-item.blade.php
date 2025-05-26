@@ -43,7 +43,13 @@
                     <div class="flex flex-col items-end min-w-[140px] budget-deadline">
                         <div
                             class="bg-accent/10 text-accent font-semibold px-3 py-1 rounded-lg text-sm whitespace-nowrap">
-                            ${{ number_format($project->budget) }}
+                            @if(is_numeric($project->budget))
+                                ${{ number_format((float)$project->budget) }}
+                            @elseif($project->budget === 0 || $project->budget === '0')
+                                $0
+                            @else
+                                Price TBD
+                            @endif
                         </div>
                         @if($project->deadline)
                         <div class="text-sm text-gray-500 mt-1 whitespace-nowrap">

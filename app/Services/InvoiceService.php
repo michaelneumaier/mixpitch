@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Pitch;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Exceptions\IncompletePayment;
+use App\Models\Order;
+use App\Models\Invoice;
 
 class InvoiceService 
 {
@@ -264,6 +266,114 @@ class InvoiceService
     }
 
     /**
+     * Create or update an invoice for a paid pitch via checkout session
+     * 
+     * @param \App\Models\Pitch $pitch The pitch that was paid for
+     * @param string $sessionId The Stripe checkout session ID
+     * @param float $amount The payment amount (in base unit/dollars)
+     * @param string $currency The currency code (uppercase)
+     * @return array [success, invoice|error]
+     */
+    public function createOrUpdateInvoiceForPaidPitch($pitch, $sessionId, $amount, $currency = 'USD')
+    {
+        try {
+            // Use the protected method for better testability
+            $stripe = $this->newStripeClient();
+            
+            \Log::info('Creating/updating invoice for paid pitch', [
+                'pitch_id' => $pitch->id,
+                'checkout_session_id' => $sessionId,
+                'amount' => $amount,
+                'currency' => $currency
+            ]);
+            
+            // Check if the pitch already has a final invoice ID
+            if ($pitch->final_invoice_id) {
+                \Log::info('Pitch already has a final invoice, retrieving', [
+                    'pitch_id' => $pitch->id,
+                    'final_invoice_id' => $pitch->final_invoice_id
+                ]);
+                
+                // Retrieve the existing invoice
+                $invoice = $stripe->invoices->retrieve($pitch->final_invoice_id);
+                
+                return [
+                    'success' => true,
+                    'invoice' => $invoice,
+                    'message' => 'Retrieved existing invoice'
+                ];
+            }
+            
+            // We need to create a new invoice
+            // First, ensure the user/customer exists in Stripe
+            $user = $pitch->project->user;
+            if (!$user->stripe_id) {
+                $user->createAsStripeCustomer();
+            }
+            
+            // Create a unique invoice ID for reference
+            $invoiceId = 'pitch_' . $pitch->id . '_' . time();
+            
+            // Create the invoice with metadata
+            $invoice = $stripe->invoices->create([
+                'customer' => $user->stripe_id,
+                'collection_method' => 'charge_automatically',
+                'auto_advance' => false, // Don't finalize automatically
+                'currency' => strtolower($currency),
+                'description' => "Payment for Pitch #{$pitch->id}",
+                'metadata' => [
+                    'pitch_id' => $pitch->id,
+                    'project_id' => $pitch->project_id,
+                    'checkout_session_id' => $sessionId,
+                    'source' => 'checkout_session'
+                ]
+            ]);
+            
+            // Create the invoice item
+            $stripe->invoiceItems->create([
+                'customer' => $user->stripe_id,
+                'invoice' => $invoice->id,
+                'currency' => strtolower($currency),
+                'amount' => (int)($amount * 100), // Convert to cents for Stripe
+                'description' => "Payment for Pitch #{$pitch->id}: {$pitch->title}"
+            ]);
+            
+            // Mark the invoice as paid (since the checkout session already processed payment)
+            $invoice = $stripe->invoices->markAsPaid($invoice->id, [
+                'paid_out_of_band' => true
+            ]);
+            
+            // Update the pitch with the invoice ID
+            $pitch->final_invoice_id = $invoice->id;
+            $pitch->save();
+            
+            \Log::info('Successfully created and marked invoice as paid for pitch', [
+                'pitch_id' => $pitch->id,
+                'invoice_id' => $invoice->id
+            ]);
+            
+            return [
+                'success' => true,
+                'invoice' => $invoice,
+                'message' => 'Created new invoice and marked as paid'
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to create/update invoice for paid pitch', [
+                'pitch_id' => $pitch->id ?? 'unknown',
+                'checkout_session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Create a new Stripe client instance.
      * Protected method to allow mocking in tests.
      * 
@@ -272,5 +382,28 @@ class InvoiceService
     protected function newStripeClient()
     {
         return new \Stripe\StripeClient(config('cashier.secret'));
+    }
+
+    /**
+     * Create an Invoice model record for a new Order.
+     *
+     * @param Order $order
+     * @return Invoice
+     */
+    public function createInvoiceForOrder(Order $order): Invoice
+    {
+        return Invoice::create([
+            'user_id' => $order->client_user_id,
+            'order_id' => $order->id,
+            'pitch_id' => null, // Not related to a pitch
+            'amount' => $order->price,
+            'currency' => $order->currency,
+            'status' => Invoice::STATUS_PENDING, // Initial status
+            'description' => 'Invoice for Order #' . $order->id . ': ' . ($order->servicePackage->title ?? 'Service Package'),
+            'metadata' => [
+                'service_package_id' => $order->service_package_id,
+                'producer_user_id' => $order->producer_user_id,
+            ],
+        ]);
     }
 }

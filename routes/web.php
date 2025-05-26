@@ -23,6 +23,10 @@ use App\Http\Controllers\PitchSnapshotController;
 use App\Http\Controllers\PitchStatusController;
 use App\Livewire\User\ManagePortfolioItems;
 use App\Http\Controllers\AudioFileController;
+use App\Http\Controllers\ClientPortalController;
+use App\Http\Controllers\Producer\ServicePackageController;
+use App\Http\Controllers\PublicServicePackageController;
+use App\Http\Controllers\OrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,7 +70,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/create-project', CreateProject::class)->name('projects.create');
     Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
     Route::get('/manage-project/{project}', ManageProject::class)->name('projects.manage');
-
+    
+    // Client Management dedicated route
+    Route::get('/manage-client-project/{project}', \App\Livewire\Project\ManageClientProject::class)
+        ->name('projects.manage-client')
+        ->middleware('auth');
 
     Route::delete('projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.deleteFile');
 
@@ -652,3 +660,65 @@ Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('a
 Route::get('/audio-file/{id}', [AudioFileController::class, 'getPortfolioAudioUrl'])->name('audio.getUrl');
 Route::get('/audio-file/presigned/{filePath}', [AudioFileController::class, 'getPreSignedUrl'])->name('audio.getPreSignedUrl')
     ->where('filePath', '.*'); // Accept any file path pattern
+
+// Static Pages
+// ... existing code ...
+
+Route::get('/projects/{project}/share', [ProjectController::class, 'share'])->name('projects.share')->middleware(['auth', 'verified']);
+
+Route::middleware(['auth', 'verified']) // Add producer role middleware if it exists later
+    ->prefix('producer/services')
+    ->name('producer.services.')
+    ->group(function () {
+        Route::resource('packages', ServicePackageController::class);
+        // Add any additional routes for specific actions if needed, e.g., publish/unpublish
+        // Route::patch('packages/{package}/publish', [ServicePackageController::class, 'publish'])->name('packages.publish');
+    });
+
+// Public Service Package Routes
+Route::get('/services', [PublicServicePackageController::class, 'index'])->name('public.services.index');
+Route::get('/services/{package:slug}', [PublicServicePackageController::class, 'show'])->name('public.services.show');
+
+// Order Routes (Requires Authentication)
+Route::middleware(['auth', 'verified'])->prefix('orders')->name('orders.')->group(function () {
+    Route::post('/{package}', [OrderController::class, 'store'])->name('store');
+    Route::get('/', [OrderController::class, 'index'])->name('index');
+    Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+    Route::post('/{order}/requirements', [OrderController::class, 'submitRequirements'])->name('requirements.submit');
+    Route::post('/{order}/deliver', [OrderController::class, 'deliverOrder'])->name('deliver');
+    Route::post('/{order}/request-revision', [OrderController::class, 'requestRevision'])->name('requestRevision');
+    Route::post('/{order}/accept-delivery', [OrderController::class, 'acceptDelivery'])->name('accept-delivery');
+    Route::post('/{order}/cancel', [OrderController::class, 'cancelOrder'])->name('cancel');
+    Route::post('/{order}/message', [OrderController::class, 'postMessage'])->name('message.store');
+    Route::get('/{order}/files/{file}', [OrderController::class, 'downloadFile'])->name('files.download');
+    // Add other order management routes here later
+});
+
+// --- Client Portal Routes ---
+// Publicly accessible VIEW route (needs signed middleware)
+Route::get('/projects/{project:id}/portal', [ClientPortalController::class, 'show'])
+    ->name('client.portal.view')
+    ->middleware('signed');
+
+// Client ACTION routes (need signed middleware)
+Route::post('/client-portal/project/{project:id}/comments', [ClientPortalController::class, 'storeComment'])
+    ->name('client.portal.comments.store')
+    ->middleware('signed');
+
+Route::post('/client-portal/project/{project:id}/approve', [ClientPortalController::class, 'approvePitch'])
+    ->name('client.portal.approve')
+    ->middleware('signed');
+
+Route::post('/client-portal/project/{project:id}/request-revisions', [ClientPortalController::class, 'requestRevisions'])
+    ->name('client.portal.revisions')
+    ->middleware('signed');
+
+// Producer ACTION route (needs auth middleware)
+Route::post('/client-portal/project/{project:id}/resend-invite', [ClientPortalController::class, 'resendInvite'])
+    ->name('client.portal.resend_invite')
+    ->middleware('auth');
+
+// Client File Download route (needs signed middleware)
+Route::get('/client-portal/project/{project:id}/file/{pitchFile:id}', [ClientPortalController::class, 'downloadFile'])
+    ->name('client.portal.download_file')
+    ->middleware('signed');

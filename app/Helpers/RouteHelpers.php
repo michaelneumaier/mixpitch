@@ -48,6 +48,13 @@ class RouteHelpers
                 throw new \Exception("Missing required parameter for [Route: projects.pitches.show] [URI: projects/{project}/pitches/{pitch}] [Missing parameter: project]");
             }
             
+            // Check if this is a client management project
+            if ($project->isClientManagement()) {
+                return route('projects.manage-client', array_merge([
+                    'project' => $project
+                ], $params));
+            }
+            
             return route('projects.pitches.show', array_merge([
                 'project' => $project,
                 'pitch' => $pitch
@@ -62,6 +69,13 @@ class RouteHelpers
         
         // If we got here, we have a valid project relationship
         try {
+            // Check if this is a client management project
+            if ($pitch->project->isClientManagement()) {
+                return route('projects.manage-client', array_merge([
+                    'project' => $pitch->project
+                ], $params));
+            }
+            
             return route('projects.pitches.show', array_merge([
                 'project' => $pitch->project,
                 'pitch' => $pitch

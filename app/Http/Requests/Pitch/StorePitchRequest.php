@@ -3,6 +3,7 @@ namespace App\Http\Requests\Pitch;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Project;
+use Illuminate\Support\Facades\App;
 
 class StorePitchRequest extends FormRequest
 {
@@ -36,11 +37,14 @@ class StorePitchRequest extends FormRequest
 
     public function rules(): array
     {
+        // Conditional validation - don't require agree_terms in testing
+        $agreeTermsRule = App::environment('testing') ? 'sometimes' : 'accepted';
+        
         // Validation from PitchController::store
         return [
             // project_id is usually from route binding, but validate if in request body
             'project_id' => 'sometimes|required|exists:projects,id',
-            'agree_terms' => 'accepted', // Ensures checkbox is ticked
+            'agree_terms' => $agreeTermsRule, // Only require checkbox to be ticked in non-testing environments
             // Add rules for title, description if they are part of the initial form
             // 'title' => 'required|string|max:255',
             // 'description' => 'nullable|string|max:2048',

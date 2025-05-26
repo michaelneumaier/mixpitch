@@ -35,17 +35,56 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
-        $genres = $request->get('genre');
+        // Validate optional request inputs
+        $validated = $request->validate([
+            'genre' => 'nullable|string|max:50', // Example validation
+            'workflow_type' => 'nullable|string|in:' . implode(',', [
+                Project::WORKFLOW_TYPE_STANDARD,
+                Project::WORKFLOW_TYPE_CONTEST,
+                // Do not allow direct filtering for private types here
+            ]),
+            'status' => 'nullable|string|in:' . implode(',', [
+                Project::STATUS_OPEN,
+                Project::STATUS_COMPLETED,
+                // Add other publicly viewable statuses if needed
+            ]),
+        ]);
+
         $query = Project::query();
 
-        if ($genres) {
-            $query->whereIn('genre', $genres);
-        }
+        // Default filter: Exclude private project types from public browsing
+        $query->whereNotIn('workflow_type', [
+            Project::WORKFLOW_TYPE_DIRECT_HIRE,
+            Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+        ]);
 
-        // TODO: Add authorization check? Can anyone view any project list?
-        // Consider adding filters for published/status
-        $projects = $query->where('status', Project::STATUS_OPEN)->paginate(10); // Example: Only show OPEN projects
-        return view('projects.index', compact('projects'));
+        // Apply filters from request
+        if (!empty($validated['genre'])) {
+            $query->where('genre', $validated['genre']);
+        }
+        if (!empty($validated['workflow_type'])) {
+            $query->where('workflow_type', $validated['workflow_type']);
+        }
+        if (!empty($validated['status'])) {
+            $query->where('status', $validated['status']);
+        } else {
+            // Default to showing only OPEN projects if no status is specified
+            $query->where('status', Project::STATUS_OPEN);
+        }
+        
+        // Eager load user for display
+        $query->with('user');
+
+        // Add sorting options (e.g., by creation date, deadline)
+        $query->latest(); // Default sort
+
+        $projects = $query->paginate(12); // Adjust pagination as needed
+
+        // Pass filters back to view for display/form persistence
+        return view('projects.index', [
+            'projects' => $projects,
+            'filters' => $validated // Pass validated filters
+        ]);
     }
 
     public function show(Project $project)
@@ -162,12 +201,28 @@ class ProjectController extends Controller
         }
     }
 
-    // TODO: Refactor: Project deletion logic might belong in ProjectManagementService.
+    /**
+     * Delete the specified project.
+     */
     public function destroy(Project $project)
     {
-        // ... (Keep existing code for now, mark for removal/refactor) ...
         $this->authorize('delete', $project);
-        // ... existing deletion logic (needs to handle S3 files etc.) ...
+        
+        try {
+            $project->delete(); // Observer will handle cascading deletes
+            
+            return redirect()->route('dashboard')
+                ->with('success', 'Project deleted successfully.');
+                
+        } catch (\Exception $e) {
+            Log::error('Error deleting project', [
+                'project_id' => $project->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->back()
+                ->with('error', 'An error occurred while deleting the project.');
+        }
     }
 
     // TODO: Refactor: This helper likely belongs elsewhere (e.g., a helper file/trait or removed).

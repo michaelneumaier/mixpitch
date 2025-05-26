@@ -212,4 +212,61 @@ class ManageProjectTest extends TestCase
             'is_published' => false
         ]);
     }
+
+    /** @test */
+    public function debug_update_project_details()
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->create([
+            'user_id' => $user->id,
+            'name' => 'Original Name',
+            'description' => 'Original Description',
+            'project_type' => 'single',
+            'genre' => 'Rock',
+            'collaboration_type' => ['Mixing'],
+            'budget' => 0,
+            'deadline' => Carbon::now()->addDays(10)->format('Y-m-d'),
+        ]);
+        
+        // Output original project details for debugging
+        dump('Original Project: ', $project->toArray());
+        
+        // Define gate permissions
+        Gate::define('update', function (User $gateUser, Project $gateProject) {
+            return $gateUser->id === $gateProject->user_id;
+        });
+        
+        // Test updating project details
+        $component = Livewire::actingAs($user)
+            ->test(ManageProject::class, ['project' => $project]);
+        
+        // Set form data
+        $component->set('form.name', 'Updated Name')
+            ->set('form.description', 'Updated Description')
+            ->set('form.projectType', 'album')
+            ->set('form.genre', 'Pop')
+            ->set('form.collaborationTypeMixing', true)
+            ->set('form.collaborationTypeMastering', true)
+            ->set('form.budgetType', 'paid')
+            ->set('form.budget', 500);
+            
+        // Dump component state before update
+        dump('Component Form State Before Update: ', $component->get('form'));
+        
+        $component->call('updateProjectDetails');
+        
+        // Get the updated project directly from DB
+        $updatedProject = Project::find($project->id);
+        dump('Updated Project from DB: ', $updatedProject->toArray());
+        
+        // Verify project was updated in database
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'name' => 'Updated Name', 
+            'description' => 'Updated Description',
+            'project_type' => 'album',
+            'genre' => 'Pop',
+            'budget' => 500,
+        ]);
+    }
 } 

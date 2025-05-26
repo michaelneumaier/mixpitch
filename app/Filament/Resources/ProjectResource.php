@@ -68,17 +68,12 @@ class ProjectResource extends Resource
                                 Forms\Components\TextInput::make('genre')
                                     ->maxLength(255),
                                 
-                                Forms\Components\Select::make('project_type')
-                                    ->options([
-                                        'album' => 'Album',
-                                        'single' => 'Single',
-                                        'ep' => 'EP',
-                                        'remix' => 'Remix',
-                                        'cover' => 'Cover',
-                                        'soundtrack' => 'Soundtrack',
-                                        'other' => 'Other',
-                                    ])
-                                    ->required(),
+                                Forms\Components\Select::make('workflow_type')
+                                    ->label('Workflow Type')
+                                    ->options(collect(Project::getWorkflowTypes())->mapWithKeys(fn($type) => [$type => Project::getReadableWorkflowTypeAttribute($type)]))
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(fn (callable $set) => $set('target_producer_id', null)),
                                 
                                 Forms\Components\Select::make('status')
                                     ->options([
@@ -184,7 +179,7 @@ class ProjectResource extends Resource
                     ->sortable()
                     ->label('Owner'),
                 
-                Tables\Columns\TextColumn::make('project_type')
+                Tables\Columns\TextColumn::make('workflow_type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'album' => 'success',
@@ -235,16 +230,9 @@ class ProjectResource extends Resource
                         'cancelled' => 'Cancelled',
                     ]),
                 
-                Tables\Filters\SelectFilter::make('project_type')
-                    ->options([
-                        'album' => 'Album',
-                        'single' => 'Single',
-                        'ep' => 'EP',
-                        'remix' => 'Remix',
-                        'cover' => 'Cover',
-                        'soundtrack' => 'Soundtrack',
-                        'other' => 'Other',
-                    ]),
+                Tables\Filters\SelectFilter::make('workflow_type')
+                    ->label('Workflow Type')
+                    ->options(collect(Project::getWorkflowTypes())->mapWithKeys(fn($type) => [$type => Project::getReadableWorkflowTypeAttribute($type)])),
                 
                 Tables\Filters\Filter::make('is_published')
                     ->query(fn (Builder $query): Builder => $query->where('is_published', true))

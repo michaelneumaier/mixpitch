@@ -414,6 +414,41 @@
                 </div>
             </div>
             @endif
+
+            {{-- Add New Service Packages Section --}}
+            @if($servicePackages->isNotEmpty())
+            <div class="mt-10 sm:mt-0 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                        Service Packages
+                    </h3>
+                </div>
+                <div class="border-t border-gray-200 dark:border-gray-700 p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @foreach ($servicePackages as $package)
+                            <div class="flex flex-col bg-gray-50 dark:bg-gray-900 rounded-lg shadow-md overflow-hidden transform transition duration-500 hover:scale-105">
+                                {{-- Optional Image Placeholder --}}
+                                {{-- <div class="h-48 bg-gray-200 dark:bg-gray-700"></div> --}}
+                                
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <h4 class="text-md font-semibold text-gray-900 dark:text-white mb-2">{{ $package->title }}</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 flex-grow">{{ Str::limit($package->description, 80) }}</p>
+                                    
+                                    <div class="flex justify-between items-center mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
+                                        <span class="text-lg font-bold text-gray-900 dark:text-white">{{ Number::currency($package->price, $package->currency) }}</span>
+                                        {{-- Link to public detail page (ensure route is implemented) --}}
+                                        {{-- <a href="{{ route('public.services.show', $package->slug) }}" class="inline-flex items-center px-3 py-1 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:ring focus:ring-indigo-200 active:bg-indigo-700 disabled:opacity-25 transition">View Package</a> --}}
+                                        {{-- Placeholder until public.services.show is ready --}}
+                                        <span class="inline-flex items-center px-3 py-1 border border-transparent rounded-md font-semibold text-xs text-gray-400 uppercase tracking-widest bg-gray-100 dark:bg-gray-700 cursor-not-allowed">View Package</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            @endif
+            {{-- End Service Packages Section --}}
         </div>
     </div>
 

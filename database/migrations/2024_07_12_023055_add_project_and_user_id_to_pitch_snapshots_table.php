@@ -24,11 +24,14 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('pitch_snapshots', function (Blueprint $table) {
-            $table->dropForeign(['project_id']);
-            $table->dropColumn('project_id');
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
-        });
+        // Drop columns separately for SQLite (dropForeign is not supported)
+        $columns = ['user_id', 'project_id']; // Drop user_id first potentially?
+        foreach ($columns as $column) {
+            if (Schema::hasColumn('pitch_snapshots', $column)) {
+                Schema::table('pitch_snapshots', function (Blueprint $table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
     }
 };

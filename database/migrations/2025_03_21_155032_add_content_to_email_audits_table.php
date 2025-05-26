@@ -24,11 +24,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('email_audits', function (Blueprint $table) {
-            $table->dropColumn('content');
-            $table->dropColumn('headers');
-            $table->dropColumn('message_id');
-            $table->dropColumn('recipient_name');
-        });
+        $columns = ['content', 'headers', 'message_id', 'recipient_name'];
+        
+        // Drop columns one by one for SQLite compatibility
+        foreach ($columns as $column) {
+            if (Schema::hasColumn('email_audits', $column)) {
+                Schema::table('email_audits', function (Blueprint $table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
     }
 };

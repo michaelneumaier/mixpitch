@@ -29,12 +29,12 @@ These changes establish the core infrastructure needed to support multiple proje
 *   **Modify `projects` Table (`up` method):**
     *   Add `project_type` column: This will store the type of project. Using an ENUM is often preferred for clarity and constraint, but a string is also feasible. Define the allowed types clearly.
         ```php
-        $table->string('project_type')->default('standard')->after('user_id'); // Or use ENUM if DB supports easily
-        $table->index('project_type');
+        $table->string('workflow_type')->default('standard')->after('user_id'); // Or use ENUM if DB supports easily
+        $table->index('workflow_type');
         ```
     *   Add `target_producer_id` for Direct Hire:
         ```php
-        $table->foreignId('target_producer_id')->nullable()->constrained('users')->onDelete('set null')->after('project_type');
+        $table->foreignId('target_producer_id')->nullable()->constrained('users')->onDelete('set null')->after('workflow_type');
         ```
     *   Add `client_email` and `client_name` for Client Management:
         ```php
@@ -60,7 +60,7 @@ These changes establish the core infrastructure needed to support multiple proje
     ```php
     $table->dropForeign(['target_producer_id']);
     // Add new columns to drop
-    $table->dropColumn(['project_type', 'target_producer_id', 'client_email', 'client_name', 'prize_amount', 'prize_currency']);
+    $table->dropColumn(['workflow_type', 'target_producer_id', 'client_email', 'client_name', 'prize_amount', 'prize_currency']);
     ```
 *   **Modify `pitches` Table (Optional but Recommended):** Consider adding an index to `project_id` if not already present, as it will be queried frequently.
     ```bash
@@ -82,10 +82,10 @@ These changes establish the core infrastructure needed to support multiple proje
 *   **Add Constants for Types:** Define constants for easy reference and to avoid magic strings.
     ```php
     // Add within the Project class
-    const TYPE_STANDARD = 'standard';
-    const TYPE_CONTEST = 'contest';
-    const TYPE_DIRECT_HIRE = 'direct_hire';
-    const TYPE_CLIENT_MANAGEMENT = 'client_management';
+    const WORKFLOW_TYPE_STANDARD = 'standard';
+    const WORKFLOW_TYPE_CONTEST = 'contest';
+    const WORKFLOW_TYPE_DIRECT_HIRE = 'direct_hire';
+    const WORKFLOW_TYPE_CLIENT_MANAGEMENT = 'client_management';
     // Service Packages handled via separate models/tables
 
     // Default Currency (if needed globally)
@@ -95,7 +95,7 @@ These changes establish the core infrastructure needed to support multiple proje
     ```php
     protected $fillable = [
         // ... existing fillable fields ...
-        'project_type',
+        'workflow_type',
         'target_producer_id',
         'client_email',
         'client_name',
@@ -115,43 +115,43 @@ These changes establish the core infrastructure needed to support multiple proje
     ```php
     public function isStandard(): bool
     {
-        return $this->project_type === self::TYPE_STANDARD;
+        return $this->workflow_type === self::WORKFLOW_TYPE_STANDARD;
     }
 
     public function isContest(): bool
     {
-        return $this->project_type === self::TYPE_CONTEST;
+        return $this->workflow_type === self::WORKFLOW_TYPE_CONTEST;
     }
 
     public function isDirectHire(): bool
     {
-        return $this->project_type === self::TYPE_DIRECT_HIRE;
+        return $this->workflow_type === self::WORKFLOW_TYPE_DIRECT_HIRE;
     }
 
     public function isClientManagement(): bool
     {
-        return $this->project_type === self::TYPE_CLIENT_MANAGEMENT;
+        return $this->workflow_type === self::WORKFLOW_TYPE_CLIENT_MANAGEMENT;
     }
 
     // Add helper to get all types (useful for dropdowns)
-    public static function getProjectTypes(): array
+    public static function getWorkflowTypes(): array
     {
         return [
-            self::TYPE_STANDARD,
-            self::TYPE_CONTEST,
-            self::TYPE_DIRECT_HIRE,
-            self::TYPE_CLIENT_MANAGEMENT,
+            self::WORKFLOW_TYPE_STANDARD,
+            self::WORKFLOW_TYPE_CONTEST,
+            self::WORKFLOW_TYPE_DIRECT_HIRE,
+            self::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
         ];
     }
 
     // Add helper to get human-readable type names
-    public function getReadableProjectTypeAttribute(): string
+    public function getReadableWorkflowTypeAttribute(): string
     {
-        switch ($this->project_type) {
-            case self::TYPE_STANDARD: return 'Standard';
-            case self::TYPE_CONTEST: return 'Contest';
-            case self::TYPE_DIRECT_HIRE: return 'Direct Hire';
-            case self::TYPE_CLIENT_MANAGEMENT: return 'Client Management';
+        switch ($this->workflow_type) {
+            case self::WORKFLOW_TYPE_STANDARD: return 'Standard';
+            case self::WORKFLOW_TYPE_CONTEST: return 'Contest';
+            case self::WORKFLOW_TYPE_DIRECT_HIRE: return 'Direct Hire';
+            case self::WORKFLOW_TYPE_CLIENT_MANAGEMENT: return 'Client Management';
             default: return 'Unknown';
         }
     }
@@ -211,7 +211,7 @@ These changes establish the core infrastructure needed to support multiple proje
         // ... beginning of method ...
         // Add check: Only Standard projects require initial pitch approval.
         if (!$pitch->project->isStandard()) {
-             throw new UnauthorizedActionException('Initial pitch approval is not applicable for this project type.');
+             throw new UnauthorizedActionException('Initial pitch approval is not applicable for this workflow type.');
         }
         // ... rest of method ...
         ```
@@ -221,7 +221,7 @@ These changes establish the core infrastructure needed to support multiple proje
 
 *   **`app/Policies/PitchPolicy.php`:**
     *   Inject `Project` model type hints if needed.
-    *   Add checks similar to the service layer to restrict actions based on `project_type` at the authorization level.
+    *   Add checks similar to the service layer to restrict actions based on `workflow_type` at the authorization level.
     *   **Example in `create` (if it exists, maps to `createPitch`):**
         ```php
         public function create(User $user, Project $project)
@@ -242,37 +242,37 @@ These changes establish the core infrastructure needed to support multiple proje
             return $user->id === $pitch->project->user_id && $pitch->project->isStandard();
         }
         ```
-    *   Review other policy methods (`update`, `submitForReview`, `approveSubmission`, `requestRevisions`, `complete`, etc.) and add `project_type` checks where appropriate.
+    *   Review other policy methods (`update`, `submitForReview`, `approveSubmission`, `requestRevisions`, `complete`, etc.) and add `workflow_type` checks where appropriate.
 
 **6. Project Creation UI:**
 
 *   **`app/Livewire/CreateProject.php` & corresponding view:**
-    *   Add a new public property: `public string $project_type = Project::TYPE_STANDARD;`
+    *   Add a new public property: `public string $workflow_type = Project::WORKFLOW_TYPE_STANDARD;`
     *   Add a selection input (e.g., dropdown or radio buttons) to the form:
         ```html
         <!-- Example: resources/views/livewire/create-project.blade.php -->
         <div>
-            <label for="project_type">Project Type</label>
-            <select wire:model.live="project_type" id="project_type">
-                <option value="{{ \App\Models\Project::TYPE_STANDARD }}">Standard</option>
-                <option value="{{ \App\Models\Project::TYPE_CONTEST }}">Contest</option>
-                <option value="{{ \App\Models\Project::TYPE_DIRECT_HIRE }}">Direct Hire</option>
-                <option value="{{ \App\Models\Project::TYPE_CLIENT_MANAGEMENT }}">Client Management</option>
+            <label for="workflow_type">Workflow Type</label>
+            <select wire:model.live="workflow_type" id="workflow_type">
+                <option value="{{ \App\Models\Project::WORKFLOW_TYPE_STANDARD }}">Standard</option>
+                <option value="{{ \App\Models\Project::WORKFLOW_TYPE_CONTEST }}">Contest</option>
+                <option value="{{ \App\Models\Project::WORKFLOW_TYPE_DIRECT_HIRE }}">Direct Hire</option>
+                <option value="{{ \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT }}">Client Management</option>
             </select>
-            @error('project_type') <span class="error">{{ $message }}</span> @enderror
+            @error('workflow_type') <span class="error">{{ $message }}</span> @enderror
         </div>
 
-        <!-- Add conditional fields based on project_type later -->
+        <!-- Add conditional fields based on workflow_type later -->
         ```
-    *   Add validation rule for `project_type` in the component's rules.
+    *   Add validation rule for `workflow_type` in the component's rules.
         ```php
         protected $rules = [
             // ... existing rules ...
-            'project_type' => ['required', Rule::in(Project::getProjectTypes())],
+            'workflow_type' => ['required', Rule::in(Project::getWorkflowTypes())],
             // ...
         ];
         ```
-    *   Ensure `project_type` is saved when the project is created in the `save` or relevant method.
+    *   Ensure `workflow_type` is saved when the project is created in the `save` or relevant method.
 
 **7. Configuration Setup:**
 
@@ -295,7 +295,7 @@ This phase ensures the existing ("standard") workflow is explicitly recognized a
 
 **1. Verification:**
 
-*   **Project Creation:** Verify that new projects created through the UI *without* explicitly selecting a type default to `project_type = 'standard'` in the database (due to the DB default or component default).
+*   **Project Creation:** Verify that new projects created through the UI *without* explicitly selecting a type default to `workflow_type = 'standard'` in the database (due to the DB default or component default).
 *   **Existing Workflows:** Test the end-to-end standard project workflow:
     *   Producer submits a pitch (`STATUS_PENDING`).
     *   Owner approves the initial pitch (`PENDING` -> `IN_PROGRESS`).
@@ -578,7 +578,7 @@ This phase introduces the "Contest" project type, where multiple producers submi
 
 **5. Frontend/UI (Livewire & Views):**
 
-*   **Project Creation (`CreateProject`):** Already handled in Phase 1. *Needs update: Add fields for setting optional `submission_deadline`, `judging_deadline`, and `prize_amount` when `project_type` is `contest`.*
+*   **Project Creation (`CreateProject`):** Already handled in Phase 1. *Needs update: Add fields for setting optional `submission_deadline`, `judging_deadline`, and `prize_amount` when `workflow_type` is `contest`.*
 *   **Project Management (`ManageProject`):**
     *   Use `@if($project->isContest())` to show contest-specific views/sections.
     *   Display contest deadlines (`submission_deadline`, `judging_deadline`).
@@ -626,13 +626,13 @@ This phase allows project owners to select a specific producer during project cr
 **2. Project Creation & Pitch Initiation:**
 
 *   **`app/Livewire/CreateProject.php` & View:**
-    *   Conditionally show a producer search input when `project_type` is `direct_hire`.
+    *   Conditionally show a producer search input when `workflow_type` is `direct_hire`.
         ```html
         <!-- Example: resources/views/livewire/create-project.blade.php -->
-        <div x-data="{ projectType: @entangle('project_type') }">
-            <!-- ... project type select ... -->
+        <div x-data="{ workflowType: @entangle('workflow_type') }">
+            <!-- ... workflow type select ... -->
 
-            <div x-show="projectType === '{{ \App\Models\Project::TYPE_DIRECT_HIRE }}'">
+            <div x-show="workflowType === '{{ \App\Models\Project::WORKFLOW_TYPE_DIRECT_HIRE }}'">
                 <label for="target_producer_id">Target Producer</label>
                 <!-- Implement producer search/selection component -->
                 <input type="text" wire:model="target_producer_query" placeholder="Search producers...">
@@ -649,7 +649,7 @@ This phase allows project owners to select a specific producer during project cr
         ```
     *   Add `public $target_producer_id = null;` and potentially properties for search (`public $target_producer_query = ''; public $producers = [];`).
     *   Implement search logic (e.g., in `updatedTargetProducerQuery` method) to populate `$producers`.
-    *   Add validation rule for `target_producer_id`: `'required_if:project_type,direct_hire'`, `'exists:users,id'`.
+    *   Add validation rule for `target_producer_id`: `'required_if:workflow_type,direct_hire'`, `'exists:users,id'`.
     *   Ensure `target_producer_id` is saved with the project.
 *   **Automatic Pitch Creation (using an Observer is recommended):**
     *   Create an observer: `php artisan make:observer ProjectObserver --model=Project`
@@ -895,13 +895,13 @@ This phase enables producers to create projects to manage work for external clie
 **2. Project Creation & Pitch Initiation:**
 
 *   **`app/Livewire/CreateProject.php` & View:**
-    *   Conditionally show `client_email` (required) and `client_name` (optional) inputs when `project_type` is `client_management`.
+    *   Conditionally show `client_email` (required) and `client_name` (optional) inputs when `workflow_type` is `client_management`.
         ```html
         <!-- Example: resources/views/livewire/create-project.blade.php -->
-        <div x-data="{ projectType: @entangle('project_type') }">
-            <!-- ... project type select ... -->
+        <div x-data="{ workflowType: @entangle('workflow_type') }">
+            <!-- ... workflow type select ... -->
 
-            <div x-show="projectType === '{{ \App\Models\Project::TYPE_CLIENT_MANAGEMENT }}'">
+            <div x-show="workflowType === '{{ \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT }}'">
                 <div>
                     <label for="client_email">Client Email</label>
                     <input type="email" wire:model="client_email" id="client_email" required>
@@ -916,7 +916,7 @@ This phase enables producers to create projects to manage work for external clie
         </div>
         ```
     *   Add public properties: `public ?string $client_email = null;`, `public ?string $client_name = null;`
-    *   Add validation rules: `'client_email' => 'required_if:project_type,client_management|email|nullable', 'client_name' => 'nullable|string|max:255'`.
+    *   Add validation rules: `'client_email' => 'required_if:workflow_type,client_management|email|nullable', 'client_name' => 'nullable|string|max:255'`.
     *   Ensure `client_email` and `client_name` are saved with the project.
 *   **Automatic Pitch Creation & Client Invitation (via `ProjectObserver::created`):**
     *   Extend the `created` method in `app/Observers/ProjectObserver.php`:
@@ -1545,7 +1545,7 @@ Upon completion of these phases, the application will support the defined advanc
 *   **User Documentation:** Create clear documentation and guides for both project owners/clients and producers on how to use the different project types and their specific workflows.
 *   **User Dashboards & Aggregated Views:** Review and potentially refactor user dashboards (`/dashboard`, profile pages, etc.) to provide a cohesive overview of all work types (Standard Projects, Contest Entries, Direct Hires, Client Projects, Service Orders) relevant to the user.
 *   **Search & Discovery Updates:** Update public project/service browsing pages and search functionality to:
-    *   Allow filtering by `project_type` where applicable.
+    *   Allow filtering by `workflow_type` where applicable.
     *   Correctly include/exclude specific project types (like Direct Hire) based on user context.
     *   Integrate searchable Service Packages into discovery mechanisms.
 *   **Admin Tools & Oversight MVP:** Define the Minimum Viable Product for admin capabilities needed *at launch*. This should likely include:

@@ -27,26 +27,50 @@ class ProjectManagementService
     public function createProject(User $user, array $validatedData, ?UploadedFile $projectImage): Project
     {
         try {
+            // Log input data
+            Log::info('ProjectManagementService: Creating project', [
+                'user_id' => $user->id,
+                'data' => $validatedData,
+                'has_image' => !is_null($projectImage)
+            ]);
+            
+            // Start a transaction to ensure all related operations succeed or fail together
             return DB::transaction(function () use ($user, $validatedData, $projectImage) {
+                // Create the project
                 $project = new Project($validatedData);
+                
+                // Populate project with data
                 $project->user_id = $user->id;
                 $project->status = Project::STATUS_UNPUBLISHED; // Ensure default
-
+                
+                // Handle image upload if provided
                 if ($projectImage) {
-                    // Consider moving path generation logic here or keep in model if simple
                     $path = $projectImage->store('project_images', 's3');
                     $project->image_path = $path;
                     Log::info('Project image uploaded to S3', ['path' => $path, 'project_name' => $project->name]);
                 }
-
+                
+                // Save to get ID
                 $project->save();
+                
+                Log::info('Project created in database', [
+                    'project_id' => $project->id,
+                    'project_data' => $project->toArray()
+                ]);
+                
                 // Dispatch ProjectCreated event if needed
                 // event(new ProjectCreated($project));
                 return $project;
             });
         } catch (\Exception $e) {
-            Log::error('Error creating project in service', ['error' => $e->getMessage(), 'data' => $validatedData]);
-            // TODO: Ensure App\Exceptions\Project\ProjectCreationException exists
+            Log::error('ProjectManagementService: Error creating project', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             throw new ProjectCreationException('Failed to create project: ' . $e->getMessage(), 0, $e);
         }
     }
@@ -81,11 +105,22 @@ class ProjectManagementService
                     unset($fillData['image_path']);
                 }
 
-                // Handle project_type transformation if needed (just in case)
-                if (isset($fillData['projectType'])) {
-                    $fillData['project_type'] = $fillData['projectType'];
-                    unset($fillData['projectType']);
-                }
+                // Remove workflow_type from fillable data for updates to prevent accidental change
+                unset($fillData['workflow_type']);
+
+                // Save project_type value from input before fill() operation
+                $projectType = $fillData['project_type'] ?? null;
+                $budget = $fillData['budget'] ?? null;
+
+                // Add explicit logging for critical fields
+                Log::debug('ProjectManagementService: Critical field values before fill', [
+                    'project_type_in_validatedData' => $validatedData['project_type'] ?? 'NOT SET',
+                    'budget_in_validatedData' => $validatedData['budget'] ?? 'NOT SET',
+                    'project_type_in_fillData' => $fillData['project_type'] ?? 'NOT SET',
+                    'budget_in_fillData' => $fillData['budget'] ?? 'NOT SET',
+                    'project_type_current' => $project->project_type,
+                    'budget_current' => $project->budget
+                ]);
 
                 Log::debug('ProjectManagementService: Data before fill', [
                     'validatedData' => $validatedData, // Original validated data
@@ -93,8 +128,34 @@ class ProjectManagementService
                     'project_before_fill' => $originalDataForLog
                 ]);
 
+                // ---> Add logging here <---
+                Log::debug('ProjectManagementService: Filling project with data', [
+                    'project_id' => $project->id,
+                    'fillData_keys' => array_keys($fillData),
+                    'project_type_in_fillData' => $fillData['project_type'] ?? 'NOT SET',
+                    'budget_in_fillData' => $fillData['budget'] ?? 'NOT SET'
+                ]);
+                // ---> End logging <---
+
                 // Fill the model with prepared data
                 $project->fill($fillData);
+
+                // Manually set project_type after fill if provided
+                if ($projectType !== null) {
+                    Log::debug('ProjectManagementService: Manually setting project_type', [
+                        'project_type_before' => $project->project_type,
+                        'project_type_to_set' => $projectType
+                    ]);
+                    $project->project_type = $projectType;
+                }
+
+                // Add logging after fill to see if data was applied
+                Log::debug('ProjectManagementService: Project state after fill', [
+                    'project_type' => $project->project_type,
+                    'budget' => $project->budget,
+                    'isDirty' => $project->isDirty(),
+                    'dirtyFields' => $project->getDirty()
+                ]);
 
                 // Handle new image upload
                 if ($newProjectImage) {
@@ -115,7 +176,9 @@ class ProjectManagementService
                 $project->save();
 
                 Log::debug('ProjectManagementService: Project state after save', [
-                    'project_attributes' => $project->fresh()->getAttributes() // Log state from DB
+                    'project_attributes' => $project->fresh()->getAttributes(), // Log state from DB
+                    'project_type' => $project->fresh()->project_type,
+                    'budget' => $project->fresh()->budget
                 ]);
 
                 // Delete old image only after successful save of new state

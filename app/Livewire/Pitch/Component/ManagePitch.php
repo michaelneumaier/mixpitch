@@ -364,6 +364,14 @@ class ManagePitch extends Component
      */
     public function submitForReview(PitchWorkflowService $pitchWorkflowService)
     {
+        // --- DEBUGGING --- 
+        Log::debug('ManagePitch::submitForReview called in test.', [
+            'auth_user_id' => Auth::id(),
+            'pitch_id' => $this->pitch->id,
+            'pitch_user_id' => $this->pitch->user_id,
+        ]);
+        // --- END DEBUGGING ---
+        
         $this->authorize('submitForReview', $this->pitch);
         $this->validateOnly('responseToFeedback');
 
@@ -381,9 +389,22 @@ class ManagePitch extends Component
         } catch (InvalidStatusTransitionException $e) {
             Log::warning('Invalid status transition on pitch submission', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
             Toaster::error($e->getMessage());
-        } catch (UnauthorizedActionException | AuthorizationException $e) { // Catch both potential authorization exceptions
-            Log::warning('Unauthorized pitch submission attempt', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
-            Toaster::error('You are not authorized to submit this pitch for review.');
+        } catch (UnauthorizedActionException $e) { // Catch service-level exception
+            Log::warning('Unauthorized action attempt: submitForReview', [
+                'pitch_id' => $this->pitch->id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            // Toaster::error('You are not authorized to perform this action.'); // Keep toaster for UI, but still fail request
+            throw $e; // Re-throw the exception
+        } catch (AuthorizationException $e) { // Catch policy-level exception
+            Log::warning('Authorization failed via policy: submitForReview', [
+                'pitch_id' => $this->pitch->id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            // Toaster::error('You do not have permission to submit this pitch.'); // Keep toaster for UI, but still fail request
+            throw $e; // Re-throw the exception
         } catch (SnapshotException $e) {
             Log::error('Snapshot error during pitch submission', ['pitch_id' => $this->pitch->id, 'user_id' => Auth::id(), 'error' => $e->getMessage()]);
             Toaster::error('Could not create a snapshot for the submission. Please try again.');

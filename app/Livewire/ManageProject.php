@@ -20,6 +20,7 @@ use App\Livewire\Forms\ProjectForm;
 use App\Exceptions\File\FileUploadException;
 use App\Exceptions\File\StorageLimitException;
 use App\Exceptions\File\FileDeletionException;
+use App\Services\NotificationService;
 
 class ManageProject extends Component
 {
@@ -46,6 +47,11 @@ class ManageProject extends Component
 
     public function mount(Project $project)
     {
+        // Redirect client management projects to dedicated page
+        if ($project->isClientManagement()) {
+            return redirect()->route('projects.manage-client', $project);
+        }
+        
         try {
             $this->authorize('update', $project);
         } catch (AuthorizationException $e) {
@@ -53,6 +59,18 @@ class ManageProject extends Component
         }
 
         $this->project = $project;
+
+        // Eager load relationships needed based on workflow type
+        if ($this->project->isDirectHire()) {
+            $this->project->load('targetProducer'); // Load the target producer
+            // Load the single associated pitch for Direct Hire
+            $this->project->load(['pitches' => function ($query) {
+                $query->with(['user', 'files', 'events']); // Load pitch details
+            }]);
+        } else {
+            // Load standard pitches/applicants for other workflow types
+            $this->project->load('pitches.user'); // Load standard pitches
+        }
 
         // Initialize the form object
         $this->form = new ProjectForm($this, 'form');
@@ -443,6 +461,52 @@ class ManageProject extends Component
         }
     }
 
+    /**
+     * Resend the client invitation email with a new signed URL.
+     */
+    public function resendClientInvite(NotificationService $notificationService)
+    {
+        // Authorization: Ensure user is the project owner and it's a client mgmt project
+        if (auth()->id() !== $this->project->user_id || !$this->project->isClientManagement()) {
+            Toaster::error('Unauthorized action.');
+            return;
+        }
+
+        if (empty($this->project->client_email)) {
+            Toaster::error('Client email is not set for this project.');
+            return;
+        }
+
+        try {
+            // Regenerate Signed URL
+            $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'client.portal.view',
+                now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7)),
+                ['project' => $this->project->id]
+            );
+
+            // Log the signed URL directly for admin access
+            \Illuminate\Support\Facades\Log::info('Client invite URL generated for resend (Livewire)', [
+                'project_id' => $this->project->id,
+                'client_email' => $this->project->client_email,
+                'signed_url' => $signedUrl
+            ]);
+
+            // Trigger notification
+            $notificationService->notifyClientProjectInvite($this->project, $signedUrl);
+
+            // Feedback to producer
+            Toaster::success('Client invitation resent successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('Failed to resend client invite', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('Failed to resend invitation. Please try again later.');
+        }
+    }
+
     public function render()
     {
         // Eager load relationships to avoid N+1 queries
@@ -548,22 +612,34 @@ class ManageProject extends Component
             $validatedData['collaborationTypeVocalTuning']
         );
         
-        // Unset budgetType if present
+        // Handle budget based on budgetType
         if (isset($validatedData['budgetType'])) {
+            // If budget type is 'paid', use the value from form->budget
+            // Otherwise set it to 0 for 'free'
+            $validatedData['budget'] = ($validatedData['budgetType'] === 'paid') ? 
+                (int)$this->form->budget : 0;
             unset($validatedData['budgetType']);
+        } else {
+            // If budgetType isn't set, we still need to ensure budget is included
+            $validatedData['budget'] = (int)$this->form->budget;
         }
 
-        // Ensure project_type is correctly set if it's coming from projectType
-        if (isset($validatedData['projectType'])) {
-            $validatedData['project_type'] = $validatedData['projectType'];
-            unset($validatedData['projectType']);
-        }
+        // Set proper project_type from the form
+        $validatedData['project_type'] = $this->form->projectType;
+        // Remove the projectType key to avoid confusion
+        unset($validatedData['projectType']);
 
         // Extract image if present
         $imageFile = $validatedData['projectImage'] ?? null;
         unset($validatedData['projectImage']);
         
-        Log::debug('ManageProject: Before calling service->updateProject', ['project_id' => $this->project->id]);
+        Log::debug('ManageProject: Before calling service->updateProject', [
+            'project_id' => $this->project->id,
+            'validated_data' => $validatedData,
+            'budget' => $validatedData['budget'] ?? null,
+            'project_type' => $validatedData['project_type'] ?? null,
+            'form_projectType' => $this->form->projectType
+        ]);
 
         try {
             $project = $projectService->updateProject(
@@ -572,7 +648,11 @@ class ManageProject extends Component
                 $imageFile
             );
 
-            Log::debug('ManageProject: After calling service->updateProject', ['project_id' => $this->project->id]);
+            Log::debug('ManageProject: After calling service->updateProject', [
+                'project_id' => $this->project->id,
+                'updated_project_type' => $project->project_type,
+                'updated_budget' => $project->budget
+            ]);
             
             // Update the component's project reference with the updated model
             $this->project = $project;

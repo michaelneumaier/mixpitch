@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Exceptions\Pitch\CompletionValidationException; // Assuming this exists or will be created
 use App\Exceptions\Pitch\UnauthorizedActionException;
 use App\Services\Project\ProjectManagementService;
+use Illuminate\Support\Facades\URL;
 
 class PitchCompletionService
 {
@@ -81,31 +82,33 @@ class PitchCompletionService
                     $pitchToComplete->currentSnapshot->save();
                 }
 
-                // 3. Close other active pitches for the same project
-                $otherPitches = $project->pitches()
-                    ->where('id', '!=', $pitchToComplete->id)
-                    ->whereNotIn('status', [
-                        Pitch::STATUS_COMPLETED,
-                        Pitch::STATUS_CLOSED,
-                        Pitch::STATUS_DENIED // Keep denied as is?
-                    ]) // Close pending, in_progress, approved, revisions_requested etc.
-                    ->get();
+                // 3. Close other active pitches for the same project (ONLY FOR STANDARD PROJECTS)
+                if ($project->isStandard()) {
+                    $otherPitches = $project->pitches()
+                        ->where('id', '!=', $pitchToComplete->id)
+                        ->whereNotIn('status', [
+                            Pitch::STATUS_COMPLETED,
+                            Pitch::STATUS_CLOSED,
+                            Pitch::STATUS_DENIED // Keep denied as is?
+                        ]) // Close pending, in_progress, approved, revisions_requested etc.
+                        ->get();
 
-                foreach ($otherPitches as $otherPitch) {
-                    $originalStatus = $otherPitch->status;
-                    $otherPitch->status = Pitch::STATUS_CLOSED;
-                    $otherPitch->save();
+                    foreach ($otherPitches as $otherPitch) {
+                        $originalStatus = $otherPitch->status;
+                        $otherPitch->status = Pitch::STATUS_CLOSED;
+                        $otherPitch->save();
 
-                    // Decline/cancel any pending snapshots for these closed pitches
-                    if ($otherPitch->currentSnapshot && $otherPitch->currentSnapshot->status === PitchSnapshot::STATUS_PENDING) {
-                        $otherPitch->currentSnapshot->status = PitchSnapshot::STATUS_DENIED; // Or maybe 'cancelled'?
-                        $otherPitch->currentSnapshot->save();
+                        // Decline/cancel any pending snapshots for these closed pitches
+                        if ($otherPitch->currentSnapshot && $otherPitch->currentSnapshot->status === PitchSnapshot::STATUS_PENDING) {
+                            $otherPitch->currentSnapshot->status = PitchSnapshot::STATUS_DENIED; // Or maybe 'cancelled'?
+                            $otherPitch->currentSnapshot->save();
+                        }
+
+                        Log::info('Pitch closed due to project completion', ['pitch_id' => $otherPitch->id, 'project_id' => $project->id, 'original_status' => $originalStatus]);
+                        // Notify creator of the closed pitch
+                        // Note: notifyPitchClosed() needs implementation in NotificationService
+                        $this->notificationService->notifyPitchClosed($otherPitch);
                     }
-
-                    Log::info('Pitch closed due to project completion', ['pitch_id' => $otherPitch->id, 'project_id' => $project->id, 'original_status' => $originalStatus]);
-                    // Notify creator of the closed pitch
-                    // Note: notifyPitchClosed() needs implementation in NotificationService
-                    $this->notificationService->notifyPitchClosed($otherPitch);
                 }
 
                 // 4. Mark the project as completed (using the ProjectManagementService)
@@ -134,6 +137,18 @@ class PitchCompletionService
                 $this->notificationService->notifyPitchCompleted($pitchToComplete);
 
             }); // End DB Transaction
+
+            // 7. Notify client if it's a client management project (outside transaction)
+            if ($project->isClientManagement()) {
+                // Generate a (potentially non-actionable) link to the portal
+                $signedUrl = URL::temporarySignedRoute(
+                    'client.portal.view',
+                    now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7)), // Use config
+                    ['project' => $project->id]
+                );
+                // Note: notifyClientProjectCompleted() needs implementation in NotificationService
+                $this->notificationService->notifyClientProjectCompleted($pitchToComplete, $signedUrl, $feedback, $rating);
+            }
 
             return $pitchToComplete->refresh(); // Return the updated pitch object
 
