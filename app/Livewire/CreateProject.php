@@ -36,6 +36,12 @@ class CreateProject extends Component
     public $track; // Uploaded track file
     public $audioUrl; // Existing audio URL for display
 
+    // Wizard properties
+    public int $currentStep = 1;
+    public int $totalSteps = 4;
+    public array $wizardSteps = [];
+    public bool $useWizard = true; // Can be disabled for edit mode
+
     // Add project_type property (defaulting to standard)
     // Note: It seems ProjectForm already has this based on mount(), ensure it's public there
     // public string $project_type = Project::TYPE_STANDARD;
@@ -71,18 +77,23 @@ class CreateProject extends Component
 
     protected function rules(): array
     {
-        return [
-            'title' => 'required|string|max:255',
-            'description' => 'required|string|max:5000',
-            'artist_name' => 'required|string|max:255',
-            // 'project_type' => 'required|string|max:50', // Keep validation for original project_type if needed
-            'collaboration_type' => 'required|string|max:50',
-            'budget' => 'required|string|max:100',
-            'genre_id' => 'required|exists:genres,id',
-            'subgenre_id' => 'nullable|exists:subgenres,id,parent_genre_id,'.intval($this->genre_id),
-            'visibility' => ['required', Rule::in(['public', 'unlisted'])] ,
+        $rules = [
+            // Form object properties
+            'form.name' => 'required|string|min:5|max:80',
+            'form.artistName' => 'nullable|string|max:30',
+            'form.projectType' => 'required|string|max:50',
+            'form.description' => 'required|string|min:5|max:1000',
+            'form.genre' => 'required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk',
+            'form.budgetType' => 'required|in:free,paid',
+            'form.budget' => 'nullable|numeric|min:0',
+            'form.deadline' => 'nullable|date',
+            'form.collaborationTypeMixing' => 'boolean',
+            'form.collaborationTypeMastering' => 'boolean',
+            'form.collaborationTypeProduction' => 'boolean',
+            'form.collaborationTypeSongwriting' => 'boolean',
+            'form.collaborationTypeVocalTuning' => 'boolean',
 
-            // Validation for workflow_type
+            // Component properties
             'workflow_type' => ['required', Rule::in(Project::getWorkflowTypes())],
 
             // Conditional Validation
@@ -99,10 +110,341 @@ class CreateProject extends Component
             // Added: Validation for Client Management Payment Amount
             'payment_amount' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT.'|nullable|numeric|min:0',
         ];
+
+        // Apply step-specific validation in wizard mode
+        if ($this->useWizard && !$this->isEdit) {
+            return $this->getStepValidationRules($rules);
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Get validation rules for the current step
+     */
+    protected function getStepValidationRules(array $allRules): array
+    {
+        switch ($this->currentStep) {
+            case 1: // Project Type & Workflow Selection
+                return [
+                    'workflow_type' => $allRules['workflow_type'],
+                ];
+            case 2: // Basic Project Details
+                $stepRules = [
+                    'form.name' => $allRules['form.name'],
+                ];
+                
+                // For Client Management, only project name is required
+                if ($this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+                    // Optional fields for client management
+                    $stepRules['form.description'] = 'nullable|string|min:5|max:1000';
+                    $stepRules['form.artistName'] = $allRules['form.artistName'];
+                    $stepRules['form.projectType'] = 'nullable|string|max:50';
+                    $stepRules['form.genre'] = 'nullable|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk';
+                } else {
+                    // Standard validation for other workflows
+                    $stepRules['form.description'] = $allRules['form.description'];
+                    $stepRules['form.artistName'] = $allRules['form.artistName'];
+                    $stepRules['form.projectType'] = $allRules['form.projectType'];
+                    $stepRules['form.genre'] = $allRules['form.genre'];
+                }
+                
+                // Collaboration types are always optional in step 2
+                $stepRules['form.collaborationTypeMixing'] = $allRules['form.collaborationTypeMixing'];
+                $stepRules['form.collaborationTypeMastering'] = $allRules['form.collaborationTypeMastering'];
+                $stepRules['form.collaborationTypeProduction'] = $allRules['form.collaborationTypeProduction'];
+                $stepRules['form.collaborationTypeSongwriting'] = $allRules['form.collaborationTypeSongwriting'];
+                $stepRules['form.collaborationTypeVocalTuning'] = $allRules['form.collaborationTypeVocalTuning'];
+                
+                return $stepRules;
+            case 3: // Workflow-Specific Configuration
+                $stepRules = [];
+                
+                // Budget and deadline are not required for Client Management
+                if ($this->workflow_type !== Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+                    $stepRules['form.budgetType'] = $allRules['form.budgetType'];
+                    $stepRules['form.budget'] = $allRules['form.budget'];
+                }
+                
+                // Deadline is optional for Client Management
+                if ($this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+                    $stepRules['form.deadline'] = 'nullable|date';
+                } else {
+                    $stepRules['form.deadline'] = $allRules['form.deadline'];
+                }
+                
+                // Add workflow-specific rules
+                if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
+                    $stepRules['submission_deadline'] = $allRules['submission_deadline'];
+                    $stepRules['judging_deadline'] = $allRules['judging_deadline'];
+                    $stepRules['prize_amount'] = $allRules['prize_amount'];
+                    $stepRules['prize_currency'] = $allRules['prize_currency'];
+                } elseif ($this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE) {
+                    $stepRules['target_producer_id'] = $allRules['target_producer_id'];
+                } elseif ($this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+                    $stepRules['client_email'] = $allRules['client_email'];
+                    $stepRules['client_name'] = $allRules['client_name'];
+                    $stepRules['payment_amount'] = $allRules['payment_amount'];
+                }
+                
+                return $stepRules;
+            case 4: // Review & Finalization
+                return []; // No additional validation needed for review step
+            default:
+                return $allRules;
+        }
+    }
+
+    /**
+     * Initialize wizard steps configuration
+     */
+    protected function initializeWizardSteps(): void
+    {
+        $this->wizardSteps = [
+            [
+                'label' => 'Workflow',
+                'description' => 'Choose type',
+                'icon' => 'fas fa-route',
+            ],
+            [
+                'label' => 'Details',
+                'description' => 'Basic info',
+                'icon' => 'fas fa-info-circle',
+            ],
+            [
+                'label' => 'Configure',
+                'description' => 'Settings',
+                'icon' => 'fas fa-cog',
+            ],
+            [
+                'label' => 'Review',
+                'description' => 'Finalize',
+                'icon' => 'fas fa-check',
+            ],
+        ];
+    }
+
+    /**
+     * Get workflow type configurations for the selector
+     */
+    public function getWorkflowTypesProperty(): array
+    {
+        return [
+            [
+                'value' => Project::WORKFLOW_TYPE_STANDARD,
+                'name' => 'Standard Project',
+                'description' => 'Open to all producers. Receive multiple pitches and choose the best one.',
+                'icon' => 'fas fa-bullhorn',
+                'color' => 'blue',
+                'features' => [
+                    'Open to all producers',
+                    'Multiple pitch submissions',
+                    'Choose your favorite',
+                    'Standard workflow'
+                ],
+                'badge' => 'Most Popular'
+            ],
+            [
+                'value' => Project::WORKFLOW_TYPE_CONTEST,
+                'name' => 'Contest Project',
+                'description' => 'Run a competition with deadlines and prizes to attract top talent.',
+                'icon' => 'fas fa-trophy',
+                'color' => 'amber',
+                'features' => [
+                    'Competition format',
+                    'Set submission deadlines',
+                    'Prize pool',
+                    'Judging period'
+                ],
+                'badge' => 'High Engagement'
+            ],
+            [
+                'value' => Project::WORKFLOW_TYPE_DIRECT_HIRE,
+                'name' => 'Direct Hire',
+                'description' => 'Invite a specific producer to work on your project privately.',
+                'icon' => 'fas fa-user-check',
+                'color' => 'green',
+                'features' => [
+                    'Private collaboration',
+                    'Invite specific producer',
+                    'Direct communication',
+                    'Faster turnaround'
+                ],
+                'badge' => 'Exclusive'
+            ],
+            [
+                'value' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
+                'name' => 'Client Management',
+                'description' => 'Manage projects for external clients with a dedicated portal.',
+                'icon' => 'fas fa-briefcase',
+                'color' => 'purple',
+                'features' => [
+                    'Client portal access',
+                    'Payment integration',
+                    'Professional workflow',
+                    'Client communication'
+                ],
+                'badge' => 'Professional'
+            ],
+        ];
+    }
+
+    /**
+     * Get current workflow configuration
+     */
+    public function getCurrentWorkflowConfigProperty(): array
+    {
+        $workflowTypes = $this->workflowTypes;
+        foreach ($workflowTypes as $type) {
+            if ($type['value'] === $this->workflow_type) {
+                // Add workflow-specific fields for the summary
+                $type['fields'] = $this->getWorkflowSpecificFields($this->workflow_type);
+                return $type;
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Get workflow-specific fields for summary display
+     */
+    protected function getWorkflowSpecificFields(string $workflowType): array
+    {
+        switch ($workflowType) {
+            case Project::WORKFLOW_TYPE_CONTEST:
+                return [
+                    ['key' => 'submission_deadline', 'label' => 'Submission Deadline', 'type' => 'date'],
+                    ['key' => 'judging_deadline', 'label' => 'Judging Deadline', 'type' => 'date'],
+                    ['key' => 'prize_amount', 'label' => 'Prize Amount', 'type' => 'currency'],
+                ];
+            case Project::WORKFLOW_TYPE_DIRECT_HIRE:
+                return [
+                    ['key' => 'target_producer_query', 'label' => 'Target Producer', 'type' => 'text'],
+                ];
+            case Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT:
+                return [
+                    ['key' => 'client_email', 'label' => 'Client Email', 'type' => 'text'],
+                    ['key' => 'client_name', 'label' => 'Client Name', 'type' => 'text'],
+                    ['key' => 'payment_amount', 'label' => 'Payment Amount', 'type' => 'currency'],
+                ];
+            default:
+                return [];
+        }
+    }
+
+    /**
+     * Get project data for summary display
+     */
+    public function getProjectSummaryProperty(): array
+    {
+        return [
+            'name' => $this->form->name,
+            'artist_name' => $this->form->artistName,
+            'project_type' => $this->form->projectType,
+            'description' => $this->form->description,
+            'genre' => $this->form->genre,
+            'collaboration_types' => $this->getSelectedCollaborationTypes(),
+            'budget' => $this->form->budget,
+            'deadline' => $this->form->deadline,
+            'additional_notes' => $this->form->notes,
+            
+            // Workflow-specific fields
+            'submission_deadline' => $this->submission_deadline,
+            'judging_deadline' => $this->judging_deadline,
+            'prize_amount' => $this->prize_amount,
+            'target_producer_query' => $this->target_producer_query,
+            'client_email' => $this->client_email,
+            'client_name' => $this->client_name,
+            'payment_amount' => $this->payment_amount,
+        ];
+    }
+
+    /**
+     * Get selected collaboration types as array
+     */
+    protected function getSelectedCollaborationTypes(): array
+    {
+        $types = [];
+        if ($this->form->collaborationTypeMixing) $types[] = 'mixing';
+        if ($this->form->collaborationTypeMastering) $types[] = 'mastering';
+        if ($this->form->collaborationTypeProduction) $types[] = 'production';
+        if ($this->form->collaborationTypeSongwriting) $types[] = 'songwriting';
+        if ($this->form->collaborationTypeVocalTuning) $types[] = 'vocal tuning';
+        return $types;
+    }
+
+    /**
+     * Navigate to next step
+     */
+    public function nextStep(): void
+    {
+        if (!$this->useWizard || $this->isEdit) {
+            return;
+        }
+
+        // Custom validation for collaboration types in step 2 (except for Client Management)
+        if ($this->currentStep === 2 && $this->workflow_type !== Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+            $hasCollaborationType = $this->form->collaborationTypeMixing || 
+                                  $this->form->collaborationTypeMastering || 
+                                  $this->form->collaborationTypeProduction || 
+                                  $this->form->collaborationTypeSongwriting || 
+                                  $this->form->collaborationTypeVocalTuning;
+            
+            if (!$hasCollaborationType) {
+                $this->addError('collaboration_type', 'Please select at least one collaboration type.');
+                return;
+            }
+        }
+
+        // Validate current step
+        $allRules = $this->rules();
+        $stepRules = $this->getStepValidationRules($allRules);
+        
+        // This will throw ValidationException if validation fails, which Livewire handles
+        $this->validate($stepRules);
+
+        // Clear any previous collaboration type errors
+        $this->resetErrorBag('collaboration_type');
+
+        // Advance to next step
+        if ($this->currentStep < $this->totalSteps) {
+            $this->currentStep++;
+        }
+    }
+
+    /**
+     * Navigate to previous step
+     */
+    public function previousStep(): void
+    {
+        if (!$this->useWizard || $this->isEdit) {
+            return;
+        }
+
+        if ($this->currentStep > 1) {
+            $this->currentStep--;
+        }
+    }
+
+    /**
+     * Go to specific step (if accessible)
+     */
+    public function goToStep(int $step): void
+    {
+        if (!$this->useWizard || $this->isEdit) {
+            return;
+        }
+
+        if ($step >= 1 && $step <= $this->totalSteps && $step <= $this->currentStep) {
+            $this->currentStep = $step;
+        }
     }
 
     public function mount($project = null)
     {
+        // Initialize wizard steps
+        $this->initializeWizardSteps();
+        
         $this->project = new Project(); // Keep for reference, maybe not needed
 
         if ($project) {
@@ -112,6 +454,9 @@ class CreateProject extends Component
             } catch (AuthorizationException $e) {
                 abort(403);
             }
+
+            // Disable wizard for edit mode
+            $this->useWizard = false;
 
             // Load the existing project for editing
             $this->originalProject = $project; // Store original for comparison if needed
@@ -331,18 +676,19 @@ class CreateProject extends Component
                 'user_id' => auth()->id(),
                 'name' => $this->form->name,
                 'title' => $this->title,
-                'description' => $this->form->description,
+                'description' => $this->form->description ?: 'Client project', // Default for client management
                 'artist_name' => $this->form->artistName,
-                'project_type' => $this->form->projectType,
+                'project_type' => $this->form->projectType ?: 'single', // Default to single
                 'collaboration_type' => $collaborationTypes,
                 
-                // Format budget as numeric value
-                'budget' => is_numeric($this->form->budget) ? (float)$this->form->budget : 0,
+                // Format budget as numeric value - for Client Management, use 0 as default
+                'budget' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? 0 : 
+                           (is_numeric($this->form->budget) ? (float)$this->form->budget : 0),
                 
                 // Format deadline for database (use Carbon object)
                 'deadline' => !empty($this->form->deadline) ? \Carbon\Carbon::parse($this->form->deadline) : null,
                 
-                'genre' => $this->form->genre,
+                'genre' => $this->form->genre ?: 'Pop', // Default genre for client management
                 'genre_id' => $this->genre_id,
                 'subgenre_id' => $this->subgenre_id,
                 'visibility' => $this->visibility ?? 'public',
@@ -356,6 +702,9 @@ class CreateProject extends Component
                 'target_producer_id' => $this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE ? $this->target_producer_id : null,
                 'client_email' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_email : null,
                 'client_name' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_name : null,
+                
+                // Add payment_amount for Client Management (this gets passed to the ProjectObserver)
+                'payment_amount' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->payment_amount : null,
             ];
             
             if ($this->isEdit && $this->originalProject) {
@@ -441,6 +790,45 @@ class CreateProject extends Component
         }
 
         return $this->project;
+    }
+
+    /**
+     * Get workflow-specific content for step 2
+     */
+    public function getStep2ContentProperty(): array
+    {
+        switch ($this->workflow_type) {
+            case Project::WORKFLOW_TYPE_STANDARD:
+                return [
+                    'title' => 'Project Details',
+                    'subtitle' => 'Tell us about your project. Provide clear details to attract the right collaborators.',
+                    'required_fields' => ['name', 'description', 'projectType', 'genre'],
+                ];
+            case Project::WORKFLOW_TYPE_CONTEST:
+                return [
+                    'title' => 'Contest Details',
+                    'subtitle' => 'Set up your contest project. Clear details will help producers understand what you\'re looking for.',
+                    'required_fields' => ['name', 'description', 'projectType', 'genre'],
+                ];
+            case Project::WORKFLOW_TYPE_DIRECT_HIRE:
+                return [
+                    'title' => 'Project Details',
+                    'subtitle' => 'Describe your project for the producer you\'ll be working with directly.',
+                    'required_fields' => ['name', 'description', 'projectType', 'genre'],
+                ];
+            case Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT:
+                return [
+                    'title' => 'Client Project Setup',
+                    'subtitle' => 'Set up the basic details for your client project. Only the project name is required - you can add more details later.',
+                    'required_fields' => ['name'],
+                ];
+            default:
+                return [
+                    'title' => 'Project Details',
+                    'subtitle' => 'Tell us about your project.',
+                    'required_fields' => ['name', 'description', 'projectType', 'genre'],
+                ];
+        }
     }
 
     public function render()
