@@ -39,6 +39,9 @@ class ManageProject extends Component
     public bool $showDeleteModal = false;
     public $fileToDelete;
 
+    // Project deletion properties
+    public bool $showProjectDeleteModal = false;
+
     // Add listener for the new file uploader component
     protected $listeners = [
         'filesUploaded' => 'refreshProjectData', 
@@ -739,12 +742,53 @@ class ManageProject extends Component
     {
         $this->hasPreviewTrack = $this->project->hasPreviewTrack();
         
-        // No need to store the URL - it will be generated directly in the view
-        // This prevents URL expiration issues between page loads
-        
-        Log::debug('Checked preview track status', [
-            'project_id' => $this->project->id,
-            'has_preview_track' => $this->hasPreviewTrack
-        ]);
+        if ($this->hasPreviewTrack) {
+            $previewFile = $this->project->files()->where('id', $this->project->preview_track)->first();
+            if ($previewFile) {
+                $this->audioUrl = $previewFile->getSignedUrl();
+            }
+        }
+    }
+
+    /**
+     * Confirm project deletion
+     */
+    public function confirmDeleteProject()
+    {
+        $this->authorize('delete', $this->project);
+        $this->showProjectDeleteModal = true;
+    }
+
+    /**
+     * Cancel project deletion
+     */
+    public function cancelDeleteProject()
+    {
+        $this->showProjectDeleteModal = false;
+    }
+
+    /**
+     * Delete the project and all associated data
+     */
+    public function deleteProject()
+    {
+        $this->authorize('delete', $this->project);
+
+        try {
+            $projectTitle = $this->project->title;
+            $this->project->delete(); // This will cascade delete pitches and files via observer
+            
+            Toaster::success("Project '{$projectTitle}' deleted successfully.");
+            
+            // Redirect to projects list
+            return redirect()->route('projects.index');
+            
+        } catch (\Exception $e) {
+            Log::error('Error deleting project', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('Failed to delete project. Please try again.');
+        }
     }
 }

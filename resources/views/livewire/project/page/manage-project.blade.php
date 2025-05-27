@@ -520,63 +520,18 @@
                             </div>
                         @endif
 
-                        {{-- Danger Zone - Always last --}}
-                        <div class="flex w-full flex-col bg-base-100 rounded-lg shadow-md border border-base-300"
-                            x-data="{ open: false }">
-                            <div class="p-3 sm:p-4 flex flex-col">
-                                <span class="text-lg sm:text-xl font-bold mb-2 flex items-center">
-                                    <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Danger Zone
-                                </span>
-                                <p class="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">Permanently delete this project and all associated files. This
-                                    action cannot be undone.</p>
-                                <div class="btn bg-error/80 hover:bg-error flex-row text-white text-center transition-colors py-2.5 sm:py-2 text-sm sm:text-base"
-                                    @click="open = true" onclick="event.stopPropagation();">
-                                    <i class="fas fa-trash-alt mr-2"></i> Delete Project
-                                </div>
-                            </div>
-                            <!-- Modal -->
-                            <div x-show="open" x-cloak class="fixed z-10 inset-0 overflow-y-auto"
-                                aria-labelledby="modal-title" role="dialog" aria-modal="true"
-                                @click="$event.stopPropagation()">
-                                <div class="flex items-center justify-center min-h-screen p-2 sm:p-0">
-                                    <!-- Background overlay -->
-                                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                        aria-hidden="true"></div>
-
-                                    <!-- Modal -->
-                                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen"
-                                        aria-hidden="true">&#8203;</span>
-                                    <div
-                                        class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full max-w-sm sm:w-full">
-                                        <div
-                                            class="bg-white rounded-lg text-left overflow-hidden shadow-xl p-3 sm:p-4 transform transition-all sm:align-middle sm:max-w-lg sm:w-full">
-                                            <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                                Confirm Deletion
-                                            </h3>
-                                            <div class="mt-2">
-                                                <p class="text-xs sm:text-sm text-gray-500">
-                                                    Are you sure you want to delete this project?
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row-reverse gap-2">
-                                            <!-- Confirm Button -->
-                                            <form action="{{ route('projects.destroy', $project) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn-sm bg-red-400 border py-1.5 sm:py-1 text-xs sm:text-sm w-full sm:w-auto">
-                                                    Confirm
-                                                </button>
-                                            </form>
-                                            <!-- Cancel Button -->
-                                            <button @click="open = false" class="btn-sm border py-1.5 sm:py-1 text-xs sm:text-sm w-full sm:w-auto">
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                        {{-- Danger Zone - Mobile only --}}
+                        <div class="lg:hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h3 class="text-lg font-semibold text-red-800 mb-3">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
+                            </h3>
+                            <p class="text-sm text-red-700 mb-3">
+                                Permanently delete this project and all associated files. This action cannot be undone.
+                            </p>
+                            <button wire:click="confirmDeleteProject" 
+                                    class="btn btn-error btn-sm w-full">
+                                <i class="fas fa-trash-alt mr-2"></i>Delete Project
+                            </button>
                         </div>
                     </div>
 
@@ -716,6 +671,20 @@
                                  </div>
                         @endif
                         {{-- End Workflow Type Specific Information --}}
+
+                        {{-- Danger Zone - Desktop only, at bottom of sidebar --}}
+                        <div class="hidden lg:block bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h3 class="text-lg font-semibold text-red-800 mb-3">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
+                            </h3>
+                            <p class="text-sm text-red-700 mb-3">
+                                Permanently delete this project and all associated files. This action cannot be undone.
+                            </p>
+                            <button wire:click="confirmDeleteProject" 
+                                    class="btn btn-error btn-sm w-full">
+                                <i class="fas fa-trash-alt mr-2"></i>Delete Project
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -724,38 +693,39 @@
 
 {{-- File Delete Confirmation Modal --}}
 @if($showDeleteModal)
-<div class="fixed z-[9999] inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen p-4 text-center">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-        
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="flex items-center">
-                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <div class="mt-3 ml-4 text-left">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">
-                            Delete File
-                        </h3>
-                        <div class="mt-2">
-                            <p class="text-sm text-gray-500">
-                                Are you sure you want to delete this file? This action cannot be undone.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
-                <button wire:click="deleteFile" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700">
-                    Delete
-                </button>
-                <button wire:click="cancelDeleteFile" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50">
-                    Cancel
-                </button>
-            </div>
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirm File Deletion</h3>
+        <p class="text-gray-600 mb-6">Are you sure you want to delete this file? This action cannot be undone.</p>
+        <div class="flex justify-end space-x-3">
+            <button wire:click="cancelDeleteFile" class="btn btn-outline">Cancel</button>
+            <button wire:click="deleteFile" class="btn btn-error">Delete File</button>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Project Delete Confirmation Modal --}}
+@if($showProjectDeleteModal)
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-red-800 mb-4">
+            <i class="fas fa-exclamation-triangle mr-2"></i>Delete Project
+        </h3>
+        <p class="text-gray-600 mb-4">
+            Are you sure you want to permanently delete this project? This will also delete:
+        </p>
+        <ul class="text-sm text-gray-600 mb-6 list-disc list-inside">
+            <li>All project files</li>
+            <li>All pitch files and data</li>
+            <li>All project history and events</li>
+        </ul>
+        <p class="text-red-600 font-medium mb-6">This action cannot be undone.</p>
+        <div class="flex justify-end space-x-3">
+            <button wire:click="cancelDeleteProject" class="btn btn-outline">Cancel</button>
+            <button wire:click="deleteProject" class="btn btn-error">
+                <i class="fas fa-trash-alt mr-2"></i>Delete Project
+            </button>
         </div>
     </div>
 </div>
