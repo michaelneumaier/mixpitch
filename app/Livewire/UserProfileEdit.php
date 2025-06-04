@@ -24,7 +24,7 @@ class UserProfileEdit extends Component
     public $equipment = [];
     public $specialties = [];
     public $social_links = [];
-    public $is_username_locked = false;
+    public $username_locked = false;
     public $profile_completed = false;
     public $profile_completion_percentage = 0;
     public $profilePhoto;
@@ -41,7 +41,7 @@ class UserProfileEdit extends Component
     {
         $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username';
         // If username is locked, we don't need to validate uniqueness except for current user
-        if ($this->is_username_locked) {
+        if ($this->username_locked) {
             $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username,' . auth()->id();
         }
 
@@ -114,7 +114,7 @@ class UserProfileEdit extends Component
         $this->website = $user->website;
         $this->tipjar_link = $user->tipjar_link;
         $this->social_links = $user->social_links ?? [];
-        $this->is_username_locked = $user->is_username_locked;
+        $this->username_locked = $user->username_locked;
         $this->profile_completed = $user->profile_completed ?? false;
 
         // Load user's tags from taggables relationship
@@ -197,8 +197,8 @@ class UserProfileEdit extends Component
         $user = auth()->user();
 
         // Clean and gather non-tag data
-        if (!empty($this->username) && !$user->is_username_locked) {
-            $this->is_username_locked = true;
+        if (!empty($this->username) && !$user->username_locked) {
+            $this->username_locked = true;
         }
 
         // Prepend http:// to website if it doesn't have a protocol
@@ -222,7 +222,7 @@ class UserProfileEdit extends Component
             'website' => $this->website,
             'tipjar_link' => $this->tipjar_link,
             'social_links' => array_filter($this->social_links ?? []),
-            'is_username_locked' => $this->is_username_locked,
+            'username_locked' => $this->username_locked,
         ];
 
         // Recalculate profile completion before saving

@@ -120,6 +120,9 @@
          }">
         {{-- This div doesn't render anything visible, it just listens for the event --}}
     </div>
+
+    <!-- Global Modals - Positioned at root level for proper z-index behavior -->
+    <x-pitch-action-modals />
 </body>
 
 </html>

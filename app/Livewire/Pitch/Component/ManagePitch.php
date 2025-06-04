@@ -70,7 +70,7 @@ class ManagePitch extends Component
     public $showDeleteModal = false;
     public $fileIdToDelete = null;
     
-    public $internalNotes;
+    public $internalNotes = null;
 
     protected $rules = [
         'responseToFeedback' => 'nullable|string|max:5000',

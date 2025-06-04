@@ -194,6 +194,11 @@ class PitchController extends Controller
             abort(403, 'You are not authorized to edit this pitch.');
         }
 
+        // For contest entries, use the dedicated contest management view
+        if ($project->isContest() && $pitch->status === Pitch::STATUS_CONTEST_ENTRY) {
+            return view('pitches.edit-contest-livewire', compact('pitch'));
+        }
+
         // Define $currentSnapshot as null so it's always available in the view
         $currentSnapshot = null; 
         // TODO: Optionally, fetch the relevant snapshot if needed, e.g.:
@@ -294,8 +299,8 @@ class PitchController extends Controller
             
             $pitch->delete();
 
-            // Use RouteHelpers for URL generation
-            return redirect(RouteHelpers::projectUrl($project)) // Redirect to project page after delete
+            // Redirect to project page after delete
+            return redirect()->route('projects.show', $project)
                 ->with('success', 'Pitch deleted successfully.');
         } catch (AuthorizationException $e) {
             return redirect()->back()

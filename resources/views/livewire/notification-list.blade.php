@@ -1,6 +1,6 @@
 <div class="relative" x-data="{ open: @entangle('showDropdown') }">
     {{-- Notification Bell with Count --}}
-    <button @click="open = !open" class="flex items-center text-gray-500 hover:text-gray-700 focus:outline-none">
+    <button @click="open = !open" class="flex items-center text-gray-600 hover:text-blue-600 focus:outline-none transition-all duration-200 p-2 rounded-xl hover:bg-blue-50/50">
         <livewire:notification-count />
     </button>
 
@@ -8,109 +8,128 @@
     <div
         x-show="open"
         @click.away="open = false"
-        class="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-20"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0 transform scale-95"
-        x-transition:enter-end="opacity-100 transform scale-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100 transform scale-100"
-        x-transition:leave-end="opacity-0 transform scale-95"
+        class="absolute right-0 mt-3 w-96 bg-white/90 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl overflow-hidden z-50"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform scale-95 translate-y-2"
+        x-transition:enter-end="opacity-100 transform scale-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 transform scale-100 translate-y-0"
+        x-transition:leave-end="opacity-0 transform scale-95 translate-y-2"
         style="display: none;"
     >
         <div class="flex flex-col">
-            <div class="px-4 py-3 bg-gradient-to-r from-primary/10 to-secondary/10 flex justify-between items-center border-b border-gray-200">
-                <h3 class="text-sm font-semibold text-gray-800">Notifications</h3>
-                @if($hasUnread)
-                <button 
-                    wire:click="markAllAsRead"
-                    class="text-xs text-primary hover:text-primary/80 transition-colors duration-150"
-                >
-                    Mark all as read
-                </button>
-                @endif
+            <!-- Header -->
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 backdrop-blur-sm border-b border-white/20">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        <i class="fas fa-bell mr-2"></i>
+                        Notifications
+                    </h3>
+                    @if($hasUnread)
+                    <button 
+                        wire:click="markAllAsRead"
+                        class="px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+                    >
+                        <i class="fas fa-check-double mr-1"></i>
+                        Mark all read
+                    </button>
+                    @endif
+                </div>
             </div>
 
-            <div class="max-h-72 overflow-y-auto">
+            <!-- Notifications List -->
+            <div class="max-h-80 overflow-y-auto">
                 @forelse($notifications as $notification)
-                <div class="flex items-center justify-between border-b border-gray-100 last:border-0 hover:bg-gray-50 transition duration-150 ease-in-out {{ $notification->read_at ? 'bg-white' : 'bg-blue-50' }}">
+                <div class="group relative border-b border-white/10 last:border-0 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 transition-all duration-200 {{ $notification->read_at ? 'bg-white/20' : 'bg-gradient-to-r from-blue-50/50 to-purple-50/50' }}">
                     <a 
                         href="{{ $notification->getUrl() }}"
                         wire:click="markAsRead({{ $notification->id }})"
-                        class="flex-grow block px-4 py-3"
+                        class="flex-grow block px-6 py-4"
                     >
                         <div class="flex items-start">
                             <div class="flex-shrink-0">
                                 @if($notification->type === \App\Models\Notification::TYPE_PITCH_STATUS_CHANGE)
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-500">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-lg">
+                                        <i class="fas fa-sync-alt text-sm"></i>
+                                    </div>
                                 @elseif($notification->type === \App\Models\Notification::TYPE_PITCH_COMPLETED)
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-500">
-                                        <i class="fas fa-check-circle"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg">
+                                        <i class="fas fa-check-circle text-sm"></i>
+                                    </div>
                                 @elseif($notification->type === \App\Models\Notification::TYPE_SNAPSHOT_APPROVED)
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-green-100 text-green-500">
-                                        <i class="fas fa-thumbs-up"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg">
+                                        <i class="fas fa-thumbs-up text-sm"></i>
+                                    </div>
                                 @elseif($notification->type === \App\Models\Notification::TYPE_SNAPSHOT_DENIED)
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-red-100 text-red-500">
-                                        <i class="fas fa-thumbs-down"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg">
+                                        <i class="fas fa-thumbs-down text-sm"></i>
+                                    </div>
                                 @elseif($notification->type === \App\Models\Notification::TYPE_SNAPSHOT_REVISIONS_REQUESTED)
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-amber-100 text-amber-500">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+                                        <i class="fas fa-pencil-alt text-sm"></i>
+                                    </div>
                                 @elseif($notification->type === \App\Models\Notification::TYPE_PITCH_COMMENT)
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-purple-100 text-purple-500">
-                                        <i class="fas fa-comment"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600 text-white shadow-lg">
+                                        <i class="fas fa-comment text-sm"></i>
+                                    </div>
                                 @elseif($notification->type === \App\Models\Notification::TYPE_PITCH_SUBMITTED)
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-yellow-100 text-yellow-500">
-                                        <i class="fas fa-file-signature"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg">
+                                        <i class="fas fa-file-signature text-sm"></i>
+                                    </div>
                                 @else
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500">
-                                        <i class="fas fa-bell"></i>
-                                    </span>
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-lg">
+                                        <i class="fas fa-bell text-sm"></i>
+                                    </div>
                                 @endif
                             </div>
-                            <div class="ml-3 w-0 flex-1">
-                                <p class="text-sm leading-5 font-medium text-gray-900">
+                            <div class="ml-4 flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 leading-relaxed">
                                     {{ $notification->getReadableDescription() }}
                                 </p>
-                                <p class="text-xs leading-5 text-gray-500 mt-1">
-                                    {{ $notification->created_at->diffForHumans() }}
-                                </p>
+                                <div class="flex items-center mt-2">
+                                    <p class="text-xs text-gray-500 flex items-center">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        {{ $notification->created_at->diffForHumans() }}
+                                    </p>
+                                    @if(!$notification->read_at)
+                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                                        New
+                                    </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </a>
+                    
+                    <!-- Delete Button -->
                     <button 
                         wire:click.prevent="deleteNotification({{ $notification->id }})"
                         wire:loading.attr="disabled"
                         aria-label="Delete notification"
-                        class="flex-shrink-0 px-3 py-3 text-gray-400 hover:text-red-500 focus:outline-none focus:text-red-600 transition duration-150 ease-in-out"
+                        class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50/50 rounded-lg focus:outline-none focus:text-red-600"
                     >
-                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
+                        <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
                 @empty
-                <div class="flex flex-col items-center justify-center py-8 px-4">
-                    <span class="text-gray-300 mb-2">
-                        <i class="fas fa-bell-slash text-3xl"></i>
-                    </span>
-                    <p class="text-gray-500 text-sm">No notifications yet</p>
+                <div class="flex flex-col items-center justify-center py-12 px-6">
+                    <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 mb-4">
+                        <i class="fas fa-bell-slash text-2xl text-gray-400"></i>
+                    </div>
+                    <h4 class="text-lg font-medium text-gray-600 mb-2">No notifications yet</h4>
+                    <p class="text-sm text-gray-500 text-center">When you have new activity, notifications will appear here</p>
                 </div>
                 @endforelse
             </div>
             
+            <!-- Load More Footer -->
             @if(count($notifications) > 5)
-            <div class="px-4 py-2 bg-gray-50 border-t border-gray-100 text-center">
+            <div class="px-6 py-4 bg-gradient-to-r from-gray-50/80 to-gray-100/80 backdrop-blur-sm border-t border-white/20">
                 <button 
                     wire:click="loadMoreNotifications"
-                    class="text-xs text-primary hover:text-primary/80 transition-colors duration-150"
+                    class="w-full px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
+                    <i class="fas fa-chevron-down mr-2"></i>
                     Load more notifications
                 </button>
             </div>

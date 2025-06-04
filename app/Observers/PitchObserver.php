@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Pitch;
+use App\Observers\ContestResultObserver;
 use Illuminate\Support\Facades\Log;
 
 class PitchObserver
@@ -34,12 +35,25 @@ class PitchObserver
     }
 
     /**
+     * Handle the Pitch "deleting" event.
+     * This is called before the pitch is actually deleted.
+     */
+    public function deleting(Pitch $pitch): void
+    {
+        // Handle contest-specific cleanup before deletion
+        $this->handleContestCleanup($pitch);
+    }
+
+    /**
      * Handle the Pitch "deleted" event.
      */
     public function deleted(Pitch $pitch): void
     {
         // When a pitch is deleted, update the project status
         $this->syncProjectStatus($pitch);
+        
+        // Additional cleanup for contest results (as backup to deleting event)
+        ContestResultObserver::cleanupDeletedPitch($pitch->id);
     }
 
     /**
@@ -58,6 +72,38 @@ class PitchObserver
     {
         // When a pitch is force deleted, update the project status
         $this->syncProjectStatus($pitch);
+        
+        // Ensure contest cleanup happens even on force delete
+        ContestResultObserver::cleanupDeletedPitch($pitch->id);
+    }
+    
+    /**
+     * Handle contest-specific cleanup when a pitch is being deleted
+     */
+    private function handleContestCleanup(Pitch $pitch): void
+    {
+        // Check if this pitch is part of any contest
+        if ($pitch->isContestEntry() || $pitch->isContestWinner() || $pitch->rank) {
+            Log::info('PitchObserver: Contest pitch being deleted, initiating cleanup', [
+                'pitch_id' => $pitch->id,
+                'project_id' => $pitch->project_id,
+                'status' => $pitch->status,
+                'rank' => $pitch->rank
+            ]);
+            
+            // The actual cleanup will happen in the deleted/forceDeleted events
+            // This is just for logging and any pre-deletion validation
+            
+            // Check if this pitch is in a finalized contest
+            if ($pitch->project && $pitch->project->isContest() && $pitch->project->isJudgingFinalized()) {
+                Log::warning('PitchObserver: Deleting pitch from finalized contest', [
+                    'pitch_id' => $pitch->id,
+                    'project_id' => $pitch->project_id,
+                    'rank' => $pitch->rank,
+                    'finalized_at' => $pitch->project->judging_finalized_at
+                ]);
+            }
+        }
     }
     
     /**

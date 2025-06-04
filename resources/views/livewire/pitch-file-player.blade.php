@@ -1,515 +1,554 @@
 {{-- blade-formatter-disable --}}
+<!-- Enhanced Glass Morphism Audio Player Container -->
 <div class="waveform-player-container relative">
-    <div class="bg-white rounded-lg overflow-hidden">
-        <!-- File Header with Name and Controls -->
-        <div class="bg-gradient-to-r from-primary/10 to-secondary/10 px-6 py-4 border-b border-gray-200">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800">{{ $file->file_name }}</h2>
-                    <p class="text-sm text-gray-500">Added {{ $file->created_at->diffForHumans() }} &bull; {{
-                        $file->formattedSize }}</p>
-                </div>
-                @if($isInCard ?? false)
-                    {{-- Minimal buttons for card view --}}
-                @else
-                    {{-- Full controls for dedicated view --}}
-                    <div class="flex space-x-2 items-center">
-                        <a href="{{ route('pitch-files.download', ['file' => $file->id]) }}" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-download mr-1"></i> Download
-                        </a>
-                         @if(auth()->check() && auth()->user()->can('delete', $file))
-                            <button wire:click="$dispatch('open-delete-modal', { fileId: {{ $file->id }} })" class="btn btn-error btn-sm">
-                                <i class="fas fa-trash-alt mr-1"></i> Delete
-                            </button>
-                        @endif
-                        <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($file->pitch) }}" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-arrow-left mr-1"></i> Back to Pitch
-                        </a>
+    <!-- Background Effects for Audio Theme -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+        <div class="absolute top-4 left-4 w-16 h-16 bg-purple-400/20 rounded-full blur-xl"></div>
+        <div class="absolute bottom-4 right-4 w-12 h-12 bg-indigo-400/20 rounded-full blur-lg"></div>
+        <div class="absolute top-1/2 left-1/3 w-8 h-8 bg-pink-400/15 rounded-full blur-lg"></div>
+    </div>
+
+    <!-- Main Glass Morphism Container -->
+    <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+        <!-- Gradient Overlay -->
+        <div class="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-indigo-600/5 to-purple-600/5"></div>
+        
+        <!-- Enhanced File Header with Glass Morphism -->
+        <div class="relative z-10 bg-gradient-to-r from-purple-50/90 to-indigo-50/90 backdrop-blur-sm border-b border-purple-200/50">
+            <div class="px-6 py-5">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <!-- Enhanced File Info Section -->
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-lg">
+                            <i class="fas fa-file-audio text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                                {{ $file->file_name }}
+                            </h2>
+                            <p class="text-sm text-gray-600 flex items-center">
+                                <i class="fas fa-clock text-purple-500 mr-1"></i>
+                                Added {{ $file->created_at->diffForHumans() }} 
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-file text-indigo-500 mr-1"></i>
+                                {{ $file->formattedSize }}
+                            </p>
+                        </div>
                     </div>
-                @endif
+                    
+                    @if($isInCard ?? false)
+                        {{-- Minimal buttons for card view --}}
+                    @else
+                        {{-- Enhanced controls for dedicated view --}}
+                        <div class="flex space-x-3 items-center">
+                            <!-- Download Button -->
+                            <a href="{{ route('pitch-files.download', ['file' => $file->id]) }}" 
+                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                <i class="fas fa-download mr-2"></i> Download
+                            </a>
+                            
+                            @if(auth()->check() && auth()->user()->can('delete', $file))
+                                <!-- Delete Button -->
+                                <button wire:click="$dispatch('open-delete-modal', { fileId: {{ $file->id }} })" 
+                                        class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                    <i class="fas fa-trash-alt mr-2"></i> Delete
+                                </button>
+                            @endif
+                            
+                            <!-- Back to Pitch Button -->
+                            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($file->pitch) }}" 
+                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                <i class="fas fa-arrow-left mr-2"></i> Back to Pitch
+                            </a>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
-        <div class="p-6">
-            <!-- Audio Waveform Container -->
+
+        <!-- Enhanced Audio Content Container -->
+        <div class="relative z-10 p-6 lg:p-8">
+            <!-- Enhanced Waveform Container with Glass Morphism -->
             <div class="waveform-container">
-                <div class="relative">
-                    <!-- Waveform Visualization -->
-                    <div id="waveform" class="h-32 rounded-md overflow-hidden bg-gray-100" wire:ignore>
-                        <!-- Waveform will be rendered here -->
+                <div class="relative bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-6 shadow-lg">
+                    <!-- Waveform Header -->
+                    <div class="flex items-center mb-4">
+                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg mr-3">
+                            <i class="fas fa-wave-square text-white text-sm"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Audio Waveform</h3>
+                        <div class="ml-auto flex items-center space-x-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                <i class="fas fa-music mr-1"></i>High Quality
+                            </span>
+                        </div>
                     </div>
 
-                    <!-- Comment Markers that will be positioned on the waveform -->
-                    <div class="comment-markers absolute inset-0 pointer-events-none">
-                        @if($duration > 0)
-                        @foreach($comments as $comment)
-                        @php
-                        $position = ($comment->timestamp / max(0.1, $duration)) * 100;
-                        $position = min(max($position, 0), 100);
-                        $tooltipClass = $position < 15 ? 'left-0 transform-none' : ($position> 85 ? 'left-auto right-0
-                            transform-none' :
-                            'left-0 transform -translate-x-1/2');
+                    <!-- Enhanced Waveform Visualization -->
+                    <div class="relative">
+                        <div id="waveform" class="h-32 rounded-xl overflow-hidden bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/50 shadow-inner" wire:ignore>
+                            <!-- Waveform will be rendered here -->
+                        </div>
+
+                        <!-- Enhanced Comment Markers -->
+                        <div class="comment-markers absolute inset-0 pointer-events-none">
+                            @if($duration > 0)
+                            @foreach($comments as $comment)
+                            @php
+                            $position = ($comment->timestamp / max(0.1, $duration)) * 100;
+                            $position = min(max($position, 0), 100);
+                            $tooltipClass = $position < 15 ? 'left-0 transform-none' : ($position > 85 ? 'left-auto right-0 transform-none' : 'left-0 transform -translate-x-1/2');
                             @endphp
-                            <div class="absolute h-full w-0.5 z-10 cursor-pointer pointer-events-auto group"
-                                style="left: {{ $position }}%; background-color: rgba(59, 130, 246, 0.6);"
-                                x-data="{ showTooltip: false }" @mouseenter="showTooltip = true"
+                            <div class="absolute h-full w-1 z-10 cursor-pointer pointer-events-auto group"
+                                style="left: {{ $position }}%; background: linear-gradient(to bottom, #7c3aed, #4f46e5);"
+                                x-data="{ showTooltip: false }" 
+                                @mouseenter="showTooltip = true"
                                 @mouseleave="showTooltip = false"
                                 @click="$dispatch('comment-marker-clicked', { timestamp: {{ $comment->timestamp }} })">
-                                <div
-                                    class="h-3 w-3 rounded-full -ml-1 bg-blue-500 absolute top-0 group-hover:scale-110 transition-transform">
+                                
+                                <!-- Enhanced Comment Marker -->
+                                <div class="h-4 w-4 rounded-full -ml-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200">
+                                    <div class="absolute inset-0 rounded-full bg-white/30 animate-pulse"></div>
                                 </div>
 
-                                <!-- Comment Tooltip -->
+                                <!-- Enhanced Comment Tooltip -->
                                 <div x-show="showTooltip" x-cloak
-                                    class="absolute bottom-full mb-2 p-2 bg-white rounded-lg shadow-lg border border-gray-200 w-64 z-50 {{ $tooltipClass }}"
+                                    class="absolute bottom-full mb-3 p-3 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 w-72 z-50 {{ $tooltipClass }}"
                                     @click.stop>
-                                    <div class="text-xs text-gray-500 flex items-center mb-1">
+                                    <!-- Tooltip Header -->
+                                    <div class="flex items-center mb-2">
                                         <img src="{{ $comment->user->profile_photo_url }}"
-                                            alt="{{ $comment->user->name }}" class="h-4 w-4 rounded-full mr-1">
-                                        <span class="font-medium">{{ $comment->user->name }}</span>
-                                        <span class="mx-1">•</span>
-                                        <span>{{ $comment->formattedTimestamp }}</span>
+                                            alt="{{ $comment->user->name }}" 
+                                            class="h-6 w-6 rounded-full border-2 border-purple-200 mr-2">
+                                        <div class="flex-1">
+                                            <div class="text-sm font-semibold text-gray-900">{{ $comment->user->name }}</div>
+                                            <div class="text-xs text-purple-600 font-medium">{{ $comment->formattedTimestamp }}</div>
+                                        </div>
+                                        @if($comment->resolved)
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i>Resolved
+                                        </span>
+                                        @endif
                                     </div>
-                                    <div class="text-sm text-gray-800 font-medium">
-                                        {{ \Illuminate\Support\Str::limit($comment->comment, 100) }}
+                                    <!-- Comment Content -->
+                                    <div class="text-sm text-gray-800 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg p-2">
+                                        {{ \Illuminate\Support\Str::limit($comment->comment, 120) }}
                                     </div>
-                                    @if($comment->resolved)
-                                    <div class="mt-1 text-xs text-green-600 flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        Resolved
-                                    </div>
-                                    @endif
                                 </div>
                             </div>
                             @endforeach
                             @endif
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Timeline -->
+                    <div id="waveform-timeline" class="h-8 mt-4 relative bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-lg" wire:ignore>
+                        <!-- Timeline will be rendered here -->
+                    </div>
+
+                    <!-- Enhanced Playback Controls with Glass Morphism - Now integrated -->
+                    <div class="bg-gradient-to-r from-white/90 to-purple-50/90 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-6 mt-6 shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <!-- Left: Play Controls & Time Display -->
+                            <div class="flex items-center space-x-4" wire:ignore>
+                                <!-- Enhanced Play/Pause Button -->
+                                <button id="playPauseBtn" 
+                                        x-data="{ isPlaying: false }"
+                                        x-on:click="isPlaying = !isPlaying; $dispatch('toggle-playback', { playing: isPlaying })"
+                                        x-on:playback-state-changed.window="isPlaying = $event.detail.playing"
+                                        class="group relative w-14 h-14 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center">
+                                    
+                                    <!-- Animated Background Effect -->
+                                    <div class="absolute inset-0 bg-white/20 rounded-2xl transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
+                                    
+                                    <!-- Play icon (shown when paused) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-7 w-7 ml-1" x-show="!isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+
+                                    <!-- Pause icon (shown when playing) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-7 w-7" x-show="isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+
+                                <!-- Enhanced Time Display -->
+                                <div class="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl px-4 py-2">
+                                    <div class="flex items-center space-x-2 text-sm font-medium">
+                                        <i class="fas fa-clock text-purple-600"></i>
+                                        <div id="currentTime" class="text-purple-700">00:00</div>
+                                        <div class="text-gray-400">/</div>
+                                        <div id="totalDuration" class="text-gray-600">00:00</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Add Comment Button -->
+                            <div class="flex items-center">
+                                <button type="button" 
+                                        @click="$wire.toggleCommentForm(wavesurfer.getCurrentTime())"
+                                        class="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-comment-plus mr-2 group-hover:scale-110 transition-transform"></i>
+                                        Add Comment at <span class="ml-1 font-semibold" id="current-time-display">Current Position</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Add Comment Form -->
+                    <div x-data="{ show: @entangle('showAddCommentForm') }" x-show="show" x-cloak
+                         class="mt-6 relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+                        <!-- Gradient Overlay -->
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-blue-600/5"></div>
+                        
+                        <div class="relative z-10 p-6">
+                            <!-- Form Header -->
+                            <div class="flex items-center mb-4">
+                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mr-3 shadow-lg">
+                                    <i class="fas fa-comment-plus text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900">Add New Comment</h3>
+                                    <p class="text-sm text-blue-600 font-medium flex items-center">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        At {{ sprintf("%02d:%02d", floor($commentTimestamp / 60), $commentTimestamp % 60) }}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Enhanced Textarea -->
+                            <div class="bg-gradient-to-r from-blue-50/80 to-purple-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
+                                <textarea wire:model="newComment" 
+                                          placeholder="Share your thoughts about this moment in the audio..."
+                                          class="w-full px-4 py-3 text-gray-700 bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                                          rows="3"></textarea>
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex justify-end mt-4 space-x-3">
+                                    <button type="button" 
+                                            @click="show = false; $wire.showAddCommentForm = false"
+                                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-times mr-2"></i>Cancel
+                                    </button>
+                                    <button type="button" 
+                                            wire:click="addComment" 
+                                            class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                        <i class="fas fa-plus mr-2"></i>Add Comment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Timeline for the waveform -->
-            <div id="waveform-timeline" class="h-8 mt-1 relative" wire:ignore>
-                <!-- Timeline will be rendered here -->
-            </div>
-
-            <!-- Playback Controls -->
-            <div class="flex items-center justify-between mt-4">
-                <div class="flex items-center space-x-3" wire:ignore>
-                    <button id="playPauseBtn" x-data="{ isPlaying: false }"
-                        x-on:click="isPlaying = !isPlaying; $dispatch('toggle-playback', { playing: isPlaying })"
-                        x-on:playback-state-changed.window="isPlaying = $event.detail.playing"
-                        :class="{'bg-primary': true, 'text-white': true, 'hover:bg-primary-focus': true, 'transition-colors': true}"
-                        class="w-10 h-10 flex items-center justify-center rounded-full">
-
-                        <!-- Play icon (shown when paused) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" x-show="!isPlaying" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-
-                        <!-- Pause icon (shown when playing) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" x-show="isPlaying" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </button>
-                    <div class="flex items-center space-x-1 text-xs">
-                        <div id="currentTime" class="text-sm font-medium">00:00</div>
-                        <div class="text-sm text-gray-500">/</div>
-                        <div id="totalDuration" class="text-sm text-gray-500">00:00</div>
-                    </div>
-                </div>
-
-                <div class="flex items-center">
-                    <button type="button" @click="$wire.toggleCommentForm(wavesurfer.getCurrentTime())"
-                        class="flex items-center text-sm text-primary hover:text-primary-focus hover:underline">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4v-5z" />
-                        </svg>
-                        Add Comment at Current Position
-                    </button>
-                </div>
-            </div>
-        </div>
-        <!-- Add Comment Form -->
-        <div x-data="{ show: @entangle('showAddCommentForm') }" x-show="show" x-cloak
-            class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 transition-all duration-300">
-            <div class="flex items-center text-sm text-gray-600 mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-primary" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Adding comment at {{ sprintf("%02d:%02d", floor($commentTimestamp / 60), $commentTimestamp % 60) }}
-            </div>
-            <textarea wire:model="newComment" placeholder="Add your comment here..."
-                class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-primary focus:ring focus:ring-primary/20"
-                rows="2"></textarea>
-            <div class="flex justify-end mt-2 space-x-2">
-                <button type="button" @click="show = false; $wire.showAddCommentForm = false"
-                    class="btn btn-ghost btn-sm">Cancel</button>
-                <button type="button" wire:click="addComment" class="btn btn-primary btn-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add Comment
-                </button>
             </div>
         </div>
     </div>
 
-    <!-- Comments Section -->
-    <div class="comments-section px-6 pb-6">
-        <h3 class="text-lg font-semibold mb-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-primary" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            Comments <span class="text-gray-500 text-sm ml-2">({{ count($comments) }})</span>
-        </h3>
+    <!-- Simplified Comments Section - No separate header card -->
+    <div class="comments-section mt-8">
+        <!-- Simple Discussion Header -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4 shadow-lg">
+                        <i class="fas fa-comments text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                            Discussion
+                        </h3>
+                        <p class="text-gray-600">
+                            <span class="font-semibold">{{ count($comments) }}</span> 
+                            {{ count($comments) === 1 ? 'comment' : 'comments' }} on this audio
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Comment Stats -->
+                <div class="flex items-center space-x-4">
+                    @php
+                        $resolvedCount = $comments->where('resolved', true)->count();
+                        $pendingCount = $comments->where('resolved', false)->count();
+                    @endphp
+                    
+                    @if($resolvedCount > 0)
+                    <div class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-check-circle mr-1"></i>{{ $resolvedCount }} Resolved
+                    </div>
+                    @endif
+                    
+                    @if($pendingCount > 0)
+                    <div class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                        <i class="fas fa-clock mr-1"></i>{{ $pendingCount }} Pending
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
 
         @if(count($comments) > 0)
-        <div class="space-y-4">
+        <div class="space-y-6">
             @foreach($comments as $comment)
+            <!-- Enhanced Individual Comment Card -->
             <div id="comment-{{ $comment->id }}"
-                class="flex items-start space-x-3 p-4 rounded-lg {{ $comment->resolved ? 'bg-green-50 border border-green-100' : 'bg-white border border-gray-200' }}">
-                <div class="flex-shrink-0">
-                    <img src="{{ $comment->user->profile_photo_url }}" alt="{{ $comment->user->name }}"
-                        class="h-10 w-10 rounded-full">
+                 class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg overflow-hidden {{ $comment->resolved ? 'ring-2 ring-green-200/50' : '' }}">
+                <!-- Comment Status Indicator -->
+                @if($comment->resolved)
+                <div class="absolute top-4 right-4 z-20">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-check-circle mr-1"></i>Resolved
+                    </span>
                 </div>
-                <div class="flex-grow">
-                    <div class="flex justify-between">
-                        <div>
-                            <div class="font-medium text-gray-900">{{ $comment->user->name }}</div>
-                            <div class="text-xs text-gray-500">
-                                {{ $comment->created_at->diffForHumans() }} at
-                                <button type="button" @click="$wire.seekTo({{ $comment->timestamp }})"
-                                    class="font-medium text-primary hover:underline">
-                                    {{ $comment->formattedTimestamp }}
-                                </button>
+                @endif
+
+                <!-- Gradient Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-r {{ $comment->resolved ? 'from-green-600/5 to-emerald-600/5' : 'from-purple-600/5 to-indigo-600/5' }}"></div>
+                
+                <div class="relative z-10 p-6">
+                    <div class="flex items-start space-x-4">
+                        <!-- Enhanced User Avatar -->
+                        <div class="flex-shrink-0">
+                            <div class="relative">
+                                <img src="{{ $comment->user->profile_photo_url }}" 
+                                     alt="{{ $comment->user->name }}"
+                                     class="h-12 w-12 rounded-xl border-2 {{ $comment->resolved ? 'border-green-200' : 'border-purple-200' }} shadow-lg">
+                                <div class="absolute -bottom-1 -right-1 w-4 h-4 {{ $comment->resolved ? 'bg-green-500' : 'bg-purple-500' }} rounded-full border-2 border-white"></div>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <button type="button" @click="$wire.toggleReplyForm({{ $comment->id }})"
-                                class="text-xs text-blue-500 hover:text-blue-700 mr-2">
-                                <div class="flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20"
-                                        fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Reply
-                                </div>
-                            </button>
 
-                            @if(Auth::id() === $comment->user_id || Auth::id() === $file->pitch->user_id)
-                            <button type="button" @click="$wire.toggleResolveComment({{ $comment->id }})"
-                                class="text-sm {{ $comment->resolved ? 'text-green-600 hover:text-green-700' : 'text-gray-500 hover:text-gray-700' }}">
-                                @if($comment->resolved)
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                @else
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                @endif
-                            </button>
-                            <button type="button" @click="$wire.confirmDelete({{ $comment->id }})"
-                                class="text-sm text-red-500 hover:text-red-700">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
+                        <div class="flex-grow">
+                            <!-- Comment Header -->
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 text-lg">{{ $comment->user->name }}</h4>
+                                    <div class="flex items-center text-sm text-gray-600 mt-1">
+                                        <i class="fas fa-clock text-purple-500 mr-1"></i>
+                                        <span>{{ $comment->created_at->diffForHumans() }}</span>
+                                        <span class="mx-2">•</span>
+                                        <button type="button" 
+                                                @click="$wire.seekTo({{ $comment->timestamp }})"
+                                                class="inline-flex items-center font-medium text-purple-600 hover:text-purple-800 transition-colors">
+                                            <i class="fas fa-play-circle mr-1"></i>
+                                            {{ $comment->formattedTimestamp }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="flex items-center space-x-2">
+                                    <!-- Reply Button -->
+                                    <button type="button" 
+                                            @click="$wire.toggleReplyForm({{ $comment->id }})"
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                        <i class="fas fa-reply mr-1"></i>Reply
+                                    </button>
+
+                                    @if(Auth::id() === $comment->user_id || Auth::id() === $file->pitch->user_id)
+                                    <!-- Resolve Toggle Button -->
+                                    <button type="button" 
+                                            @click="$wire.toggleResolveComment({{ $comment->id }})"
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' : 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' }} text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                        <i class="fas {{ $comment->resolved ? 'fa-undo' : 'fa-check' }} mr-1"></i>
+                                        {{ $comment->resolved ? 'Unresolve' : 'Resolve' }}
+                                    </button>
+
+                                    <!-- Delete Button -->
+                                    <button type="button" 
+                                            @click="$wire.confirmDelete({{ $comment->id }})"
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                        <i class="fas fa-trash-alt mr-1"></i>Delete
+                                    </button>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Comment Content -->
+                            <div class="bg-gradient-to-r {{ $comment->resolved ? 'from-green-50/80 to-emerald-50/80 border-green-200/50' : 'from-purple-50/80 to-indigo-50/80 border-purple-200/50' }} backdrop-blur-sm border rounded-xl p-4 mb-4">
+                                <p class="text-gray-800 whitespace-pre-line leading-relaxed">{{ $comment->comment }}</p>
+                            </div>
+
+                            <!-- Reply Form -->
+                            @if($showReplyForm && $replyToCommentId === $comment->id)
+                            <div class="mt-4 bg-gradient-to-r from-blue-50/80 to-purple-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
+                                <h5 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                                    <i class="fas fa-reply text-blue-600 mr-2"></i>
+                                    Reply to {{ $comment->user->name }}
+                                </h5>
+                                <textarea wire:model="replyText" 
+                                          placeholder="Write your reply here..."
+                                          class="w-full px-4 py-3 text-gray-700 bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                                          rows="3"></textarea>
+                                <div class="flex justify-end mt-3 space-x-3">
+                                    <button type="button" 
+                                            wire:click="toggleReplyForm"
+                                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-times mr-2"></i>Cancel
+                                    </button>
+                                    <button type="button" 
+                                            wire:click="submitReply" 
+                                            class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                        <i class="fas fa-paper-plane mr-2"></i>Send Reply
+                                    </button>
+                                </div>
+                            </div>
                             @endif
-                        </div>
-                    </div>
-                    <div class="mt-1 text-sm text-gray-700 whitespace-pre-line">
-                        {{ $comment->comment }}
-                    </div>
-                    @if($comment->resolved)
-                    <div class="mt-2 text-sm font-medium text-green-600 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Resolved
-                    </div>
-                    @endif
 
-                    <!-- Reply Form -->
-                    @if($showReplyForm && $replyToCommentId === $comment->id)
-                    <div class="mt-3 pl-4 border-l-2 border-gray-200">
-                        <div class="p-3 bg-gray-50 rounded-lg">
-                            <textarea wire:model="replyText" placeholder="Write your reply here..."
-                                class="w-full px-3 py-2 text-sm text-gray-700 border rounded-lg focus:outline-none focus:border-primary focus:ring focus:ring-primary/20"
-                                rows="2"></textarea>
-                            <div class="flex justify-end mt-2 space-x-2">
-                                <button type="button" wire:click="toggleReplyForm"
-                                    class="btn btn-ghost btn-xs">Cancel</button>
-                                <button type="button" wire:click="submitReply" class="btn btn-primary btn-xs">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
-                                    Reply
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-
-                    <!-- Replies Section -->
-                    @if($comment->has_replies)
-                    <div class="mt-3 space-y-3 pl-6 border-l-2 border-gray-100">
-                        @foreach($comment->replies as $reply)
-                        <div id="comment-{{ $reply->id }}" class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                            <div class="flex-shrink-0">
-                                <img src="{{ $reply->user->profile_photo_url }}" alt="{{ $reply->user->name }}"
-                                    class="h-8 w-8 rounded-full">
-                            </div>
-                            <div class="flex-grow">
-                                <div class="flex justify-between">
-                                    <div>
-                                        <div class="font-medium text-gray-900 text-sm">{{ $reply->user->name }}</div>
-                                        <div class="text-xs text-gray-500">
-                                            {{ $reply->created_at->diffForHumans() }}
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <button type="button" @click="$wire.toggleReplyForm({{ $reply->id }})"
-                                            class="text-xs text-blue-500 hover:text-blue-700 mr-1">
-                                            <div class="flex items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1"
-                                                    viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd"
-                                                        d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                                                        clip-rule="evenodd" />
-                                                </svg>
-                                                Reply
-                                            </div>
-                                        </button>
-
-                                        @if(Auth::id() === $reply->user_id || Auth::id() === $file->pitch->user_id)
-                                        <button type="button" @click="$wire.confirmDelete({{ $reply->id }})"
-                                            class="text-xs text-red-500 hover:text-red-700">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="mt-1 text-sm text-gray-700 whitespace-pre-line">
-                                    {{ $reply->comment }}
-                                </div>
-
-                                <!-- Nested Reply Form -->
-                                @if($showReplyForm && $replyToCommentId === $reply->id)
-                                <div class="mt-3 pl-4 border-l-2 border-gray-200">
-                                    <div class="p-3 bg-gray-100 rounded-lg">
-                                        <textarea wire:model="replyText" placeholder="Write your reply here..."
-                                            class="w-full px-3 py-2 text-sm text-gray-700 border rounded-lg focus:outline-none focus:border-primary focus:ring focus:ring-primary/20"
-                                            rows="2"></textarea>
-                                        <div class="flex justify-end mt-2 space-x-2">
-                                            <button type="button" wire:click="toggleReplyForm"
-                                                class="btn btn-ghost btn-xs">Cancel</button>
-                                            <button type="button" wire:click="submitReply"
-                                                class="btn btn-primary btn-xs">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                </svg>
-                                                Reply
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
-
-                                <!-- Nested Replies (Replies to Replies) -->
-                                @if($reply->has_replies)
-                                <div class="mt-3 space-y-3 pl-4 border-l-2 border-gray-100">
-                                    @foreach($reply->replies as $nestedReply)
-                                    <div id="comment-{{ $nestedReply->id }}"
-                                        class="flex items-start space-x-3 p-3 bg-gray-100 rounded-lg">
+                            <!-- Enhanced Replies Section -->
+                            @if($comment->has_replies)
+                            <div class="mt-6 space-y-4 pl-6 border-l-2 border-purple-200/50">
+                                @foreach($comment->replies as $reply)
+                                <div id="comment-{{ $reply->id }}" class="relative bg-gradient-to-r from-white/90 to-purple-50/90 backdrop-blur-sm border border-purple-200/50 rounded-xl p-4 shadow-sm">
+                                    <div class="flex items-start space-x-3">
                                         <div class="flex-shrink-0">
-                                            <img src="{{ $nestedReply->user->profile_photo_url }}"
-                                                alt="{{ $nestedReply->user->name }}" class="h-7 w-7 rounded-full">
+                                            <img src="{{ $reply->user->profile_photo_url }}" 
+                                                 alt="{{ $reply->user->name }}"
+                                                 class="h-8 w-8 rounded-lg border-2 border-purple-200 shadow-sm">
                                         </div>
                                         <div class="flex-grow">
-                                            <div class="flex justify-between">
+                                            <div class="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <div class="font-medium text-gray-900 text-xs">{{
-                                                        $nestedReply->user->name }}</div>
-                                                    <div class="text-xs text-gray-500">
-                                                        {{ $nestedReply->created_at->diffForHumans() }}
-                                                    </div>
+                                                    <h6 class="font-medium text-gray-900 text-sm">{{ $reply->user->name }}</h6>
+                                                    <p class="text-xs text-gray-600">{{ $reply->created_at->diffForHumans() }}</p>
                                                 </div>
-                                                <div class="flex items-center space-x-2">
-                                                    <button type="button"
-                                                        @click="$wire.toggleReplyForm({{ $nestedReply->id }})"
-                                                        class="text-xs text-blue-500 hover:text-blue-700 mr-1">
-                                                        <div class="flex items-center">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1"
-                                                                viewBox="0 0 20 20" fill="currentColor">
-                                                                <path fill-rule="evenodd"
-                                                                    d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                                                                    clip-rule="evenodd" />
-                                                            </svg>
-                                                            Reply
-                                                        </div>
+                                                <div class="flex items-center space-x-1">
+                                                    <button type="button" 
+                                                            @click="$wire.toggleReplyForm({{ $reply->id }})"
+                                                            class="inline-flex items-center px-2 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                        <i class="fas fa-reply mr-1"></i>Reply
                                                     </button>
-
-                                                    @if(Auth::id() === $nestedReply->user_id || Auth::id() ===
-                                                    $file->pitch->user_id)
-                                                    <button type="button"
-                                                        @click="$wire.confirmDelete({{ $nestedReply->id }})"
-                                                        class="text-xs text-red-500 hover:text-red-700">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
-                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
+                                                    @if(Auth::id() === $reply->user_id || Auth::id() === $file->pitch->user_id)
+                                                    <button type="button" 
+                                                            @click="$wire.confirmDelete({{ $reply->id }})"
+                                                            class="inline-flex items-center px-2 py-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                        <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                     @endif
                                                 </div>
                                             </div>
-                                            <div class="mt-1 text-xs text-gray-700 whitespace-pre-line">
-                                                {{ $nestedReply->comment }}
-                                            </div>
+                                            <p class="text-sm text-gray-800 whitespace-pre-line">{{ $reply->comment }}</p>
 
-                                            <!-- Further Nested Reply Form -->
-                                            @if($showReplyForm && $replyToCommentId === $nestedReply->id)
-                                            <div class="mt-2 pl-3 border-l-2 border-gray-200">
-                                                <div class="p-2 bg-gray-200 rounded-lg">
-                                                    <textarea wire:model="replyText"
-                                                        placeholder="Write your reply here..."
-                                                        class="w-full px-3 py-2 text-xs text-gray-700 border rounded-lg focus:outline-none focus:border-primary focus:ring focus:ring-primary/20"
-                                                        rows="2"></textarea>
-                                                    <div class="flex justify-end mt-2 space-x-2">
-                                                        <button type="button" wire:click="toggleReplyForm"
-                                                            class="btn btn-ghost btn-xs">Cancel</button>
-                                                        <button type="button" wire:click="submitReply"
-                                                            class="btn btn-primary btn-xs">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1"
-                                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                            </svg>
-                                                            Reply
-                                                        </button>
-                                                    </div>
+                                            <!-- Nested Reply Form -->
+                                            @if($showReplyForm && $replyToCommentId === $reply->id)
+                                            <div class="mt-3 bg-gradient-to-r from-blue-50/60 to-purple-50/60 backdrop-blur-sm border border-blue-200/50 rounded-lg p-3">
+                                                <textarea wire:model="replyText" 
+                                                          placeholder="Write your reply here..."
+                                                          class="w-full px-3 py-2 text-sm text-gray-700 bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all duration-200"
+                                                          rows="2"></textarea>
+                                                <div class="flex justify-end mt-2 space-x-2">
+                                                    <button type="button" 
+                                                            wire:click="toggleReplyForm"
+                                                            class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                        Cancel
+                                                    </button>
+                                                    <button type="button" 
+                                                            wire:click="submitReply"
+                                                            class="inline-flex items-center px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                        <i class="fas fa-paper-plane mr-1"></i>Reply
+                                                    </button>
                                                 </div>
                                             </div>
                                             @endif
                                         </div>
                                     </div>
-                                    @endforeach
                                 </div>
-                                @endif
+                                @endforeach
                             </div>
+                            @endif
                         </div>
-                        @endforeach
                     </div>
-                    @endif
                 </div>
             </div>
             @endforeach
         </div>
         @else
-        <div class="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <p class="text-gray-500">No comments yet. Add a comment to start the conversation!</p>
-            <button type="button" @click="$wire.toggleCommentForm(wavesurfer ? wavesurfer.getCurrentTime() : 0)"
-                class="btn btn-primary btn-sm mt-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add First Comment
-            </button>
+        <!-- Enhanced Empty State -->
+        <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-indigo-600/5 to-purple-600/5"></div>
+            <div class="relative z-10 text-center py-12 px-6">
+                <!-- Empty State Icon -->
+                <div class="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mx-auto mb-6 shadow-lg">
+                    <i class="fas fa-comments text-white text-2xl"></i>
+                </div>
+                
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Start the Conversation</h3>
+                <p class="text-gray-600 mb-6 max-w-md mx-auto">
+                    No comments yet. Be the first to share your thoughts about this audio file and help improve the creative process.
+                </p>
+                
+                <!-- Call to Action Button -->
+                <button type="button" 
+                        @click="$wire.toggleCommentForm(wavesurfer ? wavesurfer.getCurrentTime() : 0)"
+                        class="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                    <i class="fas fa-comment-plus mr-3 group-hover:scale-110 transition-transform"></i>
+                    Add Your First Comment
+                </button>
+            </div>
         </div>
         @endif
     </div>
-    <!-- Delete Comment Confirmation Modal -->
-    <div x-data="{ show: @entangle('showDeleteConfirmation') }" x-show="show" x-cloak
-        class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-center justify-center min-h-screen text-center sm:block sm:p-0">
-            <!-- Background overlay -->
-            <div x-show="show" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
 
-            <!-- Modal panel -->
-            <div x-show="show" x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                <div class="sm:flex sm:items-start">
-                    <div
-                        class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                            Delete Comment
-                        </h3>
-                        <div class="mt-2">
-                            <p class="text-sm text-gray-500">
-                                Are you sure you want to delete this comment? This action cannot be undone and will also
-                                delete all replies to this comment.
-                            </p>
+    <!-- Enhanced Delete Comment Confirmation Modal -->
+    <div x-data="{ show: @entangle('showDeleteConfirmation') }" x-show="show" x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen text-center sm:block sm:p-0">
+            <!-- Enhanced Background overlay -->
+            <div x-show="show" 
+                 x-transition:enter="ease-out duration-300" 
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100" 
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100" 
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 transition-opacity bg-black/50 backdrop-blur-sm" aria-hidden="true"></div>
+
+            <!-- Enhanced Modal panel -->
+            <div x-show="show" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="relative inline-block align-bottom bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl px-6 pt-6 pb-6 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                
+                <!-- Gradient Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-r from-red-600/5 via-pink-600/5 to-red-600/5"></div>
+                
+                <div class="relative z-10">
+                    <div class="sm:flex sm:items-start">
+                        <!-- Enhanced Warning Icon -->
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 shadow-lg sm:mx-0 sm:h-12 sm:w-12">
+                            <i class="fas fa-exclamation-triangle text-white text-xl sm:text-lg"></i>
+                        </div>
+                        
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-xl leading-6 font-bold text-gray-900 mb-2" id="modal-title">
+                                Delete Comment
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-600 leading-relaxed">
+                                    Are you sure you want to delete this comment? This action cannot be undone and will also remove all replies to this comment permanently.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                    <button type="button" wire:click="deleteComment"
-                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Delete
-                    </button>
-                    <button type="button" wire:click="cancelDelete"
-                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
-                        Cancel
-                    </button>
+                    
+                    <!-- Enhanced Action Buttons -->
+                    <div class="mt-6 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
+                        <button type="button" 
+                                wire:click="deleteComment"
+                                class="w-full inline-flex justify-center items-center px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg sm:w-auto">
+                            <i class="fas fa-trash-alt mr-2"></i>Delete Forever
+                        </button>
+                        <button type="button" 
+                                wire:click="cancelDelete"
+                                class="mt-3 w-full inline-flex justify-center items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 sm:mt-0 sm:w-auto">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -637,36 +676,34 @@
         // Track current timestamp in a variable without sending to server
         let currentPlayerTime = 0;
 
-        // Initialize WaveSurfer
+        // Initialize WaveSurfer with enhanced styling
         wavesurfer = WaveSurfer.create({
             container: '#waveform',
-            waveColor: '#d1d5db',
-            progressColor: '#4f46e5',
+            waveColor: 'rgba(168, 85, 247, 0.4)',
+            progressColor: 'linear-gradient(90deg, #7c3aed, #4f46e5)',
             cursorColor: '#4f46e5',
-            barWidth: 4,
-            barRadius: 3,
-            cursorWidth: 1,
+            barWidth: 3,
+            barRadius: 4,
+            cursorWidth: 2,
             height: 128,
-            //barGap: 2,
             normalize: true,
             responsive: true,
             fillParent: true,
-            //minPxPerSec: 2, // Ensure minimum zoom level
-            splitChannels: false, // Keep as one waveform
-            dragToSeek: true, // Allow seeking by dragging
+            splitChannels: false,
+            dragToSeek: true,
         });
 
         // Load audio file
-        const audioUrl = @js($file -> fullFilePath);
+        const audioUrl = @js($file->fullFilePath);
         console.log('Loading audio URL:', audioUrl);
 
         // Check if we have pre-generated waveform data
-        const hasPreGeneratedPeaks = @js($file -> waveform_processed && $file -> waveform_peaks);
+        const hasPreGeneratedPeaks = @js($file->waveform_processed && $file->waveform_peaks);
 
         if (hasPreGeneratedPeaks) {
             console.log('Using pre-generated waveform data');
             // Load audio with pre-generated peaks
-            const peaks = @js($file -> waveform_peaks_array);
+            const peaks = @js($file->waveform_peaks_array);
 
             // Debug the peaks data
             console.log('Peaks data type:', typeof peaks);
@@ -685,7 +722,7 @@
                 console.log('Set min/max peaks');
 
                 // Use the stored duration if available, otherwise estimate
-                const storedDuration = @js($file-> duration ?? null);
+                const storedDuration = @js($file->duration ?? null);
 
                 // Set a fake duration based on the peaks array length if stored one is not available
                 const fakeLength = maxPeaks && maxPeaks.length ? maxPeaks.length : 0;
@@ -850,6 +887,12 @@
 
             document.getElementById('currentTime').textContent = formatTime(currentTime);
             document.getElementById('totalDuration').textContent = formatTime(duration);
+            
+            // Update current time display in add comment button
+            const currentTimeDisplay = document.getElementById('current-time-display');
+            if (currentTimeDisplay) {
+                currentTimeDisplay.textContent = formatTime(currentTime);
+            }
         };
 
         wavesurfer.on('play', () => {
@@ -1163,19 +1206,128 @@
     });
 </script>
 {{-- blade-formatter-enable --}}
+
 <style>
-    /* Custom timeline styles */
+    /* Enhanced WaveSurfer Styling */
+    #waveform {
+        opacity: 0;
+        transition: all 0.5s ease-in-out;
+        border-radius: 12px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    #waveform.loaded {
+        opacity: 1;
+        box-shadow: 
+            inset 0 2px 4px rgba(0, 0, 0, 0.06),
+            0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transform: translateY(0);
+    }
+
+    /* Enhanced Timeline Styling */
+    #waveform-timeline {
+        position: relative;
+        height: 32px;
+        margin-top: 16px;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border: 1px solid rgba(168, 85, 247, 0.2);
+        border-radius: 12px;
+        padding: 6px 12px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
     .timeline-mark {
         position: absolute;
-        top: 0;
-        font-size: 10px;
-        color: #6b7280;
+        top: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         transform: translateX(-50%);
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
     }
 
     .timeline-container {
-        border-top: 1px solid #e5e7eb;
-        padding-top: 4px;
+        background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+        border: 1px solid rgba(168, 85, 247, 0.15);
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-top: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Enhanced Loading Animation */
+    .audio-loading {
+        background: linear-gradient(
+            90deg, 
+            rgba(168, 85, 247, 0.1) 25%, 
+            rgba(139, 92, 246, 0.2) 50%, 
+            rgba(168, 85, 247, 0.1) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Enhanced Button Hover Effects */
+    .hover-lift {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Comment Marker Animations */
+    .comment-markers .group:hover {
+        z-index: 20;
+    }
+
+    /* Enhanced Glass Morphism Effects */
+    .backdrop-blur-md {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .backdrop-blur-sm {
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    /* Pulse Animation for Comment Markers */
+    @keyframes pulse-subtle {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 1; }
+    }
+
+    .animate-pulse {
+        animation: pulse-subtle 2s infinite;
+    }
+
+    /* Focus States */
+    .focus\:ring-2:focus {
+        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+    }
+
+    /* Smooth Transitions */
+    * {
+        scroll-behavior: smooth;
+    }
+
+    /* Enhanced Modal Effects */
+    .modal-backdrop {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
 </style>
 @endpush

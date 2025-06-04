@@ -1,7 +1,14 @@
-<x-app-layout>
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+@extends('components.layouts.app')
+
+@section('title', 'Edit Profile')
+
+@section('content')
+<div class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
             <livewire:user-profile-edit />
         </div>
     </div>
-</x-app-layout>
+</div>
+
+@endsection

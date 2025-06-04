@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call(FilamentAdminSeeder::class);
 
         $this->call([
+            ProjectTypeSeeder::class,  // Seed project types first
             MigrateUserTagsSeeder::class,
             TagSeeder::class,
         ]);

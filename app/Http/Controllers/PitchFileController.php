@@ -71,23 +71,33 @@ class PitchFileController extends Controller
     /**
      * Handle a single file upload via AJAX
      */
-    public function uploadSingle(Request $request)
+    public function uploadSingle(Request $request, Pitch $pitch = null)
     {
-        $validated = $request->validate([
-            'file' => 'required|file',
-            'pitch_id' => 'required|exists:pitches,id',
-        ]);
+        // Get pitch from route parameter or request body
+        if ($pitch) {
+            // Pitch passed as route parameter
+            $validated = $request->validate([
+                'file' => 'required|file',
+            ]);
+            $targetPitch = $pitch;
+        } else {
+            // Legacy format with pitch_id in request body
+            $validated = $request->validate([
+                'file' => 'required|file',
+                'pitch_id' => 'required|exists:pitches,id',
+            ]);
+            $targetPitch = Pitch::findOrFail($validated['pitch_id']);
+        }
 
-        $pitch = Pitch::findOrFail($validated['pitch_id']);
         $file = $validated['file'];
         $user = Auth::user();
 
         try {
-            $this->authorize('uploadFile', $pitch);
+            $this->authorize('uploadFile', $targetPitch);
 
-            $pitchFile = $this->fileManagementService->uploadPitchFile($pitch, $file, $user);
+            $pitchFile = $this->fileManagementService->uploadPitchFile($targetPitch, $file, $user);
 
-            $pitch->refresh();
+            $targetPitch->refresh();
             return response()->json([
                 'success' => true,
                 'message' => 'File uploaded successfully',
@@ -96,20 +106,20 @@ class PitchFileController extends Controller
                 'file_path' => $pitchFile->file_path,
                 'file_size' => $pitchFile->size,
                 'mime_type' => $pitchFile->mime_type,
-                'storage_used_formatted' => Pitch::formatBytes($pitch->total_storage_used),
-                'storage_percentage' => $pitch->getStorageUsedPercentage(),
-                'storage_remaining_formatted' => Pitch::formatBytes($pitch->getRemainingStorageBytes()),
-                'storage_limit_message' => $pitch->getStorageLimitMessage()
+                'storage_used_formatted' => Pitch::formatBytes($targetPitch->total_storage_used),
+                'storage_percentage' => $targetPitch->getStorageUsedPercentage(),
+                'storage_remaining_formatted' => Pitch::formatBytes($targetPitch->getRemainingStorageBytes()),
+                'storage_limit_message' => $targetPitch->getStorageLimitMessage()
             ]);
 
         } catch (FileUploadException | StorageLimitException $e) {
-            Log::warning('Pitch file upload failed (validation)', ['pitch_id' => $pitch->id, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+            Log::warning('Pitch file upload failed (validation)', ['pitch_id' => $targetPitch->id, 'user_id' => $user->id, 'error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
             ], 400);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            Log::warning('Unauthorized attempt to upload pitch file via Controller', ['pitch_id' => $pitch->id, 'user_id' => $user->id]);
+            Log::warning('Unauthorized attempt to upload pitch file via Controller', ['pitch_id' => $targetPitch->id, 'user_id' => $user->id]);
             return response()->json([
                 'success' => false,
                 'message' => 'You are not authorized to upload files to this pitch.'
@@ -117,7 +127,7 @@ class PitchFileController extends Controller
         } catch (\Exception $e) {
             Log::error('Error uploading single pitch file via AJAX Controller', [
                 'error' => $e->getMessage(),
-                'pitch_id' => $pitch->id,
+                'pitch_id' => $targetPitch->id,
                 'file_name' => $file->getClientOriginalName()
             ]);
             return response()->json([

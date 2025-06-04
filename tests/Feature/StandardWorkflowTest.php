@@ -218,74 +218,95 @@ class StandardWorkflowTest extends TestCase
     /** @test */
     public function test_file_size_limits_are_enforced()
     {
-        // Arrange: Get original size limit
-        $originalMaxSize = Pitch::MAX_FILE_SIZE_BYTES;
+        // Disable CSRF protection for this test
+        $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+        
+        // Arrange: Get original size limit from config (what FileManagementService actually uses)
+        $originalMaxSize = config('files.max_pitch_file_size', 100 * 1024 * 1024); // 100MB default
         
         // Create a pitch in progress
         $this->actingAs($this->projectOwner);
         $pitch = Pitch::factory()->for($this->project)->for($this->producer, 'user')->create([
-            'status' => Pitch::STATUS_IN_PROGRESS
+            'status' => Pitch::STATUS_IN_PROGRESS,
+            'total_storage_limit_bytes' => 200 * 1024 * 1024, // Set 200MB limit for testing
         ]);
         
+        // Debug: Ensure pitch was created and check storage limits
+        $this->assertDatabaseHas('pitches', ['id' => $pitch->id]);
+        
         // Mock for testing
-        Storage::fake('local');
+        Storage::fake('s3');
         
         // Test valid file size (just under the limit)
         $this->actingAs($this->producer);
-        $validFile = UploadedFile::fake()->create('valid_file.mp3', $originalMaxSize / 1024 / 1024 - 1); // -1MB from limit
+        $validFile = UploadedFile::fake()->create('valid_file.mp3', ($originalMaxSize / 1024) - 1024); // -1MB from limit in KB
         
-        // Act: Upload valid file (direct upload, bypassing livewire for simplicity)
-        $validUploadResponse = $this->post(route('pitch.files.store', ['pitch' => $pitch->id]), [
+        // Debug: Check the route URL being generated
+        $routeUrl = route('pitch.files.store', ['pitch' => $pitch->slug]);
+        $this->assertStringContainsString("/pitches/{$pitch->slug}/files", $routeUrl);
+        
+        // Act: Upload valid file (expecting JSON response from AJAX endpoint)
+        $validUploadResponse = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), [
             'file' => $validFile,
         ]);
         
-        // Assert: Valid upload succeeded
-        $validUploadResponse->assertStatus(302); // Success redirect
-        Storage::disk('local')->assertExists('pitch_files/' . $pitch->id . '/' . $validFile->hashName());
+        // Assert: Valid upload succeeded (JSON response)
+        $validUploadResponse->assertStatus(200); // JSON success
+        $validUploadResponse->assertJson(['success' => true]);
+        
+        // Debug: Check what file path was actually stored
+        $storedFile = \App\Models\PitchFile::where('pitch_id', $pitch->id)->latest()->first();
+        $this->assertNotNull($storedFile, 'No pitch file was created in database');
+        
+        // Use the actual stored path instead of guessing
+        Storage::disk('s3')->assertExists($storedFile->file_path);
         $this->assertDatabaseHas('pitch_files', [
             'pitch_id' => $pitch->id,
-            'original_name' => 'valid_file.mp3',
+            'original_file_name' => 'valid_file.mp3',
         ]);
         
         // Reset for next test
         Pitch::where('id', $pitch->id)->update(['total_storage_used' => 0]);
         
         // Test oversized file (over the limit)
-        $oversizedFile = UploadedFile::fake()->create('oversized_file.mp3', $originalMaxSize / 1024 / 1024 + 10); // +10MB over limit
+        $oversizedFile = UploadedFile::fake()->create('oversized_file.mp3', ($originalMaxSize / 1024) + 1024); // +1MB over limit in KB
         
         // Act: Try to upload oversized file
-        $oversizedUploadResponse = $this->post(route('pitch.files.store', ['pitch' => $pitch->id]), [
+        $oversizedUploadResponse = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), [
             'file' => $oversizedFile,
         ]);
         
-        // Assert: Oversized upload was rejected
-        $oversizedUploadResponse->assertStatus(422); // Validation failed
-        $oversizedUploadResponse->assertSessionHasErrors(['file']); // Error message in session
-        Storage::disk('local')->assertMissing('pitch_files/' . $pitch->id . '/' . $oversizedFile->hashName());
+        // Assert: Oversized upload was rejected (JSON error response)
+        $oversizedUploadResponse->assertStatus(400); // JSON validation failed
+        $oversizedUploadResponse->assertJson(['success' => false]);
+        Storage::disk('s3')->assertMissing('pitches/' . $pitch->id . '/' . $oversizedFile->hashName());
         $this->assertDatabaseMissing('pitch_files', [
             'pitch_id' => $pitch->id,
-            'original_name' => 'oversized_file.mp3',
+            'original_file_name' => 'oversized_file.mp3',
         ]);
         
         // Test multiple files cumulative limit
         // Upload several smaller files that would exceed the total storage limit together
-        $maxPitchStorage = Pitch::MAX_STORAGE_BYTES;
-        $individualSize = $maxPitchStorage / 4 + 1; // Size that would let ~3 files upload before hitting limit
+        $maxPitchStorage = $pitch->total_storage_limit_bytes; // Use the actual pitch limit (200MB)
+        $individualSize = 60 * 1024; // 60MB in KB - small enough to upload 3 files but not 4
         
         // Reset storage used counter
         Pitch::where('id', $pitch->id)->update(['total_storage_used' => 0]);
         
         // Upload first file (should succeed)
-        $file1 = UploadedFile::fake()->create('file1.mp3', $individualSize / 1024 / 1024);
-        $this->post(route('pitch.files.store', ['pitch' => $pitch->id]), ['file' => $file1]);
+        $file1 = UploadedFile::fake()->create('file1.mp3', $individualSize);
+        $response1 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file1]);
+        $response1->assertStatus(200);
         
         // Upload second file (should succeed)
-        $file2 = UploadedFile::fake()->create('file2.mp3', $individualSize / 1024 / 1024);
-        $this->post(route('pitch.files.store', ['pitch' => $pitch->id]), ['file' => $file2]);
+        $file2 = UploadedFile::fake()->create('file2.mp3', $individualSize);
+        $response2 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file2]);
+        $response2->assertStatus(200);
         
         // Upload third file (should succeed)
-        $file3 = UploadedFile::fake()->create('file3.mp3', $individualSize / 1024 / 1024);
-        $this->post(route('pitch.files.store', ['pitch' => $pitch->id]), ['file' => $file3]);
+        $file3 = UploadedFile::fake()->create('file3.mp3', $individualSize);
+        $response3 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file3]);
+        $response3->assertStatus(200);
         
         // Update storage used to near max to test limit
         $pitchToUpdate = Pitch::find($pitch->id);
@@ -294,12 +315,12 @@ class StandardWorkflowTest extends TestCase
         ]);
         
         // Upload fourth file (should fail - exceeds total storage)
-        $file4 = UploadedFile::fake()->create('file4.mp3', $individualSize / 1024 / 1024);
-        $response4 = $this->post(route('pitch.files.store', ['pitch' => $pitch->id]), ['file' => $file4]);
+        $file4 = UploadedFile::fake()->create('file4.mp3', $individualSize);
+        $response4 = $this->post(route('pitch.files.store', ['pitch' => $pitch->slug]), ['file' => $file4]);
         
-        // Assert final file was rejected due to cumulative limit
-        $response4->assertStatus(422);
-        $response4->assertSessionHasErrors(['file']);
-        Storage::disk('local')->assertMissing('pitch_files/' . $pitch->id . '/' . $file4->hashName());
+        // Assert final file was rejected due to cumulative limit (JSON error response)
+        $response4->assertStatus(400);
+        $response4->assertJson(['success' => false]);
+        Storage::disk('s3')->assertMissing('pitches/' . $pitch->id . '/' . $file4->hashName());
     }
 } 

@@ -48,6 +48,12 @@ class Pitch extends Model implements HasMedia
     const PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required';
     const PAYMENT_STATUS_REFUNDED = 'refunded';
 
+    // Contest rank constants
+    const RANK_FIRST = '1st';
+    const RANK_SECOND = '2nd';
+    const RANK_THIRD = '3rd';
+    const RANK_RUNNER_UP = 'runner-up';
+
     /**
      * The maximum storage allowed per pitch in bytes (1GB)
      */
@@ -91,6 +97,8 @@ class Pitch extends Model implements HasMedia
         'amount',
         'currency',
         'contest_ranking', // e.g., 1 for winner, 2 for runner-up
+        'judging_notes',
+        'placement_finalized_at',
         // Client management specific
         'client_approved_at',
         'client_revision_requested_at',
@@ -164,6 +172,13 @@ class Pitch extends Model implements HasMedia
     protected static function booted()
     {
         parent::booted();
+
+        // Ensure slug is generated on creation
+        static::creating(function ($pitch) {
+            if (empty($pitch->slug)) {
+                $pitch->slug = $pitch->generateSlug();
+            }
+        });
 
         // Handle events for notification triggers
         static::updated(function ($pitch) {
@@ -422,6 +437,33 @@ class Pitch extends Model implements HasMedia
     }
     
     /**
+     * Generate a unique slug for this pitch
+     *
+     * @return string
+     */
+    public function generateSlug(): string
+    {
+        // If we have a title, use it as base
+        if (!empty($this->title)) {
+            $baseSlug = \Illuminate\Support\Str::slug($this->title);
+        } else {
+            // Use pitch-{id} or pitch-{uniqid} as fallback
+            $baseSlug = $this->id ? 'pitch-' . $this->id : 'pitch-' . uniqid();
+        }
+        
+        // Ensure uniqueness
+        $slug = $baseSlug;
+        $counter = 1;
+        
+        while (static::where('slug', $slug)->where('id', '!=', $this->id ?? 0)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+        
+        return $slug;
+    }
+
+    /**
      * Return the sluggable configuration array for this model.
      *
      * @return array
@@ -430,7 +472,12 @@ class Pitch extends Model implements HasMedia
     {
         return [
             'slug' => [
-                'source' => 'id',
+                'source' => ['title', 'id'],
+                'method' => function ($string, $separator) {
+                    return $this->generateSlug();
+                },
+                'unique' => true,
+                'includeTrashed' => false,
             ]
         ];
     }
@@ -443,8 +490,22 @@ class Pitch extends Model implements HasMedia
      */
     public function hasStorageCapacity($additionalBytes = 0)
     {
-        // Use the limit set in the database if it exists, otherwise fall back to constant
-        $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        // Use contest-specific storage limit for contest entries
+        if ($this->status === self::STATUS_CONTEST_ENTRY) {
+            // Load project if not loaded
+            if (!$this->relationLoaded('project')) {
+                $this->load('project');
+            }
+            
+            if ($this->project && $this->project->isContest()) {
+                $storageLimit = 100 * 1024 * 1024; // 100MB for contest entries
+            } else {
+                $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+            }
+        } else {
+            // Use the limit set in the database if it exists, otherwise fall back to constant
+            $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        }
         
         return ($this->total_storage_used + $additionalBytes) <= $storageLimit;
     }
@@ -456,7 +517,22 @@ class Pitch extends Model implements HasMedia
      */
     public function getRemainingStorageBytes()
     {
-        $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        // Use contest-specific storage limit for contest entries
+        if ($this->status === self::STATUS_CONTEST_ENTRY) {
+            // Load project if not loaded
+            if (!$this->relationLoaded('project')) {
+                $this->load('project');
+            }
+            
+            if ($this->project && $this->project->isContest()) {
+                $storageLimit = 100 * 1024 * 1024; // 100MB for contest entries
+            } else {
+                $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+            }
+        } else {
+            $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        }
+        
         $remaining = $storageLimit - $this->total_storage_used;
         return max(0, $remaining);
     }
@@ -488,7 +564,22 @@ class Pitch extends Model implements HasMedia
      */
     public function getStorageUsedPercentage()
     {
-        $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        // Use contest-specific storage limit for contest entries
+        if ($this->status === self::STATUS_CONTEST_ENTRY) {
+            // Load project if not loaded
+            if (!$this->relationLoaded('project')) {
+                $this->load('project');
+            }
+            
+            if ($this->project && $this->project->isContest()) {
+                $storageLimit = 100 * 1024 * 1024; // 100MB for contest entries
+            } else {
+                $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+            }
+        } else {
+            $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        }
+        
         return round(($this->total_storage_used / $storageLimit) * 100, 2);
     }
     
@@ -589,5 +680,35 @@ class Pitch extends Model implements HasMedia
             self::STATUS_DENIED, self::STATUS_CLOSED, self::STATUS_CONTEST_NOT_SELECTED => 'bg-red-100 text-red-800',
             default => 'bg-gray-200 text-gray-600', // Default fallback
         };
+    }
+
+    /**
+     * Check if the pitch has been placed in the contest
+     */
+    public function isPlaced(): bool
+    {
+        return !is_null($this->rank);
+    }
+
+    /**
+     * Get the placement label for display
+     */
+    public function getPlacementLabel(): ?string
+    {
+        return match($this->rank) {
+            self::RANK_FIRST => '1st Place',
+            self::RANK_SECOND => '2nd Place', 
+            self::RANK_THIRD => '3rd Place',
+            self::RANK_RUNNER_UP => 'Runner-up',
+            default => null
+        };
+    }
+
+    /**
+     * Check if the pitch placement has been finalized
+     */
+    public function isPlacementFinalized(): bool
+    {
+        return !is_null($this->placement_finalized_at);
     }
 }

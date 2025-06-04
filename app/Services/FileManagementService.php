@@ -23,13 +23,14 @@ class FileManagementService
      *
      * @param Project $project
      * @param UploadedFile $file
-     * @param User $uploader // Keep uploader to associate file record
+     * @param User|null $uploader // Made nullable to support client uploads without accounts
+     * @param array $metadata // Optional metadata for client uploads
      * @return ProjectFile
      * @throws FileUploadException|StorageLimitException
      */
-    public function uploadProjectFile(Project $project, UploadedFile $file, User $uploader): ProjectFile
+    public function uploadProjectFile(Project $project, UploadedFile $file, ?User $uploader = null, array $metadata = []): ProjectFile
     {
-        // Authorization is assumed to be handled by the caller (e.g., Policy check)
+        // Authorization is assumed to be handled by the caller (e.g., Policy check or signed URL validation)
 
         $fileName = $file->getClientOriginalName();
         $fileSize = $file->getSize();
@@ -45,7 +46,7 @@ class FileManagementService
         }
 
         try {
-            return DB::transaction(function () use ($project, $file, $fileName, $fileSize, $uploader) {
+            return DB::transaction(function () use ($project, $file, $fileName, $fileSize, $uploader, $metadata) {
                 // Store the file securely
                 $path = Storage::disk('s3')->putFileAs(
                     'projects/' . $project->id,
@@ -53,7 +54,12 @@ class FileManagementService
                     $fileName
                 );
 
-                Log::info('Project file uploaded to S3', ['filename' => $fileName, 'path' => $path, 'project_id' => $project->id, 'uploader_id' => $uploader->id]);
+                $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
+                Log::info('Project file uploaded to S3', array_merge([
+                    'filename' => $fileName, 
+                    'path' => $path, 
+                    'project_id' => $project->id
+                ], $uploaderInfo, $metadata));
 
                 $projectFile = $project->files()->create([
                     'storage_path' => $path,
@@ -61,8 +67,11 @@ class FileManagementService
                     'file_name' => $fileName, // Store original name
                     'original_file_name' => $fileName,
                     'size' => $fileSize,
-                    'user_id' => $uploader->id, // Track uploader
+                    'file_size' => $fileSize, // Add file_size field for consistency
+                    'user_id' => $uploader?->id, // Track uploader (null for client uploads)
+                    'uploaded_by' => $uploader?->id, // Alternative field name
                     'mime_type' => $file->getMimeType(),
+                    'metadata' => !empty($metadata) ? json_encode($metadata) : null, // Store client upload metadata
                 ]);
 
                 // Atomically update project storage usage
@@ -71,7 +80,13 @@ class FileManagementService
                 return $projectFile;
             });
         } catch (\Exception $e) {
-            Log::error('Error uploading project file', ['project_id' => $project->id, 'filename' => $fileName, 'error' => $e->getMessage()]);
+            $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
+            Log::error('Error uploading project file', array_merge([
+                'project_id' => $project->id, 
+                'filename' => $fileName, 
+                'error' => $e->getMessage()
+            ], $uploaderInfo));
+            
             if (isset($path) && Storage::disk('s3')->exists($path)) {
                 Storage::disk('s3')->delete($path);
                 Log::info('Cleaned up orphaned S3 file after upload failure', ['path' => $path]);
@@ -164,32 +179,45 @@ class FileManagementService
         $filePath = $projectFile->storage_path ?: $projectFile->file_path;
 
         try {
-             DB::transaction(function () use ($projectFile, $project, $filePath) {
-                $fileSize = $projectFile->size;
+            return DB::transaction(function () use ($projectFile, $project, $filePath) {
+                $fileSize = $projectFile->size ?: $projectFile->file_size ?: 0; // Handle both field names
 
                 // Delete DB record first
                 $deleted = $projectFile->delete();
 
-                if ($deleted) {
-                    // Decrement storage used
-                    $project->decrementStorageUsed($fileSize); // Assume this method exists
-
-                    // Delete file from S3
-                    try {
-                       if (Storage::disk('s3')->exists($filePath)) {
-                           Storage::disk('s3')->delete($filePath);
-                           Log::info('Project file deleted from S3', ['path' => $filePath, 'project_id' => $project->id]);
-                       } else {
-                           Log::warning('Project file not found on S3 during deletion', ['path' => $filePath, 'project_id' => $project->id]);
-                       }
-                    } catch (\Exception $storageEx) {
-                        Log::error('Failed to delete project file from S3, but DB record removed', ['path' => $filePath, 'error' => $storageEx->getMessage()]);
-                    }
-                } else {
-                     throw new FileDeletionException('Failed to delete file record from database.');
+                if (!$deleted) {
+                    throw new FileDeletionException('Failed to delete file record from database.');
                 }
+
+                // Decrement storage used - only if file size is valid
+                if ($fileSize > 0 && $project) {
+                    try {
+                        $project->decrementStorageUsed($fileSize);
+                    } catch (\Exception $storageEx) {
+                        Log::warning('Failed to decrement storage usage during file deletion', [
+                            'project_id' => $project->id,
+                            'file_size' => $fileSize,
+                            'error' => $storageEx->getMessage()
+                        ]);
+                        // Don't fail the whole operation for storage tracking issues
+                    }
+                }
+
+                // Delete file from S3 (don't fail if S3 delete fails, file record is already gone)
+                try {
+                   if (Storage::disk('s3')->exists($filePath)) {
+                       Storage::disk('s3')->delete($filePath);
+                       Log::info('Project file deleted from S3', ['path' => $filePath, 'project_id' => $project?->id]);
+                   } else {
+                       Log::warning('Project file not found on S3 during deletion', ['path' => $filePath, 'project_id' => $project?->id]);
+                   }
+                } catch (\Exception $storageEx) {
+                    Log::error('Failed to delete project file from S3, but DB record removed', ['path' => $filePath, 'error' => $storageEx->getMessage()]);
+                    // Don't fail the whole operation for S3 cleanup issues
+                }
+
+                return true;
             });
-            return true;
         } catch (\Exception $e) {
             Log::error('Error deleting project file', ['file_id' => $projectFile->id, 'error' => $e->getMessage()]);
             throw new FileDeletionException('Failed to delete project file: ' . $e->getMessage(), 0, $e);

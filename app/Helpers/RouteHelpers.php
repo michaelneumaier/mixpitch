@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Models\Pitch;
 use App\Models\Project;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class RouteHelpers
 {
@@ -22,6 +23,12 @@ class RouteHelpers
         if (!$pitch || !$pitch->id) {
             Log::error('Invalid pitch object in pitchUrl');
             throw new \Exception("Missing required parameter: pitch");
+        }
+        
+        // Ensure pitch has a slug - generate one if missing
+        if (empty($pitch->slug)) {
+            Log::info('Generating missing slug for pitch', ['pitch_id' => $pitch->id]);
+            $pitch = self::generateSlugForPitch($pitch);
         }
         
         // Ensure project relationship is loaded
@@ -314,5 +321,39 @@ class RouteHelpers
             ]);
             throw $e; // Re-throw the exception
         }
+    }
+
+    /**
+     * Generate a unique slug for a pitch
+     *
+     * @param Pitch $pitch The pitch model
+     * @return Pitch The pitch model with updated slug
+     */
+    private static function generateSlugForPitch(Pitch $pitch)
+    {
+        // Generate base slug from title or fallback to pitch-{id}
+        $baseSlug = !empty($pitch->title) 
+            ? Str::slug($pitch->title) 
+            : 'pitch-' . $pitch->id;
+        
+        // Ensure uniqueness by checking for existing slugs
+        $slug = $baseSlug;
+        $counter = 1;
+        
+        while (Pitch::where('slug', $slug)->where('id', '!=', $pitch->id)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+        
+        // Update the pitch with the new slug
+        $pitch->slug = $slug;
+        $pitch->save();
+        
+        Log::info('Generated slug for pitch', [
+            'pitch_id' => $pitch->id,
+            'slug' => $slug
+        ]);
+        
+        return $pitch;
     }
 } 

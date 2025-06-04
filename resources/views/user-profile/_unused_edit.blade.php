@@ -6,7 +6,7 @@
             </h2>
             @if($user->username)
                 <a href="{{ route('profile.public', ['username' => $user->username]) }}" class="inline-flex items-center px-3 py-1 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring focus:ring-gray-300 disabled:opacity-25 transition">
-                    <i class="fas fa-eye mr-1"></i> View Public Profile
+                    <i class="fas fa-eye mr-1"></i> View Public Profilesfawef
                 </a>
             @endif
         </div>

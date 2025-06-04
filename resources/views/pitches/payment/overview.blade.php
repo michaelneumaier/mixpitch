@@ -103,11 +103,32 @@
                         <div>
                             <h3 class="font-medium text-gray-700">Collaboration Type</h3>
                             <div class="flex flex-wrap gap-2 mt-2">
-                                @foreach($project->collaboration_type as $type => $value)
-                                    @if($value)
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                                        {{ ucfirst($type) }}
-                                    </span>
+                                @foreach($project->collaboration_type as $key => $value)
+                                    @php
+                                        // Handle both formats: simple array ['mixing', 'mastering'] and associative array ['mixing' => true]
+                                        $collaborationType = '';
+                                        if (is_string($key) && $value && $value !== false) {
+                                            // Associative array format: ['mixing' => true, 'mastering' => false]
+                                            $collaborationType = $key;
+                                        } elseif (is_string($value) && !empty($value)) {
+                                            // Simple array format: ['mixing', 'mastering']
+                                            $collaborationType = $value;
+                                        } elseif (is_numeric($key) && is_string($value) && !empty($value)) {
+                                            // Indexed array format: [0 => 'mixing', 1 => 'mastering']
+                                            $collaborationType = $value;
+                                        }
+                                        
+                                        // Format the collaboration type for display
+                                        if ($collaborationType) {
+                                            $collaborationType = str_replace('_', ' ', $collaborationType);
+                                            $collaborationType = ucwords(strtolower($collaborationType));
+                                        }
+                                    @endphp
+                                    
+                                    @if($collaborationType)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                                            {{ $collaborationType }}
+                                        </span>
                                     @endif
                                 @endforeach
                             </div>

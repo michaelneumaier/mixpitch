@@ -65,12 +65,13 @@ class UserProfileController extends Controller
             ->orderBy('display_order')
             ->get();
 
-        // Fetch published service packages for the user
-        $servicePackages = $user->servicePackages()
-            ->published()
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // TODO: Fetch published service packages for the user (when servicePackages relationship is implemented)
+        // $servicePackages = $user->servicePackages()
+        //     ->published()
+        //     ->with('user')
+        //     ->orderBy('created_at', 'desc')
+        //     ->get();
+        $servicePackages = collect(); // Empty collection for now
 
         return view('user-profile.show', [
             'user' => $user,

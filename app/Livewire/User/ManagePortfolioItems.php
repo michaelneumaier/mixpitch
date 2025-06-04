@@ -14,6 +14,8 @@ use Livewire\Attributes\Rule;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class ManagePortfolioItems extends Component
 {
@@ -382,45 +384,109 @@ class ManagePortfolioItems extends Component
     public function updateSort(array $orderedIds)
     {
         try {
-            Log::info('Received sort update', ['data' => $orderedIds]);
+            Log::info('Received sort update', ['data' => $orderedIds, 'user_id' => auth()->id()]);
+            
+            // Validate input data
+            if (empty($orderedIds)) {
+                Log::warning('Empty order data received');
+                throw new \InvalidArgumentException('No items to sort');
+            }
             
             // Ensure we only process items belonging to the authenticated user
             $userItems = PortfolioItem::where('user_id', auth()->id())->pluck('id')->toArray();
             
-            // Update display_order based on the received order
-            foreach ($orderedIds as $index => $item) {
-                $itemId = $item['value'];
-                
-                // Verify this item belongs to the user
-                if (in_array($itemId, $userItems)) {
-                    PortfolioItem::where('id', $itemId)
-                        ->update(['display_order' => $index + 1]); // Use 1-based index for order
-                    
-                    Log::info('Updated item order', [
-                        'item_id' => $itemId,
-                        'new_order' => $index + 1
-                    ]);
-                } else {
-                    Log::warning('Attempted to update order for unauthorized item', [
-                        'item_id' => $itemId,
-                        'user_id' => auth()->id()
-                    ]);
-                }
+            // Handle different data formats from Livewire sortable
+            $receivedItemIds = [];
+            if (isset($orderedIds[0]) && is_array($orderedIds[0]) && isset($orderedIds[0]['value'])) {
+                // Complex format: [['order' => 1, 'value' => '123'], ...]
+            $receivedItemIds = array_column($orderedIds, 'value');
+            } else {
+                // Simple format: ['123', '456', '789'] - Livewire's default format
+                $receivedItemIds = $orderedIds;
             }
             
-            $this->loadItems(); // Reload items to reflect new order
+            // Convert to integers
+            $receivedItemIds = array_map('intval', $receivedItemIds);
+            
+            // Validate that all received items belong to the user
+            $unauthorizedItems = array_diff($receivedItemIds, $userItems);
+            if (!empty($unauthorizedItems)) {
+                Log::warning('Attempted to update order for unauthorized items', [
+                    'unauthorized_items' => $unauthorizedItems,
+                    'user_id' => auth()->id()
+                ]);
+                throw new \UnauthorizedHttpException('Unauthorized items detected');
+            }
+            
+            // Use database transaction for atomic updates
+            DB::transaction(function () use ($receivedItemIds) {
+                foreach ($receivedItemIds as $index => $itemId) {
+                    $newOrder = $index + 1;
+                    
+                        $updated = PortfolioItem::where('id', $itemId)
+                            ->where('user_id', auth()->id()) // Extra security check
+                            ->update(['display_order' => $newOrder]);
+                        
+                        if ($updated) {
+                            Log::info('Updated item order', [
+                                'item_id' => $itemId,
+                                'new_order' => $newOrder
+                            ]);
+                        } else {
+                            Log::warning('Failed to update item order - item not found or unauthorized', [
+                                'item_id' => $itemId,
+                                'user_id' => auth()->id()
+                            ]);
+                    }
+                }
+            });
+            
+            // Reload items to reflect new order
+            $this->loadItems();
+            
+            // Show success message
             session()->flash('toast', [
                 'type' => 'success',
-                'message' => 'Portfolio order updated'
+                'message' => 'Portfolio order updated successfully'
             ]);
-        } catch (\Exception $e) {
-            Log::error("Error updating portfolio sort order: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'data_received' => $orderedIds
+            
+            Log::info('Portfolio sort update completed successfully', ['user_id' => auth()->id()]);
+            
+        } catch (\InvalidArgumentException $e) {
+            Log::error('Invalid sort data provided', [
+                'error' => $e->getMessage(),
+                'data' => $orderedIds,
+                'user_id' => auth()->id()
             ]);
+            
             session()->flash('toast', [
                 'type' => 'error',
-                'message' => 'An error occurred while updating the order: ' . $e->getMessage()
+                'message' => 'Invalid sort data provided'
+            ]);
+            
+        } catch (\UnauthorizedHttpException $e) {
+            Log::error('Unauthorized sort attempt', [
+                'error' => $e->getMessage(),
+                'data' => $orderedIds,
+                'user_id' => auth()->id()
+            ]);
+            
+            session()->flash('toast', [
+                'type' => 'error',
+                'message' => 'Unauthorized operation'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error updating portfolio sort order', [
+                'error' => $e->getMessage(),
+                'trace' => Str::limit($e->getTraceAsString(), 2000),
+                'data_received' => $orderedIds,
+                'user_id' => auth()->id()
+            ]);
+            
+            session()->flash('toast', [
+                'type' => 'error',
+                'message' => 'Failed to update portfolio order. Please try again.'
             ]);
         }
     }

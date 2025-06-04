@@ -40,7 +40,8 @@ class PitchFilePolicy
         return $user->id === $pitch->user_id &&
                in_array($pitch->status, [
                    Pitch::STATUS_IN_PROGRESS,
-                   Pitch::STATUS_REVISIONS_REQUESTED
+                   Pitch::STATUS_REVISIONS_REQUESTED,
+                   Pitch::STATUS_CONTEST_ENTRY, // Allow contest entries to upload files
                    // Add other statuses if needed
                ]);
     }
@@ -62,7 +63,8 @@ class PitchFilePolicy
                in_array($pitch->status, [
                    Pitch::STATUS_IN_PROGRESS,
                    Pitch::STATUS_REVISIONS_REQUESTED,
-                   Pitch::STATUS_DENIED
+                   Pitch::STATUS_DENIED,
+                   Pitch::STATUS_CONTEST_ENTRY, // Allow contest entries to delete files
                ]);
     }
 

@@ -231,33 +231,33 @@
                 <!-- Preset Buttons -->
                 <div class="grid grid-cols-2 gap-2 mt-4 sm:grid-cols-3">
                     <button type="button" @click="setPreset(null, 10)" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': minBudget === null && maxBudget === 10}">
+                        class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === null && maxBudget === 10, 'text-gray-700 hover:bg-gray-50': !(minBudget === null && maxBudget === 10)}">
                         Under $10
                     </button>
                     <button type="button" @click="setPreset(10, 50)" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': minBudget === 10 && maxBudget === 50}">
+                        class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 10 && maxBudget === 50, 'text-gray-700 hover:bg-gray-50': !(minBudget === 10 && maxBudget === 50)}">
                         $10 - $50
                     </button>
                     <button type="button" @click="setPreset(50, 100)" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': minBudget === 50 && maxBudget === 100}">
+                        class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 50 && maxBudget === 100, 'text-gray-700 hover:bg-gray-50': !(minBudget === 50 && maxBudget === 100)}">
                         $50 - $100
                     </button>
                     <button type="button" @click="setPreset(100, 200)"  
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': minBudget === 100 && maxBudget === 200}">
+                        class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 100 && maxBudget === 200, 'text-gray-700 hover:bg-gray-50': !(minBudget === 100 && maxBudget === 200)}">
                         $100 - $200
                     </button>
                     <button type="button" @click="setPreset(200, 500)" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': minBudget === 200 && maxBudget === 500}">
+                        class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 200 && maxBudget === 500, 'text-gray-700 hover:bg-gray-50': !(minBudget === 200 && maxBudget === 500)}">
                         $200 - $500
                     </button>
                     <button type="button" @click="setPreset(500, null)" 
-                        class="px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': minBudget === 500 && maxBudget === null}">
+                        class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 500 && maxBudget === null, 'text-gray-700 hover:bg-gray-50': !(minBudget === 500 && maxBudget === null)}">
                         $500+
                     </button>
                 </div>
@@ -416,18 +416,18 @@
                 <!-- Preset Buttons -->
                 <div class="flex space-x-2">
                     <button type="button" @click="setPreset('next7days')" 
-                        class="flex-1 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': selectedPreset === 'next7days'}">
+                        class="group flex-1 px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next7days', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'next7days'}">
                         Next 7 days
                     </button>
                     <button type="button" @click="setPreset('next30days')" 
-                        class="flex-1 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': selectedPreset === 'next30days'}">
+                        class="group flex-1 px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next30days', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'next30days'}">
                         Next 30 days
                     </button>
                     <button type="button" @click="setPreset('next3months')" 
-                        class="flex-1 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': selectedPreset === 'next3months'}">
+                        class="group flex-1 px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next3months', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'next3months'}">
                         Next 3 months
                     </button>
                 </div>
@@ -435,8 +435,8 @@
                 <!-- Upcoming Button on its own line -->
                 <div class="mt-2">
                     <button type="button" @click="setPreset('upcoming')" 
-                        class="w-full px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
-                        :class="{'bg-primary/10 border-primary': selectedPreset === 'upcoming'}">
+                        class="group w-full px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'upcoming', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'upcoming'}">
                         Upcoming (all)
                     </button>
                 </div>
@@ -444,7 +444,7 @@
                 <!-- Custom Date Range Selection -->
                 <div x-show="selectedPreset === 'custom' || selectedPreset === '' || deadlineStart || deadlineEnd">
                     <p class="text-xs text-gray-500 mb-2 font-medium">
-                        <button type="button" @click="setPreset('custom')" class="text-primary hover:underline">
+                        <button type="button" @click="setPreset('custom')" class="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-200">
                             Custom Date Range
                         </button>
                     </p>
@@ -471,8 +471,8 @@
                 <!-- Clear Button -->
                 <div class="pt-2" x-show="deadlineStart || deadlineEnd">
                     <button type="button" @click="setPreset('clear')"
-                        class="w-full inline-flex justify-center items-center px-2 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24"
+                        class="group w-full inline-flex justify-center items-center px-3 py-2 bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-2 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -515,8 +515,8 @@
         <!-- Clear Filters Button -->
         <div class="pt-2">
             <button type="button" wire:click="clearAllFilters"
-                class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                class="group w-full inline-flex justify-center items-center px-4 py-3 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-500/25">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>

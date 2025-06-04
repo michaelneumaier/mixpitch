@@ -627,4 +627,75 @@ class ManageClientProject extends Component
         
         return round($bytes, $precision) . ' ' . $units[$i];
     }
+
+    /**
+     * Get client-uploaded files (project files)
+     */
+    public function getClientFilesProperty()
+    {
+        return $this->project->files()->with('project')->get();
+    }
+
+    /**
+     * Get producer-uploaded files (pitch files)
+     */
+    public function getProducerFilesProperty()
+    {
+        return $this->pitch->files()->with('pitch')->get();
+    }
+
+    /**
+     * Get total file count for both types
+     */
+    public function getTotalFileCountProperty()
+    {
+        return $this->clientFiles->count() + $this->producerFiles->count();
+    }
+
+    /**
+     * Delete a client-uploaded file (project file)
+     */
+    public function deleteClientFile($fileId, FileManagementService $fileService)
+    {
+        try {
+            $file = $this->project->files()->findOrFail($fileId);
+            $this->authorize('delete', $file);
+            
+            $fileService->deleteProjectFile($file);
+            $this->updateStorageInfo();
+            
+            Toaster::success('Client file deleted successfully.');
+            
+        } catch (\Exception $e) {
+            Log::error('Client file deletion failed', [
+                'file_id' => $fileId,
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('Unable to delete file.');
+        }
+    }
+
+    /**
+     * Confirm deletion of a client-uploaded file
+     */
+    public function confirmDeleteClientFile($fileId)
+    {
+        try {
+            $file = $this->project->files()->findOrFail($fileId);
+            $this->authorize('delete', $file);
+            
+            // For simplicity, directly delete the file
+            // You could also add a confirmation modal like for producer files
+            $this->deleteClientFile($fileId, app(FileManagementService::class));
+            
+        } catch (\Exception $e) {
+            Log::error('Client file deletion confirmation failed', [
+                'file_id' => $fileId,
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage()
+            ]);
+            Toaster::error('Unable to delete file.');
+        }
+    }
 } 

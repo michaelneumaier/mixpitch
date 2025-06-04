@@ -92,7 +92,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     protected $casts = [
         'email_verified_at' => 'datetime',
         'social_links' => 'array',
-        'is_username_locked' => 'boolean',
+        'username_locked' => 'boolean',
         'profile_completed' => 'boolean',
     ];
 

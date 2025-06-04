@@ -1,111 +1,193 @@
 {{-- resources/views/dashboard/cards/_pitch_card.blade.php --}}
 @php
-    // Determine the correct link based on pitch/project type
     $pitchUrl = \App\Helpers\RouteHelpers::pitchUrl($pitch);
-    $needsAttention = in_array($pitch->status, [
-        \App\Models\Pitch::STATUS_PENDING,
-        \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
-        \App\Models\Pitch::STATUS_AWAITING_ACCEPTANCE,
-        \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-    ]);
-    $isOwnerPerspective = $pitch->project->user_id === auth()->id();
-    $isClientManagement = $pitch->project->isClientManagement();
+    $isClientProject = $pitch->project && $pitch->project->isClientManagement();
+    $cardType = $isClientProject ? 'client' : 'pitch';
+    $statusColor = match($pitch->status) {
+        'pending' => 'from-yellow-100 to-amber-100 text-yellow-800 border-yellow-200/50',
+        'accepted' => 'from-green-100 to-emerald-100 text-green-800 border-green-200/50',
+        'rejected' => 'from-red-100 to-pink-100 text-red-800 border-red-200/50',
+        'ready_for_review' => 'from-blue-100 to-indigo-100 text-blue-800 border-blue-200/50',
+        'in_progress' => 'from-purple-100 to-indigo-100 text-purple-800 border-purple-200/50',
+        'completed' => 'from-green-100 to-emerald-100 text-green-800 border-green-200/50',
+        default => 'from-gray-100 to-gray-200 text-gray-800 border-gray-200/50'
+    };
+    $statusIcon = match($pitch->status) {
+        'pending' => 'fa-clock',
+        'accepted' => 'fa-check-circle',
+        'rejected' => 'fa-times-circle',
+        'ready_for_review' => 'fa-eye',
+        'in_progress' => 'fa-spinner',
+        'completed' => 'fa-check-double',
+        default => 'fa-question-circle'
+    };
 @endphp
-<div class="mb-4 rounded-lg shadow-sm overflow-hidden border border-base-300 hover:shadow-md transition-all">
-    <a href="{{ $pitchUrl }}" class="block">
-        <div class="flex flex-col md:flex-row">
-            {{-- Project Image --}}
-            <div class="w-full md:w-40 h-40 bg-center bg-cover bg-no-repeat"
-                 style="background-image: url('{{ $pitch->project->image_path ? $pitch->project->imageUrl : asset('images/default-project.jpg') }}');">
-            </div>
 
-            {{-- Pitch Info --}}
-            <div class="p-4 flex-grow">
-                <div class="flex flex-col md:flex-row md:items-start justify-between">
-                    <div>
-                        @if($isClientManagement)
-                            <span class="inline-block bg-purple-100 text-purple-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded dark:bg-purple-200 dark:text-purple-800">Client Project</span>
-                        @else
-                            <span class="inline-block bg-purple-100 text-purple-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded dark:bg-purple-200 dark:text-purple-800">Pitch</span>
-                        @endif
-                        <h4 class="text-lg font-semibold text-gray-800 inline">{{ $pitch->project->name }}</h4>
-                         <div class="text-sm text-gray-500 mt-1">{{ $pitch->project->readableWorkflowTypeAttribute }}</div>
+<div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+    <!-- Gradient Border Effect -->
+    <div class="absolute inset-0 bg-gradient-to-r {{ $isClientProject ? 'from-purple-500/20 via-pink-500/20 to-purple-500/20' : 'from-indigo-500/20 via-blue-500/20 to-purple-500/20' }} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    
+    <a href="{{ $pitchUrl }}" class="relative block m-0.5 bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
+        <div class="flex flex-col lg:flex-row">
+            {{-- Enhanced Project Image --}}
+            <div class="relative lg:w-64 h-48 lg:h-auto bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                @if($pitch->project && $pitch->project->image_path)
+                    <img src="{{ $pitch->project->imageUrl }}" 
+                         alt="{{ $pitch->project->name }}"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                @else
+                    <div class="w-full h-full bg-gradient-to-br {{ $isClientProject ? 'from-purple-100 via-pink-100 to-purple-100' : 'from-indigo-100 via-blue-100 to-purple-100' }} flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas {{ $isClientProject ? 'fa-briefcase' : 'fa-paper-plane' }} text-4xl {{ $isClientProject ? 'text-purple-400/60' : 'text-indigo-400/60' }} mb-2"></i>
+                            <p class="text-sm text-gray-500 font-medium">{{ $pitch->project ? $pitch->project->name : 'Pitch' }}</p>
+                        </div>
                     </div>
-                    <span class="inline-flex mt-2 md:mt-0 px-3 py-1 rounded-full text-sm font-medium {{ $pitch->getStatusColorClass() }}">
-                        {{ $pitch->readable_status }}
-                    </span>
+                @endif
+                
+                <!-- Workflow Type Badge -->
+                <div class="absolute bottom-4 left-4">
+                    @if($pitch->project)
+                        @php
+                            // For pitches, show "Pitch" as the primary type
+                            $workflowConfig = [
+                                'standard' => ['bg' => 'bg-indigo-100/90', 'text' => 'text-indigo-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
+                                'contest' => ['bg' => 'bg-purple-100/90', 'text' => 'text-purple-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
+                                'direct_hire' => ['bg' => 'bg-green-100/90', 'text' => 'text-green-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
+                                'client_management' => ['bg' => 'bg-orange-100/90', 'text' => 'text-orange-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
+                            ];
+                            $workflowType = $pitch->project->workflow_type ?? 'standard';
+                            $workflowStyle = $workflowConfig[$workflowType] ?? $workflowConfig['standard'];
+                        @endphp
+                        <span class="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold {{ $workflowStyle['bg'] }} {{ $workflowStyle['text'] }} border border-white/20 backdrop-blur-sm shadow-lg">
+                            <i class="fas {{ $workflowStyle['icon'] }} mr-2"></i>{{ $workflowStyle['label'] }}
+                        </span>
+                    @endif
                 </div>
                 
-                {{-- Key Details --}}
-                <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                    @if($isClientManagement)
-                        {{-- For client management, show client info instead of producer info --}}
-                        @if($pitch->project->client_email)
-                        <div class="flex items-center">
-                            <i class="fas fa-user-tie mr-1.5 text-purple-500"></i>
-                            <span>Client: {{ $pitch->project->client_name ?? $pitch->project->client_email }}</span>
+                <!-- Status Badge -->
+                <div class="absolute top-4 right-4">
+                    <span class="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-gradient-to-r {{ $statusColor }} backdrop-blur-sm shadow-lg">
+                        <i class="fas {{ $statusIcon }} mr-2"></i>
+                        {{ Str::title(str_replace('_', ' ', $pitch->status)) }}
+                    </span>
+                </div>
+            </div>
+
+            {{-- Enhanced Pitch Info --}}
+            <div class="flex-1 p-6 lg:p-8">
+                <!-- Header Section -->
+                <div class="mb-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2 group-hover:text-{{ $isClientProject ? 'purple' : 'indigo' }}-600 transition-colors duration-200">
+                        {{ $pitch->project ? $pitch->project->name : 'Pitch' }}
+                    </h3>
+                    <div class="flex items-center text-gray-600 mb-4">
+                        <div class="flex items-center justify-center w-6 h-6 {{ $isClientProject ? 'bg-purple-100' : 'bg-indigo-100' }} rounded-full mr-2">
+                            <i class="fas fa-layer-group {{ $isClientProject ? 'text-purple-600' : 'text-indigo-600' }} text-xs"></i>
                         </div>
-                        @endif
-                        
-                        @if($pitch->payment_amount > 0)
-                        <div class="flex items-center">
-                            <i class="fas fa-dollar-sign mr-1.5 text-green-500"></i>
-                            <span class="font-medium">${{ number_format($pitch->payment_amount, 2) }} Project</span>
-                        </div>
-                        @endif
-                        
-                        @if($pitch->project->deadline)
-                        <div class="flex items-center">
-                            <i class="fas fa-calendar-alt mr-1.5"></i>
-                            <span>Deadline: {{ \Carbon\Carbon::parse($pitch->project->deadline)->format('M d, Y') }}</span>
-                        </div>
-                        @endif
-                    @else
-                        {{-- Standard pitch display --}}
-                        @if($isOwnerPerspective)
-                            <div class="flex items-center">
-                                <i class="fas fa-user mr-1.5 text-blue-500"></i>
-                                <span>Pitch by: <x-user-link :user="$pitch->user" /></span>
+                        <span class="text-sm font-medium">{{ $pitch->project ? $pitch->project->readableWorkflowTypeAttribute : 'Pitch' }}</span>
+                    </div>
+                </div>
+                
+                {{-- Enhanced Key Details Grid --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    @if($pitch->amount && $pitch->amount > 0)
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
+                                <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Amount</span>
                             </div>
-                        @else
-                             <div class="flex items-center">
-                                <i class="fas fa-user-tie mr-1.5 text-gray-500"></i>
-                                <span>Project Owner: <x-user-link :user="$pitch->project->user" /></span>
-                            </div>
-                        @endif
-                        
-                        @if($pitch->project->isContest())
-                        <div class="flex items-center">
-                            <i class="fas fa-trophy mr-1.5 text-yellow-500"></i>
-                            <span class="font-medium">Contest Entry</span>
-                             @if($pitch->rank)
-                             <span class="ml-1">(Rank: {{ $pitch->rank }})</span>
-                             @endif
+                            <div class="text-sm font-bold text-green-900">{{ Number::currency($pitch->amount, 'USD') }}</div>
                         </div>
-                        @endif
+                    @endif
+                    
+                    @if($pitch->project && $pitch->project->deadline)
+                        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-calendar text-purple-600 mr-2"></i>
+                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Deadline</span>
+                            </div>
+                            <div class="text-sm font-bold text-purple-900">{{ \Carbon\Carbon::parse($pitch->project->deadline)->format('M d, Y') }}</div>
+                        </div>
+                    @endif
+
+                    @if($pitch->project && $pitch->project->user)
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-user text-blue-600 mr-2"></i>
+                                <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Project Owner</span>
+                            </div>
+                            <div class="text-sm font-bold text-blue-900">
+                                @if(isset($components) && isset($components['user-link']))
+                                    <x-user-link :user="$pitch->project->user" />
+                                @else
+                                    {{ $pitch->project->user->name }}
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                    
+                    @if($pitch->project && $pitch->project->client_email)
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-user-tie text-purple-600 mr-2"></i>
+                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Client</span>
+                            </div>
+                            <div class="text-sm font-bold text-purple-900">{{ $pitch->project->client_name ?? $pitch->project->client_email }}</div>
+                        </div>
+                    @endif
+
+                    @if($pitch->delivery_date)
+                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-truck text-amber-600 mr-2"></i>
+                                <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Delivery</span>
+                            </div>
+                            <div class="text-sm font-bold text-amber-900">{{ \Carbon\Carbon::parse($pitch->delivery_date)->format('M d, Y') }}</div>
+                        </div>
                     @endif
                 </div>
 
-                {{-- Stats / Needs Attention --}}
-                <div class="mt-4 flex flex-wrap items-center justify-between">
-                    <div class="text-xs text-gray-500">
-                        <span>Updated: {{ $pitch->updated_at->diffForHumans() }}</span>
+                {{-- Enhanced Stats and Action Indicators --}}
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="text-sm text-gray-500 flex items-center">
+                        <i class="fas fa-clock mr-2"></i>
+                        <span>Updated {{ $pitch->updated_at->diffForHumans() }}</span>
                     </div>
-                    <div class="mt-2 md:mt-0 flex gap-2">
-                        @if($isClientManagement && $pitch->files->count() > 0)
-                        <div class="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-100 flex items-center">
-                            <i class="fas fa-file text-blue-400 mr-1"></i>
-                            <span>{{ $pitch->files->count() }} {{ Str::plural('File', $pitch->files->count()) }}</span>
-                        </div>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        @if($pitch->status === 'pending')
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-200/50 shadow-sm animate-pulse">
+                                <i class="fas fa-hourglass-half text-yellow-600 mr-2"></i>
+                                <span>Awaiting Response</span>
+                            </div>
+                        @elseif($pitch->status === 'ready_for_review')
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 shadow-sm animate-pulse">
+                                <i class="fas fa-eye text-blue-600 mr-2"></i>
+                                <span>Ready for Review</span>
+                            </div>
+                        @elseif($pitch->status === 'in_progress')
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 border border-purple-200/50 shadow-sm">
+                                <i class="fas fa-cog fa-spin text-purple-600 mr-2"></i>
+                                <span>In Progress</span>
+                            </div>
+                        @elseif($pitch->status === 'accepted')
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200/50 shadow-sm">
+                                <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                                <span>Accepted</span>
+                            </div>
+                        @elseif($pitch->status === 'completed')
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200/50 shadow-sm">
+                                <i class="fas fa-check-double text-green-600 mr-2"></i>
+                                <span>Completed</span>
+                            </div>
                         @endif
                         
-                        @if($needsAttention)
-                        <div class="bg-red-50 text-red-700 text-xs px-2 py-1 rounded-full border border-red-100 flex items-center animate-pulse">
-                            <i class="fas fa-bell text-red-400 mr-1"></i>
-                            <span>Needs Attention</span>
-                        </div>
+                        @if($pitch->files->count() > 0)
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-200/50 shadow-sm">
+                                <i class="fas fa-paperclip text-gray-600 mr-2"></i>
+                                <span>Has Files</span>
+                            </div>
                         @endif
-                         {{-- Add Payment attention badge if needed based on perspective --}}
                     </div>
                 </div>
             </div>

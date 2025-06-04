@@ -7,81 +7,187 @@
     ])->count();
 @endphp
 
-<div class="mb-4 rounded-lg shadow-sm overflow-hidden border border-base-300 hover:shadow-md transition-all">
-    <a href="{{ $projectUrl }}" class="block">
-        <div class="flex flex-col md:flex-row">
-            {{-- Project Image --}}
-            <div class="w-full md:w-40 h-40 bg-center bg-cover bg-no-repeat"
-                style="background-image: url('{{ $project->image_path ? $project->imageUrl : asset('images/default-project.jpg') }}');">
-            </div>
-
-            {{-- Project Info --}}
-            <div class="p-4 flex-grow">
-                <div class="flex flex-col md:flex-row md:items-start justify-between">
-                    <div>
-                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">Project</span>
-                        <h4 class="text-lg font-semibold text-gray-800 inline">{{ $project->name }}</h4>
-                        <div class="text-sm text-gray-500 mt-1">{{ $project->readableWorkflowTypeAttribute }}</div>
+<div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+    <!-- Gradient Border Effect -->
+    @if($project->isContest())
+        <div class="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    @else
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-indigo-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    @endif
+    
+    <a href="{{ $projectUrl }}" class="relative block m-0.5 bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
+        <div class="flex flex-col lg:flex-row">
+            {{-- Enhanced Project Image --}}
+            <div class="relative lg:w-64 h-48 lg:h-auto bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                @if($project->image_path)
+                    <img src="{{ $project->imageUrl }}" 
+                         alt="{{ $project->name }}"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                @else
+                    <div class="w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-music text-4xl text-blue-400/60 mb-2"></i>
+                            <p class="text-sm text-gray-500 font-medium">{{ $project->name }}</p>
+                        </div>
                     </div>
-                    <span class="inline-flex mt-2 md:mt-0 px-3 py-1 rounded-full text-sm font-medium {{ $project->getStatusColorClass() }}">
-                        {{ Str::title(str_replace('_', ' ', $project->status)) }}
+                @endif
+                
+                <!-- Workflow Type Badge -->
+                <div class="absolute bottom-4 left-4">
+                    @php
+                        $workflowConfig = [
+                            'standard' => ['bg' => 'bg-blue-100/90', 'text' => 'text-blue-800', 'icon' => 'fa-users', 'label' => 'Standard'],
+                            'contest' => ['bg' => 'bg-purple-100/90', 'text' => 'text-purple-800', 'icon' => 'fa-trophy', 'label' => 'Contest'],
+                            'direct_hire' => ['bg' => 'bg-green-100/90', 'text' => 'text-green-800', 'icon' => 'fa-user-check', 'label' => 'Direct Hire'],
+                            'client_management' => ['bg' => 'bg-orange-100/90', 'text' => 'text-orange-800', 'icon' => 'fa-briefcase', 'label' => 'Client Project'],
+                        ];
+                        $workflowType = $project->workflow_type ?? 'standard';
+                        $workflowStyle = $workflowConfig[$workflowType] ?? $workflowConfig['standard'];
+                    @endphp
+                    <span class="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold {{ $workflowStyle['bg'] }} {{ $workflowStyle['text'] }} border border-white/20 backdrop-blur-sm shadow-lg">
+                        <i class="fas {{ $workflowStyle['icon'] }} mr-2"></i>{{ $workflowStyle['label'] }}
                     </span>
                 </div>
                 
-                {{-- Key Details --}}
-                <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                    @if($project->isContest() && $project->prize_amount > 0)
-                    <div class="flex items-center">
-                        <i class="fas fa-trophy mr-1.5 text-yellow-500"></i>
-                        <span class="font-medium">{{ Number::currency($project->prize_amount, $project->prize_currency) }} Prize</span>
+                <!-- Status Badge -->
+                <div class="absolute top-4 right-4">
+                    <span class="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold {{ $project->getStatusColorClass() }} border border-white/20 backdrop-blur-sm shadow-lg">
+                        <div class="w-2 h-2 rounded-full {{ $project->status === 'open' ? 'bg-green-500' : ($project->status === 'completed' ? 'bg-purple-500' : 'bg-gray-400') }} mr-2"></div>
+                        {{ Str::title(str_replace('_', ' ', $project->status)) }}
+                    </span>
+                </div>
+            </div>
+
+            {{-- Enhanced Project Info --}}
+            <div class="flex-1 p-6 lg:p-8">
+                <!-- Header Section -->
+                <div class="mb-6">
+                    <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-200">
+                        {{ $project->name }}
+                    </h3>
+                    <div class="flex items-center text-gray-600 mb-4">
+                        <div class="flex items-center justify-center w-6 h-6 bg-purple-100 rounded-full mr-2">
+                            <i class="fas fa-layer-group text-purple-600 text-xs"></i>
+                        </div>
+                        <span class="text-sm font-medium">{{ $project->readableWorkflowTypeAttribute }}</span>
                     </div>
+                </div>
+                
+                {{-- Enhanced Key Details Grid --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    @if($project->isContest())
+                        @if($project->hasPrizes())
+                            <!-- New Contest Prize System -->
+                            <div class="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-4 border border-amber-200/50">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-trophy text-amber-600 mr-2"></i>
+                                    <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Contest Prizes</span>
+                                </div>
+                                <div class="text-sm font-bold text-amber-900">
+                                    @php $totalCash = $project->getTotalPrizeBudget(); @endphp
+                                    @if($totalCash > 0)
+                                        ${{ number_format($totalCash) }}+
+                                    @else
+                                        {{ $project->contestPrizes()->count() }} Prize{{ $project->contestPrizes()->count() > 1 ? 's' : '' }}
+                                    @endif
+                                </div>
+                                <div class="text-xs text-amber-600 mt-1">{{ $project->contestPrizes()->count() }} tiers</div>
+                            </div>
+                        @elseif($project->prize_amount > 0)
+                            <!-- Legacy Prize Display -->
+                            <div class="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-4 border border-yellow-200/50">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-trophy text-yellow-600 mr-2"></i>
+                                    <span class="text-xs font-medium text-yellow-700 uppercase tracking-wide">Prize (Legacy)</span>
+                                </div>
+                                <div class="text-sm font-bold text-yellow-900">{{ Number::currency($project->prize_amount, $project->prize_currency) }}</div>
+                            </div>
+                        @else
+                            <!-- No Prizes Set -->
+                            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200/50">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-gift text-gray-500 mr-2"></i>
+                                    <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">No Prizes</span>
+                                </div>
+                                <div class="text-sm font-bold text-gray-700">Contest</div>
+                            </div>
+                        @endif
                     @elseif($project->budget > 0)
-                    <div class="flex items-center">
-                        <i class="fas fa-dollar-sign mr-1.5 text-green-500"></i>
-                        <span class="font-medium">{{ Number::currency($project->budget, 'USD') }} Budget</span>
-                    </div>
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
+                                <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Budget</span>
+                            </div>
+                            <div class="text-sm font-bold text-green-900">{{ Number::currency($project->budget, 'USD') }}</div>
+                        </div>
+                    @else
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-heart text-blue-600 mr-2"></i>
+                                <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Type</span>
+                            </div>
+                            <div class="text-sm font-bold text-blue-900">Free Project</div>
+                        </div>
                     @endif
                     
                     @if($project->deadline)
-                    <div class="flex items-center">
-                        <i class="fas fa-calendar-alt mr-1.5"></i>
-                        <span>Deadline: {{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}</span>
-                    </div>
-                     @endif
+                        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-calendar text-purple-600 mr-2"></i>
+                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Deadline</span>
+                            </div>
+                            <div class="text-sm font-bold text-purple-900">{{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}</div>
+                        </div>
+                    @endif
 
                     @if($project->targetProducer)
-                    <div class="flex items-center">
-                        <i class="fas fa-user-check mr-1.5 text-indigo-500"></i>
-                        <span>Assigned: <x-user-link :user="$project->targetProducer" /></span>
-                    </div>
+                        <div class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-user-check text-indigo-600 mr-2"></i>
+                                <span class="text-xs font-medium text-indigo-700 uppercase tracking-wide">Assigned</span>
+                            </div>
+                            <div class="text-sm font-bold text-indigo-900">
+                                @if(isset($components) && isset($components['user-link']))
+                                    <x-user-link :user="$project->targetProducer" />
+                                @else
+                                    {{ $project->targetProducer->name }}
+                                @endif
+                            </div>
+                        </div>
                     @endif
+                    
                     @if($project->client_email)
-                    <div class="flex items-center">
-                        <i class="fas fa-user-tie mr-1.5 text-purple-500"></i>
-                        <span>Client: {{ $project->client_name ?? $project->client_email }}</span>
-                    </div>
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200/50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-user-tie text-purple-600 mr-2"></i>
+                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Client</span>
+                            </div>
+                            <div class="text-sm font-bold text-purple-900">{{ $project->client_name ?? $project->client_email }}</div>
+                        </div>
                     @endif
                 </div>
 
-                {{-- Stats / Needs Attention --}}
-                <div class="mt-4 flex flex-wrap items-center justify-between">
-                    <div class="text-xs text-gray-500">
-                        <span>Updated: {{ $project->updated_at->diffForHumans() }}</span>
+                {{-- Enhanced Stats and Attention Indicators --}}
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="text-sm text-gray-500 flex items-center">
+                        <i class="fas fa-clock mr-2"></i>
+                        <span>Updated {{ $project->updated_at->diffForHumans() }}</span>
                     </div>
-                    <div class="mt-2 md:mt-0 flex gap-2">
+                    
+                    <div class="flex flex-wrap gap-2">
                         @if($project->pitches->count() > 0)
-                        <div class="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-full border border-indigo-100 flex items-center">
-                            <i class="fas fa-user-edit text-indigo-400 mr-1"></i>
-                            <span>{{ $project->pitches->count() }} {{ Str::plural('Pitch', $project->pitches->count()) }}</span>
-                        </div>
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 border border-indigo-200/50 shadow-sm">
+                                <i class="fas fa-paper-plane text-indigo-600 mr-2"></i>
+                                <span>{{ $project->pitches->count() }} {{ Str::plural('Pitch', $project->pitches->count()) }}</span>
+                            </div>
                         @endif
+                        
                         @if($needsAttentionCount > 0)
-                        <div class="bg-red-50 text-red-700 text-xs px-2 py-1 rounded-full border border-red-100 flex items-center animate-pulse">
-                            <i class="fas fa-bell text-red-400 mr-1"></i>
-                            <span>{{ $needsAttentionCount }} {{ Str::plural('Pitch', $needsAttentionCount) }} need{{ $needsAttentionCount === 1 ? 's' : '' }} attention</span>
-                        </div>
+                            <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border border-red-200/50 shadow-sm animate-pulse">
+                                <i class="fas fa-bell text-red-600 mr-2"></i>
+                                <span>{{ $needsAttentionCount }} need{{ $needsAttentionCount === 1 ? 's' : '' }} attention</span>
+                            </div>
                         @endif
-                        {{-- Add Payment attention badge if needed --}}
                     </div>
                 </div>
             </div>

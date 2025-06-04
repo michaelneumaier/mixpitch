@@ -67,8 +67,9 @@ class PitchPolicy
                 Pitch::STATUS_IN_PROGRESS,
                 Pitch::STATUS_REVISIONS_REQUESTED,
                 Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Added for Client Mgmt
-                // Pitch::STATUS_DENIED, // Should denied pitches be editable?
-                // Pitch::STATUS_PENDING_REVIEW // Should review-pending be editable?
+                Pitch::STATUS_CONTEST_ENTRY, // Allow contest entries to be updated/managed
+                Pitch::STATUS_DENIED, // Allow denied pitches to be editable
+                Pitch::STATUS_PENDING_REVIEW, // Allow review-pending to be editable
             ];
             
             // For Client Management projects, also allow editing when READY_FOR_REVIEW (for recall functionality)
@@ -97,7 +98,8 @@ class PitchPolicy
             Pitch::STATUS_REVISIONS_REQUESTED,
             Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Added
             Pitch::STATUS_AWAITING_ACCEPTANCE, // Added for explicit DH
-            // Pitch::STATUS_DENIED, // Should denied pitches be deletable?
+            Pitch::STATUS_CONTEST_ENTRY, // Allow contest entries to be deleted
+            Pitch::STATUS_DENIED, // Allow denied pitches to be deleted
         ]);
     }
 
@@ -460,6 +462,94 @@ class PitchPolicy
     }
 
     // <<< END PHASE 3: CONTEST POLICIES >>>
+
+    // <<< PHASE 5: CONTEST JUDGING POLICIES >>>
+
+    /**
+     * Determine whether the user can set contest placement for a pitch.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function setContestPlacement(User $user, Pitch $pitch): bool
+    {
+        // Only the contest runner can set placements
+        return $user->id === $pitch->project->user_id &&
+               $pitch->project->isContest() &&
+               !$pitch->project->isJudgingFinalized() &&
+               in_array($pitch->status, [Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP]);
+    }
+
+    /**
+     * Determine whether the user can view contest entry snapshots.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function viewContestEntry(User $user, Pitch $pitch): bool
+    {
+        // Contest runner can always view entries
+        if ($user->id === $pitch->project->user_id && $pitch->project->isContest()) {
+            return true;
+        }
+
+        // Entry owner can view their own entry
+        if ($user->id === $pitch->user_id && $pitch->project->isContest()) {
+            return true;
+        }
+
+        // Other participants can view if submissions are public or judging is finalized
+        if ($pitch->project->isContest()) {
+            $hasEntry = $pitch->project->pitches()
+                                      ->where('user_id', $user->id)
+                                      ->where('status', 'like', '%contest%')
+                                      ->exists();
+            
+            if ($hasEntry && ($pitch->project->show_submissions_publicly || $pitch->project->isJudgingFinalized())) {
+                return true;
+            }
+        }
+
+        // Public can view if contest allows public viewing
+        if ($pitch->project->isContest() && $pitch->project->show_submissions_publicly) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether the user can judge this specific contest entry.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function judgeContestEntry(User $user, Pitch $pitch): bool
+    {
+        // Only the contest runner can judge entries, and only if judging isn't finalized
+        return $user->id === $pitch->project->user_id &&
+               $pitch->project->isContest() &&
+               !$pitch->project->isJudgingFinalized() &&
+               in_array($pitch->status, [Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP]);
+    }
+
+    /**
+     * Determine whether the user can access contest judging features for this pitch.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Pitch  $pitch
+     * @return bool
+     */
+    public function accessContestJudging(User $user, Pitch $pitch): bool
+    {
+        // Only the contest runner can access judging features
+        return $user->id === $pitch->project->user_id && $pitch->project->isContest();
+    }
+
+    // <<< END PHASE 5: CONTEST JUDGING POLICIES >>>
 
     // Add other policy methods as needed, e.g., for completion, file management
 }

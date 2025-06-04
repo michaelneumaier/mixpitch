@@ -6,6 +6,7 @@ namespace App\Livewire;
 // use App\Http\Controllers\ProjectController;
 use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
+use App\Models\ContestPrize;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,7 @@ use App\Exceptions\Project\ProjectUpdateException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
 use Masmerise\Toaster\Toaster;
+use App\Models\ProjectType;
 
 class CreateProject extends Component
 {
@@ -64,6 +66,10 @@ class CreateProject extends Component
     public $judging_deadline = null;
     public $prize_amount = null;
     public $prize_currency = Project::DEFAULT_CURRENCY;
+    
+    // New properties for contest prize integration
+    public $totalPrizeBudget = 0;
+    public $prizeCount = 0;
 
     // Properties for Direct Hire
     public $target_producer_id = null;
@@ -75,6 +81,11 @@ class CreateProject extends Component
     public ?string $client_name = null;
     public $payment_amount = null; // Added for Client Management Payment
 
+    protected $listeners = [
+        'prizesUpdated' => 'handlePrizesUpdated',
+        'prizesSaved' => 'handlePrizesSaved'
+    ];
+
     protected function rules(): array
     {
         $rules = [
@@ -83,7 +94,7 @@ class CreateProject extends Component
             'form.artistName' => 'nullable|string|max:30',
             'form.projectType' => 'required|string|max:50',
             'form.description' => 'required|string|min:5|max:1000',
-            'form.genre' => 'required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk',
+            'form.genre' => 'required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk',
             'form.budgetType' => 'required|in:free,paid',
             'form.budget' => 'nullable|numeric|min:0',
             'form.deadline' => 'nullable|date',
@@ -96,11 +107,10 @@ class CreateProject extends Component
             // Component properties
             'workflow_type' => ['required', Rule::in(Project::getWorkflowTypes())],
 
-            // Conditional Validation
+            // Conditional Validation - UPDATED: Removed old prize validation for contests
             'submission_deadline' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CONTEST.'|nullable|date|after:now',
             'judging_deadline' => 'nullable|date|after:submission_deadline',
-            'prize_amount' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CONTEST.'|nullable|numeric|min:0',
-            'prize_currency' => 'required_with:prize_amount|nullable|string|size:3',
+            // Note: prize_amount and prize_currency are now managed by ContestPrizeConfigurator
 
             'target_producer_id' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_DIRECT_HIRE.'|nullable|exists:users,id',
 
@@ -140,7 +150,7 @@ class CreateProject extends Component
                     $stepRules['form.description'] = 'nullable|string|min:5|max:1000';
                     $stepRules['form.artistName'] = $allRules['form.artistName'];
                     $stepRules['form.projectType'] = 'nullable|string|max:50';
-                    $stepRules['form.genre'] = 'nullable|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk';
+                    $stepRules['form.genre'] = 'nullable|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk';
                 } else {
                     // Standard validation for other workflows
                     $stepRules['form.description'] = $allRules['form.description'];
@@ -160,8 +170,9 @@ class CreateProject extends Component
             case 3: // Workflow-Specific Configuration
                 $stepRules = [];
                 
-                // Budget and deadline are not required for Client Management
-                if ($this->workflow_type !== Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+                // Budget and deadline are not required for Client Management OR Contests (prizes managed separately)
+                if ($this->workflow_type !== Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && 
+                    $this->workflow_type !== Project::WORKFLOW_TYPE_CONTEST) {
                     $stepRules['form.budgetType'] = $allRules['form.budgetType'];
                     $stepRules['form.budget'] = $allRules['form.budget'];
                 }
@@ -177,8 +188,7 @@ class CreateProject extends Component
                 if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
                     $stepRules['submission_deadline'] = $allRules['submission_deadline'];
                     $stepRules['judging_deadline'] = $allRules['judging_deadline'];
-                    $stepRules['prize_amount'] = $allRules['prize_amount'];
-                    $stepRules['prize_currency'] = $allRules['prize_currency'];
+                    // Note: Prize configuration is now handled by ContestPrizeConfigurator component
                 } elseif ($this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE) {
                     $stepRules['target_producer_id'] = $allRules['target_producer_id'];
                 } elseif ($this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
@@ -258,20 +268,21 @@ class CreateProject extends Component
                 ],
                 'badge' => 'High Engagement'
             ],
-            [
-                'value' => Project::WORKFLOW_TYPE_DIRECT_HIRE,
-                'name' => 'Direct Hire',
-                'description' => 'Invite a specific producer to work on your project privately.',
-                'icon' => 'fas fa-user-check',
-                'color' => 'green',
-                'features' => [
-                    'Private collaboration',
-                    'Invite specific producer',
-                    'Direct communication',
-                    'Faster turnaround'
-                ],
-                'badge' => 'Exclusive'
-            ],
+            // Direct Hire temporarily hidden - not fully implemented yet
+            // [
+            //     'value' => Project::WORKFLOW_TYPE_DIRECT_HIRE,
+            //     'name' => 'Direct Hire',
+            //     'description' => 'Invite a specific producer to work on your project privately.',
+            //     'icon' => 'fas fa-user-check',
+            //     'color' => 'green',
+            //     'features' => [
+            //         'Private collaboration',
+            //         'Invite specific producer',
+            //         'Direct communication',
+            //         'Faster turnaround'
+            //     ],
+            //     'badge' => 'Exclusive'
+            // ],
             [
                 'value' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
                 'name' => 'Client Management',
@@ -315,7 +326,7 @@ class CreateProject extends Component
                 return [
                     ['key' => 'submission_deadline', 'label' => 'Submission Deadline', 'type' => 'date'],
                     ['key' => 'judging_deadline', 'label' => 'Judging Deadline', 'type' => 'date'],
-                    ['key' => 'prize_amount', 'label' => 'Prize Amount', 'type' => 'currency'],
+                    // Note: Prize configuration is now handled by ContestPrizeConfigurator component
                 ];
             case Project::WORKFLOW_TYPE_DIRECT_HIRE:
                 return [
@@ -337,7 +348,7 @@ class CreateProject extends Component
      */
     public function getProjectSummaryProperty(): array
     {
-        return [
+        $summary = [
             'name' => $this->form->name,
             'artist_name' => $this->form->artistName,
             'project_type' => $this->form->projectType,
@@ -347,16 +358,34 @@ class CreateProject extends Component
             'budget' => $this->form->budget,
             'deadline' => $this->form->deadline,
             'additional_notes' => $this->form->notes,
+            'workflow_type' => $this->workflow_type,
             
             // Workflow-specific fields
             'submission_deadline' => $this->submission_deadline,
             'judging_deadline' => $this->judging_deadline,
-            'prize_amount' => $this->prize_amount,
+            'total_prize_budget' => $this->totalPrizeBudget,
+            'prize_count' => $this->prizeCount,
             'target_producer_query' => $this->target_producer_query,
             'client_email' => $this->client_email,
             'client_name' => $this->client_name,
             'payment_amount' => $this->payment_amount,
         ];
+
+        // Add contest prize data for the wizard summary
+        if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
+            $summary['totalPrizeBudget'] = $this->totalPrizeBudget;
+            $summary['prizeCount'] = $this->prizeCount;
+            
+            // If editing an existing project, get the actual prize summary
+            if ($this->isEdit && $this->project && $this->project->hasPrizes()) {
+                $summary['prizeSummary'] = $this->project->getPrizeSummary();
+            } else {
+                // For new projects, get prize data from session (set by the configurator)
+                $summary['prizeSummary'] = session('wizard_prize_summary', []);
+            }
+        }
+
+        return $summary;
     }
 
     /**
@@ -481,8 +510,21 @@ class CreateProject extends Component
             if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
                 $this->submission_deadline = $project->submission_deadline ? $project->submission_deadline->format('Y-m-d\TH:i') : null;
                 $this->judging_deadline = $project->judging_deadline ? $project->judging_deadline->format('Y-m-d\TH:i') : null;
-                $this->prize_amount = $project->prize_amount;
-                $this->prize_currency = $project->prize_currency;
+                
+                // Load prize data from new ContestPrize system
+                $this->totalPrizeBudget = $project->getTotalPrizeBudget();
+                $this->prizeCount = $project->contestPrizes()->count();
+                
+                // Keep old fields for compatibility but load from new system if available
+                if ($project->hasPrizes()) {
+                    // Update budget to match total cash prizes
+                    $this->form->budget = $this->totalPrizeBudget;
+                    $this->form->budgetType = $this->totalPrizeBudget > 0 ? 'paid' : 'free';
+                } else {
+                    // Fallback to old prize fields if no new prizes exist
+                    $this->prize_amount = $project->prize_amount;
+                    $this->prize_currency = $project->prize_currency;
+                }
             }
             if ($this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE) {
                 $this->target_producer_id = $project->target_producer_id;
@@ -648,7 +690,10 @@ class CreateProject extends Component
                 $this->form->budget = preg_replace('/[^\d.]/', '', $this->form->budget);
             }
 
-            // Validate form data
+            // Validate component rules first (includes workflow-specific validation)
+            $this->validate();
+            
+            // Then validate form data
             $validatedFormData = $this->form->validate();
             
             // Sync component title with form name if needed
@@ -678,15 +723,18 @@ class CreateProject extends Component
                 'title' => $this->title,
                 'description' => $this->form->description ?: 'Client project', // Default for client management
                 'artist_name' => $this->form->artistName,
-                'project_type' => $this->form->projectType ?: 'single', // Default to single
+                'project_type' => $this->form->projectType ?: 'single', // Keep for backward compatibility
                 'collaboration_type' => $collaborationTypes,
                 
                 // Format budget as numeric value - for Client Management, use 0 as default
                 'budget' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? 0 : 
-                           (is_numeric($this->form->budget) ? (float)$this->form->budget : 0),
+                           ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->totalPrizeBudget : 
+                           (is_numeric($this->form->budget) ? (float)$this->form->budget : 0)),
                 
-                // Format deadline for database (use Carbon object)
-                'deadline' => !empty($this->form->deadline) ? \Carbon\Carbon::parse($this->form->deadline) : null,
+                // Format deadline for database (use submission_deadline for contests, standard deadline for others)
+                'deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? 
+                            ($this->submission_deadline ? \Carbon\Carbon::parse($this->submission_deadline) : null) :
+                            (!empty($this->form->deadline) ? \Carbon\Carbon::parse($this->form->deadline) : null),
                 
                 'genre' => $this->form->genre ?: 'Pop', // Default genre for client management
                 'genre_id' => $this->genre_id,
@@ -697,8 +745,7 @@ class CreateProject extends Component
                 'workflow_type' => $this->workflow_type,
                 'submission_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->submission_deadline : null,
                 'judging_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->judging_deadline : null,
-                'prize_amount' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->prize_amount : null,
-                'prize_currency' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->prize_currency : null,
+                // Note: prize_amount and prize_currency are now managed by ContestPrizeConfigurator
                 'target_producer_id' => $this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE ? $this->target_producer_id : null,
                 'client_email' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_email : null,
                 'client_name' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_name : null,
@@ -706,6 +753,14 @@ class CreateProject extends Component
                 // Add payment_amount for Client Management (this gets passed to the ProjectObserver)
                 'payment_amount' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->payment_amount : null,
             ];
+            
+            // Add project_type_id by looking up the ProjectType
+            if (!empty($this->form->projectType)) {
+                $projectType = ProjectType::where('slug', $this->form->projectType)->first();
+                if ($projectType) {
+                    $projectData['project_type_id'] = $projectType->id;
+                }
+            }
             
             if ($this->isEdit && $this->originalProject) {
                 // Update existing project
@@ -726,12 +781,31 @@ class CreateProject extends Component
                     $this->form->projectImage
                 );
                 $project->update(['status' => Project::STATUS_UNPUBLISHED, 'is_published' => false]);
+                
+                // Save contest prizes if this is a contest project
+                if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
+                    $prizesSaved = \App\Livewire\ContestPrizeConfigurator::saveStoredPrizesToProject($project);
+                    if ($prizesSaved) {
+                        // Update project budget with total cash prizes
+                        $totalCashPrizes = $project->getTotalPrizeBudget();
+                        if ($totalCashPrizes > 0) {
+                            $project->update(['budget' => $totalCashPrizes]);
+                        }
+                    }
+                }
+                
+                // Clear wizard-related session data
+                session()->forget(['wizard_prize_summary', 'contest_prize_data']);
+                
                 Toaster::success('Project created successfully!');
             }
             
             // Redirect to the project management page
             return redirect()->route('projects.manage', $project->slug);
             
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions so they can be caught by Livewire
+            throw $e;
         } catch (AuthorizationException $e) {
             Toaster::error('You are not authorized to perform this action.');
         } catch (ProjectCreationException | ProjectUpdateException $e) {
@@ -829,6 +903,48 @@ class CreateProject extends Component
                     'required_fields' => ['name', 'description', 'projectType', 'genre'],
                 ];
         }
+    }
+
+    /**
+     * Handle prize updates from the ContestPrizeConfigurator component
+     */
+    public function handlePrizesUpdated($data)
+    {
+        $this->totalPrizeBudget = $data['totalCashPrizes'] ?? 0;
+        $this->prizeCount = $data['prizeCounts']['total'] ?? 0;
+        
+        // Store prize summary for wizard display
+        if (isset($data['prizeSummary'])) {
+            session(['wizard_prize_summary' => $data['prizeSummary']]);
+        }
+        
+        // Auto-update form budget if it's a contest
+        if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
+            if ($this->totalPrizeBudget > 0) {
+                $this->form->budgetType = 'paid';
+                $this->form->budget = $this->totalPrizeBudget;
+            } else {
+                $this->form->budgetType = 'free';
+                $this->form->budget = 0;
+            }
+        }
+    }
+
+    /**
+     * Handle when prizes are saved by the configurator
+     */
+    public function handlePrizesSaved()
+    {
+        // Optionally refresh the component or show a message
+        $this->dispatch('refresh');
+    }
+
+    /**
+     * Get active project types for dropdowns
+     */
+    public function getProjectTypesProperty()
+    {
+        return ProjectType::getActive();
     }
 
     public function render()

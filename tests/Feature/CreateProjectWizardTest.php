@@ -20,6 +20,9 @@ class CreateProjectWizardTest extends TestCase
         // Create and authenticate a user
         $user = User::factory()->create();
         $this->actingAs($user);
+        
+        // Seed project types for tests that need them
+        $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ProjectTypeSeeder']);
     }
 
     /** @test */
@@ -84,11 +87,15 @@ class CreateProjectWizardTest extends TestCase
         
         $workflowTypes = $component->get('workflowTypes');
         
-        $this->assertCount(4, $workflowTypes);
+        // Should now have 3 workflow types (Direct Hire is hidden)
+        $this->assertCount(3, $workflowTypes);
         $this->assertEquals(Project::WORKFLOW_TYPE_STANDARD, $workflowTypes[0]['value']);
         $this->assertEquals(Project::WORKFLOW_TYPE_CONTEST, $workflowTypes[1]['value']);
-        $this->assertEquals(Project::WORKFLOW_TYPE_DIRECT_HIRE, $workflowTypes[2]['value']);
-        $this->assertEquals(Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT, $workflowTypes[3]['value']);
+        $this->assertEquals(Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT, $workflowTypes[2]['value']);
+        
+        // Verify Direct Hire is not in the available options
+        $workflowValues = array_column($workflowTypes, 'value');
+        $this->assertNotContains(Project::WORKFLOW_TYPE_DIRECT_HIRE, $workflowValues);
     }
 
     /** @test */
@@ -133,23 +140,24 @@ class CreateProjectWizardTest extends TestCase
             ->call('nextStep')
             ->assertSee('Contest Settings')
             ->assertSee('Submission Deadline')
-            ->assertSee('Prize Amount');
+            ->assertSee('Contest Prizes');
     }
 
     /** @test */
-    public function direct_hire_workflow_shows_producer_search()
-    {
-        Livewire::test(CreateProject::class)
-            ->set('workflow_type', Project::WORKFLOW_TYPE_DIRECT_HIRE)
-            ->call('nextStep')
-            ->set('form.name', 'Direct Hire Project')
-            ->set('form.description', 'Direct hire description')
-            ->set('form.genre', 'Jazz')
-            ->set('form.collaborationTypeMixing', true)
-            ->call('nextStep')
-            ->assertSee('Direct Hire Settings')
-            ->assertSee('Target Producer');
-    }
+    // Direct Hire workflow is temporarily disabled
+    // public function direct_hire_workflow_shows_producer_search()
+    // {
+    //     Livewire::test(CreateProject::class)
+    //         ->set('workflow_type', Project::WORKFLOW_TYPE_DIRECT_HIRE)
+    //         ->call('nextStep')
+    //         ->set('form.name', 'Direct Hire Project')
+    //         ->set('form.description', 'Direct hire description')
+    //         ->set('form.genre', 'Jazz')
+    //         ->set('form.collaborationTypeMixing', true)
+    //         ->call('nextStep')
+    //         ->assertSee('Direct Hire Settings')
+    //         ->assertSee('Target Producer');
+    // }
 
     /** @test */
     public function client_management_workflow_shows_client_fields()
@@ -254,7 +262,7 @@ class CreateProjectWizardTest extends TestCase
             ->set('form.artistName', 'Summary Artist')
             ->set('form.projectType', 'album')
             ->set('form.description', 'Summary description')
-            ->set('form.genre', 'Hip-Hop')
+            ->set('form.genre', 'Hip Hop')
             ->set('form.collaborationTypeMixing', true)
             ->set('form.collaborationTypeMastering', true)
             ->call('nextStep')
@@ -267,7 +275,7 @@ class CreateProjectWizardTest extends TestCase
         $this->assertEquals('Summary Test Project', $summary['name']);
         $this->assertEquals('Summary Artist', $summary['artist_name']);
         $this->assertEquals('album', $summary['project_type']);
-        $this->assertEquals('Hip-Hop', $summary['genre']);
+        $this->assertEquals('Hip Hop', $summary['genre']);
         $this->assertEquals(500, $summary['budget']);
         $this->assertContains('mixing', $summary['collaboration_types']);
         $this->assertContains('mastering', $summary['collaboration_types']);

@@ -167,20 +167,27 @@ class ProjectResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('image_path')
                     ->label('Cover')
-                    ->square(),
+                    ->square()
+                    ->defaultImageUrl(fn ($record) => "https://ui-avatars.com/api/?name=" . urlencode($record->name) . "&color=6366f1&background=e0e7ff"),
                 
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable()
-                    ->limit(30),
+                    ->limit(30)
+                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                        $state = $column->getState();
+                        return strlen($state) > 30 ? $state : null;
+                    }),
                 
                 Tables\Columns\TextColumn::make('user.name')
                     ->searchable()
                     ->sortable()
-                    ->label('Owner'),
+                    ->label('Owner')
+                    ->formatStateUsing(fn ($state, $record) => $state . ' (' . $record->user->email . ')'),
                 
                 Tables\Columns\TextColumn::make('workflow_type')
                     ->badge()
+                    ->searchable()
                     ->color(fn (string $state): string => match ($state) {
                         'album' => 'success',
                         'single' => 'info',
@@ -188,11 +195,15 @@ class ProjectResource extends Resource
                         'remix' => 'danger',
                         'cover' => 'gray',
                         'soundtrack' => 'primary',
+                        'direct_hire' => 'purple',
+                        'client_management' => 'orange',
                         default => 'secondary',
-                    }),
+                    })
+                    ->sortable(),
                 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
+                    ->searchable()
                     ->color(fn (string $state): string => match ($state) {
                         'draft' => 'gray',
                         'in_progress' => 'info',
@@ -200,25 +211,56 @@ class ProjectResource extends Resource
                         'completed' => 'success',
                         'cancelled' => 'danger',
                         default => 'secondary',
-                    }),
-                
-                Tables\Columns\IconColumn::make('is_published')
-                    ->boolean()
-                    ->label('Published'),
-                
-                Tables\Columns\TextColumn::make('deadline')
-                    ->date()
+                    })
                     ->sortable(),
                 
-                Tables\Columns\TextColumn::make('completed_at')
-                    ->dateTime()
+                Tables\Columns\TextColumn::make('budget')
+                    ->money('USD')
                     ->sortable()
-                    ->toggleable(),
+                    ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
+                    ->badge(fn ($state): bool => $state > 0),
+                
+                Tables\Columns\TextColumn::make('pitches_count')
+                    ->counts('pitches')
+                    ->label('Pitches')
+                    ->badge()
+                    ->color('info'),
+                
+                Tables\Columns\IconColumn::make('is_published')
+                    ->label('Published')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-eye')
+                    ->falseIcon('heroicon-o-eye-slash')
+                    ->trueColor('success')
+                    ->falseColor('gray'),
+                
+                Tables\Columns\TextColumn::make('total_storage_used')
+                    ->label('Storage')
+                    ->formatStateUsing(fn ($state): string => $state ? number_format($state / 1024 / 1024, 1) . ' MB' : '0 MB')
+                    ->sortable(),
                 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
+                    ->since()
                     ->toggleable(isToggledHiddenByDefault: true),
+                
+                Tables\Columns\TextColumn::make('deadline')
+                    ->date()
+                    ->sortable()
+                    ->color(function ($state): string {
+                        if (!$state) return 'gray';
+                        $daysUntil = now()->diffInDays($state, false);
+                        return $daysUntil < 0 ? 'danger' : ($daysUntil <= 7 ? 'warning' : 'success');
+                    })
+                    ->formatStateUsing(function ($state): string {
+                        if (!$state) return 'No deadline';
+                        $daysUntil = now()->diffInDays($state, false);
+                        if ($daysUntil < 0) return 'Overdue by ' . abs($daysUntil) . ' days';
+                        if ($daysUntil == 0) return 'Due today';
+                        return 'Due in ' . $daysUntil . ' days';
+                    })
+                    ->toggleable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -228,44 +270,101 @@ class ProjectResource extends Resource
                         'pending_review' => 'Pending Review',
                         'completed' => 'Completed',
                         'cancelled' => 'Cancelled',
-                    ]),
-                
+                    ])
+                    ->multiple(),
+                    
                 Tables\Filters\SelectFilter::make('workflow_type')
                     ->label('Workflow Type')
-                    ->options(collect(Project::getWorkflowTypes())->mapWithKeys(fn($type) => [$type => Project::getReadableWorkflowTypeAttribute($type)])),
-                
+                    ->options([
+                        'album' => 'Album',
+                        'single' => 'Single',
+                        'ep' => 'EP',
+                        'remix' => 'Remix',
+                        'cover' => 'Cover',
+                        'soundtrack' => 'Soundtrack',
+                        'direct_hire' => 'Direct Hire',
+                        'client_management' => 'Client Management',
+                    ])
+                    ->multiple(),
+                    
                 Tables\Filters\Filter::make('is_published')
-                    ->query(fn (Builder $query): Builder => $query->where('is_published', true))
-                    ->label('Published Only')
-                    ->toggle(),
-                
-                Tables\Filters\Filter::make('completed')
-                    ->query(fn (Builder $query): Builder => $query->whereNotNull('completed_at'))
-                    ->label('Completed Only')
-                    ->toggle(),
+                    ->label('Published Projects')
+                    ->query(fn (Builder $query): Builder => $query->where('is_published', true)),
+                    
+                Tables\Filters\Filter::make('has_budget')
+                    ->label('Paid Projects')
+                    ->query(fn (Builder $query): Builder => $query->where('budget', '>', 0)),
+                    
+                Tables\Filters\Filter::make('overdue')
+                    ->label('Overdue Projects')
+                    ->query(fn (Builder $query): Builder => $query->where('deadline', '<', now())->whereNotIn('status', ['completed', 'cancelled'])),
+                    
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')
+                            ->label('Created from'),
+                        Forms\Components\DatePicker::make('created_until')
+                            ->label('Created until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                            );
+                    }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('view_pitches')
+                        ->label('View Pitches')
+                        ->icon('heroicon-m-musical-note')
+                        ->url(fn (Project $record): string => route('filament.admin.resources.pitches.index', ['tableFilters[project_id][value]' => $record->id]))
+                        ->color('info'),
+                    Tables\Actions\Action::make('toggle_published')
+                        ->label(fn (Project $record): string => $record->is_published ? 'Unpublish' : 'Publish')
+                        ->icon(fn (Project $record): string => $record->is_published ? 'heroicon-m-eye-slash' : 'heroicon-m-eye')
+                        ->color(fn (Project $record): string => $record->is_published ? 'warning' : 'success')
+                        ->action(function (Project $record): void {
+                            $record->update(['is_published' => !$record->is_published]);
+                        })
+                        ->requiresConfirmation(),
+                    Tables\Actions\DeleteAction::make(),
+                ])->label('Actions'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('markAsCompleted')
+                    Tables\Actions\BulkAction::make('publish')
+                        ->label('Publish Selected')
+                        ->icon('heroicon-m-eye')
+                        ->color('success')
+                        ->action(fn (Collection $records) => $records->each->update(['is_published' => true]))
+                        ->requiresConfirmation(),
+                    Tables\Actions\BulkAction::make('unpublish')
+                        ->label('Unpublish Selected')
+                        ->icon('heroicon-m-eye-slash')
+                        ->color('warning')
+                        ->action(fn (Collection $records) => $records->each->update(['is_published' => false]))
+                        ->requiresConfirmation(),
+                    Tables\Actions\BulkAction::make('mark_completed')
                         ->label('Mark as Completed')
-                        ->icon('heroicon-o-check-circle')
-                        ->action(function (Collection $records): void {
-                            foreach ($records as $record) {
-                                $record->update([
-                                    'status' => 'completed',
-                                    'completed_at' => now(),
-                                ]);
-                            }
-                        })
-                        ->deselectRecordsAfterCompletion(),
+                        ->icon('heroicon-m-check-circle')
+                        ->color('success')
+                        ->action(fn (Collection $records) => $records->each->update(['status' => 'completed', 'completed_at' => now()]))
+                        ->requiresConfirmation(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc')
+            ->striped()
+            ->paginated([10, 25, 50, 100])
+            ->poll('60s');
     }
 
     public static function getRelations(): array

@@ -1,6 +1,12 @@
 <div class="container mx-auto px-2 sm:px-4">
     <!-- Project Header -->
-    <x-project.header :project="$project" :hasPreviewTrack="false" />
+    <x-project.header 
+        :project="$project" 
+        :hasPreviewTrack="false" 
+        context="client"
+        :showEditButton="false"
+        :showActions="false"
+    />
 
     <!-- Mobile Activity Summary (visible on mobile/tablet, hidden on desktop) -->
     <div class="lg:hidden mb-6">
@@ -106,10 +112,10 @@
             <!-- Communication Timeline -->
             <x-client-project.communication-timeline :component="$this" :conversationItems="$this->conversationItems" />
 
-            <!-- File Management -->
+            <!-- File Management with Separation -->
             <div class="bg-white rounded-lg border border-base-300 shadow-sm p-4">
                 <h4 class="text-lg font-semibold mb-4 flex items-center">
-                    <i class="fas fa-file-upload text-purple-500 mr-2"></i>Project Files
+                    <i class="fas fa-file-upload text-purple-500 mr-2"></i>File Management
                 </h4>
 
                 <!-- Storage Indicator -->
@@ -118,17 +124,109 @@
                     :storageLimitMessage="$storageLimitMessage"
                     :storageRemaining="$this->formatFileSize($storageRemaining)" />
 
-                <!-- Upload Section -->
-                <x-file-management.upload-section 
-                    :model="$pitch"
-                    title="Upload Files for Client"
-                    description="Upload audio, PDFs, or images to share with your client" />
+                <!-- Client Reference Files Section -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <h5 class="font-semibold text-blue-800 mb-3 flex items-center">
+                        <i class="fas fa-folder-open text-blue-600 mr-2"></i>
+                        Client Reference Files
+                        <span class="ml-2 bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full">
+                            {{ $this->clientFiles->count() }} files
+                        </span>
+                    </h5>
+                    <p class="text-sm text-blue-700 mb-4">Files uploaded by your client to provide project requirements, references, or examples.</p>
+                    
+                    @if($this->clientFiles->count() > 0)
+                        <div class="space-y-2">
+                            @foreach($this->clientFiles as $file)
+                                <div class="flex items-center justify-between py-2 px-3 bg-blue-100 rounded">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file text-blue-600 mr-2"></i>
+                                        <div>
+                                            <span class="text-sm font-medium text-blue-800">{{ $file->file_name }}</span>
+                                            <div class="text-xs text-blue-600">
+                                                {{ $this->formatFileSize($file->file_size) }} • 
+                                                Uploaded {{ $file->created_at->diffForHumans() }}
+                                                @if(isset($file->metadata) && json_decode($file->metadata)?->uploaded_by_client)
+                                                    • <span class="font-medium">Client Upload</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button wire:click="downloadFile({{ $file->id }})" 
+                                                class="text-blue-600 hover:text-blue-800 text-sm">
+                                            <i class="fas fa-download mr-1"></i>Download
+                                        </button>
+                                        <button wire:click="confirmDeleteClientFile({{ $file->id }})" 
+                                                class="text-red-600 hover:text-red-800 text-sm">
+                                            <i class="fas fa-trash mr-1"></i>Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-6">
+                            <i class="fas fa-inbox text-blue-400 text-3xl mb-3"></i>
+                            <p class="text-blue-600 text-sm">No client files yet. Your client can upload reference files through their portal.</p>
+                        </div>
+                    @endif
+                </div>
 
-                <!-- File List -->
-                <x-file-management.file-list 
-                    :files="$pitch->files"
-                    :canDelete="in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED])"
-                    :formatFileSize="fn($size) => $this->formatFileSize($size)" />
+                <!-- Producer Deliverables Section -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h5 class="font-semibold text-green-800 mb-3 flex items-center">
+                        <i class="fas fa-music text-green-600 mr-2"></i>
+                        Your Deliverables
+                        <span class="ml-2 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">
+                            {{ $this->producerFiles->count() }} files
+                        </span>
+                    </h5>
+                    <p class="text-sm text-green-700 mb-4">Upload your work files here. These will be visible to your client for review.</p>
+
+                    <!-- Upload Section for Producer -->
+                    <x-file-management.upload-section 
+                        :model="$pitch"
+                        title="Upload Deliverables"
+                        description="Upload audio, PDFs, or images for your client to review" />
+
+                    <!-- Producer Files List -->
+                    @if($this->producerFiles->count() > 0)
+                        <div class="space-y-2 mt-4">
+                            @foreach($this->producerFiles as $file)
+                                <div class="flex items-center justify-between py-2 px-3 bg-green-100 rounded">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file-audio text-green-600 mr-2"></i>
+                                        <div>
+                                            <span class="text-sm font-medium text-green-800">{{ $file->file_name }}</span>
+                                            <div class="text-xs text-green-600">
+                                                {{ $this->formatFileSize($file->file_size) }} • 
+                                                Uploaded {{ $file->created_at->diffForHumans() }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button wire:click="downloadFile({{ $file->id }})" 
+                                                class="text-green-600 hover:text-green-800 text-sm">
+                                            <i class="fas fa-download mr-1"></i>Download
+                                        </button>
+                                        @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
+                                        <button wire:click="confirmDeleteFile({{ $file->id }})" 
+                                                class="text-red-600 hover:text-red-800 text-sm">
+                                            <i class="fas fa-trash mr-1"></i>Delete
+                                        </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-6 mt-4">
+                            <i class="fas fa-cloud-upload-alt text-green-400 text-3xl mb-3"></i>
+                            <p class="text-green-600 text-sm">No deliverables uploaded yet. Use the upload area above to add files.</p>
+                        </div>
+                    @endif
+                </div>
             </div>
 
             <!-- Response to Feedback Section (if applicable) -->

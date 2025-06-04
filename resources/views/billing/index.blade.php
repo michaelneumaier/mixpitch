@@ -1,306 +1,565 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Billing') }}
-        </h2>
-    </x-slot>
+@extends('components.layouts.app')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                <div class="p-6 sm:p-8">
-                    @if (session('success'))
-                        <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-md border border-green-200">
-                            {{ session('success') }}
+@section('content')
+<div class="bg-gray-50 min-h-screen py-12">
+    <!-- Enhanced Header Section -->
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mb-8">
+        <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-xl p-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="mb-6 lg:mb-0">
+                    <h1 class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                        Billing & Payments
+                    </h1>
+                    <p class="text-gray-600 text-lg">Manage your payment methods, billing history, and subscriptions</p>
+                </div>
+                
+                <!-- Billing Stats -->
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-gradient-to-br from-green-100/80 to-emerald-100/80 backdrop-blur-sm border border-green-200/50 rounded-xl p-4 text-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mb-2 mx-auto">
+                            <i class="fas fa-credit-card text-white text-sm"></i>
                         </div>
-                    @endif
-
-                    @if ($errors->any())
-                        <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-md border border-red-200">
-                            <ul class="list-disc pl-4">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    <div class="mb-8">
-                        <h3 class="text-lg font-semibold mb-4">Payment Method</h3>
-                        @if($hasPaymentMethod)
-                            <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mb-4">
-                                <div class="flex items-center gap-4">
-                                    <div>
-                                        @if($paymentMethod->card->brand === 'visa')
-                                            <i class="fab fa-cc-visa text-2xl text-blue-600"></i>
-                                        @elseif($paymentMethod->card->brand === 'mastercard')
-                                            <i class="fab fa-cc-mastercard text-2xl text-orange-600"></i>
-                                        @elseif($paymentMethod->card->brand === 'amex')
-                                            <i class="fab fa-cc-amex text-2xl text-blue-800"></i>
-                                        @elseif($paymentMethod->card->brand === 'discover')
-                                            <i class="fab fa-cc-discover text-2xl text-orange-500"></i>
-                                        @else
-                                            <i class="fas fa-credit-card text-2xl text-gray-700"></i>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <div class="font-medium">{{ ucfirst($paymentMethod->card->brand) }} ending in {{ $paymentMethod->card->last4 }}</div>
-                                        <div class="text-sm text-gray-600">Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}</div>
-                                    </div>
-                                    <form method="POST" action="{{ route('billing.payment.remove') }}" class="ml-auto">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 transition-colors text-sm">
-                                            Remove
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button id="updateCard" class="bg-primary hover:bg-primary-focus text-white px-4 py-2 rounded shadow transition-colors">
-                                    Update Payment Method
-                                </button>
-                                <a href="{{ route('billing.payment-methods') }}" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded shadow transition-colors">
-                                    <i class="fas fa-credit-card mr-1"></i> Manage All Payment Methods
-                                </a>
-                            </div>
-                        @else
-                            <div class="bg-yellow-50 p-4 rounded-md border border-yellow-200 mb-4 text-yellow-800">
-                                <p>You don't have a payment method on file.</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button id="addCard" class="bg-primary hover:bg-primary-focus text-white px-4 py-2 rounded shadow transition-colors">
-                                    Add Payment Method
-                                </button>
-                                <a href="{{ route('billing.payment-methods') }}" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded shadow transition-colors">
-                                    <i class="fas fa-credit-card mr-1"></i> Manage Payment Methods
-                                </a>
-                            </div>
-                        @endif
-
-                        <!-- Payment Method Form (hidden by default) -->
-                        <div id="paymentMethodForm" class="mt-6 hidden">
-                            <form id="payment-form" action="{{ route('billing.payment.update') }}" method="POST">
-                                @csrf
-                                <div class="mb-4">
-                                    <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Credit or debit card
-                                    </label>
-                                    <div id="card-element" class="p-4 border border-gray-300 rounded-md"></div>
-                                    <div id="card-errors" class="text-red-600 text-sm mt-2"></div>
-                                </div>
-
-                                <button type="submit" id="card-button" data-secret="{{ $intent->client_secret }}" class="bg-primary hover:bg-primary-focus text-white px-4 py-2 rounded shadow transition-colors">
-                                    <span id="button-text">
-                                        {{ $hasPaymentMethod ? 'Update Card' : 'Add Card' }}
-                                    </span>
-                                    <span id="spinner" class="hidden">
-                                        <i class="fas fa-spinner fa-spin"></i>
-                                    </span>
-                                </button>
-                            </form>
-                        </div>
+                        <div class="text-sm font-medium text-green-800">Payment Methods</div>
+                        <div class="text-lg font-bold text-green-900">{{ $hasPaymentMethod ? '1' : '0' }}</div>
                     </div>
-
-                    <div class="mb-8">
-                        <h3 class="text-lg font-semibold mb-4">One-Time Payment</h3>
-                        <form action="{{ route('billing.payment.process') }}" method="POST" id="one-time-payment-form">
-                            @csrf
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
-                                    <input type="number" step="0.01" min="1" id="amount" name="amount" class="w-full p-2 border border-gray-300 rounded-md" required value="{{ old('amount') }}">
-                                    <p class="text-xs text-gray-500 mt-1">Please enter a valid amount (minimum $1.00)</p>
-                                </div>
-                                <div>
-                                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <input type="text" id="description" name="description" class="w-full p-2 border border-gray-300 rounded-md" placeholder="What is this payment for?" value="{{ old('description') }}">
-                                </div>
-                            </div>
-                            
-                            @if(!$hasPaymentMethod)
-                                <div class="bg-yellow-50 p-4 rounded-md border border-yellow-200 mb-4 text-yellow-800">
-                                    <p>You need to add a payment method before making a payment.</p>
-                                </div>
-                            @else
-                                <input type="hidden" name="payment_method" value="{{ $paymentMethod->id }}">
-                            @endif
-                            
-                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow transition-colors" {{ !$hasPaymentMethod ? 'disabled' : '' }}>
-                                Make Payment
-                            </button>
-                        </form>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-semibold mb-4">Billing History</h3>
-                        
-                        @if(count($invoices) > 0)
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full">
-                                    <thead>
-                                        <tr class="bg-gray-50">
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
-                                        @foreach($invoices as $invoice)
-                                            <tr class="hover:bg-gray-50">
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {{ $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('M d, Y') : $invoice->date()->format('M d, Y') }}
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    @if(isset($invoice->stripe_invoice))
-                                                        ${{ number_format($invoice->total / 100, 2) }}
-                                                    @else
-                                                        ${{ number_format(floatval($invoice->total()) / 100, 2) }}
-                                                    @endif
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                                    @if($invoice->paid)
-                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                            Paid
-                                                        </span>
-                                                    @else
-                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                                            Unpaid
-                                                        </span>
-                                                    @endif
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    <div class="flex items-center gap-3">
-                                                        <a href="{{ route('billing.invoice.show', $invoice->id) }}" class="text-primary hover:text-primary-focus">
-                                                            <i class="fas fa-eye"></i> View
-                                                        </a>
-                                                        <a href="{{ route('billing.invoice.download', $invoice->id) }}" class="text-gray-700 hover:text-gray-900">
-                                                            <i class="fas fa-download"></i> Download
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="mt-4 text-right">
-                                <a href="{{ route('billing.invoices') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-md transition-colors">
-                                    View All Invoices <i class="fas fa-arrow-right ml-2"></i>
-                                </a>
-                            </div>
-                        @else
-                            <div class="bg-gray-50 p-6 rounded-md border border-gray-200 text-center text-gray-700">
-                                <i class="fas fa-receipt text-gray-400 text-4xl mb-3"></i>
-                                <p>No billing history available.</p>
-                                <p class="text-sm mt-2">Payments and invoices will appear here once you make a purchase.</p>
-                            </div>
-                        @endif
-                    </div>
-
-                    @if($hasPaymentMethod)
-                        <div class="mt-8 pt-6 border-t border-gray-200">
-                            <h3 class="text-lg font-semibold mb-4">Billing Portal</h3>
-                            <p class="text-gray-600 mb-4">
-                                Manage your subscription, payment methods, and billing history directly through Stripe's secure portal.
-                            </p>
-                            @if(session('errors') && session('errors')->has('error') && strpos(session('errors')->first('error'), 'Customer Portal') !== false)
-                                <div class="p-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                                    <div class="flex">
-                                        <div class="flex-shrink-0">
-                                            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
-                                        </div>
-                                        <div class="ml-3">
-                                            <h3 class="text-sm font-medium text-yellow-800">Configuration Required</h3>
-                                            <div class="mt-2 text-sm text-yellow-700">
-                                                <p>{{ session('errors')->first('error') }}</p>
-                                                <p class="mt-1">To fix this, please follow these steps:</p>
-                                                <ol class="list-decimal pl-5 mt-1 space-y-1">
-                                                    <li>Log in to your <a href="https://dashboard.stripe.com/test/settings/billing/portal" class="text-yellow-800 underline font-medium" target="_blank">Stripe Dashboard</a></li>
-                                                    <li>Go to Settings > Customer Portal</li>
-                                                    <li>Configure your portal settings (branding, features, etc.)</li>
-                                                    <li>Save your configuration</li>
-                                                    <li>Return here and try again</li>
-                                                </ol>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Local Payment Method Management -->
-                                <div class="mt-6 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                                    <h4 class="font-medium text-blue-800 mb-2">Manage Your Payment Methods Locally</h4>
-                                    <p class="text-sm text-blue-700 mb-4">
-                                        While the Stripe Customer Portal is being configured, you can still manage your payment methods here:
-                                    </p>
-                                    
-                                    <!-- Current Payment Method -->
-                                    <div class="mb-4">
-                                        <h5 class="text-sm font-medium text-blue-800 mb-2">Current Default Payment Method</h5>
-                                        <div class="p-3 bg-white rounded border border-blue-100 flex items-center">
-                                            <div>
-                                                @if($paymentMethod->card->brand === 'visa')
-                                                    <i class="fab fa-cc-visa text-xl text-blue-600"></i>
-                                                @elseif($paymentMethod->card->brand === 'mastercard')
-                                                    <i class="fab fa-cc-mastercard text-xl text-orange-600"></i>
-                                                @elseif($paymentMethod->card->brand === 'amex')
-                                                    <i class="fab fa-cc-amex text-xl text-blue-800"></i>
-                                                @elseif($paymentMethod->card->brand === 'discover')
-                                                    <i class="fab fa-cc-discover text-xl text-orange-500"></i>
-                                                @else
-                                                    <i class="fas fa-credit-card text-xl text-gray-700"></i>
-                                                @endif
-                                            </div>
-                                            <div class="ml-3">
-                                                <div class="font-medium">{{ ucfirst($paymentMethod->card->brand) }} ending in {{ $paymentMethod->card->last4 }}</div>
-                                                <div class="text-xs text-gray-600">Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Action Buttons -->
-                                    <div class="flex flex-wrap gap-2">
-                                        <button id="updateCardLocal" class="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
-                                            Update Payment Method
-                                        </button>
-                                        <form method="POST" action="{{ route('billing.payment.remove') }}" class="inline-block">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-sm px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded transition-colors">
-                                                Remove Payment Method
-                                            </button>
-                                        </form>
-                                    </div>
-                                    
-                                    <!-- Local Payment Method Form (hidden by default) -->
-                                    <div id="paymentMethodFormLocal" class="mt-4 hidden">
-                                        <h5 class="text-sm font-medium text-blue-800 mb-2">Enter New Payment Details</h5>
-                                        <form id="payment-form-local" action="{{ route('billing.payment.update') }}" method="POST">
-                                            @csrf
-                                            <div class="mb-3">
-                                                <div id="card-element-local" class="p-3 border border-blue-200 rounded-md bg-white"></div>
-                                                <div id="card-errors-local" class="text-red-600 text-xs mt-1"></div>
-                                            </div>
-                                            <button type="submit" id="card-button-local" data-secret="{{ $intent->client_secret }}" class="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
-                                                <span id="button-text-local">Update Card</span>
-                                                <span id="spinner-local" class="hidden">
-                                                    <i class="fas fa-spinner fa-spin"></i>
-                                                </span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            @endif
-                            <a href="{{ route('billing.portal') }}" class="inline-block bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded shadow transition-colors">
-                                Manage Billing
-                            </a>
+                    
+                    <div class="bg-gradient-to-br from-blue-100/80 to-indigo-100/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 text-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mb-2 mx-auto">
+                            <i class="fas fa-receipt text-white text-sm"></i>
                         </div>
-                    @endif
+                        <div class="text-sm font-medium text-blue-800">Total Invoices</div>
+                        <div class="text-lg font-bold text-blue-900">{{ count($invoices) }}</div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-purple-100/80 to-indigo-100/80 backdrop-blur-sm border border-purple-200/50 rounded-xl p-4 text-center col-span-2 lg:col-span-1">
+                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg mb-2 mx-auto">
+                            <i class="fas fa-chart-line text-white text-sm"></i>
+                        </div>
+                        <div class="text-sm font-medium text-purple-800">Status</div>
+                        <div class="text-lg font-bold text-purple-900">{{ $hasPaymentMethod ? 'Active' : 'Setup Required' }}</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-green-50/30">
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-6 sm:p-8">
+                        @if (session('success'))
+                            <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-md border border-green-200">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
+                        @if ($errors->any())
+                            <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-md border border-red-200">
+                                <ul class="list-disc pl-4">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        <!-- Payment Method Section -->
+                        <div class="mb-8">
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mr-4">
+                                    <i class="fas fa-credit-card text-white"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Payment Methods</h3>
+                            </div>
+                            
+                            @if($hasPaymentMethod)
+                                <div class="bg-gradient-to-br from-white/90 to-gray-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-6 mb-6 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                                    <div class="flex items-center gap-6">
+                                        <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl group-hover:scale-105 transition-transform duration-300">
+                                            @if($paymentMethod->card->brand === 'visa')
+                                                <i class="fab fa-cc-visa text-3xl text-blue-600"></i>
+                                            @elseif($paymentMethod->card->brand === 'mastercard')
+                                                <i class="fab fa-cc-mastercard text-3xl text-orange-600"></i>
+                                            @elseif($paymentMethod->card->brand === 'amex')
+                                                <i class="fab fa-cc-amex text-3xl text-blue-800"></i>
+                                            @elseif($paymentMethod->card->brand === 'discover')
+                                                <i class="fab fa-cc-discover text-3xl text-orange-500"></i>
+                                            @else
+                                                <i class="fas fa-credit-card text-3xl text-gray-700"></i>
+                                            @endif
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="text-lg font-bold text-gray-900 mb-1">{{ ucfirst($paymentMethod->card->brand) }} •••• {{ $paymentMethod->card->last4 }}</div>
+                                            <div class="text-sm text-gray-600 flex items-center">
+                                                <i class="fas fa-calendar-alt mr-2"></i>
+                                                Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}
+                                            </div>
+                                            <div class="mt-2">
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100/80 text-green-800 border border-green-200/50">
+                                                    <i class="fas fa-check-circle mr-1"></i>
+                                                    Default Payment Method
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <form method="POST" action="{{ route('billing.payment.remove') }}" class="ml-auto">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-xl border border-red-200/50 transition-all duration-200 hover:scale-105">
+                                                <i class="fas fa-trash-alt mr-2"></i>
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-3">
+                                    <button id="updateCard" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-edit mr-2"></i>
+                                        Update Payment Method
+                                    </button>
+                                    <a href="{{ route('billing.payment-methods') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl border border-gray-300/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-credit-card mr-2"></i>
+                                        Manage All Methods
+                                    </a>
+                                </div>
+                            @else
+                                <div class="bg-gradient-to-br from-amber-50/90 to-orange-50/90 backdrop-blur-sm border border-amber-200/50 rounded-2xl p-6 mb-6 shadow-lg">
+                                    <div class="flex items-center">
+                                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl mr-4">
+                                            <i class="fas fa-exclamation-triangle text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-bold text-amber-800 mb-1">No Payment Method</h4>
+                                            <p class="text-amber-700">Add a payment method to start making payments and manage your billing.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-3">
+                                    <button id="addCard" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-plus mr-2"></i>
+                                        Add Payment Method
+                                    </button>
+                                    <a href="{{ route('billing.payment-methods') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl border border-gray-300/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-credit-card mr-2"></i>
+                                        Manage Payment Methods
+                                    </a>
+                                </div>
+                            @endif
+
+                            <!-- Enhanced Payment Method Form (hidden by default) -->
+                            <div id="paymentMethodForm" class="mt-6 hidden">
+                                <div class="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50 rounded-2xl p-6 shadow-lg">
+                                    <div class="flex items-center mb-4">
+                                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3">
+                                            <i class="fas fa-lock text-white text-sm"></i>
+                                        </div>
+                                        <h4 class="text-lg font-bold text-blue-800">{{ $hasPaymentMethod ? 'Update Payment Method' : 'Add Payment Method' }}</h4>
+                                    </div>
+                                    
+                                    <form id="payment-form" action="{{ route('billing.payment.update') }}" method="POST">
+                                        @csrf
+                                        <div class="mb-6">
+                                            <label for="card-element" class="block text-sm font-medium text-blue-700 mb-3">
+                                                <i class="fas fa-credit-card mr-2"></i>
+                                                Credit or Debit Card Information
+                                            </label>
+                                            <div class="relative">
+                                                <div id="card-element" class="p-4 bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400 transition-all duration-200"></div>
+                                                <div class="absolute top-2 right-2">
+                                                    <div class="flex items-center space-x-1">
+                                                        <i class="fab fa-cc-visa text-blue-600 text-sm"></i>
+                                                        <i class="fab fa-cc-mastercard text-orange-600 text-sm"></i>
+                                                        <i class="fab fa-cc-amex text-blue-800 text-sm"></i>
+                                                        <i class="fab fa-cc-discover text-orange-500 text-sm"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="card-errors" class="text-red-600 text-sm mt-2 flex items-center">
+                                                <i class="fas fa-exclamation-circle mr-1 hidden error-icon"></i>
+                                                <span class="error-text"></span>
+                                            </div>
+                                            <div class="mt-2 text-xs text-blue-600 flex items-center">
+                                                <i class="fas fa-shield-alt mr-1"></i>
+                                                Your payment information is encrypted and secure
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-wrap gap-3">
+                                            <button type="submit" id="card-button" data-secret="{{ $intent->client_secret }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                                                <span id="button-text" class="flex items-center">
+                                                    <i class="fas fa-save mr-2"></i>
+                                                    {{ $hasPaymentMethod ? 'Update Card' : 'Add Card' }}
+                                                </span>
+                                                <span id="spinner" class="hidden flex items-center">
+                                                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                                                    Processing...
+                                                </span>
+                                            </button>
+                                            <button type="button" onclick="document.getElementById('paymentMethodForm').classList.add('hidden')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl border border-gray-300/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                                <i class="fas fa-times mr-2"></i>
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- One-Time Payment Section -->
+                        <div class="mb-8">
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl mr-4">
+                                    <i class="fas fa-dollar-sign text-white"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">One-Time Payment</h3>
+                            </div>
+                            
+                            <div class="bg-gradient-to-br from-white/90 to-green-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-6 shadow-lg">
+                                <form action="{{ route('billing.payment.process') }}" method="POST" id="one-time-payment-form">
+                                    @csrf
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                        <div>
+                                            <label for="amount" class="block text-sm font-medium text-green-700 mb-3">
+                                                <i class="fas fa-money-bill-wave mr-2"></i>
+                                                Payment Amount (USD)
+                                            </label>
+                                            <div class="relative">
+                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <span class="text-green-600 font-bold">$</span>
+                                                </div>
+                                                <input type="number" step="0.01" min="1" id="amount" name="amount" class="w-full pl-8 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-green-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all duration-200" required value="{{ old('amount') }}" placeholder="0.00">
+                                            </div>
+                                            <p class="text-xs text-green-600 mt-2 flex items-center">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                Minimum amount: $1.00
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label for="description" class="block text-sm font-medium text-green-700 mb-3">
+                                                <i class="fas fa-tag mr-2"></i>
+                                                Payment Description
+                                            </label>
+                                            <input type="text" id="description" name="description" class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-green-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all duration-200" placeholder="What is this payment for?" value="{{ old('description') }}">
+                                            <p class="text-xs text-green-600 mt-2 flex items-center">
+                                                <i class="fas fa-lightbulb mr-1"></i>
+                                                Optional: Add a note for your records
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    @if(!$hasPaymentMethod)
+                                        <div class="bg-gradient-to-br from-amber-50/90 to-orange-50/90 backdrop-blur-sm border border-amber-200/50 rounded-xl p-4 mb-6">
+                                            <div class="flex items-center">
+                                                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg mr-3">
+                                                    <i class="fas fa-exclamation-triangle text-white text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="text-sm font-bold text-amber-800">Payment Method Required</h4>
+                                                    <p class="text-xs text-amber-700">Please add a payment method above before making a payment.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <input type="hidden" name="payment_method" value="{{ $paymentMethod->id }}">
+                                        <div class="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 mb-6">
+                                            <div class="flex items-center">
+                                                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3">
+                                                    <i class="fas fa-check-circle text-white text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="text-sm font-bold text-blue-800">Payment Method Ready</h4>
+                                                    <p class="text-xs text-blue-700">Using {{ ucfirst($paymentMethod->card->brand) }} •••• {{ $paymentMethod->card->last4 }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
+                                    <div class="flex flex-wrap gap-3">
+                                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" {{ !$hasPaymentMethod ? 'disabled' : '' }}>
+                                            <i class="fas fa-credit-card mr-2"></i>
+                                            Make Payment
+                                        </button>
+                                        @if($hasPaymentMethod)
+                                            <div class="flex items-center text-xs text-green-600">
+                                                <i class="fas fa-shield-alt mr-1"></i>
+                                                Secure payment processing by Stripe
+                                            </div>
+                                        @endif
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Billing History Section -->
+                        <div>
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4">
+                                    <i class="fas fa-history text-white"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Billing History</h3>
+                            </div>
+                            
+                            @if(count($invoices) > 0)
+                                <div class="bg-gradient-to-br from-white/90 to-purple-50/90 backdrop-blur-sm border border-white/50 rounded-2xl overflow-hidden shadow-lg">
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full">
+                                            <thead>
+                                                <tr class="bg-gradient-to-r from-purple-100/80 to-indigo-100/80 backdrop-blur-sm">
+                                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
+                                                        <i class="fas fa-calendar-alt mr-2"></i>Date
+                                                    </th>
+                                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
+                                                        <i class="fas fa-dollar-sign mr-2"></i>Amount
+                                                    </th>
+                                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
+                                                        <i class="fas fa-info-circle mr-2"></i>Status
+                                                    </th>
+                                                    <th class="px-6 py-4 text-left text-xs font-bold text-purple-700 uppercase tracking-wider">
+                                                        <i class="fas fa-cog mr-2"></i>Actions
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-purple-100/50">
+                                                @foreach($invoices as $invoice)
+                                                    <tr class="hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-indigo-50/50 transition-all duration-200 group">
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="flex items-center">
+                                                                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg mr-3 group-hover:scale-105 transition-transform duration-200">
+                                                                    <i class="fas fa-receipt text-purple-600 text-sm"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <div class="text-sm font-medium text-gray-900">
+                                                                        {{ $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('M d, Y') : $invoice->date()->format('M d, Y') }}
+                                                                    </div>
+                                                                    <div class="text-xs text-gray-500">
+                                                                        {{ $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('g:i A') : $invoice->date()->format('g:i A') }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="text-lg font-bold text-gray-900">
+                                                                @if(isset($invoice->stripe_invoice))
+                                                                    ${{ number_format($invoice->total / 100, 2) }}
+                                                                @else
+                                                                    ${{ number_format(floatval($invoice->total()) / 100, 2) }}
+                                                                @endif
+                                                            </div>
+                                                            <div class="text-xs text-gray-500">USD</div>
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            @if($invoice->paid)
+                                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200/50 shadow-sm">
+                                                                    <i class="fas fa-check-circle mr-1"></i>
+                                                                    Paid
+                                                                </span>
+                                                            @else
+                                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border border-red-200/50 shadow-sm">
+                                                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                                                    Unpaid
+                                                                </span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="px-6 py-4 whitespace-nowrap">
+                                                            <div class="flex items-center gap-2">
+                                                                <a href="{{ route('billing.invoice.show', $invoice->id) }}" class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-lg border border-blue-200/50 transition-all duration-200 hover:scale-105 text-xs">
+                                                                    <i class="fas fa-eye mr-1"></i>
+                                                                    View
+                                                                </a>
+                                                                <a href="{{ route('billing.invoice.download', $invoice->id) }}" class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-200/50 transition-all duration-200 hover:scale-105 text-xs">
+                                                                    <i class="fas fa-download mr-1"></i>
+                                                                    Download
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="mt-6 text-center">
+                                    <a href="{{ route('billing.invoices') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-list mr-2"></i>
+                                        View All Invoices
+                                        <i class="fas fa-arrow-right ml-2"></i>
+                                    </a>
+                                </div>
+                            @else
+                                <div class="bg-gradient-to-br from-gray-50/90 to-purple-50/90 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-8 text-center shadow-lg">
+                                    <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-200 to-purple-200 rounded-2xl mx-auto mb-4">
+                                        <i class="fas fa-receipt text-gray-500 text-2xl"></i>
+                                    </div>
+                                    <h4 class="text-lg font-bold text-gray-800 mb-2">No Billing History</h4>
+                                    <p class="text-gray-600 mb-4">You haven't made any payments yet.</p>
+                                    <p class="text-sm text-gray-500">Invoices and payment history will appear here once you make your first purchase.</p>
+                                    
+                                    <div class="mt-6">
+                                        <button onclick="document.getElementById('amount').focus()" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-700 rounded-xl border border-green-200/50 transition-all duration-200 hover:scale-105">
+                                            <i class="fas fa-plus mr-2"></i>
+                                            Make Your First Payment
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+
+                        @if($hasPaymentMethod)
+                            <div class="mt-8 pt-8 border-t border-purple-200/50">
+                                <div class="flex items-center mb-6">
+                                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mr-4">
+                                        <i class="fas fa-external-link-alt text-white"></i>
+                                    </div>
+                                    <h3 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Billing Portal</h3>
+                                </div>
+                                
+                                <div class="bg-gradient-to-br from-indigo-50/90 to-purple-50/90 backdrop-blur-sm border border-indigo-200/50 rounded-2xl p-6 mb-6 shadow-lg">
+                                    <div class="flex items-center mb-4">
+                                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mr-4">
+                                            <i class="fas fa-shield-alt text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-bold text-indigo-800">Secure Stripe Portal</h4>
+                                            <p class="text-sm text-indigo-600">Powered by Stripe's enterprise-grade security</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-indigo-700 mb-4">
+                                        Access Stripe's secure customer portal to manage your subscription, update payment methods, view detailed billing history, and download invoices.
+                                    </p>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                        <div class="bg-white/60 backdrop-blur-sm border border-indigo-200/50 rounded-xl p-3 text-center">
+                                            <i class="fas fa-credit-card text-indigo-600 text-lg mb-2"></i>
+                                            <div class="text-xs font-medium text-indigo-800">Payment Methods</div>
+                                        </div>
+                                        <div class="bg-white/60 backdrop-blur-sm border border-indigo-200/50 rounded-xl p-3 text-center">
+                                            <i class="fas fa-file-invoice text-indigo-600 text-lg mb-2"></i>
+                                            <div class="text-xs font-medium text-indigo-800">Invoice History</div>
+                                        </div>
+                                        <div class="bg-white/60 backdrop-blur-sm border border-indigo-200/50 rounded-xl p-3 text-center">
+                                            <i class="fas fa-cog text-indigo-600 text-lg mb-2"></i>
+                                            <div class="text-xs font-medium text-indigo-800">Account Settings</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if(session('errors') && session('errors')->has('error') && strpos(session('errors')->first('error'), 'Customer Portal') !== false)
+                                    <div class="p-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                                            </div>
+                                            <div class="ml-3">
+                                                <h3 class="text-sm font-medium text-yellow-800">Configuration Required</h3>
+                                                <div class="mt-2 text-sm text-yellow-700">
+                                                    <p>{{ session('errors')->first('error') }}</p>
+                                                    <p class="mt-1">To fix this, please follow these steps:</p>
+                                                    <ol class="list-decimal pl-5 mt-1 space-y-1">
+                                                        <li>Log in to your <a href="https://dashboard.stripe.com/test/settings/billing/portal" class="text-yellow-800 underline font-medium" target="_blank">Stripe Dashboard</a></li>
+                                                        <li>Go to Settings > Customer Portal</li>
+                                                        <li>Configure your portal settings (branding, features, etc.)</li>
+                                                        <li>Save your configuration</li>
+                                                        <li>Return here and try again</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Local Payment Method Management -->
+                                    <div class="mt-6 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                                        <h4 class="font-medium text-blue-800 mb-2">Manage Your Payment Methods Locally</h4>
+                                        <p class="text-sm text-blue-700 mb-4">
+                                            While the Stripe Customer Portal is being configured, you can still manage your payment methods here:
+                                        </p>
+                                        
+                                        <!-- Current Payment Method -->
+                                        <div class="mb-4">
+                                            <h5 class="text-sm font-medium text-blue-800 mb-2">Current Default Payment Method</h5>
+                                            <div class="p-3 bg-white rounded border border-blue-100 flex items-center">
+                                                <div>
+                                                    @if($paymentMethod->card->brand === 'visa')
+                                                        <i class="fab fa-cc-visa text-xl text-blue-600"></i>
+                                                    @elseif($paymentMethod->card->brand === 'mastercard')
+                                                        <i class="fab fa-cc-mastercard text-xl text-orange-600"></i>
+                                                    @elseif($paymentMethod->card->brand === 'amex')
+                                                        <i class="fab fa-cc-amex text-xl text-blue-800"></i>
+                                                    @elseif($paymentMethod->card->brand === 'discover')
+                                                        <i class="fab fa-cc-discover text-xl text-orange-500"></i>
+                                                    @else
+                                                        <i class="fas fa-credit-card text-xl text-gray-700"></i>
+                                                    @endif
+                                                </div>
+                                                <div class="ml-3">
+                                                    <div class="font-medium">{{ ucfirst($paymentMethod->card->brand) }} ending in {{ $paymentMethod->card->last4 }}</div>
+                                                    <div class="text-xs text-gray-600">Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Action Buttons -->
+                                            <div class="flex flex-wrap gap-2">
+                                                <button id="updateCardLocal" class="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                                                    Update Payment Method
+                                                </button>
+                                                <form method="POST" action="{{ route('billing.payment.remove') }}" class="inline-block">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-sm px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded transition-colors">
+                                                        Remove Payment Method
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            
+                                            <!-- Local Payment Method Form (hidden by default) -->
+                                            <div id="paymentMethodFormLocal" class="mt-4 hidden">
+                                                <h5 class="text-sm font-medium text-blue-800 mb-2">Enter New Payment Details</h5>
+                                                <form id="payment-form-local" action="{{ route('billing.payment.update') }}" method="POST">
+                                                    @csrf
+                                                    <div class="mb-3">
+                                                        <div id="card-element-local" class="p-3 border border-blue-200 rounded-md bg-white"></div>
+                                                        <div id="card-errors-local" class="text-red-600 text-xs mt-1"></div>
+                                                    </div>
+                                                    <button type="submit" id="card-button-local" data-secret="{{ $intent->client_secret }}" class="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                                                        <span id="button-text-local">Update Card</span>
+                                                        <span id="spinner-local" class="hidden">
+                                                            <i class="fas fa-spinner fa-spin"></i>
+                                                        </span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Local Payment Method Form (hidden by default) -->
+                                        <div id="paymentMethodFormLocal" class="mt-4 hidden">
+                                            <h5 class="text-sm font-medium text-blue-800 mb-2">Enter New Payment Details</h5>
+                                            <form id="payment-form-local" action="{{ route('billing.payment.update') }}" method="POST">
+                                                @csrf
+                                                <div class="mb-3">
+                                                    <div id="card-element-local" class="p-3 border border-blue-200 rounded-md bg-white"></div>
+                                                    <div id="card-errors-local" class="text-red-600 text-xs mt-1"></div>
+                                                </div>
+                                                <button type="submit" id="card-button-local" data-secret="{{ $intent->client_secret }}" class="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                                                    <span id="button-text-local">Update Card</span>
+                                                    <span id="spinner-local" class="hidden">
+                                                        <i class="fas fa-spinner fa-spin"></i>
+                                                    </span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                @endif
+                                <a href="{{ route('billing.portal') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-external-link-alt mr-2"></i>
+                                    Access Billing Portal
+                                    <i class="fas fa-arrow-right ml-2"></i>
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
 
     @push('scripts')
         <script src="https://js.stripe.com/v3/"></script>
@@ -310,20 +569,28 @@
                 const stripe = Stripe(`{{ env('STRIPE_KEY') }}`);
                 const elements = stripe.elements();
                 
-                // Custom styling
+                // Enhanced Glass Morphism Styling for Stripe Elements
                 const style = {
                     base: {
-                        color: '#32325d',
-                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                        color: '#1f2937',
+                        fontFamily: '"Inter", "Helvetica Neue", Helvetica, sans-serif',
                         fontSmoothing: 'antialiased',
                         fontSize: '16px',
+                        fontWeight: '500',
                         '::placeholder': {
-                            color: '#aab7c4'
+                            color: '#9ca3af'
+                        },
+                        ':focus': {
+                            color: '#1f2937'
                         }
                     },
                     invalid: {
-                        color: '#fa755a',
-                        iconColor: '#fa755a'
+                        color: '#dc2626',
+                        iconColor: '#dc2626'
+                    },
+                    complete: {
+                        color: '#059669',
+                        iconColor: '#059669'
                     }
                 };
                 
@@ -331,13 +598,26 @@
                 const cardElement = elements.create('card', { style: style });
                 cardElement.mount('#card-element');
                 
-                // Handle validation errors
+                // Enhanced validation error handling
                 cardElement.on('change', function(event) {
                     const displayError = document.getElementById('card-errors');
+                    const errorIcon = displayError.querySelector('.error-icon');
+                    const errorText = displayError.querySelector('.error-text');
+                    
                     if (event.error) {
-                        displayError.textContent = event.error.message;
+                        errorIcon.classList.remove('hidden');
+                        errorText.textContent = event.error.message;
+                        displayError.classList.add('text-red-600');
+                        displayError.classList.remove('text-green-600');
+                    } else if (event.complete) {
+                        errorIcon.classList.add('hidden');
+                        errorText.textContent = 'Payment information is valid';
+                        displayError.classList.remove('text-red-600');
+                        displayError.classList.add('text-green-600');
                     } else {
-                        displayError.textContent = '';
+                        errorIcon.classList.add('hidden');
+                        errorText.textContent = '';
+                        displayError.classList.remove('text-red-600', 'text-green-600');
                     }
                 });
                 
@@ -474,5 +754,4 @@
                 }
             });
         </script>
-    @endpush
-</x-app-layout> 
+    @endpush 

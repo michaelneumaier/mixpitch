@@ -239,6 +239,8 @@ class FileUploader extends Component
 
             // Emit event to refresh parent component's file list
             $this->dispatch('filesUploaded');
+            $this->dispatch('refreshContestData');
+            $this->js('window.dispatchEvent(new CustomEvent("filesUploaded"));');
         } catch (\Exception $e) {
             Log::error('Error in FileUploader::saveFile', [
                 'error' => $e->getMessage(),

@@ -38,16 +38,18 @@ class ClientActivitySummary extends Component
             ->count();
         // Log::info('Hired Projects Count: ' . $this->hiredProjectsCount);
         
-        // Recent Projects: Fetch the latest projects
+        // Recent Projects: Fetch the latest published projects
         $this->recentProjects = $this->client->projects()
+            ->where('is_published', true)
             ->latest()
             ->limit(5)
             ->get(['id', 'name', 'slug', 'status', 'created_at', 'is_published']); // Select specific columns
         // Log::info('Recent Projects Found: ' . $this->recentProjects->count());
 
-        // Completed Projects: Fetch the latest completed projects
+        // Completed Projects: Fetch the latest completed published projects
         $this->completedProjects = $this->client->projects()
             ->where('status', Project::STATUS_COMPLETED)
+            ->where('is_published', true)
             ->when($this->client->projects()->whereNotNull('completed_at')->exists(), 
                 fn ($query) => $query->latest('completed_at'), // Order by completion date if available
                 fn ($query) => $query->latest('updated_at')  // Fallback to updated_at

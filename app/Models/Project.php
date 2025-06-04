@@ -51,27 +51,53 @@ class Project extends Model
         'title',
         'description',
         'genre',
-        'status',
-        'image_path',
-        'slug',
-        'artist_name',
-        'project_type',
-        'workflow_type',
+        'subgenre',
+        'mood',
+        'tempo',
+        'key',
+        'duration',
+        'reference_tracks',
         'collaboration_type',
         'budget',
+        'currency',
         'deadline',
-        'preview_track',
+        'status',
+        'workflow_type',
+        'is_featured',
+        'is_urgent',
+        'required_experience_level',
+        'preferred_daw',
         'notes',
         'is_published',
-        'completed_at',
+        'published_at',
+        'slug',
+        'submission_deadline',
+        'judging_deadline',
+        'judging_finalized_at',
+        'results_announced_at',
+        'results_announced_by',
+        'judging_notes',
+        'show_submissions_publicly',
+        'max_submissions_per_user',
+        'allow_anonymous_submissions',
+        'require_submission_notes',
+        'prize_amount',
+        'prize_currency',
+        'prize_description',
+        'legacy_prize_amount',
+        'legacy_prize_currency',
+        'legacy_prize_description',
+        'auto_select_winner',
+        'submission_form_intro',
+        'image_path',
+        'artist_name',
+        'project_type',
+        'project_type_id',
         'target_producer_id',
         'client_email',
         'client_name',
-        'prize_amount',
-        'prize_currency',
-        'submission_deadline',
-        'judging_deadline',
         'payment_amount',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -80,9 +106,13 @@ class Project extends Model
         'completed_at' => 'datetime',
         'deadline' => 'datetime',
         'target_producer_id' => 'integer',
+        'project_type_id' => 'integer',
         'prize_amount' => 'decimal:2',
         'submission_deadline' => 'datetime',
         'judging_deadline' => 'datetime',
+        'judging_finalized_at' => 'datetime',
+        'results_announced_at' => 'datetime',
+        'show_submissions_publicly' => 'boolean',
     ];
 
     protected $attributes = [
@@ -99,6 +129,11 @@ class Project extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function projectType()
+    {
+        return $this->belongsTo(ProjectType::class);
     }
 
     public function isOwnedByUser(User $user)
@@ -320,6 +355,60 @@ class Project extends Model
     }
 
     /**
+     * Get storage used by project files (client uploads) in bytes
+     */
+    public function getProjectFilesStorageUsed(): int
+    {
+        return $this->files()->sum('file_size') ?? 0;
+    }
+
+    /**
+     * Get storage used by pitch files (producer uploads) in bytes
+     */
+    public function getPitchFilesStorageUsed(): int
+    {
+        return $this->pitches()->with('files')->get()
+            ->flatMap(fn($pitch) => $pitch->files)
+            ->sum('file_size') ?? 0;
+    }
+
+    /**
+     * Get combined storage usage for client management projects
+     */
+    public function getCombinedStorageUsed(): int
+    {
+        if ($this->isClientManagement()) {
+            return $this->getProjectFilesStorageUsed() + $this->getPitchFilesStorageUsed();
+        }
+        
+        // For other project types, use the existing total_storage_used
+        return $this->total_storage_used ?? 0;
+    }
+
+    /**
+     * Get storage breakdown for client management projects
+     */
+    public function getStorageBreakdown(): array
+    {
+        if (!$this->isClientManagement()) {
+            return [
+                'total' => $this->total_storage_used ?? 0,
+                'project_files' => 0,
+                'pitch_files' => 0
+            ];
+        }
+
+        $projectFiles = $this->getProjectFilesStorageUsed();
+        $pitchFiles = $this->getPitchFilesStorageUsed();
+
+        return [
+            'total' => $projectFiles + $pitchFiles,
+            'project_files' => $projectFiles,
+            'pitch_files' => $pitchFiles
+        ];
+    }
+
+    /**
      * Scope a query to apply filters and sorting.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -472,6 +561,156 @@ class Project extends Model
     public function isClientManagement(): bool
     {
         return $this->workflow_type === self::WORKFLOW_TYPE_CLIENT_MANAGEMENT;
+    }
+
+    /**
+     * Get the contest result relationship
+     */
+    public function contestResult()
+    {
+        return $this->hasOne(ContestResult::class);
+    }
+
+    /**
+     * Get the contest prizes relationship
+     */
+    public function contestPrizes()
+    {
+        return $this->hasMany(ContestPrize::class);
+    }
+
+    /**
+     * Get the total cash prize budget for this contest
+     */
+    public function getTotalPrizeBudget(): float
+    {
+        return (float) $this->contestPrizes()
+            ->where('prize_type', ContestPrize::TYPE_CASH)
+            ->sum('cash_amount');
+    }
+
+    /**
+     * Get the total estimated value of all prizes (cash + estimated values of other prizes)
+     */
+    public function getTotalPrizeValue(): float
+    {
+        $cashTotal = $this->getTotalPrizeBudget();
+        $otherTotal = (float) $this->contestPrizes()
+            ->where('prize_type', ContestPrize::TYPE_OTHER)
+            ->sum('prize_value_estimate');
+            
+        return $cashTotal + $otherTotal;
+    }
+
+    /**
+     * Get prize for a specific placement
+     */
+    public function getPrizeForPlacement(string $placement): ?ContestPrize
+    {
+        return $this->contestPrizes()
+            ->where('placement', $placement)
+            ->first();
+    }
+
+    /**
+     * Check if the contest has any prizes configured
+     */
+    public function hasPrizes(): bool
+    {
+        return $this->contestPrizes()->exists();
+    }
+
+    /**
+     * Check if the contest has cash prizes
+     */
+    public function hasCashPrizes(): bool
+    {
+        return $this->contestPrizes()
+            ->where('prize_type', ContestPrize::TYPE_CASH)
+            ->exists();
+    }
+
+    /**
+     * Get count of each prize type
+     */
+    public function getPrizeTypeCounts(): array
+    {
+        $prizes = $this->contestPrizes()->get();
+        
+        return [
+            'total' => $prizes->count(),
+            'cash' => $prizes->where('prize_type', ContestPrize::TYPE_CASH)->count(),
+            'other' => $prizes->where('prize_type', ContestPrize::TYPE_OTHER)->count(),
+        ];
+    }
+
+    /**
+     * Get a summary of all prizes for display
+     */
+    public function getPrizeSummary(): array
+    {
+        $prizes = $this->contestPrizes()->orderByRaw("
+            CASE placement 
+                WHEN '1st' THEN 1 
+                WHEN '2nd' THEN 2 
+                WHEN '3rd' THEN 3 
+                WHEN 'runner_up' THEN 4 
+                ELSE 5 
+            END
+        ")->get();
+
+        $summary = [];
+        foreach ($prizes as $prize) {
+            $summary[] = [
+                'placement' => $prize->getPlacementDisplayName(),
+                'placement_key' => $prize->placement,
+                'type' => $prize->prize_type,
+                'display_value' => $prize->getDisplayValue(),
+                'cash_value' => $prize->getCashValue(),
+                'estimated_value' => $prize->getEstimatedValue(),
+                'emoji' => $prize->getPlacementEmoji(),
+                'title' => $prize->prize_title,
+                'description' => $prize->prize_description
+            ];
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Check if contest judging has been finalized
+     */
+    public function isJudgingFinalized(): bool
+    {
+        return !is_null($this->judging_finalized_at);
+    }
+
+    /**
+     * Check if contest judging can be finalized
+     */
+    public function canFinalizeJudging(): bool
+    {
+        return $this->isContest() && 
+               $this->submission_deadline && 
+               $this->submission_deadline->isPast() && 
+               !$this->isJudgingFinalized();
+    }
+
+    /**
+     * Get all contest entries for this project
+     */
+    public function getContestEntries()
+    {
+        return $this->pitches()
+            ->whereIn('status', [
+                Pitch::STATUS_CONTEST_ENTRY,
+                Pitch::STATUS_CONTEST_WINNER,
+                Pitch::STATUS_CONTEST_RUNNER_UP,
+                Pitch::STATUS_CONTEST_NOT_SELECTED
+            ])
+            ->with(['user', 'currentSnapshot'])
+            ->orderBy('created_at', 'asc')
+            ->get();
     }
 
     /**

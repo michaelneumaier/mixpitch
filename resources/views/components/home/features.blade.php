@@ -1,199 +1,256 @@
-<!-- Features Highlights - Modernized -->
-<div class="mx-4 md:mx-12 mb-12">
-    <div class="py-8 md:py-12 px-4 md:px-8">
-        <h2 class="font-bold text-3xl md:text-4xl text-center mb-3">Why Choose <span
-                class="text-primary">MixPitch</span>?</h2>
-        <p class="text-center text-base-content/70 mb-12 max-w-3xl mx-auto">The perfect platform where musical
-            talent meets technical expertise, creating endless possibilities for collaboration</p>
+<!-- Next-Level Features Section -->
+<div class="py-20 bg-gradient-to-b from-slate-50 to-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Section Header -->
+        <div class="text-center mb-16 animate-fade-in-up">
+            <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-sm font-medium mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Why Choose MixPitch
+            </div>
+            <h2 class="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+                The Perfect Platform for 
+                <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Musical Collaboration
+                </span>
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                Where musical talent meets technical expertise, creating endless possibilities for collaboration and creative growth.
+            </p>
+        </div>
 
-        <div class="grid md:grid-cols-3 gap-8">
+        <!-- Features Grid -->
+        <div class="grid lg:grid-cols-3 gap-8 lg:gap-12">
             <!-- For Artists -->
-            <div
-                class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group">
-                <div class="h-2 bg-primary"></div>
-                <div class="p-6">
-                    <div
-                        class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
+            <div class="group relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <!-- Icon -->
+                    <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                         </svg>
                     </div>
-                    <h3 class="font-semibold text-2xl mb-4 flex items-center text-primary">
-                        For Artists
-                        <span
-                            class="ml-2 text-xs uppercase tracking-wider py-1 px-2 rounded-full bg-primary/10 font-normal">Upload</span>
-                    </h3>
-                    <ul class="space-y-4">
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mt-1 mr-2 flex-shrink-0"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
+
+                    <!-- Header -->
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">For Artists</h3>
+                        <div class="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                             </svg>
-                            <div>
-                                <span class="font-medium">Unlock Global Talent</span>
-                                <p class="text-sm text-gray-600 mt-1">Upload your tracks and receive contributions
-                                    from multiple audio engineers and producers worldwide.</p>
+                            Upload & Collaborate
+                        </div>
+                    </div>
+
+                    <!-- Features List -->
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
                             </div>
-                        </li>
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mt-1 mr-2 flex-shrink-0"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
-                            </svg>
                             <div>
-                                <span class="font-medium">Pay for Perfection</span>
-                                <p class="text-sm text-gray-600 mt-1">Only invest in the work that resonates with
-                                    your vision and meets your artistic standards.</p>
+                                <h4 class="font-semibold text-gray-900 mb-1">Global Talent Network</h4>
+                                <p class="text-gray-600 text-sm">Connect with skilled audio professionals from around the world and receive multiple creative interpretations of your music.</p>
                             </div>
-                        </li>
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mt-1 mr-2 flex-shrink-0"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
                             <div>
-                                <span class="font-medium">Diverse Perspectives</span>
-                                <p class="text-sm text-gray-600 mt-1">Experience fresh takes on your music from
-                                    different producers to elevate your sound.</p>
+                                <h4 class="font-semibold text-gray-900 mb-1">Risk-Free Investment</h4>
+                                <p class="text-gray-600 text-sm">Only pay for the work that truly resonates with your artistic vision and meets your quality standards.</p>
                             </div>
-                        </li>
-                    </ul>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Creative Diversity</h4>
+                                <p class="text-gray-600 text-sm">Experience fresh perspectives and innovative approaches that can elevate your sound to new heights.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- For Audio Professionals -->
-            <div
-                class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group">
-                <div class="h-2 bg-accent"></div>
-                <div class="p-6">
-                    <div
-                        class="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-accent" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
+            <div class="group relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <!-- Icon -->
+                    <div class="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                         </svg>
                     </div>
-                    <h3 class="font-semibold text-2xl mb-4 flex items-center text-accent">
-                        For Audio Professionals
-                        <span
-                            class="ml-2 text-xs uppercase tracking-wider py-1 px-2 rounded-full bg-accent/10 font-normal">Create</span>
-                    </h3>
-                    <ul class="space-y-4">
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-accent mt-1 mr-2 flex-shrink-0"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
+
+                    <!-- Header -->
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">For Audio Professionals</h3>
+                        <div class="inline-flex items-center px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-sm font-medium">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            <div>
-                                <span class="font-medium">Expand Your Portfolio</span>
-                                <p class="text-sm text-gray-600 mt-1">Work on a diverse range of projects across
-                                    genres to showcase your skills and versatility.</p>
+                            Create & Earn
+                        </div>
+                    </div>
+
+                    <!-- Features List -->
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
                             </div>
-                        </li>
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-accent mt-1 mr-2 flex-shrink-0"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
-                            </svg>
                             <div>
-                                <span class="font-medium">Gain Real Experience</span>
-                                <p class="text-sm text-gray-600 mt-1">Collaborate with artists on real projects and
-                                    receive valuable feedback that helps you grow.</p>
+                                <h4 class="font-semibold text-gray-900 mb-1">Portfolio Expansion</h4>
+                                <p class="text-gray-600 text-sm">Work across diverse genres and styles to showcase your versatility and build an impressive professional portfolio.</p>
                             </div>
-                        </li>
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-accent mt-1 mr-2 flex-shrink-0"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
                             <div>
-                                <span class="font-medium">Earn Opportunities</span>
-                                <p class="text-sm text-gray-600 mt-1">Get compensated when your work aligns with the
-                                    artist's needs and vision.</p>
+                                <h4 class="font-semibold text-gray-900 mb-1">Real-World Experience</h4>
+                                <p class="text-gray-600 text-sm">Collaborate on authentic projects with real artists and receive valuable feedback to accelerate your professional growth.</p>
                             </div>
-                        </li>
-                    </ul>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Monetize Your Skills</h4>
+                                <p class="text-gray-600 text-sm">Turn your passion into profit by getting compensated when your work aligns with artists' creative vision.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- MixPitch Advantages -->
-            <div
-                class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group">
-                <div class="h-2 bg-secondary"></div>
-                <div class="p-6">
-                    <div
-                        class="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-secondary" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
+            <!-- Platform Advantages -->
+            <div class="group relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <!-- Icon -->
+                    <div class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                     </div>
-                    <h3 class="font-semibold text-2xl mb-4 flex items-center text-secondary">
-                        MixPitch Advantages
-                        <span
-                            class="ml-2 text-xs uppercase tracking-wider py-1 px-2 rounded-full bg-secondary/10 font-normal">Connect</span>
-                    </h3>
-                    <ul class="space-y-4">
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5 text-secondary mt-1 mr-2 flex-shrink-0" viewBox="0 0 20 20"
-                                fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
+
+                    <!-- Header -->
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Platform Advantages</h3>
+                        <div class="inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            <div>
-                                <span class="font-medium">Collaborative Environment</span>
-                                <p class="text-sm text-gray-600 mt-1">Multiple creatives can work on the same
-                                    project simultaneously, creating a diverse range of options.</p>
+                            Connect & Grow
+                        </div>
+                    </div>
+
+                    <!-- Features List -->
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
                             </div>
-                        </li>
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5 text-secondary mt-1 mr-2 flex-shrink-0" viewBox="0 0 20 20"
-                                fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
-                            </svg>
                             <div>
-                                <span class="font-medium">Risk-Free Exploration</span>
-                                <p class="text-sm text-gray-600 mt-1">Artists can explore different mixing styles
-                                    and approaches without upfront costs.</p>
+                                <h4 class="font-semibold text-gray-900 mb-1">Collaborative Environment</h4>
+                                <p class="text-gray-600 text-sm">Multiple professionals can work simultaneously on projects, creating diverse options and fostering creative innovation.</p>
                             </div>
-                        </li>
-                        <li class="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="h-5 w-5 text-secondary mt-1 mr-2 flex-shrink-0" viewBox="0 0 20 20"
-                                fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
                             <div>
-                                <span class="font-medium">Community Growth</span>
-                                <p class="text-sm text-gray-600 mt-1">Join a supportive network aimed at mutual
-                                    growth, learning, and creative success.</p>
+                                <h4 class="font-semibold text-gray-900 mb-1">Secure & Transparent</h4>
+                                <p class="text-gray-600 text-sm">Built-in protection for both artists and professionals with transparent processes and secure payment systems.</p>
                             </div>
-                        </li>
-                    </ul>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Community Growth</h4>
+                                <p class="text-gray-600 text-sm">Join a supportive network focused on mutual growth, learning, and achieving creative success together.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Bottom CTA -->
+        <div class="text-center mt-16 animate-fade-in-up">
+            <div class="inline-flex items-center justify-center space-x-6">
+                @auth
+                <a href="{{ route('projects.create') }}" 
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
+                    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    <span class="relative flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Start Your Project
+                    </span>
+                </a>
+                @else
+                <a href="{{ route('register') }}" 
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
+                    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    <span class="relative flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        Join Free Today
+                    </span>
+                </a>
+                @endauth
+                
+                <a href="{{ route('projects.index') }}" 
+                   class="group relative overflow-hidden bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg">
+                    <span class="relative flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Explore Projects
+                    </span>
+                </a>
             </div>
         </div>
     </div>

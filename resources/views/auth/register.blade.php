@@ -11,112 +11,157 @@
         </script>
     @endpush
     
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 relative">
+        <!-- Background Effects -->
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5"></div>
+        
+        <!-- Decorative Elements -->
+        <div class="absolute top-20 right-10 w-20 h-20 bg-purple-200/30 rounded-full blur-xl"></div>
+        <div class="absolute bottom-20 left-10 w-32 h-32 bg-blue-200/30 rounded-full blur-xl"></div>
+        <div class="absolute top-1/2 right-1/4 w-16 h-16 bg-pink-200/30 rounded-full blur-xl"></div>
 
-        <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Create Your Account</h2>
-        <p class="text-center text-gray-600 mb-8">Join MixPitch and start collaborating</p>
+        <!-- Logo Section -->
+        <div class="relative z-10 mb-8">
+            <a href="/" class="flex items-center group">
+                <img src="{{ asset('logo.png') }}" alt="MixPitch Logo" class="h-12 w-auto mr-3 transition-transform duration-300 group-hover:scale-105">
+            </a>
+        </div>
 
-        <x-validation-errors class="mb-4" />
+        <!-- Main Card -->
+        <div class="relative z-10 w-full sm:max-w-md">
+            <div class="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-8 space-y-6">
+                <!-- Header -->
+                <div class="text-center space-y-2">
+                    <h1 class="text-2xl font-bold text-gray-900">Create Your Account</h1>
+                    <p class="text-gray-600">Join MixPitch and start collaborating</p>
+                </div>
 
-        <form method="POST" action="{{ route('register') }}" id="register-form">
-            @csrf
+                <!-- Validation Errors -->
+                <x-validation-errors class="mb-4" />
 
-            <div>
-                <x-label for="name" value="{{ __('Name') }}" />
-                <x-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required
-                    autofocus autocomplete="name" />
-            </div>
+                <!-- Registration Form -->
+                <form method="POST" action="{{ route('register') }}" id="register-form" class="space-y-6">
+                    @csrf
 
-            <div class="mt-4">
-                <x-label for="email" value="{{ __('Email') }}" />
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required
-                    autocomplete="username" />
-            </div>
-
-            <div class="mt-4">
-                <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="block mt-1 w-full" type="password" name="password" required
-                    autocomplete="new-password" />
-                <p class="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
-            </div>
-
-            <div class="mt-4">
-                <x-label for="password_confirmation" value="{{ __('Confirm Password') }}" />
-                <x-input id="password_confirmation" class="block mt-1 w-full" type="password"
-                    name="password_confirmation" required autocomplete="new-password" />
-            </div>
-
-            @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
-            <div class="mt-4">
-                <x-label for="terms">
-                    <div class="flex items-center">
-                        <x-checkbox name="terms" id="terms" required />
-
-                        <div class="ml-2 text-gray-600">
-                            {!! __('I agree to the :terms_of_service and :privacy_policy', [
-                            'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'"
-                                class="text-primary hover:text-primary-focus transition-colors">'.__('Terms of
-                                Service').'</a>',
-                            'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'"
-                                class="text-primary hover:text-primary-focus transition-colors">'.__('Privacy
-                                Policy').'</a>',
-                            ]) !!}
+                    <!-- Name Field -->
+                    <div class="space-y-2">
+                        <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Enter your full name">
                         </div>
                     </div>
-                </x-label>
-            </div>
-            @endif
 
-            <!-- Add reCAPTCHA v3 - this will be invisible to users -->
-            <div class="mt-4">
-                <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
-                @if ($errors->has('recaptcha'))
-                    <div class="mt-1 text-sm text-red-600">
-                        {{ $errors->first('recaptcha') }}
+                    <!-- Email Field -->
+                    <div class="space-y-2">
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                                </svg>
+                            </div>
+                            <input id="email" type="email" name="email" value="{{ old('email') }}" required autocomplete="username"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Enter your email">
+                        </div>
                     </div>
-                @endif
-            </div>
 
-            <div class="flex items-center justify-end mt-6">
-                <a class="text-sm text-primary hover:text-primary-focus transition-colors" href="{{ route('login') }}">
-                    {{ __('Already registered?') }}
-                </a>
+                    <!-- Password Field -->
+                    <div class="space-y-2">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                            <input id="password" type="password" name="password" required autocomplete="new-password"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Create a password">
+                        </div>
+                        <p class="text-xs text-gray-500">Must be at least 8 characters</p>
+                    </div>
 
-                <x-button id="register-button" class="ml-4">
-                    <span id="register-text">{{ __('Register') }}</span>
-                    <svg id="register-spinner" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </x-button>
-            </div>
-        </form>
+                    <!-- Confirm Password Field -->
+                    <div class="space-y-2">
+                        <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password"
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Confirm your password">
+                        </div>
+                    </div>
 
-        <div class="mt-8 pt-6 border-t border-gray-200 text-center">
-            <p class="text-gray-600">By signing up, you agree to our
-                <a href="#" class="text-primary hover:text-primary-focus transition-colors">Terms of Service</a> and
-                <a href="#" class="text-primary hover:text-primary-focus transition-colors">Privacy Policy</a>
-            </p>
-        </div>
-        
-        <!-- Social Login Options -->
-        <div class="mt-6">
-            <div class="relative">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-gray-300"></div>
+                    <!-- Terms and Privacy Policy -->
+                    @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
+                    <div class="space-y-2">
+                        <label for="terms" class="flex items-start">
+                            <input id="terms" name="terms" type="checkbox" required class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1">
+                            <div class="ml-3 text-sm text-gray-600">
+                                {!! __('I agree to the :terms_of_service and :privacy_policy', [
+                                'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'" class="text-blue-600 hover:text-blue-500 font-medium transition-colors">'.__('Terms of Service').'</a>',
+                                'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'" class="text-blue-600 hover:text-blue-500 font-medium transition-colors">'.__('Privacy Policy').'</a>',
+                                ]) !!}
+                            </div>
+                        </label>
+                    </div>
+                    @endif
+
+                    <!-- reCAPTCHA -->
+                    <div>
+                        <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
+                        @if ($errors->has('recaptcha'))
+                            <div class="text-sm text-red-600">
+                                {{ $errors->first('recaptcha') }}
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="register-button"
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-75 disabled:cursor-not-allowed disabled:transform-none">
+                        <span id="register-text">Create Account</span>
+                        <svg id="register-spinner" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+
+                    <!-- Already have account link -->
+                    <div class="text-center">
+                        <a href="{{ route('login') }}" class="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors">
+                            Already have an account? Sign in
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Divider -->
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">Or sign up with</span>
+                    </div>
                 </div>
-                <div class="relative flex justify-center text-sm">
-                    <span class="px-2 bg-white text-gray-500">Or sign up with</span>
-                </div>
-            </div>
-            
-            <div class="mt-6">
+
+                <!-- Social Login -->
                 <a href="{{ route('socialite.redirect', ['provider' => 'google']) }}" 
-                   class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+                   class="group w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-md">
+                    <svg class="h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
                         <defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs>
                         <clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath>
                         <path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z"/>
@@ -126,9 +171,23 @@
                     </svg>
                     Sign up with Google
                 </a>
+
+                <!-- Terms Footer -->
+                <div class="text-center pt-4 border-t border-gray-100">
+                    <p class="text-xs text-gray-500">
+                        By creating an account, you agree to our terms of service and privacy policy.
+                    </p>
+                </div>
             </div>
         </div>
-    </x-authentication-card>
+
+        <!-- Footer -->
+        <div class="relative z-10 mt-8 text-center">
+            <p class="text-sm text-gray-500">
+                © {{ date('Y') }} MixPitch. All rights reserved.
+            </p>
+        </div>
+    </div>
 </x-guest-layout>
 
 <script>
@@ -141,10 +200,9 @@
         form.addEventListener('submit', function() {
             // Disable the button
             button.disabled = true;
-            button.classList.add('opacity-75', 'cursor-not-allowed');
             
             // Show loading spinner
-            buttonText.classList.add('mr-2');
+            buttonText.textContent = 'Creating Account...';
             spinner.classList.remove('hidden');
         });
     });

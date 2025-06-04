@@ -32,7 +32,7 @@ class UserProfileEditOld extends Component
     public Collection $allTags;
 
     public $social_links = [];
-    public $is_username_locked = false;
+    public $username_locked = false;
     public $profile_completed = false;
     public $profile_completion_percentage = 0;
     public $profilePhoto;
@@ -55,7 +55,7 @@ class UserProfileEditOld extends Component
     {
         $userId = auth()->id();
         $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username';
-        if ($this->is_username_locked) {
+        if ($this->username_locked) {
             $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username,' . $userId;
         }
 
@@ -125,7 +125,7 @@ class UserProfileEditOld extends Component
         $this->website = $user->website;
         $this->tipjar_link = $user->tipjar_link;
         $this->social_links = $user->social_links ?? [];
-        $this->is_username_locked = $user->is_username_locked;
+        $this->username_locked = $user->username_locked;
         $this->profile_completed = $user->profile_completed ?? false;
 
         // DEBUG: Log the current user ID
@@ -273,7 +273,7 @@ class UserProfileEditOld extends Component
             'website' => $this->website,
             'tipjar_link' => $this->tipjar_link,
             'social_links' => array_filter($this->social_links ?? []),
-            'is_username_locked' => $user->is_username_locked || !empty($this->username),
+            'username_locked' => $user->username_locked || !empty($this->username),
         ];
 
         if (!empty($userData['website']) && !preg_match("~^(?:f|ht)tps?://~i", $userData['website'])) {

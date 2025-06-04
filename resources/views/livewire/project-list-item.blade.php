@@ -14,7 +14,20 @@
             
             <!-- Status Badge -->
             <div class="absolute top-3 right-3">
-                <x-project-status-button :status="$project->status" type="top-right" />
+                @php
+                    $statusConfig = [
+                        'unpublished' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'icon' => 'fa-eye-slash'],
+                        'open' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-check-circle'],
+                        'review' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-eye'],
+                        'completed' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'icon' => 'fa-check'],
+                        'closed' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'icon' => 'fa-times-circle'],
+                    ];
+                    $config = $statusConfig[$project->status] ?? ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'icon' => 'fa-question-circle'];
+                @endphp
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $config['bg'] }} {{ $config['text'] }} border border-white/20 shadow-sm">
+                    <i class="fas {{ $config['icon'] }} mr-1"></i>
+                    {{ ucfirst($project->status) }}
+                </span>
             </div>
             
             <!-- Preview Track Player -->
@@ -23,23 +36,6 @@
                     @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isInCard' => true])
                 </div>
             @endif
-            
-            <!-- Workflow Type Badge -->
-            <div class="absolute top-3 left-3">
-                @if($project->isContest())
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <i class="fas fa-trophy mr-1"></i>Contest
-                    </span>
-                @elseif($project->isDirectHire())
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <i class="fas fa-user-check mr-1"></i>Direct Hire
-                    </span>
-                @else
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        <i class="fas fa-users mr-1"></i>Open
-                    </span>
-                @endif
-            </div>
         </div>
 
         <!-- Project Content -->
@@ -66,27 +62,71 @@
                             <span class="text-xs text-gray-400 ml-2">Project Owner</span>
                         </div>
                         
-                        <!-- Genre -->
-                        @if($project->genre)
-                            <div class="mb-3">
+                        <!-- Genre and Workflow Type Badges -->
+                        <div class="flex items-center gap-2 mb-3">
+                            <!-- Workflow Type -->
+                            @php
+                                $workflowConfig = [
+                                    'standard' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-users', 'label' => 'Standard'],
+                                    'contest' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'icon' => 'fa-trophy', 'label' => 'Contest'],
+                                    'direct_hire' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-user-check', 'label' => 'Direct Hire'],
+                                    'client_management' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'icon' => 'fa-briefcase', 'label' => 'Client Project'],
+                                ];
+                                $workflowType = $project->workflow_type ?? 'standard';
+                                $workflowStyle = $workflowConfig[$workflowType] ?? $workflowConfig['standard'];
+                            @endphp
+                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium {{ $workflowStyle['bg'] }} {{ $workflowStyle['text'] }}">
+                                <i class="fas {{ $workflowStyle['icon'] }} mr-1"></i>{{ $workflowStyle['label'] }}
+                            </span>
+                            
+                            <!-- Genre -->
+                            @if($project->genre)
                                 <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
                                     <i class="fas fa-music mr-1"></i>{{ $project->genre }}
                                 </span>
-                            </div>
-                        @endif
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Budget and Deadline -->
                     <div class="flex flex-col items-start lg:items-end space-y-2 lg:min-w-[160px]">
-                        <div class="bg-blue-50 border border-blue-200 text-blue-800 font-semibold px-3 py-2 rounded-lg text-sm">
-                            @if(is_numeric($project->budget) && $project->budget > 0)
-                                ${{ number_format((float)$project->budget) }}
-                            @elseif($project->budget === 0 || $project->budget === '0')
-                                Free
-                            @else
-                                Price TBD
-                            @endif
-                        </div>
+                        @if($project->isContest() && $project->hasPrizes())
+                            <!-- Contest Prizes Summary -->
+                            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+                                <div class="flex items-center text-amber-800 font-semibold text-sm mb-1">
+                                    <i class="fas fa-trophy mr-1"></i>
+                                    Contest Prizes
+                                </div>
+                                <div class="text-xs text-amber-700">
+                                    @php
+                                        $prizes = $project->getPrizeSummary();
+                                        $totalCash = $project->getTotalPrizeBudget();
+                                        $totalValue = $project->getTotalPrizeValue();
+                                    @endphp
+                                    {{ count($prizes) }} tiers • ${{ number_format($totalCash) }} cash
+                                </div>
+                                <div class="flex justify-center mt-1 space-x-1">
+                                    @foreach(array_slice($prizes, 0, 3) as $prize)
+                                        <span class="text-sm">{{ $prize['emoji'] }}</span>
+                                    @endforeach
+                                    @if(count($prizes) > 3)
+                                        <span class="text-xs text-amber-600">+{{ count($prizes) - 3 }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <!-- Standard Budget -->
+                            <div class="bg-blue-50 border border-blue-200 text-blue-800 font-semibold px-3 py-2 rounded-lg text-sm">
+                                @if(is_numeric($project->budget) && $project->budget > 0)
+                                    ${{ number_format((float)$project->budget) }}
+                                @elseif($project->budget === 0 || $project->budget === '0')
+                                    Free
+                                @else
+                                    Price TBD
+                                @endif
+                            </div>
+                        @endif
+                        
                         @if($project->deadline)
                             <div class="text-sm text-gray-600 flex items-center">
                                 <i class="fas fa-calendar-alt mr-1 text-gray-400"></i>

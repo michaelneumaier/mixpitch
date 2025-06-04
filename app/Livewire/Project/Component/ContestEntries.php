@@ -91,16 +91,20 @@ class ContestEntries extends Component
                 Pitch::STATUS_CONTEST_RUNNER_UP,
                 Pitch::STATUS_CONTEST_NOT_SELECTED
             ])
-            ->with('user:id,name,profile_photo_path') // Eager load user info
+            ->with(['user:id,name,profile_photo_path', 'currentSnapshot']) // Eager load user info and current snapshot
             ->orderBy('created_at', 'asc')
             ->paginate(10); // Add pagination
 
         // Check if a winner has already been selected
         $winnerExists = $this->project->pitches()->where('status', Pitch::STATUS_CONTEST_WINNER)->exists();
+        
+        // Check if judging is finalized
+        $isFinalized = $this->project->isJudgingFinalized();
 
         return view('livewire.project.component.contest-entries', [
             'entries' => $entries,
             'winnerExists' => $winnerExists,
+            'isFinalized' => $isFinalized,
             'canSelectWinner' => $this->project->submission_deadline ? $this->project->submission_deadline->isPast() : true // Allow selection if deadline passed or not set
         ]);
     }

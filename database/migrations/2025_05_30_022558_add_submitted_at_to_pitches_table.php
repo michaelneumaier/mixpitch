@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_username_locked')->default(false);
+        Schema::table('pitches', function (Blueprint $table) {
+            $table->timestamp('submitted_at')->nullable()->after('created_at');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('is_username_locked');
+        Schema::table('pitches', function (Blueprint $table) {
+            $table->dropColumn('submitted_at');
         });
     }
 };

@@ -6,6 +6,8 @@ use App\Models\Pitch;
 use App\Observers\PitchObserver;
 use App\Models\Project;
 use App\Observers\ProjectObserver;
+use App\Models\ContestResult;
+use App\Observers\ContestResultObserver;
 use App\Events\NotificationCreated;
 use App\Listeners\NotificationCreatedListener;
 use Illuminate\Auth\Events\Registered;
@@ -38,6 +40,8 @@ class EventServiceProvider extends ServiceProvider
         Pitch::observe(PitchObserver::class);
         // Register the ProjectObserver with the Project model
         Project::observe(ProjectObserver::class);
+        // Register the ContestResultObserver with the ContestResult model
+        ContestResult::observe(ContestResultObserver::class);
     }
 
     /**

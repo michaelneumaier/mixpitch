@@ -15,32 +15,45 @@
         
         <!-- Status Badge -->
         <div class="absolute top-3 right-3">
-            <x-project-status-button :status="$project->status" type="top-right" />
+            @php
+                $statusConfig = [
+                    'unpublished' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'icon' => 'fa-eye-slash'],
+                    'open' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-check-circle'],
+                    'review' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-eye'],
+                    'completed' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'icon' => 'fa-check'],
+                    'closed' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'icon' => 'fa-times-circle'],
+                ];
+                $config = $statusConfig[$project->status] ?? ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'icon' => 'fa-question-circle'];
+            @endphp
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $config['bg'] }} {{ $config['text'] }} border border-white/20 shadow-sm">
+                <i class="fas {{ $config['icon'] }} mr-1"></i>
+                {{ ucfirst($project->status) }}
+            </span>
+        </div>
+        
+        <!-- Workflow Type Badge -->
+        <div class="absolute bottom-3 left-3">
+            @php
+                $workflowConfig = [
+                    'standard' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-users', 'label' => 'Standard'],
+                    'contest' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'icon' => 'fa-trophy', 'label' => 'Contest'],
+                    'direct_hire' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-user-check', 'label' => 'Direct Hire'],
+                    'client_management' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'icon' => 'fa-briefcase', 'label' => 'Client Project'],
+                ];
+                $workflowType = $project->workflow_type ?? 'standard';
+                $workflowStyle = $workflowConfig[$workflowType] ?? $workflowConfig['standard'];
+            @endphp
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $workflowStyle['bg'] }} {{ $workflowStyle['text'] }} border border-white/20 shadow-sm">
+                <i class="fas {{ $workflowStyle['icon'] }} mr-1"></i>{{ $workflowStyle['label'] }}
+            </span>
         </div>
         
         <!-- Preview Track Player -->
         @if($project->hasPreviewTrack())
-            <div class="absolute bottom-3 left-3" onclick="event.stopPropagation();">
+            <div class="absolute bottom-3 right-3" onclick="event.stopPropagation();">
                 @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isInCard' => true])
             </div>
         @endif
-        
-        <!-- Workflow Type Badge -->
-        <div class="absolute top-3 left-3">
-            @if($project->isContest())
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    <i class="fas fa-trophy mr-1"></i>Contest
-                </span>
-            @elseif($project->isDirectHire())
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    <i class="fas fa-user-check mr-1"></i>Direct Hire
-                </span>
-            @else
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    <i class="fas fa-users mr-1"></i>Open
-                </span>
-            @endif
-        </div>
     </div>
     
     <!-- Card Content -->
@@ -74,31 +87,66 @@
         </div>
         
         <!-- Project Metadata -->
-        <div class="space-y-2 mb-4">
-            <!-- Budget -->
-            <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-500">Budget</span>
-                <span class="text-sm font-semibold text-gray-900">
-                    @if(is_numeric($project->budget) && $project->budget > 0)
-                        ${{ number_format((float)$project->budget) }}
-                    @elseif($project->budget === 0 || $project->budget === '0')
-                        Free
-                    @else
-                        Price TBD
-                    @endif
+        <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
+            <div class="flex items-center space-x-4">
+                <!-- Workflow Type -->
+                @php
+                    $workflowConfig = [
+                        'standard' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-users', 'label' => 'Standard'],
+                        'contest' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'icon' => 'fa-trophy', 'label' => 'Contest'],
+                        'direct_hire' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-user-check', 'label' => 'Direct Hire'],
+                        'client_management' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'icon' => 'fa-briefcase', 'label' => 'Client Project'],
+                    ];
+                    $workflowType = $project->workflow_type ?? 'standard';
+                    $workflowStyle = $workflowConfig[$workflowType] ?? $workflowConfig['standard'];
+                @endphp
+                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium {{ $workflowStyle['bg'] }} {{ $workflowStyle['text'] }}">
+                    <i class="fas {{ $workflowStyle['icon'] }} mr-1"></i>{{ $workflowStyle['label'] }}
                 </span>
+                
+                <!-- Project Type -->
+                @if($project->project_type)
+                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+                        <i class="fas fa-tag mr-1"></i>{{ Str::title($project->project_type) }}
+                    </span>
+                @endif
             </div>
             
-            <!-- Deadline -->
-            @if($project->deadline)
-                <div class="flex items-center justify-between">
-                    <span class="text-xs text-gray-500">Deadline</span>
-                    <span class="text-sm font-medium text-gray-700">
-                        {{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}
+            <!-- Pitches Count -->
+            <span class="inline-flex items-center text-gray-500">
+                <i class="fas fa-paper-plane mr-1"></i>
+                {{ $project->pitches->count() }} {{ Str::plural('pitch', $project->pitches->count()) }}
+            </span>
+        </div>
+        
+        <!-- Budget/Prize Information -->
+        @if($project->isContest() && $project->hasPrizes())
+            <!-- Contest Prizes (Compact) -->
+            <x-contest.prize-display :project="$project" :compact="true" :showTitle="false" />
+        @else
+            <!-- Standard Budget -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-dollar-sign text-gray-400 mr-2"></i>
+                    <span class="text-lg font-bold text-gray-900">
+                        @if(is_numeric($project->budget) && $project->budget > 0)
+                            ${{ number_format((float)$project->budget) }}
+                        @elseif($project->budget === 0 || $project->budget === '0')
+                            Free
+                        @else
+                            Price TBD
+                        @endif
                     </span>
                 </div>
-            @endif
-        </div>
+                
+                @if($project->deadline)
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-1"></i>
+                        <span>{{ \Carbon\Carbon::parse($project->deadline)->format('M d') }}</span>
+                    </div>
+                @endif
+            </div>
+        @endif
         
         @if($isDashboardView)
             <!-- Dashboard Stats -->

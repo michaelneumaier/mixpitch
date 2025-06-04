@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Client Portal - {{ $project->title }}</title>
     {{-- Assuming Tailwind is included via a layout or globally --}}
     {{-- If using Vite/Mix, include the relevant CSS/JS assets --}}
@@ -77,27 +78,95 @@
             </div>
             @endif
 
-            {{-- Files Section (Placeholder) --}}
+            {{-- Files Section with Separation --}}
             <div class="mb-6 pb-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Files</h3>
-                {{-- TODO: Implement file listing logic --}}
-                {{-- Iterate through $pitch->files and display download links? --}}
-                {{-- Need to consider permissions (e.g., using signed URLs for downloads?) --}}
-                @if($pitch->files->count() > 0)
-                     <ul class="list-disc list-inside text-gray-700 space-y-1">
-                        @foreach($pitch->files as $file)
-                            <li>
-                                {{ $file->file_name }} ({{ number_format($file->size / 1024, 1) }} KB)
-                                <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" class="ml-2 inline-block text-blue-600 hover:text-blue-800 hover:underline text-sm">
-                                    Download
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="text-gray-500">No files have been uploaded yet.</p>
-                @endif
-                 {{-- TODO: Add file upload capability for client if needed? --}}
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Project Files</h3>
+                
+                {{-- Client Reference Files Section --}}
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                        </svg>
+                        Your Reference Files
+                    </h4>
+                    <p class="text-sm text-blue-700 mb-4">Upload briefs, references, or examples to help the producer understand your requirements.</p>
+                    
+                    {{-- File Upload Area --}}
+                    <div class="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center mb-4" id="client-upload-area">
+                        <svg class="mx-auto h-12 w-12 text-blue-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                        <p class="text-sm text-blue-600 mb-2">
+                            <label for="client-file-input" class="font-medium cursor-pointer hover:text-blue-500">
+                                Click to upload
+                            </label>
+                            or drag and drop
+                        </p>
+                        <p class="text-xs text-blue-500">PDF, DOC, MP3, WAV, JPG, PNG (max 200MB)</p>
+                        <input id="client-file-input" type="file" class="hidden" multiple 
+                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.mp3,.wav,.m4a">
+                    </div>
+                    
+                    {{-- Client Files List --}}
+                    <div id="client-files-list">
+                        @if($project->files->count() > 0)
+                            <div class="space-y-2">
+                                @foreach($project->files as $file)
+                                    <div class="flex items-center justify-between py-2 px-3 bg-blue-100 rounded">
+                                        <div class="flex items-center">
+                                            <svg class="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <span class="text-sm font-medium text-blue-800">{{ $file->file_name }}</span>
+                                            <span class="text-xs text-blue-600 ml-2">({{ number_format($file->file_size / 1024, 1) }} KB)</span>
+                                        </div>
+                                        <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.download_project_file', now()->addHours(24), ['project' => $project->id, 'projectFile' => $file->id]) }}" 
+                                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                            Download
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-blue-600 text-sm italic">No reference files uploaded yet. Upload files above to get started.</p>
+                        @endif
+                    </div>
+                </div>
+                
+                {{-- Producer Deliverables Section --}}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-green-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                        </svg>
+                        Producer Deliverables
+                    </h4>
+                    <p class="text-sm text-green-700 mb-4">Files delivered by {{ $pitch->user->name }} for your review.</p>
+                    
+                    {{-- Producer Files List --}}
+                    @if($pitch->files->count() > 0)
+                        <div class="space-y-2">
+                            @foreach($pitch->files as $file)
+                                <div class="flex items-center justify-between py-2 px-3 bg-green-100 rounded">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium text-green-800">{{ $file->file_name }}</span>
+                                        <span class="text-xs text-green-600 ml-2">({{ number_format($file->file_size / 1024, 1) }} KB)</span>
+                                    </div>
+                                    <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
+                                       class="text-green-600 hover:text-green-800 text-sm font-medium">
+                                        Download
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-green-600 text-sm italic">No deliverables uploaded yet. The producer will upload files here as they work on your project.</p>
+                    @endif
+                </div>
             </div>
 
             {{-- Action Forms (Conditional) --}}
@@ -188,6 +257,154 @@
         </footer>
 
     </div> {{-- End Container --}}
+
+    {{-- Client File Upload JavaScript --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('client-upload-area');
+            const fileInput = document.getElementById('client-file-input');
+            const filesList = document.getElementById('client-files-list');
+            
+            // Handle file input change
+            fileInput.addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+            });
+            
+            // Handle drag and drop
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('border-blue-500', 'bg-blue-100');
+            });
+            
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('border-blue-500', 'bg-blue-100');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('border-blue-500', 'bg-blue-100');
+                handleFiles(e.dataTransfer.files);
+            });
+            
+            function handleFiles(files) {
+                Array.from(files).forEach(uploadFile);
+            }
+            
+            function uploadFile(file) {
+                // Create progress indicator
+                const progressDiv = createProgressIndicator(file.name);
+                uploadArea.insertAdjacentElement('afterend', progressDiv);
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Get CSRF token
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (token) {
+                    formData.append('_token', token);
+                }
+                
+                // Upload file
+                fetch('{{ \Illuminate\Support\Facades\URL::temporarySignedRoute("client.portal.upload_file", now()->addHours(24), ["project" => $project->id]) }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    progressDiv.remove();
+                    
+                    if (data.success) {
+                        // Add file to the list
+                        addFileToList(data.file);
+                        showSuccessMessage('File uploaded successfully!');
+                    } else {
+                        showErrorMessage(data.message || 'Upload failed');
+                    }
+                })
+                .catch(error => {
+                    progressDiv.remove();
+                    console.error('Upload error:', error);
+                    showErrorMessage('Upload failed. Please try again.');
+                });
+            }
+            
+            function createProgressIndicator(fileName) {
+                const div = document.createElement('div');
+                div.className = 'bg-blue-100 border border-blue-300 rounded-lg p-3 mt-2';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-blue-800">Uploading: ${fileName}</span>
+                        <div class="w-6 h-6">
+                            <svg class="animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                `;
+                return div;
+            }
+            
+            function addFileToList(file) {
+                const existingFiles = filesList.querySelector('.space-y-2');
+                const noFilesMsg = filesList.querySelector('p.italic');
+                
+                if (noFilesMsg) {
+                    noFilesMsg.remove();
+                }
+                
+                if (!existingFiles) {
+                    const container = document.createElement('div');
+                    container.className = 'space-y-2';
+                    filesList.appendChild(container);
+                }
+                
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'flex items-center justify-between py-2 px-3 bg-blue-100 rounded';
+                fileDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-blue-800">${file.name}</span>
+                        <span class="text-xs text-blue-600 ml-2">(${(file.size / 1024).toFixed(1)} KB)</span>
+                    </div>
+                    <span class="text-blue-600 text-sm font-medium">Just uploaded</span>
+                `;
+                
+                filesList.querySelector('.space-y-2').appendChild(fileDiv);
+            }
+            
+            function showSuccessMessage(message) {
+                showMessage(message, 'success');
+            }
+            
+            function showErrorMessage(message) {
+                showMessage(message, 'error');
+            }
+            
+            function showMessage(message, type) {
+                const existing = document.querySelector('.flash-message');
+                if (existing) existing.remove();
+                
+                const div = document.createElement('div');
+                div.className = `flash-message fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                    type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                }`;
+                div.textContent = message;
+                
+                document.body.appendChild(div);
+                
+                setTimeout(() => {
+                    div.remove();
+                }, 5000);
+            }
+        });
+    </script>
 
 </body>
 </html> 

@@ -15,6 +15,7 @@ use App\Exceptions\Pitch\InvalidStatusTransitionException; // Already used, keep
 use App\Models\User; // Needed for Cashier
 use Laravel\Cashier\Exceptions\PaymentActionRequired; // Needed for Cashier
 use Laravel\Cashier\Exceptions\IncompletePayment; // Needed for Cashier
+use App\Services\FileManagementService; // Add FileManagementService
 
 class ClientPortalController extends Controller
 {
@@ -311,6 +312,120 @@ class ClientPortalController extends Controller
                 'error' => $e->getMessage()
             ]);
             abort(500, 'Could not download file at this time.');
+        }
+    }
+
+    /**
+     * Upload a file from the client (without user account) as a project file.
+     */
+    public function uploadFile(Project $project, Request $request, FileManagementService $fileService)
+    {
+        // Validate client management project
+        if (!$project->isClientManagement()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File upload is only available for client management projects.'
+            ], 403);
+        }
+        
+        // Validate signed URL (middleware handles this, but double-check)
+        if (!$request->hasValidSignature()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired link.'
+            ], 403);
+        }
+        
+        // Validate file upload
+        $request->validate([
+            'file' => 'required|file|max:204800', // 200MB max
+        ]);
+        
+        try {
+            // Upload as PROJECT file (not pitch file) with no user (client upload)
+            $projectFile = $fileService->uploadProjectFile(
+                $project,
+                $request->file('file'),
+                null, // No user - this is a client upload
+                [
+                    'uploaded_by_client' => true,
+                    'client_email' => $project->client_email,
+                    'upload_context' => 'client_portal'
+                ]
+            );
+            
+            Log::info('Client uploaded project file successfully.', [
+                'project_id' => $project->id,
+                'file_id' => $projectFile->id,
+                'file_name' => $projectFile->file_name,
+                'client_email' => $project->client_email
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'file' => [
+                    'id' => $projectFile->id,
+                    'name' => $projectFile->file_name,
+                    'size' => $projectFile->file_size,
+                    'type' => $projectFile->mime_type,
+                ],
+                'message' => 'File uploaded successfully.'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Client file upload failed.', [
+                'project_id' => $project->id,
+                'client_email' => $project->client_email,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'File upload failed. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Download a project file (client-uploaded file).
+     */
+    public function downloadProjectFile(Project $project, \App\Models\ProjectFile $projectFile, FileManagementService $fileService)
+    {
+        // Validate client management project
+        if (!$project->isClientManagement()) {
+            abort(403, 'Access denied.');
+        }
+        
+        // Ensure the file belongs to this project
+        if ($projectFile->project_id !== $project->id) {
+            abort(404, 'File not found.');
+        }
+        
+        // Double-check signature validity (middleware should handle, but good practice)
+        if (!request()->hasValidSignature()) {
+            abort(403, 'Invalid or expired link.');
+        }
+        
+        try {
+            // Generate temporary download URL
+            $downloadUrl = $fileService->getTemporaryDownloadUrl($projectFile);
+            
+            Log::info('Client downloaded project file.', [
+                'project_id' => $project->id,
+                'file_id' => $projectFile->id,
+                'client_email' => $project->client_email
+            ]);
+            
+            return redirect($downloadUrl);
+            
+        } catch (\Exception $e) {
+            Log::error('Client project file download failed.', [
+                'project_id' => $project->id,
+                'file_id' => $projectFile->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            abort(500, 'Unable to download file.');
         }
     }
 } 

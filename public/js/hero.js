@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Role Toggle Functionality
+    // Enhanced Role Toggle Functionality
     const artistToggle = document.getElementById('artist-toggle');
     const producerToggle = document.getElementById('producer-toggle');
     const toggleIndicator = document.querySelector('.toggle-indicator');
@@ -7,210 +7,315 @@ document.addEventListener('DOMContentLoaded', function () {
     const producerContent = document.getElementById('producer-content');
 
     if (artistToggle && producerToggle && toggleIndicator) {
-        // Set initial toggle state
-        toggleIndicator.style.width = `${artistToggle.offsetWidth}px`;
-
-        // Function to update toggle indicator based on active toggle
+        // Set initial toggle state with improved sizing
         const updateToggleIndicator = () => {
             const activeToggle = document.querySelector('.role-toggle-btn.active');
             if (activeToggle === artistToggle) {
                 toggleIndicator.style.transform = 'translateX(0)';
-                toggleIndicator.style.width = `${artistToggle.offsetWidth}px`;
+                toggleIndicator.style.width = `${artistToggle.offsetWidth - 8}px`;
             } else if (activeToggle === producerToggle) {
                 toggleIndicator.style.transform = `translateX(${artistToggle.offsetWidth}px)`;
-                toggleIndicator.style.width = `${producerToggle.offsetWidth}px`;
+                toggleIndicator.style.width = `${producerToggle.offsetWidth - 8}px`;
             }
         };
 
-        // Handle window resize to adjust toggle indicator
+        // Initial setup
+        updateToggleIndicator();
+
+        // Handle window resize
         window.addEventListener('resize', updateToggleIndicator);
 
-        // Handle initial animation for artist content (which is visible by default)
-        const artistParagraph = artistContent.querySelector('p');
-        if (artistParagraph) {
-            // Make sure it's visible initially
-            artistParagraph.style.opacity = '1';
-        }
-
-        // Toggle between artist and producer roles
-        artistToggle.addEventListener('click', function () {
-            // Update active states
-            artistToggle.classList.add('active');
-            artistToggle.classList.add('text-white');
-            producerToggle.classList.remove('active');
-            producerToggle.classList.remove('text-white');
+        // Enhanced toggle animations
+        const switchToRole = (activeBtn, inactiveBtn, activeContent, inactiveContent) => {
+            // Update button states
+            activeBtn.classList.add('active', 'text-white');
+            inactiveBtn.classList.remove('active', 'text-white');
+            inactiveBtn.classList.add('text-white/70');
 
             // Update toggle indicator
             updateToggleIndicator();
 
-            // Show/hide content
-            artistContent.classList.remove('hidden');
-            artistContent.classList.add('active');
-            producerContent.classList.add('hidden');
-            producerContent.classList.remove('active');
+            // Animate content transition
+            inactiveContent.style.opacity = '0';
+            inactiveContent.style.transform = 'translateY(20px)';
 
-            // Animate the content in
-            const content = artistContent.querySelector('p');
-            if (content) {
-                // Reset animation by removing and re-adding the class
-                content.classList.remove('animate-fade-in');
-                // Force a reflow to restart the animation
-                void content.offsetWidth;
-                content.classList.add('animate-fade-in');
+            setTimeout(() => {
+                inactiveContent.classList.add('hidden');
+                inactiveContent.classList.remove('active');
+                activeContent.classList.remove('hidden');
+                activeContent.classList.add('active');
+
+                // Animate in new content
+                activeContent.style.opacity = '0';
+                activeContent.style.transform = 'translateY(20px)';
+
+                requestAnimationFrame(() => {
+                    activeContent.style.transition = 'all 0.5s ease-out';
+                    activeContent.style.opacity = '1';
+                    activeContent.style.transform = 'translateY(0)';
+                });
+            }, 200);
+        };
+
+        artistToggle.addEventListener('click', () => {
+            if (!artistToggle.classList.contains('active')) {
+                switchToRole(artistToggle, producerToggle, artistContent, producerContent);
             }
         });
 
-        producerToggle.addEventListener('click', function () {
-            // Update active states
-            producerToggle.classList.add('active');
-            producerToggle.classList.add('text-white');
-            artistToggle.classList.remove('active');
-            artistToggle.classList.remove('text-white');
-
-            // Update toggle indicator
-            updateToggleIndicator();
-
-            // Show/hide content
-            producerContent.classList.remove('hidden');
-            producerContent.classList.add('active');
-            artistContent.classList.add('hidden');
-            artistContent.classList.remove('active');
-
-            // Animate the content in
-            const content = producerContent.querySelector('p');
-            if (content) {
-                // Reset animation by removing and re-adding the class
-                content.classList.remove('animate-fade-in');
-                // Force a reflow to restart the animation
-                void content.offsetWidth;
-                content.classList.add('animate-fade-in');
+        producerToggle.addEventListener('click', () => {
+            if (!producerToggle.classList.contains('active')) {
+                switchToRole(producerToggle, artistToggle, producerContent, artistContent);
             }
         });
     }
 
-    // Audio Visualization
-    const generateWaveformBars = () => {
-        const beforeWaveform = document.querySelector('.waveform-before');
-        const afterWaveform = document.querySelector('.waveform-after');
-
-        if (beforeWaveform && afterWaveform) {
-            // Clear existing bars
-            beforeWaveform.innerHTML = '';
-            afterWaveform.innerHTML = '';
-
-            // Generate 20 bars for each waveform
-            for (let i = 0; i < 20; i++) {
-                // Before waveform (smaller amplitude)
-                const beforeBar = document.createElement('div');
-                const randomHeight = 10 + Math.random() * 25; // Random height between 5-35px
-                beforeBar.className = 'inline-block bg-primary/60 mx-0.5 rounded-sm';
-                beforeBar.style.height = `${randomHeight}px`;
-                beforeBar.style.width = '3px';
-                beforeWaveform.appendChild(beforeBar);
-
-                // After waveform (larger amplitude, more defined)
-                const afterBar = document.createElement('div');
-                const enhancedHeight = randomHeight * (1.5 + Math.random() * 0.5); // 1.5-2x taller
-                afterBar.className = 'inline-block bg-primary mx-0.5 rounded-sm';
-                afterBar.style.height = `${enhancedHeight}px`;
-                afterBar.style.width = '3px';
-                afterWaveform.appendChild(afterBar);
-            }
-        }
-    };
-
-    // Generate waveform visualization
-    generateWaveformBars();
-
-    // Audio Visualizer Background
+    // Enhanced Audio Visualizer with WebGL-like effects
     const audioVisualizer = document.getElementById('audio-visualizer');
 
     if (audioVisualizer) {
-        // Create canvas for audio visualization
         const canvas = document.createElement('canvas');
         canvas.width = audioVisualizer.offsetWidth;
         canvas.height = audioVisualizer.offsetHeight;
         audioVisualizer.appendChild(canvas);
 
         const ctx = canvas.getContext('2d');
+        let animationId;
+        let lastFrameTime = 0;
+        const targetFPS = 30; // Reduced from 60 for better performance
+        const frameInterval = 1000 / targetFPS;
 
-        // Animation function for visualizer
-        function drawVisualizer() {
-            // Clear canvas
+        // Optimized visualizer configuration
+        const config = {
+            barCount: Math.min(60, Math.floor(canvas.width / 12)), // Reduced bar count
+            colors: [
+                { r: 59, g: 130, b: 246 },   // Blue
+                { r: 147, g: 51, b: 234 },   // Purple
+                { r: 236, g: 72, b: 153 },   // Pink
+            ],
+            waveSpeed: 0.015, // Slightly slower for smoother animation
+            amplitude: 0.7
+        };
+
+        function drawEnhancedVisualizer(currentTime) {
+            // Frame rate limiting
+            if (currentTime - lastFrameTime < frameInterval) {
+                animationId = requestAnimationFrame(drawEnhancedVisualizer);
+                return;
+            }
+            lastFrameTime = currentTime;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw visualization (simple frequency bars)
-            const barWidth = Math.max(2, canvas.width / 100);
-            const barSpacing = 1;
-            const barCount = Math.floor(canvas.width / (barWidth + barSpacing));
+            const time = currentTime / 1000;
+            const barWidth = Math.max(4, canvas.width / config.barCount);
+            const barSpacing = 3;
 
-            for (let i = 0; i < barCount; i++) {
-                // Random height based on position (creating a wave-like pattern)
-                const heightFactor = 0.2 + 0.5 * Math.sin((Date.now() / 1000 + i / 20) * Math.PI);
-                const barHeight = heightFactor * canvas.height / 2;
+            for (let i = 0; i < config.barCount; i++) {
+                // Simplified wave calculation for better performance
+                const wave1 = Math.sin(time * 1.8 + i * 0.12) * 0.5 + 0.5;
+                const wave2 = Math.sin(time * 1.2 + i * 0.18) * 0.3 + 0.3;
 
-                // Gradient color
-                const gradient = ctx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
-                gradient.addColorStop(0, 'rgba(124, 58, 237, 0.8)');  // Primary color (purple)
-                gradient.addColorStop(1, 'rgba(124, 58, 237, 0.2)');
+                const combinedWave = (wave1 + wave2) / 2; // Reduced from 3 waves to 2
+                const barHeight = combinedWave * canvas.height * config.amplitude;
 
-                ctx.fillStyle = gradient;
+                // Simplified color calculation
+                const colorIndex = (i / config.barCount + time * 0.08) % 1;
+                const colorArrayIndex = Math.floor(colorIndex * config.colors.length);
+                const color = config.colors[colorArrayIndex];
+
+                // Use solid colors instead of gradients for better performance
+                ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.7)`;
                 ctx.fillRect(
                     i * (barWidth + barSpacing),
                     canvas.height - barHeight,
                     barWidth,
                     barHeight
                 );
+
+                // Simplified glow effect (only for every 3rd bar)
+                if (i % 3 === 0) {
+                    ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`;
+                    ctx.shadowBlur = 8;
+                    ctx.fillRect(
+                        i * (barWidth + barSpacing),
+                        canvas.height - barHeight,
+                        barWidth,
+                        barHeight
+                    );
+                    ctx.shadowBlur = 0;
+                }
             }
 
-            requestAnimationFrame(drawVisualizer);
+            animationId = requestAnimationFrame(drawEnhancedVisualizer);
         }
 
-        // Start visualization
-        drawVisualizer();
+        drawEnhancedVisualizer(performance.now());
 
-        // Handle resize
+        // Optimized resize handler with debouncing
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-            canvas.width = audioVisualizer.offsetWidth;
-            canvas.height = audioVisualizer.offsetHeight;
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                canvas.width = audioVisualizer.offsetWidth;
+                canvas.height = audioVisualizer.offsetHeight;
+                config.barCount = Math.min(60, Math.floor(canvas.width / 12));
+            }, 250);
         });
     }
 
-    // Animated Counter
-    const animateCounters = () => {
-        const counters = document.querySelectorAll('.count-up');
+    // Optimized Floating Particles System
+    const particlesContainer = document.getElementById('particles-container');
 
-        counters.forEach(counter => {
-            const target = parseInt(counter.getAttribute('data-target'));
-            const duration = 2000; // 2 seconds
-            const startTime = performance.now();
+    if (particlesContainer) {
+        const particleCanvas = document.createElement('canvas');
+        particleCanvas.width = particlesContainer.offsetWidth;
+        particleCanvas.height = particlesContainer.offsetHeight;
+        particlesContainer.appendChild(particleCanvas);
 
-            const updateCounter = (timestamp) => {
-                const elapsed = timestamp - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                counter.textContent = Math.floor(progress * target).toLocaleString();
+        const pCtx = particleCanvas.getContext('2d');
+        const particles = [];
+        const particleCount = 25; // Reduced from 50
+        let lastParticleFrame = 0;
+        const particleFrameInterval = 1000 / 20; // 20 FPS for particles
 
-                if (progress < 1) {
-                    requestAnimationFrame(updateCounter);
+        // Optimized Particle class
+        class Particle {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * particleCanvas.height;
+            }
+
+            reset() {
+                this.x = Math.random() * particleCanvas.width;
+                this.y = -10;
+                this.size = Math.random() * 2 + 1; // Smaller particles
+                this.speedY = Math.random() * 1.5 + 0.3; // Slower movement
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.4 + 0.1; // Lower opacity
+                this.color = `rgba(255, 255, 255, ${this.opacity})`;
+            }
+
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+
+                if (this.y > particleCanvas.height + 10) {
+                    this.reset();
                 }
-            };
 
-            requestAnimationFrame(updateCounter);
+                if (this.x < 0 || this.x > particleCanvas.width) {
+                    this.speedX *= -1;
+                }
+            }
+
+            draw() {
+                pCtx.beginPath();
+                pCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                pCtx.fillStyle = this.color;
+                pCtx.fill();
+            }
+        }
+
+        // Initialize particles
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles(currentTime) {
+            // Frame rate limiting for particles
+            if (currentTime - lastParticleFrame < particleFrameInterval) {
+                requestAnimationFrame(animateParticles);
+                return;
+            }
+            lastParticleFrame = currentTime;
+
+            pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animateParticles);
+        }
+
+        animateParticles(performance.now());
+
+        // Handle resize for particles with debouncing
+        let particleResizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(particleResizeTimeout);
+            particleResizeTimeout = setTimeout(() => {
+                particleCanvas.width = particlesContainer.offsetWidth;
+                particleCanvas.height = particlesContainer.offsetHeight;
+            }, 250);
         });
+    }
+
+    // Scroll-triggered animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
     };
 
-    // Initialize counter animation when in viewport
-    const observer = new IntersectionObserver(entries => {
+    const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                animateCounters();
-                observer.disconnect(); // Only run once
+                entry.target.classList.add('animate-fade-in-up');
             }
+        });
+    }, observerOptions);
+
+    // Observe elements for scroll animations
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Enhanced button hover effects
+    document.querySelectorAll('.group').forEach(button => {
+        button.addEventListener('mouseenter', function () {
+            this.style.transform = 'scale(1.05) translateY(-2px)';
+        });
+
+        button.addEventListener('mouseleave', function () {
+            this.style.transform = 'scale(1) translateY(0)';
         });
     });
 
-    const statsCounter = document.querySelector('.stats-counter');
-    if (statsCounter) {
-        observer.observe(statsCounter);
+    // Performance optimization: Pause animations when not visible
+    let isVisible = true;
+
+    document.addEventListener('visibilitychange', () => {
+        isVisible = !document.hidden;
+
+        if (!isVisible) {
+            // Pause heavy animations when tab is not visible
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        } else {
+            // Resume animations when tab becomes visible
+            if (audioVisualizer) {
+                drawEnhancedVisualizer(performance.now());
+            }
+        }
+    });
+
+    // Add dynamic gradient animation
+    const gradientOverlay = document.querySelector('.animate-gradient-x');
+    if (gradientOverlay) {
+        let gradientPosition = 0;
+
+        function animateGradient() {
+            gradientPosition += 0.5;
+            gradientOverlay.style.backgroundPosition = `${gradientPosition}% 50%`;
+
+            if (isVisible) {
+                requestAnimationFrame(animateGradient);
+            }
+        }
+
+        animateGradient();
     }
 }); 

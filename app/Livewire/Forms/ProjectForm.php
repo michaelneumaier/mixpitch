@@ -6,6 +6,7 @@ use Livewire\Attributes\Rule;
 use Livewire\Form;
 use Livewire\WithFileUploads;
 use App\Models\Project;
+use App\Models\ProjectType;
 use Illuminate\Validation\Rule as ValidationRule;
 
 class ProjectForm extends Form
@@ -49,12 +50,15 @@ class ProjectForm extends Form
 
     public function rules()
     {
+        // Get active project type slugs for validation
+        $activeProjectTypeSlugs = ProjectType::getActive()->pluck('slug')->toArray();
+        
         $rules = [
             'name' => 'required|string|min:5|max:80',
             'artistName' => 'nullable|string|max:30',
-            'projectType' => ['required', 'string', 'max:50'],
+            'projectType' => ['required', 'string', 'max:50', ValidationRule::in($activeProjectTypeSlugs)],
             'description' => 'required|string|min:5|max:1000',
-            'genre' => 'required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip-Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk',
+            'genre' => 'required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk',
             'projectImage' => 'nullable|image|max:2048',
             'collaborationTypeMixing' => 'boolean',
             'collaborationTypeMastering' => 'boolean',
@@ -99,7 +103,15 @@ class ProjectForm extends Form
         $this->project = $project;
         $this->name = $project->name;
         $this->artistName = $project->artist_name;
-        $this->projectType = $project->project_type;
+        
+        // Use the new ProjectType relationship if available, fallback to legacy field
+        if ($project->projectType) {
+            $this->projectType = $project->projectType->slug;
+        } else {
+            // Fallback to legacy project_type field if no relationship exists
+            $this->projectType = $project->project_type ?? 'single';
+        }
+        
         $this->description = $project->description;
         $this->genre = $project->genre;
         $this->collaborationTypeMixing = in_array('Mixing', $project->collaboration_type ?? []);

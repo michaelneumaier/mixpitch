@@ -18,11 +18,17 @@ class DashboardController extends Controller
         $workItems = new Collection();
 
         // Define active statuses (adjust as needed)
-        $activeProjectStatuses = [Project::STATUS_OPEN, Project::STATUS_IN_PROGRESS];
+        $activeProjectStatuses = [
+            Project::STATUS_UNPUBLISHED, // Users should see their own unpublished projects
+            Project::STATUS_OPEN, 
+            Project::STATUS_IN_PROGRESS, 
+            Project::STATUS_COMPLETED
+        ]; // Include all project statuses for user's own projects
         $activePitchStatuses = [
             Pitch::STATUS_PENDING, Pitch::STATUS_IN_PROGRESS, Pitch::STATUS_READY_FOR_REVIEW,
             Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_AWAITING_ACCEPTANCE,
-            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, Pitch::STATUS_APPROVED, Pitch::STATUS_COMPLETED,
+            Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP
         ];
         $activeOrderStatuses = [
             Order::STATUS_PENDING_REQUIREMENTS, Order::STATUS_IN_PROGRESS, Order::STATUS_NEEDS_CLARIFICATION,
@@ -31,7 +37,7 @@ class DashboardController extends Controller
 
         // --- Fetch Items Where User is the Owner/Client ---
         $ownedProjects = Project::where('user_id', $user->id)
-            // ->whereIn('status', $activeProjectStatuses) // Optionally filter by status
+            ->whereIn('status', $activeProjectStatuses) // Now includes completed projects
             ->with(['user', 'targetProducer', 'pitches']) // Eager load pitches to check for client management
             ->latest('updated_at')
             ->get();

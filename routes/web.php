@@ -27,6 +27,7 @@ use App\Http\Controllers\ClientPortalController;
 use App\Http\Controllers\Producer\ServicePackageController;
 use App\Http\Controllers\PublicServicePackageController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ContestJudgingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -101,6 +102,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('pitch.uploadFile')
         ->middleware('auth');
 
+    // Route for tests that expect pitch.files.store pattern
+    Route::post('/pitches/{pitch}/files', [App\Http\Controllers\PitchFileController::class, 'uploadSingle'])
+        ->name('pitch.files.store')
+        ->middleware('auth');
+
     // New route for handling sequential project file uploads
     Route::post('/project/upload-file', [App\Http\Controllers\ProjectController::class, 'uploadSingle'])
         ->name('project.uploadFile')
@@ -148,7 +154,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('projects.pitches.update');
 
     // Add the missing route for changing pitch status with project context
-    Route::post('/projects/{project}/pitches/{pitch}/change-status', [App\Http\Controllers\PitchController::class, 'changeStatus'])
+    Route::post('/projects/{project:slug}/pitches/{pitch:slug}/change-status', [App\Http\Controllers\PitchController::class, 'changeStatus'])
         ->name('projects.pitches.change-status');
         
     Route::get('/projects/{project}/pitches/{pitch}/payment', [App\Http\Controllers\PitchController::class, 'showProjectPitchPayment'])
@@ -197,6 +203,49 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/{project:slug}/pitches/{pitch:slug}/return-to-approved', [\App\Http\Controllers\PitchController::class, 'returnToApproved'])
         ->name('projects.pitches.return-to-approved')
         ->middleware('auth');
+
+    // <<< PHASE 6: CONTEST JUDGING ROUTES >>>
+
+    // Contest judging management route
+    Route::get('/projects/{project}/contest/judging', [\App\Http\Controllers\ContestJudgingController::class, 'index'])
+        ->name('projects.contest.judging')
+        ->middleware('auth');
+
+    // Contest results view (public if allowed)
+    Route::get('/projects/{project}/contest/results', [\App\Http\Controllers\ContestJudgingController::class, 'results'])
+        ->name('projects.contest.results');
+
+    // Contest placement update route
+    Route::post('/projects/{project}/contest/placements/{pitch}', [\App\Http\Controllers\ContestJudgingController::class, 'updatePlacement'])
+        ->name('projects.contest.update-placement')
+        ->middleware('auth');
+
+    // Contest judging finalization route
+    Route::post('/projects/{project}/contest/finalize', [\App\Http\Controllers\ContestJudgingController::class, 'finalize'])
+        ->name('projects.contest.finalize')
+        ->middleware('auth');
+
+    // Contest judging reopen route (admin only)
+    Route::post('/projects/{project}/contest/reopen', [\App\Http\Controllers\ContestJudgingController::class, 'reopen'])
+        ->name('projects.contest.reopen')
+        ->middleware(['auth', 'admin']);
+
+    // Contest analytics route
+    Route::get('/projects/{project}/contest/analytics', [\App\Http\Controllers\ContestJudgingController::class, 'analytics'])
+        ->name('projects.contest.analytics')
+        ->middleware('auth');
+
+    // Contest results export route
+    Route::get('/projects/{project}/contest/export', [\App\Http\Controllers\ContestJudgingController::class, 'export'])
+        ->name('projects.contest.export')
+        ->middleware('auth');
+
+    // Contest results announcement route (for 100% completion)
+    Route::post('/projects/{project}/contest/announce-results', [\App\Http\Controllers\ContestJudgingController::class, 'announceResults'])
+        ->name('projects.contest.announce-results')
+        ->middleware('auth');
+
+    // <<< END PHASE 6: CONTEST JUDGING ROUTES >>>
 
     // Special fallback routes to debug 404 errors
     Route::get('/pitch/{pitch}/snapshots/{snapshot}/{action}', function($pitch, $snapshot, $action) {
@@ -249,6 +298,10 @@ Route::middleware(['auth'])->group(function () {
             ]
         ], 405);
     })->where('action', '(approve|deny|request-changes)');
+
+    // Project Type Analytics (for admins or users to see insights)
+    Route::get('/analytics/project-types', \App\Livewire\ProjectTypeAnalytics::class)
+        ->name('analytics.project-types');
 });
 
 // User Profile Routes
@@ -721,4 +774,14 @@ Route::post('/client-portal/project/{project:id}/resend-invite', [ClientPortalCo
 // Client File Download route (needs signed middleware)
 Route::get('/client-portal/project/{project:id}/file/{pitchFile:id}', [ClientPortalController::class, 'downloadFile'])
     ->name('client.portal.download_file')
+    ->middleware('signed');
+
+// Client File Upload route (needs signed middleware) - NEW
+Route::post('/client-portal/project/{project:id}/upload', [ClientPortalController::class, 'uploadFile'])
+    ->name('client.portal.upload_file')
+    ->middleware('signed');
+
+// Client Project File Download route (needs signed middleware) - NEW
+Route::get('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'downloadProjectFile'])
+    ->name('client.portal.download_project_file')
     ->middleware('signed');
