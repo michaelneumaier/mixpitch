@@ -1,3 +1,4 @@
 /public/index.php
 .env
+.env.dusk.local
 public/hot

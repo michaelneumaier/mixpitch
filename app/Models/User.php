@@ -45,6 +45,15 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     const ROLE_ADMIN = 'admin'; // Assuming you might need an admin role too
 
     /**
+     * Define subscription plan constants.
+     */
+    const PLAN_FREE = 'free';
+    const PLAN_PRO = 'pro';
+    const TIER_BASIC = 'basic';
+    const TIER_ARTIST = 'artist';
+    const TIER_ENGINEER = 'engineer';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -70,6 +79,11 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'provider_refresh_token',
         'role',
         'stripe_account_id',
+        'subscription_plan',
+        'subscription_tier',
+        'plan_started_at',
+        'monthly_pitch_count',
+        'monthly_pitch_reset_date',
     ];
 
     /**
@@ -94,6 +108,8 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'social_links' => 'array',
         'username_locked' => 'boolean',
         'profile_completed' => 'boolean',
+        'plan_started_at' => 'datetime',
+        'monthly_pitch_reset_date' => 'date',
     ];
 
     /**
