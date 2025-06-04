@@ -69,7 +69,7 @@
                     <p class="text-sm text-gray-600">
                         <strong>Receipt:</strong> A receipt has been sent to your email address. 
                         You can also manage your subscription and download invoices from your 
-                        <a href="{{ route('billing.index') }}" class="text-blue-600 hover:text-blue-800 underline">billing dashboard</a>.
+                        <a href="{{ route('billing') }}" class="text-blue-600 hover:text-blue-800 underline">billing dashboard</a>.
                     </p>
                 </div>
             </div>
