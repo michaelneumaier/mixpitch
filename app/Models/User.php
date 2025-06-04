@@ -484,12 +484,11 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     }
 
     /**
-     * Check if user can create a new pitch
+     * Check if user can create a new pitch (general check)
      *
-     * @param Project $project
      * @return bool
      */
-    public function canCreatePitch(Project $project): bool
+    public function canCreatePitch(): bool
     {
         $limits = $this->getSubscriptionLimits();
         if (!$limits || $limits->max_active_pitches === null) {
@@ -506,6 +505,24 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             ->count();
             
         return $activePitches < $limits->max_active_pitches;
+    }
+
+    /**
+     * Check if user can create a new pitch for a specific project
+     *
+     * @param Project $project
+     * @return bool
+     */
+    public function canCreatePitchForProject(Project $project): bool
+    {
+        // First check general pitch limits
+        if (!$this->canCreatePitch()) {
+            return false;
+        }
+        
+        // Additional project-specific checks could go here if needed
+        // For now, we just use the general check
+        return true;
     }
 
     /**
