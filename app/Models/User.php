@@ -25,6 +25,7 @@ use App\Models\PortfolioItem;
 use App\Models\Tag;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\SubscriptionLimit;
 
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
@@ -431,6 +432,135 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             'bindings' => $relation->getBindings()
         ]);
         return $relation;
+    }
+
+    // ========== SUBSCRIPTION METHODS ==========
+
+    /**
+     * Check if user is on free plan
+     *
+     * @return bool
+     */
+    public function isFreePlan(): bool
+    {
+        return $this->subscription_plan === self::PLAN_FREE;
+    }
+
+    /**
+     * Check if user is on pro plan
+     *
+     * @return bool
+     */
+    public function isProPlan(): bool
+    {
+        return $this->subscription_plan === self::PLAN_PRO;
+    }
+
+    /**
+     * Get the subscription limits for this user
+     *
+     * @return SubscriptionLimit|null
+     */
+    public function getSubscriptionLimits()
+    {
+        return SubscriptionLimit::where('plan_name', $this->subscription_plan)
+            ->where('plan_tier', $this->subscription_tier)
+            ->first();
+    }
+
+    /**
+     * Check if user can create a new project
+     *
+     * @return bool
+     */
+    public function canCreateProject(): bool
+    {
+        $limits = $this->getSubscriptionLimits();
+        if (!$limits || $limits->max_projects_owned === null) {
+            return true; // Unlimited
+        }
+        
+        return $this->projects()->count() < $limits->max_projects_owned;
+    }
+
+    /**
+     * Check if user can create a new pitch
+     *
+     * @param Project $project
+     * @return bool
+     */
+    public function canCreatePitch(Project $project): bool
+    {
+        $limits = $this->getSubscriptionLimits();
+        if (!$limits || $limits->max_active_pitches === null) {
+            return true; // Unlimited
+        }
+        
+        $activePitches = $this->pitches()
+            ->whereIn('status', [
+                Pitch::STATUS_PENDING,
+                Pitch::STATUS_IN_PROGRESS,
+                Pitch::STATUS_READY_FOR_REVIEW,
+                Pitch::STATUS_PENDING_REVIEW,
+            ])
+            ->count();
+            
+        return $activePitches < $limits->max_active_pitches;
+    }
+
+    /**
+     * Check if user can create monthly pitch (for Pro Engineer)
+     *
+     * @return bool
+     */
+    public function canCreateMonthlyPitch(): bool
+    {
+        $limits = $this->getSubscriptionLimits();
+        if (!$limits || $limits->max_monthly_pitches === null) {
+            return true; // Unlimited
+        }
+        
+        // Reset monthly count if needed
+        $this->resetMonthlyPitchCountIfNeeded();
+        
+        return $this->monthly_pitch_count < $limits->max_monthly_pitches;
+    }
+
+    /**
+     * Increment the monthly pitch count
+     *
+     * @return void
+     */
+    public function incrementMonthlyPitchCount(): void
+    {
+        $this->resetMonthlyPitchCountIfNeeded();
+        $this->increment('monthly_pitch_count');
+    }
+
+    /**
+     * Reset monthly pitch count if needed
+     *
+     * @return void
+     */
+    private function resetMonthlyPitchCountIfNeeded(): void
+    {
+        if (!$this->monthly_pitch_reset_date || $this->monthly_pitch_reset_date->isPast()) {
+            $this->update([
+                'monthly_pitch_count' => 0,
+                'monthly_pitch_reset_date' => now()->addMonth()->startOfMonth()->toDateString()
+            ]);
+        }
+    }
+
+    /**
+     * Get project storage limit for this user in bytes
+     *
+     * @return int
+     */
+    public function getProjectStorageLimit(): int
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->storage_per_project_mb * 1024 * 1024 : Project::MAX_STORAGE_BYTES;
     }
 
     // If the trait doesn't automatically provide the relationship,
