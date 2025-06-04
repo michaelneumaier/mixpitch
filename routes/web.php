@@ -28,6 +28,7 @@ use App\Http\Controllers\Producer\ServicePackageController;
 use App\Http\Controllers\PublicServicePackageController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ContestJudgingController;
+use App\Http\Controllers\SubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -339,6 +340,14 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('billing')->name('billin
 
 // Add a route alias for /billing that redirects to the billing index
 Route::get('/billing', [App\Http\Controllers\Billing\BillingController::class, 'index'])->middleware(['auth:sanctum', 'verified'])->name('billing');
+
+// Subscription Routes
+Route::middleware(['auth:sanctum', 'verified'])->prefix('subscription')->name('subscription.')->group(function () {
+    Route::get('/', [App\Http\Controllers\SubscriptionController::class, 'index'])->name('index');
+    Route::post('/upgrade', [App\Http\Controllers\SubscriptionController::class, 'upgrade'])->name('upgrade');
+    Route::get('/success', [App\Http\Controllers\SubscriptionController::class, 'success'])->name('success');
+    Route::get('/cancel', [App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('cancel');
+});
 
 // Stripe Webhook Route
 Route::post('/stripe/webhook', [App\Http\Controllers\Billing\WebhookController::class, 'handleWebhook'])->name('cashier.webhook');

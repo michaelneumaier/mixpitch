@@ -204,11 +204,97 @@ class WebhookController extends CashierWebhookController
         return $this->successMethod();
     }
 
-    // --- Existing Subscription/Customer Handlers (keep as is unless they need changes) ---
+    /**
+     * Handle customer subscription created event.
+     */
+    public function handleCustomerSubscriptionCreated($payload) 
+    { 
+        Log::info('Webhook received: customer.subscription.created', ['payload_id' => $payload['id'] ?? 'N/A']); 
+        
+        try {
+            $subscription = $payload['data']['object'] ?? null;
+            $customerId = $subscription['customer'] ?? null;
+            $priceId = $subscription['items']['data'][0]['price']['id'] ?? null;
+            
+            if ($customerId && $priceId) {
+                $user = User::where('stripe_id', $customerId)->first();
+                if ($user) {
+                    $this->updateUserSubscriptionFromPrice($user, $priceId, 'active');
+                    Log::info('Updated user subscription from webhook', [
+                        'user_id' => $user->id,
+                        'price_id' => $priceId
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error handling customer.subscription.created: ' . $e->getMessage());
+        }
+        
+        return $this->successMethod(); 
+    }
 
-    public function handleCustomerSubscriptionCreated($payload) { Log::info('Webhook received: customer.subscription.created', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
-    public function handleCustomerSubscriptionUpdated($payload) { Log::info('Webhook received: customer.subscription.updated', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
-    public function handleCustomerSubscriptionDeleted($payload) { Log::info('Webhook received: customer.subscription.deleted', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
+    /**
+     * Handle customer subscription updated event.
+     */
+    public function handleCustomerSubscriptionUpdated($payload) 
+    { 
+        Log::info('Webhook received: customer.subscription.updated', ['payload_id' => $payload['id'] ?? 'N/A']); 
+        
+        try {
+            $subscription = $payload['data']['object'] ?? null;
+            $customerId = $subscription['customer'] ?? null;
+            $priceId = $subscription['items']['data'][0]['price']['id'] ?? null;
+            $status = $subscription['status'] ?? null;
+            
+            if ($customerId && $priceId) {
+                $user = User::where('stripe_id', $customerId)->first();
+                if ($user) {
+                    if ($status === 'active') {
+                        $this->updateUserSubscriptionFromPrice($user, $priceId, 'active');
+                    } elseif (in_array($status, ['canceled', 'unpaid', 'past_due'])) {
+                        $this->updateUserSubscriptionFromPrice($user, null, 'inactive');
+                    }
+                    Log::info('Updated user subscription from webhook', [
+                        'user_id' => $user->id,
+                        'price_id' => $priceId,
+                        'status' => $status
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error handling customer.subscription.updated: ' . $e->getMessage());
+        }
+        
+        return $this->successMethod(); 
+    }
+
+    /**
+     * Handle customer subscription deleted event.
+     */
+    public function handleCustomerSubscriptionDeleted($payload) 
+    { 
+        Log::info('Webhook received: customer.subscription.deleted', ['payload_id' => $payload['id'] ?? 'N/A']); 
+        
+        try {
+            $subscription = $payload['data']['object'] ?? null;
+            $customerId = $subscription['customer'] ?? null;
+            
+            if ($customerId) {
+                $user = User::where('stripe_id', $customerId)->first();
+                if ($user) {
+                    $this->updateUserSubscriptionFromPrice($user, null, 'canceled');
+                    Log::info('Canceled user subscription from webhook', [
+                        'user_id' => $user->id
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error handling customer.subscription.deleted: ' . $e->getMessage());
+        }
+        
+        return $this->successMethod(); 
+    }
+
     public function handleCustomerUpdated($payload) { Log::info('Webhook received: customer.updated', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
     public function handleCustomerDeleted($payload) { Log::info('Webhook received: customer.deleted', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
 
@@ -467,5 +553,39 @@ class WebhookController extends CashierWebhookController
      {
          Log::warning('Webhook type not handled.', ['parameters' => $parameters]);
          return new Response('Webhook type not handled', 400);
+     }
+
+     /**
+      * Update user subscription based on Stripe price ID
+      *
+      * @param User $user
+      * @param string|null $priceId
+      * @param string $status
+      * @return void
+      */
+     private function updateUserSubscriptionFromPrice(User $user, ?string $priceId, string $status): void
+     {
+         $priceMapping = [
+             config('subscription.stripe_prices.pro_artist') => ['plan' => 'pro', 'tier' => 'artist'],
+             config('subscription.stripe_prices.pro_engineer') => ['plan' => 'pro', 'tier' => 'engineer'],
+         ];
+
+         if ($priceId && isset($priceMapping[$priceId])) {
+             $mapping = $priceMapping[$priceId];
+             $user->update([
+                 'subscription_plan' => $mapping['plan'],
+                 'subscription_tier' => $mapping['tier'],
+                 'plan_started_at' => $status === 'active' ? now() : $user->plan_started_at,
+             ]);
+         } elseif ($status === 'canceled' || $status === 'inactive') {
+             // Downgrade to free plan
+             $user->update([
+                 'subscription_plan' => 'free',
+                 'subscription_tier' => 'basic',
+                 'plan_started_at' => null,
+                 'monthly_pitch_count' => 0,
+                 'monthly_pitch_reset_date' => null,
+             ]);
+         }
      }
 }

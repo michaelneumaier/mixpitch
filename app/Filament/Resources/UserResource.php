@@ -161,6 +161,42 @@ class UserResource extends Resource
                             ->columns(2)
                             ->columnSpanFull(),
                     ]),
+                
+                Forms\Components\Section::make('Subscription')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('subscription_plan')
+                                    ->label('Plan')
+                                    ->options([
+                                        'free' => 'Free',
+                                        'pro' => 'Pro',
+                                    ])
+                                    ->default('free')
+                                    ->required(),
+                                
+                                Forms\Components\Select::make('subscription_tier')
+                                    ->label('Tier')
+                                    ->options([
+                                        'basic' => 'Basic',
+                                        'artist' => 'Artist',
+                                        'engineer' => 'Engineer',
+                                    ])
+                                    ->default('basic')
+                                    ->required(),
+                                
+                                Forms\Components\DateTimePicker::make('plan_started_at')
+                                    ->label('Plan Started'),
+                                
+                                Forms\Components\TextInput::make('monthly_pitch_count')
+                                    ->label('Monthly Pitch Count')
+                                    ->numeric()
+                                    ->default(0),
+                                
+                                Forms\Components\DatePicker::make('monthly_pitch_reset_date')
+                                    ->label('Monthly Reset Date'),
+                            ]),
+                    ]),
             ]);
     }
 
@@ -205,6 +241,27 @@ class UserResource extends Resource
                     ->label('Profile')
                     ->sortable(),
                 
+                Tables\Columns\TextColumn::make('subscription_plan')
+                    ->label('Plan')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'free' => 'gray',
+                        'pro' => 'success',
+                        default => 'gray',
+                    })
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('subscription_tier')
+                    ->label('Tier')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'basic' => 'gray',
+                        'artist' => 'info',
+                        'engineer' => 'warning',
+                        default => 'gray',
+                    })
+                    ->sortable(),
+                
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -234,6 +291,19 @@ class UserResource extends Resource
                 Tables\Filters\Filter::make('profile_completed')
                     ->query(fn (Builder $query): Builder => $query->where('profile_completed', true))
                     ->toggle(),
+                
+                Tables\Filters\SelectFilter::make('subscription_plan')
+                    ->options([
+                        'free' => 'Free',
+                        'pro' => 'Pro',
+                    ]),
+                
+                Tables\Filters\SelectFilter::make('subscription_tier')
+                    ->options([
+                        'basic' => 'Basic',
+                        'artist' => 'Artist',
+                        'engineer' => 'Engineer',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
