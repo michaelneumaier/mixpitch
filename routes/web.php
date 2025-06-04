@@ -58,18 +58,19 @@ Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('pro
 
 
 Route::middleware(['auth'])->group(function () {
-    Route::post('/projects/store', [ProjectController::class, 'storeProject'])->name('projects.store');
-    Route::get('/projects/upload', [ProjectController::class, 'createProject'])->name('projects.upload');
+    // Project creation routes with subscription protection
+    Route::middleware(['subscription:create_project'])->group(function () {
+        Route::post('/projects/store', [ProjectController::class, 'storeProject'])->name('projects.store');
+        Route::get('/projects/upload', [ProjectController::class, 'createProject'])->name('projects.upload');
+        Route::get('/create-project', CreateProject::class)->name('projects.create');
+    });
+    
+    // Other project management routes (no subscription check needed)
     Route::get('/projects/{project}/step2', [ProjectController::class, 'createStep2'])->name('projects.createStep2');
     Route::post('/projects/{project}/step2', [ProjectController::class, 'storeStep2'])->name('projects.storeStep2');
     //Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
 
-    // Route::get('/create-project', function () {
-    //     return view('livewire.create-project');
-    // });
-
-    Route::get('/create-project', CreateProject::class)->name('projects.create');
     Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
     Route::get('/manage-project/{project}', ManageProject::class)->name('projects.manage');
     
@@ -133,13 +134,15 @@ Route::middleware(['auth'])->group(function () {
     //     ->name('pitches.payment.receipt');
 
     // Creating a pitch for a project - keep existing route but add an alias
-    Route::get('/projects/{project}/pitches/create', [App\Http\Controllers\PitchController::class, 'create'])
-        ->name('projects.pitches.create');
+    Route::middleware(['subscription:create_pitch'])->group(function () {
+        Route::get('/projects/{project}/pitches/create', [App\Http\Controllers\PitchController::class, 'create'])
+            ->name('projects.pitches.create');
+            
+        // Store a pitch for a project
+        Route::post('/projects/{project}/pitches', [App\Http\Controllers\PitchController::class, 'store'])
+            ->name('projects.pitches.store');
+    });
         
-    // Store a pitch for a project
-    Route::post('/projects/{project}/pitches', [App\Http\Controllers\PitchController::class, 'store'])
-        ->name('projects.pitches.store');
-
     // Add new routes with the new URL pattern
     Route::get('/projects/{project}/pitches/{pitch}', [App\Http\Controllers\PitchController::class, 'showProjectPitch'])
         ->name('projects.pitches.show');
@@ -347,6 +350,8 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('subscription')->name('s
     Route::post('/upgrade', [App\Http\Controllers\SubscriptionController::class, 'upgrade'])->name('upgrade');
     Route::get('/success', [App\Http\Controllers\SubscriptionController::class, 'success'])->name('success');
     Route::get('/cancel', [App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('cancel');
+    Route::post('/downgrade', [App\Http\Controllers\SubscriptionController::class, 'downgrade'])->name('downgrade');
+    Route::post('/resume', [App\Http\Controllers\SubscriptionController::class, 'resume'])->name('resume');
 });
 
 // Stripe Webhook Route

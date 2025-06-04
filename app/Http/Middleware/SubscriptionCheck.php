@@ -6,6 +6,8 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class SubscriptionCheck
 {
@@ -14,36 +16,104 @@ class SubscriptionCheck
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $feature): Response
+    public function handle(Request $request, Closure $next, string $action): Response
     {
-        $user = Auth::user();
+        $user = $request->user();
         
         if (!$user) {
             return redirect()->route('login');
         }
-
-        switch ($feature) {
+        
+        $limits = $user->getSubscriptionLimits();
+        
+        switch ($action) {
             case 'create_project':
                 if (!$user->canCreateProject()) {
-                    return redirect()->route('pricing')
-                        ->with('error', 'You have reached your project limit. Upgrade to Pro to create unlimited projects.');
+                    Log::info('User blocked from creating project due to subscription limits', [
+                        'user_id' => $user->id,
+                        'plan' => $user->subscription_plan,
+                        'tier' => $user->subscription_tier,
+                        'current_projects' => $user->projects()->count(),
+                        'limit' => $limits?->max_projects_owned
+                    ]);
+                    
+                    // Send limit reached notification if not already sent recently
+                    $this->sendLimitNotificationIfNeeded($user, 'projects', $user->projects()->count(), $limits?->max_projects_owned);
+                    
+                    return redirect()->route('subscription.index')
+                        ->with('error', 'You have reached your project limit. Upgrade to Pro for unlimited projects.');
                 }
                 break;
                 
             case 'create_pitch':
-                $project = $request->route('project');
-                if ($project && !$user->canCreatePitch($project)) {
-                    return redirect()->back()
+                if (!$user->canCreatePitch()) {
+                    $activePitchesCount = $user->pitches()->whereIn('status', [
+                        \App\Models\Pitch::STATUS_PENDING,
+                        \App\Models\Pitch::STATUS_IN_PROGRESS,
+                        \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+                        \App\Models\Pitch::STATUS_PENDING_REVIEW,
+                    ])->count();
+                    
+                    Log::info('User blocked from creating pitch due to subscription limits', [
+                        'user_id' => $user->id,
+                        'plan' => $user->subscription_plan,
+                        'tier' => $user->subscription_tier,
+                        'active_pitches' => $activePitchesCount,
+                        'limit' => $limits?->max_active_pitches
+                    ]);
+                    
+                    // Send limit reached notification if not already sent recently
+                    $this->sendLimitNotificationIfNeeded($user, 'pitches', $activePitchesCount, $limits?->max_active_pitches);
+                    
+                    return redirect()->route('subscription.index')
                         ->with('error', 'You have reached your active pitch limit. Upgrade to Pro for unlimited pitches.');
                 }
                 
+                // Check monthly pitch limit for Pro Engineer
                 if (!$user->canCreateMonthlyPitch()) {
-                    return redirect()->back()
-                        ->with('error', 'You have reached your monthly pitch limit. Upgrade to Pro for unlimited monthly pitches.');
+                    Log::info('User blocked from creating monthly pitch due to subscription limits', [
+                        'user_id' => $user->id,
+                        'monthly_pitches_used' => $user->monthly_pitch_count,
+                        'limit' => $limits?->max_monthly_pitches
+                    ]);
+                    
+                    // Send limit reached notification if not already sent recently
+                    $this->sendLimitNotificationIfNeeded($user, 'monthly_pitches', $user->monthly_pitch_count, $limits?->max_monthly_pitches);
+                    
+                    return redirect()->route('subscription.index')
+                        ->with('error', 'You have reached your monthly pitch limit. This limit resets next month.');
                 }
                 break;
         }
-
+        
         return $next($request);
+    }
+
+    /**
+     * Send limit reached notification if not already sent recently
+     */
+    private function sendLimitNotificationIfNeeded($user, $limitType, $currentCount, $limit)
+    {
+        if (!$limit) {
+            return; // No limit set, so don't send notification
+        }
+        
+        // Create a cache key to prevent spamming notifications
+        $cacheKey = "limit_notification_{$user->id}_{$limitType}";
+        
+        // Only send notification if we haven't sent one in the last 24 hours
+        if (!Cache::has($cacheKey)) {
+            $user->notify(new \App\Notifications\LimitReached($limitType, $currentCount, $limit));
+            
+            // Cache for 24 hours to prevent spam
+            Cache::put($cacheKey, true, now()->addHours(24));
+            
+            Log::info('Sent limit reached notification', [
+                'user_id' => $user->id,
+                'limit_type' => $limitType,
+                'current_count' => $currentCount,
+                'limit' => $limit
+            ]);
+        }
     }
 }

@@ -220,6 +220,18 @@ class WebhookController extends CashierWebhookController
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
                     $this->updateUserSubscriptionFromPrice($user, $priceId, 'active');
+                    
+                    // Send upgrade notification
+                    $priceMapping = [
+                        config('subscription.stripe_prices.pro_artist') => ['plan' => 'pro', 'tier' => 'artist'],
+                        config('subscription.stripe_prices.pro_engineer') => ['plan' => 'pro', 'tier' => 'engineer'],
+                    ];
+                    
+                    if (isset($priceMapping[$priceId])) {
+                        $mapping = $priceMapping[$priceId];
+                        $user->notify(new \App\Notifications\SubscriptionUpgraded($mapping['plan'], $mapping['tier']));
+                    }
+                    
                     Log::info('Updated user subscription from webhook', [
                         'user_id' => $user->id,
                         'price_id' => $priceId
@@ -282,7 +294,18 @@ class WebhookController extends CashierWebhookController
             if ($customerId) {
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
+                    // Get current plan name before downgrading
+                    $currentPlan = ucfirst($user->subscription_plan) . ' ' . ucfirst($user->subscription_tier);
+                    
                     $this->updateUserSubscriptionFromPrice($user, null, 'canceled');
+                    
+                    // Send cancellation notification
+                    $endsAt = isset($subscription['canceled_at']) ? 
+                        \Carbon\Carbon::createFromTimestamp($subscription['canceled_at']) : 
+                        now();
+                    
+                    $user->notify(new \App\Notifications\SubscriptionCancelled($currentPlan, $endsAt));
+                    
                     Log::info('Canceled user subscription from webhook', [
                         'user_id' => $user->id
                     ]);

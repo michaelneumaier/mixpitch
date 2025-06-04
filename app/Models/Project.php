@@ -282,10 +282,30 @@ class Project extends Model
      */
     public function hasStorageCapacity($additionalBytes = 0)
     {
-        // Use the limit set in the database if it exists, otherwise fall back to constant
-        $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        // Use the project owner's subscription storage limit
+        $storageLimit = $this->getStorageLimit();
         
         return ($this->total_storage_used + $additionalBytes) <= $storageLimit;
+    }
+    
+    /**
+     * Get the storage limit for this project based on owner's subscription
+     * 
+     * @return int Storage limit in bytes
+     */
+    public function getStorageLimit(): int
+    {
+        // Check if user relationship is loaded, if not load it
+        if (!$this->relationLoaded('user')) {
+            $this->load('user');
+        }
+        
+        if ($this->user) {
+            return $this->user->getProjectStorageLimit();
+        }
+        
+        // Fallback to default if no user or user has no subscription limits
+        return self::MAX_STORAGE_BYTES;
     }
     
     /**
@@ -295,7 +315,7 @@ class Project extends Model
      */
     public function getRemainingStorageBytes()
     {
-        $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        $storageLimit = $this->getStorageLimit();
         $remaining = $storageLimit - $this->total_storage_used;
         return max(0, $remaining);
     }
@@ -307,7 +327,7 @@ class Project extends Model
      */
     public function getStorageUsedPercentage()
     {
-        $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
+        $storageLimit = $this->getStorageLimit();
         return round(($this->total_storage_used / $storageLimit) * 100, 2);
     }
     
@@ -330,7 +350,7 @@ class Project extends Model
     public function getStorageLimitMessage()
     {
         $used = Number::fileSize($this->total_storage_used, precision: 2);
-        $total = Number::fileSize(self::MAX_STORAGE_BYTES, precision: 2);
+        $total = Number::fileSize($this->getStorageLimit(), precision: 2);
         $remaining = Number::fileSize($this->getRemainingStorageBytes(), precision: 2);
         
         return "Using $used of $total ($remaining available)";

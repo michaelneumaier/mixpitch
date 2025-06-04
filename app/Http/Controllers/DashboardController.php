@@ -35,6 +35,77 @@ class DashboardController extends Controller
             Order::STATUS_READY_FOR_REVIEW, Order::STATUS_REVISIONS_REQUESTED
         ];
 
+        // --- Subscription Information ---
+        $subscriptionData = [
+            'plan' => $user->subscription_plan,
+            'tier' => $user->subscription_tier,
+            'is_pro' => $user->isProPlan(),
+            'limits' => $user->getSubscriptionLimits(),
+            'usage' => [
+                'projects_count' => $user->projects()->count(),
+                'active_pitches_count' => $user->pitches()->whereIn('status', [
+                    Pitch::STATUS_PENDING,
+                    Pitch::STATUS_IN_PROGRESS,
+                    Pitch::STATUS_READY_FOR_REVIEW,
+                    Pitch::STATUS_PENDING_REVIEW,
+                ])->count(),
+                'monthly_pitches_used' => $user->monthly_pitch_count,
+            ]
+        ];
+
+        // Check if user is approaching limits
+        $subscriptionData['alerts'] = [];
+        if ($subscriptionData['limits']) {
+            $limits = $subscriptionData['limits'];
+            
+            // Project limit alerts
+            if ($limits->max_projects_owned && $subscriptionData['usage']['projects_count'] >= $limits->max_projects_owned) {
+                $subscriptionData['alerts'][] = [
+                    'type' => 'projects',
+                    'message' => 'You have reached your project limit. Upgrade to Pro for unlimited projects.',
+                    'level' => 'error'
+                ];
+            } elseif ($limits->max_projects_owned && $subscriptionData['usage']['projects_count'] >= ($limits->max_projects_owned * 0.8)) {
+                $subscriptionData['alerts'][] = [
+                    'type' => 'projects',
+                    'message' => 'You are approaching your project limit.',
+                    'level' => 'warning'
+                ];
+            }
+            
+            // Active pitch limit alerts
+            if ($limits->max_active_pitches && $subscriptionData['usage']['active_pitches_count'] >= $limits->max_active_pitches) {
+                $subscriptionData['alerts'][] = [
+                    'type' => 'pitches',
+                    'message' => 'You have reached your active pitch limit. Upgrade to Pro for unlimited pitches.',
+                    'level' => 'error'
+                ];
+            } elseif ($limits->max_active_pitches && $subscriptionData['usage']['active_pitches_count'] >= ($limits->max_active_pitches * 0.8)) {
+                $subscriptionData['alerts'][] = [
+                    'type' => 'pitches',
+                    'message' => 'You are approaching your active pitch limit.',
+                    'level' => 'warning'
+                ];
+            }
+            
+            // Monthly pitch limit alerts (Pro Engineer)
+            if ($limits->max_monthly_pitches) {
+                if ($subscriptionData['usage']['monthly_pitches_used'] >= $limits->max_monthly_pitches) {
+                    $subscriptionData['alerts'][] = [
+                        'type' => 'monthly_pitches',
+                        'message' => 'You have reached your monthly pitch limit.',
+                        'level' => 'error'
+                    ];
+                } elseif ($subscriptionData['usage']['monthly_pitches_used'] >= ($limits->max_monthly_pitches * 0.8)) {
+                    $subscriptionData['alerts'][] = [
+                        'type' => 'monthly_pitches',
+                        'message' => 'You are approaching your monthly pitch limit.',
+                        'level' => 'warning'
+                    ];
+                }
+            }
+        }
+
         // --- Fetch Items Where User is the Owner/Client ---
         $ownedProjects = Project::where('user_id', $user->id)
             ->whereIn('status', $activeProjectStatuses) // Now includes completed projects
@@ -92,8 +163,11 @@ class DashboardController extends Controller
         // Sort all collected work items by last update time
         $sortedWorkItems = $workItems->sortByDesc('updated_at');
 
-        // Pass the sorted, combined collection to the view
-        return view('dashboard', ['workItems' => $sortedWorkItems]);
+        // Pass the sorted, combined collection and subscription data to the view
+        return view('dashboard', [
+            'workItems' => $sortedWorkItems,
+            'subscription' => $subscriptionData
+        ]);
     }
     
     /**

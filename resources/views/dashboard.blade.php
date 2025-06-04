@@ -31,6 +31,97 @@
                 </div>
             </div>
 
+            <!-- Subscription Status & Alerts -->
+            @if(isset($subscription))
+            <div class="mb-8">
+                <!-- Subscription Alerts -->
+                @if(!empty($subscription['alerts']))
+                    @foreach($subscription['alerts'] as $alert)
+                    <div class="mb-4 p-4 rounded-lg border {{ $alert['level'] === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800' }}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas {{ $alert['level'] === 'error' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle' }} mr-2"></i>
+                                <span>{{ $alert['message'] }}</span>
+                            </div>
+                            @if($alert['level'] === 'error')
+                            <a href="{{ route('subscription.index') }}" class="text-sm font-medium underline hover:no-underline">
+                                Upgrade Now
+                            </a>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                @endif
+
+                <!-- Subscription Status Bar -->
+                <div class="bg-white/95 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-6">
+                            <!-- Current Plan -->
+                            <div class="flex items-center">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $subscription['is_pro'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                    <i class="{{ $subscription['is_pro'] ? 'fas fa-crown' : 'fas fa-user' }} mr-1.5 text-xs"></i>
+                                    {{ ucfirst($subscription['plan']) }}{{ $subscription['tier'] !== 'basic' ? ' ' . ucfirst($subscription['tier']) : '' }}
+                                </span>
+                            </div>
+
+                            <!-- Usage Stats -->
+                            @if($subscription['limits'])
+                            <div class="flex items-center space-x-4 text-sm">
+                                <!-- Projects -->
+                                <div class="flex items-center">
+                                    <i class="fas fa-folder text-blue-500 mr-1"></i>
+                                    <span class="text-gray-600">Projects:</span>
+                                    <span class="font-medium ml-1 {{ $subscription['limits']->max_projects_owned && $subscription['usage']['projects_count'] >= $subscription['limits']->max_projects_owned ? 'text-red-600' : 'text-gray-900' }}">
+                                        {{ $subscription['usage']['projects_count'] }}{{ $subscription['limits']->max_projects_owned ? '/' . $subscription['limits']->max_projects_owned : '' }}
+                                    </span>
+                                </div>
+
+                                <!-- Active Pitches -->
+                                <div class="flex items-center">
+                                    <i class="fas fa-paper-plane text-green-500 mr-1"></i>
+                                    <span class="text-gray-600">Active Pitches:</span>
+                                    <span class="font-medium ml-1 {{ $subscription['limits']->max_active_pitches && $subscription['usage']['active_pitches_count'] >= $subscription['limits']->max_active_pitches ? 'text-red-600' : 'text-gray-900' }}">
+                                        {{ $subscription['usage']['active_pitches_count'] }}{{ $subscription['limits']->max_active_pitches ? '/' . $subscription['limits']->max_active_pitches : '' }}
+                                    </span>
+                                </div>
+
+                                <!-- Monthly Pitches (Pro Engineer only) -->
+                                @if($subscription['limits']->max_monthly_pitches)
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar text-purple-500 mr-1"></i>
+                                    <span class="text-gray-600">Monthly:</span>
+                                    <span class="font-medium ml-1 {{ $subscription['usage']['monthly_pitches_used'] >= $subscription['limits']->max_monthly_pitches ? 'text-red-600' : 'text-gray-900' }}">
+                                        {{ $subscription['usage']['monthly_pitches_used'] }}/{{ $subscription['limits']->max_monthly_pitches }}
+                                    </span>
+                                </div>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center space-x-3">
+                            @if(!$subscription['is_pro'])
+                                <a href="{{ route('subscription.index') }}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-arrow-up mr-1.5"></i>
+                                    Upgrade to Pro
+                                </a>
+                            @else
+                                <a href="{{ route('subscription.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors duration-200">
+                                    <i class="fas fa-cog mr-1.5"></i>
+                                    Manage Plan
+                                </a>
+                            @endif
+                            <a href="{{ route('subscription.index') }}" class="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Work Section -->
             <div class="relative">
                 <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6 lg:p-8" x-data="{ filter: 'all' }">
