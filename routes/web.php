@@ -308,15 +308,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('analytics.project-types');
 });
 
-// User Profile Routes
+// Public User Profile Route (should be accessible without authentication)
+Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.username');
+
+// User Profile Routes (require authentication)
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/profile/edit', function () {
         return view('user-profile.edit-livewire');
     })->name('profile.edit');
 
     Route::get('/profile/portfolio', ManagePortfolioItems::class)->name('profile.portfolio');
-
-    Route::get('/@{username}', [UserProfileController::class, 'show'])->name('profile.username');
 });
 
 // Billing Routes

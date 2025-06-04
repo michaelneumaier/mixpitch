@@ -8,55 +8,118 @@
         <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden mb-6">
             <!-- Avatar and basic info section -->
             <div class="relative px-4 sm:px-8 py-6 z-10">
-                <div class="flex flex-col sm:flex-row items-center sm:items-start">
-                    <!-- Enhanced Avatar -->
-                    <div class="flex-shrink-0 mb-4 sm:mb-0 sm:mr-6">
-                        <div class="relative group">
-                            <div class="relative bg-white/90 backdrop-blur-sm border-4 border-white/50 rounded-full p-1 shadow-xl group-hover:shadow-2xl transition-all duration-300">
-                                <img class="h-32 w-32 rounded-full object-cover"
-                                    src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}">
+                <!-- Main Profile Layout -->
+                <div class="flex flex-col space-y-6">
+                    <!-- Top Row: Avatar + Basic Info + Social Links -->
+                    <div class="flex flex-col md:flex-row md:items-start gap-6">
+                        <!-- Avatar -->
+                        <div class="flex-shrink-0 self-center md:self-start">
+                            <div class="relative group">
+                                <div class="relative bg-white/90 backdrop-blur-sm border-4 border-white/50 rounded-full p-1 shadow-xl group-hover:shadow-2xl transition-all duration-300">
+                                    <img class="h-32 w-32 rounded-full object-cover"
+                                        src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}">
+                                </div>
+                                <!-- Subtle hover overlay -->
+                                <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>
-                            <!-- Subtle hover overlay -->
-                            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </div>
-                    </div>
-
-                    <!-- Enhanced Basic info -->
-                    <div class="text-center sm:text-left flex-grow">
-                        <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
-                            {{ $user->name }}
-                        </h1>
-
-                        <div class="text-blue-600 text-xl font-semibold mt-1">
-                            @<span>{{ $user->username }}</span>
                         </div>
 
-                        {{-- Enhanced Average Rating Display --}}
-                        <div class="mt-3 flex items-center justify-center sm:justify-start">
-                            @if(isset($ratingData) && $ratingData['count'] > 0)
-                                @php
-                                    $average = $ratingData['average'] ?? 0;
-                                    $count = $ratingData['count'] ?? 0;
-                                @endphp
-                                
-                                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 shadow-lg">
-                                    <span class="text-orange-500 font-bold text-lg">{{ number_format($average, 1) }} ★</span>
-                                    <span class="ml-2 text-sm text-gray-600">({{ $count }} {{ Str::plural('rating', $count) }})</span>
-                                </div>
-                            @else
-                                <div class="bg-gray-100/80 backdrop-blur-sm border border-gray-200/50 rounded-xl px-3 py-2">
-                                    <span class="text-sm text-gray-500 italic">Not rated (0 ratings)</span>
-                                </div>
+                        <!-- Basic Info (flexible center section) -->
+                        <div class="flex-grow text-center md:text-left min-w-0">
+                            <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+                                {{ $user->name }}
+                            </h1>
+
+                            <div class="text-blue-600 text-xl font-semibold mt-1">
+                                @<span>{{ $user->username }}</span>
+                            </div>
+
+                            {{-- Enhanced Average Rating Display --}}
+                            <div class="mt-3 flex items-center justify-center md:justify-start">
+                                @if(isset($ratingData) && $ratingData['count'] > 0)
+                                    @php
+                                        $average = $ratingData['average'] ?? 0;
+                                        $count = $ratingData['count'] ?? 0;
+                                    @endphp
+                                    
+                                    <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 shadow-lg">
+                                        <span class="text-orange-500 font-bold text-lg">{{ number_format($average, 1) }} ★</span>
+                                        <span class="ml-2 text-sm text-gray-600">({{ $count }} {{ Str::plural('rating', $count) }})</span>
+                                    </div>
+                                @else
+                                    <div class="bg-gray-100/80 backdrop-blur-sm border border-gray-200/50 rounded-xl px-3 py-2">
+                                        <span class="text-sm text-gray-500 italic">Not rated (0 ratings)</span>
+                                    </div>
+                                @endif
+                            </div>
+
+                            @if($user->headline)
+                            <div class="mt-3 text-gray-700 text-lg font-medium bg-white/60 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2 shadow-sm">
+                                {{ $user->headline }}
+                            </div>
                             @endif
                         </div>
 
-                        @if($user->headline)
-                        <div class="mt-3 text-gray-700 text-lg font-medium bg-white/60 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2 shadow-sm">
-                            {{ $user->headline }}
-                        </div>
-                        @endif
+                        <!-- Social Links (fixed width right section) -->
+                        <div class="flex-shrink-0 w-full md:w-auto">
+                            <div class="flex flex-wrap justify-center md:justify-end gap-2 sm:gap-3 max-w-xs md:max-w-none mx-auto md:mx-0">
+                                @if(isset($user->social_links['instagram']) && $user->social_links['instagram'])
+                                <a href="https://instagram.com/{{ $user->social_links['instagram'] }}" target="_blank"
+                                    class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-2.5 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Instagram">
+                                    <i class="fab fa-instagram text-xl sm:text-2xl text-pink-500 group-hover:text-pink-600 transition-colors"></i>
+                                </a>
+                                @endif
 
-                        <div class="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                                @if(isset($user->social_links['twitter']) && $user->social_links['twitter'])
+                                <a href="https://twitter.com/{{ $user->social_links['twitter'] }}" target="_blank"
+                                    class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-2.5 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Twitter">
+                                    <i class="fab fa-twitter text-xl sm:text-2xl text-blue-400 group-hover:text-blue-500 transition-colors"></i>
+                                </a>
+                                @endif
+
+                                @if(isset($user->social_links['facebook']) && $user->social_links['facebook'])
+                                <a href="https://facebook.com/{{ $user->social_links['facebook'] }}" target="_blank"
+                                    class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-2.5 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Facebook">
+                                    <i class="fab fa-facebook text-xl sm:text-2xl text-blue-600 group-hover:text-blue-700 transition-colors"></i>
+                                </a>
+                                @endif
+
+                                @if(isset($user->social_links['soundcloud']) && $user->social_links['soundcloud'])
+                                <a href="https://soundcloud.com/{{ $user->social_links['soundcloud'] }}" target="_blank"
+                                    class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-2.5 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="SoundCloud">
+                                    <i class="fab fa-soundcloud text-xl sm:text-2xl text-orange-500 group-hover:text-orange-600 transition-colors"></i>
+                                </a>
+                                @endif
+
+                                @if(isset($user->social_links['spotify']) && $user->social_links['spotify'])
+                                <a href="https://open.spotify.com/artist/{{ $user->social_links['spotify'] }}"
+                                    target="_blank" class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-2.5 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+                                    title="Spotify">
+                                    <i class="fab fa-spotify text-xl sm:text-2xl text-green-500 group-hover:text-green-600 transition-colors"></i>
+                                </a>
+                                @endif
+
+                                @if(isset($user->social_links['youtube']) && $user->social_links['youtube'])
+                                <a href="https://youtube.com/{{ $user->social_links['youtube'] }}" target="_blank"
+                                    class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-2.5 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="YouTube">
+                                    <i class="fab fa-youtube text-xl sm:text-2xl text-red-600 group-hover:text-red-700 transition-colors"></i>
+                                </a>
+                                @endif
+                                
+                                @if($user->tipjar_link)
+                                <a href="{{ $user->tipjar_link }}" target="_blank"
+                                    class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-2.5 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Support {{ $user->name }}">
+                                    <i class="fas fa-donate text-xl sm:text-2xl text-green-600 group-hover:text-green-700 transition-colors"></i>
+                                </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row: Location/Website Info + Action Buttons -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <!-- Location and Website Info -->
+                        <div class="flex flex-wrap items-center justify-center md:justify-start gap-3">
                             @if($user->location)
                             <div class="flex items-center text-gray-600 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl px-3 py-2 shadow-sm">
                                 <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-1.5 w-6 h-6 flex items-center justify-center mr-2 shadow-md">
@@ -77,72 +140,22 @@
                                 </a>
                             </div>
                             @endif
+                        </div>
 
-                            @if($canEdit)
+                        <!-- Action Buttons -->
+                        @if($canEdit)
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center md:justify-end">
                             <a href="{{ route('profile.edit') }}"
-                                class="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                class="group inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 min-w-[140px]">
                                 <i class="fas fa-pencil-alt mr-2 group-hover:scale-110 transition-transform"></i>
-                                Edit Profile
+                                <span class="whitespace-nowrap">Edit Profile</span>
                             </a>
                             <a href="{{ route('profile.portfolio') }}"
-                                class="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                class="group inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 min-w-[140px]">
                                 <i class="fas fa-images mr-2 group-hover:scale-110 transition-transform"></i>
-                                Manage Portfolio
+                                <span class="whitespace-nowrap">Manage Portfolio</span>
                             </a>
-                            @endif
                         </div>
-                    </div>
-
-                    <!-- Enhanced Social links -->
-                    <div class="mt-6 sm:mt-0 flex flex-wrap justify-center sm:justify-end gap-3">
-                        @if(isset($user->social_links['instagram']) && $user->social_links['instagram'])
-                        <a href="https://instagram.com/{{ $user->social_links['instagram'] }}" target="_blank"
-                            class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Instagram">
-                            <i class="fab fa-instagram text-2xl text-pink-500 group-hover:text-pink-600 transition-colors"></i>
-                        </a>
-                        @endif
-
-                        @if(isset($user->social_links['twitter']) && $user->social_links['twitter'])
-                        <a href="https://twitter.com/{{ $user->social_links['twitter'] }}" target="_blank"
-                            class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Twitter">
-                            <i class="fab fa-twitter text-2xl text-blue-400 group-hover:text-blue-500 transition-colors"></i>
-                        </a>
-                        @endif
-
-                        @if(isset($user->social_links['facebook']) && $user->social_links['facebook'])
-                        <a href="https://facebook.com/{{ $user->social_links['facebook'] }}" target="_blank"
-                            class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Facebook">
-                            <i class="fab fa-facebook text-2xl text-blue-600 group-hover:text-blue-700 transition-colors"></i>
-                        </a>
-                        @endif
-
-                        @if(isset($user->social_links['soundcloud']) && $user->social_links['soundcloud'])
-                        <a href="https://soundcloud.com/{{ $user->social_links['soundcloud'] }}" target="_blank"
-                            class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="SoundCloud">
-                            <i class="fab fa-soundcloud text-2xl text-orange-500 group-hover:text-orange-600 transition-colors"></i>
-                        </a>
-                        @endif
-
-                        @if(isset($user->social_links['spotify']) && $user->social_links['spotify'])
-                        <a href="https://open.spotify.com/artist/{{ $user->social_links['spotify'] }}"
-                            target="_blank" class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
-                            title="Spotify">
-                            <i class="fab fa-spotify text-2xl text-green-500 group-hover:text-green-600 transition-colors"></i>
-                        </a>
-                        @endif
-
-                        @if(isset($user->social_links['youtube']) && $user->social_links['youtube'])
-                        <a href="https://youtube.com/{{ $user->social_links['youtube'] }}" target="_blank"
-                            class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="YouTube">
-                            <i class="fab fa-youtube text-2xl text-red-600 group-hover:text-red-700 transition-colors"></i>
-                        </a>
-                        @endif
-                        
-                        @if($user->tipjar_link)
-                        <a href="{{ $user->tipjar_link }}" target="_blank"
-                            class="group bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" title="Support {{ $user->name }}">
-                            <i class="fas fa-donate text-2xl text-green-600 group-hover:text-green-700 transition-colors"></i>
-                        </a>
                         @endif
                     </div>
                 </div>
@@ -560,6 +573,7 @@
         --}}
     </div>
 </div>
+@endsection
 
 @push('scripts')
 <script>

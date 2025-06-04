@@ -3,7 +3,7 @@ use Filament\Panel;
 @endphp
 
 <!-- Next-Level Navigation -->
-<nav x-data="{ open: false }" class="relative bg-white/95 backdrop-blur-md border-b border-white/20 sticky top-0 z-40 shadow-lg">
+<nav x-data="{ open: false }" class="relative bg-white/95 backdrop-blur-md border-b border-white/20 sticky top-0 z-50 shadow-lg">
     <!-- Background Effects -->
     <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5"></div>
     
