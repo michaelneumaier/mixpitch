@@ -214,16 +214,16 @@ class SubscriptionController extends Controller
     {
         $planConfigs = [
             'pro.artist.monthly' => [
-                'price' => config('subscription.stripe_prices.pro_artist_monthly'),
+                'price' => config('subscription.plans.pro_artist.monthly_price'),
             ],
             'pro.artist.yearly' => [
-                'price' => config('subscription.stripe_prices.pro_artist_yearly'),
+                'price' => config('subscription.plans.pro_artist.yearly_price'),
             ],
             'pro.engineer.monthly' => [
-                'price' => config('subscription.stripe_prices.pro_engineer_monthly'),
+                'price' => config('subscription.plans.pro_engineer.monthly_price'),
             ],
             'pro.engineer.yearly' => [
-                'price' => config('subscription.stripe_prices.pro_engineer_yearly'),
+                'price' => config('subscription.plans.pro_engineer.yearly_price'),
             ],
         ];
         

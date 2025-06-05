@@ -197,6 +197,11 @@
                                 </div>
                             @endif
 
+                            {{-- License Management Component --}}
+                            <div>
+                                <x-project.license-management :project="$project" />
+                            </div>
+
                             {{-- Project Insights - Show early on mobile for key metrics --}}
                             @if ($project->isStandard())
                                 <div class="lg:hidden">
@@ -1112,8 +1117,8 @@
             </div>
 
         </div>
+        
+        <!-- Project Image Upload Modal -->
+        <x-project.image-upload-modal :project="$project" :imagePreviewUrl="$imagePreviewUrl" />
     </div>
-
-    <!-- Project Image Upload Modal -->
-    <x-project.image-upload-modal :project="$project" :imagePreviewUrl="$imagePreviewUrl" />
 </div>

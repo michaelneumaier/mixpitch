@@ -670,10 +670,10 @@ class CreateProject extends Component
         
         try {
             // Store the track temporarily to generate a preview URL
-            $this->audioUrl = $this->track->temporaryUrl();
+        $this->audioUrl = $this->track->temporaryUrl();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to process the uploaded track. Please try again.');
-            $this->track = null;
+                 $this->track = null;
         }
         
         $this->initWaveSurfer = true;
@@ -699,7 +699,7 @@ class CreateProject extends Component
         $this->selectedLicenseTemplateId = $data['template_id'];
         $this->requiresLicenseAgreement = $data['requires_agreement'];
         $this->licenseNotes = $data['license_notes'];
-    }
+            }
 
     /**
      * Handle license notes changes

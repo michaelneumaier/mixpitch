@@ -181,6 +181,9 @@
                         </div>
                     @endif
 
+                    <!-- License & Terms -->
+                    <x-project.license-info :project="$project" />
+
                     <!-- Project Files -->
                     <div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
                         <!-- Gradient Border Effect -->

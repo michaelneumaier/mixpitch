@@ -349,6 +349,30 @@
             @if($user->isFreePlan())
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Upgrade Your Plan</h3>
+                
+                <!-- Billing Period Toggle -->
+                <div class="flex justify-center mb-8">
+                    <div class="bg-gray-100 rounded-xl shadow-lg p-2">
+                        <div class="flex relative">
+                            <button 
+                                id="monthly-toggle" 
+                                class="billing-toggle active px-6 py-2 rounded-lg font-medium transition-all duration-200"
+                                data-period="monthly"
+                            >
+                                Monthly Billing
+                            </button>
+                            <button 
+                                id="yearly-toggle" 
+                                class="billing-toggle px-6 py-2 rounded-lg font-medium transition-all duration-200"
+                                data-period="yearly"
+                            >
+                                <span>Yearly Billing</span>
+                                <span class="inline-block ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Save 17%</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Pro Artist Plan -->
                     <div class="border border-gray-200 rounded-lg p-6">
@@ -358,14 +382,19 @@
                                 <span class="ml-2">🔷</span>
                             </h4>
                             <div class="mt-4">
-                                <div class="space-y-2">
-                                    <div>
-                                        <span class="text-3xl font-bold text-gray-900">$6.99</span>
-                                        <span class="text-base font-medium text-gray-500">/month</span>
-                                    </div>
-                                    <div class="text-sm text-gray-600">
-                                        <span class="font-medium">$69.99/year</span>
-                                        <span class="ml-2 inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Save $13.89</span>
+                                <!-- Monthly Pricing -->
+                                <div class="monthly-pricing">
+                                    <span class="text-3xl font-bold text-gray-900">$6.99</span>
+                                    <span class="text-base font-medium text-gray-500">/month</span>
+                                </div>
+                                <!-- Yearly Pricing -->
+                                <div class="yearly-pricing hidden">
+                                    <span class="text-3xl font-bold text-gray-900">$69.99</span>
+                                    <span class="text-base font-medium text-gray-500">/year</span>
+                                    <div class="mt-2">
+                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
+                                            Save $13.89/year
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -401,12 +430,14 @@
                             </li>
                         </ul>
                         <div class="mt-6">
-                            <form action="{{ route('subscription.upgrade') }}" method="POST">
+                            <form action="{{ route('subscription.upgrade') }}" method="POST" class="subscription-form">
                                 @csrf
                                 <input type="hidden" name="plan" value="pro">
                                 <input type="hidden" name="tier" value="artist">
-                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                                    Upgrade to Pro Artist
+                                <input type="hidden" name="billing_period" class="billing-period-input" value="monthly">
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                                    <span class="monthly-text">Upgrade to Pro Artist</span>
+                                    <span class="yearly-text hidden">Upgrade to Pro Artist</span>
                                 </button>
                             </form>
                         </div>
@@ -420,14 +451,19 @@
                                 <span class="ml-2">🔶</span>
                             </h4>
                             <div class="mt-4">
-                                <div class="space-y-2">
-                                    <div>
-                                        <span class="text-3xl font-bold text-gray-900">$9.99</span>
-                                        <span class="text-base font-medium text-gray-500">/month</span>
-                                    </div>
-                                    <div class="text-sm text-gray-600">
-                                        <span class="font-medium">$99.99/year</span>
-                                        <span class="ml-2 inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Save $19.89</span>
+                                <!-- Monthly Pricing -->
+                                <div class="monthly-pricing">
+                                    <span class="text-3xl font-bold text-gray-900">$9.99</span>
+                                    <span class="text-base font-medium text-gray-500">/month</span>
+                                </div>
+                                <!-- Yearly Pricing -->
+                                <div class="yearly-pricing hidden">
+                                    <span class="text-3xl font-bold text-gray-900">$99.99</span>
+                                    <span class="text-base font-medium text-gray-500">/year</span>
+                                    <div class="mt-2">
+                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
+                                            Save $19.89/year
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -463,12 +499,14 @@
                             </li>
                         </ul>
                         <div class="mt-6">
-                            <form action="{{ route('subscription.upgrade') }}" method="POST">
+                            <form action="{{ route('subscription.upgrade') }}" method="POST" class="subscription-form">
                                 @csrf
                                 <input type="hidden" name="plan" value="pro">
                                 <input type="hidden" name="tier" value="engineer">
-                                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-                                    Upgrade to Pro Engineer
+                                <input type="hidden" name="billing_period" class="billing-period-input" value="monthly">
+                                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                                    <span class="monthly-text">Upgrade to Pro Engineer</span>
+                                    <span class="yearly-text hidden">Upgrade to Pro Engineer</span>
                                 </button>
                             </form>
                         </div>
@@ -571,4 +609,97 @@
             @endif
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get toggle elements
+            const monthlyToggle = document.getElementById('monthly-toggle');
+            const yearlyToggle = document.getElementById('yearly-toggle');
+            
+            // Get pricing elements
+            const monthlyPricings = document.querySelectorAll('.monthly-pricing');
+            const yearlyPricings = document.querySelectorAll('.yearly-pricing');
+            
+            // Get form elements
+            const billingPeriodInputs = document.querySelectorAll('.billing-period-input');
+            
+            // Get button text elements
+            const monthlyTexts = document.querySelectorAll('.monthly-text');
+            const yearlyTexts = document.querySelectorAll('.yearly-text');
+
+            function showMonthly() {
+                // Update toggle buttons
+                monthlyToggle.classList.add('active', 'bg-blue-600', 'text-white');
+                monthlyToggle.classList.remove('text-gray-600');
+                yearlyToggle.classList.remove('active', 'bg-blue-600', 'text-white');
+                yearlyToggle.classList.add('text-gray-600');
+
+                // Show/hide pricing
+                monthlyPricings.forEach(pricing => pricing.classList.remove('hidden'));
+                yearlyPricings.forEach(pricing => pricing.classList.add('hidden'));
+
+                // Update form inputs
+                billingPeriodInputs.forEach(input => input.value = 'monthly');
+
+                // Update button text
+                monthlyTexts.forEach(text => text.classList.remove('hidden'));
+                yearlyTexts.forEach(text => text.classList.add('hidden'));
+            }
+
+            function showYearly() {
+                // Update toggle buttons
+                yearlyToggle.classList.add('active', 'bg-blue-600', 'text-white');
+                yearlyToggle.classList.remove('text-gray-600');
+                monthlyToggle.classList.remove('active', 'bg-blue-600', 'text-white');
+                monthlyToggle.classList.add('text-gray-600');
+
+                // Show/hide pricing
+                yearlyPricings.forEach(pricing => pricing.classList.remove('hidden'));
+                monthlyPricings.forEach(pricing => pricing.classList.add('hidden'));
+
+                // Update form inputs
+                billingPeriodInputs.forEach(input => input.value = 'yearly');
+
+                // Update button text
+                yearlyTexts.forEach(text => text.classList.remove('hidden'));
+                monthlyTexts.forEach(text => text.classList.add('hidden'));
+            }
+
+            // Set initial state
+            showMonthly();
+
+            // Add event listeners
+            if (monthlyToggle) {
+                monthlyToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showMonthly();
+                });
+            }
+
+            if (yearlyToggle) {
+                yearlyToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showYearly();
+                });
+            }
+        });
+    </script>
+    @endpush
+
+    @push('styles')
+    <style>
+        .billing-toggle {
+            @apply relative transition-all duration-200;
+        }
+        
+        .billing-toggle.active {
+            @apply bg-blue-600 text-white shadow-md;
+        }
+        
+        .billing-toggle:not(.active) {
+            @apply text-gray-600 hover:text-gray-800;
+        }
+    </style>
+    @endpush
 </x-app-layout> 

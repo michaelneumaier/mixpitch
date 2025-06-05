@@ -29,6 +29,8 @@ use App\Http\Controllers\PublicServicePackageController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ContestJudgingController;
 use App\Http\Controllers\SubscriptionController;
+use App\Livewire\EditProject;
+use App\Http\Controllers\LicenseSignatureController;
 
 /*
 |--------------------------------------------------------------------------
@@ -800,3 +802,9 @@ Route::post('/client-portal/project/{project:id}/upload', [ClientPortalControlle
 Route::get('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'downloadProjectFile'])
     ->name('client.portal.download_project_file')
     ->middleware('signed');
+
+// License signature routes
+Route::middleware('auth')->group(function () {
+    Route::get('/license/sign/{signature}', [LicenseSignatureController::class, 'show'])->name('license.sign');
+    Route::post('/license/sign/{signature}', [LicenseSignatureController::class, 'sign'])->name('license.sign.submit');
+});

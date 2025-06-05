@@ -6,6 +6,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Database\Seeders\MigrateUserTagsSeeder;
 use Database\Seeders\TagSeeder;
+use Database\Seeders\LicenseTemplateSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -28,6 +29,7 @@ class DatabaseSeeder extends Seeder
             ProjectTypeSeeder::class,  // Seed project types first
             MigrateUserTagsSeeder::class,
             TagSeeder::class,
+            LicenseTemplateSeeder::class, // Seed license templates
         ]);
     }
 }

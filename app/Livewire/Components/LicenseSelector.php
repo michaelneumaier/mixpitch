@@ -56,9 +56,7 @@ class LicenseSelector extends Component
     public function getUserTemplatesProperty(): Collection
     {
         return auth()->user()
-            ->licenseTemplates()
-            ->active()
-            ->approved()
+            ->activeLicenseTemplates()
             ->orderBy('is_default', 'desc')
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -119,8 +117,25 @@ class LicenseSelector extends Component
 
     public function previewTemplate($templateId)
     {
-        $this->previewTemplate = LicenseTemplate::find($templateId);
-        $this->showPreviewModal = true;
+        try {
+            // First try to find in user's templates
+            $template = auth()->user()->activeLicenseTemplates()->find($templateId);
+            
+            // If not found in user's templates, try marketplace
+            if (!$template) {
+                $template = LicenseTemplate::marketplace()->find($templateId);
+            }
+            
+            if (!$template) {
+                session()->flash('error', 'Template not found or access denied.');
+                return;
+            }
+            
+            $this->previewTemplate = $template;
+            $this->showPreviewModal = true;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Unable to load template preview.');
+        }
     }
 
     public function closePreview()

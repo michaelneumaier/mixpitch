@@ -747,6 +747,62 @@
                 </div>
             </div>
             
+            <!-- Enhanced License Templates Section -->
+            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg mb-8" 
+                 x-data="{ licenseExpanded: false }">
+                <!-- Section Background -->
+                <div class="absolute inset-0 bg-gradient-to-br from-purple-50/20 to-indigo-50/20 rounded-2xl"></div>
+                <div class="absolute top-4 right-4 w-16 h-16 bg-purple-400/10 rounded-full blur-lg"></div>
+                <div class="absolute bottom-4 left-4 w-12 h-12 bg-indigo-400/10 rounded-full blur-lg"></div>
+                
+                <div class="relative space-y-6 p-6 lg:p-8">
+                    <!-- Collapsible Header -->
+                    <div class="flex items-center justify-between cursor-pointer" @click="licenseExpanded = !licenseExpanded">
+                        <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-purple-800 bg-clip-text text-transparent flex items-center">
+                            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
+                                <i class="fas fa-file-contract text-white text-sm"></i>
+                            </div>
+                            License Templates
+                        </h3>
+                        
+                        <!-- Toggle Button -->
+                        <button type="button" class="flex items-center space-x-2 px-4 py-2 bg-purple-100/80 backdrop-blur-sm border border-purple-200/50 rounded-xl hover:bg-purple-200/80 transition-all duration-200 group">
+                            <span class="text-sm font-medium text-purple-800" x-text="licenseExpanded ? 'Collapse' : 'Expand'"></span>
+                            <i class="fas fa-chevron-down text-purple-600 transition-transform duration-200 group-hover:scale-110" 
+                               :class="{ 'rotate-180': licenseExpanded }"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Collapsed State Info -->
+                    <div x-show="!licenseExpanded" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+                        <p class="text-gray-600 bg-purple-50/50 backdrop-blur-sm border border-purple-200/50 rounded-xl px-4 py-3">
+                            <i class="fas fa-info-circle text-purple-600 mr-2"></i>
+                            Click "Expand" to manage your custom license templates for projects. Create, edit, and organize your legal agreements for collaborations.
+                        </p>
+                    </div>
+                    
+                    <!-- Expanded Content -->
+                    <div x-show="licenseExpanded" 
+                         x-transition:enter="transition ease-out duration-300" 
+                         x-transition:enter-start="opacity-0 transform scale-95" 
+                         x-transition:enter-end="opacity-100 transform scale-100" 
+                         x-transition:leave="transition ease-in duration-200" 
+                         x-transition:leave-start="opacity-100 transform scale-100" 
+                         x-transition:leave-end="opacity-0 transform scale-95"
+                         class="space-y-4">
+                        
+                        <p class="text-gray-600 bg-purple-50/50 backdrop-blur-sm border border-purple-200/50 rounded-xl px-4 py-3">
+                            <i class="fas fa-cog text-purple-600 mr-2"></i>
+                            Create and manage custom license templates for your music projects. Define terms, permissions, and restrictions for your collaborations.
+                        </p>
+                        
+                        <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4">
+                            <livewire:user.manage-license-templates />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Enhanced Save Button -->
             <div class="relative">
                 <!-- Background Effects -->

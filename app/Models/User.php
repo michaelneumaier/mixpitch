@@ -254,13 +254,15 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             
             try {
                 // Generate a temporary URL with a 1 hour expiration
-                // Check if the storage driver supports temporaryUrl
                 $disk = Storage::disk($this->profilePhotoDisk());
-                if (method_exists($disk, 'temporaryUrl')) {
+                
+                // Check if the storage driver supports temporaryUrl
+                if (method_exists($disk->getAdapter(), 'temporaryUrl') || 
+                    method_exists($disk, 'temporaryUrl')) {
                     return $disk->temporaryUrl(
-                        $this->profile_photo_path,
-                        now()->addHour()
-                    );
+                    $this->profile_photo_path,
+                    now()->addHour()
+                );
                 } else {
                     // Fallback for storage drivers that don't support temporary URLs
                     return $disk->url($this->profile_photo_path);
