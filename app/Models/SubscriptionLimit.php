@@ -18,6 +18,21 @@ class SubscriptionLimit extends Model
         'storage_per_project_mb',
         'priority_support',
         'custom_portfolio',
+        // Enhanced features
+        'storage_per_project_gb',
+        'file_retention_days',
+        'platform_commission_rate',
+        'max_license_templates',
+        'monthly_visibility_boosts',
+        'reputation_multiplier',
+        'max_private_projects_monthly',
+        'has_client_portal',
+        'analytics_level',
+        'challenge_early_access_hours',
+        'has_judge_access',
+        'support_sla_hours',
+        'support_channels',
+        'user_badge'
     ];
 
     protected $casts = [
@@ -27,6 +42,19 @@ class SubscriptionLimit extends Model
         'storage_per_project_mb' => 'integer',
         'priority_support' => 'boolean',
         'custom_portfolio' => 'boolean',
+        // Enhanced features casts
+        'storage_per_project_gb' => 'decimal:2',
+        'file_retention_days' => 'integer',
+        'platform_commission_rate' => 'decimal:2',
+        'max_license_templates' => 'integer',
+        'monthly_visibility_boosts' => 'integer',
+        'reputation_multiplier' => 'decimal:2',
+        'max_private_projects_monthly' => 'integer',
+        'has_client_portal' => 'boolean',
+        'challenge_early_access_hours' => 'integer',
+        'has_judge_access' => 'boolean',
+        'support_sla_hours' => 'integer',
+        'support_channels' => 'array',
     ];
 
     public static function getPlanLimits(string $planName, string $planTier): ?self

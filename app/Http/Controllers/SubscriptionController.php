@@ -34,15 +34,20 @@ class SubscriptionController extends Controller
         return view('subscription.index', compact('user', 'limits', 'usage'));
     }
     
+    /**
+     * Handle subscription upgrade with plan selection
+     */
     public function upgrade(Request $request)
     {
         $request->validate([
             'plan' => 'required|in:pro',
-            'tier' => 'required|in:artist,engineer'
+            'tier' => 'required|in:artist,engineer',
+            'billing_period' => 'required|in:monthly,yearly'
         ]);
         
         $plan = $request->input('plan'); // 'pro'
         $tier = $request->input('tier'); // 'artist' or 'engineer'
+        $billingPeriod = $request->input('billing_period'); // 'monthly' or 'yearly'
         
         $user = $request->user();
         
@@ -53,7 +58,8 @@ class SubscriptionController extends Controller
         }
         
         try {
-            $priceId = $this->getPriceIdForPlan($plan, $tier);
+            $priceId = $this->getPriceIdForPlan($plan, $tier, $billingPeriod);
+            $planConfig = $this->getPlanConfig($plan, $tier, $billingPeriod);
             
             // Create Stripe checkout session
             $checkoutSession = $user->newSubscription('default', $priceId)
@@ -63,7 +69,10 @@ class SubscriptionController extends Controller
                     'metadata' => [
                         'plan' => $plan,
                         'tier' => $tier,
+                        'billing_period' => $billingPeriod,
                         'user_id' => $user->id,
+                        'price' => $planConfig['price'],
+                        'currency' => 'USD',
                     ],
                 ]);
             
@@ -71,6 +80,8 @@ class SubscriptionController extends Controller
                 'user_id' => $user->id,
                 'plan' => $plan,
                 'tier' => $tier,
+                'billing_period' => $billingPeriod,
+                'price_id' => $priceId,
                 'session_id' => $checkoutSession->id
             ]);
             
@@ -81,6 +92,7 @@ class SubscriptionController extends Controller
                 'user_id' => $user->id,
                 'plan' => $plan,
                 'tier' => $tier,
+                'billing_period' => $billingPeriod,
                 'error' => $e->getMessage()
             ]);
             
@@ -180,19 +192,47 @@ class SubscriptionController extends Controller
         }
     }
     
-    private function getPriceIdForPlan(string $plan, string $tier): string
+    private function getPriceIdForPlan(string $plan, string $tier, string $billingPeriod): string
     {
         $priceIds = [
-            'pro.artist' => config('subscription.stripe_prices.pro_artist'),
-            'pro.engineer' => config('subscription.stripe_prices.pro_engineer'),
+            'pro.artist.monthly' => config('subscription.stripe_prices.pro_artist_monthly'),
+            'pro.artist.yearly' => config('subscription.stripe_prices.pro_artist_yearly'),
+            'pro.engineer.monthly' => config('subscription.stripe_prices.pro_engineer_monthly'),
+            'pro.engineer.yearly' => config('subscription.stripe_prices.pro_engineer_yearly'),
         ];
         
-        $priceId = $priceIds["$plan.$tier"] ?? null;
+        $priceId = $priceIds["$plan.$tier.$billingPeriod"] ?? null;
         
         if (!$priceId) {
-            throw new \Exception("Invalid plan/tier combination: $plan.$tier");
+            throw new \Exception("Invalid plan/tier/billing_period combination: $plan.$tier.$billingPeriod");
         }
         
         return $priceId;
+    }
+
+    private function getPlanConfig(string $plan, string $tier, string $billingPeriod)
+    {
+        $planConfigs = [
+            'pro.artist.monthly' => [
+                'price' => config('subscription.stripe_prices.pro_artist_monthly'),
+            ],
+            'pro.artist.yearly' => [
+                'price' => config('subscription.stripe_prices.pro_artist_yearly'),
+            ],
+            'pro.engineer.monthly' => [
+                'price' => config('subscription.stripe_prices.pro_engineer_monthly'),
+            ],
+            'pro.engineer.yearly' => [
+                'price' => config('subscription.stripe_prices.pro_engineer_yearly'),
+            ],
+        ];
+        
+        $planConfig = $planConfigs["$plan.$tier.$billingPeriod"] ?? null;
+        
+        if (!$planConfig) {
+            throw new \Exception("Invalid plan/tier/billing_period combination: $plan.$tier.$billingPeriod");
+        }
+        
+        return $planConfig;
     }
 }

@@ -219,7 +219,7 @@ class WebhookController extends CashierWebhookController
             if ($customerId && $priceId) {
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
-                    $this->updateUserSubscriptionFromPrice($user, $priceId, 'active');
+                    $this->updateUserSubscriptionStatus($user, 'active', $priceId);
                     
                     // Send upgrade notification
                     $priceMapping = [
@@ -262,9 +262,9 @@ class WebhookController extends CashierWebhookController
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
                     if ($status === 'active') {
-                        $this->updateUserSubscriptionFromPrice($user, $priceId, 'active');
+                        $this->updateUserSubscriptionStatus($user, 'active', $priceId);
                     } elseif (in_array($status, ['canceled', 'unpaid', 'past_due'])) {
-                        $this->updateUserSubscriptionFromPrice($user, null, 'inactive');
+                        $this->updateUserSubscriptionStatus($user, 'inactive');
                     }
                     Log::info('Updated user subscription from webhook', [
                         'user_id' => $user->id,
@@ -297,7 +297,7 @@ class WebhookController extends CashierWebhookController
                     // Get current plan name before downgrading
                     $currentPlan = ucfirst($user->subscription_plan) . ' ' . ucfirst($user->subscription_tier);
                     
-                    $this->updateUserSubscriptionFromPrice($user, null, 'canceled');
+                    $this->updateUserSubscriptionStatus($user, 'canceled');
                     
                     // Send cancellation notification
                     $endsAt = isset($subscription['canceled_at']) ? 
@@ -579,18 +579,35 @@ class WebhookController extends CashierWebhookController
      }
 
      /**
-      * Update user subscription based on Stripe price ID
-      *
-      * @param User $user
-      * @param string|null $priceId
-      * @param string $status
-      * @return void
+      * Update the user's subscription status
       */
-     private function updateUserSubscriptionFromPrice(User $user, ?string $priceId, string $status): void
+     private function updateUserSubscriptionStatus($user, $status, $priceId = null)
      {
          $priceMapping = [
-             config('subscription.stripe_prices.pro_artist') => ['plan' => 'pro', 'tier' => 'artist'],
-             config('subscription.stripe_prices.pro_engineer') => ['plan' => 'pro', 'tier' => 'engineer'],
+             config('subscription.stripe_prices.pro_artist_monthly') => [
+                 'plan' => 'pro', 
+                 'tier' => 'artist', 
+                 'billing_period' => 'monthly',
+                 'price' => config('subscription.plans.pro_artist.monthly_price'),
+             ],
+             config('subscription.stripe_prices.pro_artist_yearly') => [
+                 'plan' => 'pro', 
+                 'tier' => 'artist', 
+                 'billing_period' => 'yearly',
+                 'price' => config('subscription.plans.pro_artist.yearly_price'),
+             ],
+             config('subscription.stripe_prices.pro_engineer_monthly') => [
+                 'plan' => 'pro', 
+                 'tier' => 'engineer', 
+                 'billing_period' => 'monthly',
+                 'price' => config('subscription.plans.pro_engineer.monthly_price'),
+             ],
+             config('subscription.stripe_prices.pro_engineer_yearly') => [
+                 'plan' => 'pro', 
+                 'tier' => 'engineer', 
+                 'billing_period' => 'yearly',
+                 'price' => config('subscription.plans.pro_engineer.yearly_price'),
+             ],
          ];
 
          if ($priceId && isset($priceMapping[$priceId])) {
@@ -598,6 +615,9 @@ class WebhookController extends CashierWebhookController
              $user->update([
                  'subscription_plan' => $mapping['plan'],
                  'subscription_tier' => $mapping['tier'],
+                 'billing_period' => $mapping['billing_period'],
+                 'subscription_price' => $mapping['price'],
+                 'subscription_currency' => 'USD',
                  'plan_started_at' => $status === 'active' ? now() : $user->plan_started_at,
              ]);
          } elseif ($status === 'canceled' || $status === 'inactive') {
@@ -605,6 +625,9 @@ class WebhookController extends CashierWebhookController
              $user->update([
                  'subscription_plan' => 'free',
                  'subscription_tier' => 'basic',
+                 'billing_period' => 'monthly',
+                 'subscription_price' => null,
+                 'subscription_currency' => 'USD',
                  'plan_started_at' => null,
                  'monthly_pitch_count' => 0,
                  'monthly_pitch_reset_date' => null,

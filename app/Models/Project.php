@@ -14,6 +14,9 @@ use Sebdesign\SM\StateMachine\StateMachineInterface;
 use Illuminate\Support\Number;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Models\UserMonthlyLimit;
+use Illuminate\Support\Facades\Log;
 
 class Project extends Model
 {
@@ -31,6 +34,12 @@ class Project extends Model
     const WORKFLOW_TYPE_CONTEST = 'contest';
     const WORKFLOW_TYPE_DIRECT_HIRE = 'direct_hire';
     const WORKFLOW_TYPE_CLIENT_MANAGEMENT = 'client_management';
+
+    // Visibility Levels
+    const VISIBILITY_PUBLIC = 'public';
+    const VISIBILITY_UNLISTED = 'unlisted';
+    const VISIBILITY_PRIVATE = 'private';
+    const VISIBILITY_INVITE_ONLY = 'invite_only';
 
     // Default Currency
     const DEFAULT_CURRENCY = 'USD';
@@ -70,6 +79,12 @@ class Project extends Model
         'notes',
         'is_published',
         'published_at',
+        'is_private',
+        'privacy_set_at',
+        'visibility_level',
+        'privacy_settings',
+        'access_code',
+        'privacy_month_year',
         'slug',
         'submission_deadline',
         'judging_deadline',
@@ -98,11 +113,24 @@ class Project extends Model
         'client_name',
         'payment_amount',
         'completed_at',
+        // License fields
+        'license_template_id',
+        'custom_license_terms',
+        'license_notes',
+        'license_status',
+        'license_signed_at',
+        'license_signature_ip',
+        'requires_license_agreement',
+        'license_jurisdiction',
+        'license_content_hash',
     ];
 
     protected $casts = [
         'collaboration_type' => 'array',
         'is_published' => 'boolean',
+        'is_private' => 'boolean',
+        'privacy_set_at' => 'datetime',
+        'privacy_settings' => 'array',
         'completed_at' => 'datetime',
         'deadline' => 'datetime',
         'target_producer_id' => 'integer',
@@ -113,6 +141,10 @@ class Project extends Model
         'judging_finalized_at' => 'datetime',
         'results_announced_at' => 'datetime',
         'show_submissions_publicly' => 'boolean',
+        // License casts
+        'custom_license_terms' => 'array',
+        'license_signed_at' => 'datetime',
+        'requires_license_agreement' => 'boolean',
     ];
 
     protected $attributes = [
@@ -193,12 +225,18 @@ class Project extends Model
         if ($this->hasPreviewTrack()) {
             $track = $this->previewTrack;
             try {
-                return Storage::disk('s3')->temporaryUrl(
-                    $track->file_path,
-                    now()->addMinutes(15)
-                );
+                // Check if the storage driver supports temporaryUrl
+                if (method_exists(Storage::disk('s3'), 'temporaryUrl')) {
+                    return Storage::disk('s3')->temporaryUrl(
+                        $track->file_path,
+                        now()->addMinutes(15)
+                    );
+                } else {
+                    // Fallback for storage drivers that don't support temporary URLs
+                    return Storage::disk('s3')->url($track->file_path);
+                }
             } catch (Exception $e) {
-                \Log::error('Error getting signed preview track path', [
+                Log::error('Error getting signed preview track path', [
                     'track_id' => $this->preview_track,
                     'error' => $e->getMessage()
                 ]);
@@ -239,6 +277,208 @@ class Project extends Model
         return $this->hasMany(Mix::class);
     }
 
+    // ========== LICENSE RELATIONSHIPS ==========
+
+    /**
+     * Get the license template for this project
+     */
+    public function licenseTemplate()
+    {
+        return $this->belongsTo(LicenseTemplate::class);
+    }
+
+    /**
+     * Get license signatures for this project
+     */
+    public function licenseSignatures()
+    {
+        return $this->hasMany(LicenseSignature::class);
+    }
+
+    /**
+     * Get active license signatures
+     */
+    public function activeLicenseSignatures()
+    {
+        return $this->licenseSignatures()->active();
+    }
+
+    // ========== LICENSE METHODS ==========
+
+    /**
+     * Check if project requires license agreement
+     */
+    public function requiresLicenseAgreement(): bool
+    {
+        return $this->requires_license_agreement && 
+               ($this->license_template_id || !empty($this->custom_license_terms));
+    }
+
+    /**
+     * Check if license is signed
+     */
+    public function hasSignedLicense(): bool
+    {
+        return $this->license_status === 'active' && $this->license_signed_at;
+    }
+
+    /**
+     * Check if license is pending signature
+     */
+    public function isLicensePending(): bool
+    {
+        return $this->license_status === 'pending' && $this->requiresLicenseAgreement();
+    }
+
+    /**
+     * Get effective license terms
+     */
+    public function getEffectiveLicenseTerms(): array
+    {
+        if (!empty($this->custom_license_terms)) {
+            return $this->custom_license_terms;
+        }
+
+        if ($this->licenseTemplate) {
+            return $this->licenseTemplate->terms ?? [];
+        }
+
+        return [];
+    }
+
+    /**
+     * Generate license content for this project
+     */
+    public function getLicenseContent(): string
+    {
+        if ($this->licenseTemplate) {
+            return $this->licenseTemplate->generateLicenseContent($this);
+        }
+
+        // Fallback to basic license if no template
+        return $this->generateBasicLicenseContent();
+    }
+
+    /**
+     * Generate a basic license content
+     */
+    private function generateBasicLicenseContent(): string
+    {
+        return "License Agreement for Project: {$this->name}\n\n" .
+               "Project Owner: {$this->user->name}\n" .
+               "Date: " . now()->format('F j, Y') . "\n\n" .
+               "This license governs the use of work created for this project.\n" .
+               "Terms are subject to the project owner's requirements and applicable law.";
+    }
+
+    /**
+     * Generate license agreement data
+     */
+    public function generateLicenseAgreement(): array
+    {
+        return [
+            'project' => [
+                'id' => $this->id,
+                'name' => $this->name,
+                'type' => $this->project_type,
+                'owner' => $this->user->name,
+            ],
+            'template' => $this->licenseTemplate ? [
+                'id' => $this->licenseTemplate->id,
+                'name' => $this->licenseTemplate->name,
+                'category' => $this->licenseTemplate->category,
+            ] : null,
+            'content' => $this->getLicenseContent(),
+            'terms' => $this->getEffectiveLicenseTerms(),
+            'jurisdiction' => $this->license_jurisdiction ?? 'US',
+            'requires_signature' => $this->requiresLicenseAgreement(),
+            'status' => $this->license_status,
+        ];
+    }
+
+    /**
+     * Create or update license signature
+     */
+    public function signLicense(User $user, array $signatureData): LicenseSignature
+    {
+        // Create the signature
+        $signature = LicenseSignature::createFromProject($this, $user, $signatureData);
+
+        // Update project status
+        $this->update([
+            'license_status' => 'active',
+            'license_signed_at' => now(),
+            'license_signature_ip' => request()->ip(),
+            'license_content_hash' => hash('sha256', $this->getLicenseContent()),
+        ]);
+
+        // Increment template usage
+        if ($this->licenseTemplate) {
+            $this->licenseTemplate->incrementUsage();
+        }
+
+        return $signature;
+    }
+
+    /**
+     * Check if user has signed the license
+     */
+    public function hasUserSignedLicense(User $user): bool
+    {
+        return $this->activeLicenseSignatures()
+                    ->where('user_id', $user->id)
+                    ->exists();
+    }
+
+    /**
+     * Get license status color class
+     */
+    public function getLicenseStatusColorClass(): string
+    {
+        return match($this->license_status) {
+            'active' => 'text-green-600 bg-green-100',
+            'pending' => 'text-yellow-600 bg-yellow-100',
+            'expired' => 'text-red-600 bg-red-100',
+            'revoked' => 'text-red-600 bg-red-100',
+            default => 'text-gray-600 bg-gray-100',
+        };
+    }
+
+    /**
+     * Get license status label
+     */
+    public function getLicenseStatusLabel(): string
+    {
+        return match($this->license_status) {
+            'active' => 'Active',
+            'pending' => 'Pending Signature',
+            'expired' => 'Expired',
+            'revoked' => 'Revoked',
+            default => 'No License',
+        };
+    }
+
+    /**
+     * Create custom license template from project terms
+     */
+    public function createCustomLicenseTemplate(): ?LicenseTemplate
+    {
+        if (empty($this->custom_license_terms)) {
+            return null;
+        }
+
+        return LicenseTemplate::create([
+            'user_id' => $this->user_id,
+            'name' => "Custom License for {$this->name}",
+            'content' => $this->generateBasicLicenseContent(),
+            'terms' => $this->custom_license_terms,
+            'category' => LicenseTemplate::CATEGORY_GENERAL,
+            'description' => "Auto-generated custom license for project: {$this->name}",
+            'is_active' => false, // Don't make it active by default
+            'usage_stats' => ['created' => now()->toISOString(), 'times_used' => 1],
+        ]);
+    }
+
     public function sluggable(): array
     {
         return [
@@ -260,12 +500,18 @@ class Project extends Model
         }
         
         try {
-            return Storage::disk('s3')->temporaryUrl(
-                $this->image_path,
-                now()->addHours(1) // Longer expiration for images since they're used in UI
-            );
+            // Check if the storage driver supports temporaryUrl
+            if (method_exists(Storage::disk('s3'), 'temporaryUrl')) {
+                return Storage::disk('s3')->temporaryUrl(
+                    $this->image_path,
+                    now()->addHours(1) // Longer expiration for images since they're used in UI
+                );
+            } else {
+                // Fallback for storage drivers that don't support temporary URLs
+                return Storage::disk('s3')->url($this->image_path);
+            }
         } catch (Exception $e) {
-            \Log::error('Error getting signed project image URL', [
+            Log::error('Error getting signed project image URL', [
                 'project_id' => $this->id,
                 'image_path' => $this->image_path,
                 'error' => $e->getMessage()
@@ -490,7 +736,7 @@ class Project extends Model
             }
             
             // Check if we're using SQLite
-            $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+            $isSqlite = DB::connection()->getDriverName() === 'sqlite';
             
             if ($isSqlite) {
                 // SQLite-compatible alternative approach
@@ -784,5 +1030,399 @@ class Project extends Model
             default:
                 return 'text-gray-700 bg-gray-100';
         }
+    }
+
+    // ========== PRIVACY METHODS ==========
+
+    /**
+     * Check if the project is private
+     *
+     * @return bool
+     */
+    public function isPrivate(): bool
+    {
+        return $this->is_private || $this->visibility_level === self::VISIBILITY_PRIVATE;
+    }
+
+    /**
+     * Check if the project is public
+     *
+     * @return bool
+     */
+    public function isPublic(): bool
+    {
+        return $this->visibility_level === self::VISIBILITY_PUBLIC && !$this->is_private;
+    }
+
+    /**
+     * Check if the project is unlisted
+     *
+     * @return bool
+     */
+    public function isUnlisted(): bool
+    {
+        return $this->visibility_level === self::VISIBILITY_UNLISTED;
+    }
+
+    /**
+     * Check if the project is invite-only
+     *
+     * @return bool
+     */
+    public function isInviteOnly(): bool
+    {
+        return $this->visibility_level === self::VISIBILITY_INVITE_ONLY;
+    }
+
+    /**
+     * Make the project private
+     *
+     * @param User $user
+     * @param array $settings
+     * @return bool
+     */
+    public function makePrivate(User $user, array $settings = []): bool
+    {
+        // Check if user can create private projects
+        if (!$this->canUserCreatePrivateProject($user)) {
+            return false;
+        }
+
+        $this->update([
+            'is_private' => true,
+            'visibility_level' => self::VISIBILITY_PRIVATE,
+            'privacy_set_at' => now(),
+            'privacy_month_year' => now()->format('Y-m'),
+            'privacy_settings' => array_merge([
+                'created_by' => $user->id,
+                'reason' => 'user_requested',
+                'allow_direct_access' => false,
+            ], $settings),
+            'access_code' => $this->generateAccessCode(),
+        ]);
+
+        // Update monthly limit tracking
+        $this->incrementUserPrivateProjectCount($user);
+
+        return true;
+    }
+
+    /**
+     * Make the project public
+     *
+     * @return void
+     */
+    public function makePublic(): void
+    {
+        $this->update([
+            'is_private' => false,
+            'visibility_level' => self::VISIBILITY_PUBLIC,
+            'privacy_set_at' => null,
+            'privacy_settings' => null,
+            'access_code' => null,
+            'privacy_month_year' => null,
+        ]);
+    }
+
+    /**
+     * Set visibility level
+     *
+     * @param string $level
+     * @param User $user
+     * @return bool
+     */
+    public function setVisibilityLevel(string $level, User $user): bool
+    {
+        if (!in_array($level, [
+            self::VISIBILITY_PUBLIC,
+            self::VISIBILITY_UNLISTED,
+            self::VISIBILITY_PRIVATE,
+            self::VISIBILITY_INVITE_ONLY
+        ])) {
+            return false;
+        }
+
+        // For private/invite-only, check subscription limits
+        if (in_array($level, [self::VISIBILITY_PRIVATE, self::VISIBILITY_INVITE_ONLY])) {
+            if (!$this->canUserCreatePrivateProject($user)) {
+                return false;
+            }
+
+            $this->update([
+                'visibility_level' => $level,
+                'is_private' => true,
+                'privacy_set_at' => now(),
+                'privacy_month_year' => now()->format('Y-m'),
+                'access_code' => $this->generateAccessCode(),
+            ]);
+
+            $this->incrementUserPrivateProjectCount($user);
+        } else {
+            $this->update([
+                'visibility_level' => $level,
+                'is_private' => false,
+                'privacy_set_at' => null,
+                'privacy_month_year' => null,
+                'access_code' => null,
+            ]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if user can create/modify private projects
+     *
+     * @param User $user
+     * @return bool
+     */
+    private function canUserCreatePrivateProject(User $user): bool
+    {
+        // If this project is already private, allow modification
+        if ($this->exists && $this->isPrivate()) {
+            return true;
+        }
+
+        $monthlyLimit = $user->getMaxPrivateProjectsMonthly();
+        
+        // Unlimited for Pro Engineer
+        if ($monthlyLimit === null) {
+            return true;
+        }
+
+        // Not allowed for free users
+        if ($monthlyLimit === 0) {
+            return false;
+        }
+
+        // Check monthly usage
+        $currentMonth = now()->format('Y-m');
+        $usedThisMonth = self::where('user_id', $user->id)
+            ->where('is_private', true)
+            ->where('privacy_month_year', $currentMonth)
+            ->count();
+
+        return $usedThisMonth < $monthlyLimit;
+    }
+
+    /**
+     * Increment user's private project count for the month
+     *
+     * @param User $user
+     * @return void
+     */
+    private function incrementUserPrivateProjectCount(User $user): void
+    {
+        $currentMonth = now()->format('Y-m');
+        
+        $monthlyLimit = UserMonthlyLimit::updateOrCreate(
+            ['user_id' => $user->id, 'month_year' => $currentMonth],
+            ['last_reset_at' => now()]
+        );
+        
+        $monthlyLimit->increment('private_projects_created');
+    }
+
+    /**
+     * Generate a secure access code for private projects
+     *
+     * @return string
+     */
+    private function generateAccessCode(): string
+    {
+        return Str::random(16);
+    }
+
+    /**
+     * Check if user can view this project
+     *
+     * @param User|null $user
+     * @param string|null $accessCode
+     * @return bool
+     */
+    public function canUserView(?User $user = null, ?string $accessCode = null): bool
+    {
+        // Owner can always view
+        if ($user && $this->isOwnedByUser($user)) {
+            return true;
+        }
+
+        // Public projects are viewable by everyone
+        if ($this->isPublic()) {
+            return true;
+        }
+
+        // Unlisted projects are viewable by anyone with the link
+        if ($this->isUnlisted()) {
+            return true;
+        }
+
+        // Private/Invite-only projects need special access
+        if ($this->isPrivate() || $this->isInviteOnly()) {
+            // Check access code
+            if ($accessCode && $this->access_code === $accessCode) {
+                return true;
+            }
+
+            // Check if user is invited (could implement invitation system later)
+            // For now, only owner can view
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get privacy status label
+     *
+     * @return string
+     */
+    public function getPrivacyStatusLabel(): string
+    {
+        if ($this->isPrivate()) {
+            return 'Private';
+        }
+        
+        return match($this->visibility_level) {
+            self::VISIBILITY_PUBLIC => 'Public',
+            self::VISIBILITY_UNLISTED => 'Unlisted',
+            self::VISIBILITY_INVITE_ONLY => 'Invite Only',
+            default => 'Public',
+        };
+    }
+
+    /**
+     * Get privacy icon class
+     *
+     * @return string
+     */
+    public function getPrivacyIconClass(): string
+    {
+        if ($this->isPrivate()) {
+            return 'fas fa-lock text-red-500';
+        }
+        
+        return match($this->visibility_level) {
+            self::VISIBILITY_PUBLIC => 'fas fa-globe text-green-500',
+            self::VISIBILITY_UNLISTED => 'fas fa-eye-slash text-yellow-500',
+            self::VISIBILITY_INVITE_ONLY => 'fas fa-user-friends text-blue-500',
+            default => 'fas fa-globe text-green-500',
+        };
+    }
+
+    // ========== QUERY SCOPES ==========
+
+    /**
+     * Scope to only public projects
+     */
+    public function scopePublic($query)
+    {
+        return $query->where('visibility_level', self::VISIBILITY_PUBLIC)
+                    ->where('is_private', false);
+    }
+
+    /**
+     * Scope to only private projects
+     */
+    public function scopePrivate($query)
+    {
+        return $query->where('is_private', true);
+    }
+
+    /**
+     * Scope to projects viewable by a specific user
+     */
+    public function scopeViewableBy($query, ?User $user = null)
+    {
+        if (!$user) {
+            // Anonymous users can only see public projects
+            return $query->public();
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id) // Own projects
+              ->orWhere(function ($subQuery) {
+                  $subQuery->where('visibility_level', self::VISIBILITY_PUBLIC)
+                          ->where('is_private', false);
+              })
+              ->orWhere('visibility_level', self::VISIBILITY_UNLISTED); // Unlisted are viewable with link
+        });
+    }
+
+    /**
+     * Scope to exclude private projects from public listings
+     */
+    public function scopePubliclyViewable($query)
+    {
+        return $query->whereIn('visibility_level', [
+            self::VISIBILITY_PUBLIC,
+            self::VISIBILITY_UNLISTED
+        ])->where('is_private', false);
+    }
+
+    /**
+     * Scope by visibility level
+     */
+    public function scopeByVisibility($query, string $level)
+    {
+        return $query->where('visibility_level', $level);
+    }
+
+    /**
+     * Scope to user's private projects for current month
+     */
+    public function scopeUserPrivateCurrentMonth($query, User $user)
+    {
+        $currentMonth = now()->format('Y-m');
+        
+        return $query->where('user_id', $user->id)
+                    ->where('is_private', true)
+                    ->where('privacy_month_year', $currentMonth);
+    }
+
+    /**
+     * Static method to get available visibility levels for a user
+     *
+     * @param User $user
+     * @return array
+     */
+    public static function getAvailableVisibilityLevels(User $user): array
+    {
+        $levels = [
+            self::VISIBILITY_PUBLIC => 'Public - Anyone can find and view',
+            self::VISIBILITY_UNLISTED => 'Unlisted - Only people with the link can view',
+        ];
+
+        // Add private options for eligible users
+        $monthlyLimit = $user->getMaxPrivateProjectsMonthly();
+        if ($monthlyLimit === null || $monthlyLimit > 0) {
+            $levels[self::VISIBILITY_PRIVATE] = 'Private - Only you can view';
+            $levels[self::VISIBILITY_INVITE_ONLY] = 'Invite Only - Only invited users can view';
+        }
+
+        return $levels;
+    }
+
+    /**
+     * Get user's remaining private project quota for current month
+     *
+     * @param User $user
+     * @return int|null
+     */
+    public static function getRemainingPrivateQuota(User $user): ?int
+    {
+        $monthlyLimit = $user->getMaxPrivateProjectsMonthly();
+        
+        if ($monthlyLimit === null) {
+            return null; // Unlimited
+        }
+
+        $currentMonth = now()->format('Y-m');
+        $usedThisMonth = self::where('user_id', $user->id)
+            ->where('is_private', true)
+            ->where('privacy_month_year', $currentMonth)
+            ->count();
+
+        return max(0, $monthlyLimit - $usedThisMonth);
     }
 }

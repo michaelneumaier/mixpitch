@@ -440,6 +440,24 @@
                                     <p class="text-gray-600">Please review all the details before creating your project. You can go back to make changes if needed.</p>
                                 </div>
 
+                                <!-- License Configuration Section -->
+                                <div class="bg-gradient-to-br from-white/90 to-indigo-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-6 shadow-lg mb-6">
+                                    <div class="flex items-center mb-6">
+                                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mr-4">
+                                            <i class="fas fa-file-contract text-white"></i>
+                                        </div>
+                                        <h3 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">License Terms</h3>
+                                    </div>
+
+                                    <!-- License Selector Component -->
+                                    @livewire('components.license-selector', [
+                                        'projectType' => $form->projectType,
+                                        'selectedTemplateId' => $selectedLicenseTemplateId,
+                                        'requiresAgreement' => $requiresLicenseAgreement,
+                                        'licenseNotes' => $licenseNotes
+                                    ], key('license-selector-' . ($project->id ?? 'new')))
+                                </div>
+
                                 <x-wizard.project-summary 
                                     :project="$this->projectSummary"
                                     :workflowConfig="$this->currentWorkflowConfig"

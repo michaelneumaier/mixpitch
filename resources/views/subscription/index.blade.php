@@ -7,6 +7,11 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <!-- Enhanced Subscription Dashboard -->
+            <div class="mb-8">
+                <livewire:subscription-dashboard />
+            </div>
+
             <!-- Current Plan Section -->
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6 mb-6">
                 <div class="flex items-center justify-between">
@@ -17,12 +22,13 @@
                                 $isSubscribed = $user->subscribed('default');
                                 $onGracePeriod = $isSubscribed && $user->subscription('default')->onGracePeriod();
                                 $subscription = $user->subscription('default');
+                                $planName = $user->getSubscriptionDisplayName();
+                                $billingPeriod = $user->getBillingPeriodDisplayName();
+                                $formattedPrice = $user->getFormattedSubscriptionPrice();
+                                $yearlySavings = $user->getYearlySavings();
                             @endphp
                             
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $user->isProPlan() ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                {{ ucfirst($user->subscription_plan) }}
-                                {{ $user->subscription_tier !== 'basic' ? ' - ' . ucfirst($user->subscription_tier) : '' }}
-                            </span>
+                            <x-user-badge :user="$user" showPlan="true" size="lg" />
                             
                             @if($onGracePeriod)
                                 <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -35,15 +41,30 @@
                                     Since {{ $user->plan_started_at->format('M d, Y') }}
                                 </span>
                             @endif
+
+                            @if($yearlySavings)
+                                <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-piggy-bank mr-1"></i>
+                                    Saving ${{ number_format($yearlySavings, 2) }}/year
+                                </span>
+                            @endif
                         </div>
                         
                         @if($isSubscribed && $subscription)
                             <div class="mt-2 text-sm text-gray-600">
-                                @if($onGracePeriod)
-                                    <p>Your subscription is set to cancel on {{ $subscription->ends_at->format('M d, Y') }}.</p>
-                                @else
-                                    <p>Next billing: {{ $subscription->asStripeSubscription()->current_period_end ? \Carbon\Carbon::createFromTimestamp($subscription->asStripeSubscription()->current_period_end)->format('M d, Y') : 'Unknown' }}</p>
-                                @endif
+                                <div class="flex items-center space-x-4">
+                                    <span>{{ $formattedPrice }} ({{ $billingPeriod }})</span>
+                                    @if($onGracePeriod)
+                                        <span class="text-yellow-600">• Subscription set to cancel on {{ $subscription->ends_at->format('M d, Y') }}</span>
+                                    @else
+                                        @php
+                                            $nextBilling = $user->getNextBillingDate();
+                                        @endphp
+                                        @if($nextBilling)
+                                            <span>• Next billing: {{ $nextBilling->format('M d, Y') }}</span>
+                                        @endif
+                                    @endif
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -80,14 +101,12 @@
             </div>
 
             <!-- Usage Statistics -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <!-- Projects Usage -->
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <svg class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
+                            <i class="fas fa-folder text-blue-500 text-2xl"></i>
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
@@ -125,9 +144,7 @@
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <svg class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
+                            <i class="fas fa-paper-plane text-green-500 text-2xl"></i>
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
@@ -161,49 +178,109 @@
                     </div>
                 </div>
 
-                <!-- Monthly Pitches (Pro Engineer only) -->
-                @if($limits && $limits->max_monthly_pitches)
+                <!-- Storage Usage -->
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <svg class="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+                            <i class="fas fa-hdd text-purple-500 text-2xl"></i>
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">Monthly Pitches</dt>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Storage per Project</dt>
                                 <dd class="flex items-baseline">
                                     <div class="text-2xl font-semibold text-gray-900">
-                                        {{ $usage['monthly_pitches_used'] }}
-                                    </div>
-                                    <div class="ml-2 flex items-baseline text-sm font-semibold">
-                                        <span class="text-gray-500">
-                                            / {{ $limits->max_monthly_pitches }}
-                                        </span>
+                                        {{ $user->getStoragePerProjectGB() }}GB
                                     </div>
                                 </dd>
                             </dl>
-                            <div class="mt-3">
-                                <div class="flex items-center justify-between text-sm">
-                                    <div class="text-gray-500">Usage</div>
-                                    <div class="text-gray-900">{{ number_format(($usage['monthly_pitches_used'] / $limits->max_monthly_pitches) * 100, 1) }}%</div>
+                            <div class="mt-3 text-sm text-gray-600">
+                                File retention: {{ $user->getFileRetentionDays() }} days
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commission Rate -->
+                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-percentage text-orange-500 text-2xl"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Commission Rate</dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900">
+                                        {{ $user->getPlatformCommissionRate() }}%
+                                    </div>
+                                </dd>
+                            </dl>
+                            @if($user->isProPlan())
+                                <div class="mt-2 text-sm text-green-600 font-medium">
+                                    Saved: ${{ number_format($user->getCommissionSavings(), 2) }}
                                 </div>
-                                <div class="mt-1 relative">
-                                    <div class="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
-                                        <div style="width:{{ min(($usage['monthly_pitches_used'] / $limits->max_monthly_pitches) * 100, 100) }}%"
-                                             class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center {{ $usage['monthly_pitches_used'] >= $limits->max_monthly_pitches ? 'bg-red-500' : 'bg-purple-500' }}"></div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Features Usage -->
+            @if($user->isProPlan())
+                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Monthly Features Usage</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Visibility Boosts -->
+                        @if($user->getMonthlyVisibilityBoosts() > 0)
+                            <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-rocket text-blue-600 text-xl"></i>
+                                    <div>
+                                        <p class="font-medium text-gray-900">Visibility Boosts</p>
+                                        <p class="text-sm text-gray-600">{{ $user->getRemainingVisibilityBoosts() }} / {{ $user->getMonthlyVisibilityBoosts() }} remaining</p>
                                     </div>
                                 </div>
-                                <div class="mt-2 text-xs text-gray-500">
-                                    Resets {{ $user->monthly_pitch_reset_date ? $user->monthly_pitch_reset_date->format('M d, Y') : 'next month' }}
+                            </div>
+                        @endif
+
+                        <!-- Private Projects -->
+                        @if($user->getMaxPrivateProjectsMonthly() !== 0)
+                            <div class="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-lock text-red-600 text-xl"></i>
+                                    <div>
+                                        <p class="font-medium text-gray-900">Private Projects</p>
+                                        <p class="text-sm text-gray-600">
+                                            @if($user->getRemainingPrivateProjects() === null)
+                                                Unlimited
+                                            @else
+                                                {{ $user->getRemainingPrivateProjects() }} remaining this month
+                                            @endif
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- License Templates -->
+                        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-contract text-green-600 text-xl"></i>
+                                <div>
+                                    <p class="font-medium text-gray-900">License Templates</p>
+                                    <p class="text-sm text-gray-600">
+                                        @if($user->getMaxLicenseTemplates() === null)
+                                            Unlimited custom templates
+                                        @else
+                                            {{ $user->getMaxLicenseTemplates() }} templates allowed
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                @endif
-            </div>
+            @endif
 
             <!-- Plan Features -->
             @if($limits)
@@ -211,49 +288,57 @@
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Your Plan Features</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
+                        <i class="fas fa-check text-green-500 mr-2"></i>
                         <span class="text-sm text-gray-700">
                             {{ $limits->max_projects_owned ? $limits->max_projects_owned . ' Project' . ($limits->max_projects_owned > 1 ? 's' : '') : 'Unlimited Projects' }}
                         </span>
                     </div>
                     <div class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
+                        <i class="fas fa-check text-green-500 mr-2"></i>
                         <span class="text-sm text-gray-700">
                             {{ $limits->max_active_pitches ? $limits->max_active_pitches . ' Active Pitches' : 'Unlimited Active Pitches' }}
                         </span>
                     </div>
                     <div class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span class="text-sm text-gray-700">{{ $limits->storage_per_project_mb }}MB Storage per Project</span>
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">{{ $user->getStoragePerProjectGB() }}GB Storage per Project</span>
                     </div>
-                    @if($limits->priority_support)
                     <div class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span class="text-sm text-gray-700">Priority Support</span>
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">{{ $user->getFileRetentionDays() }} Days File Retention</span>
                     </div>
-                    @endif
-                    @if($limits->custom_portfolio)
                     <div class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span class="text-sm text-gray-700">Custom Portfolio</span>
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">{{ $user->getPlatformCommissionRate() }}% Commission Rate</span>
+                    </div>
+                    @if($user->getReputationMultiplier() > 1.0)
+                    <div class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">{{ $user->getReputationMultiplier() }}× Reputation Multiplier</span>
                     </div>
                     @endif
-                    @if($limits->max_monthly_pitches)
+                    @if($user->hasClientPortalAccess())
                     <div class="flex items-center">
-                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span class="text-sm text-gray-700">{{ $limits->max_monthly_pitches }} Monthly Pitches</span>
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">Client Portal Access</span>
+                    </div>
+                    @endif
+                    @if($user->getChallengeEarlyAccessHours() > 0)
+                    <div class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">{{ $user->getChallengeEarlyAccessHours() }}h Early Access</span>
+                    </div>
+                    @endif
+                    @if($user->hasJudgeAccess())
+                    <div class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">Judge Access</span>
+                    </div>
+                    @endif
+                    @if($user->getSupportSlaHours())
+                    <div class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span class="text-sm text-gray-700">{{ $user->getSupportSlaHours() }}h Support SLA</span>
                     </div>
                     @endif
                 </div>
@@ -268,42 +353,51 @@
                     <!-- Pro Artist Plan -->
                     <div class="border border-gray-200 rounded-lg p-6">
                         <div class="text-center">
-                            <h4 class="text-xl font-semibold text-gray-900">Pro Artist</h4>
+                            <h4 class="text-xl font-semibold text-gray-900 flex items-center justify-center">
+                                Pro Artist
+                                <span class="ml-2">🔷</span>
+                            </h4>
                             <div class="mt-4">
-                                <span class="text-3xl font-bold text-gray-900">$29</span>
-                                <span class="text-base font-medium text-gray-500">/month</span>
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="text-3xl font-bold text-gray-900">$6.99</span>
+                                        <span class="text-base font-medium text-gray-500">/month</span>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-medium">$69.99/year</span>
+                                        <span class="ml-2 inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Save $13.89</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <ul class="mt-6 space-y-4">
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">Unlimited Projects</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">Unlimited Projects & Pitches</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">Unlimited Active Pitches</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">5GB Storage per Project</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">500MB Storage per Project</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">8% Commission Rate</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">Priority Support</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">Custom License Templates</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">Custom Portfolio</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">4 Visibility Boosts/Month</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">2 Private Projects/Month</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">Email Support (48h SLA)</span>
                             </li>
                         </ul>
                         <div class="mt-6">
@@ -321,42 +415,51 @@
                     <!-- Pro Engineer Plan -->
                     <div class="border border-gray-200 rounded-lg p-6">
                         <div class="text-center">
-                            <h4 class="text-xl font-semibold text-gray-900">Pro Engineer</h4>
+                            <h4 class="text-xl font-semibold text-gray-900 flex items-center justify-center">
+                                Pro Engineer
+                                <span class="ml-2">🔶</span>
+                            </h4>
                             <div class="mt-4">
-                                <span class="text-3xl font-bold text-gray-900">$19</span>
-                                <span class="text-base font-medium text-gray-500">/month</span>
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="text-3xl font-bold text-gray-900">$9.99</span>
+                                        <span class="text-base font-medium text-gray-500">/month</span>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-medium">$99.99/year</span>
+                                        <span class="ml-2 inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Save $19.89</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <ul class="mt-6 space-y-4">
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">Unlimited Projects</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">Unlimited Projects & Pitches</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">Unlimited Active Pitches</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">10GB Storage per Project</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">5 Monthly Pitches</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">6% Commission Rate</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">500MB Storage per Project</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">1.25× Reputation Multiplier</span>
                             </li>
                             <li class="flex items-start">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span class="ml-3 text-sm text-gray-700">Priority Support</span>
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">Unlimited Private Projects</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">Client Portal Access</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                                <span class="text-sm text-gray-700">Email & Chat Support (24h SLA)</span>
                             </li>
                         </ul>
                         <div class="mt-6">
@@ -364,12 +467,19 @@
                                 @csrf
                                 <input type="hidden" name="plan" value="pro">
                                 <input type="hidden" name="tier" value="engineer">
-                                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
                                     Upgrade to Pro Engineer
                                 </button>
                             </form>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Feature Comparison Link -->
+                <div class="mt-6 text-center">
+                    <a href="{{ route('pricing') }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                        View complete feature comparison →
+                    </a>
                 </div>
             </div>
             @endif
@@ -408,7 +518,7 @@
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Plan:</span>
-                                <span class="font-medium">{{ ucfirst($user->subscription_plan) }} {{ ucfirst($user->subscription_tier) }}</span>
+                                <span class="font-medium">{{ $planName }}</span>
                             </div>
                             @if($subscription)
                             <div class="flex justify-between">
@@ -448,7 +558,7 @@
                             <form action="{{ route('subscription.downgrade') }}" method="POST" 
                                   onsubmit="return confirm('Are you sure you want to cancel your subscription? You will lose access to Pro features at the end of your billing period.')">
                                 @csrf
-                                <button type="submit" class="block w-full text-center bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded">
+                                <button type="submit" class="w-full bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded">
                                     <i class="fas fa-times mr-2"></i>
                                     Cancel Subscription
                                 </button>

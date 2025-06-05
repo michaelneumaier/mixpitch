@@ -26,6 +26,12 @@ use App\Models\Tag;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\SubscriptionLimit;
+use App\Models\Transaction;
+use App\Models\Mix;
+use App\Models\LicenseTemplate;
+use App\Models\VisibilityBoost;
+use App\Models\UserMonthlyLimit;
+use App\Services\ReputationService;
 
 class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
@@ -55,6 +61,12 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     const TIER_ENGINEER = 'engineer';
 
     /**
+     * Define billing period constants.
+     */
+    const BILLING_MONTHLY = 'monthly';
+    const BILLING_YEARLY = 'yearly';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -82,6 +94,9 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'stripe_account_id',
         'subscription_plan',
         'subscription_tier',
+        'billing_period',
+        'subscription_price',
+        'subscription_currency',
         'plan_started_at',
         'monthly_pitch_count',
         'monthly_pitch_reset_date',
@@ -138,7 +153,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             try {
                 Storage::disk($disk)->delete($this->profile_photo_path);
             } catch (\Exception $e) {
-                \Log::warning('Failed to delete old profile photo: ' . $e->getMessage(), [
+                Log::warning('Failed to delete old profile photo: ' . $e->getMessage(), [
                     'user_id' => $this->id,
                     'path' => $this->profile_photo_path
                 ]);
@@ -163,7 +178,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
                     fclose($stream);
                 }
             } catch (\Exception $e) {
-                \Log::error('Error uploading profile photo to S3', [
+                Log::error('Error uploading profile photo to S3', [
                     'user_id' => $this->id,
                     'error' => $e->getMessage()
                 ]);
@@ -182,13 +197,13 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
                     if (Storage::disk($disk)->exists($tempPath)) {
                         Storage::disk($disk)->copy($tempPath, $fileName);
                     } else {
-                        \Log::error('Livewire temp file not found on S3', [
+                        Log::error('Livewire temp file not found on S3', [
                             'path' => $tempPath
                         ]);
                         throw new \Exception('Temporary file not found');
                     }
                 } catch (\Exception $e) {
-                    \Log::error('Error copying S3 temp file to profile-photos', [
+                    Log::error('Error copying S3 temp file to profile-photos', [
                         'user_id' => $this->id,
                         'error' => $e->getMessage(),
                         'tempPath' => $tempPath,
@@ -203,7 +218,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
                         'disk' => $disk
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error('Error in fallback profile photo upload', [
+                    Log::error('Error in fallback profile photo upload', [
                         'user_id' => $this->id,
                         'error' => $e->getMessage()
                     ]);
@@ -217,7 +232,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             'profile_photo_path' => $fileName,
         ])->save();
         
-        \Log::info('Profile photo updated successfully', [
+        Log::info('Profile photo updated successfully', [
             'user_id' => $this->id,
             'path' => $fileName
         ]);
@@ -239,12 +254,18 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             
             try {
                 // Generate a temporary URL with a 1 hour expiration
-                return Storage::disk($this->profilePhotoDisk())->temporaryUrl(
-                    $this->profile_photo_path,
-                    now()->addHour()
-                );
+                // Check if the storage driver supports temporaryUrl
+                if (method_exists(Storage::disk($this->profilePhotoDisk()), 'temporaryUrl')) {
+                    return Storage::disk($this->profilePhotoDisk())->temporaryUrl(
+                        $this->profile_photo_path,
+                        now()->addHour()
+                    );
+                } else {
+                    // Fallback for storage drivers that don't support temporary URLs
+                    return Storage::disk($this->profilePhotoDisk())->url($this->profile_photo_path);
+                }
             } catch (\Exception $e) {
-                \Log::error('Error getting signed profile photo URL', [
+                Log::error('Error getting signed profile photo URL', [
                     'user_id' => $this->id,
                     'error' => $e->getMessage()
                 ]);
@@ -375,10 +396,10 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             ->where('status', Pitch::STATUS_COMPLETED)
             ->pluck('id');
 
-        \Log::debug('User: ' . $this->id . ' (' . $this->name . ') - Completed pitch IDs:', $completedPitchIds->toArray());
+        Log::debug('User: ' . $this->id . ' (' . $this->name . ') - Completed pitch IDs:', $completedPitchIds->toArray());
         
         if ($completedPitchIds->isEmpty()) {
-            \Log::debug('User: ' . $this->id . ' - No completed pitches found');
+            Log::debug('User: ' . $this->id . ' - No completed pitches found');
             return ['average' => null, 'count' => 0];
         }
 
@@ -389,17 +410,17 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             ->whereNotNull('rating')
             ->get(['id', 'pitch_id', 'rating', 'created_at']);
             
-        \Log::debug('User: ' . $this->id . ' - Ratings found:', $ratings->toArray());
+        Log::debug('User: ' . $this->id . ' - Ratings found:', $ratings->toArray());
 
         if ($ratings->isEmpty()) {
-            \Log::debug('User: ' . $this->id . ' - No ratings found for completed pitches');
+            Log::debug('User: ' . $this->id . ' - No ratings found for completed pitches');
             return ['average' => null, 'count' => 0];
         }
 
         $average = $ratings->avg('rating');
         $count = $ratings->count();
 
-        \Log::debug('User: ' . $this->id . ' - Calculated ratings:', [
+        Log::debug('User: ' . $this->id . ' - Calculated ratings:', [
             'average' => $average,
             'count' => $count
         ]);
@@ -454,6 +475,117 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     public function isProPlan(): bool
     {
         return $this->subscription_plan === self::PLAN_PRO;
+    }
+
+    /**
+     * Check if user is on monthly billing
+     *
+     * @return bool
+     */
+    public function isMonthlyBilling(): bool
+    {
+        return $this->billing_period === self::BILLING_MONTHLY;
+    }
+
+    /**
+     * Check if user is on yearly billing
+     *
+     * @return bool
+     */
+    public function isYearlyBilling(): bool
+    {
+        return $this->billing_period === self::BILLING_YEARLY;
+    }
+
+    /**
+     * Get the subscription display name
+     *
+     * @return string
+     */
+    public function getSubscriptionDisplayName(): string
+    {
+        if ($this->isFreePlan()) {
+            return 'Free';
+        }
+
+        $planName = ucfirst($this->subscription_plan);
+        if ($this->subscription_tier !== 'basic') {
+            $planName .= ' ' . ucfirst($this->subscription_tier);
+        }
+
+        return $planName;
+    }
+
+    /**
+     * Get the billing period display name
+     *
+     * @return string
+     */
+    public function getBillingPeriodDisplayName(): string
+    {
+        $periods = config('subscription.billing_periods', []);
+        return $periods[$this->billing_period]['name'] ?? ucfirst($this->billing_period);
+    }
+
+    /**
+     * Get subscription price formatted for display
+     *
+     * @return string
+     */
+    public function getFormattedSubscriptionPrice(): string
+    {
+        if ($this->isFreePlan() || !$this->subscription_price) {
+            return 'Free';
+        }
+
+        $currency = $this->subscription_currency ?? 'USD';
+        $symbol = $currency === 'USD' ? '$' : $currency . ' ';
+        $price = number_format($this->subscription_price, 2);
+        $period = $this->isYearlyBilling() ? '/year' : '/month';
+
+        return $symbol . $price . $period;
+    }
+
+    /**
+     * Get yearly savings amount if on yearly plan
+     *
+     * @return float|null
+     */
+    public function getYearlySavings(): ?float
+    {
+        if (!$this->isYearlyBilling() || $this->isFreePlan()) {
+            return null;
+        }
+
+        $plans = config('subscription.plans', []);
+        $planKey = $this->subscription_plan === 'pro' ? 'pro_' . $this->subscription_tier : $this->subscription_plan;
+        
+        return $plans[$planKey]['yearly_savings'] ?? null;
+    }
+
+    /**
+     * Get next billing date
+     *
+     * @return \Carbon\Carbon|null
+     */
+    public function getNextBillingDate(): ?\Carbon\Carbon
+    {
+        if ($this->isFreePlan() || !$this->subscribed('default')) {
+            return null;
+        }
+
+        $subscription = $this->subscription('default');
+        if (!$subscription) {
+            return null;
+        }
+
+        try {
+            $stripeSubscription = $subscription->asStripeSubscription();
+            return $stripeSubscription->current_period_end ? 
+                \Carbon\Carbon::createFromTimestamp($stripeSubscription->current_period_end) : null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -576,8 +708,478 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
      */
     public function getProjectStorageLimit(): int
     {
+        // Use the new GB-based method instead of the legacy MB method
+        return $this->getProjectStorageCapacityBytes();
+    }
+
+    // ========== NEW ENHANCED SUBSCRIPTION METHODS ==========
+
+    /**
+     * Get project storage limit in GB for this user
+     *
+     * @return float
+     */
+    public function getStoragePerProjectGB(): float
+    {
         $limits = $this->getSubscriptionLimits();
-        return $limits ? $limits->storage_per_project_mb * 1024 * 1024 : Project::MAX_STORAGE_BYTES;
+        return $limits ? $limits->storage_per_project_gb : 1.0;
+    }
+
+    /**
+     * Get project storage limit in bytes (using GB field)
+     *
+     * @return int
+     */
+    public function getProjectStorageCapacityBytes(): int
+    {
+        $capacityGB = $this->getStoragePerProjectGB();
+        return (int) ($capacityGB * 1024 * 1024 * 1024); // Convert GB to bytes
+    }
+
+    /**
+     * Get platform commission rate for this user
+     *
+     * @return float
+     */
+    public function getPlatformCommissionRate(): float
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->platform_commission_rate : 10.0;
+    }
+
+    /**
+     * Get reputation multiplier for this user
+     *
+     * @return float
+     */
+    public function getReputationMultiplier(): float
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->reputation_multiplier : 1.0;
+    }
+
+    /**
+     * Check if user has client portal access
+     *
+     * @return bool
+     */
+    public function hasClientPortalAccess(): bool
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->has_client_portal : false;
+    }
+
+    /**
+     * Get user badge (emoji)
+     *
+     * @return string|null
+     */
+    public function getUserBadge(): ?string
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->user_badge : null;
+    }
+
+    /**
+     * Get analytics level for this user
+     *
+     * @return string
+     */
+    public function getAnalyticsLevel(): string
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->analytics_level : 'basic';
+    }
+
+    /**
+     * Get file retention days for this user
+     *
+     * @return int
+     */
+    public function getFileRetentionDays(): int
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->file_retention_days : 30;
+    }
+
+    /**
+     * Get monthly visibility boosts available
+     *
+     * @return int
+     */
+    public function getMonthlyVisibilityBoosts(): int
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->monthly_visibility_boosts : 0;
+    }
+
+    /**
+     * Get max private projects per month
+     *
+     * @return int|null
+     */
+    public function getMaxPrivateProjectsMonthly(): ?int
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->max_private_projects_monthly : 0;
+    }
+
+    /**
+     * Check if user has judge access for challenges
+     *
+     * @return bool
+     */
+    public function hasJudgeAccess(): bool
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->has_judge_access : false;
+    }
+
+    /**
+     * Get challenge early access hours
+     *
+     * @return int
+     */
+    public function getChallengeEarlyAccessHours(): int
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->challenge_early_access_hours : 0;
+    }
+
+    /**
+     * Get support SLA hours
+     *
+     * @return int|null
+     */
+    public function getSupportSlaHours(): ?int
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->support_sla_hours : null;
+    }
+
+    /**
+     * Get available support channels
+     *
+     * @return array
+     */
+    public function getSupportChannels(): array
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits && $limits->support_channels ? $limits->support_channels : ['forum'];
+    }
+
+    /**
+     * Get max license templates for this user
+     *
+     * @return int|null
+     */
+    public function getMaxLicenseTemplates(): ?int
+    {
+        $limits = $this->getSubscriptionLimits();
+        return $limits ? $limits->max_license_templates : 3;
+    }
+
+    /**
+     * Get all transactions for this user
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Get the license templates for this user
+     */
+    public function licenseTemplates()
+    {
+        return $this->hasMany(LicenseTemplate::class);
+    }
+
+    /**
+     * Get active license templates for this user
+     */
+    public function activeLicenseTemplates()
+    {
+        return $this->licenseTemplates()->active();
+    }
+
+    /**
+     * Get user's default license template
+     */
+    public function defaultLicenseTemplate()
+    {
+        return $this->licenseTemplates()->default()->first();
+    }
+
+    /**
+     * Get completed transactions for this user
+     */
+    public function completedTransactions()
+    {
+        return $this->transactions()->completed();
+    }
+
+    /**
+     * Get total earnings (net amount after commissions)
+     *
+     * @return float
+     */
+    public function getTotalEarnings(): float
+    {
+        return $this->completedTransactions()
+            ->payments()
+            ->sum('net_amount');
+    }
+
+    /**
+     * Get total commission paid to platform
+     *
+     * @return float
+     */
+    public function getTotalCommissionPaid(): float
+    {
+        return $this->completedTransactions()
+            ->payments()
+            ->sum('commission_amount');
+    }
+
+    /**
+     * Get commission savings compared to free plan rate
+     *
+     * @return float
+     */
+    public function getCommissionSavings(): float
+    {
+        $freeRate = 10.0; // Free plan commission rate
+        $currentRate = $this->getPlatformCommissionRate();
+        
+        if ($currentRate >= $freeRate) {
+            return 0; // No savings if rate is same or higher
+        }
+        
+        $totalRevenue = $this->completedTransactions()
+            ->payments()
+            ->sum('amount');
+            
+        $wouldPayAtFreeRate = $totalRevenue * ($freeRate / 100);
+        $actuallyPaid = $this->getTotalCommissionPaid();
+        
+        return $wouldPayAtFreeRate - $actuallyPaid;
+    }
+
+    /**
+     * Get all visibility boosts for this user
+     */
+    public function visibilityBoosts()
+    {
+        return $this->hasMany(VisibilityBoost::class);
+    }
+
+    /**
+     * Get active visibility boosts for this user
+     */
+    public function activeVisibilityBoosts()
+    {
+        return $this->visibilityBoosts()->active();
+    }
+
+    /**
+     * Get monthly limit tracking records for this user
+     */
+    public function monthlyLimits()
+    {
+        return $this->hasMany(UserMonthlyLimit::class);
+    }
+
+    /**
+     * Get current month's limit tracking
+     */
+    public function currentMonthLimits()
+    {
+        return $this->monthlyLimits()->currentMonth()->first() 
+            ?? UserMonthlyLimit::getOrCreateForUser($this);
+    }
+
+    /**
+     * Check if user can create a visibility boost
+     *
+     * @return bool
+     */
+    public function canCreateVisibilityBoost(): bool
+    {
+        return VisibilityBoost::canUserCreateBoost($this);
+    }
+
+    /**
+     * Get remaining visibility boosts for current month
+     *
+     * @return int
+     */
+    public function getRemainingVisibilityBoosts(): int
+    {
+        return VisibilityBoost::getRemainingBoosts($this);
+    }
+
+    /**
+     * Check if user can create a private project
+     *
+     * @return bool
+     */
+    public function canCreatePrivateProject(): bool
+    {
+        $monthlyLimit = $this->getMaxPrivateProjectsMonthly();
+        
+        // Unlimited for Pro Engineer
+        if ($monthlyLimit === null) {
+            return true;
+        }
+
+        // Not allowed for free users
+        if ($monthlyLimit === 0) {
+            return false;
+        }
+
+        // Check monthly usage
+        $currentMonth = now()->format('Y-m');
+        $usedThisMonth = $this->projects()
+            ->where('is_private', true)
+            ->where('privacy_month_year', $currentMonth)
+            ->count();
+
+        return $usedThisMonth < $monthlyLimit;
+    }
+
+    /**
+     * Get remaining private projects for current month
+     *
+     * @return int|null
+     */
+    public function getRemainingPrivateProjects(): ?int
+    {
+        $monthlyLimit = $this->getMaxPrivateProjectsMonthly();
+        
+        if ($monthlyLimit === null) {
+            return null; // Unlimited
+        }
+
+        $currentMonth = now()->format('Y-m');
+        $usedThisMonth = $this->projects()
+            ->where('is_private', true)
+            ->where('privacy_month_year', $currentMonth)
+            ->count();
+
+        return max(0, $monthlyLimit - $usedThisMonth);
+    }
+
+    /**
+     * Get user's private projects for current month
+     */
+    public function currentMonthPrivateProjects()
+    {
+        return $this->projects()->userPrivateCurrentMonth($this);
+    }
+
+    // ========== REPUTATION METHODS ==========
+
+    /**
+     * Get the user's current reputation score
+     *
+     * @param bool $useCache
+     * @return float
+     */
+    public function getReputation(bool $useCache = true): float
+    {
+        $reputationService = app(ReputationService::class);
+        return $reputationService->calculateUserReputation($this, $useCache);
+    }
+
+    /**
+     * Get reputation breakdown showing components and multiplier effect
+     *
+     * @return array
+     */
+    public function getReputationBreakdown(): array
+    {
+        $reputationService = app(ReputationService::class);
+        return $reputationService->getReputationBreakdown($this);
+    }
+
+    /**
+     * Get user's reputation tier information
+     *
+     * @return array
+     */
+    public function getReputationTier(): array
+    {
+        $reputation = $this->getReputation();
+        $reputationService = app(ReputationService::class);
+        return $reputationService->getReputationTier($reputation);
+    }
+
+    /**
+     * Get user's reputation rank among all users
+     *
+     * @return array
+     */
+    public function getReputationRank(): array
+    {
+        $reputationService = app(ReputationService::class);
+        return $reputationService->getUserRank($this);
+    }
+
+    /**
+     * Update reputation after significant events
+     *
+     * @param string $event
+     * @param array $context
+     * @return float
+     */
+    public function updateReputation(string $event, array $context = []): float
+    {
+        $reputationService = app(ReputationService::class);
+        return $reputationService->updateAfterEvent($this, $event, $context);
+    }
+
+    /**
+     * Clear reputation cache
+     *
+     * @return void
+     */
+    public function clearReputationCache(): void
+    {
+        $reputationService = app(ReputationService::class);
+        $reputationService->clearUserCache($this);
+    }
+
+    /**
+     * Get reputation with subscription multiplier breakdown
+     *
+     * @return array
+     */
+    public function getReputationWithMultiplier(): array
+    {
+        $breakdown = $this->getReputationBreakdown();
+        
+        return [
+            'base_reputation' => $breakdown['base_total'],
+            'multiplier' => $this->getReputationMultiplier(),
+            'multiplier_bonus' => $breakdown['multiplier_bonus'],
+            'final_reputation' => $breakdown['final_total'],
+            'subscription_benefit' => $this->getReputationMultiplier() > 1.0,
+            'tier' => $this->getReputationTier(),
+        ];
+    }
+
+    /**
+     * Compare reputation with another user
+     *
+     * @param User $otherUser
+     * @return array
+     */
+    public function compareReputationWith(User $otherUser): array
+    {
+        $reputationService = app(ReputationService::class);
+        return $reputationService->compareUsers($this, $otherUser);
     }
 
     // If the trait doesn't automatically provide the relationship,

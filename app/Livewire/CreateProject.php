@@ -81,9 +81,19 @@ class CreateProject extends Component
     public ?string $client_name = null;
     public $payment_amount = null; // Added for Client Management Payment
 
+    // License properties
+    public $selectedLicenseTemplateId = null;
+    public $requiresLicenseAgreement = true;
+    public $licenseNotes = '';
+    public $customLicenseTerms = [];
+
     protected $listeners = [
         'prizesUpdated' => 'handlePrizesUpdated',
-        'prizesSaved' => 'handlePrizesSaved'
+        'prizesSaved' => 'handlePrizesSaved',
+        // License listeners
+        'licenseTemplateSelected' => 'handleLicenseTemplateSelected',
+        'licenseRequirementChanged' => 'handleLicenseRequirementChanged',
+        'licenseNotesChanged' => 'handleLicenseNotesChanged',
     ];
 
     protected function rules(): array
@@ -544,6 +554,12 @@ class CreateProject extends Component
                 }
             }
 
+            // Populate license data for edit mode
+            $this->selectedLicenseTemplateId = $project->license_template_id;
+            $this->requiresLicenseAgreement = $project->requires_license_agreement ?? true;
+            $this->licenseNotes = $project->license_notes ?? '';
+            $this->customLicenseTerms = $project->custom_license_terms ?? [];
+
             // Correctly populate the form object
             $this->form->name = $project->name;
             $this->form->artistName = $project->artist_name;
@@ -647,24 +663,52 @@ class CreateProject extends Component
     // TODO: Refactor track handling
     public function updatedTrack()
     {
-        if ($this->track) {
-            // Validate here if needed before showing temporary URL
-            try {
-                 $this->validateOnly('track'); // Assuming ProjectForm has rules for 'track'
-        $this->audioUrl = $this->track->temporaryUrl();
-        $this->dispatch('audioUrlUpdated', $this->audioUrl);
-                 $this->deletePreviewTrack = false; // Don't delete existing if a new one is uploaded
-            } catch (\Illuminate\Validation\ValidationException $e) {
-                 $this->track = null;
-                 $this->audioUrl = $this->isEdit && $this->originalProject->hasPreviewTrack() ? $this->originalProject->previewTrackPath() : null;
-                 $this->dispatch('audioUrlUpdated', $this->audioUrl);
-                 // Display validation error
-                 Toaster::error($e->validator->errors()->first('track'));
-            }
-        } else {
-            // Handle case where track is deselected
-            $this->clearTrack();
+        $this->validate(['track' => 'file|mimes:mp3,wav,flac,aac,m4a,ogg|max:204800']); // 200MB max
+        
+        // Remove existing audio URL when new track is uploaded
+        $this->audioUrl = null;
+        
+        try {
+            // Store the track temporarily to generate a preview URL
+            $this->audioUrl = $this->track->temporaryUrl();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to process the uploaded track. Please try again.');
+            $this->track = null;
         }
+        
+        $this->initWaveSurfer = true;
+    }
+
+    // ========== LICENSE EVENT HANDLERS ==========
+
+    /**
+     * Handle license template selection
+     */
+    public function handleLicenseTemplateSelected($data)
+    {
+        $this->selectedLicenseTemplateId = $data['template_id'];
+        $this->requiresLicenseAgreement = $data['requires_agreement'];
+        $this->licenseNotes = $data['license_notes'];
+    }
+
+    /**
+     * Handle license requirement changes
+     */
+    public function handleLicenseRequirementChanged($data)
+    {
+        $this->selectedLicenseTemplateId = $data['template_id'];
+        $this->requiresLicenseAgreement = $data['requires_agreement'];
+        $this->licenseNotes = $data['license_notes'];
+    }
+
+    /**
+     * Handle license notes changes
+     */
+    public function handleLicenseNotesChanged($data)
+    {
+        $this->selectedLicenseTemplateId = $data['template_id'];
+        $this->requiresLicenseAgreement = $data['requires_agreement'];
+        $this->licenseNotes = $data['license_notes'];
     }
 
     /**
@@ -752,6 +796,14 @@ class CreateProject extends Component
                 
                 // Add payment_amount for Client Management (this gets passed to the ProjectObserver)
                 'payment_amount' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->payment_amount : null,
+                
+                // License fields
+                'license_template_id' => $this->selectedLicenseTemplateId,
+                'license_notes' => $this->licenseNotes,
+                'requires_license_agreement' => $this->requiresLicenseAgreement,
+                'license_status' => $this->requiresLicenseAgreement ? 'pending' : 'active',
+                'license_jurisdiction' => 'US', // Default jurisdiction
+                'custom_license_terms' => !empty($this->customLicenseTerms) ? $this->customLicenseTerms : null,
             ];
             
             // Add project_type_id by looking up the ProjectType
