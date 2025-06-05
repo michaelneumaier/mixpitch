@@ -8,6 +8,7 @@ use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookControll
 use App\Models\User;
 use App\Models\Pitch;
 use App\Models\Order;
+use App\Models\OrderEvent;
 use App\Models\Invoice;
 use App\Services\PitchWorkflowService;
 use App\Services\InvoiceService;

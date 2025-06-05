@@ -46,6 +46,10 @@
     <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-green-50/30">
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                
+                <!-- Include Subscription Overview -->
+                @include('billing.components.subscription-overview')
+                
                 <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-xl overflow-hidden">
                     <div class="p-6 sm:p-8">
                         @if (session('success'))

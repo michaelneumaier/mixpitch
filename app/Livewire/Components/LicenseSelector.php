@@ -79,6 +79,11 @@ class LicenseSelector extends Component
         return $query->take(3)->get();
     }
 
+    public function getCanUserCreateTemplatesProperty(): bool
+    {
+        return LicenseTemplate::canUserCreate(auth()->user());
+    }
+
     private function getUseCaseFromProjectType(): string
     {
         return match($this->projectType) {

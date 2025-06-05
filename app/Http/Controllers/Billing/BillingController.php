@@ -28,16 +28,49 @@ class BillingController extends Controller
             $user->createAsStripeCustomer();
         }
         
+        // Get subscription information
+        $isSubscribed = $user->subscribed('default');
+        $subscription = $isSubscribed ? $user->subscription('default') : null;
+        $onGracePeriod = $isSubscribed && $subscription->onGracePeriod();
+        
+        // Get subscription limits and usage
+        $limits = $user->getSubscriptionLimits();
+        $usage = [
+            'projects_count' => $user->projects()->count(),
+            'active_pitches_count' => $user->pitches()->whereIn('status', [
+                \App\Models\Pitch::STATUS_PENDING,
+                \App\Models\Pitch::STATUS_IN_PROGRESS,
+                \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+                \App\Models\Pitch::STATUS_PENDING_REVIEW,
+            ])->count(),
+            'monthly_pitches_used' => $user->monthly_pitch_count ?? 0,
+            'visibility_boosts_used' => $user->getRemainingVisibilityBoosts() ?? 0,
+            'private_projects_used' => $user->getRemainingPrivateProjects() ?? 0,
+            'license_templates_count' => $user->licenseTemplates()->count() ?? 0,
+        ];
+        
+        // Get billing summary
+        $billingSummary = [
+            'plan_name' => $user->getSubscriptionDisplayName(),
+            'billing_period' => $user->getBillingPeriodDisplayName(),
+            'formatted_price' => $user->getFormattedSubscriptionPrice(),
+            'yearly_savings' => $user->getYearlySavings(),
+            'next_billing_date' => $user->getNextBillingDate(),
+            'total_earnings' => $user->getTotalEarnings(),
+            'commission_savings' => $user->getCommissionSavings(),
+            'commission_rate' => $user->getPlatformCommissionRate(),
+        ];
+        
         // Fetch invoices directly from Stripe for more accurate data
         try {
             $stripe = new \Stripe\StripeClient(config('cashier.secret'));
             $stripeInvoices = $stripe->invoices->all([
                 'customer' => $user->stripe_id,
-                'limit' => 5, // Show only 5 most recent invoices
+                'limit' => 10, // Show more invoices for better history
             ]);
             
             // Also get Cashier invoices for data we might need from there
-            $cashierInvoices = $user->invoices()->take(5);
+            $cashierInvoices = $user->invoices()->take(10);
             
             // Map Stripe invoices to a format we can use in the view
             $invoices = collect($stripeInvoices->data)->map(function($stripeInvoice) use ($cashierInvoices) {
@@ -51,7 +84,10 @@ class BillingController extends Controller
                     'number' => $stripeInvoice->number,
                     'date' => \Carbon\Carbon::createFromTimestamp($stripeInvoice->created),
                     'total' => $stripeInvoice->total,
+                    'amount_paid' => $stripeInvoice->amount_paid,
+                    'status' => $stripeInvoice->status,
                     'paid' => $stripeInvoice->status === 'paid',
+                    'description' => $stripeInvoice->description,
                     'stripe_invoice' => $stripeInvoice,
                     'cashier_invoice' => $cashierInvoice
                 ];
@@ -63,7 +99,7 @@ class BillingController extends Controller
             ]);
             
             // Fall back to Cashier invoices if there's an error
-            $invoices = $user->invoices()->take(5);
+            $invoices = $user->invoices()->take(10);
         }
         
         // Check if user has payment method
@@ -76,6 +112,12 @@ class BillingController extends Controller
             'hasPaymentMethod' => $hasPaymentMethod,
             'paymentMethod' => $paymentMethod,
             'intent' => $user->createSetupIntent(),
+            'isSubscribed' => $isSubscribed,
+            'subscription' => $subscription,
+            'onGracePeriod' => $onGracePeriod,
+            'limits' => $limits,
+            'usage' => $usage,
+            'billingSummary' => $billingSummary,
         ]);
     }
 
