@@ -378,6 +378,12 @@ Route::get('/debug/subscription/{user}', function(\App\Models\User $user) {
     ];
 })->middleware('auth');
 
+// Test route to verify webhook endpoint accessibility (remove in production)
+Route::post('/debug/webhook-test', function() {
+    \Log::info('Webhook test endpoint reached successfully');
+    return response()->json(['status' => 'success', 'message' => 'Webhook endpoint is accessible']);
+});
+
 // Social Authentication Routes
 Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialiteController::class, 'redirect'])->name('socialite.redirect');
 Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteController::class, 'callback'])->name('socialite.callback');
