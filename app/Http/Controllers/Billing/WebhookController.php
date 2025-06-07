@@ -220,12 +220,37 @@ class WebhookController extends CashierWebhookController
             if ($customerId && $priceId) {
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
+                    // Create the subscription record if it doesn't exist
+                    $existingSubscription = $user->subscriptions()
+                        ->where('stripe_id', $subscription['id'])
+                        ->first();
+                        
+                    if (!$existingSubscription) {
+                        $user->subscriptions()->create([
+                            'name' => 'default',
+                            'stripe_id' => $subscription['id'],
+                            'stripe_status' => $subscription['status'],
+                            'stripe_price' => $priceId,
+                            'quantity' => $subscription['items']['data'][0]['quantity'] ?? 1,
+                            'trial_ends_at' => $subscription['trial_end'] ? \Carbon\Carbon::createFromTimestamp($subscription['trial_end']) : null,
+                            'ends_at' => null,
+                        ]);
+                        
+                        Log::info('Created subscription record from webhook', [
+                            'user_id' => $user->id,
+                            'subscription_id' => $subscription['id'],
+                            'price_id' => $priceId
+                        ]);
+                    }
+                    
                     $this->updateUserSubscriptionStatus($user, 'active', $priceId);
                     
                     // Send upgrade notification
                     $priceMapping = [
-                        config('subscription.stripe_prices.pro_artist') => ['plan' => 'pro', 'tier' => 'artist'],
-                        config('subscription.stripe_prices.pro_engineer') => ['plan' => 'pro', 'tier' => 'engineer'],
+                        config('subscription.stripe_prices.pro_artist_monthly') => ['plan' => 'pro', 'tier' => 'artist'],
+                        config('subscription.stripe_prices.pro_engineer_monthly') => ['plan' => 'pro', 'tier' => 'engineer'],
+                        config('subscription.stripe_prices.pro_artist_yearly') => ['plan' => 'pro', 'tier' => 'artist'],
+                        config('subscription.stripe_prices.pro_engineer_yearly') => ['plan' => 'pro', 'tier' => 'engineer'],
                     ];
                     
                     if (isset($priceMapping[$priceId])) {

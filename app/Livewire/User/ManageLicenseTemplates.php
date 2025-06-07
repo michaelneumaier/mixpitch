@@ -15,8 +15,8 @@ class ManageLicenseTemplates extends Component
     public $showCreateModal = false;
     public $showPreviewModal = false;
     public $showDeleteModal = false;
-    public $previewTemplate = null;
-    public $deleteTemplate = null;
+    public $currentPreviewTemplate = null;
+    public $templateToDelete = null;
     
     // Form fields for creating/editing templates
     public $name = '';
@@ -28,8 +28,21 @@ class ManageLicenseTemplates extends Component
     public $industry_tags = [];
     
     // Marketplace interaction
-    public $marketplaceTemplates = null;
+    public $marketplaceTemplates;
     public $showMarketplace = false;
+    
+    // Publishing to marketplace
+    public $showPublishModal = false;
+    public $templateToPublish = null;
+    public $marketplaceTitle = '';
+    public $marketplaceDescription = '';
+    public $submissionNotes = '';
+    
+    // Enhanced marketplace filtering
+    public $searchTerm = '';
+    public $filterCategory = '';
+    public $filterUseCase = '';
+    public $sortBy = 'popular';
     
     protected $rules = [
         'name' => 'required|string|max:100',
@@ -39,12 +52,18 @@ class ManageLicenseTemplates extends Component
         'use_case' => 'required|in:collaboration,sync,samples,remix,commercial',
         'terms' => 'array',
         'industry_tags' => 'array',
+        // Marketplace publishing validation
+        'marketplaceTitle' => 'required|string|max:150',
+        'marketplaceDescription' => 'required|string|max:1000',
+        'submissionNotes' => 'nullable|string|max:500',
     ];
     
     public function mount()
     {
         $this->resetForm();
         $this->initializeDefaultTerms();
+        // Initialize as empty collection
+        $this->marketplaceTemplates = collect();
     }
     
     public function getUserTemplatesProperty(): Collection
@@ -56,14 +75,7 @@ class ManageLicenseTemplates extends Component
             ->get();
     }
     
-    public function getMarketplaceTemplatesProperty(): Collection
-    {
-        return LicenseTemplate::marketplace()
-            ->where('user_id', '!=', auth()->id()) // Exclude own templates
-            ->orderByUsage()
-            ->take(20)
-            ->get();
-    }
+
     
     public function getCategoriesProperty(): array
     {
@@ -191,41 +203,134 @@ class ManageLicenseTemplates extends Component
     
     public function confirmDelete($templateId)
     {
-        $this->deleteTemplate = auth()->user()->licenseTemplates()->findOrFail($templateId);
+        $this->templateToDelete = auth()->user()->licenseTemplates()->findOrFail($templateId);
         $this->showDeleteModal = true;
     }
     
     public function deleteTemplate()
     {
         try {
-            if ($this->deleteTemplate) {
-                $this->deleteTemplate->delete();
+            if ($this->templateToDelete) {
+                $this->templateToDelete->delete();
                 Toaster::success('License template deleted successfully!');
                 $this->showDeleteModal = false;
-                $this->deleteTemplate = null;
+                $this->templateToDelete = null;
             }
         } catch (\Exception $e) {
             Toaster::error('Error deleting template: ' . $e->getMessage());
         }
     }
     
-    // Marketplace Actions
-    public function showMarketplace()
+        // Marketplace Actions
+    public function openMarketplace()
     {
-        $this->showMarketplace = true;
+        try {
+            \Log::info('Opening marketplace - loading templates now');
+            
+            // Set filters to default
+            $this->searchTerm = '';
+            $this->filterCategory = '';
+            $this->filterUseCase = '';
+            $this->sortBy = 'popular';
+            
+            // Load marketplace templates directly
+            $this->marketplaceTemplates = LicenseTemplate::marketplace()
+                ->where('user_id', '!=', auth()->id())
+                ->with('user')
+                ->orderByPopularity()
+                ->take(24)
+                ->get();
+            
+            \Log::info('Templates loaded directly', [
+                'count' => $this->marketplaceTemplates->count(),
+                'template_ids' => $this->marketplaceTemplates->pluck('id')->toArray()
+            ]);
+            
+            // Now show the marketplace
+            $this->showMarketplace = true;
+            
+        } catch (\Exception $e) {
+            \Log::error('Error opening marketplace: ' . $e->getMessage());
+            Toaster::error('Error opening marketplace. Please try again.');
+        }
     }
     
-    public function hideMarketplace()
+
+
+    public function closeMarketplace()
     {
         $this->showMarketplace = false;
+    }
+    
+    public function openPublishModal($templateId)
+    {
+        $template = auth()->user()->licenseTemplates()->findOrFail($templateId);
+        
+        if (!$template->canBePublishedToMarketplace()) {
+            Toaster::error('This template cannot be published to the marketplace.');
+            return;
+        }
+        
+        $this->templateToPublish = $template;
+        $this->marketplaceTitle = $template->name;
+        $this->marketplaceDescription = $template->description ?? '';
+        $this->submissionNotes = '';
+        $this->showPublishModal = true;
+    }
+    
+    public function publishToMarketplace()
+    {
+        $this->validate([
+            'marketplaceTitle' => 'required|string|max:150',
+            'marketplaceDescription' => 'required|string|max:1000',
+            'submissionNotes' => 'nullable|string|max:500',
+        ]);
+        
+        try {
+            $this->templateToPublish->submitToMarketplace([
+                'marketplace_title' => $this->marketplaceTitle,
+                'marketplace_description' => $this->marketplaceDescription,
+                'submission_notes' => $this->submissionNotes,
+            ]);
+            
+            Toaster::success('Template submitted to marketplace for approval!');
+            $this->closePublishModal();
+            
+        } catch (\Exception $e) {
+            Toaster::error('Error submitting template: ' . $e->getMessage());
+        }
+    }
+    
+    public function closePublishModal()
+    {
+        $this->showPublishModal = false;
+        $this->templateToPublish = null;
+        $this->marketplaceTitle = '';
+        $this->marketplaceDescription = '';
+        $this->submissionNotes = '';
+        $this->resetValidation(['marketplaceTitle', 'marketplaceDescription', 'submissionNotes']);
+    }
+    
+    public function clearMarketplaceFilters()
+    {
+        $this->searchTerm = '';
+        $this->filterCategory = '';
+        $this->filterUseCase = '';
+        $this->sortBy = 'popular';
+        // For now, just reload all templates - we can add filtering later
+        if ($this->showMarketplace) {
+            $this->openMarketplace();
+        }
     }
     
     public function previewTemplate($templateId, $isMarketplace = false)
     {
         if ($isMarketplace) {
-            $this->previewTemplate = LicenseTemplate::marketplace()->findOrFail($templateId);
+            $this->currentPreviewTemplate = LicenseTemplate::marketplace()->findOrFail($templateId);
+            // Track view for marketplace templates
+            $this->currentPreviewTemplate->incrementViewCount();
         } else {
-            $this->previewTemplate = auth()->user()->licenseTemplates()->findOrFail($templateId);
+            $this->currentPreviewTemplate = auth()->user()->licenseTemplates()->findOrFail($templateId);
         }
         
         $this->showPreviewModal = true;
@@ -243,7 +348,8 @@ class ManageLicenseTemplates extends Component
             $forkedTemplate = $sourceTemplate->createFork(auth()->user());
             
             Toaster::success('Template forked to your collection!');
-            $this->hideMarketplace();
+            $this->closeMarketplace();
+            $this->closePreview(); // Also close the preview modal
             
         } catch (\Exception $e) {
             Toaster::error('Error forking template: ' . $e->getMessage());
@@ -256,13 +362,15 @@ class ManageLicenseTemplates extends Component
         $this->showCreateModal = false;
         $this->showPreviewModal = false;
         $this->showDeleteModal = false;
+        $this->showPublishModal = false;
+        $this->showMarketplace = false;
         $this->resetForm();
     }
     
     public function closePreview()
     {
         $this->showPreviewModal = false;
-        $this->previewTemplate = null;
+        $this->currentPreviewTemplate = null;
     }
     
     private function resetForm()
@@ -274,6 +382,13 @@ class ManageLicenseTemplates extends Component
         $this->category = 'general';
         $this->use_case = 'collaboration';
         $this->industry_tags = [];
+        
+        // Initialize marketplace filter properties
+        $this->searchTerm = '';
+        $this->filterCategory = '';
+        $this->filterUseCase = '';
+        $this->sortBy = 'popular';
+        
         $this->initializeDefaultTerms();
     }
     
@@ -294,13 +409,24 @@ class ManageLicenseTemplates extends Component
     
     public function render()
     {
+        \Log::info('Simple render', [
+            'showMarketplace' => $this->showMarketplace,
+            'marketplaceTemplates_count' => $this->marketplaceTemplates ? $this->marketplaceTemplates->count() : 'null'
+        ]);
+        
         return view('livewire.user.manage-license-templates', [
             'userTemplates' => $this->userTemplates,
-            'marketplaceTemplates' => $this->showMarketplace ? $this->marketplaceTemplates : collect(),
+            'marketplaceTemplates' => $this->marketplaceTemplates ?? collect(),
             'categories' => $this->categories,
             'useCases' => $this->useCases,
             'canCreateMore' => $this->canCreateMore,
             'remainingTemplates' => $this->remainingTemplates,
+            'sortOptions' => [
+                'popular' => 'Most Popular',
+                'newest' => 'Newest',
+                'views' => 'Most Viewed',
+                'alphabetical' => 'Alphabetical'
+            ],
         ]);
     }
 } 

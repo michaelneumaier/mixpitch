@@ -23,13 +23,11 @@ class LicenseController extends Controller
                 ], 403);
             }
 
-            // Get the rendered license content
-            $content = $license->getRenderedContent([
-                'project_name' => '[Project Name]',
-                'collaborator_name' => '[Your Name]',
-                'project_owner' => $license->user ? $license->user->name : '[Project Owner]',
-                'date' => now()->format('F j, Y'),
-            ]);
+            // Get the rendered license content and properly format it
+            $content = $license->generateLicenseContent();
+            
+            // Convert newlines to HTML breaks and escape content properly
+            $formattedContent = nl2br(e($content));
 
             return response()->json([
                 'success' => true,
@@ -38,8 +36,8 @@ class LicenseController extends Controller
                     'name' => $license->name,
                     'description' => $license->description,
                     'category' => $license->category,
-                    'content' => $content,
-                    'license_terms' => $license->license_terms,
+                    'content' => $formattedContent,
+                    'license_terms' => $license->terms,
                 ]
             ]);
         } catch (\Exception $e) {
@@ -66,8 +64,13 @@ class LicenseController extends Controller
             return true;
         }
 
-        // User can access marketplace/system licenses
-        if ($license->is_marketplace || $license->user_id === null) {
+        // User can access system templates
+        if ($license->is_system_template || $license->user_id === null) {
+            return true;
+        }
+        
+        // User can access marketplace licenses
+        if (isset($license->is_marketplace) && $license->is_marketplace) {
             return true;
         }
 

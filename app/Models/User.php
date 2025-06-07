@@ -1185,6 +1185,53 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         return $reputationService->compareUsers($this, $otherUser);
     }
 
+    // ========== SUBSCRIPTION METHODS (CUSTOM) ==========
+
+    /**
+     * Custom subscription check that works correctly
+     * This is a workaround for Laravel Cashier's subscribed() method issue
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function hasActiveSubscription(string $name = 'default'): bool
+    {
+        $subscription = $this->subscriptions()
+            ->where('name', $name)
+            ->where('stripe_status', 'active')
+            ->whereNull('ends_at')
+            ->first();
+
+        return $subscription && $subscription->valid();
+    }
+
+    /**
+     * Get active subscription by name
+     *
+     * @param string $name
+     * @return \Laravel\Cashier\Subscription|null
+     */
+    public function getActiveSubscription(string $name = 'default')
+    {
+        return $this->subscriptions()
+            ->where('name', $name)
+            ->where('stripe_status', 'active')
+            ->whereNull('ends_at')
+            ->first();
+    }
+
+    /**
+     * Check if user is actually subscribed (using our working method)
+     * This overrides the problematic Laravel Cashier method
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function isSubscribedTo(string $name = 'default'): bool
+    {
+        return $this->hasActiveSubscription($name);
+    }
+
     // If the trait doesn't automatically provide the relationship,
     // you might need to explicitly define it (uncomment if needed):
     // public function roles(): BelongsToMany

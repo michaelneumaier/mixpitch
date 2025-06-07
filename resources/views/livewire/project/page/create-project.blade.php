@@ -441,7 +441,7 @@
                                 </div>
 
                                 <!-- License Configuration Section -->
-                                <div class="bg-gradient-to-br from-white/90 to-indigo-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-6 shadow-lg mb-6">
+                                <div id="license-section" class="bg-gradient-to-br from-white/90 to-indigo-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-6 shadow-lg mb-6">
                                     <div class="flex items-center mb-6">
                                         <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mr-4">
                                             <i class="fas fa-file-contract text-white"></i>
@@ -1020,12 +1020,14 @@
                                     </div>
 
                                     <!-- License Selector Component -->
-                                    @livewire('components.license-selector', [
-                                        'projectType' => $form->projectType,
-                                        'selectedTemplateId' => $selectedLicenseTemplateId,
-                                        'requiresAgreement' => $requiresLicenseAgreement,
-                                        'licenseNotes' => $licenseNotes
-                                    ], key('license-selector-edit-' . ($project->id ?? 'new')))
+                                    <div id="license-section">
+                                        @livewire('components.license-selector', [
+                                            'projectType' => $form->projectType,
+                                            'selectedTemplateId' => $selectedLicenseTemplateId,
+                                            'requiresAgreement' => $requiresLicenseAgreement,
+                                            'licenseNotes' => $licenseNotes
+                                        ], key('license-selector-edit-' . ($project->id ?? 'new')))
+                                    </div>
                                 </div>
 
                                 <!-- Enhanced Additional Notes -->
@@ -1088,3 +1090,29 @@
         @endif
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle URL fragment scrolling for license section
+    function scrollToLicenseSection() {
+        const hash = window.location.hash;
+        if (hash === '#license') {
+            const licenseSection = document.getElementById('license-section');
+            if (licenseSection) {
+                setTimeout(() => {
+                    licenseSection.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }, 100);
+            }
+        }
+    }
+    
+    // Scroll on page load
+    scrollToLicenseSection();
+    
+    // Scroll when hash changes
+    window.addEventListener('hashchange', scrollToLicenseSection);
+});
+</script>

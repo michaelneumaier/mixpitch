@@ -220,7 +220,7 @@
             <!-- License Actions -->
             <div class="flex flex-wrap gap-3">
                 @if($licenseTemplate)
-                    <button onclick="viewLicenseModal('{{ $licenseTemplate->id }}')" 
+                    <button onclick="viewLicenseModal()" 
                             class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
                         <i class="fas fa-eye mr-2"></i>
                         View License
@@ -262,28 +262,47 @@
 </div>
 
 <!-- License Preview Modal -->
-<div id="licensePreviewModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+<div id="licensePreviewModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" 
+     aria-labelledby="modal-title" role="dialog" aria-modal="true" 
+     style="z-index: 9999;">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <!-- Background overlay -->
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeLicenseModal()"></div>
-
+        
+        <!-- Spacer element to center modal -->
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
         <!-- Modal panel -->
-        <div class="inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full sm:p-6">
-            <div class="sm:flex sm:items-start">
-                <div class="w-full mt-3 text-center sm:mt-0 sm:text-left">
-                    <h3 class="text-lg leading-6 font-bold text-gray-900 mb-4" id="modal-title">
-                        License Agreement
-                    </h3>
-                    <div class="mt-2">
-                        <div id="license-content" class="text-sm text-gray-700 max-h-96 overflow-y-auto">
-                            <!-- License content will be loaded here -->
-                        </div>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-lg font-medium text-gray-900" id="modal-title">License Agreement</h3>
+                    <button type="button" onclick="closeLicenseModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                @if($licenseTemplate)
+                    <div class="mb-4">
+                        <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{{ $licenseTemplate->category_name ?? 'License' }}</span>
+                        @if($licenseTemplate->use_case)
+                            <span class="inline-block bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full ml-1">{{ $licenseTemplate->use_case_name }}</span>
+                        @endif
+                    </div>
+                @endif
+                
+                <div class="max-h-96 overflow-y-auto">
+                    <div id="license-content" class="text-sm text-gray-700 whitespace-pre-line border rounded-lg p-4 bg-gray-50">
+                        <!-- License content will be loaded here -->
                     </div>
                 </div>
             </div>
-            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+            
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button type="button" onclick="closeLicenseModal()" 
-                        class="w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm">
+                        class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
                     Close
                 </button>
             </div>
@@ -292,30 +311,23 @@
 </div>
 
 <script>
-function viewLicenseModal(licenseId) {
+// Pre-render license content server-side for security
+const licenseData = @json([
+    'name' => $licenseTemplate ? $licenseTemplate->name : 'License Agreement',
+    'content' => $licenseTemplate ? nl2br(e($licenseTemplate->generateLicenseContent())) : 'No license content available.'
+]);
+
+function viewLicenseModal() {
     const modal = document.getElementById('licensePreviewModal');
     const content = document.getElementById('license-content');
     const title = document.getElementById('modal-title');
     
-    // Show loading state
-    content.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-500 mt-2">Loading license...</p></div>';
-    modal.classList.remove('hidden');
+    // Set content from pre-rendered data
+    title.textContent = licenseData.name;
+    content.innerHTML = licenseData.content;
     
-    // Fetch license content
-    fetch(`/api/licenses/${licenseId}/preview`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                title.textContent = data.license.name;
-                content.innerHTML = data.license.content || '<p class="text-gray-500">No license content available.</p>';
-            } else {
-                content.innerHTML = '<p class="text-red-500">Error loading license content.</p>';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            content.innerHTML = '<p class="text-red-500">Error loading license content.</p>';
-        });
+    // Show modal
+    modal.classList.remove('hidden');
 }
 
 function closeLicenseModal() {

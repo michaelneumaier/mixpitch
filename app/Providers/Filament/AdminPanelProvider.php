@@ -36,6 +36,7 @@ use App\Filament\Resources\EmailEventResource;
 use App\Filament\Resources\EmailSuppressionResource;
 use App\Filament\Resources\EmailTestResource;
 use App\Filament\Resources\EmailAuditResource;
+use App\Filament\Resources\MarketplaceTemplateResource;
 use App\Filament\Pages\EmailAuditPage;
 use App\Filament\Pages\EmailSuppressionPage;
 use App\Filament\Plugins\BillingPlugin;
@@ -121,6 +122,7 @@ class AdminPanelProvider extends PanelProvider
                 EmailEventResource::class,
                 EmailSuppressionResource::class,
                 EmailTestResource::class,
+                MarketplaceTemplateResource::class,
             ])
             ->pages([
                 Dashboard::class,

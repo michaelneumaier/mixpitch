@@ -54,6 +54,15 @@ class LicenseTemplate extends Model
         'approval_status',
         'approved_by',
         'approved_at',
+        // Marketplace publishing fields
+        'marketplace_title',
+        'marketplace_description',
+        'submission_notes',
+        'submitted_for_approval_at',
+        'rejection_reason',
+        'marketplace_featured',
+        'view_count',
+        'fork_count',
     ];
 
     protected $casts = [
@@ -69,6 +78,8 @@ class LicenseTemplate extends Model
         'average_project_value' => 'decimal:2',
         'usage_analytics' => 'array',
         'approved_at' => 'datetime',
+        'submitted_for_approval_at' => 'datetime',
+        'marketplace_featured' => 'boolean',
     ];
 
     // ========== RELATIONSHIPS ==========
@@ -354,6 +365,9 @@ class LicenseTemplate extends Model
      */
     public function createFork(User $user, array $overrides = []): self
     {
+        // Increment fork count
+        $this->increment('fork_count');
+        
         return self::create(array_merge([
             'user_id' => $user->id,
             'name' => $this->name . ' (Fork)',
@@ -368,6 +382,111 @@ class LicenseTemplate extends Model
             'is_active' => true,
             'usage_stats' => ['created' => now()->toISOString(), 'times_used' => 0, 'forked_from' => $this->id],
         ], $overrides));
+    }
+
+    /**
+     * Submit template to marketplace for approval
+     */
+    public function submitToMarketplace(array $marketplaceData): void
+    {
+        $this->update([
+            'marketplace_title' => $marketplaceData['marketplace_title'] ?? $this->name,
+            'marketplace_description' => $marketplaceData['marketplace_description'] ?? $this->description,
+            'submission_notes' => $marketplaceData['submission_notes'] ?? null,
+            'approval_status' => 'pending',
+            'submitted_for_approval_at' => now(),
+        ]);
+    }
+
+    /**
+     * Approve template for marketplace
+     */
+    public function approveForMarketplace(User $approver): void
+    {
+        $this->update([
+            'approval_status' => 'approved',
+            'is_public' => true,
+            'approved_by' => $approver->id,
+            'approved_at' => now(),
+            'rejection_reason' => null,
+        ]);
+    }
+
+    /**
+     * Reject template from marketplace
+     */
+    public function rejectFromMarketplace(User $rejector, string $reason): void
+    {
+        $this->update([
+            'approval_status' => 'rejected',
+            'is_public' => false,
+            'approved_by' => $rejector->id,
+            'approved_at' => now(),
+            'rejection_reason' => $reason,
+        ]);
+    }
+
+    /**
+     * Increment view count
+     */
+    public function incrementViewCount(): void
+    {
+        $this->increment('view_count');
+    }
+
+    /**
+     * Check if template is pending approval
+     */
+    public function isPendingApproval(): bool
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    /**
+     * Check if template is rejected
+     */
+    public function isRejected(): bool
+    {
+        return $this->approval_status === 'rejected';
+    }
+
+    /**
+     * Check if template can be published to marketplace
+     */
+    public function canBePublishedToMarketplace(): bool
+    {
+        // Cannot publish if already public or pending
+        if ($this->is_public || $this->isPendingApproval()) {
+            return false;
+        }
+
+        // Cannot publish system templates
+        if ($this->is_system_template) {
+            return false;
+        }
+
+        // Must have valid content
+        if (empty($this->content) || strlen($this->content) < 50) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get marketplace display title
+     */
+    public function getMarketplaceTitleDisplayAttribute(): string
+    {
+        return $this->marketplace_title ?: $this->name;
+    }
+
+    /**
+     * Get marketplace display description
+     */
+    public function getMarketplaceDescriptionDisplayAttribute(): string
+    {
+        return $this->marketplace_description ?: $this->description;
     }
 
     /**
@@ -458,5 +577,58 @@ class LicenseTemplate extends Model
         return $query->where('is_public', true)
                      ->where('approval_status', 'approved')
                      ->where('is_active', true);
+    }
+
+    /**
+     * Scope for pending approval templates
+     */
+    public function scopePendingApproval($query)
+    {
+        return $query->where('approval_status', 'pending');
+    }
+
+    /**
+     * Scope for rejected templates
+     */
+    public function scopeRejected($query)
+    {
+        return $query->where('approval_status', 'rejected');
+    }
+
+    /**
+     * Scope for featured marketplace templates
+     */
+    public function scopeFeatured($query)
+    {
+        return $query->where('marketplace_featured', true);
+    }
+
+    /**
+     * Scope ordered by popularity (fork count)
+     */
+    public function scopeOrderByPopularity($query, string $direction = 'desc')
+    {
+        return $query->orderBy('fork_count', $direction);
+    }
+
+    /**
+     * Scope ordered by views
+     */
+    public function scopeOrderByViews($query, string $direction = 'desc')
+    {
+        return $query->orderBy('view_count', $direction);
+    }
+
+    /**
+     * Scope for search by title or description
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'LIKE', "%{$search}%")
+              ->orWhere('marketplace_title', 'LIKE', "%{$search}%")
+              ->orWhere('description', 'LIKE', "%{$search}%")
+              ->orWhere('marketplace_description', 'LIKE', "%{$search}%");
+        });
     }
 }

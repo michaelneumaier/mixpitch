@@ -106,6 +106,107 @@
                             </p>
                         </div>
                     </div>
+
+                    @php
+                        $licenseTemplate = $project->license_template_id ? $project->licenseTemplate : null;
+                        $requiresAgreement = $project->requires_license_agreement ?? false;
+                        $hasLicenseNotes = !empty($project->license_notes);
+                    @endphp
+
+                    @if($licenseTemplate || $requiresAgreement || $hasLicenseNotes)
+                        <!-- Project License Section -->
+                        <div class="bg-gradient-to-br from-emerald-50/90 to-teal-50/90 backdrop-blur-sm border border-emerald-200/50 rounded-2xl p-6 shadow-lg mt-6">
+                            <div class="flex items-center mb-4">
+                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl mr-3">
+                                    <i class="fas fa-file-contract text-white"></i>
+                                </div>
+                                <h5 class="text-lg font-bold text-emerald-800">Project License Terms</h5>
+                            </div>
+
+                            @if($licenseTemplate)
+                                <div class="mb-4">
+                                    <div class="bg-white/60 rounded-lg p-4 border border-emerald-200/30">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div class="flex-1">
+                                                <h6 class="font-semibold text-emerald-900 mb-1">{{ $licenseTemplate->name }}</h6>
+                                                @if($licenseTemplate->description)
+                                                    <p class="text-emerald-800 text-sm">{{ $licenseTemplate->description }}</p>
+                                                @endif
+                                            </div>
+                                            @if($licenseTemplate->category)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800 ml-3">
+                                                    {{ ucwords(str_replace('_', ' ', $licenseTemplate->category)) }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        
+                                        @if($licenseTemplate->terms)
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                                @if($licenseTemplate->terms['commercial_use'] ?? false)
+                                                    <div class="flex items-center text-emerald-700">
+                                                        <i class="fas fa-check-circle text-emerald-600 mr-2"></i>
+                                                        Commercial Use Allowed
+                                                    </div>
+                                                @endif
+                                                @if($licenseTemplate->terms['attribution_required'] ?? false)
+                                                    <div class="flex items-center text-emerald-700">
+                                                        <i class="fas fa-user-tag text-emerald-600 mr-2"></i>
+                                                        Attribution Required
+                                                    </div>
+                                                @endif
+                                                @if($licenseTemplate->terms['modification_allowed'] ?? false)
+                                                    <div class="flex items-center text-emerald-700">
+                                                        <i class="fas fa-edit text-emerald-600 mr-2"></i>
+                                                        Modification Allowed
+                                                    </div>
+                                                @endif
+                                                @if($licenseTemplate->terms['exclusive_rights'] ?? false)
+                                                    <div class="flex items-center text-emerald-700">
+                                                        <i class="fas fa-crown text-emerald-600 mr-2"></i>
+                                                        Exclusive Rights
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endif
+                                        
+                                        <div class="mt-3 pt-3 border-t border-emerald-200/30">
+                                            <button type="button" onclick="openProjectLicenseModal()" 
+                                                    class="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center">
+                                                <i class="fas fa-eye mr-1"></i>
+                                                View Full License Terms
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if($requiresAgreement)
+                                <div class="bg-amber-50/60 rounded-lg p-4 border border-amber-200/30 mb-4">
+                                    <div class="flex items-start">
+                                        <i class="fas fa-file-signature text-amber-600 mr-3 mt-1"></i>
+                                        <div>
+                                            <h6 class="font-semibold text-amber-900 mb-1">License Agreement Required</h6>
+                                            <p class="text-amber-800 text-sm">
+                                                If your pitch is selected, you'll be required to sign the project license agreement before work begins.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if($hasLicenseNotes)
+                                <div class="bg-blue-50/60 rounded-lg p-4 border border-blue-200/30">
+                                    <div class="flex items-start">
+                                        <i class="fas fa-sticky-note text-blue-600 mr-3 mt-1"></i>
+                                        <div>
+                                            <h6 class="font-semibold text-blue-900 mb-1">Additional License Notes</h6>
+                                            <p class="text-blue-800 text-sm whitespace-pre-wrap">{{ $project->license_notes }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Agreement Form -->
@@ -150,6 +251,55 @@
         </div>
     </div>
 </div>
+
+@if($project->license_template_id && $project->licenseTemplate)
+<!-- Project License Preview Modal -->
+<div id="project-license-modal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" 
+     aria-labelledby="license-modal-title" role="dialog" aria-modal="true" 
+     style="z-index: 10000;">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeProjectLicenseModal()"></div>
+        
+        <!-- Spacer element to center modal -->
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
+        <!-- Modal panel -->
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-lg font-medium text-gray-900" id="license-modal-title">{{ $project->licenseTemplate->name }}</h3>
+                    <button type="button" onclick="closeProjectLicenseModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="mb-4">
+                    <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{{ $project->licenseTemplate->category_name ?? 'License' }}</span>
+                    @if($project->licenseTemplate->use_case)
+                        <span class="inline-block bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full ml-1">{{ $project->licenseTemplate->use_case_name }}</span>
+                    @endif
+                </div>
+                
+                <div class="max-h-96 overflow-y-auto">
+                    <div class="text-sm text-gray-700 whitespace-pre-line border rounded-lg p-4 bg-gray-50">
+                        {!! nl2br(e($project->licenseTemplate->generateLicenseContent())) !!}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="closeProjectLicenseModal()" 
+                        class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 <script>
     // Make sure scripts only load once
@@ -246,6 +396,23 @@
                 modalContent.style.opacity = '0';
                 modalContent.style.transition = 'all 0.2s ease-out';
             }
+
+            // Project License Modal functions
+            window.openProjectLicenseModal = function () {
+                const modal = document.getElementById('project-license-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    document.body.classList.add('overflow-hidden');
+                }
+            };
+
+            window.closeProjectLicenseModal = function () {
+                const modal = document.getElementById('project-license-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }
+            };
         });
     }
 </script>

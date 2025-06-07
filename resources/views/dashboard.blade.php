@@ -273,6 +273,25 @@
                     @endif
                 </div>
             </div>
+
+            <!-- License Templates Section -->
+            <div class="relative mt-8">
+                <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6 lg:p-8">
+                    <!-- Section Header -->
+                    <div class="mb-8">
+                        <h2 class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2 flex items-center">
+                            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
+                                <i class="fas fa-file-contract text-white text-sm"></i>
+                            </div>
+                            License Templates
+                        </h2>
+                        <p class="text-gray-600">Manage your custom license agreement templates for projects</p>
+                    </div>
+                    
+                    <!-- License Templates Component -->
+                    <livewire:user.manage-license-templates />
+                </div>
+            </div>
         </div>
     </div>
 </div>

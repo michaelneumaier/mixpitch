@@ -16,7 +16,7 @@ class LicenseSelector extends Component
     public $projectType = null;
     public $showCustomTermsBuilder = false;
     public $showPreviewModal = false;
-    public $previewTemplate = null;
+    public $currentPreviewTemplate = null;
 
     // Expose data to parent component
     public function updatedSelectedTemplateId($value)
@@ -62,20 +62,7 @@ class LicenseSelector extends Component
             ->get();
     }
 
-    public function getRecommendedTemplatesProperty(): Collection
-    {
-        $query = LicenseTemplate::marketplace();
 
-        // Filter by project type if available
-        if ($this->projectType) {
-            $query->where(function ($q) {
-                $q->where('use_case', $this->getUseCaseFromProjectType())
-                  ->orWhere('category', $this->getCategoryFromProjectType());
-            });
-        }
-
-        return $query->take(3)->get();
-    }
 
     public function getCanUserCreateTemplatesProperty(): bool
     {
@@ -107,6 +94,13 @@ class LicenseSelector extends Component
     {
         $this->selectedTemplateId = $templateId;
         $this->showCustomTermsBuilder = false;
+        
+        // Close modal if open
+        $this->showPreviewModal = false;
+        $this->currentPreviewTemplate = null;
+        
+        // Update parent component
+        $this->updatedSelectedTemplateId($templateId);
     }
 
     public function selectCustomLicense()
@@ -126,13 +120,19 @@ class LicenseSelector extends Component
                 $template = LicenseTemplate::marketplace()->find($templateId);
             }
             
+            // If still not found, try any accessible template
+            if (!$template) {
+                $template = LicenseTemplate::find($templateId);
+            }
+            
             if (!$template) {
                 session()->flash('error', 'Template not found or access denied.');
                 return;
             }
             
-            $this->previewTemplate = $template;
+            $this->currentPreviewTemplate = $template;
             $this->showPreviewModal = true;
+            
         } catch (\Exception $e) {
             session()->flash('error', 'Unable to load template preview.');
         }
@@ -141,7 +141,7 @@ class LicenseSelector extends Component
     public function closePreview()
     {
         $this->showPreviewModal = false;
-        $this->previewTemplate = null;
+        $this->currentPreviewTemplate = null;
     }
 
     public function forkTemplate($templateId)
@@ -156,7 +156,14 @@ class LicenseSelector extends Component
         $forkedTemplate = $sourceTemplate->createFork(auth()->user());
         $this->selectedTemplateId = $forkedTemplate->id;
         
+        // Close any open modals
+        $this->showPreviewModal = false;
+        $this->currentPreviewTemplate = null;
+        
         session()->flash('success', 'Template forked to your collection!');
+        
+        // Update parent component with new selection
+        $this->updatedSelectedTemplateId($forkedTemplate->id);
         
         // Refresh the templates
         $this->dispatch('$refresh');
@@ -166,7 +173,6 @@ class LicenseSelector extends Component
     {
         return view('livewire.components.license-selector', [
             'userTemplates' => $this->userTemplates,
-            'recommendedTemplates' => $this->recommendedTemplates,
         ]);
     }
 } 

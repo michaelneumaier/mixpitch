@@ -360,6 +360,24 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('subscription')->name('s
 // Stripe Webhook Route
 Route::post('/stripe/webhook', [App\Http\Controllers\Billing\WebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 
+// Debug route for subscription testing (remove in production)
+Route::get('/debug/subscription/{user}', function(\App\Models\User $user) {
+    return [
+        'user_id' => $user->id,
+        'email' => $user->email,
+        'stripe_id' => $user->stripe_id,
+        'subscribed_cashier' => $user->subscribed('default'),
+        'hasActiveSubscription' => $user->hasActiveSubscription('default'),
+        'subscription_plan' => $user->subscription_plan,
+        'subscription_tier' => $user->subscription_tier,
+        'active_subscription' => $user->getActiveSubscription('default') ? [
+            'stripe_id' => $user->getActiveSubscription('default')->stripe_id,
+            'stripe_status' => $user->getActiveSubscription('default')->stripe_status,
+            'stripe_price' => $user->getActiveSubscription('default')->stripe_price,
+        ] : null,
+    ];
+})->middleware('auth');
+
 // Social Authentication Routes
 Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialiteController::class, 'redirect'])->name('socialite.redirect');
 Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteController::class, 'callback'])->name('socialite.callback');
@@ -808,3 +826,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/license/sign/{signature}', [LicenseSignatureController::class, 'show'])->name('license.sign');
     Route::post('/license/sign/{signature}', [LicenseSignatureController::class, 'sign'])->name('license.sign.submit');
 });
+
+// Test route for debugging template approval
+Route::get('/test-approve/{template}', function (App\Models\LicenseTemplate $template) {
+    $template->update([
+        'approval_status' => 'approved',
+        'is_public' => true,
+        'approved_by' => auth()->id() ?? 1,
+        'approved_at' => now(),
+        'rejection_reason' => null,
+    ]);
+    
+    return response()->json([
+        'success' => true,
+        'template_id' => $template->id,
+        'new_status' => $template->fresh()->approval_status,
+        'is_public' => $template->fresh()->is_public,
+    ]);
+})->middleware('auth');
