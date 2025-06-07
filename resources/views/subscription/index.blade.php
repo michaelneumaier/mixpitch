@@ -18,15 +18,15 @@
                     <div>
                         <h3 class="text-lg font-medium text-gray-900">Current Plan</h3>
                         <div class="mt-2 flex items-center">
-                            @php
-                                $isSubscribed = $user->subscribed('default');
-                                $onGracePeriod = $isSubscribed && $user->subscription('default')->onGracePeriod();
-                                $subscription = $user->subscription('default');
-                                $planName = $user->getSubscriptionDisplayName();
-                                $billingPeriod = $user->getBillingPeriodDisplayName();
-                                $formattedPrice = $user->getFormattedSubscriptionPrice();
-                                $yearlySavings = $user->getYearlySavings();
-                            @endphp
+                                                    @php
+                            $isSubscribed = $user->hasActiveSubscription();
+                            $onGracePeriod = $isSubscribed && $user->subscription('default') && $user->subscription('default')->onGracePeriod();
+                            $subscription = $user->subscription('default');
+                            $planName = $user->getSubscriptionDisplayName();
+                            $billingPeriod = $user->getBillingPeriodDisplayName();
+                            $formattedPrice = $user->getFormattedSubscriptionPrice();
+                            $yearlySavings = $user->getYearlySavings();
+                        @endphp
                             
                             <x-user-badge :user="$user" showPlan="true" size="lg" />
                             

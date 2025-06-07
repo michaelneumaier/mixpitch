@@ -51,8 +51,8 @@ class SubscriptionController extends Controller
         
         $user = $request->user();
         
-        // Check if user already has a subscription
-        if ($user->subscribed('default')) {
+        // Check if user already has a subscription  
+        if ($user->hasActiveSubscription()) {
             return redirect()->route('subscription.index')
                 ->with('warning', 'You already have an active subscription. Manage it through your billing portal.');
         }
@@ -132,7 +132,7 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         
-        if (!$user->subscribed('default')) {
+        if (!$user->hasActiveSubscription()) {
             return redirect()->route('subscription.index')
                 ->with('warning', 'You do not have an active subscription.');
         }
@@ -166,7 +166,7 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         
-        if (!$user->subscribed('default') || !$user->subscription('default')->onGracePeriod()) {
+        if (!$user->hasActiveSubscription() || !($user->subscription('default') && $user->subscription('default')->onGracePeriod())) {
             return redirect()->route('subscription.index')
                 ->with('warning', 'No subscription to resume.');
         }

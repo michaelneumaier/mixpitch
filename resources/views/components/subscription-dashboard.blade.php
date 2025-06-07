@@ -264,7 +264,7 @@
                     </a>
                 @endif
                 
-                <a href="{{ route('profile.show') }}" 
+                <a href="{{ route('profile.username', ['username' => auth()->user()->username]) }}" 
                    class="flex-1 border border-gray-300 hover:border-gray-400 text-gray-700 text-center py-3 px-4 rounded-lg font-medium transition-colors duration-200">
                     <i class="fas fa-user mr-2"></i>
                     View Profile

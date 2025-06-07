@@ -29,9 +29,9 @@ class BillingController extends Controller
         }
         
         // Get subscription information
-        $isSubscribed = $user->subscribed('default');
+        $isSubscribed = $user->hasActiveSubscription();
         $subscription = $isSubscribed ? $user->subscription('default') : null;
-        $onGracePeriod = $isSubscribed && $subscription->onGracePeriod();
+        $onGracePeriod = $isSubscribed && $subscription && $subscription->onGracePeriod();
         
         // Get subscription limits and usage
         $limits = $user->getSubscriptionLimits();
