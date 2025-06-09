@@ -18,6 +18,17 @@ class LicenseSelector extends Component
     public $showPreviewModal = false;
     public $currentPreviewTemplate = null;
 
+    // Template creation properties
+    public $showCreateModal = false;
+    public $name = '';
+    public $description = '';
+    public $content = '';
+    public $category = '';
+    public $use_case = '';
+    public $terms = [];
+
+
+
     // Expose data to parent component
     public function updatedSelectedTemplateId($value)
     {
@@ -46,11 +57,25 @@ class LicenseSelector extends Component
         ]);
     }
 
+
+
+    protected $rules = [
+        'name' => 'required|string|max:100',
+        'description' => 'required|string|max:500',
+        'content' => 'required|string|min:50',
+        'category' => 'required|in:music,sound-design,mixing,mastering,general',
+        'use_case' => 'required|in:collaboration,sync,samples,remix,commercial',
+        'terms' => 'array',
+    ];
+
     public function mount($selectedTemplateId = null, $projectType = null, $requiresAgreement = true)
     {
         $this->selectedTemplateId = $selectedTemplateId;
         $this->projectType = $projectType;
         $this->requiresAgreement = $requiresAgreement;
+        
+        // Initialize template form defaults
+        $this->resetTemplateForm();
     }
 
     public function getUserTemplatesProperty(): Collection
@@ -61,8 +86,6 @@ class LicenseSelector extends Component
             ->orderBy('updated_at', 'desc')
             ->get();
     }
-
-
 
     public function getCanUserCreateTemplatesProperty(): bool
     {
@@ -108,6 +131,93 @@ class LicenseSelector extends Component
         $this->selectedTemplateId = null;
         $this->showCustomTermsBuilder = true;
     }
+
+
+
+    public function createTemplate()
+    {
+        if (!$this->canUserCreateTemplates) {
+            session()->flash('error', 'You have reached your license template limit. Upgrade to Pro for unlimited templates.');
+            return;
+        }
+        
+        $this->resetTemplateForm();
+        $this->showCreateModal = true;
+    }
+
+    public function saveTemplate()
+    {
+        $this->validate();
+        
+        try {
+            $isFirst = auth()->user()->licenseTemplates()->count() === 0;
+            
+            $newTemplate = auth()->user()->licenseTemplates()->create([
+                'name' => $this->name,
+                'description' => $this->description,
+                'content' => $this->content,
+                'category' => $this->category,
+                'use_case' => $this->use_case,
+                'terms' => $this->terms,
+                'is_default' => $isFirst,
+                'usage_stats' => ['created' => now()->toISOString(), 'times_used' => 0],
+                'legal_metadata' => ['jurisdiction' => 'US', 'version' => '1.0'],
+            ]);
+            
+            // Automatically select the newly created template
+            $this->selectedTemplateId = $newTemplate->id;
+            $this->updatedSelectedTemplateId($newTemplate->id);
+            
+            $this->closeTemplateModal();
+            session()->flash('template-created', 'Template created and selected successfully!');
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error creating template: ' . $e->getMessage());
+        }
+    }
+
+    public function closeTemplateModal()
+    {
+        $this->showCreateModal = false;
+        $this->resetTemplateForm();
+    }
+
+    private function resetTemplateForm()
+    {
+        $this->name = '';
+        $this->description = '';
+        $this->content = '';
+        $this->category = 'general';
+        $this->use_case = 'collaboration';
+        $this->initializeDefaultTerms();
+    }
+
+    private function initializeDefaultTerms()
+    {
+        $this->terms = [
+            'commercial_use' => false,
+            'attribution_required' => false,
+            'modification_allowed' => true,
+            'distribution_allowed' => false,
+            'sync_licensing_allowed' => false,
+            'broadcast_allowed' => false,
+            'streaming_allowed' => true,
+            'territory' => 'worldwide',
+            'duration' => 'perpetual',
+        ];
+    }
+
+    public function getCategoriesProperty(): array
+    {
+        return LicenseTemplate::getCategories();
+    }
+    
+    public function getUseCasesProperty(): array
+    {
+        return LicenseTemplate::getUseCases();
+    }
+
+
 
     public function previewTemplate($templateId)
     {
@@ -172,7 +282,7 @@ class LicenseSelector extends Component
     public function render()
     {
         return view('livewire.components.license-selector', [
-            'userTemplates' => $this->userTemplates,
+            'userTemplates' => $this->getUserTemplatesProperty(),
         ]);
     }
 } 

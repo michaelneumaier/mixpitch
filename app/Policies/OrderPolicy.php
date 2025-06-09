@@ -22,6 +22,11 @@ class OrderPolicy
      */
     public function view(User $user, Order $order): bool
     {
+        // Admin can view any order
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         // Allow the client or the producer to view the order
         return $user->id === $order->client_user_id || $user->id === $order->producer_user_id;
     }
@@ -77,6 +82,11 @@ class OrderPolicy
      */
     public function submitRequirements(User $user, Order $order): bool
     {
+        // Admin can always submit requirements
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         // Only the client can submit requirements, and only when pending
         return $user->id === $order->client_user_id && $order->status === Order::STATUS_PENDING_REQUIREMENTS;
     }
@@ -86,6 +96,11 @@ class OrderPolicy
      */
     public function deliverOrder(User $user, Order $order): bool
     {
+        // Admin can always deliver
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         // Only the producer can deliver, and only when in progress or revisions requested
         return $user->id === $order->producer_user_id && 
                in_array($order->status, [Order::STATUS_IN_PROGRESS, Order::STATUS_REVISIONS_REQUESTED]);
@@ -96,6 +111,11 @@ class OrderPolicy
      */
     public function acceptDelivery(User $user, Order $order): bool
     {
+        // Admin can always accept delivery
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         // Only the client can accept delivery, and only when it's ready for review
         return $user->id === $order->client_user_id && 
                $order->status === Order::STATUS_READY_FOR_REVIEW;
@@ -106,13 +126,23 @@ class OrderPolicy
      */
     public function cancelOrder(User $user, Order $order): bool
     {
+        // Admin can always cancel
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         // Client or Producer can cancel
         if ($user->id !== $order->client_user_id && $user->id !== $order->producer_user_id) {
             return false;
         }
 
-        // Cannot cancel if already completed or cancelled
-        return !in_array($order->status, [Order::STATUS_COMPLETED, Order::STATUS_CANCELLED]);
+        // Can only cancel in early stages - before work is ready for review
+        $cancellableStatuses = [
+            Order::STATUS_PENDING_REQUIREMENTS,
+            Order::STATUS_IN_PROGRESS,
+        ];
+
+        return in_array($order->status, $cancellableStatuses);
     }
 
     /**
@@ -120,6 +150,11 @@ class OrderPolicy
      */
     public function postMessage(User $user, Order $order): bool
     {
+        // Admin can always post messages
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         // Client or Producer can post messages
         if ($user->id !== $order->client_user_id && $user->id !== $order->producer_user_id) {
             return false;
@@ -134,6 +169,11 @@ class OrderPolicy
      */
     public function requestRevision(User $user, Order $order): bool
     {
+        // Admin can always request revisions
+        if ($user->role === 'admin') {
+            return true;
+        }
+
         // Only the client can request revisions
         if ($user->id !== $order->client_user_id) {
             return false;

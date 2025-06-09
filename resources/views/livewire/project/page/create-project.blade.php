@@ -15,6 +15,14 @@
     <div class="fixed top-1/3 right-1/3 w-24 h-24 bg-indigo-200/20 rounded-full blur-2xl"></div>
 
     <div class="container mx-auto p-3 sm:p-4 md:p-8 relative z-10">
+        <!-- Unsaved Changes Indicator -->
+        <div id="unsaved-changes-indicator" class="hidden fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-amber-500 text-white px-6 py-3 rounded-lg shadow-lg">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span class="font-medium">You have unsaved changes</span>
+            </div>
+        </div>
+
         @if($useWizard && !$isEdit)
             {{-- Wizard Mode for Create --}}
             <div class="max-w-4xl mx-auto">
@@ -1093,6 +1101,59 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    let hasUnsavedChanges = false;
+    const indicator = document.getElementById('unsaved-changes-indicator');
+    
+    // Function to show/hide indicator
+    function updateIndicator(show) {
+        if (indicator) {
+            if (show) {
+                indicator.classList.remove('hidden');
+                indicator.classList.add('animate-pulse');
+            } else {
+                indicator.classList.add('hidden');
+                indicator.classList.remove('animate-pulse');
+            }
+        }
+    }
+    
+    // Listen for form changes from Livewire
+    window.addEventListener('formChanged', function(event) {
+        hasUnsavedChanges = true;
+        updateIndicator(true);
+    });
+    
+    // Listen for form saved events from Livewire
+    window.addEventListener('formSaved', function(event) {
+        hasUnsavedChanges = false;
+        updateIndicator(false);
+    });
+    
+    // Prevent navigation when there are unsaved changes
+    window.addEventListener('beforeunload', function(event) {
+        if (hasUnsavedChanges) {
+            event.preventDefault();
+            // Modern browsers require returnValue to be set
+            event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            return event.returnValue;
+        }
+    });
+
+    // Handle internal navigation (Livewire navigation, links, etc.)
+    document.addEventListener('click', function(event) {
+        const target = event.target.closest('a[href]');
+        if (target && hasUnsavedChanges) {
+            const href = target.getAttribute('href');
+            // Skip if it's just a hash change or external link
+            if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+                if (!confirm('You have unsaved changes. Are you sure you want to leave this page?')) {
+                    event.preventDefault();
+                    return false;
+                }
+            }
+        }
+    });
+
     // Handle URL fragment scrolling for license section
     function scrollToLicenseSection() {
         const hash = window.location.hash;

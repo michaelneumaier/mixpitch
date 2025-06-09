@@ -67,9 +67,7 @@ class FileManagementService
                     'file_name' => $fileName, // Store original name
                     'original_file_name' => $fileName,
                     'size' => $fileSize,
-                    'file_size' => $fileSize, // Add file_size field for consistency
                     'user_id' => $uploader?->id, // Track uploader (null for client uploads)
-                    'uploaded_by' => $uploader?->id, // Alternative field name
                     'mime_type' => $file->getMimeType(),
                     'metadata' => !empty($metadata) ? json_encode($metadata) : null, // Store client upload metadata
                 ]);

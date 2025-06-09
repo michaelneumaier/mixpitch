@@ -94,27 +94,56 @@
             </div>
         @endif
 
-
-
         <!-- Custom License Option -->
         <div class="mb-6">
-            <label class="cursor-pointer">
-                <input type="radio" 
-                       wire:model.live="selectedTemplateId" 
-                       value=""
-                       class="sr-only">
-                
-                <div class="border-2 border-dashed rounded-lg p-6 text-center transition-colors {{ empty($selectedTemplateId) ? 'border-indigo-300 bg-indigo-50' : 'border-gray-300 hover:border-gray-400' }}">
-                    <div class="text-gray-400 mb-2">
-                        <svg class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                    </div>
-                    <h5 class="font-medium text-gray-900 mb-1">Create Custom License</h5>
-                    <p class="text-sm text-gray-600">Build your own terms from scratch</p>
+            <div class="border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 hover:border-gray-400 hover:bg-gray-50">
+                <div class="text-gray-400 mb-2">
+                    <svg class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
                 </div>
-            </label>
+                <h5 class="font-medium text-gray-900 mb-1">Create Custom License</h5>
+                <p class="text-sm text-gray-600 mb-4">Build your own terms from scratch</p>
+                
+                @if($this->canUserCreateTemplates)
+                    <button type="button" 
+                            wire:click="createTemplate"
+                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 hover:scale-105 shadow-lg">
+                        <i class="fas fa-plus mr-2"></i>
+                        Create New Template
+                    </button>
+                @else
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500 mb-2">Template limit reached</p>
+                        <a href="{{ route('subscription.index') }}" 
+                           class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all duration-200">
+                            <i class="fas fa-crown mr-2"></i>
+                            Upgrade to Pro
+                        </a>
+                    </div>
+                @endif
+            </div>
         </div>
+
+        <!-- Success Message for Template Creation -->
+        @if(session()->has('template-created'))
+            <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                    <span class="text-green-800 font-medium">{{ session('template-created') }}</span>
+                </div>
+            </div>
+        @endif
+
+        <!-- Error Message -->
+        @if(session()->has('error'))
+            <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-600 mr-2"></i>
+                    <span class="text-red-800 font-medium">{{ session('error') }}</span>
+                </div>
+            </div>
+        @endif
 
         <!-- License Notes -->
         <div class="mb-6">
@@ -205,6 +234,196 @@
                             Close
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endteleport
+@endif
+
+<!-- Create Template Modal -->
+@if($showCreateModal)
+    @teleport('body')
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <!-- Modal Background Effects -->
+                <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-50/30 via-purple-50/20 to-blue-50/30 rounded-t-2xl"></div>
+                <div class="absolute top-4 left-4 w-16 h-16 bg-indigo-400/10 rounded-full blur-lg"></div>
+                <div class="absolute top-4 right-4 w-12 h-12 bg-purple-400/10 rounded-full blur-md"></div>
+                
+                <div class="relative p-6 sm:p-8">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent flex items-center">
+                            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
+                                <i class="fas fa-plus text-white text-sm"></i>
+                            </div>
+                            Create License Template
+                        </h3>
+                        <button wire:click="closeTemplateModal()" 
+                                class="group p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100/50 rounded-lg transition-all duration-200 hover:scale-110">
+                            <i class="fas fa-times text-lg group-hover:scale-110 transition-transform"></i>
+                        </button>
+                    </div>
+
+                    <!-- Form Content -->
+                    <form wire:submit.prevent="saveTemplate">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- Left Column - Basic Info -->
+                            <div class="space-y-6">
+                                <!-- Template Name -->
+                                <div>
+                                    <label for="template_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Template Name <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" id="template_name" wire:model.blur="name" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                           placeholder="e.g., Standard Collaboration License" maxlength="100">
+                                    @error('name')
+                                        <p class="mt-1 text-sm text-red-600 flex items-center">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>
+                                            {{ $message }}
+                                        </p>
+                                    @enderror
+                                </div>
+
+                                <!-- Description -->
+                                <div>
+                                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Description <span class="text-red-500">*</span>
+                                    </label>
+                                    <textarea id="description" wire:model.blur="description" rows="3"
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                              placeholder="Describe when and how this template should be used..." maxlength="500"></textarea>
+                                    @error('description')
+                                        <p class="mt-1 text-sm text-red-600 flex items-center">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>
+                                            {{ $message }}
+                                        </p>
+                                    @enderror
+                                </div>
+
+                                <!-- Category -->
+                                <div>
+                                    <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Category <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="category" wire:model.live="category" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">Select a category...</option>
+                                        @foreach($this->categories as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('category')
+                                        <p class="mt-1 text-sm text-red-600 flex items-center">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>
+                                            {{ $message }}
+                                        </p>
+                                    @enderror
+                                </div>
+
+                                <!-- Use Case -->
+                                <div>
+                                    <label for="use_case" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Primary Use Case <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="use_case" wire:model.live="use_case" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">Select use case...</option>
+                                        @foreach($this->useCases as $key => $label)
+                                            <option value="{{ $key }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('use_case')
+                                        <p class="mt-1 text-sm text-red-600 flex items-center">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>
+                                            {{ $message }}
+                                        </p>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <!-- Right Column - License Terms -->
+                            <div class="space-y-6">
+                                <!-- License Terms -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-4">License Terms</label>
+                                    <div class="space-y-4 bg-gray-50 rounded-lg p-4">
+                                        @foreach([
+                                            'commercial_use' => 'Commercial Use Allowed',
+                                            'attribution_required' => 'Attribution Required',
+                                            'modification_allowed' => 'Modifications Allowed',
+                                            'distribution_allowed' => 'Distribution Allowed',
+                                            'sync_licensing_allowed' => 'Sync Licensing Allowed',
+                                            'broadcast_allowed' => 'Broadcasting Allowed',
+                                            'streaming_allowed' => 'Streaming Allowed'
+                                        ] as $key => $label)
+                                            <label class="flex items-center">
+                                                <input type="checkbox" wire:model.live="terms.{{ $key }}" 
+                                                       class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                                <span class="ml-2 text-sm text-gray-700">{{ $label }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <!-- Territory -->
+                                <div>
+                                    <label for="territory" class="block text-sm font-medium text-gray-700 mb-2">Territory</label>
+                                    <select wire:model.live="terms.territory" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="worldwide">Worldwide</option>
+                                        <option value="north_america">North America</option>
+                                        <option value="europe">Europe</option>
+                                        <option value="asia">Asia</option>
+                                        <option value="other">Other/Custom</option>
+                                    </select>
+                                </div>
+
+                                <!-- Duration -->
+                                <div>
+                                    <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                                    <select wire:model.live="terms.duration" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="perpetual">Perpetual</option>
+                                        <option value="5_years">5 Years</option>
+                                        <option value="3_years">3 Years</option>
+                                        <option value="1_year">1 Year</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- License Content -->
+                        <div class="col-span-full mt-8">
+                            <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
+                                License Agreement Content <span class="text-red-500">*</span>
+                            </label>
+                            <textarea id="content" wire:model.blur="content" rows="12"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono text-sm"
+                                      placeholder="Enter the full license agreement text..."></textarea>
+                            @error('content')
+                                <p class="mt-1 text-sm text-red-600 flex items-center">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    {{ $message }}
+                                </p>
+                            @enderror
+                            <p class="mt-1 text-xs text-gray-500">Use placeholders like {project_name}, {artist_name}, {date} for dynamic content</p>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
+                            <button type="button" wire:click="closeTemplateModal()" 
+                                    class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                                Create Template
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

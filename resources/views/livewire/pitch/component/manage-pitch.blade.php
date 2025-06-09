@@ -601,7 +601,9 @@
                                         @endif
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="font-bold truncate text-purple-900" title="{{ $file->file_name }}">{{ $file->file_name }}</div>
+                                        <a href="{{ route('pitch-files.show', $file) }}" 
+                                           class="font-bold truncate text-purple-900 hover:text-purple-600 transition-colors duration-200 block" 
+                                           title="{{ $file->file_name }}">{{ $file->file_name }}</a>
                                         <div class="flex items-center text-xs text-purple-600 mt-1">
                                             <span>{{ $file->created_at->format('M d, Y') }}</span>
                                             <span class="mx-2">•</span>
@@ -610,12 +612,19 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center space-x-2">
+                                    <a href="{{ route('pitch-files.show', $file) }}"
+                                       class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-600 rounded-lg transition-all duration-200 hover:scale-105"
+                                       title="View file details">
+                                        <i class="fas fa-eye text-sm"></i>
+                                    </a>
                                     <button wire:click="downloadFile({{ $file->id }})"
-                                        class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-600 rounded-lg transition-all duration-200 hover:scale-105">
+                                        class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-600 rounded-lg transition-all duration-200 hover:scale-105"
+                                        title="Download file">
                                         <i class="fas fa-download text-sm"></i>
                                     </button>
                                     <button wire:click="confirmDeleteFile({{ $file->id }})" 
-                                            class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-red-100 to-rose-100 hover:from-red-200 hover:to-rose-200 text-red-600 rounded-lg transition-all duration-200 hover:scale-105">
+                                            class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-red-100 to-rose-100 hover:from-red-200 hover:to-rose-200 text-red-600 rounded-lg transition-all duration-200 hover:scale-105"
+                                            title="Delete file">
                                         <i class="fas fa-trash text-sm"></i>
                                     </button>
                                 </div>

@@ -30,13 +30,18 @@ return new class extends Migration
             
             if ($projectType) {
                 // Update all projects with this string value
-                DB::table('projects')
+                $updatedCount = DB::table('projects')
                     ->where('project_type', $oldValue)
                     ->update(['project_type_id' => $projectType->id]);
                 
-                echo "Migrated projects with project_type '{$oldValue}' to project_type_id {$projectType->id}\n";
+                if ($updatedCount > 0 && app()->environment() !== 'testing') {
+                    echo "Migrated projects with project_type '{$oldValue}' to project_type_id {$projectType->id}\n";
+                }
             } else {
-                echo "Warning: Could not find project type with slug '{$slug}'\n";
+                // Only show warnings in non-testing environments
+                if (app()->environment() !== 'testing') {
+                    echo "Warning: Could not find project type with slug '{$slug}'\n";
+                }
             }
         }
 
@@ -52,7 +57,7 @@ return new class extends Migration
                 })
                 ->update(['project_type_id' => $defaultProjectType->id]);
             
-            if ($updatedCount > 0) {
+            if ($updatedCount > 0 && app()->environment() !== 'testing') {
                 echo "Set {$updatedCount} projects with empty/null project_type to default 'single'\n";
             }
         }
@@ -66,7 +71,7 @@ return new class extends Migration
             ->groupBy('project_type')
             ->get();
 
-        if ($unmappedProjects->count() > 0) {
+        if ($unmappedProjects->count() > 0 && app()->environment() !== 'testing') {
             echo "Warning: Found projects with unmapped project_type values:\n";
             foreach ($unmappedProjects as $unmapped) {
                 echo "  - '{$unmapped->project_type}': {$unmapped->count} projects\n";
@@ -82,6 +87,8 @@ return new class extends Migration
         // Clear all project_type_id values to reverse the migration
         DB::table('projects')->update(['project_type_id' => null]);
         
-        echo "Cleared all project_type_id values\n";
+        if (app()->environment() !== 'testing') {
+            echo "Cleared all project_type_id values\n";
+        }
     }
 };

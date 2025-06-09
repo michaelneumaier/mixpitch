@@ -46,20 +46,32 @@ return [
 
         's3' => [
             'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
-            'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'key' => env('CF_R2_ACCESS_KEY_ID'),
+            'secret' => env('CF_R2_SECRET_ACCESS_KEY'),
+            'region' => 'auto',
+            'bucket' => env('CF_R2_BUCKET'),
+            // 'url' => env('AWS_URL'),
+            'endpoint' => env('CF_R2_ENDPOINT'),
+            'use_path_style_endpoint' => true,
             'throw' => false,
-            'visibility' => 'public',
-            'options' => [
-                'ACL' => ''
-            ]
-
         ],
+
+        // 's3' => [
+        //     'driver' => 's3',
+        //     'key' => env('AWS_ACCESS_KEY_ID'),
+        //     'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        //     'region' => env('AWS_DEFAULT_REGION'),
+        //     'bucket' => env('AWS_BUCKET'),
+        //     'url' => env('AWS_URL'),
+        //     'endpoint' => env('AWS_ENDPOINT'),
+        //     'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+        //     'throw' => false,
+        //     'visibility' => 'public',
+        //     'options' => [
+        //         'ACL' => ''
+        //     ]
+
+        // ],
 
     ],
 

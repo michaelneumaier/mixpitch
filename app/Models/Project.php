@@ -7,6 +7,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\PitchFile;
 
 use Illuminate\Support\Facades\Storage;
 use Sebdesign\SM\StateMachine\StateMachine;
@@ -252,9 +253,19 @@ class Project extends Model
         return $this->hasMany(ProjectFile::class);
     }
 
+    public function projectFiles()
+    {
+        return $this->hasMany(ProjectFile::class);
+    }
+
     public function pitches()
     {
         return $this->hasMany(Pitch::class);
+    }
+
+    public function pitchFiles()
+    {
+        return $this->hasManyThrough(PitchFile::class, Pitch::class);
     }
 
     public function userPitch($userId)
@@ -625,7 +636,7 @@ class Project extends Model
      */
     public function getProjectFilesStorageUsed(): int
     {
-        return $this->files()->sum('file_size') ?? 0;
+        return $this->files()->sum('size') ?? 0;
     }
 
     /**
@@ -635,7 +646,7 @@ class Project extends Model
     {
         return $this->pitches()->with('files')->get()
             ->flatMap(fn($pitch) => $pitch->files)
-            ->sum('file_size') ?? 0;
+            ->sum('size') ?? 0;
     }
 
     /**

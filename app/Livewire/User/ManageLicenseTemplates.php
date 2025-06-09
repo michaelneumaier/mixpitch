@@ -18,6 +18,10 @@ class ManageLicenseTemplates extends Component
     public $currentPreviewTemplate = null;
     public $templateToDelete = null;
     
+    // For embedded usage (like in LicenseSelector)
+    public $embeddedMode = false;
+    public $autoOpenCreate = false;
+    
     // Form fields for creating/editing templates
     public $name = '';
     public $description = '';
@@ -64,6 +68,11 @@ class ManageLicenseTemplates extends Component
         $this->initializeDefaultTerms();
         // Initialize as empty collection
         $this->marketplaceTemplates = collect();
+        
+        // If in embedded mode and auto-open is requested, open create modal
+        if ($this->embeddedMode && $this->autoOpenCreate) {
+            $this->createTemplate();
+        }
     }
     
     public function getUserTemplatesProperty(): Collection
@@ -151,7 +160,7 @@ class ManageLicenseTemplates extends Component
                 // Create new template
                 $isFirst = auth()->user()->licenseTemplates()->count() === 0;
                 
-                auth()->user()->licenseTemplates()->create([
+                $newTemplate = auth()->user()->licenseTemplates()->create([
                     'name' => $this->name,
                     'description' => $this->description,
                     'content' => $this->content,
@@ -165,6 +174,9 @@ class ManageLicenseTemplates extends Component
                 ]);
                 
                 Toaster::success('License template created successfully!');
+                
+                // Emit event for other components (like LicenseSelector) to listen to
+                $this->dispatch('templateCreatedSuccessfully', $newTemplate->id);
             }
             
             $this->closeModal();
@@ -360,11 +372,11 @@ class ManageLicenseTemplates extends Component
     public function closeModal()
     {
         $this->showCreateModal = false;
-        $this->showPreviewModal = false;
-        $this->showDeleteModal = false;
-        $this->showPublishModal = false;
-        $this->showMarketplace = false;
+        $this->editingTemplate = null;
         $this->resetForm();
+        
+        // Emit event for other components to listen to
+        $this->dispatch('templateManagerClosed');
     }
     
     public function closePreview()

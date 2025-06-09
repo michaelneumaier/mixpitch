@@ -271,12 +271,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch completion', [
@@ -481,12 +490,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id, // This will be snapshot ID
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id, // This will be snapshot ID
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to create snapshot revisions requested notification: ' . $e->getMessage(), [
@@ -903,12 +921,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                 $projectOwner->notify(new UserNotification(
-                     $notification->type,
-                     $notification->related_id,
-                     $notification->related_type,
-                     $notification->data
-                 ));
+                try {
+                    $projectOwner->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $projectOwner->id,
+                    ]);
+                }
             }
             
             // Send email notification via EmailService (Keep this commented unless implemented)
@@ -960,12 +987,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch approval', [
@@ -1029,12 +1065,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch submission approval', [
@@ -1099,12 +1144,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch submission denial', [
@@ -1197,12 +1251,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id, // This will be pitch ID
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id, // This will be pitch ID
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify about pitch ready for review', [
@@ -1286,12 +1349,21 @@ class NotificationService
             );
 
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify contest winner', [
@@ -1330,12 +1402,21 @@ class NotificationService
             );
 
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify contest winner (no prize)', [
@@ -1378,12 +1459,21 @@ class NotificationService
             );
 
             if ($notification) {
-                $owner->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $owner->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $owner->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify owner about contest winner', [
@@ -1424,12 +1514,21 @@ class NotificationService
             );
 
              if ($notification) {
-                $owner->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $owner->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $owner->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify owner about contest winner (no prize)', [
@@ -1474,12 +1573,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify contest entry not selected', ['message' => $e->getMessage(), 'pitch_id' => $pitch->id]);
@@ -1846,12 +1954,21 @@ class NotificationService
 
             // Dispatch UserNotification if DB record created
             if ($notification) {
-                $user->notify(new UserNotification(
-                    $notification->type,
-                    $notification->related_id,
-                    $notification->related_type,
-                    $notification->data
-                ));
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    // Log the notification dispatch error but don't fail the whole operation
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Failed to notify about initial pitch denial', [

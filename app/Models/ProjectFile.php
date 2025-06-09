@@ -21,7 +21,8 @@ class ProjectFile extends Model
         'mime_type',
         'user_id',
         'size',
-        'is_preview_track'
+        'is_preview_track',
+        'metadata'
     ];
 
     function formatBytes($bytes, $precision = 2)

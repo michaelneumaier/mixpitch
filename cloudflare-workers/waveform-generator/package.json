@@ -1,0 +1,38 @@
+{
+    "name": "mixpitch-waveform-generator",
+    "version": "1.0.0",
+    "description": "Cloudflare Worker for generating audio waveforms using FFmpeg WASM",
+    "main": "src/index.js",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy",
+        "deploy:staging": "wrangler deploy --env staging",
+        "build": "webpack --mode production",
+        "build:dev": "webpack --mode development",
+        "test": "jest",
+        "lint": "eslint src/",
+        "lint:fix": "eslint src/ --fix"
+    },
+    "dependencies": {
+        "@ffmpeg/ffmpeg": "^0.12.10",
+        "@ffmpeg/util": "^0.12.1"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "^4.20241205.0",
+        "webpack": "^5.96.1",
+        "webpack-cli": "^5.1.4",
+        "eslint": "^9.16.0",
+        "jest": "^29.7.0",
+        "wrangler": "^4.19.1"
+    },
+    "keywords": [
+        "cloudflare",
+        "workers",
+        "waveform",
+        "audio",
+        "ffmpeg",
+        "webassembly"
+    ],
+    "author": "MixPitch",
+    "license": "MIT"
+}

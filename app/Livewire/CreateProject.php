@@ -87,6 +87,10 @@ class CreateProject extends Component
     public $licenseNotes = '';
     public $customLicenseTerms = [];
 
+    // Form change tracking
+    public $hasUnsavedChanges = false;
+    public $initialFormState = [];
+
     protected $listeners = [
         'prizesUpdated' => 'handlePrizesUpdated',
         'prizesSaved' => 'handlePrizesSaved',
@@ -595,6 +599,9 @@ class CreateProject extends Component
             $this->form->projectType = 'single';
             // Component's workflow_type already defaults to WORKFLOW_TYPE_STANDARD
         }
+
+        // Initialize form tracking
+        $this->initializeFormTracking();
     }
 
     /**
@@ -699,16 +706,74 @@ class CreateProject extends Component
         $this->selectedLicenseTemplateId = $data['template_id'];
         $this->requiresLicenseAgreement = $data['requires_agreement'];
         $this->licenseNotes = $data['license_notes'];
-            }
+    }
 
     /**
      * Handle license notes changes
      */
     public function handleLicenseNotesChanged($data)
     {
+        $this->licenseNotes = $data['license_notes'];
         $this->selectedLicenseTemplateId = $data['template_id'];
         $this->requiresLicenseAgreement = $data['requires_agreement'];
-        $this->licenseNotes = $data['license_notes'];
+    }
+
+    /**
+     * Track when form has changes
+     */
+    public function markAsChanged()
+    {
+        $this->hasUnsavedChanges = true;
+        $this->dispatch('formChanged', true);
+    }
+
+    /**
+     * Mark form as saved (no unsaved changes)
+     */
+    public function markAsSaved()
+    {
+        $this->hasUnsavedChanges = false;
+        $this->dispatch('formSaved', false);
+    }
+
+    /**
+     * Initialize form state tracking
+     */
+    protected function initializeFormTracking()
+    {
+        $this->initialFormState = [
+            'form' => $this->form->toArray(),
+            'workflow_type' => $this->workflow_type,
+            'submission_deadline' => $this->submission_deadline,
+            'judging_deadline' => $this->judging_deadline,
+            'target_producer_id' => $this->target_producer_id,
+            'client_email' => $this->client_email,
+            'client_name' => $this->client_name,
+            'payment_amount' => $this->payment_amount,
+            'selectedLicenseTemplateId' => $this->selectedLicenseTemplateId,
+            'licenseNotes' => $this->licenseNotes,
+        ];
+    }
+
+    /**
+     * Check if current form state differs from initial state
+     */
+    public function hasFormChanged(): bool
+    {
+        $currentState = [
+            'form' => $this->form->toArray(),
+            'workflow_type' => $this->workflow_type,
+            'submission_deadline' => $this->submission_deadline,
+            'judging_deadline' => $this->judging_deadline,
+            'target_producer_id' => $this->target_producer_id,
+            'client_email' => $this->client_email,
+            'client_name' => $this->client_name,
+            'payment_amount' => $this->payment_amount,
+            'selectedLicenseTemplateId' => $this->selectedLicenseTemplateId,
+            'licenseNotes' => $this->licenseNotes,
+        ];
+
+        return $currentState !== $this->initialFormState;
     }
 
     /**
@@ -851,6 +916,9 @@ class CreateProject extends Component
                 
                 Toaster::success('Project created successfully!');
             }
+            
+            // Mark form as saved (no unsaved changes)
+            $this->markAsSaved();
             
             // Redirect to the project management page
             return redirect()->route('projects.manage', $project->slug);
@@ -1002,5 +1070,19 @@ class CreateProject extends Component
     public function render()
     {
         return view('livewire.project.page.create-project');
+    }
+
+    // Property watchers to track form changes
+    public function updated($propertyName)
+    {
+        // Track changes for any form property
+        if (str_starts_with($propertyName, 'form.') || 
+            in_array($propertyName, [
+                'workflow_type', 'submission_deadline', 'judging_deadline', 
+                'target_producer_id', 'client_email', 'client_name', 'payment_amount',
+                'selectedLicenseTemplateId', 'licenseNotes'
+            ])) {
+            $this->markAsChanged();
+        }
     }
 }

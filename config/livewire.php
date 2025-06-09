@@ -75,7 +75,7 @@ return [
             'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
         'max_upload_time' => 10,                 // Max upload time in minutes
-        
+        'visibility' => null,
         /*
         |--------------------------------------------------------------------------
         | Temporary URL Generator

@@ -1,0 +1,49 @@
+name = "mixpitch-waveform-generator"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Worker configuration
+# [limits]
+# cpu_ms = 30000  # CPU limits require paid plan
+
+# R2 bucket binding for audio files
+[[r2_buckets]]
+binding = "AUDIO_BUCKET"
+bucket_name = "mixpitch-prod"
+preview_bucket_name = "mixpitch-prod"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+MAX_FILE_SIZE_MB = "50"
+DEFAULT_PEAKS_COUNT = "200"
+ENABLE_LOGGING = "true"
+
+# Staging environment
+[env.staging]
+name = "mixpitch-waveform-generator-staging"
+vars = { ENVIRONMENT = "staging", ENABLE_LOGGING = "true" }
+
+[[env.staging.r2_buckets]]
+binding = "AUDIO_BUCKET"
+bucket_name = "mixpitch-audio-files-staging"
+
+# Development environment
+[env.development]
+name = "mixpitch-waveform-generator-dev"
+vars = { ENVIRONMENT = "development", ENABLE_LOGGING = "true", MAX_FILE_SIZE_MB = "50", DEFAULT_PEAKS_COUNT = "200" }
+
+[[env.development.r2_buckets]]
+binding = "AUDIO_BUCKET"
+bucket_name = "mixpitch-dev"
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "src"
+
+# Triggers - you can add custom routes here
+# [[triggers]]
+# routes = ["waveform.yourdomain.com/*"] 

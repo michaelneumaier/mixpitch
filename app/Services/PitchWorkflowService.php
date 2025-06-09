@@ -599,12 +599,28 @@ class PitchWorkflowService
                         ['project' => $pitch->project_id]
                     );
                     // Trigger client notification
-                    $this->notificationService->notifyClientReviewReady($pitch, $signedUrl);
-                    Log::info('Client review ready notification sent.', ['pitch_id' => $pitch->id, 'client_email' => $pitch->project->client_email]);
+                    try {
+                        $this->notificationService->notifyClientReviewReady($pitch, $signedUrl);
+                        Log::info('Client review ready notification sent.', ['pitch_id' => $pitch->id, 'client_email' => $pitch->project->client_email]);
+                    } catch (\Exception $notificationException) {
+                        Log::warning('Failed to send client review ready notification', [
+                            'pitch_id' => $pitch->id,
+                            'error' => $notificationException->getMessage(),
+                        ]);
+                        // Continue execution - notification failure shouldn't fail the whole operation
+                    }
                 } else {
                     // Standard notification to project owner
-                    $this->notificationService->notifyPitchReadyForReview($pitch, $snapshot); // Use $snapshot
-                    Log::info('Project owner pitch ready for review notification sent.', ['pitch_id' => $pitch->id, 'project_owner_id' => $pitch->project->user_id]);
+                    try {
+                        $this->notificationService->notifyPitchReadyForReview($pitch, $snapshot); // Use $snapshot
+                        Log::info('Project owner pitch ready for review notification sent.', ['pitch_id' => $pitch->id, 'project_owner_id' => $pitch->project->user_id]);
+                    } catch (\Exception $notificationException) {
+                        Log::warning('Failed to send pitch ready for review notification', [
+                            'pitch_id' => $pitch->id,
+                            'error' => $notificationException->getMessage(),
+                        ]);
+                        // Continue execution - notification failure shouldn't fail the whole operation
+                    }
                 }
 
                 return $pitch->fresh(['currentSnapshot']); // Reload with snapshot relationship

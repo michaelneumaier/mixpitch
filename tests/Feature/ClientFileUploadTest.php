@@ -102,7 +102,7 @@ class ClientFileUploadTest extends TestCase
         
         $response = $this->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
             ->post(
-                route('client.portal.upload_file', ['project' => $this->clientProject->id]),
+                $this->signedUrl,
                 ['file' => $file],
                 ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']
             );
@@ -116,8 +116,13 @@ class ClientFileUploadTest extends TestCase
             
         $this->assertNotNull($projectFile);
         
+        // Debug: Check what metadata actually contains
+        $this->assertNotNull($projectFile->metadata, 'Metadata should not be null');
+        
         // Assert metadata contains client upload information
         $metadata = json_decode($projectFile->metadata, true);
+        $this->assertIsArray($metadata, 'Metadata should be a valid JSON array');
+        $this->assertArrayHasKey('uploaded_by_client', $metadata, 'Metadata should have uploaded_by_client key');
         $this->assertTrue($metadata['uploaded_by_client']);
         $this->assertEquals('client@test.com', $metadata['client_email']);
         $this->assertEquals('client_portal', $metadata['upload_context']);
@@ -132,7 +137,7 @@ class ClientFileUploadTest extends TestCase
             'file_name' => 'client-reference.pdf',
             'file_path' => "projects/{$this->clientProject->id}/client-reference.pdf",
             'storage_path' => "projects/{$this->clientProject->id}/client-reference.pdf",
-            'file_size' => 1024,
+            'size' => 1024,
             'mime_type' => 'application/pdf',
             'user_id' => null,
             'metadata' => json_encode([
@@ -144,13 +149,18 @@ class ClientFileUploadTest extends TestCase
         // Create the actual file in storage
         Storage::disk('s3')->put($projectFile->file_path, 'test content');
         
-        // Make request to download project file
-        $response = $this->get(
-            route('client.portal.download_project_file', [
+        // Generate signed URL for download
+        $signedDownloadUrl = URL::temporarySignedRoute(
+            'client.portal.download_project_file',
+            now()->addHours(24),
+            [
                 'project' => $this->clientProject->id,
                 'projectFile' => $projectFile->id
-            ])
+            ]
         );
+        
+        // Make request to download project file
+        $response = $this->get($signedDownloadUrl);
         
         // Should redirect to temporary S3 URL
         $response->assertStatus(302);
@@ -159,13 +169,16 @@ class ClientFileUploadTest extends TestCase
     /** @test */
     public function client_can_download_producer_files()
     {
-        // Create a pitch file (producer uploaded)
+        // Get the first pitch for the project (this is what the controller uses)
+        $firstPitch = $this->clientProject->pitches()->first();
+        
+        // Create a pitch file (producer uploaded) for the first pitch
         $pitchFile = PitchFile::create([
-            'pitch_id' => $this->pitch->id,
+            'pitch_id' => $firstPitch->id,
             'file_name' => 'producer-track.mp3',
-            'file_path' => "pitches/{$this->pitch->id}/producer-track.mp3",
-            'storage_path' => "pitches/{$this->pitch->id}/producer-track.mp3",
-            'file_size' => 5120,
+            'file_path' => "pitches/{$firstPitch->id}/producer-track.mp3",
+            'storage_path' => "pitches/{$firstPitch->id}/producer-track.mp3",
+            'size' => 5120,
             'mime_type' => 'audio/mpeg',
             'user_id' => $this->producer->id,
         ]);
@@ -173,13 +186,18 @@ class ClientFileUploadTest extends TestCase
         // Create the actual file in storage
         Storage::disk('s3')->put($pitchFile->file_path, 'audio content');
         
-        // Make request to download pitch file
-        $response = $this->get(
-            route('client.portal.download_file', [
+        // Generate signed URL for download
+        $signedDownloadUrl = URL::temporarySignedRoute(
+            'client.portal.download_file',
+            now()->addHours(24),
+            [
                 'project' => $this->clientProject->id,
                 'pitchFile' => $pitchFile->id
-            ])
+            ]
         );
+        
+        // Make request to download pitch file
+        $response = $this->get($signedDownloadUrl);
         
         // Should allow download
         $response->assertStatus(200);
@@ -193,8 +211,7 @@ class ClientFileUploadTest extends TestCase
             'project_id' => $this->clientProject->id,
             'file_name' => 'client-file.pdf',
             'file_path' => "projects/{$this->clientProject->id}/client-file.pdf",
-            'file_size' => 1024, // Use file_size consistently
-            'size' => 1024, // Also set size for compatibility
+            'size' => 1024,
             'mime_type' => 'application/pdf',
             'user_id' => null,
         ]);
@@ -204,8 +221,7 @@ class ClientFileUploadTest extends TestCase
             'pitch_id' => $this->pitch->id,
             'file_name' => 'producer-file.mp3',
             'file_path' => "pitches/{$this->pitch->id}/producer-file.mp3",
-            'file_size' => 2048, // Use file_size consistently
-            'size' => 2048, // Also set size for compatibility
+            'size' => 2048,
             'mime_type' => 'audio/mpeg',
             'user_id' => $this->producer->id,
         ]);
@@ -275,10 +291,16 @@ class ClientFileUploadTest extends TestCase
         
         $response = $this->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
             ->post(
-                route('client.portal.upload_file', ['project' => $this->clientProject->id]),
+                $this->signedUrl,
                 ['file' => $file],
                 ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']
             );
+        
+        // Debug: Check what we actually got
+        if ($response->status() !== 422) {
+            dump('Status: ' . $response->status());
+            dump('Content: ' . $response->getContent());
+        }
         
         // Should fail validation
         $response->assertStatus(422);
@@ -292,7 +314,7 @@ class ClientFileUploadTest extends TestCase
             'project_id' => $this->clientProject->id,
             'file_name' => 'client-file.pdf',
             'file_path' => "projects/{$this->clientProject->id}/client-file.pdf",
-            'file_size' => 1024,
+            'size' => 1024,
             'mime_type' => 'application/pdf',
             'user_id' => null,
         ]);
@@ -301,7 +323,7 @@ class ClientFileUploadTest extends TestCase
             'pitch_id' => $this->pitch->id,
             'file_name' => 'producer-file.mp3',
             'file_path' => "pitches/{$this->pitch->id}/producer-file.mp3",
-            'file_size' => 2048,
+            'size' => 2048,
             'mime_type' => 'audio/mpeg',
             'user_id' => $this->producer->id,
         ]);
@@ -329,8 +351,7 @@ class ClientFileUploadTest extends TestCase
             'project_id' => $this->clientProject->id,
             'file_name' => 'client-file.pdf',
             'file_path' => "projects/{$this->clientProject->id}/client-file.pdf",
-            'file_size' => 1024,
-            'size' => 1024, // Also set size for compatibility
+            'size' => 1024,
             'mime_type' => 'application/pdf',
             'user_id' => null,
         ]);
@@ -365,7 +386,7 @@ class ClientFileUploadTest extends TestCase
             'project_id' => $this->clientProject->id,
             'file_name' => 'client-brief.pdf',
             'file_path' => "projects/{$this->clientProject->id}/client-brief.pdf",
-            'file_size' => 1024,
+            'size' => 1024,
             'mime_type' => 'application/pdf',
             'user_id' => null,
         ]);
@@ -405,7 +426,7 @@ class ClientFileUploadTest extends TestCase
             'project_id' => $otherProject->id,
             'file_name' => 'other-file.pdf',
             'file_path' => "projects/{$otherProject->id}/other-file.pdf",
-            'file_size' => 1024,
+            'size' => 1024,
             'mime_type' => 'application/pdf',
             'user_id' => null,
         ]);

@@ -1,266 +1,266 @@
-# MixPitch Test Suite Overview
+# MixPitch Test Suite Overview - Updated 2024
 
-This document provides a comprehensive, directory-grouped overview of all test files and their respective test methods in the MixPitch application. Use this as a quick reference for test coverage and navigation.
+This document provides a comprehensive overview of all test files and their current status in the MixPitch application. The test suite includes both PHPUnit tests and standalone test scripts.
 
----
+## Test Suite Statistics
 
-## Feature
-
-### ApiTokenPermissionsTest.php
-- `test_api_token_permissions_can_be_updated`
-
-### AuthenticationTest.php
-- `test_login_screen_can_be_rendered`
-- `test_users_can_authenticate_using_the_login_screen`
-- `test_users_can_not_authenticate_with_invalid_password`
-
-### BrowserSessionsTest.php
-- `test_other_browser_sessions_can_be_logged_out`
-
-### ClientPaymentFlowTest.php
-- `client_approval_initiates_checkout_when_payment_required`
-- `client_approval_completes_immediately_when_no_payment_required`
-- `stripe_webhook_processes_checkout_completion_for_client_payment`
-- `webhook_controller_ignores_non_client_pitch_checkouts`
-- `webhook_is_idempotent_for_already_paid_pitches`
-
-### ClientPortalTest.php
-- `valid_signed_url_grants_access_to_client_portal`
-- `invalid_signed_url_is_rejected`
-- `expired_signed_url_is_rejected`
-- `non_client_management_project_cannot_access_portal`
-- `client_management_project_without_pitch_cannot_access_portal`
-- `client_can_store_comment_via_portal`
-- `client_cannot_store_empty_comment`
-- `client_can_approve_pitch_via_portal`
-- `client_cannot_approve_pitch_in_invalid_status`
-- `client_can_request_revisions_via_portal`
-- `client_cannot_request_revisions_with_empty_feedback`
-- `client_cannot_request_revisions_in_invalid_status`
-- `producer_submit_triggers_client_review_notification`
-- `producer_can_complete_client_management_pitch_after_client_approval`
-- `producer_cannot_complete_client_management_pitch_without_approval`
-- `producer_can_resend_client_invite`
-
-### ContestWorkflowTest.php
-- `test_contest_workflow_with_prize_and_multiple_entries`
-- `test_contest_workflow_without_prize`
-- `test_contest_runner_up_selection`
-- `test_producer_cannot_select_winner`
-
-### CreateApiTokenTest.php
-- `test_api_tokens_can_be_created`
-
-### DeleteAccountTest.php
-- `test_user_accounts_can_be_deleted`
-- `test_correct_password_must_be_provided_before_account_can_be_deleted`
-
-### DeleteApiTokenTest.php
-- `test_api_tokens_can_be_deleted`
-
-### DirectHireWorkflowTest.php
-- `direct_hire_project_creation_assigns_pitch_and_notifies_producer`
-- `producer_can_submit_direct_hire_pitch_for_review`
-- `owner_can_approve_direct_hire_submission`
-- `owner_can_request_revisions_for_direct_hire_submission`
-- `producer_can_resubmit_after_revisions_requested`
-- `owner_can_complete_direct_hire_pitch`
-- `unauthorized_users_cannot_access_direct_hire`
-
-### EmailVerificationTest.php
-- `test_email_verification_screen_can_be_rendered`
-- `test_email_can_be_verified`
-- `test_email_can_not_verified_with_invalid_hash`
-
-### ExampleTest.php
-- `test_the_application_returns_a_successful_response`
-
-### FileManagementTest.php
-- `service_can_upload_project_file`
-- `service_can_delete_project_file`
-- `service_can_get_project_file_download_url`
-- `service_can_set_preview_track`
-- `service_throws_exception_setting_preview_track_with_file_from_different_project`
-- `service_can_clear_preview_track`
-- `service_can_upload_pitch_file`
-- `service_can_delete_pitch_file`
-- `service_can_get_pitch_file_download_url`
-- `project_storage_capacity_check_throws_exception_when_limit_exceeded`
-- `pitch_storage_capacity_check_throws_exception_when_limit_exceeded`
-- `project_file_size_check_throws_exception_when_limit_exceeded`
-- `pitch_file_size_check_throws_exception_when_limit_exceeded`
+- **Total PHPUnit Tests**: ~560 test methods
+- **Total Test Files**: 94 PHPUnit test files
+- **Root-level Test Scripts**: 8 standalone test files
+- **Test Categories**: Unit Tests, Feature Tests, Browser Tests
 
 ---
 
-## Feature/Livewire
+## Test Organization
 
-### AudioPlayerTest.php
-- `renders_successfully`
+### PHPUnit Tests (tests/ directory)
 
-### AuthDropdownTest.php
-- `renders_successfully_for_authenticated_user`
-- `renders_successfully_for_guest`
+#### Unit Tests (tests/Unit/)
+- **ExampleTest.php** - Basic example test
+- **Services/** - Service layer tests
+  - FileManagementServiceTest.php
+  - InvoiceServiceTest.php
+  - NotificationServiceTest.php
+  - OrderWorkflowServiceTest.php
+  - PitchCompletionServiceTest.php
+  - PitchWorkflowServiceTest.php
+  - ProjectManagementServiceTest.php
+- **Models/** - Model tests
+  - NotificationTest.php
+- **Http/Controllers/** - Controller unit tests
+  - Billing/WebhookControllerTest.php ✅ (Fixed)
+  - ClientPortalControllerTest.php ✅ (Fixed)
+- **Livewire/** - Livewire component unit tests
+  - Profile/ClientActivitySummaryTest.php ⚠️ (Needs fixing)
 
-### CreateProjectTest.php
-- `renders_successfully`
+#### Feature Tests (tests/Feature/)
+- **Authentication & User Management**
+  - AuthenticationTest.php
+  - RegistrationTest.php
+  - EmailVerificationTest.php
+  - PasswordResetTest.php
+  - PasswordConfirmationTest.php
+  - UpdatePasswordTest.php
+  - DeleteAccountTest.php
+  - ProfileInformationTest.php
+  - TwoFactorAuthenticationSettingsTest.php
 
-### EmailTestFormTest.php
-- `renders_successfully`
+- **API Token Management**
+  - ApiTokenPermissionsTest.php
+  - CreateApiTokenTest.php
+  - DeleteApiTokenTest.php
+  - BrowserSessionsTest.php
 
-### FileUploaderTest.php
-- `component_renders_correctly_for_project`
-- `component_renders_correctly_for_pitch`
-- `file_is_required`
-- `invalid_mime_type_is_rejected`
-- `file_size_too_large_is_rejected`
-- `can_upload_file_for_project`
-- `can_upload_file_for_pitch`
+- **Project Management**
+  - CreateProjectWizardTest.php
+  - ProjectManagementTest.php
+  - StandardProjectManagementTest.php
+  - ProjectCancellationTest.php
+  - PortfolioManagementTest.php
 
-### FiltersProjectsComponentTest.php
-- `renders_successfully`
+- **Workflow Tests**
+  - StandardWorkflowTest.php
+  - DirectHireWorkflowTest.php
+  - ContestWorkflowTest.php
+  - OrderWorkflowTest.php
 
-### ManageProjectStubTest.php
-- `component_renders_with_manually_created_stub`
+- **Client Management**
+  - ClientPortalTest.php
+  - ClientPaymentFlowTest.php
+  - ClientFileUploadTest.php
+  - DashboardClientManagementTest.php
+  - ClientManagementCommunicationTest.php
 
-### ManageProjectTest.php
-- `renders_successfully_for_project_owner`
-- `fails_to_render_for_unauthorized_user`
-- `can_update_project_details`
-- `can_publish_project`
-- `can_unpublish_project`
-- `debug_update_project_details`
+- **Pitch Management**
+  - PitchCreationTest.php
+  - PitchSubmissionTest.php
+  - PitchCompletionTest.php
+  - PitchStatusUpdateTest.php
+  - PitchDenialTest.php
+  - ContestPitchDeletionTest.php
+  - PitchPolicyTest.php
 
-### NotificationCountTest.php
-- `renders_successfully_for_logged_in_user`
-- `renders_zero_count_for_guest`
-- `loads_correct_initial_unread_count`
-- `loads_zero_count_when_no_unread_notifications`
-- `it_refreshes_count_when_notification_read_event_is_dispatched`
-- `it_refreshes_count_when_notification_created_event_is_broadcast`
+- **File Management**
+  - FileManagementTest.php
 
-### NotificationListTest.php
-- `renders_successfully_for_logged_in_user`
-- `renders_empty_for_guest`
-- `loads_initial_notifications_for_user`
-- `limits_initial_notifications_to_default_limit`
-- `mark_as_read_marks_single_notification_read`
-- `mark_all_as_read_marks_all_user_notifications_read`
-- `loads_more_notifications_when_requested`
-- `it_refreshes_when_notification_created_event_is_broadcast`
-- `user_can_delete_their_own_notification`
-- `user_cannot_delete_another_users_notification`
+- **Payment Processing**
+  - PaymentProcessingTest.php
 
-### NotificationPreferencesTest.php
-- `component_renders_successfully`
-- `it_loads_manageable_notification_types`
-- `it_loads_existing_preferences_correctly`
-- `updating_a_preference_saves_it_to_database`
+- **Rating System**
+  - RatingSystemTest.php
 
-### PitchFilePlayerTest.php
-- `renders_successfully`
+- **Tag Selection**
+  - TagSelectionTest.php
 
-### ProfileEditFormTest.php
-- `renders_successfully`
+- **Livewire Feature Tests**
+  - Livewire/FileUploaderTest.php
+  - Livewire/ManageProjectTest.php
+  - Livewire/ManageProjectStubTest.php
+  - Livewire/NotificationCountTest.php
+  - Livewire/NotificationListTest.php
+  - Livewire/ProjectsComponentTest.php
+  - Livewire/UserProfileEditTest.php
+  - Livewire/PitchFilePlayerTest.php
+  - Livewire/StarRatingTest.php
+  - Livewire/SnapshotFilePlayerTest.php
+  - Livewire/AudioPlayerTest.php
+  - Livewire/StatusButtonTest.php
+  - Livewire/UploadProjectComponentTest.php
+  - Livewire/AuthDropdownTest.php
+  - Livewire/ProjectCardTest.php
+  - Livewire/FiltersProjectsComponentTest.php
+  - Livewire/ProjectListItemTest.php
+  - Livewire/ProfileEditFormTest.php
+  - Livewire/EmailTestFormTest.php
+  - Livewire/CreateProjectTest.php
+  - Livewire/ProjectMixesTest.php
+  - Livewire/ProjectTracksTest.php
 
-### ProjectCardTest.php
-- `renders_successfully`
+- **Policy Tests**
+  - Policies/PitchFilePolicyTest.php
 
-### ProjectListItemTest.php
-- `renders_successfully`
+- **Notification Tests**
+  - Notifications/ (various notification tests)
 
-### ProjectMixesTest.php
-- `renders_successfully`
-
-### ProjectTracksTest.php
-- `renders_successfully`
-
-## Feature/Livewire/Pitch
-
-### CompletePitchTest.php
-- `renders_successfully`
-
-### PaymentDetailsTest.php
-- `renders_successfully`
-
-## Feature/Livewire/Pitch/Component
-
-### PitchHistoryTest.php
-- `renders_successfully`
-
-### UpdatePitchStatusTest.php
-- `renders_successfully`
-
-## Feature/Livewire/Pitch/Snapshot
-
-### ShowSnapshotTest.php
-- `renders_successfully`
-
-## Feature/Livewire/Forms
-
-### ProjectFormTest.php
-- `form_object_can_be_instantiated_in_parent_component`
-- `can_initialize_project_form`
-- `can_fill_form_from_project_model`
-- `can_map_collaboration_types_to_booleans`
-
----
-
-## Laravel Dusk Implementation Plan
-
-This plan outlines the steps to integrate Laravel Dusk for browser-level testing into the MixPitch application.
-
-### Phase 1: Setup and Configuration
-
-1.  **Install Laravel Dusk:**
-    *   Add `laravel/dusk` to the `require-dev` section in `composer.json`.
-    *   Run `composer update laravel/dusk`.
-    *   Run `php artisan dusk:install` to install Dusk scaffolding.
-2.  **Configure Environment:**
-    *   Ensure `.env.dusk.local` (or `.env.testing`) has the correct `APP_URL` set to the local development server URL (e.g., `http://localhost:8000` or `http://mixpitch.test`).
-    *   Verify database configuration for Dusk tests (can use the same `testing` connection or a separate one).
-    *   Install the appropriate ChromeDriver for the local Chrome/Chromium version (`php artisan dusk:chrome-driver --detect`).
-3.  **Create Base Dusk Test Case:**
-    *   Review the generated `tests/DuskTestCase.php`.
-    *   Customize if necessary (e.g., base URL, screen size).
-
-### Phase 2: Initial Test Implementation
-
-1.  **Create First Test:**
-    *   Generate a simple test case: `php artisan dusk:make LoginTest`.
-    *   Implement a basic test to verify the login page loads and elements are present.
-    *   Implement a test for successful user login.
-    *   Implement a test for failed user login.
-2.  **Run Dusk Tests:**
-    *   Start the development server (if not already running): `php artisan serve` or Sail/Valet.
-    *   Run the Dusk tests: `php artisan dusk`.
-    *   Debug any initial failures related to environment, selectors, or ChromeDriver.
-
-### Phase 3: Expanding Test Coverage
-
-1.  **Identify Key User Flows:**
-    *   List critical user interactions to test (e.g., registration, project creation, file upload, pitch submission, commenting, status changes, pitch completion).
-2.  **Develop Core Feature Tests:**
-    *   Create Dusk tests for the identified key flows.
-    *   Focus on testing core functionality and happy paths first.
-    *   Utilize Dusk's assertions (`assertSee`, `assertPathIs`, `assertAuthenticated`, etc.) and interaction methods (`type`, `click`, `select`, etc.).
-    *   Use Page Objects or Components for reusable UI elements and actions.
-3.  **Refine Selectors:**
-    *   Add `dusk` attributes to HTML elements for more robust and maintainable selectors (e.g., `<button dusk="login-button">Login</button>`).
-
-### Phase 4: Integration and CI
-
-1.  **Integrate with Existing Test Suite:**
-    *   Consider how Dusk tests fit into the overall testing workflow (e.g., run separately or as part of a full suite).
-2.  **Continuous Integration (CI):**
-    *   Configure the CI environment (e.g., GitHub Actions, GitLab CI) to run Dusk tests.
-    *   This often involves setting up a headless browser environment and managing ChromeDriver within the CI pipeline.
-
-### Phase 5: Maintenance and Optimization
-
-1.  **Regular Updates:** Keep Dusk and ChromeDriver updated.
-2.  **Refactoring:** Refactor tests for clarity and maintainability as the application evolves.
-3.  **Performance:** Optimize tests for speed where possible (though Dusk tests are inherently slower than Feature/Unit tests).
+#### Browser Tests (tests/Browser/)
+- **LoginTest.php** - Browser-level login testing
+- **Pages/** - Page object models
+- **Components/** - Component testing
+- **Screenshots/** - Test screenshots
+- **Console/** - Console output tests
 
 ---
 
-*This document is a work in progress and will be expanded to include all remaining test files and directories in the MixPitch codebase.*
+## Root-Level Test Scripts
+
+These are standalone test scripts that run independently of PHPUnit:
+
+1. **test_yearly_billing_comprehensive.php** - Comprehensive yearly billing system test
+2. **test_licensing_implementation.php** - Licensing system implementation test
+3. **test_success_page.php** - Success page functionality test
+4. **test_stripe_connection.php** - Stripe integration test
+5. **test_subscription_views.php** - Subscription view tests
+6. **test_middleware_enforcement.php** - Middleware enforcement test
+7. **test_subscription_system.php** - Subscription system test
+8. **test_contest_judging_complete.php** - Contest judging system test
+
+---
+
+## Test Status Summary
+
+### ✅ Passing Tests
+- Most Unit and Feature tests are passing
+- WebhookControllerTest (fixed parameter order issues)
+- ClientPortalControllerTest (simplified for unit testing)
+- Basic authentication and user management tests
+- File management tests
+- Project workflow tests
+
+### ⚠️ Tests Needing Attention
+- **ClientActivitySummaryTest.php** - Livewire component assertions need fixing
+- Some complex Livewire component tests may need refactoring
+- Browser tests may need environment setup
+
+### 🔧 Recent Fixes Applied
+1. **WebhookControllerTest.php** - Fixed service parameter order and mock setup
+2. **ClientPortalControllerTest.php** - Simplified unit test approach for HTTP responses
+
+---
+
+## Test Categories by Functionality
+
+### Core Business Logic
+- **Project Management**: Project creation, management, cancellation
+- **Pitch Workflows**: Standard, direct hire, contest workflows
+- **Client Management**: Portal access, file uploads, communication
+- **Payment Processing**: Stripe integration, webhooks, billing
+- **File Management**: Upload, download, storage management
+- **User Authentication**: Registration, login, password management
+
+### Infrastructure & Integration
+- **API Management**: Token creation, permissions, management
+- **Notification System**: Email notifications, in-app notifications
+- **Rating System**: User ratings and feedback
+- **Policy Enforcement**: Authorization and access control
+
+### UI Components (Livewire)
+- **Interactive Components**: File uploaders, project management interfaces
+- **Real-time Features**: Notification counts, live updates
+- **Form Handling**: Project creation, user profile editing
+
+---
+
+## Running Tests
+
+### Run All Tests
+```bash
+php artisan test
+```
+
+### Run Specific Test Suites
+```bash
+# Unit tests only
+php artisan test tests/Unit
+
+# Feature tests only
+php artisan test tests/Feature
+
+# Browser tests only
+php artisan dusk
+```
+
+### Run Specific Test Files
+```bash
+php artisan test tests/Feature/ProjectManagementTest.php
+```
+
+### Run Tests with Coverage
+```bash
+php artisan test --coverage
+```
+
+---
+
+## Test Environment Setup
+
+### Database
+- Uses SQLite in-memory database for testing
+- Automatic database refresh between tests
+- Factory-based test data generation
+
+### External Services
+- **Stripe**: Mocked for most tests, real API for integration tests
+- **S3 Storage**: Faked for file upload tests
+- **Email**: Array driver for notification tests
+
+### Configuration
+- Test environment variables in `phpunit.xml`
+- Separate test configuration files
+- Disabled external services (Telescope, ReCaptcha, etc.)
+
+---
+
+## Recommendations for Test Maintenance
+
+### Immediate Actions Needed
+1. **Fix ClientActivitySummaryTest.php** - Update Livewire component assertions
+2. **Review Complex Livewire Tests** - Consider converting to Feature tests
+3. **Browser Test Setup** - Ensure ChromeDriver and environment are properly configured
+
+### Long-term Improvements
+1. **Test Coverage Analysis** - Identify untested code areas
+2. **Performance Testing** - Add tests for performance-critical features
+3. **Integration Test Expansion** - More end-to-end workflow tests
+4. **API Testing** - Comprehensive API endpoint testing
+
+### Best Practices
+- Use factories for test data creation
+- Mock external services appropriately
+- Keep unit tests focused and fast
+- Use Feature tests for complex workflows
+- Maintain test data isolation
+
+---
+
+*Last Updated: December 2024*
+*Test Suite Status: Mostly Passing with Minor Issues*

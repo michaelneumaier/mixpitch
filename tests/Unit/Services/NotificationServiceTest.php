@@ -135,7 +135,19 @@ class NotificationServiceTest extends TestCase
         $submitter = User::factory()->create();
         $pitch = Pitch::factory()->for($this->project)->for($submitter, 'user')->create();
 
+        // Ensure no existing notification preferences that might block creation
+        NotificationPreference::where('user_id', $projectOwner->id)
+            ->where('notification_type', Notification::TYPE_PITCH_SUBMITTED)
+            ->delete();
+
+        // Clear ALL existing notifications for the project owner to avoid any interference
+        Notification::where('user_id', $projectOwner->id)->delete();
+
         $notification = $this->notificationService->notifyPitchSubmitted($pitch);
+
+        // Assert that notification was created
+        $this->assertNotNull($notification, 'Notification should be created');
+        $this->assertInstanceOf(Notification::class, $notification);
 
         $this->assertDatabaseHas('notifications', [
             'user_id' => $projectOwner->id,

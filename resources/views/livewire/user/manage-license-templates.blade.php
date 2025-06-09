@@ -1,13 +1,15 @@
 <div class="space-y-6">
-    <!-- Section Header -->
-    <div class="text-center">
-        <h4 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent">
-            License Templates
-        </h4>
-        <p class="text-sm text-gray-600 mt-2">
-            Create and manage your custom license agreement templates
-        </p>
-    </div>
+    @if(!$embeddedMode)
+        <!-- Section Header -->
+        <div class="text-center">
+            <h4 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent">
+                License Templates
+            </h4>
+            <p class="text-sm text-gray-600 mt-2">
+                Create and manage your custom license agreement templates
+            </p>
+        </div>
+    @endif
 
     <!-- Template Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
