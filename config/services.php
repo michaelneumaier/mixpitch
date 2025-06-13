@@ -51,13 +51,13 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
     ],
 
-    'cloudflare' => [
-        'waveform_worker_url' => rtrim(env('CLOUDFLARE_WAVEFORM_WORKER_URL'), '/'),
-        'worker_token' => env('CLOUDFLARE_WORKER_TOKEN'),
-        'r2_bucket' => env('CLOUDFLARE_R2_BUCKET'),
-        'r2_endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
-        'r2_access_key' => env('CLOUDFLARE_R2_ACCESS_KEY'),
-        'r2_secret_key' => env('CLOUDFLARE_R2_SECRET_KEY'),
-    ],
+    // 'cloudflare' => [
+    //     'waveform_worker_url' => rtrim(env('CLOUDFLARE_WAVEFORM_WORKER_URL'), '/'),
+    //     'worker_token' => env('CLOUDFLARE_WORKER_TOKEN'),
+    //     'r2_bucket' => env('CLOUDFLARE_R2_BUCKET'),
+    //     'r2_endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
+    //     'r2_access_key' => env('CLOUDFLARE_R2_ACCESS_KEY'),
+    //     'r2_secret_key' => env('CLOUDFLARE_R2_SECRET_KEY'),
+    // ],
 
 ];

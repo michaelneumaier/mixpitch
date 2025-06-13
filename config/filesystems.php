@@ -54,6 +54,12 @@ return [
             'endpoint' => env('CF_R2_ENDPOINT'),
             'use_path_style_endpoint' => true,
             'throw' => false,
+            'options' => [
+                'http' => [
+                    'timeout' => 300, // 5 minutes for large file uploads
+                    'connect_timeout' => 60, // 1 minute to establish connection
+                ],
+            ],
         ],
 
         // 's3' => [

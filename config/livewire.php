@@ -66,7 +66,7 @@ return [
 
     'temporary_file_upload' => [
         'disk' => 's3',                          // Use S3 disk for livewire temporary uploads
-        'rules' => ['required', 'file', 'max:12288'],    // Adjust maximum upload size as needed (12MB)
+        'rules' => ['required', 'file', 'max:204800'],    // 200MB max file size (200 * 1024 KB)
         'directory' => 'livewire-tmp',           // Default directory
         'middleware' => null,                    // Middleware for upload route
         'preview_mimes' => [                     // Supported file types for temporary preview
@@ -74,7 +74,7 @@ return [
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
             'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
-        'max_upload_time' => 10,                 // Max upload time in minutes
+        'max_upload_time' => 30,                 // Max upload time in minutes (increased for large files)
         'visibility' => null,
         /*
         |--------------------------------------------------------------------------

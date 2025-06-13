@@ -142,13 +142,29 @@ class PitchFileController extends Controller
      */
     public function download(PitchFile $file)
     {
-        $this->authorize('download', $file);
+        $this->authorize('downloadFile', $file);
 
         try {
-            return $this->fileManagementService->downloadFile($file);
+            // Generate URL using the service
+            $signedUrl = $this->fileManagementService->getTemporaryDownloadUrl($file, 60);
+
+            // Log the successful download attempt
+            Log::info('Pitch file download requested', [
+                'file_id' => $file->id,
+                'file_uuid' => $file->uuid,
+                'user_id' => Auth::id(),
+                'filename' => $file->file_name
+            ]);
+
+            // Redirect to the signed URL
+            return redirect()->away($signedUrl);
         } catch (\Exception $e) {
-            Log::error('Error downloading pitch file: ' . $e->getMessage(), ['file_id' => $file->id]);
-            return redirect()->back()->with('error', 'Error downloading file: ' . $e->getMessage());
+            Log::error('Error generating download URL for pitch file', [
+                'file_id' => $file->id,
+                'file_uuid' => $file->uuid,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()->with('error', 'Unable to download file. Please try again.');
         }
     }
 }

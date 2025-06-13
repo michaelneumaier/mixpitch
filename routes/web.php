@@ -116,8 +116,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('project.uploadFile')
         ->middleware('auth');
 
-    Route::get('/pitch-files/{file}', [PitchFileController::class, 'show'])->name('pitch-files.show');
-    Route::get('/pitch-files/download/{file}', [PitchFileController::class, 'download'])
+    Route::get('/pitch-files/{file:uuid}', [PitchFileController::class, 'show'])->name('pitch-files.show');
+    Route::get('/pitch-files/download/{file:uuid}', [PitchFileController::class, 'download'])
         ->name('pitch-files.download')
         ->middleware(['auth', 'pitch.file.access']);
 
@@ -689,7 +689,7 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
     }
 })->middleware('auth');
 // Secure file download routes
-Route::get('/download/pitch-file/{id}', [App\Http\Controllers\FileDownloadController::class, 'downloadPitchFile'])
+Route::get('/download/pitch-file/{file:uuid}', [App\Http\Controllers\FileDownloadController::class, 'downloadPitchFile'])
     ->name('download.pitch-file')
     ->middleware('auth');
 

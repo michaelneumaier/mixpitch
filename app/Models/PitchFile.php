@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 
 class PitchFile extends Model
 {
@@ -24,6 +25,7 @@ class PitchFile extends Model
         'note',
         'user_id',
         'size',
+        'uuid',
         'waveform_peaks',
         'waveform_processed',
         'waveform_processed_at',
@@ -37,6 +39,28 @@ class PitchFile extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Boot the model and generate UUID on creation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = Str::uuid();
+            }
+        });
+    }
+
+    /**
+     * Get the route key for the model (use UUID instead of ID)
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
 
     /**
      * Format bytes to human-readable format

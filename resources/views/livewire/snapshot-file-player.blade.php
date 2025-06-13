@@ -26,7 +26,7 @@
                 <i class="fas fa-eye mr-1"></i> View
             </a>
             @if($showDownloadButton)
-            <a href="{{ route('download.pitch-file', $file->id) }}"
+            <a href="{{ route('download.pitch-file', $file->uuid) }}"
                 class="btn btn-xs bg-green-500 hover:bg-green-700 text-white">
                 <i class="fas fa-download mr-1"></i> Download
             </a>

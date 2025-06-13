@@ -24,23 +24,22 @@ class FileDownloadController extends Controller
     /**
      * Handle secure downloads for pitch files
      *
-     * @param  int  $id
+     * @param  \App\Models\PitchFile  $file
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function downloadPitchFile($id)
+    public function downloadPitchFile(PitchFile $file)
     {
-        $file = PitchFile::findOrFail($id);
-
         try {
             // Authorization: Use Policy
-            $this->authorize('download', $file);
+            $this->authorize('downloadFile', $file);
 
             // Generate URL using the service
             $signedUrl = $this->fileManagementService->getTemporaryDownloadUrl($file, Auth::user());
 
             // Log the successful download attempt
             Log::info('Pitch file download requested', [
-                'file_id' => $id,
+                'file_id' => $file->id,
+                'file_uuid' => $file->uuid,
                 'user_id' => Auth::id(),
                 'filename' => $file->file_name
             ]);
@@ -48,11 +47,12 @@ class FileDownloadController extends Controller
             // Redirect to the signed URL
             return redirect()->away($signedUrl);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-             Log::warning('Unauthorized attempt to download pitch file', ['file_id' => $file->id, 'user_id' => Auth::id()]);
+             Log::warning('Unauthorized attempt to download pitch file', ['file_id' => $file->id, 'file_uuid' => $file->uuid, 'user_id' => Auth::id()]);
              abort(403, 'You are not authorized to download this file.');
         } catch (\Exception $e) {
             Log::error('Error generating download URL for pitch file', [
-                'file_id' => $id,
+                'file_id' => $file->id,
+                'file_uuid' => $file->uuid,
                 'error' => $e->getMessage()
             ]);
             return back()->with('error', 'Unable to download file. Please try again.');

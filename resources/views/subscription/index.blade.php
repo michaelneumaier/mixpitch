@@ -279,13 +279,13 @@
                                     <div class="flex items-center">
                                         <i class="fas fa-check text-green-500 mr-3"></i>
                                         <span class="text-gray-700">
-                                            {{ $limits->max_projects_owned ? $limits->max_projects_owned . ' Project' . ($limits->max_projects_owned > 1 ? 's' : '') : 'Unlimited Projects' }}
+                                            {{ ($limits && $limits->max_projects_owned) ? $limits->max_projects_owned . ' Project' . ($limits->max_projects_owned > 1 ? 's' : '') : 'Unlimited Projects' }}
                                         </span>
                                     </div>
                                     <div class="flex items-center">
                                         <i class="fas fa-check text-green-500 mr-3"></i>
                                         <span class="text-gray-700">
-                                            {{ $limits->max_active_pitches ? $limits->max_active_pitches . ' Active Pitches' : 'Unlimited Active Pitches' }}
+                                            {{ ($limits && $limits->max_active_pitches) ? $limits->max_active_pitches . ' Active Pitches' : 'Unlimited Active Pitches' }}
                                         </span>
                                     </div>
                                     <div class="flex items-center">

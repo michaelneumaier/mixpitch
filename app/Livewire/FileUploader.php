@@ -95,6 +95,9 @@ class FileUploader extends Component
     public function saveFile()
     {
         try {
+            // Increase execution time for large file uploads
+            set_time_limit(300); // 5 minutes for large file uploads
+            
             // Validate the file
             $this->validate();
             
@@ -132,6 +135,18 @@ class FileUploader extends Component
                 'mime' => $mimeType,
                 'size' => $size
             ]);
+            
+            // For very large files (over 50MB), use async processing
+            $largeSizeThreshold = 50 * 1024 * 1024; // 50MB
+            $useAsyncProcessing = $size > $largeSizeThreshold;
+            
+            if ($useAsyncProcessing) {
+                Log::info("FileUploader: Large file detected, using async processing", [
+                    'filename' => $originalFilename,
+                    'size' => $size,
+                    'threshold' => $largeSizeThreshold
+                ]);
+            }
             
             try {
                 // Test S3 connection first (but only in production)
@@ -171,40 +186,61 @@ class FileUploader extends Component
                 
                 Log::info("FileUploader: Confirmed locally stored temp file exists at {$tmpPath}");
                 
-                // Now create an UploadedFile instance from the locally stored temporary file
-                $uploadedFile = new UploadedFile(
-                    $tmpPath,
-                    $originalFilename, // Use the original name for the UploadedFile object
-                    $mimeType,
-                    null,
-                    true // Mark as test so UploadedFile doesn't try to move it
-                );
+                if ($useAsyncProcessing) {
+                    // For large files, dispatch to queue for background processing
+                    \App\Jobs\ProcessLargeFileUpload::dispatch(
+                        $this->model,
+                        $storedPathRelative,
+                        $originalFilename,
+                        $user,
+                        $this->model instanceof Project ? ['uploaded_by_client' => false] : []
+                    );
+                    
+                    Log::info("FileUploader: Large file queued for async processing", [
+                        'filename' => $originalFilename,
+                        'temp_path' => $storedPathRelative
+                    ]);
+                    
+                    // Success feedback for async processing
+                    Toaster::success("Large file {$originalFilename} is being processed in the background. You'll be notified when it's ready.");
+                    
+                } else {
+                    // For smaller files, process synchronously as before
+                    // Now create an UploadedFile instance from the locally stored temporary file
+                    $uploadedFile = new UploadedFile(
+                        $tmpPath,
+                        $originalFilename, // Use the original name for the UploadedFile object
+                        $mimeType,
+                        null,
+                        true // Mark as test so UploadedFile doesn't try to move it
+                    );
+                    
+                    Log::info("FileUploader: Created standard UploadedFile from locally stored temp file", [
+                        'path' => $tmpPath,
+                        'originalName' => $originalFilename,
+                        'mime' => $uploadedFile->getMimeType(),
+                        'size' => $uploadedFile->getSize()
+                    ]);
                 
-                Log::info("FileUploader: Created standard UploadedFile from locally stored temp file", [
-                    'path' => $tmpPath,
-                    'originalName' => $originalFilename,
-                    'mime' => $uploadedFile->getMimeType(),
-                    'size' => $uploadedFile->getSize()
-                ]);
-            
-                // Customize the stored filename if needed (currently not used, FileManagementService uses original)
-                $customFilename = $originalFilename;
+                    // Customize the stored filename if needed (currently not used, FileManagementService uses original)
+                    $customFilename = $originalFilename;
 
-                // --- Pass to FileManagementService --- 
-                if ($this->model instanceof Project) {
-                    $this->fileManagementService->uploadProjectFile($this->model, $uploadedFile, $user);
-                    Log::info("FileUploader: Successfully uploaded project file {$originalFilename}");
-                } elseif ($this->model instanceof Pitch) {
-                    $this->fileManagementService->uploadPitchFile($this->model, $uploadedFile, $user);
-                    Log::info("FileUploader: Successfully uploaded pitch file {$originalFilename}");
+                    // --- Pass to FileManagementService --- 
+                    if ($this->model instanceof Project) {
+                        $this->fileManagementService->uploadProjectFile($this->model, $uploadedFile, $user);
+                        Log::info("FileUploader: Successfully uploaded project file {$originalFilename}");
+                    } elseif ($this->model instanceof Pitch) {
+                        $this->fileManagementService->uploadPitchFile($this->model, $uploadedFile, $user);
+                        Log::info("FileUploader: Successfully uploaded pitch file {$originalFilename}");
+                    }
+                    
+                    // --- Cleanup --- 
+                    Log::info("FileUploader: Deleting locally stored temporary file.", ['path' => $tmpPath]);
+                    Storage::disk('local')->delete($storedPathRelative); // Delete using relative path
+                    
+                    // Success feedback for sync processing
+                    Toaster::success("Successfully uploaded {$originalFilename}");
                 }
-                
-                // --- Cleanup --- 
-                Log::info("FileUploader: Deleting locally stored temporary file.", ['path' => $tmpPath]);
-                Storage::disk('local')->delete($storedPathRelative); // Delete using relative path
-                
-                // Success feedback
-                Toaster::success("Successfully uploaded {$originalFilename}");
                 
                 // Clear the file input and progress
                 $this->reset('file');

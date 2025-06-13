@@ -110,7 +110,7 @@ class GenerateAudioWaveform implements ShouldQueue
     }
 
     /**
-     * Process audio file with external service to extract duration and generate waveform peaks.
+     * Process audio file with external service
      *
      * @param string $fileUrl
      * @return array|null
@@ -118,28 +118,20 @@ class GenerateAudioWaveform implements ShouldQueue
     protected function processAudioWithExternalService($fileUrl)
     {
         try {
-            // Try Cloudflare Worker first, then fall back to AWS Lambda
-            $cloudflareWorkerUrl = config('services.cloudflare.waveform_worker_url', null);
+            // Use AWS Lambda for waveform generation
             $lambdaUrl = config('services.aws.lambda_audio_processor_url', null);
             
-            // Prefer Cloudflare Worker if configured
-            if ($cloudflareWorkerUrl) {
-                Log::info('Using Cloudflare Worker for waveform generation');
-                return $this->processAudioWithCloudflareWorker($fileUrl);
-            }
-            
-            // Fall back to AWS Lambda if Cloudflare is not configured
             if ($lambdaUrl) {
                 Log::info('Using AWS Lambda for waveform generation');
                 return $this->processAudioWithAwsLambda($fileUrl);
             }
             
-            // If neither is configured, use fallback method
-            Log::warning('No external audio processor configured, using fallback method');
+            // If Lambda is not configured, use fallback method
+            Log::warning('AWS Lambda audio processor not configured, using fallback method');
             return $this->generateFallbackWaveformData();
             
         } catch (\Exception $e) {
-            Log::error('Error calling external audio processor', [
+            Log::error('Error calling AWS Lambda audio processor', [
                 'error' => $e->getMessage(),
                 'file_url' => $fileUrl,
                 'trace' => $e->getTraceAsString()
@@ -151,131 +143,7 @@ class GenerateAudioWaveform implements ShouldQueue
     }
 
     /**
-     * Process audio file with Cloudflare Worker
-     *
-     * @param string $fileUrl
-     * @return array|null
-     */
-    protected function processAudioWithCloudflareWorker($fileUrl)
-    {
-        try {
-            $workerUrl = config('services.cloudflare.waveform_worker_url');
-            
-            // Properly encode the URL - ensure spaces are encoded as %20
-            $encodedFileUrl = str_replace(' ', '%20', $fileUrl);
-            
-            // Make sure URL is properly formatted
-            if (!filter_var($encodedFileUrl, FILTER_VALIDATE_URL)) {
-                Log::error('Invalid file URL format even after encoding', [
-                    'original_url' => $fileUrl,
-                    'encoded_url' => $encodedFileUrl
-                ]);
-                return $this->generateFallbackWaveformData();
-            }
-            
-            Log::info('Calling Cloudflare Worker for audio processing', [
-                'worker_url' => $workerUrl,
-                'file_url' => $fileUrl,
-                'encoded_file_url' => $encodedFileUrl,
-                'file_path' => $this->pitchFile->file_path
-            ]);
-            
-            // Make the request to the Cloudflare Worker
-            $response = Http::timeout(60)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'Authorization' => 'Bearer ' . config('services.cloudflare.worker_token', ''),
-                ])
-                ->post($workerUrl, [
-                    'file_url' => $encodedFileUrl,
-                    'peaks_count' => 200,
-                ]);
-            
-            // Log complete response for debugging
-            Log::info('Cloudflare Worker response details', [
-                'status' => $response->status(),
-                'headers' => $response->headers(),
-                'body_excerpt' => substr($response->body(), 0, 1000)
-            ]);
-            
-            if ($response->successful()) {
-                $responseData = $response->json();
-                
-                // Debug: Log the exact response structure
-                Log::info('Cloudflare Worker response structure debug', [
-                    'response_keys' => array_keys($responseData ?? []),
-                    'has_duration' => isset($responseData['duration']),
-                    'has_waveform_peaks' => isset($responseData['waveform_peaks']),
-                    'duration_value' => $responseData['duration'] ?? 'not set',
-                    'waveform_peaks_count' => isset($responseData['waveform_peaks']) ? count($responseData['waveform_peaks']) : 'not set'
-                ]);
-                
-                // Check for error messages in the data
-                if (isset($responseData['error'])) {
-                    Log::error('Cloudflare Worker returned error in response', [
-                        'error' => $responseData['error']
-                    ]);
-                    
-                    return $this->generateFallbackWaveformData();
-                }
-                
-                // Verify we have the expected data
-                if (isset($responseData['duration']) && isset($responseData['waveform_peaks'])) {
-                    Log::info('Successfully processed audio file with Cloudflare Worker', [
-                        'file_id' => $this->pitchFile->id,
-                        'duration' => $responseData['duration'],
-                        'peaks_count' => count($responseData['waveform_peaks']),
-                        'processing_time_ms' => $responseData['metadata']['processing_time_ms'] ?? null
-                    ]);
-                    
-                    return [
-                        'duration' => $responseData['duration'],
-                        'waveform_peaks' => $responseData['waveform_peaks']
-                    ];
-                } else {
-                    Log::warning('Cloudflare Worker response missing duration or peaks data', [
-                        'response_data' => $responseData
-                    ]);
-                }
-            }
-            
-            Log::error('Cloudflare Worker audio processing failed', [
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
-            
-            // Fallback to AWS Lambda if Cloudflare fails
-            $lambdaUrl = config('services.aws.lambda_audio_processor_url', null);
-            if ($lambdaUrl) {
-                Log::info('Falling back to AWS Lambda after Cloudflare Worker failure');
-                return $this->processAudioWithAwsLambda($fileUrl);
-            }
-            
-            // Fallback to estimation method
-            return $this->generateFallbackWaveformData();
-            
-        } catch (\Exception $e) {
-            Log::error('Error calling Cloudflare Worker audio processor', [
-                'error' => $e->getMessage(),
-                'file_url' => $fileUrl,
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            // Try AWS Lambda as fallback
-            $lambdaUrl = config('services.aws.lambda_audio_processor_url', null);
-            if ($lambdaUrl) {
-                Log::info('Falling back to AWS Lambda after Cloudflare Worker error');
-                return $this->processAudioWithAwsLambda($fileUrl);
-            }
-            
-            // Fallback to estimation method
-            return $this->generateFallbackWaveformData();
-        }
-    }
-
-    /**
-     * Process audio file with AWS Lambda (legacy method)
+     * Process audio file with AWS Lambda
      *
      * @param string $fileUrl
      * @return array|null

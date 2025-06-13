@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Pitch\Component;
 
-use App\Facades\Toaster;
+use Masmerise\Toaster\Toaster;
 use App\Models\Pitch;
 use Livewire\Component;
 

@@ -16,7 +16,7 @@
         <!-- Enhanced File Header with Glass Morphism -->
         <div class="relative z-10 bg-gradient-to-r from-purple-50/90 to-indigo-50/90 backdrop-blur-sm border-b border-purple-200/50">
             <div class="px-6 py-5">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex flex-row justify-between items-start md:items-center gap-4">
                     <!-- Enhanced File Info Section -->
                     <div class="flex items-center space-x-4">
                         <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-lg">
@@ -42,10 +42,11 @@
                         {{-- Enhanced controls for dedicated view --}}
                         <div class="flex space-x-3 items-center">
                             <!-- Download Button -->
-                            <a href="{{ route('pitch-files.download', ['file' => $file->id]) }}" 
-                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                <i class="fas fa-download mr-2"></i> Download
-                            </a>
+                            <!-- <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
+                               class="inline-flex items-center px-3 sm:px-2 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                <i class="fas fa-download md:px-2"></i>
+                                <span class="hidden md:inline px-2">Download</span>
+                            </a> -->
                             
                             @if(auth()->check() && auth()->user()->can('delete', $file))
                                 <!-- Delete Button -->
@@ -55,11 +56,7 @@
                                 </button>
                             @endif
                             
-                            <!-- Back to Pitch Button -->
-                            <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($file->pitch) }}" 
-                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                <i class="fas fa-arrow-left mr-2"></i> Back to Pitch
-                            </a>
+
                         </div>
                     @endif
                 </div>
@@ -67,12 +64,44 @@
         </div>
 
         <!-- Enhanced Audio Content Container -->
-        <div class="relative z-10 p-6 lg:p-8">
-            <!-- Enhanced Waveform Container with Glass Morphism -->
-            <div class="waveform-container">
-                <div class="relative bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-6 shadow-lg">
+        <div class="relative z-10 p-4 lg:p-6 flex flex-row items-start gap-6">
+                         <!-- Play Controls Container -->
+             <div class="flex flex-col items-center min-w-[80px] h-32 relative" wire:ignore>
+                                <!-- Enhanced Play/Pause Button - Centered to waveform -->
+                                <button id="playPauseBtn" 
+                                        x-data="{ isPlaying: false }"
+                                        x-on:click="isPlaying = !isPlaying; $dispatch('toggle-playback', { playing: isPlaying })"
+                                        x-on:playback-state-changed.window="isPlaying = $event.detail.playing"
+                                        class="group absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center">
+                                    
+                                    <!-- Animated Background Effect -->
+                                    <div class="absolute inset-0 bg-white/20 rounded-2xl transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
+                                    
+                                    <!-- Play icon (shown when paused) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="!isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+
+                                    <!-- Pause icon (shown when playing) -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+
+                                <!-- Enhanced Time Display - Bottom aligned -->
+                                <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-center">
+                                    <div class="flex items-center justify-center space-x-1 text-sm font-medium font-mono">
+                                        <div id="currentTime" class="text-purple-700 w-12 text-center">00:00</div>
+                                        <div class="text-gray-400">/</div>
+                                        <div id="totalDuration" class="text-gray-600 w-12 text-center">00:00</div>
+                                    </div>
+                                </div>
+                            </div>
+            <!-- Waveform Container -->
+            <div class="waveform-container flex-grow">
                     <!-- Waveform Header -->
-                    <div class="flex items-center mb-4">
+                    <!-- <div class="flex items-center mb-4">
                         <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg mr-3">
                             <i class="fas fa-wave-square text-white text-sm"></i>
                         </div>
@@ -82,10 +111,27 @@
                                 <i class="fas fa-music mr-1"></i>High Quality
                             </span>
                         </div>
-                    </div>
-
+                    </div> -->                            
                     <!-- Enhanced Waveform Visualization -->
                     <div class="relative">
+                        <!-- Floating Add Comment Button (follows playhead) -->
+                        <div id="floating-comment-btn" 
+                             class="absolute -top-6 left-0 transform -translate-x-1/2 opacity-0 transition-all duration-200 z-20 pointer-events-auto">
+                            <button type="button" 
+                                    @click="$wire.toggleCommentForm(wavesurfer ? wavesurfer.getCurrentTime() : 0)"
+                                    class="group w-7 h-7 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 flex items-center justify-center"
+                                    title="Add comment at current position">
+                                <i class="fas fa-plus text-xs group-hover:scale-110 transition-transform"></i>
+                            </button>
+                            <!-- Tooltip for desktop -->
+                            <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                <div class="bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                    Add comment here
+                                </div>
+                                <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                        </div>
+                        
                         <div id="waveform" class="h-32 rounded-xl overflow-hidden bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/50 shadow-inner" wire:ignore>
                             <!-- Waveform will be rendered here -->
                         </div>
@@ -142,61 +188,10 @@
                     </div>
 
                     <!-- Enhanced Timeline -->
-                    <div id="waveform-timeline" class="h-8 mt-4 relative bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-lg" wire:ignore>
-                        <!-- Timeline will be rendered here -->
-                    </div>
+                    <!-- <div id="waveform-timeline" class="h-8 mt-4 relative bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-lg" wire:ignore>
+                    </div> -->
 
-                    <!-- Enhanced Playback Controls with Glass Morphism - Now integrated -->
-                    <div class="bg-gradient-to-r from-white/90 to-purple-50/90 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-6 mt-6 shadow-lg">
-                        <div class="flex items-center justify-between">
-                            <!-- Left: Play Controls & Time Display -->
-                            <div class="flex items-center space-x-4" wire:ignore>
-                                <!-- Enhanced Play/Pause Button -->
-                                <button id="playPauseBtn" 
-                                        x-data="{ isPlaying: false }"
-                                        x-on:click="isPlaying = !isPlaying; $dispatch('toggle-playback', { playing: isPlaying })"
-                                        x-on:playback-state-changed.window="isPlaying = $event.detail.playing"
-                                        class="group relative w-14 h-14 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center">
-                                    
-                                    <!-- Animated Background Effect -->
-                                    <div class="absolute inset-0 bg-white/20 rounded-2xl transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
-                                    
-                                    <!-- Play icon (shown when paused) -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-7 w-7 ml-1" x-show="!isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
 
-                                    <!-- Pause icon (shown when playing) -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-7 w-7" x-show="isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </button>
-
-                                <!-- Enhanced Time Display -->
-                                <div class="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl px-4 py-2">
-                                    <div class="flex items-center space-x-2 text-sm font-medium">
-                                        <i class="fas fa-clock text-purple-600"></i>
-                                        <div id="currentTime" class="text-purple-700">00:00</div>
-                                        <div class="text-gray-400">/</div>
-                                        <div id="totalDuration" class="text-gray-600">00:00</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Right: Add Comment Button -->
-                            <div class="flex items-center">
-                                <button type="button" 
-                                        @click="$wire.toggleCommentForm(wavesurfer.getCurrentTime())"
-                                        class="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-comment-plus mr-2 group-hover:scale-110 transition-transform"></i>
-                                        Add Comment at <span class="ml-1 font-semibold" id="current-time-display">Current Position</span>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Enhanced Add Comment Form -->
                     <div x-data="{ show: @entangle('showAddCommentForm') }" x-show="show" x-cloak
@@ -242,7 +237,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
             </div>
         </div>
     </div>
@@ -267,7 +261,7 @@
                     </div>
                 </div>
                 
-                <!-- Comment Stats -->
+                <!-- Comment Stats & Actions -->
                 <div class="flex items-center space-x-4">
                     @php
                         $resolvedCount = $comments->where('resolved', true)->count();
@@ -285,6 +279,13 @@
                         <i class="fas fa-clock mr-1"></i>{{ $pendingCount }} Pending
                     </div>
                     @endif
+                    
+                    <!-- Add Comment Button -->
+                    <button type="button" 
+                            @click="$wire.toggleCommentForm(wavesurfer ? wavesurfer.getCurrentTime() : 0)"
+                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                        <i class="fas fa-comment-plus mr-2"></i>Add Comment
+                    </button>
                 </div>
             </div>
         </div>
@@ -676,22 +677,25 @@
         // Track current timestamp in a variable without sending to server
         let currentPlayerTime = 0;
 
-        // Initialize WaveSurfer with enhanced styling
+        // Initialize WaveSurfer
         wavesurfer = WaveSurfer.create({
             container: '#waveform',
-            waveColor: 'rgba(168, 85, 247, 0.4)',
-            progressColor: 'linear-gradient(90deg, #7c3aed, #4f46e5)',
-            cursorColor: '#4f46e5',
-            barWidth: 3,
-            barRadius: 4,
-            cursorWidth: 2,
+            waveColor: 'rgba(168, 85, 247, 0.6)',
+            progressColor: 'rgba(139, 92, 246, 0.8)',
+            cursorColor: 'rgba(99, 102, 241, 0.9)',
+            barWidth: 2,
+            barRadius: 1,
+            responsive: true,
             height: 128,
             normalize: true,
-            responsive: true,
-            fillParent: true,
-            splitChannels: false,
-            dragToSeek: true,
+            backend: 'WebAudio',
+            mediaControls: false
         });
+
+        // Initialize button position early
+        setTimeout(() => {
+            updateFloatingButtonPosition();
+        }, 100);
 
         // Load audio file
         const audioUrl = @js($file->fullFilePath);
@@ -846,6 +850,9 @@
             document.getElementById('totalDuration').textContent = formatTime(persistedDuration);
             document.getElementById('waveform').classList.add('loaded');
 
+            // Initialize floating button position
+            updateFloatingButtonPosition();
+
             // Prevent duplicate handling if loading audio after setting peaks
             if (!readyFired) {
                 readyFired = true;
@@ -868,6 +875,102 @@
             }
         });
 
+        // Smooth button position updates
+        let buttonUpdateAnimationId = null;
+        
+        const updateFloatingButtonPosition = () => {
+            const floatingBtn = document.getElementById('floating-comment-btn');
+            const waveformContainer = document.getElementById('waveform');
+            
+            if (floatingBtn && waveformContainer && wavesurfer) {
+                let buttonPosition = 0; // Start at true 0%
+                
+                // Try multiple selectors to find WaveSurfer's cursor
+                const possibleCursors = [
+                    waveformContainer.querySelector('.wavesurfer-cursor'),
+                    waveformContainer.querySelector('[style*="cursor"]'),
+                    waveformContainer.querySelector('wave'),
+                    ...waveformContainer.querySelectorAll('div')
+                ].filter(el => el && el.style && el.style.left);
+                
+                let cursorElement = null;
+                for (const cursor of possibleCursors) {
+                    if (cursor.style.left && cursor.style.left.includes('%')) {
+                        cursorElement = cursor;
+                        break;
+                    }
+                }
+                
+                if (cursorElement) {
+                    // Extract percentage from cursor's left style
+                    const leftStyle = cursorElement.style.left;
+                    const percentage = parseFloat(leftStyle.replace('%', ''));
+                    
+                    if (!isNaN(percentage)) {
+                        // Use the exact cursor position without artificial limits
+                        buttonPosition = percentage;
+                        
+                        console.log('Button position update (cursor-sync):', {
+                            cursorLeft: leftStyle,
+                            buttonPosition: buttonPosition.toFixed(2),
+                            isPlaying: wavesurfer.isPlaying()
+                        });
+                    }
+                } else {
+                    // Fallback to time-based calculation
+                    const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
+                    if (duration > 0) {
+                        const currentTime = wavesurfer.getCurrentTime() || 0;
+                        // Use exact percentage without artificial limits
+                        buttonPosition = (currentTime / duration) * 100;
+                        
+                        console.log('Button position update (time-based):', {
+                            currentTime,
+                            duration,
+                            buttonPosition: buttonPosition.toFixed(2),
+                            isPlaying: wavesurfer.isPlaying()
+                        });
+                    }
+                }
+                
+                // Only apply minimal edge protection to prevent button from going completely off-screen
+                buttonPosition = Math.max(0, Math.min(100, buttonPosition));
+                
+                floatingBtn.style.left = `${buttonPosition}%`;
+                
+                // Update opacity
+                if (wavesurfer.isPlaying()) {
+                    floatingBtn.style.opacity = '1';
+                } else {
+                    floatingBtn.style.opacity = '0.7';
+                }
+            }
+        };
+        
+        const startButtonPositionUpdates = () => {
+            if (buttonUpdateAnimationId) return; // Already running
+            
+            const animate = () => {
+                updateFloatingButtonPosition();
+                if (wavesurfer && wavesurfer.isPlaying()) {
+                    buttonUpdateAnimationId = requestAnimationFrame(animate);
+                } else {
+                    buttonUpdateAnimationId = null;
+                }
+            };
+            
+            buttonUpdateAnimationId = requestAnimationFrame(animate);
+        };
+        
+        const stopButtonPositionUpdates = () => {
+            if (buttonUpdateAnimationId) {
+                cancelAnimationFrame(buttonUpdateAnimationId);
+                buttonUpdateAnimationId = null;
+            }
+            // Update position one final time when stopped
+            updateFloatingButtonPosition();
+        };
+
         // Ensure current time display is always accurate
         const updateTimeDisplay = () => {
             if (!wavesurfer) return;
@@ -888,15 +991,17 @@
             document.getElementById('currentTime').textContent = formatTime(currentTime);
             document.getElementById('totalDuration').textContent = formatTime(duration);
             
-            // Update current time display in add comment button
-            const currentTimeDisplay = document.getElementById('current-time-display');
-            if (currentTimeDisplay) {
-                currentTimeDisplay.textContent = formatTime(currentTime);
+            // Update floating button position if not playing (when playing, it's handled by animation frame)
+            if (!wavesurfer || !wavesurfer.isPlaying()) {
+                updateFloatingButtonPosition();
             }
         };
 
         wavesurfer.on('play', () => {
             console.log('WaveSurfer play event');
+
+            // Start smooth button position updates
+            startButtonPositionUpdates();
 
             // Notify Alpine.js about the state change
             window.dispatchEvent(new CustomEvent('playback-state-changed', {
@@ -909,6 +1014,9 @@
 
         wavesurfer.on('pause', () => {
             console.log('WaveSurfer pause event');
+
+            // Stop smooth button position updates
+            stopButtonPositionUpdates();
 
             // Explicitly grab the current time when pausing and store it
             const pausePosition = wavesurfer.getCurrentTime();
@@ -932,6 +1040,9 @@
         wavesurfer.on('finish', () => {
             console.log('WaveSurfer finish event');
 
+            // Stop smooth button position updates
+            stopButtonPositionUpdates();
+
             // Reset last played position to the start or end? Let's set to end.
              lastPlayedPosition = persistedDuration || 0;
              updateTimeDisplay(); // Show end time
@@ -944,6 +1055,37 @@
             // Notify Livewire
             // dispatchLivewireEvent('playbackFinished'); // Decide if needed
         });
+
+        // Update button position when user seeks (drags playhead)
+        wavesurfer.on('seek', () => {
+            console.log('WaveSurfer seek event');
+            
+            // Update button position immediately when seeking
+            updateFloatingButtonPosition();
+            
+            // Also update time display
+            updateTimeDisplay();
+        });
+
+        // Also listen for interaction events as backup
+        wavesurfer.on('interaction', () => {
+            console.log('WaveSurfer interaction event');
+            updateFloatingButtonPosition();
+            updateTimeDisplay();
+        });
+
+        // Add click listener to waveform as additional backup
+        const waveformClickTarget = document.getElementById('waveform');
+        if (waveformClickTarget) {
+            waveformClickTarget.addEventListener('click', () => {
+                console.log('Waveform click event');
+                // Small delay to ensure WaveSurfer has processed the click
+                setTimeout(() => {
+                    updateFloatingButtonPosition();
+                    updateTimeDisplay();
+                }, 50);
+            });
+        }
 
         // Update time display during playback
         wavesurfer.on('audioprocess', () => {
@@ -1202,6 +1344,43 @@
                      }
                  }
              });
+        }
+        
+        // Keyboard shortcut support
+        document.addEventListener('keydown', function(event) {
+            // Only trigger if not typing in an input/textarea and 'C' key is pressed
+            if (event.key.toLowerCase() === 'c' && 
+                !event.target.matches('input, textarea, [contenteditable]') &&
+                !event.ctrlKey && !event.metaKey && !event.altKey) {
+                
+                event.preventDefault();
+                
+                // Get current time and trigger comment form
+                const currentTime = wavesurfer ? wavesurfer.getCurrentTime() : 0;
+                
+                // Dispatch to Livewire component
+                if (window.Livewire) {
+                    window.Livewire.find('{{ $this->getId() }}').call('toggleCommentForm', currentTime);
+                }
+            }
+        });
+        
+        // Add hover effects for waveform
+        const waveformHoverTarget = document.getElementById('waveform');
+        const floatingBtn = document.getElementById('floating-comment-btn');
+        
+        if (waveformHoverTarget && floatingBtn) {
+            waveformHoverTarget.addEventListener('mouseenter', function() {
+                if (!wavesurfer.isPlaying()) {
+                    floatingBtn.style.opacity = '1';
+                }
+            });
+            
+            waveformHoverTarget.addEventListener('mouseleave', function() {
+                if (!wavesurfer.isPlaying()) {
+                    floatingBtn.style.opacity = '0.7';
+                }
+            });
         }
     });
 </script>

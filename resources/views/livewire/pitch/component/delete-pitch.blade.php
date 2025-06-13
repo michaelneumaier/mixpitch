@@ -16,7 +16,10 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div x-data="{}" x-show="$wire.showDeleteConfirmation" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;"
+    @if($showDeleteConfirmation)
+    <div class="fixed inset-0 z-50 overflow-y-auto"
+         x-data="{}"
+         x-show="true"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -43,8 +46,12 @@
                                 </p>
                                 <div class="mt-4">
                                     <label for="delete-confirm" class="block text-sm font-medium text-gray-700">Type "delete" to confirm</label>
-                                    <input type="text" id="delete-confirm" wire:model.defer="deleteConfirmInput" 
-                                           class="input input-bordered w-full mt-1">
+                                    <input type="text" 
+                                           id="delete-confirm" 
+                                           wire:model.live="deleteConfirmInput" 
+                                           x-init="$nextTick(() => $el.focus())"
+                                           class="input input-bordered w-full mt-1"
+                                           placeholder="Type 'delete' to confirm">
                                 </div>
                             </div>
                         </div>
@@ -63,4 +70,5 @@
             </div>
         </div>
     </div>
+    @endif
 </div>

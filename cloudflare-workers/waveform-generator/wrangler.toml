@@ -3,15 +3,16 @@ main = "src/index.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Worker configuration
+# Worker configuration for enhanced audio processing
+# CPU limits require paid plan
 # [limits]
-# cpu_ms = 30000  # CPU limits require paid plan
+# cpu_ms = 30000
 
 # R2 bucket binding for audio files
 [[r2_buckets]]
 binding = "AUDIO_BUCKET"
-bucket_name = "mixpitch-prod"
-preview_bucket_name = "mixpitch-prod"
+bucket_name = "mixpitch-dev"
+preview_bucket_name = "mixpitch-dev"
 
 # Environment variables
 [vars]
@@ -19,20 +20,21 @@ ENVIRONMENT = "production"
 MAX_FILE_SIZE_MB = "50"
 DEFAULT_PEAKS_COUNT = "200"
 ENABLE_LOGGING = "true"
+AUDIO_PROCESSOR_TYPE = "enhanced"
 
 # Staging environment
 [env.staging]
-name = "mixpitch-waveform-generator-staging"
-vars = { ENVIRONMENT = "staging", ENABLE_LOGGING = "true" }
+name = "mixpitch-waveform-generator"
+vars = { ENVIRONMENT = "staging", ENABLE_LOGGING = "true", MAX_FILE_SIZE_MB = "50", DEFAULT_PEAKS_COUNT = "200", AUDIO_PROCESSOR_TYPE = "enhanced" }
 
 [[env.staging.r2_buckets]]
 binding = "AUDIO_BUCKET"
-bucket_name = "mixpitch-audio-files-staging"
+bucket_name = "mixpitch-dev"
 
 # Development environment
 [env.development]
 name = "mixpitch-waveform-generator-dev"
-vars = { ENVIRONMENT = "development", ENABLE_LOGGING = "true", MAX_FILE_SIZE_MB = "50", DEFAULT_PEAKS_COUNT = "200" }
+vars = { ENVIRONMENT = "development", ENABLE_LOGGING = "true", MAX_FILE_SIZE_MB = "50", DEFAULT_PEAKS_COUNT = "200", AUDIO_PROCESSOR_TYPE = "enhanced" }
 
 [[env.development.r2_buckets]]
 binding = "AUDIO_BUCKET"

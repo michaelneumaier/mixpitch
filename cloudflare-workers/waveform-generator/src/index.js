@@ -1,4 +1,4 @@
-import { AudioProcessor } from './audio-processor.js';
+import { EnhancedAudioProcessor } from './enhanced-audio-processor.js';
 
 /**
  * Main Cloudflare Worker for audio waveform generation
@@ -106,7 +106,7 @@ export default {
             console.log(`Downloaded ${fileSizeMB.toFixed(2)}MB audio file`);
 
             // Process the audio
-            const audioProcessor = new AudioProcessor();
+            const audioProcessor = new EnhancedAudioProcessor();
             const result = await audioProcessor.processAudio(audioBuffer, peaksCount);
 
             const processingTime = Date.now() - startTime;

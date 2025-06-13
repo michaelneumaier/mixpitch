@@ -290,14 +290,47 @@ class PitchController extends Controller
         $user = Auth::user();
 
         try {
-            // Move delete logic from PitchService here
             $this->authorize('delete', $pitch);
             
-            // @todo: Implement proper file cleanup before deleting the pitch model.
-            // This should involve iterating through associated pitch files 
-            // and calling FileManagementService->deletePitchFile() for each.
+            // Get FileManagementService
+            $fileManagementService = app(\App\Services\FileManagementService::class);
             
-            $pitch->delete();
+            Log::info('Starting pitch deletion process', [
+                'pitch_id' => $pitch->id,
+                'user_id' => $user->id,
+                'files_count' => $pitch->files()->count(),
+                'snapshots_count' => $pitch->snapshots()->count(),
+                'events_count' => $pitch->events()->count(),
+            ]);
+            
+            DB::transaction(function () use ($pitch, $fileManagementService) {
+                // Step 1: Delete all pitch files (includes S3 cleanup)
+                $pitch->files()->each(function ($pitchFile) use ($fileManagementService) {
+                    try {
+                        $fileManagementService->deletePitchFile($pitchFile);
+                        Log::info('Pitch file deleted during pitch cleanup', [
+                            'file_id' => $pitchFile->id,
+                            'file_name' => $pitchFile->file_name,
+                            'pitch_id' => $pitchFile->pitch_id
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to delete pitch file during pitch deletion', [
+                            'file_id' => $pitchFile->id,
+                            'file_name' => $pitchFile->file_name,
+                            'pitch_id' => $pitchFile->pitch_id,
+                            'error' => $e->getMessage()
+                        ]);
+                        // Continue with other files - don't fail entire deletion
+                    }
+                });
+
+                // Step 2: Soft delete the pitch (cascade will handle related records)
+                $pitch->delete();
+                
+                Log::info('Pitch deletion completed successfully', [
+                    'pitch_id' => $pitch->id
+                ]);
+            });
 
             // Redirect to project page after delete
             return redirect()->route('projects.show', $project)

@@ -30,6 +30,9 @@ class FileManagementService
      */
     public function uploadProjectFile(Project $project, UploadedFile $file, ?User $uploader = null, array $metadata = []): ProjectFile
     {
+        // Increase execution time for large file uploads
+        set_time_limit(300); // 5 minutes for large file uploads
+        
         // Authorization is assumed to be handled by the caller (e.g., Policy check or signed URL validation)
 
         $fileName = $file->getClientOriginalName();
@@ -105,7 +108,10 @@ class FileManagementService
      */
     public function uploadPitchFile(Pitch $pitch, UploadedFile $file, User $uploader): PitchFile
     {
-        // Authorization and Status checks are assumed to be handled by the caller (e.g., Policy check)
+        // Increase execution time for large file uploads
+        set_time_limit(300); // 5 minutes for large file uploads
+        
+        // Authorization and status validation are assumed to be handled by the caller
 
         $fileName = $file->getClientOriginalName();
         $fileSize = $file->getSize();

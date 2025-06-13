@@ -13,9 +13,9 @@ return [
     |
     */
 
-    'max_project_file_size' => env('MAX_PROJECT_FILE_SIZE_BYTES', 100 * 1024 * 1024), // Default 100MB
+    'max_project_file_size' => env('MAX_PROJECT_FILE_SIZE_BYTES', 200 * 1024 * 1024), // Default 200MB for audio files
 
-    'max_pitch_file_size' => env('MAX_PITCH_FILE_SIZE_BYTES', 100 * 1024 * 1024), // Default 100MB
+    'max_pitch_file_size' => env('MAX_PITCH_FILE_SIZE_BYTES', 200 * 1024 * 1024), // Default 200MB for audio files
 
     // Add other file size limits as needed
 ]; 
