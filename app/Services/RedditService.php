@@ -134,87 +134,106 @@ class RedditService
             $text .= "{$project->notes}\n\n";
         }
         
-        // Add project details section
-        $text .= "**📋 " . ($project->isContest() ? 'Contest' : 'Project') . " Details:**\n";
+        // Add project details section with better organization
+        $text .= "---\n\n";
+        $text .= "## 📋 " . ($project->isContest() ? 'Contest' : 'Project') . " Details\n\n";
+        
+        // Create a structured details table
+        $details = [];
         
         if ($project->genre) {
-            $text .= "• **Genre:** {$project->genre}\n";
+            $details[] = "**🎵 Genre:** {$project->genre}";
         }
         
         // Format budget/prizes based on project type
         if ($project->isContest()) {
-            $text .= $this->formatContestPrizes($project);
-            $text .= $this->formatContestDeadlines($project);
+            $details[] = $this->formatContestPrizesInline($project);
+            $details = array_merge($details, $this->formatContestDeadlinesInline($project));
         } else {
             if ($project->budget > 0) {
-                $text .= "• **Budget:** \${$project->budget} {$project->currency}\n";
+                $details[] = "**💰 Budget:** \${$project->budget} {$project->currency}";
             } else {
-                $text .= "• **Budget:** Collaboration/Credit only\n";
+                $details[] = "**💰 Budget:** Collaboration/Credit only";
             }
             
             if ($project->deadline) {
-                $text .= "• **Deadline:** {$project->deadline->format('M j, Y')}\n";
+                $details[] = "**⏰ Deadline:** {$project->deadline->format('M j, Y')}";
             }
         }
         
         // Add collaboration types if available
         if ($project->collaboration_type && is_array($project->collaboration_type) && !empty($project->collaboration_type)) {
             $lookingFor = $project->isContest() ? 'Contest Entries from' : 'Looking for';
-            $text .= "• **{$lookingFor}:** " . implode(', ', $project->collaboration_type) . "\n";
+            $details[] = "**🤝 {$lookingFor}:** " . implode(', ', $project->collaboration_type);
         }
         
-        // Add MixPitch info section
-        $text .= "\n**🎵 About MixPitch:**\n";
-        $text .= "MixPitch is a platform connecting artists with professional producers, mixing engineers, and other music professionals. Artists post projects describing their vision, and qualified professionals submit personalized pitches with demos.\n\n";
+        // Display details in a clean format
+        foreach ($details as $detail) {
+            $text .= "• {$detail}\n";
+        }
         
-        // How to submit section (different for contests vs projects)
+        $text .= "\n---\n\n";
+        
+        // PROMINENT CALL TO ACTION - Make this super noticeable
+        $projectUrl = route('projects.show', $project);
+        $action = $project->isContest() ? 'Enter Contest' : 'Submit Your Pitch';
+        $emoji = $project->isContest() ? '🏆' : '🚀';
+        
+        $text .= "# {$emoji} READY TO " . strtoupper($action) . "?\n\n";
+        $text .= "### 👉 **[CLICK HERE: View Full " . ($project->isContest() ? 'Contest' : 'Project') . " & {$action}]({$projectUrl})** 👈\n\n";
+        
+        // How to submit section (simplified and more focused)
         if ($project->isContest()) {
-            $text .= "**🏆 How to Enter the Contest:**\n";
-            $text .= "1. **Visit the contest page** using the link below\n";
-            $text .= "2. **Create a free account** or log in if you already have one\n";
-            $text .= "3. **Submit your contest entry** with a demo showcasing your skills\n";
-            $text .= "4. **Wait for judging** - winners will be announced after the judging deadline\n\n";
+            $text .= "**Quick Steps to Enter:**\n";
+            $text .= "1. 🌐 Click the link above to visit the contest page\n";
+            $text .= "2. 📝 Create a free account (or log in)\n";
+            $text .= "3. 🎵 Submit your entry with a demo\n";
+            $text .= "4. 🏆 Wait for results!\n\n";
         } else {
-            $text .= "**🚀 How to Submit a Pitch:**\n";
-            $text .= "1. **Visit the project page** using the link below\n";
-            $text .= "2. **Create a free account** or log in if you already have one\n";
-            $text .= "3. **Submit your pitch** with a demo showcasing your style and approach\n";
-            $text .= "4. **Collaborate directly** with the artist if selected\n\n";
+            $text .= "**Quick Steps to Submit:**\n";
+            $text .= "1. 🌐 Click the link above to visit the project page\n";
+            $text .= "2. 📝 Create a free account (or log in)\n";
+            $text .= "3. 🎵 Submit your pitch with a demo\n";
+            $text .= "4. 🤝 Collaborate if selected!\n\n";
         }
         
-        // Add benefits
-        $text .= "**✨ Why Use MixPitch:**\n";
-        $text .= "• Direct communication between artists and professionals\n";
-        $text .= "• Secure file sharing and project management\n";
-        $text .= "• Portfolio building and networking opportunities\n";
-        $text .= "• Fair compensation and clear project terms\n";
+        $text .= "---\n\n";
+        
+        // About MixPitch section (condensed)
+        $text .= "## 🎵 About MixPitch\n\n";
+        $text .= "MixPitch connects artists with professional producers, mixing engineers, and music professionals. Artists post projects, and qualified professionals submit personalized pitches with demos.\n\n";
+        
+        // Benefits in a more organized format
+        $text .= "**✨ Platform Benefits:**\n";
+        $text .= "• 💬 Direct artist-professional communication\n";
+        $text .= "• 🔒 Secure file sharing & project management\n";
+        $text .= "• 📂 Portfolio building & networking\n";
+        $text .= "• 💰 Fair compensation & clear terms\n";
         if ($project->isContest()) {
-            $text .= "• Transparent contest judging and winner announcements\n";
+            $text .= "• 🏆 Transparent judging & winner announcements\n";
         }
         $text .= "\n";
         
-        // Add r/MixPitch community section
-        $text .= "**🤝 About r/MixPitch Community:**\n";
-        $text .= "This subreddit is dedicated to music collaboration and professional networking. We welcome:\n";
-        $text .= "• Artists seeking production, mixing, mastering, or other services\n";
-        $text .= "• " . ($project->isContest() ? "Contest announcements and competition opportunities" : "Producers and engineers showcasing their skills and availability") . "\n";
-        $text .= "• Constructive feedback and collaboration discussions\n";
-        $text .= "• Success stories and project showcases\n\n";
+        // Community section (streamlined)
+        $text .= "**🤝 r/MixPitch Community:**\n";
+        $text .= "• 🎼 Artists seeking production/mixing/mastering services\n";
+        $text .= "• " . ($project->isContest() ? "🏆 Contest announcements & opportunities" : "🔧 Producers/engineers showcasing skills") . "\n";
+        $text .= "• 💭 Collaboration discussions & feedback\n";
+        $text .= "• 🌟 Success stories & project showcases\n\n";
         
+        // Community guidelines (condensed)
         $text .= "**📝 Community Guidelines:**\n";
-        $text .= "• **Be Professional:** Treat all interactions with respect and professionalism\n";
-        $text .= "• **Quality Over Quantity:** Share meaningful projects and thoughtful pitches\n";
-        $text .= "• **No Spam:** Avoid repetitive posts; focus on genuine collaboration\n";
-        $text .= "• **Credit Where Due:** Always acknowledge collaborators and give proper credit\n";
-        $text .= "• **Constructive Feedback:** Offer helpful, actionable advice when commenting\n\n";
+        $text .= "• 🤝 Be professional and respectful\n";
+        $text .= "• 🎯 Quality over quantity\n";
+        $text .= "• 🚫 No spam or repetitive posts\n";
+        $text .= "• 🏷️ Always give proper credit\n";
+        $text .= "• 💡 Provide constructive feedback\n\n";
         
-        // Add call to action
-        $projectUrl = route('projects.show', $project);
-        $action = $project->isContest() ? 'Enter Contest' : 'Submit Your Pitch';
-        $text .= "**🎯 Ready to " . strtolower($action) . "?** [View Full " . ($project->isContest() ? 'Contest' : 'Project') . " & {$action}]({$projectUrl})\n\n";
+        $text .= "---\n\n";
         
-        // Add footer
-        $text .= "*Posted via [MixPitch.com](https://mixpitch.com) - Where Music Collaboration Happens*";
+        // Footer with another call to action
+        $text .= "### 🎯 Ready to Get Started? **[{$action} Now]({$projectUrl})**\n\n";
+        $text .= "*Posted via [MixPitch.com](https://mixpitch.com) - Where Music Collaboration Happens* 🎵";
         
         return $text;
     }
@@ -241,6 +260,26 @@ class RedditService
         return $text;
     }
     
+    private function formatContestPrizesInline(Project $project): string
+    {
+        if ($project->hasPrizes()) {
+            $prizeSummary = $project->getPrizeSummary();
+            $prizeTexts = [];
+            
+            foreach ($prizeSummary as $prize) {
+                $prizeText = "{$prize['emoji']} {$prize['placement']}: {$prize['display_value']}";
+                if (!empty($prize['description'])) {
+                    $prizeText .= " ({$prize['description']})";
+                }
+                $prizeTexts[] = $prizeText;
+            }
+            
+            return "**🏆 Prizes:** " . implode(", ", $prizeTexts);
+        } else {
+            return "**🏆 Prizes:** Recognition and exposure";
+        }
+    }
+    
     private function formatContestDeadlines(Project $project): string
     {
         $text = "";
@@ -254,6 +293,21 @@ class RedditService
         }
         
         return $text;
+    }
+    
+    private function formatContestDeadlinesInline(Project $project): array
+    {
+        $deadlines = [];
+        
+        if ($project->submission_deadline) {
+            $deadlines[] = "**⏰ Submission Deadline:** {$project->submission_deadline->format('M j, Y \a\t g:i A T')}";
+        }
+        
+        if ($project->judging_deadline) {
+            $deadlines[] = "**🏁 Judging Complete By:** {$project->judging_deadline->format('M j, Y')}";
+        }
+        
+        return $deadlines;
     }
     
     private function parseRedditResponse(array $responseData): array
