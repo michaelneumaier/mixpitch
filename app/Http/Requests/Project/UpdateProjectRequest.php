@@ -51,6 +51,7 @@ class UpdateProjectRequest extends FormRequest
             'target_producer_id' => 'nullable|exists:users,id',
             'client_email' => 'nullable|email|max:255',
             'client_name' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:5000',
         ];
     }
 } 

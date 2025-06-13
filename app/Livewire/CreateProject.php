@@ -577,7 +577,7 @@ class CreateProject extends Component
             // Collaboration types need mapping
             $this->mapCollaborationTypesToForm($project->collaboration_type);
             // Notes might be part of the project or a related model - assuming project for now
-            // $this->form->notes = $project->notes; // Adjust if notes are stored differently
+            $this->form->notes = $project->notes; // Populate notes when editing
             
             // Set display properties for existing image/track
             if ($project->image_path) {
@@ -869,6 +869,9 @@ class CreateProject extends Component
                 'license_status' => $this->requiresLicenseAgreement ? 'pending' : 'active',
                 'license_jurisdiction' => 'US', // Default jurisdiction
                 'custom_license_terms' => !empty($this->customLicenseTerms) ? $this->customLicenseTerms : null,
+                
+                // Add notes field to project data
+                'notes' => $this->form->notes,
             ];
             
             // Add project_type_id by looking up the ProjectType

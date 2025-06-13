@@ -56,6 +56,13 @@
                             </div>
 
                             <div class="mb-4">
+                                <label for="notes" class="block text-sm font-medium text-gray-700">Project Notes</label>
+                                <textarea class="form-textarea rounded-md mt-1 block w-full text-gray-700" id="notes"
+                                    name="notes" rows="4"
+                                    placeholder="Add any additional information or special requirements for your project...">{{ $project->notes }}</textarea>
+                            </div>
+
+                            <div class="mb-4">
                                 <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
                                 <select class="form-select rounded-md mt-1 block w-full text-gray-700" id="status"
                                     name="status" required>

@@ -45,6 +45,14 @@ return [
         'lambda_audio_processor_url' => rtrim(env('AWS_LAMBDA_AUDIO_PROCESSOR_URL'), '/'),
     ],
 
+    'reddit' => [
+        'client_id' => env('REDDIT_CLIENT_ID'),
+        'client_secret' => env('REDDIT_CLIENT_SECRET'),
+        'username' => env('REDDIT_BOT_USERNAME'),
+        'password' => env('REDDIT_BOT_PASSWORD'),
+        'user_agent' => env('REDDIT_USER_AGENT', 'MixPitch/1.0'),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

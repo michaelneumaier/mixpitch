@@ -153,7 +153,7 @@
                         <!-- Main Content Area (2/3 width on large screens) -->
                         <div class="space-y-6 lg:col-span-2">
                             {{-- Quick Actions - Show first on mobile for immediate access --}}
-                            @if ($project->isStandard())
+                            @if ($project->isStandard() || $project->isContest())
                                 <div
                                     class="rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-6 shadow-xl backdrop-blur-md lg:hidden">
                                     <div class="mb-4 flex items-center">
@@ -175,6 +175,31 @@
                                             class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
                                             <i class="fas fa-edit mr-2"></i>Edit Project
                                         </a>
+                                        
+                                        {{-- Reddit Post Button --}}
+                                        @if ($project->is_published)
+                                            @if ($project->hasBeenPostedToReddit())
+                                                <a href="{{ $project->getRedditUrl() }}" target="_blank" rel="noopener"
+                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg">
+                                                    <i class="fab fa-reddit mr-2"></i>View on Reddit
+                                                </a>
+                                            @else
+                                                <button wire:click="postToReddit"
+                                                    @if($isPostingToReddit) disabled @endif
+                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg {{ $isPostingToReddit ? 'opacity-75 cursor-not-allowed' : '' }}">
+                                                    @if($isPostingToReddit)
+                                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Posting...
+                                                    @else
+                                                        <i class="fab fa-reddit mr-2"></i>Post to r/MixPitch
+                                                    @endif
+                                                </button>
+                                            @endif
+                                        @endif
+                                        
                                         @if ($project->is_published)
                                             <button wire:click="unpublish"
                                                 class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
@@ -211,17 +236,14 @@
 
                             {{-- Pitches Section / Contest Entries --}}
                             @if ($project->isContest())
-                                {{-- Contest Entries Component --}}
-                                @livewire('project.component.contest-entries', ['project' => $project], key('contest-entries-' . $project->id))
-
-                                {{-- Contest Judging Component --}}
+                                {{-- Contest Judging Component (includes Contest Entries) --}}
                                 @livewire('project.component.contest-judging', ['project' => $project], key('contest-judging-' . $project->id))
                             @else
                                 {{-- Regular Pitches Section --}}
                                 <x-project.pitch-list :project="$project" />
                             @endif
 
-                            @if (!$project->isContest())
+                            @if ($project->isStandard() || $project->isContest())
                                 <!-- Upload Files Section -->
                                 <div x-data="{ showUploader: true }"
                                     class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
@@ -234,8 +256,8 @@
                                                     <i class="fas fa-upload text-lg text-white"></i>
                                                 </div>
                                                 <div>
-                                                    <h3 class="text-lg font-bold text-purple-800">Project Files</h3>
-                                                    <p class="text-sm text-purple-600">Upload and manage project
+                                                    <h3 class="text-lg font-bold text-purple-800">{{ $project->isContest() ? 'Contest Files' : 'Project Files' }}</h3>
+                                                    <p class="text-sm text-purple-600">Upload and manage {{ $project->isContest() ? 'contest' : 'project' }}
                                                         resources</p>
                                                 </div>
                                             </div>
@@ -292,7 +314,7 @@
                                                     <div>
                                                         <h5 class="font-bold text-purple-800">Upload New Files</h5>
                                                         <p class="text-xs text-purple-600">Upload audio, PDFs, or images
-                                                            to share with collaborators</p>
+                                                            to share with {{ $project->isContest() ? 'contest participants' : 'collaborators' }}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -389,7 +411,7 @@
                                                     <h4 class="mb-2 text-lg font-bold text-purple-800">No files
                                                         uploaded yet</h4>
                                                     <p class="text-sm text-purple-600">Upload files to share with
-                                                        collaborators</p>
+                                                        {{ $project->isContest() ? 'contest participants' : 'collaborators' }}</p>
                                                 </div>
                                             @endforelse
                                         </div>
@@ -524,41 +546,43 @@
                             @endif
 
                             {{-- Danger Zone - Mobile --}}
-                            <div class="relative lg:hidden">
-                                <!-- Background Effects -->
-                                <div
-                                    class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-50/30 via-pink-50/20 to-red-50/30">
-                                </div>
-                                <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-red-400/10 blur-xl"></div>
-                                <div class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-pink-400/10 blur-lg">
-                                </div>
-
-                                <!-- Content -->
-                                <div
-                                    class="relative rounded-2xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-md">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
-                                            <i class="fas fa-exclamation-triangle text-lg text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
-                                            <p class="text-sm text-red-600">Irreversible actions</p>
-                                        </div>
-                                    </div>
+                            @if ($project->isStandard() || $project->isContest())
+                                <div class="relative lg:hidden">
+                                    <!-- Background Effects -->
                                     <div
-                                        class="mb-4 rounded-xl border border-red-200/50 bg-gradient-to-r from-red-50/80 to-pink-50/80 p-4 backdrop-blur-sm">
-                                        <p class="text-sm font-medium text-red-700">
-                                            Permanently delete this project and all associated files. This action cannot
-                                            be undone.
-                                        </p>
+                                        class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-50/30 via-pink-50/20 to-red-50/30">
                                     </div>
-                                    <button wire:click="confirmDeleteProject"
-                                        class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-pink-600 px-4 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-pink-700 hover:shadow-lg">
-                                        <i class="fas fa-trash-alt mr-2"></i>Delete Project
-                                    </button>
+                                    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-red-400/10 blur-xl"></div>
+                                    <div class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-pink-400/10 blur-lg">
+                                    </div>
+
+                                    <!-- Content -->
+                                    <div
+                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-md">
+                                        <div class="mb-4 flex items-center">
+                                            <div
+                                                class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
+                                                <i class="fas fa-exclamation-triangle text-lg text-white"></i>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
+                                                <p class="text-sm text-red-600">Irreversible actions</p>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="mb-4 rounded-xl border border-red-200/50 bg-gradient-to-r from-red-50/80 to-pink-50/80 p-4 backdrop-blur-sm">
+                                            <p class="text-sm font-medium text-red-700">
+                                                Permanently delete this {{ $project->isContest() ? 'contest' : 'project' }} and all associated files. This action cannot
+                                                be undone.
+                                            </p>
+                                        </div>
+                                        <button wire:click="confirmDeleteProject"
+                                            class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-pink-600 px-4 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-pink-700 hover:shadow-lg">
+                                            <i class="fas fa-trash-alt mr-2"></i>Delete {{ $project->isContest() ? 'Contest' : 'Project' }}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
                         </div>
 
                         <!-- Sidebar (1/3 width on large screens) -->
@@ -638,6 +662,31 @@
                                             class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
                                             <i class="fas fa-edit mr-2"></i>Edit Project
                                         </a>
+                                        
+                                        {{-- Reddit Post Button --}}
+                                        @if ($project->is_published)
+                                            @if ($project->hasBeenPostedToReddit())
+                                                <a href="{{ $project->getRedditUrl() }}" target="_blank" rel="noopener"
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg">
+                                                    <i class="fab fa-reddit mr-2"></i>View on Reddit
+                                                </a>
+                                            @else
+                                                <button wire:click="postToReddit"
+                                                    @if($isPostingToReddit) disabled @endif
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg {{ $isPostingToReddit ? 'opacity-75 cursor-not-allowed' : '' }}">
+                                                    @if($isPostingToReddit)
+                                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Posting...
+                                                    @else
+                                                        <i class="fab fa-reddit mr-2"></i>Post to r/MixPitch
+                                                    @endif
+                                                </button>
+                                            @endif
+                                        @endif
+                                        
                                         @if ($project->is_published)
                                             <button wire:click="unpublish"
                                                 class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
@@ -778,251 +827,105 @@
                                     </div>
                                 </div>
                             @elseif($project->isContest())
-                                <!-- Contest Details Card -->
-                                <div class="relative">
+                                <!-- Contest Prizes Component -->
+                                @livewire('project.component.contest-prizes', ['project' => $project], key('contest-prizes-' . $project->id))
+
+                                {{-- Quick Actions for Contest Projects --}}
+                                <div
+                                    class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-6 shadow-xl backdrop-blur-md lg:block">
+                                    <div class="mb-4 flex items-center">
+                                        <div
+                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
+                                            <i class="fas fa-bolt text-lg text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-blue-800">Quick Actions</h3>
+                                            <p class="text-sm text-blue-600">Manage your contest efficiently</p>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <a href="{{ route('projects.show', $project) }}"
+                                            class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg">
+                                            <i class="fas fa-eye mr-2"></i>View Public Page
+                                        </a>
+                                        <a href="{{ route('projects.edit', $project) }}"
+                                            class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
+                                            <i class="fas fa-edit mr-2"></i>Edit Contest
+                                        </a>
+                                        
+                                        {{-- Reddit Post Button --}}
+                                        @if ($project->is_published)
+                                            @if ($project->hasBeenPostedToReddit())
+                                                <a href="{{ $project->getRedditUrl() }}" target="_blank" rel="noopener"
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg">
+                                                    <i class="fab fa-reddit mr-2"></i>View on Reddit
+                                                </a>
+                                            @else
+                                                <button wire:click="postToReddit"
+                                                    @if($isPostingToReddit) disabled @endif
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg {{ $isPostingToReddit ? 'opacity-75 cursor-not-allowed' : '' }}">
+                                                    @if($isPostingToReddit)
+                                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Posting...
+                                                    @else
+                                                        <i class="fab fa-reddit mr-2"></i>Post to r/MixPitch
+                                                    @endif
+                                                </button>
+                                            @endif
+                                        @endif
+                                        
+                                        @if ($project->is_published)
+                                            <button wire:click="unpublish"
+                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
+                                                <i class="fas fa-eye-slash mr-2"></i>Unpublish Contest
+                                            </button>
+                                        @else
+                                            <button wire:click="publish"
+                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
+                                                <i class="fas fa-globe mr-2"></i>Publish Contest
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Danger Zone for Contest Projects --}}
+                                <div class="relative hidden lg:block">
                                     <!-- Background Effects -->
                                     <div
-                                        class="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-50/30 via-amber-50/20 to-yellow-50/30">
+                                        class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-50/30 via-pink-50/20 to-red-50/30">
                                     </div>
-                                    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-purple-400/10 blur-xl">
+                                    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-red-400/10 blur-xl">
                                     </div>
                                     <div
-                                        class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-amber-400/10 blur-lg">
+                                        class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-pink-400/10 blur-lg">
                                     </div>
 
                                     <!-- Content -->
                                     <div
                                         class="relative rounded-2xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-md">
-                                        <div class="mb-6 flex items-center">
+                                        <div class="mb-4 flex items-center">
                                             <div
-                                                class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-amber-600">
-                                                <i class="fas fa-trophy text-lg text-white"></i>
+                                                class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
+                                                <i class="fas fa-exclamation-triangle text-lg text-white"></i>
                                             </div>
                                             <div>
-                                                <h3 class="text-lg font-bold text-purple-800">Contest Details</h3>
-                                                <p class="text-sm text-purple-600">Competition information and
-                                                    deadlines</p>
+                                                <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
+                                                <p class="text-sm text-red-600">Irreversible actions</p>
                                             </div>
                                         </div>
-
-                                        <!-- Contest Information Grid -->
-                                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                            <!-- Prize Information -->
-                                            @if ($project->hasPrizes())
-                                                <!-- New Contest Prize System -->
-                                                <div
-                                                    class="col-span-2 rounded-xl border border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-yellow-50/80 p-4 backdrop-blur-sm">
-                                                    <div class="mb-3 flex items-center justify-between">
-                                                        <div class="flex items-center">
-                                                            <div
-                                                                class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-yellow-600">
-                                                                <i class="fas fa-trophy text-sm text-white"></i>
-                                                            </div>
-                                                            <h4 class="font-bold text-amber-800">Contest Prizes</h4>
-                                                        </div>
-                                                        <a href="{{ route('projects.edit', $project) }}"
-                                                            class="inline-flex items-center rounded-lg bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-200">
-                                                            <i class="fas fa-edit mr-1"></i>
-                                                            Edit Prizes
-                                                        </a>
-                                                    </div>
-
-                                                    <!-- Prize Summary Stats -->
-                                                    <div class="mb-4 grid grid-cols-2 gap-3">
-                                                        <div
-                                                            class="rounded-lg border border-amber-200/30 bg-white/60 p-3 text-center backdrop-blur-sm">
-                                                            <div class="text-lg font-bold text-amber-900">
-                                                                ${{ number_format($project->getTotalPrizeBudget()) }}
-                                                            </div>
-                                                            <div class="text-xs text-amber-700">Total Cash Prizes</div>
-                                                        </div>
-                                                        <div
-                                                            class="rounded-lg border border-amber-200/30 bg-white/60 p-3 text-center backdrop-blur-sm">
-                                                            <div class="text-lg font-bold text-amber-900">
-                                                                ${{ number_format($project->getTotalPrizeValue()) }}
-                                                            </div>
-                                                            <div class="text-xs text-amber-700">Total Prize Value</div>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Prize Breakdown -->
-                                                    <div class="space-y-2">
-                                                        @foreach ($project->getPrizeSummary() as $prize)
-                                                            <div
-                                                                class="flex items-center justify-between rounded-lg border border-amber-200/20 bg-white/40 p-2 backdrop-blur-sm">
-                                                                <div class="flex items-center">
-                                                                    <span
-                                                                        class="mr-2 text-sm">{{ $prize['emoji'] ?? '🏆' }}</span>
-                                                                    <div>
-                                                                        <span
-                                                                            class="text-xs font-medium text-amber-900">{{ $prize['placement'] ?? 'Prize' }}</span>
-                                                                        @if (isset($prize['title']) && $prize['title'])
-                                                                            <div class="text-xs text-amber-700">
-                                                                                {{ $prize['title'] }}</div>
-                                                                        @endif
-                                                                    </div>
-                                                                </div>
-                                                                <div class="text-right">
-                                                                    <div class="text-xs font-bold text-amber-900">
-                                                                        {{ $prize['display_value'] ?? 'N/A' }}</div>
-                                                                </div>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            @elseif($project->prize_amount && $project->prize_amount > 0)
-                                                <!-- Legacy Prize Display (for backward compatibility) -->
-                                                <div
-                                                    class="rounded-xl border border-green-200/50 bg-gradient-to-br from-green-50/80 to-emerald-50/80 p-4 backdrop-blur-sm">
-                                                    <div class="mb-2 flex items-center">
-                                                        <div
-                                                            class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                            <i class="fas fa-dollar-sign text-sm text-white"></i>
-                                                        </div>
-                                                        <h4 class="font-bold text-green-800">Prize Amount (Legacy)</h4>
-                                                    </div>
-                                                    <p class="text-2xl font-bold text-green-900">
-                                                        {{ $project->prize_currency ?? '$' }}{{ number_format($project->prize_amount ?: 0, 2) }}
-                                                    </p>
-                                                    <div class="mt-2">
-                                                        <a href="{{ route('projects.edit', $project) }}"
-                                                            class="inline-flex items-center rounded-lg bg-green-100 px-3 py-1 text-xs font-medium text-green-800 transition-colors hover:bg-green-200">
-                                                            <i class="fas fa-plus mr-1"></i>
-                                                            Configure New Prizes
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <!-- No Prizes Display -->
-                                                <div
-                                                    class="rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50/80 to-gray-100/80 p-4 backdrop-blur-sm">
-                                                    <div class="mb-2 flex items-center">
-                                                        <div
-                                                            class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-400 to-gray-500">
-                                                            <i class="fas fa-gift text-sm text-white"></i>
-                                                        </div>
-                                                        <h4 class="font-bold text-gray-700">No Prizes Set</h4>
-                                                    </div>
-                                                    <p class="mb-2 text-sm text-gray-600">This contest doesn't have any
-                                                        prizes configured yet.</p>
-                                                    <a href="{{ route('projects.edit', $project) }}"
-                                                        class="inline-flex items-center rounded-lg bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200">
-                                                        <i class="fas fa-plus mr-1"></i>
-                                                        Add Prizes
-                                                    </a>
-                                                </div>
-                                            @endif
-
-                                            <!-- Entry Count -->
-                                            <div
-                                                class="rounded-xl border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 p-4 backdrop-blur-sm">
-                                                <div class="mb-2 flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                                                        <i class="fas fa-users text-sm text-white"></i>
-                                                    </div>
-                                                    <h4 class="font-bold text-blue-800">Total Entries</h4>
-                                                </div>
-                                                <p class="text-2xl font-bold text-blue-900">
-                                                    {{ $project->pitches->where('status', 'like', '%contest%')->count() }}
-                                                </p>
-                                            </div>
-
-                                            <!-- Submission Deadline -->
-                                            <div
-                                                class="rounded-xl border border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-yellow-50/80 p-4 backdrop-blur-sm">
-                                                <div class="mb-2 flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-yellow-600">
-                                                        <i class="fas fa-calendar-alt text-sm text-white"></i>
-                                                    </div>
-                                                    <h4 class="font-bold text-amber-800">Submission Deadline</h4>
-                                                </div>
-                                                <p class="text-sm font-medium text-amber-900">
-                                                    {{ $project->submission_deadline ? $project->submission_deadline->format('M d, Y \a\t H:i T') : 'Not set' }}
-                                                </p>
-                                                @if ($project->submission_deadline)
-                                                    <p class="mt-1 text-xs text-amber-700">
-                                                        {{ $project->submission_deadline->isPast() ? 'Ended ' . $project->submission_deadline->diffForHumans() : 'Ends ' . $project->submission_deadline->diffForHumans() }}
-                                                    </p>
-                                                @endif
-                                            </div>
-
-                                            <!-- Judging Deadline -->
-                                            <div
-                                                class="rounded-xl border border-purple-200/50 bg-gradient-to-br from-purple-50/80 to-pink-50/80 p-4 backdrop-blur-sm">
-                                                <div class="mb-2 flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-600">
-                                                        <i class="fas fa-gavel text-sm text-white"></i>
-                                                    </div>
-                                                    <h4 class="font-bold text-purple-800">Judging Deadline</h4>
-                                                </div>
-                                                <p class="text-sm font-medium text-purple-900">
-                                                    {{ $project->judging_deadline ? $project->judging_deadline->format('M d, Y \a\t H:i T') : 'Not set' }}
-                                                </p>
-                                                @if ($project->judging_deadline)
-                                                    <p class="mt-1 text-xs text-purple-700">
-                                                        {{ $project->judging_deadline->isPast() ? 'Ended ' . $project->judging_deadline->diffForHumans() : 'Ends ' . $project->judging_deadline->diffForHumans() }}
-                                                    </p>
-                                                @endif
-                                            </div>
+                                        <div
+                                            class="mb-4 rounded-xl border border-red-200/50 bg-gradient-to-r from-red-50/80 to-pink-50/80 p-4 backdrop-blur-sm">
+                                            <p class="text-sm font-medium text-red-700">
+                                                Permanently delete this contest and all associated files, entries, and judging data. This action cannot be undone.
+                                            </p>
                                         </div>
-
-                                        <!-- Contest Status -->
-                                        @php
-                                            $contestEntries = $project->pitches->where('status', 'like', '%contest%');
-                                            $winnerExists = $contestEntries
-                                                ->whereIn('status', [\App\Models\Pitch::STATUS_CONTEST_WINNER])
-                                                ->isNotEmpty();
-                                        @endphp
-
-                                        @if ($winnerExists)
-                                            <div
-                                                class="mt-6 rounded-xl border border-green-200/50 bg-gradient-to-r from-green-50/80 to-emerald-50/80 p-4 backdrop-blur-sm">
-                                                <div class="flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
-                                                        <i class="fas fa-crown text-white"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h4 class="font-bold text-green-800">Contest Completed</h4>
-                                                        <p class="text-sm text-green-700">Winner has been selected and
-                                                            results are finalized.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @elseif($project->submission_deadline && now()->isAfter($project->submission_deadline))
-                                            <div
-                                                class="mt-6 rounded-xl border border-blue-200/50 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-4 backdrop-blur-sm">
-                                                <div class="flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                                                        <i class="fas fa-gavel text-white"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h4 class="font-bold text-blue-800">Judging Phase</h4>
-                                                        <p class="text-sm text-blue-700">Submissions are closed. Time
-                                                            to select winners from the entries.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @else
-                                            <div
-                                                class="mt-6 rounded-xl border border-amber-200/50 bg-gradient-to-r from-amber-50/80 to-yellow-50/80 p-4 backdrop-blur-sm">
-                                                <div class="flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600">
-                                                        <i class="fas fa-clock text-white"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h4 class="font-bold text-amber-800">Accepting Entries</h4>
-                                                        <p class="text-sm text-amber-700">Contest is open for
-                                                            submissions from producers.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endif
+                                        <button wire:click="confirmDeleteProject"
+                                            class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-pink-600 px-4 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-pink-700 hover:shadow-lg">
+                                            <i class="fas fa-trash-alt mr-2"></i>Delete Contest
+                                        </button>
                                     </div>
                                 </div>
                             @elseif($project->isDirectHire())
@@ -1121,4 +1024,44 @@
         <!-- Project Image Upload Modal -->
         <x-project.image-upload-modal :project="$project" :imagePreviewUrl="$imagePreviewUrl" />
     </div>
+    
+    {{-- Reddit Posting Polling Script --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let redditPollingInterval = null;
+            
+            // Listen for start polling event
+            document.addEventListener('livewire:init', () => {
+                Livewire.on('start-reddit-polling', () => {
+                    console.log('Starting Reddit polling...');
+                    
+                    // Clear any existing interval
+                    if (redditPollingInterval) {
+                        clearInterval(redditPollingInterval);
+                    }
+                    
+                    // Start polling every 3 seconds
+                    redditPollingInterval = setInterval(() => {
+                        Livewire.dispatch('checkRedditStatus');
+                    }, 3000);
+                });
+                
+                // Listen for stop polling event
+                Livewire.on('stop-reddit-polling', () => {
+                    console.log('Stopping Reddit polling...');
+                    if (redditPollingInterval) {
+                        clearInterval(redditPollingInterval);
+                        redditPollingInterval = null;
+                    }
+                });
+            });
+            
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => {
+                if (redditPollingInterval) {
+                    clearInterval(redditPollingInterval);
+                }
+            });
+        });
+    </script>
 </div>

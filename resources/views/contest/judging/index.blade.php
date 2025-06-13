@@ -222,10 +222,17 @@
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ $entry->created_at->format('M d, Y') }}
-                                                <div class="text-xs text-gray-500">
-                                                    {{ $entry->created_at->format('g:i A') }}
-                                                </div>
+                                                @if($entry->submitted_at)
+                                                    {{ $entry->submitted_at->format('M d, Y') }}
+                                                    <div class="text-xs text-gray-500">
+                                                        {{ $entry->submitted_at->format('g:i A') }}
+                                                    </div>
+                                                @else
+                                                    <span class="text-gray-500">Not submitted</span>
+                                                    <div class="text-xs text-gray-400">
+                                                        Created {{ $entry->created_at->format('M d, Y') }}
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @if($entry->rank)
@@ -273,10 +280,16 @@
                                                 @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                                <a href="{{ route('projects.pitches.show', [$project, $entry]) }}" 
-                                                   class="text-blue-600 hover:text-blue-800 font-medium">
-                                                    View Entry
-                                                </a>
+                                                @if($entry->submitted_at && $entry->current_snapshot_id)
+                                                    <a href="{{ route('projects.pitches.snapshots.show', [$project, $entry, $entry->current_snapshot_id]) }}" 
+                                                       class="text-blue-600 hover:text-blue-800 font-medium">
+                                                        View Submitted Entry
+                                                    </a>
+                                                @elseif(!$entry->submitted_at)
+                                                    <span class="text-gray-400 text-sm">
+                                                        Not submitted yet
+                                                    </span>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach

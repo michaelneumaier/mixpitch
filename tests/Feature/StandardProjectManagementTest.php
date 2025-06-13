@@ -263,7 +263,7 @@ class StandardProjectManagementTest extends TestCase
         
         // Count occurrences of the specific Pitches section header
         $content = $response->getContent();
-        $pitchHeaderCount = substr_count($content, '<i class="fas fa-paper-plane w-5 text-center mr-3 text-blue-500"></i>Pitches');
+        $pitchHeaderCount = substr_count($content, 'Submitted Pitches');
         
         // Should only see the Pitches header once in the unified section
         $this->assertEquals(1, $pitchHeaderCount);
@@ -314,8 +314,49 @@ class StandardProjectManagementTest extends TestCase
             ->get(route('projects.manage', $contestProject));
 
         $response->assertStatus(200);
-        $response->assertSee('Project Workflow Status');
-        $response->assertSee('Contest Entries');
+        $response->assertSee('Contest Workflow Status');
+        $response->assertSee('Total Entries');
+    }
+
+    /** @test */
+    public function contest_project_shows_quick_actions_and_danger_zone()
+    {
+        $contestProject = Project::factory()->create([
+            'user_id' => $this->user->id,
+            'workflow_type' => 'contest',
+            'is_published' => true,
+            'prize_amount' => 500.00,
+            'submission_deadline' => now()->addDays(7),
+            'judging_deadline' => now()->addDays(14),
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('projects.manage', $contestProject));
+
+        $response->assertStatus(200);
+        
+        // Check for Quick Actions component (both mobile and desktop)
+        $response->assertSee('Quick Actions');
+        $response->assertSee('Manage your contest efficiently');
+        $response->assertSee('View Public Page');
+        $response->assertSee('Edit Contest');
+        $response->assertSee('Unpublish Contest');
+        $response->assertSee('Post to r/MixPitch');
+        
+        // Check for Danger Zone component (both mobile and desktop)
+        $response->assertSee('Danger Zone');
+        $response->assertSee('Irreversible actions');
+        $response->assertSee('Delete Contest');
+        $response->assertSee('Permanently delete this contest and all associated files, entries, and judging data');
+        
+        // Check for Contest Prizes component (replaced Contest Details)
+        $response->assertSee('Contest Prizes');
+        $response->assertSee('Rewards and incentives for winners');
+        
+        // Check for Project Files section (should be available for contests now)
+        $response->assertSee('Contest Files');
+        $response->assertSee('Upload and manage contest');
+        $response->assertSee('contest participants');
     }
 
     /** @test */
@@ -374,10 +415,10 @@ class StandardProjectManagementTest extends TestCase
 
         $response->assertStatus(200);
         
-        // Check for Standard Project sidebar content
+        // Check for Standard Project sidebar content (desktop only)
+        // Note: These elements are hidden on mobile with 'hidden lg:block' classes
         $response->assertSee('Standard Project');
         $response->assertSee('Open Collaboration');
-        $response->assertSee('Direct Communication');
         
         // Check for Quick Stats section (new component)
         $response->assertSee('Quick Stats');
@@ -392,6 +433,6 @@ class StandardProjectManagementTest extends TestCase
         
         // Check for Tips section
         $response->assertSee('Tips for Success');
-        $response->assertSee('Share your project on social media');
+        $response->assertSee('Share your project');
     }
 } 

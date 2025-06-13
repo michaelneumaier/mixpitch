@@ -7,7 +7,7 @@
                     <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-xl mr-4 shadow-lg">
                         <i class="fas fa-gavel text-white text-xl"></i>
                     </div>
-<div>
+                    <div>
                         <h3 class="text-2xl font-bold text-gray-900">Contest Judging</h3>
                         <p class="text-gray-600 text-sm">Judge contest entries and finalize results</p>
                     </div>
@@ -125,11 +125,27 @@
         </div>
     @endif
 
-    {{-- Contest Entries Table --}}
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+    {{-- Contest Entries Section --}}
+    <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+        <!-- Background Effects -->
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-50/30 via-blue-50/20 to-indigo-50/30"></div>
+        <div class="absolute top-4 right-4 w-20 h-20 bg-purple-400/10 rounded-full blur-xl"></div>
+        <div class="absolute bottom-4 left-4 w-16 h-16 bg-blue-400/10 rounded-full blur-lg"></div>
+        
+        <!-- Header -->
+        <div class="relative bg-gradient-to-r from-purple-100/80 to-indigo-100/80 backdrop-blur-sm border-b border-purple-200/50 p-6">
             <div class="flex items-center justify-between">
-                <h4 class="text-lg font-semibold text-gray-900">Contest Entries</h4>
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4">
+                        <i class="fas fa-trophy text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent">
+                            Contest Entries
+                        </h3>
+                        <p class="text-sm text-purple-600 font-medium">{{ $contestEntries->count() }} {{ Str::plural('entry', $contestEntries->count()) }} submitted</p>
+                    </div>
+                </div>
                 
                 {{-- Finalize Button --}}
                 @if($canFinalize && !$isFinalized)
@@ -144,123 +160,155 @@
             </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contestant</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entry</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Placement</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($contestEntries as $entry)
-                        <tr class="hover:bg-gray-50 transition-colors duration-150">
-                            {{-- Contestant --}}
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10">
-                                        <div class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
-                                            {{ substr($entry->user->name, 0, 1) }}
+        <!-- Content -->
+        <div class="relative p-6">
+            @if($contestEntries->isEmpty())
+                <!-- Empty State -->
+                <div class="text-center py-16">
+                    <div class="mx-auto w-24 h-24 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <i class="fas fa-trophy text-4xl text-purple-500"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-3">No Entries Yet</h3>
+                    <p class="text-gray-600 max-w-md mx-auto leading-relaxed">
+                        Contest entries will appear here as producers submit their work.
+                    </p>
+                </div>
+            @else
+                <!-- Entries Grid -->
+                <div class="space-y-6">
+                    @foreach($contestEntries as $entry)
+                        <div class="bg-white/80 backdrop-blur-sm border border-white/40 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] 
+                            @if($entry->rank === 'first' || $entry->rank === '1st') 
+                                ring-2 ring-yellow-400/50 bg-gradient-to-r from-yellow-50/80 to-amber-50/80
+                            @elseif($entry->rank === 'second' || $entry->rank === '2nd') 
+                                ring-2 ring-gray-400/50 bg-gradient-to-r from-gray-50/80 to-slate-50/80
+                            @elseif($entry->rank === 'third' || $entry->rank === '3rd') 
+                                ring-2 ring-orange-400/50 bg-gradient-to-r from-orange-50/80 to-amber-50/80
+                            @elseif($entry->rank === 'runner-up') 
+                                ring-2 ring-blue-400/50 bg-gradient-to-r from-blue-50/80 to-indigo-50/80
+                            @endif">
+                            
+                            <!-- Entry Header -->
+                            <div class="p-6 border-b border-white/30">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <!-- Producer Avatar -->
+                                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                                            @if($entry->user->profile_photo_path)
+                                                <img src="{{ $entry->user->profile_photo_url }}" alt="{{ $entry->user->name }}" class="w-full h-full rounded-xl object-cover">
+                                            @else
+                                                <span class="text-white font-bold text-lg">{{ substr($entry->user->name, 0, 1) }}</span>
+                                            @endif
+                                        </div>
+                                        
+                                        <!-- Producer Info -->
+                                        <div>
+                                            <h4 class="text-base font-bold text-gray-900">{{ $entry->user->name }}</h4>
+                                            <div class="flex items-center text-sm text-gray-600">
+                                                <i class="fas fa-calendar mr-2"></i>
+                                                @if($entry->submitted_at)
+                                                    <span>Submitted {{ $entry->submitted_at->format('M j, Y') }}</span>
+                                                @else
+                                                    <span>Created {{ $entry->created_at->format('M j, Y') }} (Not submitted)</span>
+                                                @endif
+                                                @if($entry->rank)
+                                                    <span class="ml-4 flex items-center">
+                                                        <i class="fas fa-award mr-1 text-yellow-500"></i>
+                                                        {{ $entry->getPlacementLabel() }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">{{ $entry->user->name }}</div>
-                                        <div class="text-sm text-gray-500">{{ $entry->user->email }}</div>
+                                    
+                                    <!-- Status Badge -->
+                                    <div>
+                                        @if($entry->rank === 'first' || $entry->rank === '1st')
+                                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300 shadow-md">
+                                                <i class="fas fa-crown mr-2"></i>1st Place
+                                            </span>
+                                        @elseif($entry->rank === 'second' || $entry->rank === '2nd')
+                                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-300 shadow-md">
+                                                <i class="fas fa-medal mr-2"></i>2nd Place
+                                            </span>
+                                        @elseif($entry->rank === 'third' || $entry->rank === '3rd')
+                                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300 shadow-md">
+                                                <i class="fas fa-medal mr-2"></i>3rd Place
+                                            </span>
+                                        @elseif($entry->rank === 'runner-up')
+                                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300 shadow-md">
+                                                <i class="fas fa-medal mr-2"></i>Runner-up
+                                            </span>
+                                        @elseif($entry->rank)
+                                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300 shadow-md">
+                                                <i class="fas fa-medal mr-2"></i>{{ $entry->getPlacementLabel() }}
+                                            </span>
+                                        @else
+                                            @if($entry->submitted_at)
+                                                <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 border border-purple-200 shadow-sm">
+                                                    <i class="fas fa-paper-plane mr-2"></i>Entry
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border border-gray-300 shadow-sm">
+                                                    <i class="fas fa-clock mr-2"></i>Draft
+                                                </span>
+                                            @endif
+                                        @endif
                                     </div>
                                 </div>
-                            </td>
-
-                            {{-- Entry Details --}}
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $entry->title ?: 'Contest Entry' }}</div>
-                                @if($entry->description)
-                                    <div class="text-sm text-gray-500 max-w-xs truncate">{{ $entry->description }}</div>
-                                @endif
-                            </td>
-
-                            {{-- Submitted Date --}}
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                @if($entry->submitted_at)
-                                    {{ $entry->submitted_at->format('M j, Y') }}
-                                    <div class="text-xs text-gray-400">{{ $entry->submitted_at->format('g:i A') }}</div>
-                                @else
-                                    <span class="text-gray-400">Not submitted</span>
-                                @endif
-                            </td>
-
-                            {{-- Placement Dropdown --}}
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($isFinalized)
-                                    {{-- Show final placement as badge --}}
-                                    @if($entry->rank)
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                                            {{ $entry->rank === '1st' ? 'bg-yellow-100 text-yellow-800' : '' }}
-                                            {{ $entry->rank === '2nd' ? 'bg-gray-100 text-gray-800' : '' }}
-                                            {{ $entry->rank === '3rd' ? 'bg-orange-100 text-orange-800' : '' }}
-                                            {{ $entry->rank === 'runner-up' ? 'bg-blue-100 text-blue-800' : '' }}
-                                        ">
-                                            @if($entry->rank === '1st') 🥇 @endif
-                                            @if($entry->rank === '2nd') 🥈 @endif
-                                            @if($entry->rank === '3rd') 🥉 @endif
-                                            @if($entry->rank === 'runner-up') 🏅 @endif
-                                            {{ $entry->getPlacementLabel() }}
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
-                                            Not Placed
-                                        </span>
-                                    @endif
-                                @else
-                                    {{-- Placement dropdown --}}
-                                    <select 
-                                        wire:change="updatePlacement({{ $entry->id }}, $event.target.value)"
-                                        class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-lg"
-                                        {{ $isFinalized ? 'disabled' : '' }}
-                                    >
-                                        @foreach($this->getAvailablePlacementsForPitch($entry->id) as $value => $label)
-                                            <option 
-                                                value="{{ $value }}" 
-                                                {{ ($placements[$entry->id] ?? '') === $value ? 'selected' : '' }}
-                                                {{ strpos($label, 'Already Chosen') !== false ? 'disabled' : '' }}
+                            </div>
+                            
+                            <!-- Judging Actions -->
+                            <div class="p-6 bg-gradient-to-r from-gray-50/80 to-white/80">
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <!-- Placement Dropdown -->
+                                    @if(!$isFinalized)
+                                        <div class="flex items-center gap-3 p-3 bg-yellow-50/80 rounded-xl border border-yellow-200/50">
+                                            <label class="text-sm font-medium text-yellow-700">Placement:</label>
+                                            <select 
+                                                wire:change="updatePlacement({{ $entry->id }}, $event.target.value)"
+                                                class="block pl-3 pr-10 py-2 text-base border border-yellow-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-lg bg-white"
                                             >
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                @endif
-                            </td>
-
-                            {{-- Actions --}}
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                @if($entry->current_snapshot_id)
-                                    <a 
-                                        href="{{ route('projects.pitches.snapshots.show', ['project' => $project, 'pitch' => $entry, 'snapshot' => $entry->current_snapshot_id]) }}" 
-                                        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-150"
-                                    >
-                                        <i class="fas fa-eye mr-2"></i>
-                                        View Entry
-                                    </a>
-                                @else
-                                    <span class="text-gray-400 text-sm">No submission</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
-                                <div class="text-gray-500">
-                                    <i class="fas fa-trophy text-4xl mb-4 text-gray-300"></i>
-                                    <p class="text-lg font-medium">No contest entries yet</p>
-                                    <p class="text-sm">Contest entries will appear here once users submit them.</p>
+                                                @foreach($this->getAvailablePlacementsForPitch($entry->id) as $value => $label)
+                                                    <option 
+                                                        value="{{ $value }}" 
+                                                        {{ ($placements[$entry->id] ?? '') === $value ? 'selected' : '' }}
+                                                        {{ strpos($label, 'Already Chosen') !== false ? 'disabled' : '' }}
+                                                    >
+                                                        {{ $label }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @endif
+                                    
+                                    <!-- View Entry -->
+                                    @if($entry->submitted_at && $entry->current_snapshot_id)
+                                        <a href="{{ route('projects.pitches.snapshots.show', ['project' => $project, 'pitch' => $entry, 'snapshot' => $entry->current_snapshot_id]) }}" 
+                                           class="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg text-sm">
+                                            <i class="fas fa-eye mr-2"></i>
+                                            View Submitted Entry
+                                        </a>
+                                    @elseif(!$entry->submitted_at)
+                                        <div class="flex items-center text-sm text-gray-500 bg-gray-100/80 rounded-lg px-3 py-2 border border-gray-200">
+                                            <i class="fas fa-clock mr-2"></i>
+                                            Not Submitted Yet
+                                        </div>
+                                    @endif
+                                    
+                                    <!-- Files Count -->
+                                    @if($entry->files->count() > 0)
+                                        <div class="flex items-center text-sm text-gray-600 bg-white/80 rounded-lg px-3 py-2 border border-gray-200">
+                                            <i class="fas fa-file-audio mr-2"></i>
+                                            {{ $entry->files->count() }} {{ Str::plural('file', $entry->files->count()) }}
+                                        </div>
+                                    @endif
                                 </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
     </div>
 

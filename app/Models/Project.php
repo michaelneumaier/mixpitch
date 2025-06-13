@@ -124,6 +124,10 @@ class Project extends Model
         'requires_license_agreement',
         'license_jurisdiction',
         'license_content_hash',
+        // Reddit fields
+        'reddit_post_id',
+        'reddit_permalink',
+        'reddit_posted_at',
     ];
 
     protected $casts = [
@@ -146,6 +150,8 @@ class Project extends Model
         'custom_license_terms' => 'array',
         'license_signed_at' => 'datetime',
         'requires_license_agreement' => 'boolean',
+        // Reddit casts
+        'reddit_posted_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -1435,5 +1441,27 @@ class Project extends Model
             ->count();
 
         return max(0, $monthlyLimit - $usedThisMonth);
+    }
+
+    // ========== REDDIT INTEGRATION ==========
+
+    /**
+     * Check if this project has been posted to Reddit
+     *
+     * @return bool
+     */
+    public function hasBeenPostedToReddit(): bool
+    {
+        return !is_null($this->reddit_post_id);
+    }
+
+    /**
+     * Get the Reddit post URL
+     *
+     * @return string|null
+     */
+    public function getRedditUrl(): ?string
+    {
+        return $this->reddit_permalink;
     }
 }

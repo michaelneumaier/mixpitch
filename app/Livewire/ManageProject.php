@@ -22,6 +22,7 @@ use App\Exceptions\File\FileUploadException;
 use App\Exceptions\File\StorageLimitException;
 use App\Exceptions\File\FileDeletionException;
 use App\Services\NotificationService;
+use App\Jobs\PostProjectToReddit;
 
 class ManageProject extends Component
 {
@@ -49,9 +50,14 @@ class ManageProject extends Component
     public $uploadingImage = false;
     public $imagePreviewUrl = null;
 
+    // Reddit posting state
+    public bool $isPostingToReddit = false;
+    public $redditPostingStartedAt = null;
+
     // Add listener for the new file uploader component
     protected $listeners = [
-        'filesUploaded' => 'refreshProjectData', 
+        'filesUploaded' => 'refreshProjectData',
+        'checkRedditStatus' => 'checkRedditStatus',
         // Keep existing listeners if any
     ];
 
@@ -932,5 +938,123 @@ class ManageProject extends Component
             ]);
             Toaster::error('An error occurred while removing the image. Please try again.');
         }
+    }
+
+    /**
+     * Post project to Reddit
+     */
+    public function postToReddit()
+    {
+        try {
+            $this->authorize('update', $this->project);
+
+            // Prevent multiple simultaneous submissions
+            if ($this->isPostingToReddit) {
+                Toaster::warning('Reddit posting is already in progress. Please wait...');
+                return;
+            }
+
+            // Validate project requirements
+            if (!$this->project->is_published) {
+                Toaster::error('Project must be published before posting to Reddit.');
+                return;
+            }
+
+            if (empty($this->project->title) || empty($this->project->description)) {
+                Toaster::error('Project must have a title and description to post to Reddit.');
+                return;
+            }
+
+            if ($this->project->hasBeenPostedToReddit()) {
+                Toaster::warning('This project has already been posted to Reddit.');
+                return;
+            }
+
+            // Rate limiting check - 3 posts per hour per user
+            $recentPosts = auth()->user()->projects()
+                ->whereNotNull('reddit_posted_at')
+                ->where('reddit_posted_at', '>', now()->subHour())
+                ->count();
+
+            if ($recentPosts >= 3) {
+                Toaster::error('You can only post 3 projects per hour to Reddit. Please try again later.');
+                return;
+            }
+
+            // Set posting state
+            $this->isPostingToReddit = true;
+            $this->redditPostingStartedAt = now();
+
+            // Dispatch the job
+            PostProjectToReddit::dispatch($this->project);
+
+            Toaster::success('Your project is being posted to r/MixPitch! This may take a few moments...');
+
+            Log::info('Reddit post job dispatched', [
+                'project_id' => $this->project->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            // Start polling for the result
+            $this->dispatch('start-reddit-polling');
+
+        } catch (AuthorizationException $e) {
+            $this->isPostingToReddit = false;
+            $this->redditPostingStartedAt = null;
+            Toaster::error('You are not authorized to post this project.');
+        } catch (\Exception $e) {
+            $this->isPostingToReddit = false;
+            $this->redditPostingStartedAt = null;
+            Log::error('Error posting project to Reddit', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+            Toaster::error('An error occurred while posting to Reddit. Please try again.');
+        }
+    }
+
+    /**
+     * Check Reddit posting status (called by polling)
+     */
+    public function checkRedditStatus()
+    {
+        // Refresh the project to get latest data
+        $this->project->refresh();
+
+        // Check if the Reddit post has been completed
+        if ($this->project->hasBeenPostedToReddit()) {
+            $this->isPostingToReddit = false;
+            $this->redditPostingStartedAt = null;
+            
+            Toaster::success('Successfully posted to r/MixPitch! You can now view your post on Reddit.');
+            
+            // Stop polling
+            $this->dispatch('stop-reddit-polling');
+            return;
+        }
+
+        // Check for timeout (5 minutes)
+        if ($this->redditPostingStartedAt && now()->diffInMinutes($this->redditPostingStartedAt) > 5) {
+            $this->isPostingToReddit = false;
+            $this->redditPostingStartedAt = null;
+            
+            Toaster::warning('Reddit posting is taking longer than expected. Please check back in a few minutes or try again.');
+            
+            // Stop polling
+            $this->dispatch('stop-reddit-polling');
+        }
+    }
+
+    /**
+     * Reset Reddit posting state (for debugging/recovery)
+     */
+    public function resetRedditPostingState()
+    {
+        $this->isPostingToReddit = false;
+        $this->redditPostingStartedAt = null;
+        $this->dispatch('stop-reddit-polling');
+        
+        Toaster::info('Reddit posting state has been reset.');
     }
 }
