@@ -31,6 +31,8 @@ use App\Http\Controllers\ContestJudgingController;
 use App\Http\Controllers\SubscriptionController;
 use App\Livewire\EditProject;
 use App\Http\Controllers\LicenseSignatureController;
+use App\Http\Controllers\StripeConnectController;
+use App\Http\Controllers\ContestPrizePaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -251,7 +253,40 @@ Route::middleware(['auth'])->group(function () {
         ->name('projects.contest.announce-results')
         ->middleware('auth');
 
+    // Contest early closure routes
+    Route::post('/projects/{project}/contest/close-early', [\App\Http\Controllers\ContestJudgingController::class, 'closeEarly'])
+        ->name('projects.contest.close-early')
+        ->middleware('auth');
+
+    Route::post('/projects/{project}/contest/reopen-submissions', [\App\Http\Controllers\ContestJudgingController::class, 'reopenSubmissions'])
+        ->name('projects.contest.reopen-submissions')
+        ->middleware('auth');
+
     // <<< END PHASE 6: CONTEST JUDGING ROUTES >>>
+
+    // <<< CONTEST PRIZE PAYMENT ROUTES >>>
+    
+    // Contest prize payment overview
+    Route::get('/projects/{project}/contest/prizes/payment', [ContestPrizePaymentController::class, 'overview'])
+        ->name('contest.prizes.overview')
+        ->middleware('auth');
+    
+    // Process contest prize payments
+    Route::post('/projects/{project}/contest/prizes/payment', [ContestPrizePaymentController::class, 'process'])
+        ->name('contest.prizes.process')
+        ->middleware('auth');
+    
+    // Process individual contest prize payment
+    Route::post('/projects/{project}/contest/prizes/{prize}/payment', [ContestPrizePaymentController::class, 'processIndividual'])
+        ->name('contest.prizes.process.individual')
+        ->middleware('auth');
+    
+    // Contest prize payment receipt
+    Route::get('/projects/{project}/contest/prizes/receipt', [ContestPrizePaymentController::class, 'receipt'])
+        ->name('contest.prizes.receipt')
+        ->middleware('auth');
+
+    // <<< END CONTEST PRIZE PAYMENT ROUTES >>>
 
     // Special fallback routes to debug 404 errors
     Route::get('/pitch/{pitch}/snapshots/{snapshot}/{action}', function($pitch, $snapshot, $action) {
@@ -359,6 +394,42 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('subscription')->name('s
 
 // Stripe Webhook Route
 Route::post('/stripe/webhook', [App\Http\Controllers\Billing\WebhookController::class, 'handleWebhook'])->name('cashier.webhook');
+
+// Stripe Connect Routes
+Route::middleware(['auth:sanctum', 'verified'])->prefix('stripe/connect')->name('stripe.connect.')->group(function () {
+    Route::get('/setup', [StripeConnectController::class, 'setup'])->name('setup');
+    Route::post('/onboarding', [StripeConnectController::class, 'startOnboarding'])->name('onboarding');
+    Route::get('/return', [StripeConnectController::class, 'onboardingReturn'])->name('return');
+    Route::get('/refresh', [StripeConnectController::class, 'onboardingRefresh'])->name('refresh');
+    Route::get('/dashboard', [StripeConnectController::class, 'dashboard'])->name('dashboard');
+    Route::get('/status', [StripeConnectController::class, 'accountStatus'])->name('status');
+    Route::get('/eligibility', [StripeConnectController::class, 'payoutEligibility'])->name('eligibility');
+});
+
+// Payout Management Routes
+Route::middleware(['auth:sanctum', 'verified'])->prefix('payouts')->name('payouts.')->group(function () {
+    Route::get('/', [App\Http\Controllers\PayoutController::class, 'index'])->name('index');
+    Route::get('/{payout}', [App\Http\Controllers\PayoutController::class, 'show'])->name('show');
+    Route::get('/export/csv', [App\Http\Controllers\PayoutController::class, 'export'])->name('export');
+    Route::get('/api/statistics', [App\Http\Controllers\PayoutController::class, 'statistics'])->name('statistics');
+});
+
+// Refund Request Routes
+Route::middleware(['auth:sanctum', 'verified'])->prefix('refund-requests')->name('refund-requests.')->group(function () {
+    Route::get('/', [App\Http\Controllers\RefundRequestController::class, 'index'])->name('index');
+    Route::get('/{refundRequest}', [App\Http\Controllers\RefundRequestController::class, 'show'])->name('show');
+    Route::post('/{refundRequest}/approve', [App\Http\Controllers\RefundRequestController::class, 'approve'])->name('approve');
+    Route::post('/{refundRequest}/deny', [App\Http\Controllers\RefundRequestController::class, 'deny'])->name('deny');
+    Route::get('/api/statistics', [App\Http\Controllers\RefundRequestController::class, 'statistics'])->name('statistics');
+});
+
+// Client Refund Request Routes (no auth required)
+Route::prefix('refunds')->name('refunds.')->group(function () {
+    Route::get('/pitches/{pitch}/create', [App\Http\Controllers\RefundRequestController::class, 'create'])->name('create');
+    Route::post('/pitches/{pitch}', [App\Http\Controllers\RefundRequestController::class, 'store'])->name('store');
+    Route::get('/{refundRequest}/confirmation', [App\Http\Controllers\RefundRequestController::class, 'confirmation'])->name('confirmation');
+    Route::get('/pitches/{pitch}/eligibility', [App\Http\Controllers\RefundRequestController::class, 'checkEligibility'])->name('eligibility');
+});
 
 // Debug route for subscription testing (remove in production)
 Route::get('/debug/subscription/{user}', function(\App\Models\User $user) {

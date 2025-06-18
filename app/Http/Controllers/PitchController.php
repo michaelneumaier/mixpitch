@@ -140,6 +140,19 @@ class PitchController extends Controller
         // Allow direct access for client management and direct hire workflows
         if ($user && $user->id === $project->user_id && 
             !$project->isClientManagement() && !$project->isDirectHire()) {
+            
+            // Check if pitch has snapshots - if so, redirect to latest snapshot
+            $latestSnapshot = $pitch->snapshots()->orderBy('created_at', 'desc')->first();
+            
+            if ($latestSnapshot) {
+                return redirect()->route('projects.pitches.snapshots.show', [
+                    'project' => $project->slug, 
+                    'pitch' => $pitch->slug, 
+                    'snapshot' => $latestSnapshot->id
+                ])->with('info', 'Redirected to the latest snapshot for review.');
+            }
+            
+            // No snapshots - redirect to manage page (original behavior)
             return redirect()->route('projects.manage', $project)
                 ->with('info', 'Project owners should manage pitches from the project management page.');
         }
@@ -153,14 +166,34 @@ class PitchController extends Controller
             abort(404);
         }
 
+        try {
+            $this->authorize('view', $pitch);
+            // Eager load necessary relationships
+            $pitch->load(['user', 'project.user', 'events', 'snapshots']);
+        } catch (AuthorizationException $e) {
+            abort(403, 'You are not authorized to view this pitch.');
+        }
+
         $user = auth()->user();
 
         // Only redirect project owners for standard workflow types
         // Allow direct access for client management and direct hire workflows
         if ($user && $user->id === $pitch->project->user_id && 
             !$pitch->project->isClientManagement() && !$pitch->project->isDirectHire()) {
-            return redirect()->route('projects.manage', $pitch->project)
-                ->with('info', 'Project owners should manage pitches from the project management page.');
+            
+            // Check if this is not already the latest snapshot
+            $latestSnapshot = $pitch->snapshots()->orderBy('created_at', 'desc')->first();
+            
+            if ($latestSnapshot && $latestSnapshot->id !== $pitchSnapshot->id) {
+                return redirect()->route('projects.pitches.snapshots.show', [
+                    'project' => $pitch->project->slug, 
+                    'pitch' => $pitch->slug, 
+                    'snapshot' => $latestSnapshot->id
+                ])->with('info', 'Redirected to the latest snapshot for review.');
+            }
+            
+            // If this is the latest snapshot or no snapshots exist, allow access
+            // This allows project owners to view the current latest snapshot directly
         }
 
         $snapshotData = $pitchSnapshot->snapshot_data;

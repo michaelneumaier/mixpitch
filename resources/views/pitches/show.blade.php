@@ -197,6 +197,9 @@
 
             <!-- Sidebar -->
             <div class="space-y-6">
+                <!-- Payout Status (if applicable) -->
+                <x-pitch.payout-status :pitch="$pitch" />
+
                 <!-- Pitch Rating (if completed) -->
                 @if($pitch->status === 'completed' && $pitch->getCompletionRating())
                     <div class="bg-gradient-to-br from-orange-50/90 to-amber-50/90 backdrop-blur-sm border border-orange-200/50 rounded-2xl p-6 shadow-lg">

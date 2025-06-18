@@ -1,4 +1,4 @@
-@props(['project', 'showTitle' => true, 'compact' => false, 'badge' => false])
+@props(['project', 'showTitle' => true, 'compact' => false, 'badge' => false, 'context' => 'default'])
 
 @php
     $prizes = $project->getPrizeSummary();
@@ -131,8 +131,8 @@
                         @endforeach
                     </div>
 
-                    <!-- Contest Encouragement - Only show if contest is still accepting submissions -->
-                    @if(!$project->isJudgingFinalized() && (!$project->submission_deadline || !$project->submission_deadline->isPast()))
+                    <!-- Contest Encouragement - Only show if contest is still accepting submissions AND not in judging context -->
+                    @if($context !== 'judging' && !$project->isJudgingFinalized() && (!$project->submission_deadline || !$project->submission_deadline->isPast()))
                         <div class="mt-8 p-6 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-xl border border-blue-200/50 text-center">
                             <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                                 <i class="fas fa-star text-white text-xl"></i>

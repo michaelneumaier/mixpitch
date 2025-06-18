@@ -182,8 +182,8 @@ class ManageContestPitch extends Component
             }
             
             // Check if contest is still open
-            if ($this->project->submission_deadline && $this->project->submission_deadline->isPast()) {
-                Toaster::error('Contest submission deadline has passed.');
+            if ($this->project->isSubmissionPeriodClosed()) {
+                Toaster::error('Contest submissions are closed.');
                 return;
             }
             

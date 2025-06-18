@@ -49,16 +49,16 @@
             $contextualGuidance = 'Consider extending the deadline or promoting the contest more widely.';
             $showWarning = true;
         }
-    } elseif ($hasEntries && !$project->submission_deadline?->isPast()) {
+    } elseif ($hasEntries && !$project->isSubmissionPeriodClosed()) {
         $currentStage = 'contest_open';
         $statusMessage = "Contest open - {$contestEntries->count()} entries received";
         $contextualGuidance = 'Contest is still accepting entries until the deadline.';
         $timeInStatus = $project->created_at;
-    } elseif ($hasEntries && $project->submission_deadline?->isPast() && !$isFinalized) {
+    } elseif ($hasEntries && $project->isSubmissionPeriodClosed() && !$isFinalized) {
         $currentStage = 'contest_judging';
         $statusMessage = 'Judging in progress';
         $contextualGuidance = 'Review the entries and make placement decisions. Finalize judging when complete.';
-        $timeInStatus = $project->submission_deadline;
+        $timeInStatus = $project->getEffectiveSubmissionDeadline();
         
         // Warning if judging taking too long
         if ($project->submission_deadline && $project->submission_deadline->diffInDays(now()) > 14) {
@@ -248,14 +248,23 @@
     </div>
     
     <!-- Contest Management Actions -->
-    @if($currentStage === 'contest_finalized' && ($project->user_id === auth()->id() || auth()->user()?->hasRole('admin')))
+    @if(($currentStage === 'contest_finalized' || $currentStage === 'contest_results') && ($project->user_id === auth()->id() || auth()->user()?->hasRole('admin')))
         <div class="mt-6 bg-white/60 border border-amber-200/30 rounded-xl p-4">
-            <h4 class="font-medium text-amber-800 mb-3 flex items-center">
-                <i class="fas fa-bullhorn mr-2 text-amber-600"></i>
-                Contest Management
-            </h4>
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="font-medium text-amber-800 flex items-center">
+                    <i class="fas fa-bullhorn mr-2 text-amber-600"></i>
+                    Contest Management
+                </h4>
+                <x-contest.payment-status-badge :project="$project" compact="true" />
+            </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @php
+                $paymentStatus = $project->getContestPaymentStatus();
+                $hasCashPrizes = $paymentStatus['has_cash_prizes'];
+                $prizesPaid = $paymentStatus['payment_status'] === 'all_paid';
+            @endphp
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <!-- Select Winners Button -->
                 @if($contestEntries->count() > 0)
                     <a href="{{ route('projects.contest.judging', $project) }}" 
@@ -263,6 +272,29 @@
                         <i class="fas fa-crown mr-2"></i>
                         Select Winners
                     </a>
+                @endif
+                
+                <!-- Contest Prize Payment Button -->
+                @if($hasCashPrizes)
+                    @if($paymentStatus['payment_status'] === 'all_paid')
+                        <a href="{{ route('contest.prizes.receipt', $project) }}" 
+                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                            <i class="fas fa-receipt mr-2"></i>
+                            View Receipt
+                        </a>
+                    @elseif($paymentStatus['payment_status'] === 'partially_paid')
+                        <a href="{{ route('contest.prizes.overview', $project) }}" 
+                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                            <i class="fas fa-clock mr-2"></i>
+                            Continue Payments
+                        </a>
+                    @else
+                        <a href="{{ route('contest.prizes.overview', $project) }}" 
+                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                            <i class="fas fa-dollar-sign mr-2"></i>
+                            Pay Prizes
+                        </a>
+                    @endif
                 @endif
                 
                 <!-- Formal Announcement Button -->
@@ -279,6 +311,20 @@
                         <i class="fas fa-info-circle mr-1"></i>
                         {{ $notSelectedCount }} {{ Str::plural('entry', $notSelectedCount) }} marked as not selected. 
                         You can still select winners or formally announce the results as-is.
+                    </p>
+                </div>
+            @endif
+            
+            @if($hasCashPrizes)
+                <div class="mt-3 p-3 bg-purple-50/80 border border-purple-200 rounded-lg">
+                    <p class="text-xs text-purple-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        This contest has cash prizes totaling ${{ number_format($paymentStatus['total_prize_amount'], 2) }}. 
+                        @if($prizesPaid)
+                            All prizes have been paid.
+                        @else
+                            Pay prizes after selecting winners.
+                        @endif
                     </p>
                 </div>
             @endif

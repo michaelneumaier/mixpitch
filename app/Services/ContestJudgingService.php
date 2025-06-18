@@ -24,49 +24,102 @@ class ContestJudgingService
      */
     public function setPlacement(Project $project, Pitch $pitch, ?string $placement): bool
     {
-        // Validate that this is a contest project
-        if (!$project->isContest()) {
-            throw new \InvalidArgumentException('Project must be a contest to set placements');
-        }
-
-        // Validate that judging hasn't been finalized
-        if ($project->isJudgingFinalized()) {
-            throw new \InvalidArgumentException('Cannot modify placements after judging has been finalized');
-        }
-
-        // Validate placement value
-        if ($placement && !in_array($placement, [Pitch::RANK_FIRST, Pitch::RANK_SECOND, Pitch::RANK_THIRD, Pitch::RANK_RUNNER_UP])) {
-            throw new \InvalidArgumentException('Invalid placement value');
-        }
-
-        return DB::transaction(function () use ($project, $pitch, $placement) {
-            // Get or create contest result
-            $contestResult = $project->contestResult()->firstOrCreate([
-                'project_id' => $project->id
-            ], [
-                'show_submissions_publicly' => true
+        try {
+            \Log::info('ContestJudgingService setPlacement called', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'placement' => $placement,
+                'current_pitch_rank' => $pitch->rank
             ]);
 
-            // If removing placement, clear it
-            if (!$placement) {
-                $this->clearPlacement($contestResult, $pitch);
-                $pitch->update(['rank' => null]);
+            // Validate that this is a contest project
+            if (!$project->isContest()) {
+                throw new \InvalidArgumentException('Project must be a contest to set placements');
+            }
+
+            // Validate that judging hasn't been finalized
+            if ($project->isJudgingFinalized()) {
+                throw new \InvalidArgumentException('Cannot modify placements after judging has been finalized');
+            }
+
+            // Validate placement value
+            if ($placement && !in_array($placement, [Pitch::RANK_FIRST, Pitch::RANK_SECOND, Pitch::RANK_THIRD, Pitch::RANK_RUNNER_UP])) {
+                throw new \InvalidArgumentException('Invalid placement value: ' . $placement);
+            }
+
+            // Validate pitch status
+            $eligibleStatuses = [Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP];
+            if (!in_array($pitch->status, $eligibleStatuses)) {
+                throw new \InvalidArgumentException('Pitch is not eligible for contest placement. Current status: ' . $pitch->status);
+            }
+
+            $result = DB::transaction(function () use ($project, $pitch, $placement) {
+                // Get or create contest result
+                $contestResult = $project->contestResult()->firstOrCreate([
+                    'project_id' => $project->id
+                ], [
+                    'show_submissions_publicly' => true
+                ]);
+
+                \Log::info('Contest result retrieved/created', [
+                    'contest_result_id' => $contestResult->id,
+                    'project_id' => $project->id
+                ]);
+
+                // If removing placement, clear it
+                if (!$placement) {
+                    $this->clearPlacement($contestResult, $pitch);
+                    $pitch->update(['rank' => null]);
+                    
+                    \Log::info('Placement cleared', [
+                        'project_id' => $project->id,
+                        'pitch_id' => $pitch->id
+                    ]);
+                    
+                    return true;
+                }
+
+                // Handle exclusive placements (1st, 2nd, 3rd)
+                if (in_array($placement, [Pitch::RANK_FIRST, Pitch::RANK_SECOND, Pitch::RANK_THIRD])) {
+                    $this->setExclusivePlacement($contestResult, $pitch, $placement);
+                } else {
+                    // Handle runner-up placement
+                    $this->setRunnerUpPlacement($contestResult, $pitch);
+                }
+
+                // Update the pitch rank
+                $pitch->update(['rank' => $placement]);
+
+                \Log::info('Placement set successfully', [
+                    'project_id' => $project->id,
+                    'pitch_id' => $pitch->id,
+                    'placement' => $placement
+                ]);
+
                 return true;
-            }
+            });
 
-            // Handle exclusive placements (1st, 2nd, 3rd)
-            if (in_array($placement, [Pitch::RANK_FIRST, Pitch::RANK_SECOND, Pitch::RANK_THIRD])) {
-                $this->setExclusivePlacement($contestResult, $pitch, $placement);
-            } else {
-                // Handle runner-up placement
-                $this->setRunnerUpPlacement($contestResult, $pitch);
-            }
+            return $result;
 
-            // Update the pitch rank
-            $pitch->update(['rank' => $placement]);
+        } catch (\InvalidArgumentException $e) {
+            \Log::error('ContestJudgingService validation error', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'placement' => $placement,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
 
-            return true;
-        });
+        } catch (\Exception $e) {
+            \Log::error('ContestJudgingService unexpected error', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'placement' => $placement,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw new \InvalidArgumentException('Failed to set placement: ' . $e->getMessage());
+        }
     }
 
     /**

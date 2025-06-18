@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Contest Judging: {{ $project->name }}
+                    Contest Judging: {{ $project->title }}
                 </h2>
                 <p class="text-sm text-gray-600 mt-1">
                     {{ $contestEntries->count() }} entries submitted
@@ -12,7 +12,53 @@
                     @endif
                 </p>
             </div>
-            <div class="flex space-x-3">
+            <div class="flex items-center space-x-3">
+                <!-- Back to Manage Contest Button -->
+                <a href="{{ route('projects.manage', $project) }}" 
+                   class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Manage Contest
+                </a>
+                
+                @if($isFinalized)
+                    @php
+                        // Check if there are cash prizes to pay
+                        $cashPrizes = $project->contestPrizes()
+                            ->where('prize_type', 'cash')
+                            ->where('cash_amount', '>', 0)
+                            ->get();
+                        $hasCashPrizes = $cashPrizes->isNotEmpty();
+                        
+                        // Check if prizes have been paid
+                        $contestResult = $project->contestResult;
+                        $prizesPaid = false;
+                        if ($hasCashPrizes && $contestResult) {
+                            $prizesPaid = true;
+                            foreach ($cashPrizes as $prize) {
+                                $winnerPitch = $contestResult->getWinnerForPlacement($prize->placement);
+                                if ($winnerPitch && $winnerPitch->payment_status !== 'paid') {
+                                    $prizesPaid = false;
+                                    break;
+                                }
+                            }
+                        }
+                    @endphp
+                    
+                    @if($hasCashPrizes && !$prizesPaid)
+                        <a href="{{ route('contest.prizes.overview', $project) }}" 
+                           class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200">
+                            <i class="fas fa-dollar-sign mr-2"></i>
+                            Pay Contest Prizes
+                        </a>
+                    @elseif($hasCashPrizes && $prizesPaid)
+                        <a href="{{ route('contest.prizes.receipt', $project) }}" 
+                           class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200">
+                            <i class="fas fa-receipt mr-2"></i>
+                            View Receipt
+                        </a>
+                    @endif
+                @endif
+                
                 @if($canFinalize && !$isFinalized)
                     <button onclick="openFinalizeModal()" 
                             class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium">
@@ -50,9 +96,8 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-12" x-data="contestJudging()">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            
             <!-- Contest Status -->
             <div class="mb-8">
                 @if($isFinalized)
@@ -83,16 +128,90 @@
                 @endif
             </div>
 
+            <!-- Contest Prize Payment Status -->
+            @if($isFinalized)
+                @php
+                    // Check if there are cash prizes to pay
+                    $cashPrizes = $project->contestPrizes()
+                        ->where('prize_type', 'cash')
+                        ->where('cash_amount', '>', 0)
+                        ->get();
+                    $hasCashPrizes = $cashPrizes->isNotEmpty();
+                    
+                    if ($hasCashPrizes) {
+                        // Check if prizes have been paid
+                        $contestResult = $project->contestResult;
+                        $prizesPaid = false;
+                        $totalPrizeAmount = $cashPrizes->sum('cash_amount');
+                        
+                        if ($contestResult) {
+                            $prizesPaid = true;
+                            foreach ($cashPrizes as $prize) {
+                                $winnerPitch = $contestResult->getWinnerForPlacement($prize->placement);
+                                if ($winnerPitch && $winnerPitch->payment_status !== 'paid') {
+                                    $prizesPaid = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                @endphp
+                
+                @if($hasCashPrizes)
+                    <div class="mb-8">
+                        @if($prizesPaid)
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
+                                        <div>
+                                            <h3 class="text-lg font-medium text-green-800">Contest Prizes Paid</h3>
+                                            <p class="text-sm text-green-700">
+                                                All contest prizes (${{ number_format($totalPrizeAmount, 2) }}) have been successfully paid to winners.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('contest.prizes.receipt', $project) }}" 
+                                       class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
+                                        <i class="fas fa-receipt mr-2"></i>
+                                        View Receipt
+                                    </a>
+                                </div>
+                            </div>
+                        @else
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-dollar-sign text-purple-600 text-xl mr-3"></i>
+                                        <div>
+                                            <h3 class="text-lg font-medium text-purple-800">Contest Prizes Ready for Payment</h3>
+                                            <p class="text-sm text-purple-700">
+                                                Total prize amount: ${{ number_format($totalPrizeAmount, 2) }} • Winners must have valid Stripe Connect accounts
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('contest.prizes.overview', $project) }}" 
+                                       class="inline-flex items-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">
+                                        <i class="fas fa-dollar-sign mr-2"></i>
+                                        Pay Contest Prizes
+                                    </a>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+            @endif
+
             <!-- Contest Prizes Display -->
             @if($project->hasPrizes())
                 <div class="mb-8">
-                    <x-contest.prize-display :project="$project" />
+                    <x-contest.prize-display :project="$project" context="judging" />
                 </div>
             @endif
 
-            <!-- Winners Summary (if any) -->
-            @if($contestResult && $contestResult->hasWinners())
-                <div class="mb-8">
+            <!-- Winners Summary (always show if there are contest entries to display placeholders) -->
+            @if($contestEntries->count() > 0)
+                <div class="mb-8" id="current-winners-section">
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200">
                         <div class="p-6 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">
@@ -100,69 +219,123 @@
                                 Current Winners
                             </h3>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="winners-grid">
                                 <!-- First Place -->
-                                @if($contestResult->first_place_pitch_id)
-                                    @php $firstPlace = $contestEntries->firstWhere('id', $contestResult->first_place_pitch_id) @endphp
-                                    @if($firstPlace)
-                                        <div class="bg-white rounded-lg p-4 border-2 border-yellow-300">
+                                <div id="first-place-card" class="winner-card" data-placement="1st">
+                                    @if($contestResult->first_place_pitch_id)
+                                        @php $firstPlace = $contestEntries->firstWhere('id', $contestResult->first_place_pitch_id) @endphp
+                                        @if($firstPlace)
+                                            <div class="bg-white rounded-lg p-4 border-2 border-yellow-300">
+                                                <div class="text-center">
+                                                    <div class="text-3xl mb-2">🥇</div>
+                                                    <h4 class="font-semibold text-gray-900">1st Place</h4>
+                                                    <p class="text-sm text-gray-600">{{ $firstPlace->user->name }}</p>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                                <div class="text-center">
+                                                    <div class="text-3xl mb-2 opacity-50">🥇</div>
+                                                    <h4 class="font-semibold text-gray-500">1st Place</h4>
+                                                    <p class="text-sm text-gray-400">Not assigned yet</p>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @else
+                                        <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
                                             <div class="text-center">
-                                                <div class="text-3xl mb-2">🥇</div>
-                                                <h4 class="font-semibold text-gray-900">1st Place</h4>
-                                                <p class="text-sm text-gray-600">{{ $firstPlace->user->name }}</p>
+                                                <div class="text-3xl mb-2 opacity-50">🥇</div>
+                                                <h4 class="font-semibold text-gray-500">1st Place</h4>
+                                                <p class="text-sm text-gray-400">Not assigned yet</p>
                                             </div>
                                         </div>
                                     @endif
-                                @endif
+                                </div>
 
                                 <!-- Second Place -->
-                                @if($contestResult->second_place_pitch_id)
-                                    @php $secondPlace = $contestEntries->firstWhere('id', $contestResult->second_place_pitch_id) @endphp
-                                    @if($secondPlace)
-                                        <div class="bg-white rounded-lg p-4 border-2 border-gray-300">
+                                <div id="second-place-card" class="winner-card" data-placement="2nd">
+                                    @if($contestResult->second_place_pitch_id)
+                                        @php $secondPlace = $contestEntries->firstWhere('id', $contestResult->second_place_pitch_id) @endphp
+                                        @if($secondPlace)
+                                            <div class="bg-white rounded-lg p-4 border-2 border-gray-300">
+                                                <div class="text-center">
+                                                    <div class="text-3xl mb-2">🥈</div>
+                                                    <h4 class="font-semibold text-gray-900">2nd Place</h4>
+                                                    <p class="text-sm text-gray-600">{{ $secondPlace->user->name }}</p>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                                <div class="text-center">
+                                                    <div class="text-3xl mb-2 opacity-50">🥈</div>
+                                                    <h4 class="font-semibold text-gray-500">2nd Place</h4>
+                                                    <p class="text-sm text-gray-400">Not assigned yet</p>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @else
+                                        <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
                                             <div class="text-center">
-                                                <div class="text-3xl mb-2">🥈</div>
-                                                <h4 class="font-semibold text-gray-900">2nd Place</h4>
-                                                <p class="text-sm text-gray-600">{{ $secondPlace->user->name }}</p>
+                                                <div class="text-3xl mb-2 opacity-50">🥈</div>
+                                                <h4 class="font-semibold text-gray-500">2nd Place</h4>
+                                                <p class="text-sm text-gray-400">Not assigned yet</p>
                                             </div>
                                         </div>
                                     @endif
-                                @endif
+                                </div>
 
                                 <!-- Third Place -->
-                                @if($contestResult->third_place_pitch_id)
-                                    @php $thirdPlace = $contestEntries->firstWhere('id', $contestResult->third_place_pitch_id) @endphp
-                                    @if($thirdPlace)
-                                        <div class="bg-white rounded-lg p-4 border-2 border-orange-300">
+                                <div id="third-place-card" class="winner-card" data-placement="3rd">
+                                    @if($contestResult->third_place_pitch_id)
+                                        @php $thirdPlace = $contestEntries->firstWhere('id', $contestResult->third_place_pitch_id) @endphp
+                                        @if($thirdPlace)
+                                            <div class="bg-white rounded-lg p-4 border-2 border-orange-300">
+                                                <div class="text-center">
+                                                    <div class="text-3xl mb-2">🥉</div>
+                                                    <h4 class="font-semibold text-gray-900">3rd Place</h4>
+                                                    <p class="text-sm text-gray-600">{{ $thirdPlace->user->name }}</p>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                                <div class="text-center">
+                                                    <div class="text-3xl mb-2 opacity-50">🥉</div>
+                                                    <h4 class="font-semibold text-gray-500">3rd Place</h4>
+                                                    <p class="text-sm text-gray-400">Not assigned yet</p>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @else
+                                        <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
                                             <div class="text-center">
-                                                <div class="text-3xl mb-2">🥉</div>
-                                                <h4 class="font-semibold text-gray-900">3rd Place</h4>
-                                                <p class="text-sm text-gray-600">{{ $thirdPlace->user->name }}</p>
+                                                <div class="text-3xl mb-2 opacity-50">🥉</div>
+                                                <h4 class="font-semibold text-gray-500">3rd Place</h4>
+                                                <p class="text-sm text-gray-400">Not assigned yet</p>
                                             </div>
                                         </div>
                                     @endif
-                                @endif
+                                </div>
                             </div>
 
                             <!-- Runner-ups -->
-                            @if($contestResult->runner_up_pitch_ids && count($contestResult->runner_up_pitch_ids) > 0)
-                                <div class="mt-4">
+                            <div id="runner-ups-section" class="mt-4">
+                                @if($contestResult->runner_up_pitch_ids && count($contestResult->runner_up_pitch_ids) > 0)
                                     <h4 class="font-medium text-gray-900 mb-2">
                                         <i class="fas fa-medal text-blue-600 mr-1"></i>
                                         Runner-ups
                                     </h4>
-                                    <div class="flex flex-wrap gap-2">
+                                    <div class="flex flex-wrap gap-2" id="runner-ups-list">
                                         @foreach($contestResult->runner_up_pitch_ids as $runnerUpId)
                                             @php $runnerUp = $contestEntries->firstWhere('id', $runnerUpId) @endphp
                                             @if($runnerUp)
-                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800" data-pitch-id="{{ $runnerUp->id }}">
                                                     🏅 {{ $runnerUp->user->name }}
                                                 </span>
                                             @endif
                                         @endforeach
                                     </div>
-                                </div>
-                            @endif
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -254,7 +427,7 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @if(!$isFinalized)
-                                                    <select onchange="updatePlacement({{ $entry->id }}, this.value)" 
+                                                    <select onchange="updatePlacement('{{ $entry->slug }}', this.value)" 
                                                             class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500">
                                                         <option value="">No Placement</option>
                                                         <option value="1st" {{ $entry->rank === '1st' ? 'selected' : '' }}
@@ -355,6 +528,27 @@
 
     @push('scripts')
     <script>
+        function contestJudging() {
+            return {
+                loading: {},
+                
+                init() {
+                    // Listen for Livewire events if any components emit them
+                    window.addEventListener('placement-updated', (event) => {
+                        this.handlePlacementUpdate(event.detail);
+                    });
+                },
+                
+                handlePlacementUpdate(data) {
+                    console.log('Placement updated via event:', data);
+                    // Update UI based on event data
+                    if (data.pitch_slug && data.placement !== undefined) {
+                        updatePlacementUI(data.pitch_slug, data.placement, data);
+                    }
+                }
+            };
+        }
+        
         function openFinalizeModal() {
             document.getElementById('finalizeModal').classList.remove('hidden');
         }
@@ -363,33 +557,387 @@
             document.getElementById('finalizeModal').classList.add('hidden');
         }
 
-        function updatePlacement(pitchId, placement) {
-            fetch(`{{ route('projects.contest.update-placement', [$project, '__PITCH_ID__']) }}`.replace('__PITCH_ID__', pitchId), {
+        function updatePlacement(pitchSlug, placement) {
+            console.log('Updating placement for pitch:', pitchSlug, 'to:', placement);
+            console.log('Project slug:', '{{ $project->slug }}');
+            
+            // Show loading state
+            const selectElement = document.querySelector(`select[onchange*="${pitchSlug}"]`);
+            const originalValue = selectElement ? selectElement.value : '';
+            
+            if (selectElement) {
+                selectElement.disabled = true;
+                selectElement.style.opacity = '0.6';
+                
+                // Add loading indicator
+                const loadingSpinner = document.createElement('div');
+                loadingSpinner.className = 'absolute inset-0 flex items-center justify-center bg-white/80 rounded';
+                loadingSpinner.innerHTML = '<i class="fas fa-spinner fa-spin text-gray-500"></i>';
+                loadingSpinner.id = `loading-${pitchSlug}`;
+                
+                const selectContainer = selectElement.parentElement;
+                selectContainer.style.position = 'relative';
+                selectContainer.appendChild(loadingSpinner);
+            }
+            
+            // Build the URL using route helper with proper parameter substitution
+            const routeTemplate = '{{ route("projects.contest.update-placement", [$project->slug, "PITCH_SLUG_PLACEHOLDER"]) }}';
+            const updateUrl = routeTemplate.replace('PITCH_SLUG_PLACEHOLDER', pitchSlug);
+            
+            console.log('Update URL:', updateUrl);
+            
+            fetch(updateUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     placement: placement
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response URL:', response.url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
+                
                 if (data.success) {
-                    // Show success message and reload page to update UI
-                    alert(data.message);
-                    window.location.reload();
+                    // Update UI dynamically without page refresh
+                    updatePlacementUI(pitchSlug, placement, data);
+                    
+                    // Show success message
+                    showNotification('success', data.message || 'Placement updated successfully');
+                    
+                    // Update other selects to reflect new availability
+                    if (data.availablePlacements) {
+                        updateAllSelectOptions(data.availablePlacements);
+                    }
+                    
+                    // Update Current Winners section
+                    if (data.currentWinners) {
+                        updateCurrentWinners(data.currentWinners);
+                    }
+                    
                 } else {
-                    alert(data.message || 'Failed to update placement');
+                    throw new Error(data.message || 'Failed to update placement');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to update placement. Please try again.');
+                console.error('Error updating placement:', error);
+                
+                // Revert select to original value
+                if (selectElement) {
+                    selectElement.value = originalValue;
+                }
+                
+                // Show error message
+                showNotification('error', 'Failed to update placement: ' + error.message);
+            })
+            .finally(() => {
+                // Remove loading state
+                if (selectElement) {
+                    selectElement.disabled = false;
+                    selectElement.style.opacity = '1';
+                    
+                    const loadingSpinner = document.getElementById(`loading-${pitchSlug}`);
+                    if (loadingSpinner) {
+                        loadingSpinner.remove();
+                    }
+                }
             });
         }
-
+        
+        function updatePlacementUI(pitchSlug, placement, data) {
+            // Find the row for this pitch
+            const selectElement = document.querySelector(`select[onchange*="${pitchSlug}"]`);
+            if (!selectElement) return;
+            
+            const row = selectElement.closest('tr');
+            if (!row) return;
+            
+            // Update the placement badge in the same row
+            const placementCell = row.querySelector('td:nth-child(4)'); // Assuming placement is 4th column
+            if (placementCell) {
+                const placementBadge = placementCell.querySelector('span');
+                if (placementBadge) {
+                    if (placement) {
+                        // Update badge with new placement
+                        const placementInfo = getPlacementInfo(placement);
+                        placementBadge.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${placementInfo.bgClass}`;
+                        placementBadge.innerHTML = `${placementInfo.emoji} ${placementInfo.label}`;
+                    } else {
+                        // Show "Not Placed"
+                        placementBadge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600';
+                        placementBadge.innerHTML = '⭕ Not Placed';
+                    }
+                    
+                    // Add success animation
+                    placementBadge.style.transform = 'scale(1.1)';
+                    placementBadge.style.transition = 'transform 0.2s ease';
+                    setTimeout(() => {
+                        placementBadge.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            }
+        }
+        
+        function getPlacementInfo(placement) {
+            const placements = {
+                '1st': {
+                    label: '1st Place',
+                    emoji: '🥇',
+                    bgClass: 'bg-yellow-100 text-yellow-800'
+                },
+                '2nd': {
+                    label: '2nd Place', 
+                    emoji: '🥈',
+                    bgClass: 'bg-gray-100 text-gray-800'
+                },
+                '3rd': {
+                    label: '3rd Place',
+                    emoji: '🥉', 
+                    bgClass: 'bg-orange-100 text-orange-800'
+                },
+                'runner-up': {
+                    label: 'Runner-up',
+                    emoji: '🏅',
+                    bgClass: 'bg-blue-100 text-blue-800'
+                }
+            };
+            
+            return placements[placement] || {
+                label: 'Not Placed',
+                emoji: '⭕',
+                bgClass: 'bg-gray-100 text-gray-600'
+            };
+        }
+        
+        function updateAllSelectOptions(availablePlacements) {
+            // Update all select elements with new availability
+            const allSelects = document.querySelectorAll('select[onchange*="updatePlacement"]');
+            
+            allSelects.forEach(select => {
+                const currentValue = select.value;
+                
+                // Update options
+                Array.from(select.options).forEach(option => {
+                    if (option.value === '') return; // Skip "No Placement" option
+                    
+                    const isCurrentlySelected = option.value === currentValue;
+                    const isAvailable = availablePlacements[option.value] && !availablePlacements[option.value].includes('Already Chosen');
+                    
+                    option.disabled = !isCurrentlySelected && !isAvailable;
+                    
+                    // Update option text to show availability
+                    if (option.value in availablePlacements) {
+                        option.textContent = availablePlacements[option.value];
+                    }
+                });
+            });
+        }
+        
+        function updateCurrentWinners(currentWinners) {
+            console.log('Updating Current Winners section:', currentWinners);
+            
+            // Always show the Current Winners section (with placeholders if needed)
+            let winnersSection = document.getElementById('current-winners-section');
+            
+            // Create the section if it doesn't exist
+            if (!winnersSection) {
+                createCurrentWinnersSection();
+                winnersSection = document.getElementById('current-winners-section');
+            }
+            
+            // Always show the section
+            if (winnersSection) {
+                winnersSection.style.display = 'block';
+            }
+            
+            // Update individual placement cards (will show placeholders if no winner)
+            updatePlacementCard('first-place-card', currentWinners.first_place, '1st', '🥇', 'border-yellow-300');
+            updatePlacementCard('second-place-card', currentWinners.second_place, '2nd', '🥈', 'border-gray-300');
+            updatePlacementCard('third-place-card', currentWinners.third_place, '3rd', '🥉', 'border-orange-300');
+            
+            // Update runner-ups section (only show if there are runner-ups)
+            updateRunnerUps(currentWinners.runner_ups);
+        }
+        
+        function createCurrentWinnersSection() {
+            // Find the insertion point (after Contest Prizes Display)
+            const contestPrizesSection = document.querySelector('.mb-8:has(x-contest\\.prize-display)') || 
+                                        document.querySelector('[class*="prize"]').closest('.mb-8');
+            
+            if (!contestPrizesSection) return;
+            
+            // Create the Current Winners section HTML with placeholders
+            const winnersHTML = `
+                <div class="mb-8" id="current-winners-section">
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200">
+                        <div class="p-6 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">
+                                <i class="fas fa-trophy text-yellow-600 mr-2"></i>
+                                Current Winners
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="winners-grid">
+                                <div id="first-place-card" class="winner-card" data-placement="1st">
+                                    <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                        <div class="text-center">
+                                            <div class="text-3xl mb-2 opacity-50">🥇</div>
+                                            <h4 class="font-semibold text-gray-500">1st Place</h4>
+                                            <p class="text-sm text-gray-400">Not assigned yet</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="second-place-card" class="winner-card" data-placement="2nd">
+                                    <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                        <div class="text-center">
+                                            <div class="text-3xl mb-2 opacity-50">🥈</div>
+                                            <h4 class="font-semibold text-gray-500">2nd Place</h4>
+                                            <p class="text-sm text-gray-400">Not assigned yet</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="third-place-card" class="winner-card" data-placement="3rd">
+                                    <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                        <div class="text-center">
+                                            <div class="text-3xl mb-2 opacity-50">🥉</div>
+                                            <h4 class="font-semibold text-gray-500">3rd Place</h4>
+                                            <p class="text-sm text-gray-400">Not assigned yet</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="runner-ups-section" class="mt-4"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert after the contest prizes section
+            contestPrizesSection.insertAdjacentHTML('afterend', winnersHTML);
+        }
+        
+        function updatePlacementCard(cardId, winnerData, placement, emoji, borderClass) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            
+            if (winnerData) {
+                // Show winner
+                card.innerHTML = `
+                    <div class="bg-white rounded-lg p-4 border-2 ${borderClass}">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">${emoji}</div>
+                            <h4 class="font-semibold text-gray-900">${placement} Place</h4>
+                            <p class="text-sm text-gray-600">${winnerData.user_name}</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Add animation
+                card.style.transform = 'scale(1.05)';
+                card.style.transition = 'transform 0.3s ease';
+                setTimeout(() => {
+                    card.style.transform = 'scale(1)';
+                }, 300);
+            } else {
+                // Show placeholder
+                card.innerHTML = `
+                    <div class="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2 opacity-50">${emoji}</div>
+                            <h4 class="font-semibold text-gray-500">${placement} Place</h4>
+                            <p class="text-sm text-gray-400">Not assigned yet</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Add subtle animation for placeholder
+                card.style.transform = 'scale(1.02)';
+                card.style.transition = 'transform 0.2s ease';
+                setTimeout(() => {
+                    card.style.transform = 'scale(1)';
+                }, 200);
+            }
+        }
+        
+        function updateRunnerUps(runnerUps) {
+            const runnerUpsSection = document.getElementById('runner-ups-section');
+            if (!runnerUpsSection) return;
+            
+            if (runnerUps.length > 0) {
+                runnerUpsSection.innerHTML = `
+                    <h4 class="font-medium text-gray-900 mb-2">
+                        <i class="fas fa-medal text-blue-600 mr-1"></i>
+                        Runner-ups
+                    </h4>
+                    <div class="flex flex-wrap gap-2" id="runner-ups-list">
+                        ${runnerUps.map(runnerUp => `
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800" data-pitch-id="${runnerUp.id}">
+                                🏅 ${runnerUp.user_name}
+                            </span>
+                        `).join('')}
+                    </div>
+                `;
+                
+                // Add animation to new runner-ups
+                const runnerUpsList = document.getElementById('runner-ups-list');
+                if (runnerUpsList) {
+                    runnerUpsList.style.opacity = '0';
+                    runnerUpsList.style.transform = 'translateY(10px)';
+                    runnerUpsList.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    
+                    setTimeout(() => {
+                        runnerUpsList.style.opacity = '1';
+                        runnerUpsList.style.transform = 'translateY(0)';
+                    }, 100);
+                }
+            } else {
+                runnerUpsSection.innerHTML = '';
+            }
+        }
+        
+        function showNotification(type, message) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(full)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
         // Close modal when clicking outside
         document.getElementById('finalizeModal').addEventListener('click', function(e) {
             if (e.target === this) {

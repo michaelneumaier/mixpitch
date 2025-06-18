@@ -215,7 +215,7 @@
                                 <div class="text-sm text-gray-600">Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}</div>
                             </div>
                             
-                            <input type="hidden" name="payment_method_id" value="{{ $paymentMethod->id }}">
+                            <input type="hidden" name="payment_method_id" value="{{ $paymentMethod->id }}" data-existing-method="true">
                             <input type="hidden" name="use_existing_method" value="1">
                         </div>
                     </div>
@@ -343,11 +343,22 @@
             ).then(function(result) {
                 if (result.error) {
                     // Show error to customer
+                    console.error('Stripe confirmCardSetup error:', result.error);
                     const errorElement = document.getElementById('card-errors');
                     errorElement.textContent = result.error.message;
                     submitButton.disabled = false;
                     submitButton.innerHTML = 'Process Payment <i class="fas fa-arrow-right ml-2"></i>';
                 } else {
+                    console.log('Stripe confirmCardSetup success:', result);
+                    
+                    // Remove any existing payment method inputs to avoid conflicts
+                    const existingInputs = form.querySelectorAll('input[name="payment_method_id"]');
+                    existingInputs.forEach(input => {
+                        if (!input.hasAttribute('data-existing-method')) {
+                            input.remove();
+                        }
+                    });
+                    
                     // Add payment method ID to form
                     const paymentMethodInput = document.createElement('input');
                     paymentMethodInput.setAttribute('type', 'hidden');
@@ -355,9 +366,23 @@
                     paymentMethodInput.setAttribute('value', result.setupIntent.payment_method);
                     form.appendChild(paymentMethodInput);
                     
+                    // Remove the use_existing_method flag since we're using a new method
+                    const useExistingInput = form.querySelector('input[name="use_existing_method"]');
+                    if (useExistingInput) {
+                        useExistingInput.remove();
+                    }
+                    
+                    console.log('About to submit form with payment method:', result.setupIntent.payment_method);
+                    
                     // Submit the form
                     form.submit();
                 }
+            }).catch(function(error) {
+                console.error('Stripe confirmCardSetup catch error:', error);
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = 'An unexpected error occurred. Please try again.';
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Process Payment <i class="fas fa-arrow-right ml-2"></i>';
             });
         });
     });

@@ -1,4 +1,5 @@
 {{-- Contest Snapshot Judging Component --}}
+<div>
 @if($project->isContest())
     <div class="bg-gradient-to-br from-yellow-50/90 to-amber-50/90 backdrop-blur-sm border border-yellow-200/50 rounded-2xl shadow-lg overflow-hidden mb-6">
         <div class="p-6 bg-gradient-to-r from-yellow-100/80 to-amber-100/80 backdrop-blur-sm border-b border-yellow-200/50">
@@ -78,36 +79,6 @@
                                 @endforeach
                             </select>
                         </div>
-                        
-                        {{-- Quick Action Buttons --}}
-                        <div class="flex gap-2">
-                            @if($currentPlacement !== \App\Models\Pitch::RANK_FIRST && !in_array(\App\Models\Pitch::RANK_FIRST, array_keys(array_filter($availablePlacements, fn($label) => strpos($label, 'Already Chosen') !== false))))
-                                <button 
-                                    wire:click="updatePlacement('{{ \App\Models\Pitch::RANK_FIRST }}')"
-                                    class="px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                                >
-                                    🥇 1st
-                                </button>
-                            @endif
-                            
-                            @if($currentPlacement !== \App\Models\Pitch::RANK_RUNNER_UP)
-                                <button 
-                                    wire:click="updatePlacement('{{ \App\Models\Pitch::RANK_RUNNER_UP }}')"
-                                    class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                                >
-                                    🏅 Runner-up
-                                </button>
-                            @endif
-                            
-                            @if($currentPlacement)
-                                <button 
-                                    wire:click="updatePlacement('')"
-                                    class="px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                                >
-                                    <i class="fas fa-times mr-1"></i> Clear
-                                </button>
-                            @endif
-                        </div>
                     </div>
                     
                     <div class="mt-3 text-xs text-gray-500">
@@ -146,3 +117,4 @@
         </div>
     </div>
 @endif
+</div>

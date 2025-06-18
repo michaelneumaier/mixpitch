@@ -12,7 +12,10 @@
                     <i class="fas fa-trophy text-lg text-white"></i>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold text-amber-800">Contest Prizes</h3>
+                    <div class="flex items-center gap-3 mb-1">
+                        <h3 class="text-lg font-bold text-amber-800">Contest Prizes</h3>
+                        <x-contest.payment-status-badge :project="$project" compact="true" />
+                    </div>
                     <p class="text-sm text-amber-600">Rewards and incentives for winners</p>
                 </div>
             </div>
@@ -44,14 +47,50 @@
 
                 <!-- Prize Breakdown -->
                 <div class="space-y-2">
+                    @php
+                        $paymentStatus = $project->getContestPaymentStatus();
+                        $winnersWithStatus = collect($paymentStatus['winners_with_status'])->keyBy(function ($winner) {
+                            return $winner['prize']->placement;
+                        });
+                    @endphp
+                    
                     @foreach ($project->getPrizeSummary() as $prize)
+                        @php
+                            $winnerStatus = $winnersWithStatus->get($prize['placement_key'] ?? '');
+                            $isPaid = $winnerStatus && $winnerStatus['is_paid'];
+                            $hasWinner = $winnerStatus !== null;
+                            $isCashPrize = isset($prize['type']) && $prize['type'] === 'cash';
+                        @endphp
+                        
                         <div class="flex items-center justify-between rounded-lg border border-amber-200/20 bg-white/40 p-3 backdrop-blur-sm">
                             <div class="flex items-center">
                                 <span class="mr-3 text-lg">{{ $prize['emoji'] ?? '🏆' }}</span>
                                 <div>
-                                    <span class="text-sm font-medium text-amber-900">{{ $prize['placement'] ?? 'Prize' }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-medium text-amber-900">{{ $prize['placement'] ?? 'Prize' }}</span>
+                                        @if($isCashPrize && $hasWinner)
+                                            @if($isPaid)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    <i class="fas fa-check mr-1"></i>Paid
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    <i class="fas fa-clock mr-1"></i>Pending
+                                                </span>
+                                            @endif
+                                        @elseif($isCashPrize && !$hasWinner && $project->isJudgingFinalized())
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                                <i class="fas fa-user-slash mr-1"></i>No Winner
+                                            </span>
+                                        @endif
+                                    </div>
                                     @if (isset($prize['title']) && $prize['title'])
                                         <div class="text-xs text-amber-700">{{ $prize['title'] }}</div>
+                                    @endif
+                                    @if($hasWinner)
+                                        <div class="text-xs text-green-700 font-medium">
+                                            <i class="fas fa-crown mr-1"></i>{{ $winnerStatus['user']->name }}
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -59,6 +98,11 @@
                                 <div class="text-sm font-bold text-amber-900">
                                     {{ $prize['display_value'] ?? 'N/A' }}
                                 </div>
+                                @if($isPaid && $winnerStatus['payment_date'])
+                                    <div class="text-xs text-green-600">
+                                        Paid {{ $winnerStatus['payment_date']->format('M j') }}
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach

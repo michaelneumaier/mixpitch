@@ -113,13 +113,66 @@
                             </div>
                         @endif
                     @elseif($project->budget > 0)
-                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
-                            <div class="flex items-center mb-2">
-                                <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
-                                <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Budget</span>
+                        @php
+                            // Check if project has completed pitch and payment status
+                            $completedPitch = $project->pitches->where('status', 'completed')->first();
+                            $requiresPayment = $project->budget > 0;
+                            $paymentStatus = $completedPitch ? $completedPitch->payment_status : null;
+                        @endphp
+                        
+                        @if($completedPitch && $requiresPayment)
+                            <!-- Payment Status for Completed Projects -->
+                            @if($paymentStatus === 'paid')
+                                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                                        <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Payment Complete</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-green-900">{{ Number::currency($project->budget, 'USD') }}</div>
+                                    <div class="text-xs text-green-600 mt-1">Paid & Complete</div>
+                                </div>
+                            @elseif($paymentStatus === 'pending' || $paymentStatus === 'failed' || empty($paymentStatus))
+                                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200/50">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-exclamation-triangle text-amber-600 mr-2"></i>
+                                        <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Payment Required</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-amber-900">{{ Number::currency($project->budget, 'USD') }}</div>
+                                    <div class="text-xs text-amber-600 mt-1">
+                                        @if($paymentStatus === 'failed')
+                                            Payment Failed
+                                        @else
+                                            Awaiting Payment
+                                        @endif
+                                    </div>
+                                </div>
+                            @elseif($paymentStatus === 'processing')
+                                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>
+                                        <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Processing Payment</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-blue-900">{{ Number::currency($project->budget, 'USD') }}</div>
+                                    <div class="text-xs text-blue-600 mt-1">Processing...</div>
+                                </div>
+                            @endif
+                        @else
+                            <!-- Standard Budget Display for Non-Completed Projects -->
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
+                                    <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Budget</span>
+                                </div>
+                                <div class="text-sm font-bold text-green-900">{{ Number::currency($project->budget, 'USD') }}</div>
+                                <div class="text-xs text-green-600 mt-1">
+                                    @if($project->status === 'completed')
+                                        Project Complete
+                                    @else
+                                        Available
+                                    @endif
+                                </div>
                             </div>
-                            <div class="text-sm font-bold text-green-900">{{ Number::currency($project->budget, 'USD') }}</div>
-                        </div>
+                        @endif
                     @else
                         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50">
                             <div class="flex items-center mb-2">
@@ -127,6 +180,7 @@
                                 <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Type</span>
                             </div>
                             <div class="text-sm font-bold text-blue-900">Free Project</div>
+                            <div class="text-xs text-blue-600 mt-1">No payment required</div>
                         </div>
                     @endif
                     
@@ -137,6 +191,18 @@
                                 <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Deadline</span>
                             </div>
                             <div class="text-sm font-bold text-purple-900">{{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}</div>
+                            @php
+                                $daysUntilDeadline = \Carbon\Carbon::parse($project->deadline)->diffInDays(now(), false);
+                            @endphp
+                            <div class="text-xs text-purple-600 mt-1">
+                                @if($daysUntilDeadline < 0)
+                                    {{ abs($daysUntilDeadline) }} days left
+                                @elseif($daysUntilDeadline === 0)
+                                    Due today
+                                @else
+                                    {{ $daysUntilDeadline }} days overdue
+                                @endif
+                            </div>
                         </div>
                     @endif
 
@@ -187,6 +253,45 @@
                                 <i class="fas fa-bell text-red-600 mr-2"></i>
                                 <span>{{ $needsAttentionCount }} need{{ $needsAttentionCount === 1 ? 's' : '' }} attention</span>
                             </div>
+                        @endif
+
+                        @if($project->status === 'completed')
+                            @php
+                                $completedPitch = $project->pitches->where('status', 'completed')->first();
+                                $requiresPayment = $project->budget > 0;
+                                $paymentStatus = $completedPitch ? $completedPitch->payment_status : null;
+                            @endphp
+                            
+                            @if($requiresPayment && $completedPitch)
+                                <!-- Payment Status Badge for Completed Projects -->
+                                @if($paymentStatus === 'paid')
+                                    <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200/50 shadow-sm">
+                                        <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                                        <span>Payment Complete</span>
+                                    </div>
+                                @elseif($paymentStatus === 'pending' || $paymentStatus === 'failed' || empty($paymentStatus))
+                                    <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-200/50 shadow-sm animate-pulse">
+                                        <i class="fas fa-exclamation-triangle text-amber-600 mr-2"></i>
+                                        <span>
+                                            @if($paymentStatus === 'failed')
+                                                Payment Failed
+                                            @else
+                                                Payment Required
+                                            @endif
+                                        </span>
+                                    </div>
+                                @elseif($paymentStatus === 'processing')
+                                    <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 shadow-sm">
+                                        <i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>
+                                        <span>Processing Payment</span>
+                                    </div>
+                                @endif
+                            @elseif(!$requiresPayment)
+                                <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 shadow-sm">
+                                    <i class="fas fa-heart text-blue-600 mr-2"></i>
+                                    <span>Free Project Complete</span>
+                                </div>
+                            @endif
                         @endif
                     </div>
                 </div>

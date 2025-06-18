@@ -127,6 +127,27 @@ class ContestResult extends Model
     }
 
     /**
+     * Get the winner pitch for a specific placement
+     */
+    public function getWinnerForPlacement(string $placement): ?Pitch
+    {
+        switch ($placement) {
+            case '1st':
+                return $this->first_place_pitch_id ? $this->firstPlace : null;
+            case '2nd':
+                return $this->second_place_pitch_id ? $this->secondPlace : null;
+            case '3rd':
+                return $this->third_place_pitch_id ? $this->thirdPlace : null;
+            case 'runner_up':
+                // For runner-ups, return the first one (or could be modified to return all)
+                $runnerUps = $this->runnerUps();
+                return $runnerUps->first();
+            default:
+                return null;
+        }
+    }
+
+    /**
      * Get the count of placed entries
      */
     public function getPlacedCount(): int

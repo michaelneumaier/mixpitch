@@ -76,6 +76,22 @@
                                     <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg">
                                         <i class="fas fa-file-signature text-sm"></i>
                                     </div>
+                                @elseif($notification->type === \App\Models\Notification::TYPE_CONTEST_PAYOUT_SCHEDULED)
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-600 text-white shadow-lg">
+                                        <i class="fas fa-clock text-sm"></i>
+                                    </div>
+                                @elseif($notification->type === \App\Models\Notification::TYPE_PAYOUT_COMPLETED)
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 text-white shadow-lg">
+                                        <i class="fas fa-money-bill-wave text-sm"></i>
+                                    </div>
+                                @elseif($notification->type === \App\Models\Notification::TYPE_PAYOUT_FAILED)
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg">
+                                        <i class="fas fa-exclamation-triangle text-sm"></i>
+                                    </div>
+                                @elseif($notification->type === \App\Models\Notification::TYPE_PAYOUT_CANCELLED)
+                                    <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-lg">
+                                        <i class="fas fa-ban text-sm"></i>
+                                    </div>
                                 @else
                                     <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-lg">
                                         <i class="fas fa-bell text-sm"></i>

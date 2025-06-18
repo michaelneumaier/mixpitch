@@ -351,5 +351,50 @@ class ProjectPolicy
         return false;
     }
 
+    /**
+     * Determine whether the user can close contest submissions early.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Project  $project
+     * @return bool
+     */
+    public function closeContestEarly(User $user, Project $project): bool
+    {
+        // Only the contest runner can close submissions early
+        return $user->id === $project->user_id && 
+               $project->isContest() && 
+               $project->canCloseEarly();
+    }
+
+    /**
+     * Determine whether the user can reopen contest submissions.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Project  $project
+     * @return bool
+     */
+    public function reopenContestSubmissions(User $user, Project $project): bool
+    {
+        // Only the contest runner can reopen submissions
+        return $user->id === $project->user_id && 
+               $project->isContest() && 
+               $project->wasClosedEarly() &&
+               !$project->isJudgingFinalized() &&
+               (!$project->submission_deadline || !$project->submission_deadline->isPast());
+    }
+
+    /**
+     * Determine whether the user can manage the project.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Project  $project
+     * @return bool
+     */
+    public function manageProject(User $user, Project $project): bool
+    {
+        // Only the project owner can manage the project
+        return $user->id === $project->user_id;
+    }
+
     // <<< END PHASE 5: CONTEST JUDGING POLICIES >>>
 }

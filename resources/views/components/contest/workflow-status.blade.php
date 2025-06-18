@@ -27,8 +27,8 @@
     $decisionType = '';
     $decisionMessage = '';
 
-    // Check if contest has ended (deadline passed)
-    $contestEnded = $project->submission_deadline && $project->submission_deadline->isPast();
+    // Check if contest has ended (deadline passed or closed early)
+    $contestEnded = $project->isSubmissionPeriodClosed();
     
     // Check if results have been announced
     $hasWinner = $project->pitches()->whereIn('status', [
@@ -147,6 +147,28 @@
     // Contest-specific metrics
     $totalEntries = $project->pitches()->where('status', 'like', '%contest%')->count();
     $submittedEntries = $project->pitches()->where('status', 'contest_entry')->whereNotNull('submitted_at')->count();
+    
+    // Check if winner needs Stripe Connect setup for prize payouts
+    $needsStripeConnect = false;
+    $hasWonPrize = false;
+    $prizeAmount = 0;
+    
+    if (in_array($pitch->status, [\App\Models\Pitch::STATUS_CONTEST_WINNER, \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP])) {
+        $hasWonPrize = true;
+        
+        // Check if this contest has cash prizes
+        if ($project->hasCashPrizes()) {
+            // Find the prize for this winner's placement
+            $placement = $pitch->status === \App\Models\Pitch::STATUS_CONTEST_WINNER ? '1st' : 'runner_up';
+            $prize = $project->contestPrizes()->where('placement', $placement)->where('prize_type', 'cash')->first();
+            
+            if ($prize && $prize->cash_amount > 0) {
+                $prizeAmount = $prize->cash_amount;
+                // Check if user needs Stripe Connect setup
+                $needsStripeConnect = !$user->stripe_account_id || !$user->hasValidStripeConnectAccount();
+            }
+        }
+    }
 @endphp
 
 <div class="bg-gradient-to-br from-yellow-50/95 to-amber-50/90 backdrop-blur-sm border border-yellow-200/50 rounded-2xl shadow-lg overflow-hidden">
@@ -177,6 +199,11 @@
                      style="width: {{ $progressPercentage }}%"></div>
             </div>
         </div>
+        
+        <!-- Payout Status for Winners -->
+        @if(auth()->check() && auth()->id() === $pitch->user_id)
+            <x-pitch.payout-status-compact :pitch="$pitch" />
+        @endif
 
         <!-- Stage Indicators -->
         <div class="flex justify-between mt-4 text-xs">
@@ -233,6 +260,52 @@
                                 Final Ranking: #{{ $pitch->rank }}
                             </p>
                         @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- Stripe Connect Setup Notification for Winners -->
+        @if($needsStripeConnect && $hasWonPrize && $prizeAmount > 0)
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mr-3">
+                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-dollar-sign text-purple-600"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-purple-800 mb-2">Prize Payout Setup Required</h4>
+                        <p class="text-sm text-purple-700 mb-3">
+                            Congratulations on winning ${{ number_format($prizeAmount, 2) }}! To receive your prize payout, you need to set up your Stripe Connect account for receiving payments.
+                        </p>
+                        <div class="flex flex-wrap gap-3">
+                            <a href="{{ route('stripe.connect.setup') }}" 
+                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+                                <i class="fas fa-cog mr-2"></i>
+                                Set Up Prize Payouts
+                            </a>
+                            <div class="text-xs text-purple-600 flex items-center">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                This is different from your billing payment methods
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @elseif($hasWonPrize && $prizeAmount > 0 && !$needsStripeConnect)
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mr-3">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-green-800 mb-2">Prize Payout Ready</h4>
+                        <p class="text-sm text-green-700">
+                            Your Stripe Connect account is set up and ready to receive your ${{ number_format($prizeAmount, 2) }} prize payout. You'll receive the funds after the contest owner processes the payment.
+                        </p>
                     </div>
                 </div>
             </div>

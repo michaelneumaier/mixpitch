@@ -262,6 +262,9 @@
 
                 <!-- Sidebar -->
                 <div class="space-y-8">
+                    <!-- Payout Status (if applicable) -->
+                    <x-project.payout-status :project="$project" />
+
                     <!-- Project Stats -->
                     <div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
                         <!-- Gradient Border Effect -->

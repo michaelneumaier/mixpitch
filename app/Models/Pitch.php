@@ -132,6 +132,7 @@ class Pitch extends Model implements HasMedia
         'client_approved_at' => 'datetime',
         'client_revision_requested_at' => 'datetime',
         'client_submitted_at' => 'datetime',
+        'payment_completed_at' => 'datetime',
         'amount' => 'decimal:2',
     ];
 

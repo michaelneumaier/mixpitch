@@ -23,10 +23,17 @@ class ProcessPitchPaymentRequest extends FormRequest
         // Authorization rules:
         // 1. User must be the project owner.
         // 2. Pitch must be completed.
-        // 3. Pitch payment status must be pending.
+        // 3. Pitch payment status must be pending, failed, or null/empty (for newly completed pitches).
+        $allowedPaymentStatuses = [
+            Pitch::PAYMENT_STATUS_PENDING,
+            Pitch::PAYMENT_STATUS_FAILED,
+            null,
+            ''
+        ];
+
         return $this->user()->id === $pitch->project->user_id &&
                $pitch->status === Pitch::STATUS_COMPLETED &&
-               $pitch->payment_status === Pitch::PAYMENT_STATUS_PENDING;
+               in_array($pitch->payment_status, $allowedPaymentStatuses);
 
         // Alternatively, use a policy check if defined:
         // return $this->user()->can('processPayment', $pitch);

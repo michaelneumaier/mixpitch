@@ -222,11 +222,6 @@
                                 </div>
                             @endif
 
-                            {{-- License Management Component --}}
-                            <div>
-                                <x-project.license-management :project="$project" />
-                            </div>
-
                             {{-- Project Insights - Show early on mobile for key metrics --}}
                             @if ($project->isStandard())
                                 <div class="lg:hidden">
@@ -242,6 +237,11 @@
                                 {{-- Regular Pitches Section --}}
                                 <x-project.pitch-list :project="$project" />
                             @endif
+
+                            {{-- License Management Component --}}
+                            <div>
+                                <x-project.license-management :project="$project" />
+                            </div>
 
                             @if ($project->isStandard() || $project->isContest())
                                 <!-- Upload Files Section -->
@@ -830,6 +830,11 @@
                                 <!-- Contest Prizes Component -->
                                 @livewire('project.component.contest-prizes', ['project' => $project], key('contest-prizes-' . $project->id))
 
+                                <!-- Contest Early Closure Component -->
+                                <div class="mb-6">
+                                    @include('livewire.project.component.contest-early-closure', ['project' => $project])
+                                </div>
+
                                 {{-- Quick Actions for Contest Projects --}}
                                 <div
                                     class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-6 shadow-xl backdrop-blur-md lg:block">
@@ -852,6 +857,19 @@
                                             class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
                                             <i class="fas fa-edit mr-2"></i>Edit Contest
                                         </a>
+                                        
+                                        {{-- Contest Judging Button --}}
+                                        @if($project->isSubmissionPeriodClosed() && !$project->isJudgingFinalized())
+                                            <a href="{{ route('projects.contest.judging', $project) }}"
+                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-purple-700 hover:to-indigo-700 hover:shadow-lg">
+                                                <i class="fas fa-gavel mr-2"></i>Judge Contest
+                                            </a>
+                                        @elseif($project->isJudgingFinalized())
+                                            <a href="{{ route('projects.contest.results', $project) }}"
+                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
+                                                <i class="fas fa-trophy mr-2"></i>View Results
+                                            </a>
+                                        @endif
                                         
                                         {{-- Reddit Post Button --}}
                                         @if ($project->is_published)
@@ -1023,6 +1041,9 @@
         
         <!-- Project Image Upload Modal -->
         <x-project.image-upload-modal :project="$project" :imagePreviewUrl="$imagePreviewUrl" />
+        
+        <!-- Complete Pitch Modal -->
+        @livewire('project.complete-pitch-modal', key('complete-pitch-modal'))
     </div>
     
     {{-- Reddit Posting Polling Script --}}

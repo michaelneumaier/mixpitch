@@ -53,9 +53,9 @@ class PitchWorkflowService
         }
         // <<< END PHASE 1 GUARD >>>
 
-        // Check for contest deadline - PHASE 3
-        if ($project->isContest() && $project->submission_deadline && $project->submission_deadline->isPast()) {
-            throw new PitchCreationException('The submission deadline for this contest has passed.');
+        // Check for contest deadline - PHASE 3 (updated for early closure)
+        if ($project->isContest() && $project->isSubmissionPeriodClosed()) {
+            throw new PitchCreationException('Contest submissions are closed.');
         }
 
         if (!$project->isOpenForPitches()) {
@@ -801,10 +801,15 @@ class PitchWorkflowService
              // Note: notifyPaymentProcessed() needs implementation in NotificationService
             $this->notificationService->notifyPaymentProcessed($pitch, $pitch->project->budget, $stripeInvoiceId);
 
+            // Schedule payout for the producer
+            $payoutService = app(\App\Services\PayoutProcessingService::class);
+            $payoutSchedule = $payoutService->schedulePayoutForPitch($pitch, $stripeInvoiceId);
+
             Log::info('Pitch marked as paid successfully.', [
                 'pitch_id' => $pitch->id, 
                 'invoice_id' => $stripeInvoiceId,
-                'payment_amount' => $pitch->payment_amount
+                'payment_amount' => $pitch->payment_amount,
+                'payout_schedule_id' => $payoutSchedule->id
             ]);
             return $pitch;
 

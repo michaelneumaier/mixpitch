@@ -496,10 +496,8 @@ class WebhookController extends CashierWebhookController
                         return; // Exit transaction successfully
                     }
 
-                    // Update pitch payment status (already done in service? Double check)
-                     $pitch->payment_status = Pitch::PAYMENT_STATUS_PAID;
-                     $pitch->payment_completed_at = now();
-                     $pitch->save(); // Save payment status update
+                    // Mark pitch as paid using workflow service (includes payout scheduling)
+                    $pitchWorkflowService->markPitchAsPaid($pitch, $sessionId, $paymentIntentId);
                      
                     // Call workflow service to update pitch status, create event, notify
                     // The service method should be idempotent regarding status updates

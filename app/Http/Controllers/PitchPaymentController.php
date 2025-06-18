@@ -92,6 +92,11 @@ class PitchPaymentController extends Controller
             'pitch_id' => $pitch->id,
             'project_id' => $project->id,
             'payment_method_id' => $paymentMethodId,
+            'pitch_status' => $pitch->status,
+            'pitch_payment_status' => $pitch->payment_status,
+            'project_budget' => $project->budget,
+            'user_id' => Auth::id(),
+            'project_owner_id' => $project->user_id,
             'all_inputs' => $request->all()
         ]);
         

@@ -48,7 +48,15 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 
                 <!-- Include Subscription Overview -->
-                @include('billing.components.subscription-overview')
+                @include('billing.components.subscription-overview', [
+                    'user' => $user,
+                    'isSubscribed' => $isSubscribed,
+                    'subscription' => $subscription,
+                    'onGracePeriod' => $onGracePeriod,
+                    'limits' => $limits,
+                    'usage' => $usage,
+                    'billingSummary' => $billingSummary
+                ])
                 
                 <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-xl overflow-hidden">
                     <div class="p-6 sm:p-8">
@@ -77,27 +85,40 @@
                                 <h3 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Payment Methods</h3>
                             </div>
                             
-                            @if($hasPaymentMethod)
+                            @if($hasPaymentMethod && $paymentMethod)
                                 <div class="bg-gradient-to-br from-white/90 to-gray-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-6 mb-6 shadow-lg hover:shadow-xl transition-all duration-300 group">
                                     <div class="flex items-center gap-6">
                                         <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl group-hover:scale-105 transition-transform duration-300">
-                                            @if($paymentMethod->card->brand === 'visa')
-                                                <i class="fab fa-cc-visa text-3xl text-blue-600"></i>
-                                            @elseif($paymentMethod->card->brand === 'mastercard')
-                                                <i class="fab fa-cc-mastercard text-3xl text-orange-600"></i>
-                                            @elseif($paymentMethod->card->brand === 'amex')
-                                                <i class="fab fa-cc-amex text-3xl text-blue-800"></i>
-                                            @elseif($paymentMethod->card->brand === 'discover')
-                                                <i class="fab fa-cc-discover text-3xl text-orange-500"></i>
+                                            @if(isset($paymentMethod->card->brand))
+                                                @if($paymentMethod->card->brand === 'visa')
+                                                    <i class="fab fa-cc-visa text-3xl text-blue-600"></i>
+                                                @elseif($paymentMethod->card->brand === 'mastercard')
+                                                    <i class="fab fa-cc-mastercard text-3xl text-orange-600"></i>
+                                                @elseif($paymentMethod->card->brand === 'amex')
+                                                    <i class="fab fa-cc-amex text-3xl text-blue-800"></i>
+                                                @elseif($paymentMethod->card->brand === 'discover')
+                                                    <i class="fab fa-cc-discover text-3xl text-orange-500"></i>
+                                                @else
+                                                    <i class="fas fa-credit-card text-3xl text-gray-700"></i>
+                                                @endif
                                             @else
                                                 <i class="fas fa-credit-card text-3xl text-gray-700"></i>
                                             @endif
                                         </div>
                                         <div class="flex-1">
-                                            <div class="text-lg font-bold text-gray-900 mb-1">{{ ucfirst($paymentMethod->card->brand) }} •••• {{ $paymentMethod->card->last4 }}</div>
+                                            <div class="text-lg font-bold text-gray-900 mb-1">
+                                                {{ isset($paymentMethod->card->brand) ? ucfirst($paymentMethod->card->brand) : 'Payment Method' }} 
+                                                @if(isset($paymentMethod->card->last4))
+                                                    •••• {{ $paymentMethod->card->last4 }}
+                                                @endif
+                                            </div>
                                             <div class="text-sm text-gray-600 flex items-center">
                                                 <i class="fas fa-calendar-alt mr-2"></i>
-                                                Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}
+                                                @if(isset($paymentMethod->card->exp_month) && isset($paymentMethod->card->exp_year))
+                                                    Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}
+                                                @else
+                                                    Payment method details available
+                                                @endif
                                             </div>
                                             <div class="mt-2">
                                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100/80 text-green-800 border border-green-200/50">
@@ -209,6 +230,140 @@
                             </div>
                         </div>
 
+                        <!-- Stripe Connect Section -->
+                        <div class="mb-8">
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4">
+                                    <i class="fas fa-university text-white"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Payout Setup</h3>
+                            </div>
+                            
+                            @php
+                                $stripeConnectService = app(\App\Services\StripeConnectService::class);
+                                $accountStatus = $stripeConnectService->getDetailedAccountStatus($user);
+                                $canReceivePayouts = $stripeConnectService->isAccountReadyForPayouts($user);
+                            @endphp
+                            
+                            <div class="bg-white border border-gray-200 rounded-xl p-6">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        @php
+                                            $statusColors = [
+                                                'not_created' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'dot' => 'bg-gray-400'],
+                                                'incomplete' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'dot' => 'bg-yellow-400'],
+                                                'action_required' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'dot' => 'bg-orange-400'],
+                                                'past_due' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'dot' => 'bg-red-500'],
+                                                'pending_verification' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'dot' => 'bg-blue-400'],
+                                                'under_review' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'dot' => 'bg-purple-400'],
+                                                'restricted' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'dot' => 'bg-red-400'],
+                                                'active' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'dot' => 'bg-green-400'],
+                                                'error' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'dot' => 'bg-red-500'],
+                                            ];
+                                            $colors = $statusColors[$accountStatus['status']] ?? $statusColors['error'];
+                                        @endphp
+
+                                        <div class="flex items-center mb-3">
+                                            <div class="w-3 h-3 {{ $colors['dot'] }} rounded-full mr-3"></div>
+                                            <h4 class="text-lg font-semibold text-gray-900">{{ $accountStatus['status_display'] ?? 'Unknown Status' }}</h4>
+                                        </div>
+                                        
+                                        <p class="text-gray-600 mb-4">{{ $accountStatus['status_description'] ?? 'Unable to determine account status.' }}</p>
+                                        
+                                        @if(isset($accountStatus['deadline']) && $accountStatus['deadline'])
+                                            <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                                                <p class="text-sm font-medium text-orange-800">
+                                                    <i class="fas fa-clock mr-1"></i>
+                                                    Deadline: {{ $accountStatus['deadline']->format('M j, Y \a\t g:i A') }}
+                                                </p>
+                                            </div>
+                                        @endif
+
+                                        @if(isset($accountStatus['next_steps']) && !empty($accountStatus['next_steps']))
+                                            <div class="mb-4">
+                                                <p class="text-sm font-medium text-gray-700 mb-2">Next Steps:</p>
+                                                <ul class="text-sm text-gray-600 space-y-1">
+                                                    @foreach(array_slice($accountStatus['next_steps'], 0, 3) as $step)
+                                                        <li class="flex items-start">
+                                                            @if(str_starts_with($step, '•'))
+                                                                <span class="text-gray-400 mr-2 mt-0.5">•</span>
+                                                                <span>{{ substr($step, 2) }}</span>
+                                                            @else
+                                                                <span>{{ $step }}</span>
+                                                            @endif
+                                                        </li>
+                                                    @endforeach
+                                                    @if(count($accountStatus['next_steps']) > 3)
+                                                        <li class="text-gray-500 italic">... and {{ count($accountStatus['next_steps']) - 3 }} more steps</li>
+                                                    @endif
+                                                </ul>
+                                            </div>
+                                        @endif
+
+                                        <!-- Capability Status -->
+                                        @if($accountStatus['status'] !== 'not_created')
+                                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                                <div class="flex items-center">
+                                                    @if($accountStatus['charges_enabled'] ?? false)
+                                                        <div class="w-4 h-4 bg-green-400 rounded-full flex items-center justify-center mr-2">
+                                                            <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                        </div>
+                                                    @else
+                                                        <div class="w-4 h-4 bg-red-400 rounded-full flex items-center justify-center mr-2">
+                                                            <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                        </div>
+                                                    @endif
+                                                    <span class="text-sm text-gray-600">Charges {{ ($accountStatus['charges_enabled'] ?? false) ? 'Enabled' : 'Disabled' }}</span>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    @if($accountStatus['payouts_enabled'] ?? false)
+                                                        <div class="w-4 h-4 bg-green-400 rounded-full flex items-center justify-center mr-2">
+                                                            <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                        </div>
+                                                    @else
+                                                        <div class="w-4 h-4 bg-red-400 rounded-full flex items-center justify-center mr-2">
+                                                            <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                        </div>
+                                                    @endif
+                                                    <span class="text-sm text-gray-600">Payouts {{ ($accountStatus['payouts_enabled'] ?? false) ? 'Enabled' : 'Disabled' }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                <div class="flex flex-col sm:flex-row gap-3 mt-6">
+                                    @if($accountStatus['status'] === 'not_created' || $accountStatus['status'] === 'incomplete' || $accountStatus['status'] === 'action_required')
+                                        <a href="{{ route('stripe.connect.setup') }}" 
+                                           class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200">
+                                            <i class="fas fa-university mr-2"></i>
+                                            {{ $accountStatus['status'] === 'not_created' ? 'Set Up Stripe Connect' : 'Complete Setup' }}
+                                        </a>
+                                    @elseif($accountStatus['status'] === 'active')
+                                        <a href="{{ route('stripe.connect.dashboard') }}" 
+                                           class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200">
+                                            <i class="fas fa-external-link-alt mr-2"></i>
+                                            Manage Account
+                                        </a>
+                                    @endif
+                                    
+                                    <a href="{{ route('stripe.connect.setup') }}" 
+                                       class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- One-Time Payment Section -->
                         <div class="mb-8">
                             <div class="flex items-center mb-6">
@@ -272,7 +427,11 @@
                                                 </div>
                                                 <div>
                                                     <h4 class="text-sm font-bold text-blue-800">Payment Method Ready</h4>
-                                                    <p class="text-xs text-blue-700">Using {{ ucfirst($paymentMethod->card->brand) }} •••• {{ $paymentMethod->card->last4 }}</p>
+                                                    @if(isset($paymentMethod->card->brand) && isset($paymentMethod->card->last4))
+                                                        <p class="text-xs text-blue-700">Using {{ ucfirst($paymentMethod->card->brand) }} •••• {{ $paymentMethod->card->last4 }}</p>
+                                                    @else
+                                                        <p class="text-xs text-blue-700">Payment method configured</p>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -480,21 +639,37 @@
                                             <h5 class="text-sm font-medium text-blue-800 mb-2">Current Default Payment Method</h5>
                                             <div class="p-3 bg-white rounded border border-blue-100 flex items-center">
                                                 <div>
-                                                    @if($paymentMethod->card->brand === 'visa')
-                                                        <i class="fab fa-cc-visa text-xl text-blue-600"></i>
-                                                    @elseif($paymentMethod->card->brand === 'mastercard')
-                                                        <i class="fab fa-cc-mastercard text-xl text-orange-600"></i>
-                                                    @elseif($paymentMethod->card->brand === 'amex')
-                                                        <i class="fab fa-cc-amex text-xl text-blue-800"></i>
-                                                    @elseif($paymentMethod->card->brand === 'discover')
-                                                        <i class="fab fa-cc-discover text-xl text-orange-500"></i>
+                                                    @if(isset($paymentMethod->card->brand))
+                                                        @if($paymentMethod->card->brand === 'visa')
+                                                            <i class="fab fa-cc-visa text-xl text-blue-600"></i>
+                                                        @elseif($paymentMethod->card->brand === 'mastercard')
+                                                            <i class="fab fa-cc-mastercard text-xl text-orange-600"></i>
+                                                        @elseif($paymentMethod->card->brand === 'amex')
+                                                            <i class="fab fa-cc-amex text-xl text-blue-800"></i>
+                                                        @elseif($paymentMethod->card->brand === 'discover')
+                                                            <i class="fab fa-cc-discover text-xl text-orange-500"></i>
+                                                        @else
+                                                            <i class="fas fa-credit-card text-xl text-gray-700"></i>
+                                                        @endif
                                                     @else
                                                         <i class="fas fa-credit-card text-xl text-gray-700"></i>
                                                     @endif
                                                 </div>
                                                 <div class="ml-3">
-                                                    <div class="font-medium">{{ ucfirst($paymentMethod->card->brand) }} ending in {{ $paymentMethod->card->last4 }}</div>
-                                                    <div class="text-xs text-gray-600">Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}</div>
+                                                    <div class="font-medium">
+                                                        @if(isset($paymentMethod->card->brand) && isset($paymentMethod->card->last4))
+                                                            {{ ucfirst($paymentMethod->card->brand) }} ending in {{ $paymentMethod->card->last4 }}
+                                                        @else
+                                                            Payment method configured
+                                                        @endif
+                                                    </div>
+                                                    <div class="text-xs text-gray-600">
+                                                        @if(isset($paymentMethod->card->exp_month) && isset($paymentMethod->card->exp_year))
+                                                            Expires {{ $paymentMethod->card->exp_month }}/{{ $paymentMethod->card->exp_year }}
+                                                        @else
+                                                            Details available in billing portal
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
                                             

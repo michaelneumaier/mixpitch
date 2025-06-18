@@ -93,6 +93,9 @@ class Project extends Model
         'results_announced_at',
         'results_announced_by',
         'judging_notes',
+        'submissions_closed_early_at',
+        'submissions_closed_early_by',
+        'early_closure_reason',
         'show_submissions_publicly',
         'max_submissions_per_user',
         'allow_anonymous_submissions',
@@ -145,6 +148,7 @@ class Project extends Model
         'judging_deadline' => 'datetime',
         'judging_finalized_at' => 'datetime',
         'results_announced_at' => 'datetime',
+        'submissions_closed_early_at' => 'datetime',
         'show_submissions_publicly' => 'boolean',
         // License casts
         'custom_license_terms' => 'array',
@@ -974,9 +978,66 @@ class Project extends Model
     public function canFinalizeJudging(): bool
     {
         return $this->isContest() && 
-               $this->submission_deadline && 
-               $this->submission_deadline->isPast() && 
+               $this->isSubmissionPeriodClosed() && 
                !$this->isJudgingFinalized();
+    }
+
+    /**
+     * Check if contest submissions are closed (either by deadline or early closure)
+     */
+    public function isSubmissionPeriodClosed(): bool
+    {
+        if (!$this->isContest()) {
+            return false;
+        }
+
+        // Check if closed early
+        if ($this->submissions_closed_early_at) {
+            return true;
+        }
+
+        // Check if deadline has passed
+        return $this->submission_deadline && $this->submission_deadline->isPast();
+    }
+
+    /**
+     * Check if contest was closed early
+     */
+    public function wasClosedEarly(): bool
+    {
+        return !is_null($this->submissions_closed_early_at);
+    }
+
+    /**
+     * Check if contest can be closed early
+     */
+    public function canCloseEarly(): bool
+    {
+        return $this->isContest() && 
+               $this->is_published && 
+               !$this->isSubmissionPeriodClosed() && 
+               !$this->isJudgingFinalized() &&
+               $this->getContestEntries()->isNotEmpty();
+    }
+
+    /**
+     * Get the effective submission deadline (early closure or original deadline)
+     */
+    public function getEffectiveSubmissionDeadline(): ?\Carbon\Carbon
+    {
+        if ($this->submissions_closed_early_at) {
+            return $this->submissions_closed_early_at;
+        }
+
+        return $this->submission_deadline;
+    }
+
+    /**
+     * Get relationship to user who closed submissions early
+     */
+    public function submissionsClosedEarlyBy()
+    {
+        return $this->belongsTo(User::class, 'submissions_closed_early_by');
     }
 
     /**
@@ -1463,5 +1524,99 @@ class Project extends Model
     public function getRedditUrl(): ?string
     {
         return $this->reddit_permalink;
+    }
+
+    /**
+     * Get comprehensive contest payment status information
+     */
+    public function getContestPaymentStatus(): array
+    {
+        if (!$this->isContest() || !$this->isJudgingFinalized()) {
+            return [
+                'has_cash_prizes' => false,
+                'total_prize_amount' => 0,
+                'payment_status' => 'not_applicable',
+                'prizes_paid' => 0,
+                'prizes_pending' => 0,
+                'winners_with_status' => [],
+                'summary' => 'Contest not finalized'
+            ];
+        }
+
+        $cashPrizes = $this->contestPrizes()
+            ->where('prize_type', 'cash')
+            ->where('cash_amount', '>', 0)
+            ->get();
+
+        if ($cashPrizes->isEmpty()) {
+            return [
+                'has_cash_prizes' => false,
+                'total_prize_amount' => 0,
+                'payment_status' => 'no_cash_prizes',
+                'prizes_paid' => 0,
+                'prizes_pending' => 0,
+                'winners_with_status' => [],
+                'summary' => 'No cash prizes to pay'
+            ];
+        }
+
+        $contestResult = $this->contestResult;
+        $totalPrizeAmount = $cashPrizes->sum('cash_amount');
+        $winnersWithStatus = [];
+        $prizesPaid = 0;
+        $prizesPending = 0;
+
+        foreach ($cashPrizes as $prize) {
+            $winnerPitch = $contestResult ? $contestResult->getWinnerForPlacement($prize->placement) : null;
+            
+            if ($winnerPitch) {
+                $isPaid = $winnerPitch->payment_status === 'paid';
+                $user = $winnerPitch->user;
+                
+                $winnersWithStatus[] = [
+                    'prize' => $prize,
+                    'pitch' => $winnerPitch,
+                    'user' => $user,
+                    'is_paid' => $isPaid,
+                    'payment_date' => $winnerPitch->payment_completed_at,
+                    'stripe_ready' => $user->stripe_account_id && $user->hasValidStripeConnectAccount(),
+                    'payment_amount' => $prize->cash_amount
+                ];
+
+                if ($isPaid) {
+                    $prizesPaid++;
+                } else {
+                    $prizesPending++;
+                }
+            }
+        }
+
+        // Determine overall payment status
+        $paymentStatus = 'pending';
+        $summary = '';
+
+        if ($prizesPaid === 0 && $prizesPending === 0) {
+            $paymentStatus = 'no_winners';
+            $summary = 'No winners selected for cash prizes';
+        } elseif ($prizesPaid === count($winnersWithStatus)) {
+            $paymentStatus = 'all_paid';
+            $summary = 'All prizes paid';
+        } elseif ($prizesPaid > 0) {
+            $paymentStatus = 'partially_paid';
+            $summary = "{$prizesPaid} of " . count($winnersWithStatus) . " prizes paid";
+        } else {
+            $paymentStatus = 'none_paid';
+            $summary = 'No prizes paid yet';
+        }
+
+        return [
+            'has_cash_prizes' => true,
+            'total_prize_amount' => $totalPrizeAmount,
+            'payment_status' => $paymentStatus,
+            'prizes_paid' => $prizesPaid,
+            'prizes_pending' => $prizesPending,
+            'winners_with_status' => $winnersWithStatus,
+            'summary' => $summary
+        ];
     }
 }

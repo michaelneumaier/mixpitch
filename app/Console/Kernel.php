@@ -29,6 +29,20 @@ class Kernel extends ConsoleKernel
 
         // Sync invoices from Stripe daily to ensure we have the latest data
         $schedule->command('stripe:sync-invoices --all')->daily();
+
+        // Process scheduled payouts daily at 9 AM (after hold periods expire)
+        $schedule->job(new \App\Jobs\ProcessScheduledPayouts())
+                ->daily()
+                ->at('09:00')
+                ->name('process-scheduled-payouts')
+                ->withoutOverlapping(30); // Prevent overlapping runs, timeout after 30 minutes
+
+        // Process expired refund requests daily at 10 AM
+        $schedule->job(new \App\Jobs\ProcessExpiredRefundRequests())
+                ->daily()
+                ->at('10:00')
+                ->name('process-expired-refunds')
+                ->withoutOverlapping(30);
     }
 
     /**

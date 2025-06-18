@@ -197,6 +197,25 @@
                                                         <i class="fas fa-crown mr-1"></i>
                                                         {{ $winner->name }}
                                                     </div>
+                                                    @php
+                                                        // Check payment status for this winner
+                                                        $paymentStatus = $project->getContestPaymentStatus();
+                                                        $winnerStatus = collect($paymentStatus['winners_with_status'])
+                                                            ->firstWhere('user.id', $winner->id);
+                                                        $isPaid = $winnerStatus && $winnerStatus['is_paid'];
+                                                        $isCashPrize = isset($prize['type']) && $prize['type'] === 'cash';
+                                                    @endphp
+                                                    @if($isCashPrize)
+                                                        @if($isPaid)
+                                                            <div class="text-xs text-green-600 mt-1">
+                                                                <i class="fas fa-check-circle mr-1"></i>Prize Paid
+                                                            </div>
+                                                        @else
+                                                            <div class="text-xs text-yellow-600 mt-1">
+                                                                <i class="fas fa-clock mr-1"></i>Payment Pending
+                                                            </div>
+                                                        @endif
+                                                    @endif
                                                     @else
                                                     <div class="text-xs text-gray-500 mt-1">
                                                         No winner selected

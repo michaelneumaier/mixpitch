@@ -1229,7 +1229,62 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
      */
     public function isSubscribedTo(string $name = 'default'): bool
     {
-        return $this->hasActiveSubscription($name);
+        $subscription = $this->getActiveSubscription($name);
+        
+        if (!$subscription) {
+            return false;
+        }
+        
+        // Check if subscription is active and not cancelled
+        return $subscription->active() && !$subscription->cancelled();
+    }
+
+    /**
+     * Check if user has a valid Stripe Connect account
+     */
+    public function hasValidStripeConnectAccount(): bool
+    {
+        if (!$this->stripe_account_id) {
+            return false;
+        }
+
+        try {
+            $stripe = new \Stripe\StripeClient(config('cashier.secret'));
+            $account = $stripe->accounts->retrieve($this->stripe_account_id);
+            
+            // Use the same logic as StripeConnectService for consistency
+            // Account is valid if it can receive payouts, regardless of minor pending requirements
+            return $account->payouts_enabled && 
+                   $account->charges_enabled && 
+                   $account->details_submitted;
+                   
+        } catch (\Exception $e) {
+            \Log::warning('Failed to validate Stripe Connect account', [
+                'user_id' => $this->id,
+                'stripe_account_id' => $this->stripe_account_id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return false;
+        }
+    }
+
+    /**
+     * Get detailed Stripe Connect account status using the StripeConnectService
+     */
+    public function getStripeConnectStatus(): array
+    {
+        $stripeConnectService = app(\App\Services\StripeConnectService::class);
+        return $stripeConnectService->getDetailedAccountStatus($this);
+    }
+
+    /**
+     * Check if user can receive payouts using the StripeConnectService
+     */
+    public function canReceivePayouts(): bool
+    {
+        $stripeConnectService = app(\App\Services\StripeConnectService::class);
+        return $stripeConnectService->isAccountReadyForPayouts($this);
     }
 
     // If the trait doesn't automatically provide the relationship,

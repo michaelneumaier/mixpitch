@@ -143,7 +143,10 @@
                         <h3 class="text-lg font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent">
                             Contest Entries
                         </h3>
-                        <p class="text-sm text-purple-600 font-medium">{{ $contestEntries->count() }} {{ Str::plural('entry', $contestEntries->count()) }} submitted</p>
+                        <div class="flex items-center gap-3">
+                            <p class="text-sm text-purple-600 font-medium">{{ $contestEntries->count() }} {{ Str::plural('entry', $contestEntries->count()) }} submitted</p>
+                            <x-contest.payment-status-badge :project="$project" compact="true" />
+                        </div>
                     </div>
                 </div>
                 

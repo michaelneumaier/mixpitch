@@ -21,9 +21,48 @@
                     </a>
                 @endcan
                 
+                @can('manageProject', $project)
+                    @php
+                        // Check if there are cash prizes to pay
+                        $cashPrizes = $project->contestPrizes()
+                            ->where('prize_type', 'cash')
+                            ->where('cash_amount', '>', 0)
+                            ->get();
+                        $hasCashPrizes = $cashPrizes->isNotEmpty();
+                        
+                        // Check if prizes have been paid
+                        $contestResult = $project->contestResult;
+                        $prizesPaid = false;
+                        if ($hasCashPrizes && $contestResult) {
+                            $prizesPaid = true;
+                            foreach ($cashPrizes as $prize) {
+                                $winnerPitch = $contestResult->getWinnerForPlacement($prize->placement);
+                                if ($winnerPitch && $winnerPitch->payment_status !== 'paid') {
+                                    $prizesPaid = false;
+                                    break;
+                                }
+                            }
+                        }
+                    @endphp
+                    
+                    @if($hasCashPrizes && !$prizesPaid)
+                        <a href="{{ route('contest.prizes.overview', $project) }}" 
+                           class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-dollar-sign mr-2"></i>
+                            Pay Contest Prizes
+                        </a>
+                    @elseif($hasCashPrizes && $prizesPaid)
+                        <a href="{{ route('contest.prizes.receipt', $project) }}" 
+                           class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
+                            <i class="fas fa-receipt mr-2"></i>
+                            View Receipt
+                        </a>
+                    @endif
+                @endcan
+                
                 @can('export', $project->contestResult)
                     <a href="{{ route('projects.contest.export', $project) }}" 
-                       class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium">
+                       class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium">
                         <i class="fas fa-download mr-2"></i>
                         Export Results
                     </a>
@@ -93,10 +132,17 @@
                                                     <h4 class="text-xl font-bold text-gray-900 mb-2">{{ $secondPlace->user->name }}</h4>
                                                     <p class="text-sm text-gray-600">{{ $secondPlace->created_at->format('M d, Y') }}</p>
                                                     @can('viewContestEntry', $secondPlace)
-                                                        <a href="{{ route('projects.pitches.show', [$project, $secondPlace]) }}" 
-                                                           class="inline-block mt-3 text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                                            View Entry →
-                                                        </a>
+                                                        @if($secondPlace->currentSnapshot)
+                                                            <a href="{{ route('projects.pitches.snapshots.show', [$project, $secondPlace, $secondPlace->currentSnapshot]) }}" 
+                                                               class="inline-block mt-3 text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                                                View Entry →
+                                                            </a>
+                                                        @else
+                                                            <a href="{{ route('projects.pitches.show', [$project, $secondPlace]) }}" 
+                                                               class="inline-block mt-3 text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                                                View Entry →
+                                                            </a>
+                                                        @endif
                                                     @endcan
                                                 </div>
                                             </div>
@@ -132,10 +178,17 @@
                                                         </div>
                                                     @endif
                                                     @can('viewContestEntry', $firstPlace)
-                                                        <a href="{{ route('projects.pitches.show', [$project, $firstPlace]) }}" 
-                                                           class="inline-block mt-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium text-sm">
-                                                            View Winning Entry →
-                                                        </a>
+                                                        @if($firstPlace->currentSnapshot)
+                                                            <a href="{{ route('projects.pitches.snapshots.show', [$project, $firstPlace, $firstPlace->currentSnapshot]) }}" 
+                                                               class="inline-block mt-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium text-sm">
+                                                                View Winning Entry →
+                                                            </a>
+                                                        @else
+                                                            <a href="{{ route('projects.pitches.show', [$project, $firstPlace]) }}" 
+                                                               class="inline-block mt-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium text-sm">
+                                                                View Winning Entry →
+                                                            </a>
+                                                        @endif
                                                     @endcan
                                                 </div>
                                             </div>
@@ -159,10 +212,17 @@
                                                     <h4 class="text-xl font-bold text-gray-900 mb-2">{{ $thirdPlace->user->name }}</h4>
                                                     <p class="text-sm text-gray-600">{{ $thirdPlace->created_at->format('M d, Y') }}</p>
                                                     @can('viewContestEntry', $thirdPlace)
-                                                        <a href="{{ route('projects.pitches.show', [$project, $thirdPlace]) }}" 
-                                                           class="inline-block mt-3 text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                                            View Entry →
-                                                        </a>
+                                                        @if($thirdPlace->currentSnapshot)
+                                                            <a href="{{ route('projects.pitches.snapshots.show', [$project, $thirdPlace, $thirdPlace->currentSnapshot]) }}" 
+                                                               class="inline-block mt-3 text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                                                View Entry →
+                                                            </a>
+                                                        @else
+                                                            <a href="{{ route('projects.pitches.show', [$project, $thirdPlace]) }}" 
+                                                               class="inline-block mt-3 text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                                                View Entry →
+                                                            </a>
+                                                        @endif
                                                     @endcan
                                                 </div>
                                             </div>
@@ -199,10 +259,17 @@
                                                         <h4 class="text-lg font-medium text-gray-900 truncate">{{ $runnerUp->user->name }}</h4>
                                                         <p class="text-sm text-gray-600">{{ $runnerUp->created_at->format('M d, Y') }}</p>
                                                         @can('viewContestEntry', $runnerUp)
-                                                            <a href="{{ route('projects.pitches.show', [$project, $runnerUp]) }}" 
-                                                               class="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                                                View Entry →
-                                                            </a>
+                                                            @if($runnerUp->currentSnapshot)
+                                                                <a href="{{ route('projects.pitches.snapshots.show', [$project, $runnerUp, $runnerUp->currentSnapshot]) }}" 
+                                                                   class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                                                    View Entry →
+                                                                </a>
+                                                            @else
+                                                                <a href="{{ route('projects.pitches.show', [$project, $runnerUp]) }}" 
+                                                                   class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                                                    View Entry →
+                                                                </a>
+                                                            @endif
                                                         @endcan
                                                     </div>
                                                 </div>
@@ -294,10 +361,17 @@
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                     @can('viewContestEntry', $entry)
-                                                        <a href="{{ route('projects.pitches.show', [$project, $entry]) }}" 
-                                                           class="text-blue-600 hover:text-blue-800 font-medium">
-                                                            View Entry
-                                                        </a>
+                                                        @if($entry->currentSnapshot)
+                                                            <a href="{{ route('projects.pitches.snapshots.show', [$project, $entry, $entry->currentSnapshot]) }}" 
+                                                               class="text-blue-600 hover:text-blue-800 font-medium">
+                                                                View Entry
+                                                            </a>
+                                                        @else
+                                                            <a href="{{ route('projects.pitches.show', [$project, $entry]) }}" 
+                                                               class="text-blue-600 hover:text-blue-800 font-medium">
+                                                                View Entry
+                                                            </a>
+                                                        @endif
                                                     @endcan
                                                 </td>
                                             </tr>

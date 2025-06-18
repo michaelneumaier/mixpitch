@@ -11,6 +11,7 @@ use Stripe\Exception\CardException;
 use Stripe\PaymentIntent;
 use Stripe\Stripe;
 use App\Filament\Plugins\Billing\Pages\BillingDashboard;
+use Illuminate\View\View;
 
 class BillingController extends Controller
 {
@@ -19,7 +20,7 @@ class BillingController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+    public function index(): View
     {
         $user = Auth::user();
         
@@ -61,12 +62,20 @@ class BillingController extends Controller
             'commission_rate' => $user->getPlatformCommissionRate(),
         ];
         
+        // Get payment method and setup intent
+        $hasPaymentMethod = $user->hasPaymentMethod();
+        $intent = $user->createSetupIntent();
+        
+        // Get Stripe Connect status using enhanced method
+        $stripeConnectService = app(\App\Services\StripeConnectService::class);
+        $accountStatus = $stripeConnectService->getDetailedAccountStatus($user);
+        
         // Fetch invoices directly from Stripe for more accurate data
         try {
             $stripe = new \Stripe\StripeClient(config('cashier.secret'));
             $stripeInvoices = $stripe->invoices->all([
                 'customer' => $user->stripe_id,
-                'limit' => 10, // Show more invoices for better history
+                'limit' => 10,
             ]);
             
             // Also get Cashier invoices for data we might need from there
@@ -103,15 +112,32 @@ class BillingController extends Controller
         }
         
         // Check if user has payment method
-        $hasPaymentMethod = $user->hasDefaultPaymentMethod();
-        $paymentMethod = $hasPaymentMethod ? $user->defaultPaymentMethod() : null;
+        $hasDefaultPaymentMethod = $user->hasDefaultPaymentMethod();
+        $paymentMethod = null;
+        
+        if ($hasDefaultPaymentMethod) {
+            try {
+                $paymentMethod = $user->defaultPaymentMethod();
+            } catch (\Exception $e) {
+                \Log::warning('Error retrieving default payment method', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+                $hasDefaultPaymentMethod = false;
+            }
+        }
+        
+        // Ensure hasPaymentMethod is consistent with the actual payment method availability
+        $hasPaymentMethod = $hasDefaultPaymentMethod && $paymentMethod !== null;
         
         return view('billing.index', [
             'user' => $user,
             'invoices' => $invoices,
             'hasPaymentMethod' => $hasPaymentMethod,
+            'hasDefaultPaymentMethod' => $hasDefaultPaymentMethod,
             'paymentMethod' => $paymentMethod,
-            'intent' => $user->createSetupIntent(),
+            'intent' => $intent,
+            'accountStatus' => $accountStatus,
             'isSubscribed' => $isSubscribed,
             'subscription' => $subscription,
             'onGracePeriod' => $onGracePeriod,

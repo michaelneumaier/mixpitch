@@ -1980,4 +1980,295 @@ class NotificationService
         return $notification;
     }
 
+    // --- Payout Notifications ---
+
+    /**
+     * Notify a user that their payout has been scheduled
+     *
+     * @param User $user The recipient
+     * @param PayoutSchedule $payoutSchedule The scheduled payout
+     * @return Notification|null
+     */
+    public function notifyPayoutScheduled(User $user, $payoutSchedule): ?Notification
+    {
+        if (!$user) {
+            Log::warning('notifyPayoutScheduled: user not found');
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_PAYOUT_SCHEDULED,
+                $payoutSchedule,
+                [
+                    'project_id' => $payoutSchedule->project_id,
+                    'project_name' => $payoutSchedule->project->name ?? 'Project',
+                    'gross_amount' => $payoutSchedule->gross_amount,
+                    'net_amount' => $payoutSchedule->net_amount,
+                    'currency' => $payoutSchedule->currency,
+                    'hold_release_date' => $payoutSchedule->hold_release_date->toDateString(),
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify payout scheduled', [
+                'message' => $e->getMessage(),
+                'user_id' => $user->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify a winner that their contest prize payout has been scheduled
+     *
+     * @param User $user The winner
+     * @param PayoutSchedule $payoutSchedule The scheduled payout
+     * @param ContestPrize $prize The contest prize
+     * @return Notification|null
+     */
+    public function notifyContestPayoutScheduled(User $user, $payoutSchedule, $prize): ?Notification
+    {
+        if (!$user) {
+            Log::warning('notifyContestPayoutScheduled: user not found');
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_CONTEST_PAYOUT_SCHEDULED,
+                $payoutSchedule,
+                [
+                    'project_id' => $payoutSchedule->project_id,
+                    'project_name' => $payoutSchedule->project->name ?? 'Contest',
+                    'prize_placement' => $prize->placement,
+                    'gross_amount' => $payoutSchedule->gross_amount,
+                    'net_amount' => $payoutSchedule->net_amount,
+                    'currency' => $payoutSchedule->currency,
+                    'hold_release_date' => $payoutSchedule->hold_release_date->toDateString(),
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify contest payout scheduled', [
+                'message' => $e->getMessage(),
+                'user_id' => $user->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify a user that their payout has been completed
+     *
+     * @param User $user The recipient
+     * @param PayoutSchedule $payoutSchedule The completed payout
+     * @return Notification|null
+     */
+    public function notifyPayoutCompleted(User $user, $payoutSchedule): ?Notification
+    {
+        if (!$user) {
+            Log::warning('notifyPayoutCompleted: user not found');
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_PAYOUT_COMPLETED,
+                $payoutSchedule,
+                [
+                    'project_id' => $payoutSchedule->project_id,
+                    'project_name' => $payoutSchedule->project->name ?? 'Project',
+                    'net_amount' => $payoutSchedule->net_amount,
+                    'currency' => $payoutSchedule->currency,
+                    'stripe_transfer_id' => $payoutSchedule->stripe_transfer_id,
+                    'completed_at' => $payoutSchedule->completed_at->toDateString(),
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify payout completed', [
+                'message' => $e->getMessage(),
+                'user_id' => $user->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify a user that their payout has failed
+     *
+     * @param User $user The recipient
+     * @param PayoutSchedule $payoutSchedule The failed payout
+     * @param string $reason The failure reason
+     * @return Notification|null
+     */
+    public function notifyPayoutFailed(User $user, $payoutSchedule, string $reason): ?Notification
+    {
+        if (!$user) {
+            Log::warning('notifyPayoutFailed: user not found');
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_PAYOUT_FAILED,
+                $payoutSchedule,
+                [
+                    'project_id' => $payoutSchedule->project_id,
+                    'project_name' => $payoutSchedule->project->name ?? 'Project',
+                    'net_amount' => $payoutSchedule->net_amount,
+                    'currency' => $payoutSchedule->currency,
+                    'failure_reason' => $reason,
+                    'failed_at' => $payoutSchedule->failed_at->toDateString(),
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify payout failed', [
+                'message' => $e->getMessage(),
+                'user_id' => $user->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
+    /**
+     * Notify a user that their payout has been cancelled
+     *
+     * @param User $user The recipient
+     * @param PayoutSchedule $payoutSchedule The cancelled payout
+     * @param string $reason The cancellation reason
+     * @return Notification|null
+     */
+    public function notifyPayoutCancelled(User $user, $payoutSchedule, string $reason): ?Notification
+    {
+        if (!$user) {
+            Log::warning('notifyPayoutCancelled: user not found');
+            return null;
+        }
+
+        $notification = null;
+        try {
+            $notification = $this->createNotification(
+                $user,
+                Notification::TYPE_PAYOUT_CANCELLED,
+                $payoutSchedule,
+                [
+                    'project_id' => $payoutSchedule->project_id,
+                    'project_name' => $payoutSchedule->project->name ?? 'Project',
+                    'net_amount' => $payoutSchedule->net_amount,
+                    'currency' => $payoutSchedule->currency,
+                    'cancellation_reason' => $reason,
+                    'cancelled_at' => $payoutSchedule->cancelled_at->toDateString(),
+                ]
+            );
+
+            if ($notification) {
+                try {
+                    $user->notify(new UserNotification(
+                        $notification->type,
+                        $notification->related_id,
+                        $notification->related_type,
+                        $notification->data
+                    ));
+                } catch (\Exception $notifyException) {
+                    Log::warning('Failed to dispatch Laravel notification', [
+                        'message' => $notifyException->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to notify payout cancelled', [
+                'message' => $e->getMessage(),
+                'user_id' => $user->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+            ]);
+            return null;
+        }
+        return $notification;
+    }
+
 } // End of NotificationService class

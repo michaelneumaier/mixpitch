@@ -87,6 +87,13 @@ class Notification extends Model
     const TYPE_CLIENT_COMMENT_ADDED = 'client_comment_added';
     const TYPE_CLIENT_APPROVED_PITCH = 'client_approved_pitch';
     const TYPE_CLIENT_REQUESTED_REVISIONS = 'client_requested_revisions';
+    
+    // Payout Notification Types
+    const TYPE_CONTEST_PAYOUT_SCHEDULED = 'contest_payout_scheduled';
+    const TYPE_PAYOUT_SCHEDULED = 'payout_scheduled';
+    const TYPE_PAYOUT_COMPLETED = 'payout_completed';
+    const TYPE_PAYOUT_FAILED = 'payout_failed';
+    const TYPE_PAYOUT_CANCELLED = 'payout_cancelled';
 
     /**
      * Get all defined notification types with user-friendly labels.
@@ -141,6 +148,13 @@ class Notification extends Model
             self::TYPE_CLIENT_COMMENT_ADDED => 'Client Added a Comment',
             self::TYPE_CLIENT_APPROVED_PITCH => 'Client Approved Your Submission',
             self::TYPE_CLIENT_REQUESTED_REVISIONS => 'Client Requested Revisions',
+            
+            // Payout Labels
+            self::TYPE_CONTEST_PAYOUT_SCHEDULED => 'Contest Prize Payout Scheduled',
+            self::TYPE_PAYOUT_SCHEDULED => 'Payout Scheduled',
+            self::TYPE_PAYOUT_COMPLETED => 'Payout Completed',
+            self::TYPE_PAYOUT_FAILED => 'Payout Failed',
+            self::TYPE_PAYOUT_CANCELLED => 'Payout Cancelled',
         ];
 
         // Sort alphabetically by label for display
@@ -198,6 +212,203 @@ class Notification extends Model
     public function getUrl()
     {
         $data = $this->data ?? [];
+        
+        // Handle Contest notifications FIRST (before pitch routing)
+        if (in_array($this->type, [
+            self::TYPE_CONTEST_WINNER_SELECTED,
+            self::TYPE_CONTEST_RUNNER_UP_SELECTED,
+            self::TYPE_CONTEST_ENTRY_NOT_SELECTED,
+            self::TYPE_CONTEST_WINNER_SELECTED_NO_PRIZE,
+        ])) {
+            // Route to contest results page
+            if (isset($data['project_id'])) {
+                try {
+                    $project = \App\Models\Project::find($data['project_id']);
+                    if ($project) {
+                        return route('projects.contest.results', $project);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate contest results URL for notification.', [
+                        'notification_id' => $this->id,
+                        'project_id' => $data['project_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            // Fallback to dashboard if contest routing fails
+            return route('dashboard');
+        }
+
+        // Handle Contest owner notifications
+        if (in_array($this->type, [
+            self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION,
+            self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE,
+        ])) {
+            // Route to contest management/judging page
+            if (isset($data['project_id'])) {
+                try {
+                    $project = \App\Models\Project::find($data['project_id']);
+                    if ($project) {
+                        return route('projects.contest.judging', $project);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate contest judging URL for notification.', [
+                        'notification_id' => $this->id,
+                        'project_id' => $data['project_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            // Fallback to dashboard if contest routing fails
+            return route('dashboard');
+        }
+
+        // Handle Contest entry submissions
+        if ($this->type === self::TYPE_CONTEST_ENTRY_SUBMITTED) {
+            // Route to the project page for contest entries
+            if (isset($data['project_id'])) {
+                try {
+                    $project = \App\Models\Project::find($data['project_id']);
+                    if ($project) {
+                        return route('projects.show', $project);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate project URL for contest entry notification.', [
+                        'notification_id' => $this->id,
+                        'project_id' => $data['project_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            // Fallback to dashboard if contest routing fails
+            return route('dashboard');
+        }
+
+        // Handle Payout notifications
+        if (in_array($this->type, [
+            self::TYPE_CONTEST_PAYOUT_SCHEDULED,
+            self::TYPE_PAYOUT_SCHEDULED,
+            self::TYPE_PAYOUT_COMPLETED,
+            self::TYPE_PAYOUT_FAILED,
+            self::TYPE_PAYOUT_CANCELLED,
+        ])) {
+            // Try to route to specific payout if we have a payout ID
+            if (isset($data['payout_id'])) {
+                try {
+                    return route('payouts.show', $data['payout_id']);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate specific payout URL for notification.', [
+                        'notification_id' => $this->id,
+                        'payout_id' => $data['payout_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            // Otherwise route to general payouts page
+            try {
+                return route('payouts.index');
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Could not generate payouts index URL for notification.', [
+                    'notification_id' => $this->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // Handle Direct Hire notifications
+        if (in_array($this->type, [
+            self::TYPE_DIRECT_HIRE_ASSIGNMENT,
+            self::TYPE_DIRECT_HIRE_ACCEPTED,
+        ])) {
+            // Route to project management page
+            if (isset($data['project_id'])) {
+                try {
+                    $project = \App\Models\Project::find($data['project_id']);
+                    if ($project) {
+                        return route('projects.manage', $project);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate project management URL for direct hire notification.', [
+                        'notification_id' => $this->id,
+                        'project_id' => $data['project_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            // Fallback to projects index
+            return route('projects.index');
+        }
+
+        // Handle Direct Hire offers (rejected/pending)
+        if (in_array($this->type, [
+            self::TYPE_DIRECT_HIRE_OFFER,
+            self::TYPE_DIRECT_HIRE_REJECTED,
+        ])) {
+            // Route to project page (where offers are typically managed)
+            if (isset($data['project_id'])) {
+                try {
+                    $project = \App\Models\Project::find($data['project_id']);
+                    if ($project) {
+                        return route('projects.show', $project);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate project URL for direct hire offer notification.', [
+                        'notification_id' => $this->id,
+                        'project_id' => $data['project_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            // Fallback to projects index
+            return route('projects.index');
+        }
+
+        // Handle Client Management notifications
+        if (in_array($this->type, [
+            self::TYPE_CLIENT_COMMENT_ADDED,
+            self::TYPE_CLIENT_APPROVED_PITCH,
+            self::TYPE_CLIENT_REQUESTED_REVISIONS,
+        ])) {
+            // Route to client project management page
+            if (isset($data['project_id'])) {
+                try {
+                    $project = \App\Models\Project::find($data['project_id']);
+                    if ($project) {
+                        return route('projects.manage-client', $project);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate client project management URL for notification.', [
+                        'notification_id' => $this->id,
+                        'project_id' => $data['project_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            // Fallback to projects index
+            return route('projects.index');
+        }
+
+        // Handle Project Update notifications
+        if ($this->type === self::TYPE_PROJECT_UPDATE) {
+            // Route to project page
+            if (isset($data['project_id'])) {
+                try {
+                    $project = \App\Models\Project::find($data['project_id']);
+                    if ($project) {
+                        return route('projects.show', $project);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Could not generate project URL for project update notification.', [
+                        'notification_id' => $this->id,
+                        'project_id' => $data['project_id'] ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            // Fallback to projects index
+            return route('projects.index');
+        }
         
         if ($this->related_type === 'App\\Models\\Pitch') {
             // Find pitch with project eagerly loaded
@@ -371,20 +582,83 @@ class Notification extends Model
             case self::TYPE_PITCH_CLOSED:
                 return 'A pitch has been closed';
             case self::TYPE_PROJECT_UPDATE:
-                return 'Project update';
+                $updateDescription = $data['update_description'] ?? 'Project has been updated';
+                return $updateDescription . ' for project' . $projectName;
+            case self::TYPE_PITCH_REVISION:
+                $revisorName = $data['revisor_name'] ?? 'Someone';
+                return $revisorName . ' submitted a revision for their pitch on project' . $projectName;
             case self::TYPE_CONTEST_WINNER_SELECTED:
-                return 'Contest Winner Selected';
+                $contestName = $data['contest_name'] ?? $projectName;
+                $prizeMoney = isset($data['prize_money']) ? ' ($' . number_format($data['prize_money']) . ' prize)' : '';
+                return 'Congratulations! You won the contest' . $contestName . $prizeMoney;
             case self::TYPE_CONTEST_RUNNER_UP_SELECTED:
-                return 'Contest Runner-Up Selected';
+                $contestName = $data['contest_name'] ?? $projectName;
+                $prizeMoney = isset($data['prize_money']) ? ' ($' . number_format($data['prize_money']) . ' prize)' : '';
+                return 'You were selected as runner-up in the contest' . $contestName . $prizeMoney;
             case self::TYPE_CONTEST_ENTRY_NOT_SELECTED:
-                return 'Contest Entry Not Selected';
+                $contestName = $data['contest_name'] ?? $projectName;
+                return 'Your entry was not selected for the contest' . $contestName;
             case self::TYPE_CONTEST_ENTRY_SUBMITTED:
-                return 'Contest Entry Submitted';
+                $contestName = $data['contest_name'] ?? $projectName;
+                return 'Your contest entry was submitted for' . $contestName;
+            case self::TYPE_CONTEST_WINNER_SELECTED_NO_PRIZE:
+                $contestName = $data['contest_name'] ?? $projectName;
+                return 'Congratulations! You won the contest' . $contestName;
+            case self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION:
+                $winnerName = $data['winner_name'] ?? 'A participant';
+                $contestName = $data['contest_name'] ?? $projectName;
+                $prizeMoney = isset($data['prize_money']) ? ' ($' . number_format($data['prize_money']) . ' prize)' : '';
+                return $winnerName . ' won your contest' . $contestName . $prizeMoney;
+            case self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE:
+                $winnerName = $data['winner_name'] ?? 'A participant';
+                $contestName = $data['contest_name'] ?? $projectName;
+                return $winnerName . ' won your contest' . $contestName;
             case self::TYPE_DIRECT_HIRE_ASSIGNMENT:
-                return 'New Direct Hire Assignment';
+                $assignerName = $data['assigner_name'] ?? 'Someone';
+                return $assignerName . ' assigned you a direct hire project' . $projectName;
             case self::TYPE_DIRECT_HIRE_OFFER:
-                return 'New Direct Hire Offer';
+                $offerAmount = isset($data['offer_amount']) ? ' ($' . number_format($data['offer_amount']) . ')' : '';
+                return 'You received a direct hire offer for project' . $projectName . $offerAmount;
             case self::TYPE_DIRECT_HIRE_ACCEPTED:
+                $accepterName = $data['accepter_name'] ?? 'The producer';
+                return $accepterName . ' accepted your direct hire offer for project' . $projectName;
+            case self::TYPE_DIRECT_HIRE_REJECTED:
+                $rejecterName = $data['rejecter_name'] ?? 'The producer';
+                return $rejecterName . ' declined your direct hire offer for project' . $projectName;
+            case self::TYPE_INITIAL_PITCH_DENIED:
+                $reason = $data['reason'] ?? '';
+                $reasonText = !empty($reason) ? ': "' . Str::limit($reason, 100) . '"' : '';
+                return 'Your initial pitch application for project' . $projectName . ' was denied' . $reasonText;
+            case self::TYPE_CLIENT_COMMENT_ADDED:
+                $clientName = $data['client_name'] ?? 'The client';
+                return $clientName . ' added a comment on your project' . $projectName;
+            case self::TYPE_CLIENT_APPROVED_PITCH:
+                $clientName = $data['client_name'] ?? 'The client';
+                return $clientName . ' approved your submission for project' . $projectName;
+            case self::TYPE_CLIENT_REQUESTED_REVISIONS:
+                $clientName = $data['client_name'] ?? 'The client';
+                $revisionNotes = isset($data['revision_notes']) && !empty($data['revision_notes']) ? ': "' . Str::limit($data['revision_notes'], 100) . '"' : '';
+                return $clientName . ' requested revisions for project' . $projectName . $revisionNotes;
+            case self::TYPE_CONTEST_PAYOUT_SCHEDULED:
+                $payoutAmount = isset($data['net_amount']) ? '$' . number_format($data['net_amount']) . ' ' : (isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '');
+                $payoutDate = isset($data['hold_release_date']) ? ' on ' . date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on ' . date('M j, Y', strtotime($data['payout_date'])) : '');
+                return 'Your contest prize payout of ' . $payoutAmount . 'has been scheduled' . $payoutDate;
+            case self::TYPE_PAYOUT_SCHEDULED:
+                $payoutAmount = isset($data['net_amount']) ? '$' . number_format($data['net_amount']) . ' ' : (isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '');
+                $payoutDate = isset($data['hold_release_date']) ? ' on ' . date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on ' . date('M j, Y', strtotime($data['payout_date'])) : '');
+                return 'Your payout of ' . $payoutAmount . 'has been scheduled' . $payoutDate;
+            case self::TYPE_PAYOUT_COMPLETED:
+                $payoutAmount = isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '';
+                $payoutMethod = isset($data['payout_method']) ? ' via ' . $data['payout_method'] : '';
+                return 'Your payout of ' . $payoutAmount . 'has been completed' . $payoutMethod;
+            case self::TYPE_PAYOUT_FAILED:
+                $payoutAmount = isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '';
+                $failureReason = isset($data['failure_reason']) ? ': ' . $data['failure_reason'] : '';
+                return 'Your payout of ' . $payoutAmount . 'failed' . $failureReason . '. Please update your payment information.';
+            case self::TYPE_PAYOUT_CANCELLED:
+                $payoutAmount = isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '';
+                $cancellationReason = isset($data['cancellation_reason']) ? ': ' . $data['cancellation_reason'] : '';
+                return 'Your payout of ' . $payoutAmount . 'was cancelled' . $cancellationReason;
             default:
                 return 'New notification';
         }

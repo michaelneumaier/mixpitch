@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use App\Models\Order;
 use App\Models\Invoice;
+use App\Models\Project;
 
 class InvoiceService 
 {
@@ -106,6 +107,30 @@ class InvoiceService
                 'payment_method' => $paymentMethod,
                 'invoice_status' => $invoice->status ?? 'unknown'
             ]);
+
+            // Ensure the payment method is attached to the customer
+            try {
+                $paymentMethodObj = $stripe->paymentMethods->retrieve($paymentMethod);
+                
+                // If the payment method is not attached to the customer, attach it
+                if (!$paymentMethodObj->customer) {
+                    \Log::info('Attaching payment method to customer', [
+                        'payment_method' => $paymentMethod,
+                        'customer' => $invoice->customer
+                    ]);
+                    
+                    $stripe->paymentMethods->attach($paymentMethod, [
+                        'customer' => $invoice->customer,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to attach payment method to customer', [
+                    'payment_method' => $paymentMethod,
+                    'customer' => $invoice->customer,
+                    'error' => $e->getMessage()
+                ]);
+                throw new \Exception('Failed to attach payment method to customer: ' . $e->getMessage());
+            }
             
             // Finalize the invoice if it's not already finalized
             $finalizedInvoice = null;
@@ -405,5 +430,81 @@ class InvoiceService
                 'producer_user_id' => $order->producer_user_id,
             ],
         ]);
+    }
+
+    /**
+     * Create a contest prize invoice for multiple winners
+     * 
+     * @param Project $project
+     * @param array $winners
+     * @param float $totalAmount
+     * @return object
+     */
+    public function createContestPrizeInvoice($project, array $winners, float $totalAmount)
+    {
+        $user = $project->user;
+        $invoiceId = 'CONTEST-' . strtoupper(substr(md5(uniqid()), 0, 10));
+        
+        // Create Stripe customer if one doesn't exist yet
+        if (!$user->stripe_id) {
+            $user->createAsStripeCustomer();
+        }
+        
+        try {
+            $stripe = $this->newStripeClient();
+            
+            // Add contest metadata to the invoice
+            $metadata = [
+                'project_id' => $project->id,
+                'invoice_id' => $invoiceId,
+                'source' => 'contest_prizes',
+                'winner_count' => count($winners)
+            ];
+            
+            // Generate description for the payment
+            $description = "Contest Prize Payment: {$project->name}";
+            
+            // Create the invoice
+            $invoice = $stripe->invoices->create([
+                'customer' => $user->stripe_id,
+                'auto_advance' => false,
+                'description' => $description,
+                'collection_method' => 'charge_automatically',
+                'metadata' => $metadata
+            ]);
+            
+            // Create invoice items for each winner
+            foreach ($winners as $winner) {
+                $prize = $winner['prize'];
+                $winnerUser = $winner['user'];
+                $pitch = $winner['pitch'];
+                
+                $stripe->invoiceItems->create([
+                    'customer' => $user->stripe_id,
+                    'amount' => (int)($prize->cash_amount * 100), // Convert to cents
+                    'currency' => 'usd',
+                    'description' => "Prize: {$prize->getPlacementDisplayName()} Place - {$winnerUser->name}",
+                    'invoice' => $invoice->id,
+                    'metadata' => [
+                        'pitch_id' => $pitch->id,
+                        'winner_user_id' => $winnerUser->id,
+                        'prize_placement' => $prize->placement,
+                        'prize_amount' => $prize->cash_amount,
+                    ]
+                ]);
+            }
+            
+            return $invoice;
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to create contest prize invoice', [
+                'project_id' => $project->id,
+                'total_amount' => $totalAmount,
+                'winner_count' => count($winners),
+                'error' => $e->getMessage()
+            ]);
+            
+            throw new \Exception('Failed to create contest prize invoice: ' . $e->getMessage());
+        }
     }
 }

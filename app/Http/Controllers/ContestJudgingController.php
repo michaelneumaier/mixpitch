@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Pitch;
 use App\Services\ContestJudgingService;
+use App\Services\ContestEarlyClosureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
@@ -14,10 +15,14 @@ use Masmerise\Toaster\Toaster;
 class ContestJudgingController extends Controller
 {
     protected $contestJudgingService;
+    protected $contestEarlyClosureService;
 
-    public function __construct(ContestJudgingService $contestJudgingService)
-    {
+    public function __construct(
+        ContestJudgingService $contestJudgingService,
+        ContestEarlyClosureService $contestEarlyClosureService
+    ) {
         $this->contestJudgingService = $contestJudgingService;
+        $this->contestEarlyClosureService = $contestEarlyClosureService;
     }
 
     /**
@@ -87,50 +92,212 @@ class ContestJudgingController extends Controller
      */
     public function updatePlacement(Request $request, Project $project, Pitch $pitch)
     {
-        // Authorization check
-        $this->authorize('setContestPlacement', $pitch);
-
-        // Validate request
-        $request->validate([
-            'placement' => 'nullable|string|in:1st,2nd,3rd,runner-up'
-        ]);
-
         try {
+            // Log the incoming request for debugging
+            \Log::info('Contest placement update request', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'user_id' => Auth::id(),
+                'placement' => $request->input('placement'),
+                'request_data' => $request->all()
+            ]);
+
+            // Authorization check
+            $this->authorize('setContestPlacement', $pitch);
+
+            // Validate request
+            $validated = $request->validate([
+                'placement' => 'nullable|string|in:1st,2nd,3rd,runner-up'
+            ]);
+
+            // Additional business logic validation
+            if (!$project->isContest()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This project is not a contest.'
+                ], 422);
+            }
+
+            if ($project->isJudgingFinalized()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contest judging has been finalized and cannot be modified.'
+                ], 422);
+            }
+
+            // Check if pitch is eligible for placement
+            $eligibleStatuses = [
+                \App\Models\Pitch::STATUS_CONTEST_ENTRY,
+                \App\Models\Pitch::STATUS_CONTEST_WINNER,
+                \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP
+            ];
+
+            if (!in_array($pitch->status, $eligibleStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This entry is not eligible for placement.'
+                ], 422);
+            }
+
             $result = $this->contestJudgingService->setPlacement(
                 $project,
                 $pitch,
-                $request->input('placement')
+                $validated['placement'] ?: null
             );
 
             if ($result) {
-                $placementLabel = $request->input('placement') ? match($request->input('placement')) {
-                    '1st' => '1st Place',
-                    '2nd' => '2nd Place',
-                    '3rd' => '3rd Place',
-                    'runner-up' => 'Runner-up',
-                    default => $request->input('placement')
-                } : 'No Placement';
+                \Log::info('Contest placement updated successfully', [
+                    'project_id' => $project->id,
+                    'pitch_id' => $pitch->id,
+                    'placement' => $validated['placement'],
+                    'user_id' => Auth::id()
+                ]);
+
+                // Get updated available placements for all pitches
+                $judgingService = app(ContestJudgingService::class);
+                $availablePlacements = [];
+                
+                // Get all contest entries to update their available placements
+                $contestEntries = $project->getContestEntries();
+                foreach ($contestEntries as $entry) {
+                    $entryPlacements = $judgingService->getAvailablePlacementsForPitch($project, $entry);
+                    // We only need the placement options for the frontend
+                    foreach ($entryPlacements as $value => $label) {
+                        if (!isset($availablePlacements[$value])) {
+                            $availablePlacements[$value] = $label;
+                        }
+                    }
+                }
+
+                // Get current winners for updating the Current Winners section
+                $contestResult = $project->contestResult;
+                $currentWinners = [
+                    'first_place' => null,
+                    'second_place' => null,
+                    'third_place' => null,
+                    'runner_ups' => []
+                ];
+
+                if ($contestResult) {
+                    if ($contestResult->first_place_pitch_id) {
+                        $firstPlace = $contestEntries->firstWhere('id', $contestResult->first_place_pitch_id);
+                        if ($firstPlace) {
+                            $currentWinners['first_place'] = [
+                                'id' => $firstPlace->id,
+                                'slug' => $firstPlace->slug,
+                                'user_name' => $firstPlace->user->name,
+                                'title' => $firstPlace->title
+                            ];
+                        }
+                    }
+
+                    if ($contestResult->second_place_pitch_id) {
+                        $secondPlace = $contestEntries->firstWhere('id', $contestResult->second_place_pitch_id);
+                        if ($secondPlace) {
+                            $currentWinners['second_place'] = [
+                                'id' => $secondPlace->id,
+                                'slug' => $secondPlace->slug,
+                                'user_name' => $secondPlace->user->name,
+                                'title' => $secondPlace->title
+                            ];
+                        }
+                    }
+
+                    if ($contestResult->third_place_pitch_id) {
+                        $thirdPlace = $contestEntries->firstWhere('id', $contestResult->third_place_pitch_id);
+                        if ($thirdPlace) {
+                            $currentWinners['third_place'] = [
+                                'id' => $thirdPlace->id,
+                                'slug' => $thirdPlace->slug,
+                                'user_name' => $thirdPlace->user->name,
+                                'title' => $thirdPlace->title
+                            ];
+                        }
+                    }
+
+                    if ($contestResult->runner_up_pitch_ids) {
+                        foreach ($contestResult->runner_up_pitch_ids as $runnerUpId) {
+                            $runnerUp = $contestEntries->firstWhere('id', $runnerUpId);
+                            if ($runnerUp) {
+                                $currentWinners['runner_ups'][] = [
+                                    'id' => $runnerUp->id,
+                                    'slug' => $runnerUp->slug,
+                                    'user_name' => $runnerUp->user->name,
+                                    'title' => $runnerUp->title
+                                ];
+                            }
+                        }
+                    }
+                }
 
                 return response()->json([
                     'success' => true,
-                    'message' => "Placement updated to: {$placementLabel}"
+                    'message' => $validated['placement'] ? 
+                        "Placement updated to: {$this->getPlacementLabel($validated['placement'])}" : 
+                        'Placement cleared successfully',
+                    'placement' => $validated['placement'],
+                    'placement_label' => $validated['placement'] ? $this->getPlacementLabel($validated['placement']) : null,
+                    'availablePlacements' => $availablePlacements,
+                    'currentWinners' => $currentWinners,
+                    'pitch_id' => $pitch->id,
+                    'pitch_slug' => $pitch->slug
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update placement'
+                'message' => 'Failed to update placement. Please try again.'
+            ], 422);
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            \Log::warning('Contest placement authorization failed', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to judge this contest entry.'
+            ], 403);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Contest placement validation failed', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'errors' => $e->errors()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid placement value provided.',
+                'errors' => $e->errors()
             ], 422);
 
         } catch (\InvalidArgumentException $e) {
+            \Log::error('Contest placement business logic error', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
             ], 422);
+
         } catch (\Exception $e) {
+            \Log::error('Contest placement unexpected error', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update placement. Please try again.'
+                'message' => 'An unexpected error occurred. Please try again.'
             ], 500);
         }
     }
@@ -363,5 +530,85 @@ class ContestJudgingController extends Controller
         }
 
         return $prize->getDisplayValue();
+    }
+
+    private function getPlacementLabel(string $placement): string
+    {
+        $placementMap = [
+            '1st' => '1st Place',
+            '2nd' => '2nd Place',
+            '3rd' => '3rd Place',
+            'runner-up' => 'Runner-up',
+        ];
+
+        return $placementMap[$placement] ?? $placement;
+    }
+
+    /**
+     * Close contest submissions early
+     */
+    public function closeEarly(Request $request, Project $project)
+    {
+        // Authorization check
+        $this->authorize('closeContestEarly', $project);
+
+        // Validate request
+        $request->validate([
+            'reason' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            $result = $this->contestEarlyClosureService->closeContestEarly(
+                $project,
+                Auth::user(),
+                $request->input('reason')
+            );
+
+            if ($result) {
+                Toaster::success('Contest submissions have been closed early. All participants have been notified.');
+                return redirect()->route('projects.contest.judging', $project);
+            }
+
+            Toaster::error('Failed to close contest early.');
+            return back();
+
+        } catch (\InvalidArgumentException $e) {
+            Toaster::error($e->getMessage());
+            return back();
+        } catch (\Exception $e) {
+            Toaster::error('Failed to close contest early. Please try again.');
+            return back();
+        }
+    }
+
+    /**
+     * Reopen contest submissions (undo early closure)
+     */
+    public function reopenSubmissions(Project $project)
+    {
+        // Authorization check
+        $this->authorize('reopenContestSubmissions', $project);
+
+        try {
+            $result = $this->contestEarlyClosureService->reopenContestSubmissions(
+                $project,
+                Auth::user()
+            );
+
+            if ($result) {
+                Toaster::success('Contest submissions have been reopened. Participants have been notified.');
+                return redirect()->route('projects.manage', $project);
+            }
+
+            Toaster::error('Failed to reopen contest submissions.');
+            return back();
+
+        } catch (\InvalidArgumentException $e) {
+            Toaster::error($e->getMessage());
+            return back();
+        } catch (\Exception $e) {
+            Toaster::error('Failed to reopen submissions. Please try again.');
+            return back();
+        }
     }
 } 

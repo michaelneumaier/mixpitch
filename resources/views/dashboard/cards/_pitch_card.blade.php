@@ -99,6 +99,49 @@
                             <div class="text-sm font-bold text-green-900">{{ Number::currency($pitch->amount, 'USD') }}</div>
                         </div>
                     @endif
+
+                    @if($pitch->status === 'completed' && $pitch->project && $pitch->project->budget > 0)
+                        <!-- Payment Status for Completed Pitches -->
+                        @php
+                            $paymentStatus = $pitch->payment_status;
+                            $projectBudget = $pitch->project->budget;
+                        @endphp
+                        
+                        @if($paymentStatus === 'paid')
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                                    <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Payment Received</span>
+                                </div>
+                                <div class="text-sm font-bold text-green-900">{{ Number::currency($projectBudget, 'USD') }}</div>
+                                <div class="text-xs text-green-600 mt-1">Paid & Complete</div>
+                            </div>
+                        @elseif($paymentStatus === 'pending' || $paymentStatus === 'failed' || empty($paymentStatus))
+                            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200/50">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-clock text-amber-600 mr-2"></i>
+                                    <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Payment Pending</span>
+                                </div>
+                                <div class="text-sm font-bold text-amber-900">{{ Number::currency($projectBudget, 'USD') }}</div>
+                                <div class="text-xs text-amber-600 mt-1">
+                                    @if($paymentStatus === 'failed')
+                                        Payment Failed
+                                    @else
+                                        Awaiting Payment
+                                    @endif
+                                </div>
+                            </div>
+                        @elseif($paymentStatus === 'processing')
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>
+                                    <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Processing Payment</span>
+                                </div>
+                                <div class="text-sm font-bold text-blue-900">{{ Number::currency($projectBudget, 'USD') }}</div>
+                                <div class="text-xs text-blue-600 mt-1">Processing...</div>
+                            </div>
+                        @endif
+                    @endif
                     
                     @if($pitch->project && $pitch->project->deadline)
                         <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200/50">
@@ -107,6 +150,18 @@
                                 <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Deadline</span>
                             </div>
                             <div class="text-sm font-bold text-purple-900">{{ \Carbon\Carbon::parse($pitch->project->deadline)->format('M d, Y') }}</div>
+                            @php
+                                $daysUntilDeadline = \Carbon\Carbon::parse($pitch->project->deadline)->diffInDays(now(), false);
+                            @endphp
+                            <div class="text-xs text-purple-600 mt-1">
+                                @if($daysUntilDeadline < 0)
+                                    {{ abs($daysUntilDeadline) }} days left
+                                @elseif($daysUntilDeadline === 0)
+                                    Due today
+                                @else
+                                    {{ $daysUntilDeadline }} days overdue
+                                @endif
+                            </div>
                         </div>
                     @endif
 
@@ -180,12 +235,39 @@
                                 <i class="fas fa-check-double text-green-600 mr-2"></i>
                                 <span>Completed</span>
                             </div>
+                            
+                            @if($pitch->project && $pitch->project->budget > 0)
+                                <!-- Payment Status Badge for Completed Pitches -->
+                                @php $paymentStatus = $pitch->payment_status; @endphp
+                                @if($paymentStatus === 'paid')
+                                    <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200/50 shadow-sm">
+                                        <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
+                                        <span>Paid</span>
+                                    </div>
+                                @elseif($paymentStatus === 'pending' || $paymentStatus === 'failed' || empty($paymentStatus))
+                                    <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-200/50 shadow-sm animate-pulse">
+                                        <i class="fas fa-exclamation-triangle text-amber-600 mr-2"></i>
+                                        <span>
+                                            @if($paymentStatus === 'failed')
+                                                Payment Failed
+                                            @else
+                                                Payment Due
+                                            @endif
+                                        </span>
+                                    </div>
+                                @elseif($paymentStatus === 'processing')
+                                    <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 shadow-sm">
+                                        <i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>
+                                        <span>Processing Payment</span>
+                                    </div>
+                                @endif
+                            @endif
                         @endif
                         
                         @if($pitch->files->count() > 0)
                             <div class="inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-200/50 shadow-sm">
                                 <i class="fas fa-paperclip text-gray-600 mr-2"></i>
-                                <span>Has Files</span>
+                                <span>{{ $pitch->files->count() }} {{ Str::plural('File', $pitch->files->count()) }}</span>
                             </div>
                         @endif
                     </div>

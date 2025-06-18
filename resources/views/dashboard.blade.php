@@ -122,6 +122,9 @@
             </div>
             @endif
 
+            <!-- Payout Status Banner -->
+            <x-payout-status-banner :user="auth()->user()" />
+
             <!-- Work Section -->
             <div class="relative">
                 <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6 lg:p-8" x-data="{ filter: 'all' }">
