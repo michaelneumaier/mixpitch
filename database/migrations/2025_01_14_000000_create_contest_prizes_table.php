@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contest_prizes', function (Blueprint $table) {
+        if (!Schema::hasTable('contest_prizes')) {
+            Schema::create('contest_prizes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->enum('placement', ['1st', '2nd', '3rd', 'runner_up']);
@@ -34,7 +35,8 @@ return new class extends Migration
             // Add indexes for better performance
             $table->index(['project_id', 'prize_type']);
             $table->index('placement');
-        });
+            });
+        }
     }
 
     /**
