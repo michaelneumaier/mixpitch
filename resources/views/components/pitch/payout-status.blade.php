@@ -34,7 +34,13 @@
                 </div>
                 <div>
                     <h3 class="text-lg font-bold text-green-800">Payout Status</h3>
-                    <p class="text-sm text-green-600">Your earnings from this pitch</p>
+                    @if($latestPayout->workflow_type === 'standard')
+                        <p class="text-sm text-green-600">Your earnings from this project</p>
+                    @elseif($latestPayout->workflow_type === 'contest')
+                        <p class="text-sm text-green-600">Your contest prize earnings</p>
+                    @else
+                        <p class="text-sm text-green-600">Your earnings from this pitch</p>
+                    @endif
                 </div>
             </div>
             @if($latestPayout->status === 'completed')
@@ -73,7 +79,13 @@
                 <div class="text-3xl font-bold text-green-800 mb-2">
                     ${{ number_format($latestPayout->net_amount, 2) }}
                 </div>
-                <p class="text-green-700 font-medium">Payment Completed</p>
+                @if($latestPayout->workflow_type === 'standard')
+                    <p class="text-green-700 font-medium">Project Payment Completed</p>
+                @elseif($latestPayout->workflow_type === 'contest')
+                    <p class="text-green-700 font-medium">Contest Prize Paid</p>
+                @else
+                    <p class="text-green-700 font-medium">Payment Completed</p>
+                @endif
                 <p class="text-sm text-green-600 mt-1">
                     Paid on {{ $latestPayout->completed_at?->format('M j, Y \a\t g:i A') }}
                 </p>
@@ -87,7 +99,13 @@
                 <div class="text-3xl font-bold text-blue-800 mb-2">
                     ${{ number_format($latestPayout->net_amount, 2) }}
                 </div>
-                <p class="text-blue-700 font-medium">Payment Scheduled</p>
+                @if($latestPayout->workflow_type === 'standard')
+                    <p class="text-blue-700 font-medium">Project Payment Scheduled</p>
+                @elseif($latestPayout->workflow_type === 'contest')
+                    <p class="text-blue-700 font-medium">Contest Prize Scheduled</p>
+                @else
+                    <p class="text-blue-700 font-medium">Payment Scheduled</p>
+                @endif
                 <p class="text-sm text-blue-600 mt-1">
                     Releases {{ $latestPayout->hold_release_date?->format('M j, Y') }}
                 </p>
@@ -101,7 +119,13 @@
                 <div class="text-3xl font-bold text-yellow-800 mb-2">
                     ${{ number_format($latestPayout->net_amount, 2) }}
                 </div>
-                <p class="text-yellow-700 font-medium">Payment Processing</p>
+                @if($latestPayout->workflow_type === 'standard')
+                    <p class="text-yellow-700 font-medium">Project Payment Processing</p>
+                @elseif($latestPayout->workflow_type === 'contest')
+                    <p class="text-yellow-700 font-medium">Contest Prize Processing</p>
+                @else
+                    <p class="text-yellow-700 font-medium">Payment Processing</p>
+                @endif
                 <p class="text-sm text-yellow-600 mt-1">
                     Your payment is currently being processed
                 </p>
@@ -115,7 +139,13 @@
                 <div class="text-3xl font-bold text-red-800 mb-2">
                     ${{ number_format($latestPayout->net_amount, 2) }}
                 </div>
-                <p class="text-red-700 font-medium">Payment Failed</p>
+                @if($latestPayout->workflow_type === 'standard')
+                    <p class="text-red-700 font-medium">Project Payment Failed</p>
+                @elseif($latestPayout->workflow_type === 'contest')
+                    <p class="text-red-700 font-medium">Contest Prize Failed</p>
+                @else
+                    <p class="text-red-700 font-medium">Payment Failed</p>
+                @endif
                 @if($latestPayout->failure_reason)
                     <p class="text-sm text-red-600 mt-1">
                         {{ $latestPayout->failure_reason }}
@@ -135,7 +165,12 @@
                     <span class="text-green-600 font-medium">Commission:</span>
                     <div class="text-green-800 font-semibold">{{ $latestPayout->commission_rate }}%</div>
                 </div>
-                @if($latestPayout->workflow_type === 'contest' && $latestPayout->contestPrize)
+                @if($latestPayout->workflow_type === 'standard' && $latestPayout->project)
+                <div class="col-span-2">
+                    <span class="text-green-600 font-medium">Project:</span>
+                    <div class="text-green-800 font-semibold">{{ $latestPayout->project->name }}</div>
+                </div>
+                @elseif($latestPayout->workflow_type === 'contest' && $latestPayout->contestPrize)
                 <div class="col-span-2">
                     <span class="text-green-600 font-medium">Prize:</span>
                     <div class="text-green-800 font-semibold">{{ $latestPayout->contestPrize->placement }} Place - ${{ number_format($latestPayout->contestPrize->amount, 2) }}</div>
