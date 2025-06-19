@@ -41,11 +41,20 @@ class SocialiteController extends Controller
                 ->first();
             
             if ($existingUser) {
-                // Update the token
+                // Update the token and ensure email is verified
                 $existingUser->update([
                     'provider_token' => $providerUser->token,
                     'provider_refresh_token' => $providerUser->refreshToken,
+                    'email_verified_at' => $existingUser->hasVerifiedEmail() ? $existingUser->email_verified_at : now(),
                 ]);
+                
+                // Refresh the model to ensure changes are loaded
+                $existingUser->refresh();
+                
+                // Ensure OAuth users are always verified
+                if (!$existingUser->hasVerifiedEmail()) {
+                    $existingUser->markEmailAsVerified();
+                }
                 
                 Auth::login($existingUser);
                 return redirect()->intended('/dashboard');
@@ -61,8 +70,21 @@ class SocialiteController extends Controller
                     'provider_id' => $providerUser->getId(),
                     'provider_token' => $providerUser->token,
                     'provider_refresh_token' => $providerUser->refreshToken,
-                    'email_verified_at' => $user->email_verified_at ?? now(), // Verify if not already verified
+                    'email_verified_at' => $user->hasVerifiedEmail() ? $user->email_verified_at : now(),
                 ]);
+                
+                // Refresh the model to ensure changes are loaded
+                $user->refresh();
+                
+                // Double-check that email is verified after linking OAuth
+                if (!$user->hasVerifiedEmail()) {
+                    \Log::warning('Linked OAuth user not verified, manually marking as verified', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'provider' => $provider
+                    ]);
+                    $user->markEmailAsVerified();
+                }
                 
                 Auth::login($user);
                 return redirect()->intended('/dashboard');
@@ -84,10 +106,32 @@ class SocialiteController extends Controller
                 'email_verified_at' => now(), // Auto-verify OAuth users
             ]);
             
+            // Refresh the model to ensure the email_verified_at is properly set
+            $newUser->refresh();
+            
+            // Ensure the user is fully verified before logging in
+            if (!$newUser->hasVerifiedEmail()) {
+                \Log::warning('OAuth user created but not verified, manually marking as verified', [
+                    'user_id' => $newUser->id,
+                    'email' => $newUser->email,
+                    'provider' => $provider
+                ]);
+                $newUser->markEmailAsVerified();
+            }
+            
             Auth::login($newUser);
-            return redirect()->route('profile.edit');
+            
+            // Since this is a new OAuth user, they should go directly to dashboard
+            // instead of profile edit to avoid potential verification middleware issues
+            return redirect('/dashboard');
             
         } catch (Exception $e) {
+            \Log::error('OAuth callback failed', [
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return redirect()->route('login')->with('error', 'Something went wrong with social login: ' . $e->getMessage());
         }
     }
