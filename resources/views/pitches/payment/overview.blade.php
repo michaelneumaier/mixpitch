@@ -239,7 +239,32 @@
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="font-bold text-gray-700 mb-3">Payment Method</h3>
                 
-                <form id="payment-form" action="{{ route('projects.pitches.payment.process', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" method="POST">
+                @if(!$hasValidStripeConnect)
+                <!-- Stripe Connect Not Set Up Warning -->
+                <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="h-5 w-5 text-amber-500 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <div>
+                            <h4 class="font-semibold text-amber-700 mb-2">Payment Setup Required</h4>
+                            <p class="text-amber-700 mb-3">
+                                Payment cannot be processed because <strong>{{ $producer->name }}</strong> needs to complete their Stripe Connect account setup to receive payments.
+                            </p>
+                            <div class="text-sm text-amber-600">
+                                <p class="mb-2"><strong>Next steps:</strong></p>
+                                <ol class="list-decimal pl-4 space-y-1">
+                                    <li>Contact {{ $producer->name }} ({{ $producer->email }}) to set up their payout account</li>
+                                    <li>They need to complete their Stripe Connect onboarding process</li>
+                                    <li>Once complete, you can return here to process payment</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+                
+                <form id="payment-form" action="{{ route('projects.pitches.payment.process', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}" method="POST" {{ !$hasValidStripeConnect ? 'style=display:none;' : '' }}>
                     @csrf
                     <input type="hidden" name="amount" value="{{ $paymentAmount }}">
                     <input type="hidden" name="pitch_id" value="{{ $pitch->id }}">
@@ -314,11 +339,20 @@
                     </div>
                     
                     <div class="mt-4 flex justify-end">
-                        <button type="submit" id="submit-button" class="btn btn-primary px-6">
+                        <button type="submit" id="submit-button" class="btn btn-primary px-6" {{ !$hasValidStripeConnect ? 'disabled' : '' }}>
                             Process Payment <i class="fas fa-arrow-right ml-2"></i>
                         </button>
                     </div>
                 </form>
+                
+                @if(!$hasValidStripeConnect)
+                <!-- Alternative actions when payment is not available -->
+                <div class="mt-4 text-center">
+                    <a href="{{ route('projects.manage', $project) }}" class="btn btn-outline">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Project Management
+                    </a>
+                </div>
+                @endif
             </div>
 
             <!-- Payment Terms -->

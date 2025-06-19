@@ -61,18 +61,12 @@ class PitchPaymentController extends Controller
                 ->with('error', 'Payment can only be processed for completed pitches.');
         }
 
-        // CRITICAL: Check if producer has valid Stripe Connect account
+        // Get producer and their Stripe Connect status
         $producer = $pitch->user;
-        if (!$producer->stripe_account_id || !$producer->hasValidStripeConnectAccount()) {
-            // Redirect to project management page to avoid snapshot redirect loop
-            return redirect()->route('projects.manage', $project)
-                ->withErrors(['stripe_connect' => "Payment cannot be processed: {$producer->name} needs to complete their Stripe Connect account setup to receive payments. Please ask them to set up their payout account first."]);
-        }
-
-        // Get producer's Stripe Connect status for display
         $producerStripeStatus = $producer->getStripeConnectStatus();
+        $hasValidStripeConnect = $producer->stripe_account_id && $producer->hasValidStripeConnectAccount();
 
-        // Fetch payment intent if needed for Stripe Elements
+        // Fetch payment intent if needed for Stripe Elements (only if Stripe Connect is valid)
         // $intent = Auth::user()->createSetupIntent(); // Example, adjust as needed
 
         return view('pitches.payment.overview', [
@@ -81,6 +75,7 @@ class PitchPaymentController extends Controller
             'paymentAmount' => $project->budget,
             'producer' => $producer,
             'producerStripeStatus' => $producerStripeStatus,
+            'hasValidStripeConnect' => $hasValidStripeConnect,
            // 'intent' => $intent // Pass intent to view
         ]);
     }
