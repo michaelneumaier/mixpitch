@@ -55,12 +55,13 @@ class SocialiteController extends Controller
             $user = User::where('email', $providerUser->getEmail())->first();
             
             if ($user) {
-                // Update user with provider data
+                // Update user with provider data and verify email if not already verified
                 $user->update([
                     'provider' => $provider,
                     'provider_id' => $providerUser->getId(),
                     'provider_token' => $providerUser->token,
                     'provider_refresh_token' => $providerUser->refreshToken,
+                    'email_verified_at' => $user->email_verified_at ?? now(), // Verify if not already verified
                 ]);
                 
                 Auth::login($user);
@@ -80,6 +81,7 @@ class SocialiteController extends Controller
                 'provider_token' => $providerUser->token,
                 'provider_refresh_token' => $providerUser->refreshToken,
                 'profile_completed' => false,
+                'email_verified_at' => now(), // Auto-verify OAuth users
             ]);
             
             Auth::login($newUser);

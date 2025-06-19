@@ -465,14 +465,69 @@ Route::get('/email/verify', function () {
 })->middleware('auth')->name('verification.notice');
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill();
-    return redirect('/dashboard');
+    try {
+        $user = $request->user();
+        
+        // Check if already verified
+        if ($user->hasVerifiedEmail()) {
+            return redirect('/dashboard')->with('message', 'Email already verified!');
+        }
+        
+        $request->fulfill();
+        
+        // Fire the verified event manually for OAuth users who might need it
+        event(new Verified($user));
+        
+        return redirect('/dashboard')->with('verified', true);
+    } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+        // Handle signature mismatch or expired links
+        return redirect()->route('verification.notice')
+            ->with('error', 'This verification link is invalid or has expired. Please request a new one.');
+    } catch (\Exception $e) {
+        \Log::error('Email verification failed: ' . $e->getMessage(), [
+            'user_id' => auth()->id(),
+            'url' => request()->fullUrl()
+        ]);
+        
+        return redirect()->route('verification.notice')
+            ->with('error', 'Something went wrong with email verification. Please try again.');
+    }
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
 Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
+    $user = $request->user();
+    
+    // If user already verified (like OAuth users), just redirect them
+    if ($user->hasVerifiedEmail()) {
+        return redirect('/dashboard')->with('message', 'Your email is already verified!');
+    }
+    
+    $user->sendEmailVerificationNotification();
     return back()->with('message', 'Verification link sent!');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
+// Add a route for OAuth users who might get confused about verification
+Route::get('/auth/verify-oauth', function () {
+    $user = auth()->user();
+    
+    if (!$user) {
+        return redirect()->route('login');
+    }
+    
+    // If user has OAuth provider and isn't verified, auto-verify them
+    if ($user->provider && !$user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+        return redirect('/dashboard')->with('message', 'Your email has been verified via ' . ucfirst($user->provider) . '!');
+    }
+    
+    // If already verified, redirect to dashboard
+    if ($user->hasVerifiedEmail()) {
+        return redirect('/dashboard');
+    }
+    
+    // Otherwise, send them to normal verification
+    return redirect()->route('verification.notice');
+})->middleware('auth')->name('auth.verify-oauth');
 
 // About and Pricing Pages
 Route::get('/about', [AboutController::class, 'index'])->name('about');
