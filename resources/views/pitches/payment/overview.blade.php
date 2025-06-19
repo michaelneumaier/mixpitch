@@ -164,6 +164,77 @@
                 </div>
             </div>
 
+            <!-- Producer Payout Status -->
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-700 mb-3">Producer Payout Status</h3>
+                @php
+                    $stripeStatus = $producerStripeStatus ?? null;
+                    $isFullyVerified = $stripeStatus && $stripeStatus['status'] === 'active';
+                    $hasAccount = $producer->stripe_account_id;
+                @endphp
+                
+                <div class="bg-white border rounded-lg p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3">
+                            @if($isFullyVerified)
+                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-check text-green-600"></i>
+                                </div>
+                            @elseif($hasAccount)
+                                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-clock text-yellow-600"></i>
+                                </div>
+                            @else
+                                <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-medium text-gray-900">{{ $producer->name }}</h4>
+                                @if($isFullyVerified)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check mr-1"></i>Ready for Payment
+                                    </span>
+                                @elseif($hasAccount)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i>Setup In Progress
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times mr-1"></i>Setup Required
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">
+                                @if($isFullyVerified)
+                                    {{ $producer->name }} has completed their Stripe Connect setup and can receive payments. Your payment will be processed and {{ $producer->name }} will receive their payout after a 3-day hold period.
+                                @elseif($hasAccount)
+                                    {{ $producer->name }} has started their Stripe Connect setup but verification is still pending. Payment cannot be processed until their account is fully verified.
+                                @else
+                                    {{ $producer->name }} needs to create their Stripe Connect account to receive payments. They must complete this setup before you can process payment.
+                                @endif
+                            </p>
+                            
+                            @if(!$isFullyVerified)
+                                <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                    <div class="text-sm text-yellow-800">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        <strong>Next Steps:</strong> 
+                                        @if(!$hasAccount)
+                                            Please contact {{ $producer->name }} and ask them to set up their Stripe Connect account for receiving payments.
+                                        @else
+                                            {{ $producer->name }} needs to complete their account verification. This typically takes 1-2 business days.
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Payment Form -->
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="font-bold text-gray-700 mb-3">Payment Method</h3>

@@ -24,6 +24,7 @@ class ProcessPitchPaymentRequest extends FormRequest
         // 1. User must be the project owner.
         // 2. Pitch must be completed.
         // 3. Pitch payment status must be pending, failed, or null/empty (for newly completed pitches).
+        // 4. CRITICAL: Producer must have valid Stripe Connect account
         $allowedPaymentStatuses = [
             Pitch::PAYMENT_STATUS_PENDING,
             Pitch::PAYMENT_STATUS_FAILED,
@@ -31,9 +32,13 @@ class ProcessPitchPaymentRequest extends FormRequest
             ''
         ];
 
+        $producer = $pitch->user;
+        $hasValidStripeConnect = $producer->stripe_account_id && $producer->hasValidStripeConnectAccount();
+
         return $this->user()->id === $pitch->project->user_id &&
                $pitch->status === Pitch::STATUS_COMPLETED &&
-               in_array($pitch->payment_status, $allowedPaymentStatuses);
+               in_array($pitch->payment_status, $allowedPaymentStatuses) &&
+               $hasValidStripeConnect;
 
         // Alternatively, use a policy check if defined:
         // return $this->user()->can('processPayment', $pitch);
@@ -80,5 +85,31 @@ class ProcessPitchPaymentRequest extends FormRequest
                 'payment_method_id' => $this->input('payment_method'),
             ]);
         }
+    }
+
+    /**
+     * Handle a failed authorization attempt.
+     *
+     * @return void
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    protected function failedAuthorization()
+    {
+        $pitch = $this->route('pitch');
+        
+        if ($pitch instanceof Pitch) {
+            $producer = $pitch->user;
+            
+            // Check specifically for Stripe Connect issues to provide better error message
+            if (!$producer->stripe_account_id || !$producer->hasValidStripeConnectAccount()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'stripe_connect' => "Payment cannot be processed: {$producer->name} needs to complete their Stripe Connect account setup to receive payments. Please ask them to set up their payout account first."
+                ]);
+            }
+        }
+        
+        // Fall back to default authorization failure
+        parent::failedAuthorization();
     }
 } 

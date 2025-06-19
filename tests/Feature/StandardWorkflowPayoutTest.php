@@ -10,6 +10,7 @@ use App\Services\PayoutProcessingService;
 use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Mockery;
 
 class StandardWorkflowPayoutTest extends TestCase
 {
@@ -412,5 +413,135 @@ class StandardWorkflowPayoutTest extends TestCase
             $this->assertEquals($case['expected_commission'], $payout->commission_amount, "Commission amount mismatch for rate {$case['rate']}%");
             $this->assertEquals($case['expected_net'], $payout->net_amount, "Net amount mismatch for rate {$case['rate']}%");
         }
+    }
+
+    /** @test */
+    public function standard_workflow_prevents_payment_without_producer_stripe_connect()
+    {
+        // Arrange - Create a pitch without Stripe Connect setup
+        $producer = User::factory()->create(['stripe_account_id' => null]);
+        $project = Project::factory()->create([
+            'workflow_type' => 'standard',
+            'budget' => 500,
+            'user_id' => $this->projectOwner->id
+        ]);
+        
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_COMPLETED,
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+        ]);
+
+        // Act - Try to access payment overview
+        $response = $this->actingAs($this->projectOwner)
+            ->get(route('projects.pitches.payment.overview', ['project' => $project, 'pitch' => $pitch]));
+
+        // Assert - Should be redirected with error
+        $response->assertRedirect();
+        $response->assertSessionHasErrors('stripe_connect');
+        $this->assertStringContainsString('needs to complete their Stripe Connect account setup', session('errors')->first('stripe_connect'));
+    }
+
+    /** @test */
+    public function standard_workflow_prevents_payment_processing_without_producer_stripe_connect()
+    {
+        // Arrange - Create a pitch without Stripe Connect setup
+        $producer = User::factory()->create(['stripe_account_id' => null]);
+        $project = Project::factory()->create([
+            'workflow_type' => 'standard',
+            'budget' => 500,
+            'user_id' => $this->projectOwner->id
+        ]);
+        
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_COMPLETED,
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+        ]);
+
+        // Act - Try to process payment
+        $response = $this->actingAs($this->projectOwner)
+            ->post(route('projects.pitches.payment.process', ['project' => $project, 'pitch' => $pitch]), [
+                'payment_method_id' => 'pm_test_123',
+                'confirm_payment' => true
+            ]);
+
+        // Assert - Should fail authorization
+        $response->assertSessionHasErrors('stripe_connect');
+    }
+
+    /** @test */
+    public function standard_workflow_allows_payment_with_valid_producer_stripe_connect()
+    {
+        // Arrange - Create a pitch with valid Stripe Connect setup
+        $producer = User::factory()->create(['stripe_account_id' => 'acct_test123']);
+        
+        // Mock the hasValidStripeConnectAccount method to return true
+        $producer = Mockery::mock($producer)->makePartial();
+        $producer->shouldReceive('hasValidStripeConnectAccount')->andReturn(true);
+        $producer->shouldReceive('getStripeConnectStatus')->andReturn(['status' => 'active']);
+        
+        $project = Project::factory()->create([
+            'workflow_type' => 'standard',
+            'budget' => 500,
+            'user_id' => $this->projectOwner->id
+        ]);
+        
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_COMPLETED,
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+        ]);
+
+        // Mock the User::find to return our mocked producer
+        User::shouldReceive('find')->with($producer->id)->andReturn($producer);
+
+        // Act - Access payment overview
+        $response = $this->actingAs($this->projectOwner)
+            ->get(route('projects.pitches.payment.overview', ['project' => $project, 'pitch' => $pitch]));
+
+        // Assert - Should show payment form
+        $response->assertStatus(200);
+        $response->assertSee('Ready for Payment');
+        $response->assertSee('Process Payment');
+    }
+
+    /** @test */
+    public function standard_workflow_shows_producer_stripe_status_in_payment_overview()
+    {
+        // Arrange - Create pitch with producer who has Stripe account in progress
+        $producer = User::factory()->create(['stripe_account_id' => 'acct_test123']);
+        
+        // Mock partial setup (account exists but not fully verified)
+        $producer = Mockery::mock($producer)->makePartial();
+        $producer->shouldReceive('hasValidStripeConnectAccount')->andReturn(false);
+        $producer->shouldReceive('getStripeConnectStatus')->andReturn([
+            'status' => 'pending_verification',
+            'display' => 'Setup In Progress'
+        ]);
+        
+        $project = Project::factory()->create([
+            'workflow_type' => 'standard',
+            'budget' => 500,
+            'user_id' => $this->projectOwner->id
+        ]);
+        
+        $pitch = Pitch::factory()->create([
+            'project_id' => $project->id,
+            'user_id' => $producer->id,
+            'status' => Pitch::STATUS_COMPLETED,
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+        ]);
+
+        // Act - Try to access payment overview
+        $response = $this->actingAs($this->projectOwner)
+            ->get(route('projects.pitches.payment.overview', ['project' => $project, 'pitch' => $pitch]));
+
+        // Assert - Should be redirected with specific message about setup in progress
+        $response->assertRedirect();
+        $response->assertSessionHasErrors('stripe_connect');
     }
 } 
