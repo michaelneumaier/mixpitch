@@ -51,20 +51,21 @@ class PitchPaymentController extends Controller
             return redirect(RouteHelpers::pitchReceiptUrl($pitch));
         }
         if ($pitch->payment_status === Pitch::PAYMENT_STATUS_NOT_REQUIRED || $project->budget <= 0) {
-            // Use RouteHelpers for URL generation
-             return redirect(RouteHelpers::pitchUrl($pitch))
+            // Redirect to project management page to avoid snapshot redirect loop
+             return redirect()->route('projects.manage', $project)
                 ->with('info', 'This project does not require payment.');
         }
         if ($pitch->status !== Pitch::STATUS_COMPLETED) {
-            // Use RouteHelpers for URL generation
-            return redirect(RouteHelpers::pitchUrl($pitch))
+            // Redirect to project management page to avoid snapshot redirect loop
+            return redirect()->route('projects.manage', $project)
                 ->with('error', 'Payment can only be processed for completed pitches.');
         }
 
         // CRITICAL: Check if producer has valid Stripe Connect account
         $producer = $pitch->user;
         if (!$producer->stripe_account_id || !$producer->hasValidStripeConnectAccount()) {
-            return redirect(RouteHelpers::pitchUrl($pitch))
+            // Redirect to project management page to avoid snapshot redirect loop
+            return redirect()->route('projects.manage', $project)
                 ->withErrors(['stripe_connect' => "Payment cannot be processed: {$producer->name} needs to complete their Stripe Connect account setup to receive payments. Please ask them to set up their payout account first."]);
         }
 
@@ -110,7 +111,8 @@ class PitchPaymentController extends Controller
                 'has_valid_connect' => $producer->hasValidStripeConnectAccount()
             ]);
             
-            return redirect(RouteHelpers::pitchPaymentUrl($pitch))
+            // Redirect to project management page to avoid snapshot redirect loop
+            return redirect()->route('projects.manage', $project)
                 ->withErrors(['stripe_connect' => "Payment cannot be processed: {$producer->name} needs to complete their Stripe Connect account setup to receive payments."]);
         }
         
@@ -135,7 +137,7 @@ class PitchPaymentController extends Controller
                 'request_data' => $request->validated()
             ]);
             
-            // Use RouteHelpers for URL generation
+            // Redirect back to payment overview (this should be safe as we're on payment processing)
             return redirect(RouteHelpers::pitchPaymentUrl($pitch))
                 ->with('error', 'No payment method selected. Please try again.');
         }
@@ -189,7 +191,7 @@ class PitchPaymentController extends Controller
             ]);
             // Mark payment as failed
             $this->pitchWorkflowService->markPitchPaymentFailed($pitch, $stripeInvoiceId, $e->getMessage());
-            // Use RouteHelpers for URL generation
+            // Redirect back to payment overview to retry
             return redirect(RouteHelpers::pitchPaymentUrl($pitch))
                              ->with('error', 'Card error: ' . $e->getMessage());
 
@@ -213,7 +215,7 @@ class PitchPaymentController extends Controller
             ]);
             // Mark payment as failed
             $this->pitchWorkflowService->markPitchPaymentFailed($pitch, $stripeInvoiceId, $e->getMessage());
-            // Use RouteHelpers for URL generation
+            // Redirect back to payment overview to retry
             return redirect(RouteHelpers::pitchPaymentUrl($pitch))
                              ->with('error', 'An unexpected error occurred during payment processing. Please try again.');
         }
@@ -238,8 +240,8 @@ class PitchPaymentController extends Controller
 
         // Check if payment was required and completed/failed
         if ($pitch->payment_status === Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === Pitch::PAYMENT_STATUS_NOT_REQUIRED) {
-            // Use RouteHelpers for URL generation
-             return redirect(RouteHelpers::pitchUrl($pitch))
+            // Redirect to project management page to avoid snapshot redirect loop
+             return redirect()->route('projects.manage', $project)
                 ->with('info', 'Payment is not yet completed or is not required for this pitch.');
         }
 
