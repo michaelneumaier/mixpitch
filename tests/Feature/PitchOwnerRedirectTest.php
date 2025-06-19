@@ -163,7 +163,7 @@ class PitchOwnerRedirectTest extends TestCase
     }
 
     /** @test */
-    public function project_owner_redirected_from_old_snapshot_to_latest_snapshot()
+    public function project_owner_can_view_old_snapshots_when_explicitly_navigating()
     {
         // Create a pitch with multiple snapshots
         $pitch = Pitch::factory()
@@ -179,7 +179,7 @@ class PitchOwnerRedirectTest extends TestCase
             ->for($pitch)
             ->create(['created_at' => now()->subHour()]);
 
-        // Try to access old snapshot - should redirect to latest
+        // Try to access old snapshot - should now be allowed to view it
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.snapshots.show', [
                 'project' => $this->standardProject,
@@ -187,12 +187,8 @@ class PitchOwnerRedirectTest extends TestCase
                 'snapshot' => $oldSnapshot->id
             ]));
 
-        $response->assertRedirect(route('projects.pitches.snapshots.show', [
-            'project' => $this->standardProject->slug,
-            'pitch' => $pitch->slug,
-            'snapshot' => $latestSnapshot->id
-        ]));
-        $response->assertSessionHas('info', 'Redirected to the latest snapshot for review.');
+        $response->assertOk();
+        $response->assertSeeLivewire('pitch.snapshot.show-snapshot');
     }
 
     /** @test */

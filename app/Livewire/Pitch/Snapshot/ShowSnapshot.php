@@ -28,22 +28,9 @@ class ShowSnapshot extends Component
             abort(403, 'Unauthorized action.');
         }
 
-        // Enhanced redirect logic for project owners to latest snapshot
-        $user = Auth::user();
-        if ($user && $user->id === $project->user_id && 
-            !$project->isClientManagement() && !$project->isDirectHire()) {
-            
-            // Check if this is not already the latest snapshot
-            $latestSnapshot = $pitch->snapshots()->orderBy('created_at', 'desc')->first();
-            
-            if ($latestSnapshot && $latestSnapshot->id !== $snapshot->id) {
-                return redirect()->route('projects.pitches.snapshots.show', [
-                    'project' => $project->slug, 
-                    'pitch' => $pitch->slug, 
-                    'snapshot' => $latestSnapshot->id
-                ])->with('info', 'Redirected to the latest snapshot for review.');
-            }
-        }
+        // NOTE: Removed automatic redirect logic for project owners
+        // Project owners should be able to view older snapshots when they explicitly navigate to them
+        // The redirect to latest snapshot only happens when accessing the pitch directly (handled by PitchController)
 
         $this->project = $project;
         $this->pitch = $pitch;
