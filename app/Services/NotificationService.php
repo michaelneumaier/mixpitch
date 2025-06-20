@@ -1898,6 +1898,104 @@ class NotificationService
         );
     }
 
+    /**
+     * Notify the producer that the client has approved and the project is completed.
+     * This combines approval and completion notifications for client management workflow.
+     *
+     * @param Pitch $pitch The approved and completed pitch.
+     * @return Notification|null
+     */
+    public function notifyProducerClientApprovedAndCompleted(Pitch $pitch): ?Notification
+    {
+        $producer = $pitch->user;
+        if (!$producer) return null;
+
+        $project = $pitch->project;
+        $paymentAmount = $pitch->payment_amount;
+        $hasPayment = $paymentAmount > 0;
+
+        // Create in-app notification
+        $notification = $this->createNotification(
+            $producer,
+            Notification::TYPE_CLIENT_APPROVED_AND_COMPLETED,
+            $pitch,
+            [
+                'project_id' => $project->id,
+                'project_title' => $project->title,
+                'client_name' => $project->client_name ?? 'Client',
+                'client_email' => $project->client_email,
+                'payment_amount' => $paymentAmount,
+                'has_payment' => $hasPayment,
+                'message' => $hasPayment 
+                    ? "Great news! {$project->client_name} has approved and paid for '{$project->title}'. Your payout is being processed."
+                    : "Great news! {$project->client_name} has approved '{$project->title}' and the project is now complete!"
+            ]
+        );
+
+        // Send email notification using EmailService
+        try {
+            $this->emailService->sendProducerClientApprovedAndCompletedEmail(
+                $producer,
+                $project,
+                $pitch,
+                $hasPayment
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer client approved and completed email', [
+                'producer_id' => $producer->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return $notification;
+    }
+
+    /**
+     * Notify the producer that their payout has been scheduled.
+     *
+     * @param User $producer The producer user.
+     * @param float $netAmount The net payout amount.
+     * @param \App\Models\PayoutSchedule $payoutSchedule The payout schedule record.
+     * @return Notification|null
+     */
+    public function notifyProducerPayoutScheduled(User $producer, float $netAmount, \App\Models\PayoutSchedule $payoutSchedule): ?Notification
+    {
+        if (!$producer) return null;
+
+        // Create in-app notification
+        $notification = $this->createNotification(
+            $producer,
+            Notification::TYPE_PAYOUT_SCHEDULED,
+            $payoutSchedule,
+            [
+                'payout_schedule_id' => $payoutSchedule->id,
+                'net_amount' => $netAmount,
+                'project_id' => $payoutSchedule->project_id,
+                'project_title' => $payoutSchedule->project->title ?? 'Project',
+                'hold_release_date' => $payoutSchedule->hold_release_date,
+                'message' => "Your payout of $" . number_format($netAmount, 2) . " has been scheduled and will be released on " . $payoutSchedule->hold_release_date->format('M d, Y')
+            ]
+        );
+
+        // Send email notification
+        try {
+            $this->emailService->sendProducerPayoutScheduledEmail(
+                $producer,
+                $netAmount,
+                $payoutSchedule
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer payout scheduled email', [
+                'producer_id' => $producer->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return $notification;
+    }
+
     // --- End Client Management Notifications ---
 
     /**

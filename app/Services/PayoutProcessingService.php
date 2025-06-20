@@ -269,7 +269,7 @@ class PayoutProcessingService
      * @param PayoutSchedule $payoutSchedule
      * @return void
      */
-    protected function processSinglePayout(PayoutSchedule $payoutSchedule): void
+    public function processSinglePayout(PayoutSchedule $payoutSchedule): void
     {
         Log::info('Processing single payout', [
             'payout_schedule_id' => $payoutSchedule->id,
@@ -336,8 +336,10 @@ class PayoutProcessingService
                     ])
                 ]);
 
-                // Update transaction status
-                $payoutSchedule->transaction->markAsCompleted($transferResult['transfer_id']);
+                // Update transaction status if it exists
+                if ($payoutSchedule->transaction) {
+                    $payoutSchedule->transaction->markAsCompleted($transferResult['transfer_id']);
+                }
 
                 Log::info('Payout processed successfully via Stripe Connect', [
                     'payout_schedule_id' => $payoutSchedule->id,
@@ -360,8 +362,10 @@ class PayoutProcessingService
                     ])
                 ]);
 
-                // Update transaction status
-                $payoutSchedule->transaction->update(['status' => Transaction::STATUS_FAILED]);
+                // Update transaction status if it exists
+                if ($payoutSchedule->transaction) {
+                    $payoutSchedule->transaction->update(['status' => Transaction::STATUS_FAILED]);
+                }
 
                 Log::error('Stripe transfer failed', [
                     'payout_schedule_id' => $payoutSchedule->id,
@@ -415,8 +419,10 @@ class PayoutProcessingService
                 ])
             ]);
 
-            // Update transaction status
-            $payoutSchedule->transaction->update(['status' => Transaction::STATUS_CANCELLED]);
+            // Update transaction status if it exists
+            if ($payoutSchedule->transaction) {
+                $payoutSchedule->transaction->update(['status' => Transaction::STATUS_CANCELLED]);
+            }
 
             Log::info('Payout cancelled', [
                 'payout_schedule_id' => $payoutSchedule->id,

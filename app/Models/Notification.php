@@ -87,6 +87,7 @@ class Notification extends Model
     const TYPE_CLIENT_COMMENT_ADDED = 'client_comment_added';
     const TYPE_CLIENT_APPROVED_PITCH = 'client_approved_pitch';
     const TYPE_CLIENT_REQUESTED_REVISIONS = 'client_requested_revisions';
+    const TYPE_CLIENT_APPROVED_AND_COMPLETED = 'client_approved_and_completed';
     
     // Payout Notification Types
     const TYPE_CONTEST_PAYOUT_SCHEDULED = 'contest_payout_scheduled';
@@ -148,6 +149,7 @@ class Notification extends Model
             self::TYPE_CLIENT_COMMENT_ADDED => 'Client Added a Comment',
             self::TYPE_CLIENT_APPROVED_PITCH => 'Client Approved Your Submission',
             self::TYPE_CLIENT_REQUESTED_REVISIONS => 'Client Requested Revisions',
+            self::TYPE_CLIENT_APPROVED_AND_COMPLETED => 'Client Approved & Project Completed',
             
             // Payout Labels
             self::TYPE_CONTEST_PAYOUT_SCHEDULED => 'Contest Prize Payout Scheduled',
@@ -369,6 +371,7 @@ class Notification extends Model
             self::TYPE_CLIENT_COMMENT_ADDED,
             self::TYPE_CLIENT_APPROVED_PITCH,
             self::TYPE_CLIENT_REQUESTED_REVISIONS,
+            self::TYPE_CLIENT_APPROVED_AND_COMPLETED,
         ])) {
             // Route to client project management page
             if (isset($data['project_id'])) {
@@ -639,6 +642,15 @@ class Notification extends Model
                 $clientName = $data['client_name'] ?? 'The client';
                 $revisionNotes = isset($data['revision_notes']) && !empty($data['revision_notes']) ? ': "' . Str::limit($data['revision_notes'], 100) . '"' : '';
                 return $clientName . ' requested revisions for project' . $projectName . $revisionNotes;
+            case self::TYPE_CLIENT_APPROVED_AND_COMPLETED:
+                $clientName = $data['client_name'] ?? 'The client';
+                $hasPayment = $data['has_payment'] ?? false;
+                $paymentAmount = $data['payment_amount'] ?? 0;
+                if ($hasPayment && $paymentAmount > 0) {
+                    return $clientName . ' approved and paid for project' . $projectName . '. Your payout of $' . number_format($paymentAmount, 2) . ' is being processed.';
+                } else {
+                    return $clientName . ' approved project' . $projectName . ' and it\'s now complete!';
+                }
             case self::TYPE_CONTEST_PAYOUT_SCHEDULED:
                 $payoutAmount = isset($data['net_amount']) ? '$' . number_format($data['net_amount']) . ' ' : (isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '');
                 $payoutDate = isset($data['hold_release_date']) ? ' on ' . date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on ' . date('M j, Y', strtotime($data['payout_date'])) : '');

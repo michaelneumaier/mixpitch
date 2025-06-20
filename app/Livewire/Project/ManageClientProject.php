@@ -31,6 +31,11 @@ class ManageClientProject extends Component
     public $showDeleteModal = false;
     public $fileIdToDelete = null;
     
+    // Client file management
+    public $showDeleteClientFileModal = false;
+    public $clientFileIdToDelete = null;
+    public $clientFileNameToDelete = '';
+    
     // Project management
     public $showProjectDeleteModal = false;
     
@@ -224,7 +229,7 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Download a file
+     * Download a producer file (pitch file)
      */
     public function downloadFile($fileId, FileManagementService $fileManagementService)
     {
@@ -236,6 +241,22 @@ class ManageClientProject extends Component
             $this->redirect($downloadUrl);
         } catch (\Exception $e) {
             Toaster::error('Unable to download file.');
+        }
+    }
+
+    /**
+     * Download a client file (project file)
+     */
+    public function downloadClientFile($fileId, FileManagementService $fileManagementService)
+    {
+        $file = $this->project->files()->findOrFail($fileId);
+        
+        try {
+            $this->authorize('download', $file);
+            $downloadUrl = $fileManagementService->getTemporaryDownloadUrl($file);
+            $this->redirect($downloadUrl);
+        } catch (\Exception $e) {
+            Toaster::error('Unable to download client file.');
         }
     }
 
@@ -655,20 +676,26 @@ class ManageClientProject extends Component
     /**
      * Delete a client-uploaded file (project file)
      */
-    public function deleteClientFile($fileId, FileManagementService $fileService)
+    public function deleteClientFile(FileManagementService $fileService)
     {
+        if (!$this->clientFileIdToDelete) {
+            return;
+        }
+
         try {
-            $file = $this->project->files()->findOrFail($fileId);
+            $file = $this->project->files()->findOrFail($this->clientFileIdToDelete);
             $this->authorize('delete', $file);
             
+            $fileName = $file->file_name;
             $fileService->deleteProjectFile($file);
             $this->updateStorageInfo();
             
-            Toaster::success('Client file deleted successfully.');
+            Toaster::success("Client file '{$fileName}' deleted successfully.");
+            $this->cancelDeleteClientFile();
             
         } catch (\Exception $e) {
             Log::error('Client file deletion failed', [
-                'file_id' => $fileId,
+                'file_id' => $this->clientFileIdToDelete,
                 'project_id' => $this->project->id,
                 'error' => $e->getMessage()
             ]);
@@ -685,9 +712,10 @@ class ManageClientProject extends Component
             $file = $this->project->files()->findOrFail($fileId);
             $this->authorize('delete', $file);
             
-            // For simplicity, directly delete the file
-            // You could also add a confirmation modal like for producer files
-            $this->deleteClientFile($fileId, app(FileManagementService::class));
+            // Show confirmation modal
+            $this->clientFileIdToDelete = $fileId;
+            $this->clientFileNameToDelete = $file->file_name;
+            $this->showDeleteClientFileModal = true;
             
         } catch (\Exception $e) {
             Log::error('Client file deletion confirmation failed', [
@@ -697,5 +725,15 @@ class ManageClientProject extends Component
             ]);
             Toaster::error('Unable to delete file.');
         }
+    }
+
+    /**
+     * Cancel client file deletion
+     */
+    public function cancelDeleteClientFile()
+    {
+        $this->showDeleteClientFileModal = false;
+        $this->clientFileIdToDelete = null;
+        $this->clientFileNameToDelete = '';
     }
 } 

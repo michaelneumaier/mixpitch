@@ -184,6 +184,11 @@
             </div>
         </div>
 
+        {{-- Payout Status for Client Management (Producer View) --}}
+        @if(auth()->check() && auth()->id() === $pitch->user_id)
+            <x-pitch.payout-status :pitch="$pitch" />
+        @endif
+
         {{-- Client Management Pitch Details --}}
         <div class="bg-gradient-to-br from-gray-50/90 to-slate-50/90 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 mb-6 shadow-lg">
             <div class="flex items-center justify-between mb-4">
@@ -450,6 +455,11 @@
                         </div>
                     </div>
                 </div>
+                @endif
+
+                {{-- Payout Status for Standard Workflow (Producer View) --}}
+                @if(auth()->check() && auth()->id() === $pitch->user_id)
+                    <x-pitch.payout-status :pitch="$pitch" />
                 @endif
 
                 <!-- Submitted Pitches -->

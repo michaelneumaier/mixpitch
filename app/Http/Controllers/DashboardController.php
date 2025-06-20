@@ -9,12 +9,22 @@ use App\Models\Pitch;
 use App\Models\Order;
 use App\Models\ServicePackage;
 use Illuminate\Database\Eloquent\Collection;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
+        
+        // Phase 2: Handle client users with dedicated dashboard
+        if ($user->hasRole(User::ROLE_CLIENT)) {
+            return $this->clientDashboard($user);
+        }
+        
+        // Phase 3: Enhance producer dashboard with earnings and analytics
+        $producerData = $this->getProducerAnalytics($user);
+        
         $workItems = new Collection();
 
         // Define active statuses (adjust as needed)
@@ -39,33 +49,47 @@ class DashboardController extends Controller
         $subscriptionData = [
             'plan' => $user->subscription_plan,
             'tier' => $user->subscription_tier,
-            'is_pro' => $user->isProPlan(),
+            'display_name' => $user->getSubscriptionDisplayName(),
             'limits' => $user->getSubscriptionLimits(),
-            'usage' => [
-                'projects_count' => $user->projects()->count(),
-                'active_pitches_count' => $user->pitches()->whereIn('status', [
-                    Pitch::STATUS_PENDING,
-                    Pitch::STATUS_IN_PROGRESS,
-                    Pitch::STATUS_READY_FOR_REVIEW,
-                    Pitch::STATUS_PENDING_REVIEW,
-                ])->count(),
-                'monthly_pitches_used' => $user->monthly_pitch_count,
-            ]
+            'usage' => [],
+            'alerts' => []
         ];
 
-        // Check if user is approaching limits
-        $subscriptionData['alerts'] = [];
-        if ($subscriptionData['limits']) {
-            $limits = $subscriptionData['limits'];
+        // Calculate usage for the current user
+        $limits = $user->getSubscriptionLimits();
+        if ($limits) {
+            $subscriptionData['limits'] = $limits;
             
-            // Project limit alerts
-            if ($limits->max_projects_owned && $subscriptionData['usage']['projects_count'] >= $limits->max_projects_owned) {
+            // Project counts
+            $totalProjects = $user->projects->count();
+            $activeProjects = $user->projects->whereIn('status', [
+                Project::STATUS_OPEN, 
+                Project::STATUS_IN_PROGRESS
+            ])->count();
+            
+            // Pitch counts
+            $activePitches = $user->pitches->whereIn('status', [
+                Pitch::STATUS_PENDING, 
+                Pitch::STATUS_IN_PROGRESS, 
+                Pitch::STATUS_READY_FOR_REVIEW,
+                Pitch::STATUS_REVISIONS_REQUESTED
+            ])->count();
+            
+            $subscriptionData['usage'] = [
+                'total_projects' => $totalProjects,
+                'active_projects' => $activeProjects,
+                'active_pitches_count' => $activePitches,
+                'monthly_pitches_used' => $user->getMonthlyPitchCount(),
+            ];
+            
+            // Generate alerts based on usage
+            if ($limits->max_projects && $totalProjects >= $limits->max_projects) {
                 $subscriptionData['alerts'][] = [
                     'type' => 'projects',
                     'message' => 'You have reached your project limit. Upgrade to Pro for unlimited projects.',
                     'level' => 'error'
                 ];
-            } elseif ($limits->max_projects_owned && $subscriptionData['usage']['projects_count'] >= ($limits->max_projects_owned * 0.8)) {
+            } elseif ($limits->max_projects && $totalProjects >= ($limits->max_projects * 0.8)) {
                 $subscriptionData['alerts'][] = [
                     'type' => 'projects',
                     'message' => 'You are approaching your project limit.',
@@ -166,7 +190,8 @@ class DashboardController extends Controller
         // Pass the sorted, combined collection and subscription data to the view
         return view('dashboard', [
             'workItems' => $sortedWorkItems,
-            'subscription' => $subscriptionData
+            'subscription' => $subscriptionData,
+            'producerData' => $producerData
         ]);
     }
     
@@ -197,5 +222,175 @@ class DashboardController extends Controller
         }
         
         return $newCollection;
+    }
+    
+    /**
+     * Phase 2: Dedicated dashboard for client users.
+     */
+    private function clientDashboard($user)
+    {
+        // Get all projects associated with this client
+        $projects = Project::where(function($query) use ($user) {
+                $query->where('client_user_id', $user->id)
+                      ->orWhere('client_email', $user->email);
+            })
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->with(['pitches' => function($q) {
+                $q->with(['user', 'files', 'events']);
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Calculate client statistics
+        $stats = [
+            'total_projects' => $projects->count(),
+            'active_projects' => $projects->whereIn('status', [
+                Project::STATUS_OPEN,
+                Project::STATUS_IN_PROGRESS
+            ])->count(),
+            'completed_projects' => $projects->where('status', Project::STATUS_COMPLETED)->count(),
+            'total_spent' => $projects->sum(function($project) {
+                return $project->pitches
+                    ->where('payment_status', Pitch::PAYMENT_STATUS_PAID)
+                    ->sum('payment_amount');
+            }),
+            'pending_payments' => $projects->sum(function($project) {
+                return $project->pitches
+                    ->where('payment_status', Pitch::PAYMENT_STATUS_PENDING)
+                    ->sum('payment_amount');
+            }),
+        ];
+
+        // Get recent activity from pitch events
+        $recentActivity = collect();
+        foreach ($projects as $project) {
+            foreach ($project->pitches as $pitch) {
+                $recentEvents = $pitch->events()
+                    ->whereIn('event_type', [
+                        'pitch_submitted',
+                        'pitch_approved',
+                        'pitch_completed',
+                        'payment_completed',
+                        'revisions_requested',
+                        'client_comment'
+                    ])
+                    ->with('user')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(5)
+                    ->get();
+                
+                foreach ($recentEvents as $event) {
+                    $event->project = $project;
+                    $event->pitch = $pitch;
+                    $recentActivity->push($event);
+                }
+            }
+        }
+
+        // Sort recent activity by date and limit to 10 most recent
+        $recentActivity = $recentActivity->sortByDesc('created_at')->take(10);
+
+        return view('dashboard.client', compact('projects', 'stats', 'recentActivity'));
+    }
+
+    /**
+     * Phase 3: Get producer analytics and earnings data
+     */
+    private function getProducerAnalytics($user)
+    {
+        // Get payout statistics
+        $payoutStats = \App\Models\PayoutSchedule::where('producer_user_id', $user->id)
+            ->selectRaw('
+                status,
+                COUNT(*) as count,
+                SUM(net_amount) as total_amount,
+                SUM(gross_amount) as total_gross,
+                SUM(commission_amount) as total_commission
+            ')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        // Calculate earnings metrics
+        $totalEarnings = $payoutStats->get('completed')->total_amount ?? 0;
+        $pendingEarnings = ($payoutStats->get('scheduled')->total_amount ?? 0) + 
+                          ($payoutStats->get('processing')->total_amount ?? 0);
+        
+        // This month earnings
+        $thisMonthEarnings = \App\Models\PayoutSchedule::where('producer_user_id', $user->id)
+            ->where('status', 'completed')
+            ->where('completed_at', '>=', now()->startOfMonth())
+            ->sum('net_amount');
+
+        // Commission savings calculation using User model method
+        $currentRate = $user->getPlatformCommissionRate();
+        $commissionSavings = $user->getCommissionSavings();
+
+        // Client management projects statistics
+        $clientProjects = Project::where('user_id', $user->id)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->get();
+
+        $clientStats = [
+            'total_projects' => $clientProjects->count(),
+            'active_projects' => $clientProjects->whereIn('status', [
+                Project::STATUS_OPEN,
+                Project::STATUS_IN_PROGRESS
+            ])->count(),
+            'completed_projects' => $clientProjects->where('status', Project::STATUS_COMPLETED)->count(),
+            'total_revenue' => $clientProjects->sum(function($project) {
+                return $project->pitches
+                    ->where('payment_status', 'paid')
+                    ->sum('payment_amount');
+            }),
+        ];
+
+        // Stripe Connect status with error handling
+        try {
+            $stripeConnectService = app(\App\Services\StripeConnectService::class);
+            $stripeStatus = $stripeConnectService->getDetailedAccountStatus($user);
+            
+            // Ensure all required keys exist with defaults
+            $stripeStatus = array_merge([
+                'account_exists' => false,
+                'can_receive_payouts' => false,
+                'status_display' => 'Setup Required',
+                'next_steps' => []
+            ], $stripeStatus ?? []);
+        } catch (\Exception $e) {
+            // Fallback to default values if Stripe service fails
+            $stripeStatus = [
+                'account_exists' => false,
+                'can_receive_payouts' => false,
+                'status_display' => 'Setup Required',
+                'next_steps' => []
+            ];
+        }
+
+        // Recent payouts (last 5)
+        $recentPayouts = \App\Models\PayoutSchedule::where('producer_user_id', $user->id)
+            ->with(['project', 'pitch'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return [
+            'earnings' => [
+                'total' => $totalEarnings,
+                'pending' => $pendingEarnings,
+                'this_month' => $thisMonthEarnings,
+                'commission_savings' => $commissionSavings,
+                'commission_rate' => $currentRate,
+            ],
+            'client_management' => $clientStats,
+            'stripe_connect' => $stripeStatus,
+            'recent_payouts' => $recentPayouts,
+            'payout_counts' => [
+                'completed' => $payoutStats->get('completed')->count ?? 0,
+                'pending' => ($payoutStats->get('scheduled')->count ?? 0) + 
+                           ($payoutStats->get('processing')->count ?? 0),
+                'failed' => $payoutStats->get('failed')->count ?? 0,
+            ]
+        ];
     }
 }

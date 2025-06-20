@@ -32,11 +32,14 @@ use App\Filament\Widgets\FilesOverview;
 use App\Filament\Widgets\UserVerificationStats;
 use App\Filament\Widgets\EmailStats;
 use App\Filament\Widgets\EmailActivityChart;
+use App\Filament\Widgets\PayoutStatsOverview;
 use App\Filament\Resources\EmailEventResource;
 use App\Filament\Resources\EmailSuppressionResource;
 use App\Filament\Resources\EmailTestResource;
 use App\Filament\Resources\EmailAuditResource;
 use App\Filament\Resources\MarketplaceTemplateResource;
+use App\Filament\Resources\PayoutScheduleResource;
+use App\Filament\Resources\StripeTransactionResource;
 use App\Filament\Pages\EmailAuditPage;
 use App\Filament\Pages\EmailSuppressionPage;
 use App\Filament\Plugins\BillingPlugin;
@@ -118,6 +121,8 @@ class AdminPanelProvider extends PanelProvider
                 PitchResource::class,
                 ProjectFileResource::class,
                 UserResource::class,
+                PayoutScheduleResource::class,
+                StripeTransactionResource::class,
                 EmailAuditResource::class,
                 EmailEventResource::class,
                 EmailSuppressionResource::class,
@@ -134,7 +139,8 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 // Core metrics - shown first
                 StatsOverview::class,
-                \App\Filament\Widgets\RevenueOverview::class,
+                \App\Filament\Widgets\PayoutStatsOverview::class,
+                \App\Filament\Widgets\PayoutManagementWidget::class,
                 ProjectStats::class,
                 UserVerificationStats::class,
                 EmailStats::class,

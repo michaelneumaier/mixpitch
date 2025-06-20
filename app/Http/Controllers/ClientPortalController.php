@@ -16,6 +16,8 @@ use App\Models\User; // Needed for Cashier
 use Laravel\Cashier\Exceptions\PaymentActionRequired; // Needed for Cashier
 use Laravel\Cashier\Exceptions\IncompletePayment; // Needed for Cashier
 use App\Services\FileManagementService; // Add FileManagementService
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class ClientPortalController extends Controller
 {
@@ -198,6 +200,172 @@ class ClientPortalController extends Controller
     }
 
     /**
+     * Phase 2: Show client account upgrade form.
+     */
+    public function showUpgrade(Project $project, Request $request)
+    {
+        // Validate signed URL access
+        if (!$request->hasValidSignature()) {
+            abort(403, 'Invalid or expired link.');
+        }
+
+        if (!$project->isClientManagement()) {
+            abort(404, 'Project not found or not accessible via client portal.');
+        }
+
+        // Check if user already exists with this email
+        $existingUser = User::where('email', $project->client_email)->first();
+        if ($existingUser) {
+            return redirect()->route('login')->with('info', 'Please log in to access your projects.');
+        }
+
+        return view('client_portal.upgrade', compact('project'));
+    }
+
+    /**
+     * Phase 2: Create client account from guest access.
+     */
+    public function createAccount(Request $request, Project $project)
+    {
+        // Validate signed URL access
+        if (!$request->hasValidSignature()) {
+            abort(403, 'Invalid or expired link.');
+        }
+
+        if (!$project->isClientManagement()) {
+            abort(403, 'Invalid project type.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        try {
+            // Check if user already exists
+            $existingUser = User::where('email', $project->client_email)->first();
+            if ($existingUser) {
+                return back()->withErrors(['email' => 'An account with this email already exists. Please log in instead.']);
+            }
+
+            // Create new client user
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $project->client_email,
+                'password' => Hash::make($request->password),
+                'role' => User::ROLE_CLIENT,
+                'email_verified_at' => now(), // Auto-verify since they accessed via signed URL
+            ]);
+
+            // Link existing projects to new user account
+            Project::where('client_email', $user->email)->update(['client_user_id' => $user->id]);
+
+            // Log the user in
+            Auth::login($user);
+
+            Log::info('Client account created and linked to projects', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'linked_projects' => Project::where('client_user_id', $user->id)->count()
+            ]);
+
+            return redirect()->route('dashboard')->with('success', 'Account created successfully! Welcome to MIXPITCH.');
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create client account', [
+                'project_id' => $project->id,
+                'email' => $project->client_email,
+                'error' => $e->getMessage()
+            ]);
+            return back()->withErrors(['account' => 'Could not create account at this time. Please try again later.']);
+        }
+    }
+
+    /**
+     * Phase 2: Show invoice for completed project.
+     */
+    public function invoice(Project $project, Request $request)
+    {
+        // Validate access (signed URL or authenticated client)
+        if (!$this->validateClientAccess($project, $request)) {
+            abort(403, 'Access denied.');
+        }
+
+        $pitch = $project->pitches()
+                         ->where('payment_status', Pitch::PAYMENT_STATUS_PAID)
+                         ->with(['user', 'events'])
+                         ->firstOrFail();
+
+        // Get payment information from events or metadata
+        $paymentEvent = $pitch->events()
+                             ->where('event_type', 'payment_completed')
+                             ->first();
+
+        $invoiceData = [
+            'project' => $project,
+            'pitch' => $pitch,
+            'payment_event' => $paymentEvent,
+            'invoice_number' => 'INV-' . $project->id . '-' . $pitch->id,
+            'payment_date' => $paymentEvent ? $paymentEvent->created_at : $pitch->updated_at,
+            'amount' => $pitch->payment_amount,
+        ];
+
+        return view('client_portal.invoice', $invoiceData);
+    }
+
+    /**
+     * Phase 2: Show deliverables for completed project.
+     */
+    public function deliverables(Project $project, Request $request)
+    {
+        // Validate access (signed URL or authenticated client)
+        if (!$this->validateClientAccess($project, $request)) {
+            abort(403, 'Access denied.');
+        }
+
+        $pitch = $project->pitches()
+                         ->where('status', Pitch::STATUS_COMPLETED)
+                         ->with(['user', 'files'])
+                         ->firstOrFail();
+
+        // Get deliverable files (files marked as deliverables in note field or all files for completed pitch)
+        $deliverables = $pitch->files()
+                             ->where(function($query) {
+                                 $query->where('note', 'LIKE', '%deliverable%')
+                                       ->orWhere('note', 'LIKE', '%final%')
+                                       ->orWhereNull('note'); // Include all files if no specific deliverable marking
+                             })
+                             ->orderBy('created_at', 'desc')
+                             ->get();
+
+        return view('client_portal.deliverables', compact('project', 'pitch', 'deliverables'));
+    }
+
+    /**
+     * Phase 2: Validate client access to project (signed URL or authenticated user).
+     */
+    private function validateClientAccess(Project $project, Request $request = null): bool
+    {
+        if (!$project->isClientManagement()) {
+            return false;
+        }
+
+        // Check if user is authenticated and owns the project
+        if (Auth::check()) {
+            $user = Auth::user();
+            return $user->hasRole(User::ROLE_CLIENT) && 
+                   ($project->client_user_id === $user->id || $project->client_email === $user->email);
+        }
+
+        // Check signed URL access
+        if ($request && $request->hasValidSignature()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Resend the client invitation email with a new signed URL.
      */
     public function resendInvite(Project $project, Request $request)
@@ -320,28 +488,50 @@ class ClientPortalController extends Controller
      */
     public function uploadFile(Project $project, Request $request, FileManagementService $fileService)
     {
+        // Debug logging to understand the 403 issue
+        Log::info('Client portal upload request started', [
+            'project_id' => $project->id,
+            'request_url' => $request->fullUrl(),
+            'request_method' => $request->method(),
+            'has_file' => $request->hasFile('file'),
+            'user_agent' => $request->userAgent(),
+            'csrf_token' => $request->header('X-CSRF-TOKEN'),
+            'signature_valid' => $request->hasValidSignature(),
+            'query_params' => $request->query(),
+        ]);
+
         // Validate client management project
         if (!$project->isClientManagement()) {
+            Log::warning('Upload rejected: Not a client management project', ['project_id' => $project->id]);
             return response()->json([
                 'success' => false,
                 'message' => 'File upload is only available for client management projects.'
             ], 403);
         }
         
-        // Validate signed URL (middleware handles this, but double-check)
-        if (!$request->hasValidSignature()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid or expired link.'
-            ], 403);
-        }
+        // Note: Signed URL validation is handled by the signed middleware
+        // Removing redundant check that was causing 403 errors
         
         // Validate file upload
-        $request->validate([
-            'file' => 'required|file|max:204800', // 200MB max
-        ]);
+        try {
+            $request->validate([
+                'file' => 'required|file|max:204800', // 200MB max
+            ]);
+            Log::info('File validation passed', ['project_id' => $project->id]);
+        } catch (\Exception $e) {
+            Log::error('File validation failed', [
+                'project_id' => $project->id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'File validation failed: ' . $e->getMessage()
+            ], 422);
+        }
         
         try {
+            Log::info('Starting file upload process', ['project_id' => $project->id]);
+            
             // Upload as PROJECT file (not pitch file) with no user (client upload)
             $projectFile = $fileService->uploadProjectFile(
                 $project,
@@ -366,7 +556,7 @@ class ClientPortalController extends Controller
                 'file' => [
                     'id' => $projectFile->id,
                     'name' => $projectFile->file_name,
-                    'size' => $projectFile->file_size,
+                    'size' => $projectFile->size,
                     'type' => $projectFile->mime_type,
                 ],
                 'message' => 'File uploaded successfully.'
@@ -376,7 +566,8 @@ class ClientPortalController extends Controller
             Log::error('Client file upload failed.', [
                 'project_id' => $project->id,
                 'client_email' => $project->client_email,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return response()->json([
@@ -426,6 +617,57 @@ class ClientPortalController extends Controller
             ]);
             
             abort(500, 'Unable to download file.');
+        }
+    }
+
+    /**
+     * Delete a project file (client-uploaded file).
+     */
+    public function deleteProjectFile(Project $project, \App\Models\ProjectFile $projectFile, FileManagementService $fileService)
+    {
+        // Validate client management project
+        if (!$project->isClientManagement()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied.'
+            ], 403);
+        }
+        
+        // Ensure the file belongs to this project
+        if ($projectFile->project_id !== $project->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found.'
+            ], 404);
+        }
+        
+        try {
+            // Use the FileManagementService to delete the file
+            $fileService->deleteProjectFile($projectFile);
+            
+            Log::info('Client deleted project file.', [
+                'project_id' => $project->id,
+                'file_id' => $projectFile->id,
+                'file_name' => $projectFile->file_name,
+                'client_email' => $project->client_email
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'File deleted successfully.'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Client project file deletion failed.', [
+                'project_id' => $project->id,
+                'file_id' => $projectFile->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to delete file. Please try again.'
+            ], 500);
         }
     }
 } 

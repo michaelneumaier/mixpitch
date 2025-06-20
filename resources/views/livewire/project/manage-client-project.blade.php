@@ -144,7 +144,7 @@
                                         <div>
                                             <span class="text-sm font-medium text-blue-800">{{ $file->file_name }}</span>
                                             <div class="text-xs text-blue-600">
-                                                {{ $this->formatFileSize($file->file_size) }} • 
+                                                {{ $this->formatFileSize($file->size) }} • 
                                                 Uploaded {{ $file->created_at->diffForHumans() }}
                                                 @if(isset($file->metadata) && json_decode($file->metadata)?->uploaded_by_client)
                                                     • <span class="font-medium">Client Upload</span>
@@ -153,7 +153,7 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <button wire:click="downloadFile({{ $file->id }})" 
+                                        <button wire:click="downloadClientFile({{ $file->id }})" 
                                                 class="text-blue-600 hover:text-blue-800 text-sm">
                                             <i class="fas fa-download mr-1"></i>Download
                                         </button>
@@ -200,7 +200,7 @@
                                         <div>
                                             <span class="text-sm font-medium text-green-800">{{ $file->file_name }}</span>
                                             <div class="text-xs text-green-600">
-                                                {{ $this->formatFileSize($file->file_size) }} • 
+                                                {{ $this->formatFileSize($file->size) }} • 
                                                 Uploaded {{ $file->created_at->diffForHumans() }}
                                             </div>
                                         </div>
@@ -326,6 +326,32 @@
             <div class="flex justify-end space-x-3">
                 <button wire:click="cancelDeleteFile" class="btn btn-outline">Cancel</button>
                 <button wire:click="deleteFile" class="btn btn-error">Delete File</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Client File Delete Confirmation Modal -->
+    @if($showDeleteClientFileModal)
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Confirm Client File Deletion
+            </h3>
+            <p class="text-gray-600 mb-4">
+                Are you sure you want to delete the client reference file: 
+                <strong class="text-gray-900">{{ $clientFileNameToDelete }}</strong>?
+            </p>
+            <p class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-3 mb-6">
+                <i class="fas fa-info-circle mr-2"></i>
+                This file was uploaded by your client. Once deleted, they will need to re-upload it if needed.
+            </p>
+            <p class="text-red-600 font-medium mb-6">This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button wire:click="cancelDeleteClientFile" class="btn btn-outline">Cancel</button>
+                <button wire:click="deleteClientFile" class="btn btn-error">
+                    <i class="fas fa-trash mr-2"></i>Delete File
+                </button>
             </div>
         </div>
     </div>

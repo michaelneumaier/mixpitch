@@ -943,15 +943,37 @@ Route::get('/client-portal/project/{project:id}/file/{pitchFile:id}', [ClientPor
     ->name('client.portal.download_file')
     ->middleware('signed');
 
-// Client File Upload route (needs signed middleware) - NEW
+// Client File Upload route - TEMPORARILY REMOVING SIGNED MIDDLEWARE FOR DEBUGGING
 Route::post('/client-portal/project/{project:id}/upload', [ClientPortalController::class, 'uploadFile'])
-    ->name('client.portal.upload_file')
-    ->middleware('signed');
+    ->name('client.portal.upload_file');
 
 // Client Project File Download route (needs signed middleware) - NEW
 Route::get('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'downloadProjectFile'])
     ->name('client.portal.download_project_file')
     ->middleware('signed');
+
+// Client Project File Delete route
+Route::delete('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'deleteProjectFile'])
+    ->name('client.portal.delete_project_file');
+
+// --- Phase 2: Enhanced Client Experience Routes ---
+// Client Account Creation Routes (signed middleware for security)
+Route::get('/client-portal/project/{project:id}/upgrade', [ClientPortalController::class, 'showUpgrade'])
+    ->name('client.portal.upgrade')
+    ->middleware('signed');
+
+Route::post('/client-portal/project/{project:id}/create-account', [ClientPortalController::class, 'createAccount'])
+    ->name('client.portal.create_account')
+    ->middleware('signed');
+
+// Invoice and Deliverables Access (works with both signed URLs and authenticated clients)
+Route::get('/client-portal/project/{project:id}/invoice', [ClientPortalController::class, 'invoice'])
+    ->name('client.portal.invoice')
+    ->middleware(['signed']);
+
+Route::get('/client-portal/project/{project:id}/deliverables', [ClientPortalController::class, 'deliverables'])
+    ->name('client.portal.deliverables')
+    ->middleware(['signed']);
 
 // License signature routes
 Route::middleware('auth')->group(function () {

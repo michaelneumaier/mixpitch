@@ -1148,6 +1148,8 @@ class PitchWorkflowService
      * Approve a pitch submission via the Client Portal.
      * Called by the webhook (handleCheckoutSessionCompleted) after successful payment,
      * or directly by ClientPortalController if no payment is required.
+     * 
+     * For client management projects, this automatically completes the project.
      *
      * @param Pitch $pitch
      * @param string $clientIdentifier (Usually the client email)
@@ -1161,16 +1163,16 @@ class PitchWorkflowService
              throw new UnauthorizedActionException('Client approval is only applicable for client management projects.');
         }
 
-        // Idempotency Check 1: If already approved, just return the pitch.
-        if ($pitch->status === Pitch::STATUS_APPROVED) {
-            Log::info('clientApprovePitch called but pitch is already approved.', ['pitch_id' => $pitch->id]);
+        // Idempotency Check 1: If already completed, just return the pitch.
+        if ($pitch->status === Pitch::STATUS_COMPLETED) {
+            Log::info('clientApprovePitch called but pitch is already completed.', ['pitch_id' => $pitch->id]);
             return $pitch;
         }
 
         // Validation: Ensure correct status for approval
         // Can be approved from Ready for Review OR (less common) from Revisions Requested if webhook retried?
         if (!in_array($pitch->status, [Pitch::STATUS_READY_FOR_REVIEW, Pitch::STATUS_CLIENT_REVISIONS_REQUESTED])) {
-            throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_APPROVED, 'Pitch must be ready for review (or pending revision processing) for client approval.');
+            throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_COMPLETED, 'Pitch must be ready for review (or pending revision processing) for client approval.');
         }
 
         // Optional: Verify $clientIdentifier matches $pitch->project->client_email if needed?
@@ -1180,30 +1182,42 @@ class PitchWorkflowService
             return DB::transaction(function () use ($pitch, $clientIdentifier) {
                 // Idempotency Check 2 (within transaction): Re-check status before update
                 $pitch->refresh(); // Get latest state
-                if ($pitch->status === Pitch::STATUS_APPROVED) {
-                    Log::info('Pitch became approved during transaction. Skipping update.', ['pitch_id' => $pitch->id]);
+                if ($pitch->status === Pitch::STATUS_COMPLETED) {
+                    Log::info('Pitch became completed during transaction. Skipping update.', ['pitch_id' => $pitch->id]);
                     return $pitch;
                 }
                 
-                // Perform the update
-                $pitch->status = Pitch::STATUS_APPROVED;
+                // For client management, we go directly to COMPLETED status
+                // This skips the intermediate APPROVED status since client approval = completion
+                $pitch->status = Pitch::STATUS_COMPLETED;
                 $pitch->approved_at = now();
-                // Remove payment status logic - handled by webhook controller
-                // $pitch->payment_status = ...? No.
+                $pitch->completed_at = now();
                 $pitch->save();
 
-                // Create event
+                // Complete the project
+                $this->completeClientManagementProject($pitch, $clientIdentifier);
+
+                // Create approval event
                 $pitch->events()->create([
                     'event_type' => 'client_approved',
                     'comment' => 'Client approved the submission.',
-                    'status' => $pitch->status,
+                    'status' => Pitch::STATUS_APPROVED, // Log the approval step
                     'created_by' => null, // Client action (via system/webhook)
                     'metadata' => ['client_email' => $clientIdentifier]
                 ]);
 
-                // Notify producer
-                $this->notificationService->notifyProducerClientApproved($pitch);
-                Log::info('Producer notified of client approval.', ['pitch_id' => $pitch->id]);
+                // Create completion event
+                $pitch->events()->create([
+                    'event_type' => 'client_completed',
+                    'comment' => 'Project automatically completed after client approval.',
+                    'status' => $pitch->status,
+                    'created_by' => null, // System action
+                    'metadata' => ['client_email' => $clientIdentifier]
+                ]);
+
+                // Notify producer of approval AND completion
+                $this->notificationService->notifyProducerClientApprovedAndCompleted($pitch);
+                Log::info('Producer notified of client approval and completion.', ['pitch_id' => $pitch->id]);
 
                 return $pitch;
             });
@@ -1215,6 +1229,90 @@ class PitchWorkflowService
             ]);
             // Rethrow as a generic exception to signal failure
             throw new \RuntimeException('Could not approve pitch due to an internal error.', 0, $e);
+        }
+    }
+
+    /**
+     * Complete a client management project after client approval.
+     * This handles project status updates and payout scheduling.
+     *
+     * @param Pitch $pitch
+     * @param string $clientIdentifier
+     * @return void
+     */
+    private function completeClientManagementProject(Pitch $pitch, string $clientIdentifier): void
+    {
+        $project = $pitch->project;
+        
+        // Update project status to completed
+        $project->status = Project::STATUS_COMPLETED;
+        $project->save();
+        
+        Log::info('Client management project completed', [
+            'project_id' => $project->id,
+            'pitch_id' => $pitch->id,
+            'client_email' => $clientIdentifier
+        ]);
+
+        // Schedule payout if payment was made
+        if ($pitch->payment_status === Pitch::PAYMENT_STATUS_PAID && $pitch->payment_amount > 0) {
+            $this->scheduleProducerPayout($pitch);
+        }
+    }
+
+    /**
+     * Schedule a payout for the producer after successful client payment.
+     *
+     * @param Pitch $pitch
+     * @return void
+     */
+    private function scheduleProducerPayout(Pitch $pitch): void
+    {
+        try {
+            $producer = $pitch->user;
+            $project = $pitch->project;
+            
+            // Calculate payout amount (after platform commission)
+            $grossAmount = $pitch->payment_amount;
+            $commissionRate = $producer->getPlatformCommissionRate();
+            $commissionAmount = $grossAmount * ($commissionRate / 100);
+            $netAmount = $grossAmount - $commissionAmount;
+            
+            // Create payout schedule
+            $payoutSchedule = \App\Models\PayoutSchedule::create([
+                'producer_user_id' => $producer->id,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'gross_amount' => $grossAmount,
+                'commission_rate' => $commissionRate,
+                'commission_amount' => $commissionAmount,
+                'net_amount' => $netAmount,
+                'status' => \App\Models\PayoutSchedule::STATUS_SCHEDULED,
+                'hold_release_date' => now()->addDays(7), // 7-day hold period
+                'metadata' => [
+                    'type' => 'client_management_completion',
+                    'client_email' => $project->client_email,
+                    'project_title' => $project->title
+                ]
+            ]);
+            
+            Log::info('Producer payout scheduled for client management project', [
+                'payout_schedule_id' => $payoutSchedule->id,
+                'producer_id' => $producer->id,
+                'pitch_id' => $pitch->id,
+                'net_amount' => $netAmount
+            ]);
+            
+            // Notify producer about payout
+            $this->notificationService->notifyProducerPayoutScheduled($producer, $netAmount, $payoutSchedule);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to schedule producer payout', [
+                'pitch_id' => $pitch->id,
+                'producer_id' => $pitch->user_id,
+                'error' => $e->getMessage()
+            ]);
+            // Don't throw - payout can be handled manually if needed
         }
     }
 

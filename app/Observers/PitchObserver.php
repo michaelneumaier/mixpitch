@@ -107,7 +107,7 @@ class PitchObserver
     }
     
     /**
-     * Synchronize the project status with its pitches
+     * Synchronize the project status with its pitches using ProjectManagementService
      */
     private function syncProjectStatus(Pitch $pitch): void
     {
@@ -116,20 +116,21 @@ class PitchObserver
             $project = $pitch->project;
             
             if ($project) {
-                // Refresh the project with the latest pitches data
-                $project->refresh();
+                // Use ProjectManagementService to handle status updates
+                $projectManagementService = app(\App\Services\Project\ProjectManagementService::class);
                 
-                // Sync project status with pitches
-                $statusChanged = $project->syncStatusWithPitches();
-                
-                if ($statusChanged) {
-                    Log::info('Project status synchronized after pitch change', [
+                // For client management projects, if a pitch is completed, complete the project
+                if ($project->isClientManagement() && $pitch->status === \App\Models\Pitch::STATUS_COMPLETED) {
+                    $projectManagementService->completeProject($project);
+                    Log::info('Client management project completed after pitch completion', [
                         'project_id' => $project->id,
-                        'new_project_status' => $project->status,
                         'triggered_by_pitch_id' => $pitch->id,
-                        'pitch_status' => $pitch->status
                     ]);
                 }
+                
+                // For standard projects, let the PitchCompletionService handle project completion
+                // For other status changes, we don't need to sync project status automatically
+                // as the services handle this appropriately
             }
         } catch (\Exception $e) {
             Log::error('Failed to sync project status after pitch change', [

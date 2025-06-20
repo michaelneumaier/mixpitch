@@ -537,5 +537,82 @@ class EmailService
         }
     }
 
+    /**
+     * Send email to producer when client approves and completes the project.
+     *
+     * @param \App\Models\User $producer
+     * @param \App\Models\Project $project
+     * @param \App\Models\Pitch $pitch
+     * @param bool $hasPayment
+     * @return void
+     */
+    public function sendProducerClientApprovedAndCompletedEmail(
+        \App\Models\User $producer,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        bool $hasPayment
+    ): void {
+        try {
+            Mail::to($producer->email)->send(new \App\Mail\ProducerClientApprovedAndCompleted(
+                $producer,
+                $project,
+                $pitch,
+                $hasPayment
+            ));
+            
+            Log::info('Producer client approved and completed email sent', [
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'has_payment' => $hasPayment
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer client approved and completed email', [
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Send email to producer when their payout is scheduled.
+     *
+     * @param \App\Models\User $producer
+     * @param float $netAmount
+     * @param \App\Models\PayoutSchedule $payoutSchedule
+     * @return void
+     */
+    public function sendProducerPayoutScheduledEmail(
+        \App\Models\User $producer,
+        float $netAmount,
+        \App\Models\PayoutSchedule $payoutSchedule
+    ): void {
+        try {
+            Mail::to($producer->email)->send(new \App\Mail\ProducerPayoutScheduled(
+                $producer,
+                $netAmount,
+                $payoutSchedule
+            ));
+            
+            Log::info('Producer payout scheduled email sent', [
+                'producer_id' => $producer->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+                'net_amount' => $netAmount
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer payout scheduled email', [
+                'producer_id' => $producer->id,
+                'payout_schedule_id' => $payoutSchedule->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
     // --- Generic/Other Emails ---
 } 

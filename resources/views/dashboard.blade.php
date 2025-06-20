@@ -59,9 +59,9 @@
                         <div class="flex items-center space-x-6">
                             <!-- Current Plan -->
                             <div class="flex items-center">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $subscription['is_pro'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                    <i class="{{ $subscription['is_pro'] ? 'fas fa-crown' : 'fas fa-user' }} mr-1.5 text-xs"></i>
-                                    {{ ucfirst($subscription['plan']) }}{{ $subscription['tier'] !== 'basic' ? ' ' . ucfirst($subscription['tier']) : '' }}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ ($subscription['plan'] !== 'free') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                    <i class="{{ ($subscription['plan'] !== 'free') ? 'fas fa-crown' : 'fas fa-user' }} mr-1.5 text-xs"></i>
+                                    {{ $subscription['display_name'] ?? ucfirst($subscription['plan']) }}
                                 </span>
                             </div>
 
@@ -72,8 +72,8 @@
                                 <div class="flex items-center">
                                     <i class="fas fa-folder text-blue-500 mr-1"></i>
                                     <span class="text-gray-600">Projects:</span>
-                                    <span class="font-medium ml-1 {{ $subscription['limits']->max_projects_owned && $subscription['usage']['projects_count'] >= $subscription['limits']->max_projects_owned ? 'text-red-600' : 'text-gray-900' }}">
-                                        {{ $subscription['usage']['projects_count'] }}{{ $subscription['limits']->max_projects_owned ? '/' . $subscription['limits']->max_projects_owned : '' }}
+                                    <span class="font-medium ml-1 {{ $subscription['limits']->max_projects && $subscription['usage']['total_projects'] >= $subscription['limits']->max_projects ? 'text-red-600' : 'text-gray-900' }}">
+                                        {{ $subscription['usage']['total_projects'] }}{{ $subscription['limits']->max_projects ? '/' . $subscription['limits']->max_projects : '' }}
                                     </span>
                                 </div>
 
@@ -102,7 +102,7 @@
 
                         <!-- Action Buttons -->
                         <div class="flex items-center space-x-3">
-                            @if(!$subscription['is_pro'])
+                            @if($subscription['plan'] === 'free')
                                 <a href="{{ route('subscription.index') }}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
                                     <i class="fas fa-arrow-up mr-1.5"></i>
                                     Upgrade to Pro
@@ -124,6 +124,206 @@
 
             <!-- Payout Status Banner -->
             <x-payout-status-banner :user="auth()->user()" />
+
+            <!-- Phase 3: Producer Analytics Section -->
+            @if(isset($producerData))
+            <div class="mb-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <!-- Earnings Overview -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-2 rounded-lg shadow-md">
+                                    <i class="fas fa-dollar-sign text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-green-800">Total Earnings</h3>
+                                    <p class="text-sm text-green-600">Net after commission</p>
+                                </div>
+                            </div>
+                            <a href="{{ route('payouts.index') }}" 
+                               class="text-green-600 hover:text-green-800 transition-colors group">
+                                <i class="fas fa-external-link-alt group-hover:scale-110 transition-transform"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-green-700 font-medium">Total Earned:</span>
+                                <span class="text-2xl font-bold text-green-900">${{ number_format($producerData['earnings']['total'], 2) }}</span>
+                            </div>
+                            
+                            @if($producerData['earnings']['pending'] > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-green-600 text-sm">Pending:</span>
+                                <span class="text-green-800 font-medium">${{ number_format($producerData['earnings']['pending'], 2) }}</span>
+                            </div>
+                            @endif
+                            
+                            <div class="flex justify-between items-center">
+                                <span class="text-green-600 text-sm">This Month:</span>
+                                <span class="text-green-800 font-medium">${{ number_format($producerData['earnings']['this_month'], 2) }}</span>
+                            </div>
+                            
+                            @if($producerData['earnings']['commission_savings'] > 0)
+                            <div class="pt-2 border-t border-green-200">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-green-600 text-sm">Commission Saved:</span>
+                                    <span class="text-green-800 font-medium">${{ number_format($producerData['earnings']['commission_savings'], 2) }}</span>
+                                </div>
+                                <p class="text-xs text-green-600 mt-1">{{ $producerData['earnings']['commission_rate'] }}% rate vs 10% free tier</p>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Client Management Stats -->
+                    @if($producerData['client_management']['total_projects'] > 0)
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-md">
+                                    <i class="fas fa-users text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-blue-800">Client Projects</h3>
+                                    <p class="text-sm text-blue-600">Your client management</p>
+                                </div>
+                            </div>
+                            <a href="{{ route('projects.index') }}?workflow_type=client_management" 
+                               class="text-blue-600 hover:text-blue-800 transition-colors group">
+                                <i class="fas fa-external-link-alt group-hover:scale-110 transition-transform"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-3 bg-white/50 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-900">{{ $producerData['client_management']['total_projects'] }}</div>
+                                <div class="text-xs text-blue-600">Total Projects</div>
+                            </div>
+                            <div class="text-center p-3 bg-white/50 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-900">{{ $producerData['client_management']['active_projects'] }}</div>
+                                <div class="text-xs text-blue-600">Active</div>
+                            </div>
+                            <div class="text-center p-3 bg-white/50 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-900">{{ $producerData['client_management']['completed_projects'] }}</div>
+                                <div class="text-xs text-blue-600">Completed</div>
+                            </div>
+                            <div class="text-center p-3 bg-white/50 rounded-lg">
+                                <div class="text-lg font-bold text-blue-900">${{ number_format($producerData['client_management']['total_revenue'], 0) }}</div>
+                                <div class="text-xs text-blue-600">Revenue</div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Stripe Connect Status -->
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-gradient-to-r from-purple-500 to-pink-600 p-2 rounded-lg shadow-md">
+                                    <i class="fas fa-credit-card text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-purple-800">Payout Account</h3>
+                                    <p class="text-sm text-purple-600">Stripe Connect</p>
+                                </div>
+                            </div>
+                            <a href="{{ route('stripe.connect.setup') }}" 
+                               class="text-purple-600 hover:text-purple-800 transition-colors group">
+                                <i class="fas fa-cog group-hover:rotate-90 transition-transform"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-2">
+                                @if($producerData['stripe_connect']['can_receive_payouts'] ?? false)
+                                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span class="text-sm font-medium text-green-800">Ready for Payouts</span>
+                                @elseif($producerData['stripe_connect']['account_exists'] ?? false)
+                                    <div class="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                                    <span class="text-sm font-medium text-yellow-800">Setup in Progress</span>
+                                @else
+                                    <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                    <span class="text-sm font-medium text-red-800">Setup Required</span>
+                                @endif
+                            </div>
+                            
+                            <div class="text-sm text-purple-700 bg-white/50 rounded-lg p-2">
+                                {{ $producerData['stripe_connect']['status_display'] ?? 'Setup Required' }}
+                            </div>
+                            
+                            @if(!($producerData['stripe_connect']['can_receive_payouts'] ?? false))
+                            <div class="pt-2">
+                                <a href="{{ route('stripe.connect.setup') }}" 
+                                   class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-arrow-right mr-2"></i>
+                                    Complete Setup
+                                </a>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Payouts -->
+                @if($producerData['recent_payouts']->isNotEmpty())
+                <div class="bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center mr-3 shadow-md">
+                                    <i class="fas fa-history text-white text-xs"></i>
+                                </div>
+                                Recent Payouts
+                            </h3>
+                            <a href="{{ route('payouts.index') }}" 
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors group">
+                                <span class="group-hover:mr-2 transition-all">View All</span>
+                                <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            @foreach($producerData['recent_payouts'] as $payout)
+                            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 rounded-lg transition-all duration-200 hover:shadow-md">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-shrink-0">
+                                        @if($payout->status === 'completed')
+                                            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-md">
+                                                <i class="fas fa-check text-white"></i>
+                                            </div>
+                                        @elseif($payout->status === 'processing')
+                                            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                                                <i class="fas fa-clock text-white"></i>
+                                            </div>
+                                        @else
+                                            <div class="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center shadow-md">
+                                                <i class="fas fa-hourglass-half text-white"></i>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900">{{ $payout->project->name ?? 'Unknown Project' }}</div>
+                                        <div class="text-sm text-gray-600 flex items-center">
+                                            <i class="fas fa-calendar mr-1 text-xs"></i>
+                                            {{ $payout->created_at->format('M j, Y') }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold text-gray-900">${{ number_format($payout->net_amount, 2) }}</div>
+                                    <div class="text-sm text-gray-600 capitalize">{{ str_replace('_', ' ', $payout->status) }}</div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
+            @endif
 
             <!-- Work Section -->
             <div class="relative">

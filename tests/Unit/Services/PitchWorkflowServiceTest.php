@@ -1310,7 +1310,9 @@ class PitchWorkflowServiceTest extends TestCase
     {
         Event::fake(); // Disable model events for this test
 
-        // Arrange
+        // Arrange: Seed subscription limits for testing
+        $this->seed(\Database\Seeders\CompleteSubscriptionLimitsSeeder::class);
+        
         $producer = User::factory()->create();
         $project = Project::factory()->create([
             'user_id' => $producer->id,
@@ -1324,17 +1326,22 @@ class PitchWorkflowServiceTest extends TestCase
         ]);
         $clientEmail = $project->client_email;
 
-        // Mock dependencies
-        $this->notificationServiceMock->shouldReceive('notifyProducerClientApproved')
+        // Mock dependencies - expect the new enhanced notification
+        $this->notificationServiceMock->shouldReceive('notifyProducerClientApprovedAndCompleted')
             ->once()
             ->with(Mockery::on(fn($p) => $p->id === $pitch->id));
 
         // Act
         $updatedPitch = $this->service->clientApprovePitch($pitch, $clientEmail);
 
-        // Assert
-        $this->assertEquals(Pitch::STATUS_APPROVED, $updatedPitch->status);
+        // Assert - pitch should be COMPLETED (not just APPROVED) for client management projects
+        $this->assertEquals(Pitch::STATUS_COMPLETED, $updatedPitch->status);
         $this->assertNotNull($updatedPitch->approved_at);
+        $this->assertNotNull($updatedPitch->completed_at);
+        
+        // Project should also be completed
+        $updatedPitch->project->refresh();
+        $this->assertEquals(Project::STATUS_COMPLETED, $updatedPitch->project->status);
     }
 
     /** @test */
@@ -1342,30 +1349,35 @@ class PitchWorkflowServiceTest extends TestCase
     {
         Event::fake(); // Disable model events for this test
 
-        // Arrange
+        // Arrange: Seed subscription limits for testing
+        $this->seed(\Database\Seeders\CompleteSubscriptionLimitsSeeder::class);
+
         $producer = User::factory()->create();
         $project = Project::factory()->create([
             'user_id' => $producer->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_email' => 'client@test.com',
+            'status' => Project::STATUS_COMPLETED, // Already completed
         ]);
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'status' => Pitch::STATUS_APPROVED, // Already approved
+            'status' => Pitch::STATUS_COMPLETED, // Already completed (new behavior)
             'approved_at' => now(),
+            'completed_at' => now(),
         ]);
         $clientEmail = $project->client_email;
 
         // Expectations: No notifications should be sent for idempotent calls
-        $this->notificationServiceMock->shouldNotReceive('notifyProducerClientApproved');
+        $this->notificationServiceMock->shouldNotReceive('notifyProducerClientApprovedAndCompleted');
 
         // Act
         $updatedPitch = $this->service->clientApprovePitch($pitch, $clientEmail);
 
         // Assert - Should return the same pitch without changes
-        $this->assertEquals(Pitch::STATUS_APPROVED, $updatedPitch->status);
+        $this->assertEquals(Pitch::STATUS_COMPLETED, $updatedPitch->status);
         $this->assertNotNull($updatedPitch->approved_at);
+        $this->assertNotNull($updatedPitch->completed_at);
     }
 
     /** @test */

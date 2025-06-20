@@ -115,6 +115,7 @@ class Project extends Model
         'target_producer_id',
         'client_email',
         'client_name',
+        'client_user_id',
         'payment_amount',
         'completed_at',
         // License fields

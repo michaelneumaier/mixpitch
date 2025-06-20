@@ -987,6 +987,19 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     }
 
     /**
+     * Get the number of pitches created by this user in the current month
+     *
+     * @return int
+     */
+    public function getMonthlyPitchCount(): int
+    {
+        return $this->pitches()
+            ->whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->count();
+    }
+
+    /**
      * Get monthly limit tracking records for this user
      */
     public function monthlyLimits()
