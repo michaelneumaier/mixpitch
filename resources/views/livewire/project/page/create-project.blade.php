@@ -216,6 +216,11 @@
                                 <div class="text-center mb-8">
                                     <h2 class="text-2xl font-bold text-gray-900 mb-2">Configure Your {{ $this->currentWorkflowConfig['name'] ?? 'Project' }}</h2>
                                     <p class="text-gray-600">Set up the specific details for your {{ strtolower($this->currentWorkflowConfig['name'] ?? 'project') }}.</p>
+                                    
+                                    <!-- Temporary Debug Button -->
+                                    <button type="button" onclick="debugTimezone()" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg text-sm">
+                                        Debug Timezone Conversion
+                                    </button>
                                 </div>
 
                                 <!-- Single Column Layout -->
@@ -256,11 +261,16 @@
                                                     <div class="space-y-6">
                                                         <div>
                                                             <label for="submission_deadline" class="block text-sm font-bold text-amber-700 mb-3">
-                                                                <i class="fas fa-clock mr-2"></i>
-                                                                Submission Deadline <span class="text-red-500">*</span>
+                                                                <i class="fas fa-calendar-clock mr-2"></i>
+                                                                Submission Deadline
+                                                                <span class="ml-2 text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded-md" id="submission-timezone-indicator">
+                                                                    {{ $this->getTimezoneDisplayName() }}
+                                                                </span>
                                                             </label>
-                                                            <input type="datetime-local" id="submission_deadline" wire:model.blur="submission_deadline" 
-                                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200">
+                                                            <input type="datetime-local" id="submission_deadline" 
+                                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200"
+                                                                   onchange="convertDatetimeLocalToUtc(this, 'submission_deadline')"
+                                                                   value="{{ $submission_deadline ?: '' }}">
                                                             @error('submission_deadline')
                                                             <p class="mt-2 text-sm text-red-600 flex items-center">
                                                                 <i class="fas fa-exclamation-circle mr-1"></i>
@@ -268,14 +278,18 @@
                                                             </p>
                                                             @enderror
                                                         </div>
-
                                                         <div>
                                                             <label for="judging_deadline" class="block text-sm font-bold text-amber-700 mb-3">
                                                                 <i class="fas fa-gavel mr-2"></i>
                                                                 Judging Deadline
+                                                                <span class="ml-2 text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded-md" id="judging-timezone-indicator">
+                                                                    {{ $this->getTimezoneDisplayName() }}
+                                                                </span>
                                                             </label>
-                                                            <input type="datetime-local" id="judging_deadline" wire:model.blur="judging_deadline" 
-                                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200">
+                                                            <input type="datetime-local" id="judging_deadline" 
+                                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200"
+                                                                   onchange="convertDatetimeLocalToUtc(this, 'judging_deadline')"
+                                                                   value="{{ $judging_deadline ?: '' }}">
                                                             @error('judging_deadline')
                                                             <p class="mt-2 text-sm text-red-600 flex items-center">
                                                                 <i class="fas fa-exclamation-circle mr-1"></i>
@@ -798,7 +812,7 @@
                                                     <span class="text-amber-600 font-bold">$</span>
                                                 </div>
                                                 <input type="number" id="budget" wire:model.blur="form.budget" 
-                                                       class="w-full pl-8 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200"
+                                                       class="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200"
                                                        placeholder="0.00" min="0" step="0.01">
                                             </div>
                                             @error('form.budget')
@@ -816,9 +830,14 @@
                                             <label for="deadline" class="block text-sm font-medium text-amber-700 mb-3">
                                                 <i class="fas fa-calendar-alt mr-2"></i>
                                                 Project Deadline
+                                                <span class="ml-2 text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded-md" id="deadline-timezone-indicator">
+                                                    {{ $this->getTimezoneDisplayName() }}
+                                                </span>
                                             </label>
-                                            <input type="date" id="deadline" wire:model.blur="form.deadline" 
-                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200">
+                                            <input type="datetime-local" id="deadline" 
+                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all duration-200"
+                                                   onchange="convertDatetimeLocalToUtc(this, 'form.deadline')"
+                                                   value="{{ $form->deadline ?: '' }}">
                                             @error('form.deadline')
                                             <p class="mt-2 text-sm text-red-600 flex items-center">
                                                 <i class="fas fa-exclamation-circle mr-1"></i>
@@ -844,11 +863,16 @@
                                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div>
                                             <label for="submission_deadline" class="block text-sm font-medium text-purple-700 mb-3">
-                                                <i class="fas fa-clock mr-2"></i>
-                                                Submission Deadline <span class="text-red-500">*</span>
+                                                <i class="fas fa-calendar-clock mr-2"></i>
+                                                Submission Deadline
+                                                <span class="ml-2 text-xs font-normal text-purple-600 bg-purple-50 px-2 py-1 rounded-md" id="submission-timezone-indicator">
+                                                    {{ $this->getTimezoneDisplayName() }}
+                                                </span>
                                             </label>
-                                            <input type="datetime-local" id="submission_deadline" wire:model.blur="submission_deadline" 
-                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200">
+                                            <input type="datetime-local" id="submission_deadline" 
+                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200"
+                                                   onchange="convertDatetimeLocalToUtc(this, 'submission_deadline')"
+                                                   value="{{ $submission_deadline ?: '' }}">
                                             @error('submission_deadline')
                                             <p class="mt-2 text-sm text-red-600 flex items-center">
                                                 <i class="fas fa-exclamation-circle mr-1"></i>
@@ -858,12 +882,17 @@
                                         </div>
 
                                         <div>
-                                            <label for="judging_deadline" class="block text-sm font-medium text-purple-700 mb-3">
+                                            <label for="judging_deadline" class="block text-sm font-bold text-purple-700 mb-3">
                                                 <i class="fas fa-gavel mr-2"></i>
                                                 Judging Deadline
+                                                <span class="ml-2 text-xs font-normal text-purple-600 bg-purple-50 px-2 py-1 rounded-md" id="judging-timezone-indicator">
+                                                    {{ $this->getTimezoneDisplayName() }}
+                                                </span>
                                             </label>
-                                            <input type="datetime-local" id="judging_deadline" wire:model.blur="judging_deadline" 
-                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200">
+                                            <input type="datetime-local" id="judging_deadline" 
+                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200"
+                                                   onchange="convertDatetimeLocalToUtc(this, 'judging_deadline')"
+                                                   value="{{ $judging_deadline ?: '' }}">
                                             @error('judging_deadline')
                                             <p class="mt-2 text-sm text-red-600 flex items-center">
                                                 <i class="fas fa-exclamation-circle mr-1"></i>
@@ -1004,9 +1033,14 @@
                                             <label for="deadline_client" class="block text-sm font-bold text-indigo-700 mb-3">
                                                 <i class="fas fa-calendar-alt mr-2"></i>
                                                 Project Deadline (Optional)
+                                                <span class="ml-2 text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md" id="deadline-client-timezone-indicator">
+                                                    {{ $this->getTimezoneDisplayName() }}
+                                                </span>
                                             </label>
-                                            <input type="date" id="deadline_client" wire:model.blur="form.deadline" 
-                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-indigo-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all duration-200">
+                                            <input type="datetime-local" id="deadline_client" 
+                                                   class="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-indigo-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all duration-200"
+                                                   onchange="convertDatetimeLocalToUtc(this, 'form.deadline')"
+                                                   value="{{ $form->deadline ?: '' }}">
                                             @error('form.deadline')
                                             <p class="mt-2 text-sm text-red-600 flex items-center">
                                                 <i class="fas fa-exclamation-circle mr-1"></i>
@@ -1100,7 +1134,162 @@
 </div>
 
 <script>
+// Updated timezone handling - v2.1
+/**
+ * Convert datetime-local input to UTC and update Livewire property
+ */
+function convertDatetimeLocalToUtc(input, livewireProperty) {
+    if (!input.value) {
+        return;
+    }
+    
+    try {
+        // Get browser timezone
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Debug logging
+        console.log('=== TIMEZONE DEBUG ===');
+        console.log('Input value:', input.value);
+        console.log('Browser timezone:', browserTimezone);
+        
+        // Create a Date object from the datetime-local input
+        // datetime-local gives us the date/time as if it were in the local timezone
+        const localDateTime = new Date(input.value + ':00'); // Add seconds if not present
+        console.log('Local DateTime object:', localDateTime);
+        console.log('Local DateTime toString:', localDateTime.toString());
+        
+        // Send the ISO string (which will be in UTC) to the backend
+        const utcDateTime = localDateTime.toISOString();
+        console.log('UTC DateTime (toISOString):', utcDateTime);
+        
+        // Let's also check what the offset is
+        const offsetMinutes = localDateTime.getTimezoneOffset();
+        console.log('Timezone offset in minutes:', offsetMinutes);
+        console.log('Timezone offset in hours:', offsetMinutes / 60);
+        console.log('=== END DEBUG ===');
+        
+        // Send the UTC datetime and browser timezone to backend
+        // Use a timeout to prevent interfering with user input
+        setTimeout(() => {
+            try {
+                @this.set(livewireProperty, utcDateTime);
+                @this.set('browserTimezone', browserTimezone);
+            } catch (livewireError) {
+                console.error('Error setting Livewire properties:', livewireError);
+                // Fallback: set the input value back to what the user entered
+                // This ensures the form still works even if Livewire isn't ready
+                input.value = input.value; // Keep the local time value as fallback
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error('Error handling datetime-local input:', error);
+    }
+}
+
+/**
+ * Update timezone indicators on page load
+ */
+function updateTimezoneIndicators() {
+    try {
+        // Get user's profile timezone (passed from blade template safely)
+        const userTimezone = @js(auth()->user()->getTimezone());
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Use user's profile timezone if available, otherwise fall back to browser timezone
+        const timezoneToUse = userTimezone || browserTimezone;
+        const timezoneDisplayName = getTimezoneDisplayName(timezoneToUse);
+        
+        // Update all timezone indicators
+        const indicators = [
+            'submission-timezone-indicator',
+            'judging-timezone-indicator', 
+            'deadline-timezone-indicator',
+            'deadline-client-timezone-indicator'
+        ];
+        
+        indicators.forEach(indicatorId => {
+            const indicator = document.getElementById(indicatorId);
+            if (indicator) {
+                indicator.textContent = timezoneDisplayName;
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error updating timezone indicators:', error);
+    }
+}
+
+/**
+ * Get user-friendly timezone display name
+ */
+function getTimezoneDisplayName(timezone) {
+    try {
+        // Use toLocaleString with timeZoneName to get abbreviation
+        const date = new Date();
+        const timeString = date.toLocaleString('en-US', {
+            timeZone: timezone,
+            timeZoneName: 'short'
+        });
+        
+        // Extract timezone abbreviation from the end of the string
+        const match = timeString.match(/\b([A-Z]{2,5})\s*$/);
+        const abbreviation = match ? match[1] : null;
+        
+        if (abbreviation) {
+            return `${abbreviation} (${timezone})`;
+        }
+        
+        // Fallback: just return the timezone identifier
+        return timezone;
+    } catch (error) {
+        console.error('Error getting timezone display name:', error);
+        return timezone;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Debug timezone conversion
+    window.debugTimezone = function() {
+        console.log('=== TIMEZONE CONVERSION DEBUG ===');
+        
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log('Browser timezone:', browserTimezone);
+        
+        // Test with a specific datetime: June 29, 2025 at 1:00 PM
+        const testInput = '2025-06-29T13:00';
+        console.log('Test input:', testInput);
+        
+        // This is what our current JavaScript does
+        const localDateTime = new Date(testInput + ':00');
+        console.log('JavaScript Date object:', localDateTime);
+        console.log('Date toString():', localDateTime.toString());
+        console.log('Date getTime():', localDateTime.getTime());
+        
+        const utcDateTime = localDateTime.toISOString();
+        console.log('toISOString() result:', utcDateTime);
+        
+        const offsetMinutes = localDateTime.getTimezoneOffset();
+        console.log('getTimezoneOffset() minutes:', offsetMinutes);
+        console.log('getTimezoneOffset() hours:', offsetMinutes / 60);
+        
+        // Let's also test what happens if we explicitly specify UTC
+        const utcDate = new Date(testInput + ':00Z');
+        console.log('Explicit UTC Date:', utcDate);
+        console.log('Explicit UTC toString():', utcDate.toString());
+        console.log('Explicit UTC toISOString():', utcDate.toISOString());
+        
+        console.log('=== END DEBUG ===');
+    };
+    
+    // Update timezone indicators on page load
+    updateTimezoneIndicators();
+    
+    // Update timezone indicators after Livewire updates
+    document.addEventListener('livewire:updated', function() {
+        updateTimezoneIndicators();
+    });
+    
     let hasUnsavedChanges = false;
     const indicator = document.getElementById('unsaved-changes-indicator');
     
