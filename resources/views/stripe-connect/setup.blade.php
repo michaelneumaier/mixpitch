@@ -362,7 +362,7 @@
                             </div>
                         </div>
                         <h4 class="font-medium text-gray-900 mb-2">Get Paid</h4>
-                        <p class="text-sm text-gray-600">Receive automatic payouts after a 3-day hold period, minus platform commission.</p>
+                        <p class="text-sm text-gray-600">Receive automatic payouts after {{ app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('standard')['description'] }}, minus platform commission.</p>
                     </div>
                 </div>
 

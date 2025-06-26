@@ -24,6 +24,7 @@ class UserFactory extends Factory
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
+            'is_admin' => false,
             'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -86,6 +87,18 @@ class UserFactory extends Factory
         return $this->state(function (array $attributes) {
             return [
                 'role' => User::ROLE_CLIENT,
+            ];
+        });
+    }
+
+    /**
+     * Indicate that the user is an admin.
+     */
+    public function admin(): static
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'is_admin' => true,
             ];
         });
     }

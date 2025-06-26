@@ -209,7 +209,7 @@
                             </div>
                             <p class="text-sm text-gray-600 mt-1">
                                 @if($isFullyVerified)
-                                    {{ $producer->name }} has completed their Stripe Connect setup and can receive payments. Your payment will be processed and {{ $producer->name }} will receive their payout after a 3-day hold period.
+                                    {{ $producer->name }} has completed their Stripe Connect setup and can receive payments. Your payment will be processed and {{ $producer->name }} will receive their payout after {{ app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo($pitch->project->type ?? 'standard')['description'] }}.
                                 @elseif($hasAccount)
                                     {{ $producer->name }} has started their Stripe Connect setup but verification is still pending. Payment cannot be processed until their account is fully verified.
                                 @else

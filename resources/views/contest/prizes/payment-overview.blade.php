@@ -455,7 +455,7 @@
                                                                     I confirm payment of ${{ number_format($winner['prize']->cash_amount, 2) }} to {{ $winner['user']->name ?? $winner['user']->email }}
                                                                 </label>
                                                                 <p class="text-xs text-gray-600 mt-1">
-                                                                    Payment will be processed immediately. Winner receives payout after 3-day hold period.
+                                                                    Payment will be processed immediately. Winner receives payout after {{ app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('contest')['description'] }}.
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -528,7 +528,7 @@
                             <li><strong>Click any winner card</strong> to expand and see detailed status information</li>
                             <li><strong>Pay winners individually</strong> as they complete their Stripe Connect setup</li>
                             <li><strong>Cards ready for payment</strong> are automatically expanded with payment forms</li>
-                            <li><strong>3-day hold period</strong> applies to all payouts for fraud protection</li>
+                            <li><strong>{{ ucfirst(app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('contest')['description']) }}</strong> applies to all payouts for fraud protection</li>
                             <li><strong>Winners are notified</strong> automatically when their payout is scheduled</li>
                             <li><strong>No need to wait</strong> for all winners - pay as they become ready</li>
                         </ul>

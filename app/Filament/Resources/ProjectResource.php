@@ -332,8 +332,18 @@ class ProjectResource extends Resource
                         ->icon(fn (Project $record): string => $record->is_published ? 'heroicon-m-eye-slash' : 'heroicon-m-eye')
                         ->color(fn (Project $record): string => $record->is_published ? 'warning' : 'success')
                         ->action(function (Project $record): void {
+                            // Client Management projects should never be published
+                            if ($record->isClientManagement()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Client Management projects cannot be published')
+                                    ->body('Client Management projects remain private by design and are only accessible through secure client portals.')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
                             $record->update(['is_published' => !$record->is_published]);
                         })
+                        ->hidden(fn (Project $record): bool => $record->isClientManagement())
                         ->requiresConfirmation(),
                     Tables\Actions\DeleteAction::make(),
                 ])->label('Actions'),
@@ -345,13 +355,39 @@ class ProjectResource extends Resource
                         ->label('Publish Selected')
                         ->icon('heroicon-m-eye')
                         ->color('success')
-                        ->action(fn (Collection $records) => $records->each->update(['is_published' => true]))
+                        ->action(function (Collection $records): void {
+                            $clientManagementCount = $records->filter(fn ($record) => $record->isClientManagement())->count();
+                            $publishableRecords = $records->filter(fn ($record) => !$record->isClientManagement());
+                            
+                            if ($clientManagementCount > 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title("Skipped {$clientManagementCount} Client Management project(s)")
+                                    ->body('Client Management projects cannot be published and remain private by design.')
+                                    ->warning()
+                                    ->send();
+                            }
+                            
+                            $publishableRecords->each->update(['is_published' => true]);
+                        })
                         ->requiresConfirmation(),
                     Tables\Actions\BulkAction::make('unpublish')
                         ->label('Unpublish Selected')
                         ->icon('heroicon-m-eye-slash')
                         ->color('warning')
-                        ->action(fn (Collection $records) => $records->each->update(['is_published' => false]))
+                        ->action(function (Collection $records): void {
+                            $clientManagementCount = $records->filter(fn ($record) => $record->isClientManagement())->count();
+                            $unpublishableRecords = $records->filter(fn ($record) => !$record->isClientManagement());
+                            
+                            if ($clientManagementCount > 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title("Skipped {$clientManagementCount} Client Management project(s)")
+                                    ->body('Client Management projects are already private by design.')
+                                    ->info()
+                                    ->send();
+                            }
+                            
+                            $unpublishableRecords->each->update(['is_published' => false]);
+                        })
                         ->requiresConfirmation(),
                     Tables\Actions\BulkAction::make('mark_completed')
                         ->label('Mark as Completed')

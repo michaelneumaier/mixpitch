@@ -380,7 +380,10 @@ class StripeTransactionResource extends Resource
                             ->required(),
                         Forms\Components\DateTimePicker::make('hold_release_date')
                             ->label('Hold Release Date')
-                            ->default(now()->addDays(3))
+                            ->default(function () {
+                                $holdService = app(\App\Services\PayoutHoldService::class);
+                                return $holdService->calculateHoldReleaseDate('standard');
+                            })
                             ->required(),
                     ])
                     ->action(function (StripeTransaction $record, array $data): void {

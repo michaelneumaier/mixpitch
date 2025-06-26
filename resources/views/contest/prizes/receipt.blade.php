@@ -164,7 +164,7 @@
                             <h3 class="text-sm font-medium text-blue-800">Payout Processing</h3>
                             <div class="mt-2 text-sm text-blue-700">
                                 <p class="mb-2">
-                                    <strong>Hold Period:</strong> All payouts are held for 3 business days before being released to winners.
+                                    <strong>Hold Period:</strong> {{ ucfirst(app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('contest')['description']) }} before being released to winners.
                                 </p>
                                 <p class="mb-2">
                                     <strong>Expected Release:</strong> 

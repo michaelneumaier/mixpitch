@@ -192,6 +192,18 @@ class Project extends Model
      */
     public function publish()
     {
+        // Client Management projects should never be published
+        if ($this->isClientManagement()) {
+            // Allow status transition for workflow purposes, but keep is_published false
+            if ($this->status === self::STATUS_UNPUBLISHED) {
+                $this->status = self::STATUS_OPEN;
+            }
+            // Explicitly keep is_published as false for Client Management
+            $this->is_published = false;
+            $this->save();
+            return;
+        }
+        
         $this->is_published = true;
         
         // Only change status if it's not already completed
@@ -209,6 +221,15 @@ class Project extends Model
      */
     public function unpublish()
     {
+        // Client Management projects are already unpublished by design
+        if ($this->isClientManagement()) {
+            // Keep is_published as false but allow status changes for workflow
+            $this->is_published = false;
+            // Don't change status for Client Management - let workflow handle it
+            $this->save();
+            return;
+        }
+        
         $this->is_published = false;
         
         // If the project is not completed, set status to unpublished

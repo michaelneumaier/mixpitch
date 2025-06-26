@@ -504,7 +504,7 @@ class PitchWorkflowService
 
         // Validation
         // Add STATUS_DENIED if denied pitches can be resubmitted
-        if (!in_array($pitch->status, [Pitch::STATUS_IN_PROGRESS, Pitch::STATUS_REVISIONS_REQUESTED])) {
+        if (!in_array($pitch->status, [Pitch::STATUS_IN_PROGRESS, Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_CLIENT_REVISIONS_REQUESTED])) {
             throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_READY_FOR_REVIEW, 'Pitch cannot be submitted from its current status.');
         }
         if ($pitch->files()->count() === 0) {
@@ -559,6 +559,18 @@ class PitchWorkflowService
                 $pitch->status = Pitch::STATUS_READY_FOR_REVIEW;
                 $pitch->current_snapshot_id = $snapshot->id; // Link the new snapshot
                 $pitch->save();
+
+                // For Client Management projects, also update project status to OPEN
+                // This ensures the project becomes "visible" in the system when first submitted
+                if ($pitch->project->isClientManagement() && $pitch->project->status === \App\Models\Project::STATUS_UNPUBLISHED) {
+                    $pitch->project->status = \App\Models\Project::STATUS_OPEN;
+                    $pitch->project->save();
+                    
+                    Log::info('Client Management project published upon first submission.', [
+                        'project_id' => $pitch->project->id,
+                        'pitch_id' => $pitch->id
+                    ]);
+                }
 
                 // Update previous snapshot status if applicable
                 Log::debug('Checking previous snapshot status update condition.', [
@@ -1288,7 +1300,7 @@ class PitchWorkflowService
                 'commission_amount' => $commissionAmount,
                 'net_amount' => $netAmount,
                 'status' => \App\Models\PayoutSchedule::STATUS_SCHEDULED,
-                'hold_release_date' => now()->addDays(7), // 7-day hold period
+                'hold_release_date' => app(\App\Services\PayoutHoldService::class)->calculateHoldReleaseDate('client_management'),
                 'metadata' => [
                     'type' => 'client_management_completion',
                     'client_email' => $project->client_email,
@@ -1338,7 +1350,7 @@ class PitchWorkflowService
         return DB::transaction(function () use ($pitch, $feedback, $clientIdentifier) {
             $pitch->status = Pitch::STATUS_CLIENT_REVISIONS_REQUESTED; // Use the new status
             // Note: Does not use standard snapshots/revision cycles. Status change drives the flow.
-            $pitch->revisions_requested_at = now(); // Use standard field?
+            $pitch->revisions_requested_at = now(); // Use standard field
             $pitch->save();
 
             // Create event with feedback

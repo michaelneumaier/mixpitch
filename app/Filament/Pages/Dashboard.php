@@ -44,7 +44,6 @@ class Dashboard extends BaseDashboard
     {
         return [
             StatsOverview::class,
-            \App\Filament\Widgets\RevenueOverview::class,
             ProjectStats::class,
         ];
     }

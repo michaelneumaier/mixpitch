@@ -46,12 +46,20 @@ class ClientPortalController extends Controller
         }
 
         // Retrieve the single pitch associated with this project
-        // Eager load necessary relationships for the view
+        // Enhanced: Eager load snapshots and their associated files
         $pitch = $project->pitches()
-                         ->with(['user', 'files', 'events' => function ($query) {
-                             // Order events, newest first
-                             $query->orderBy('created_at', 'desc');
-                         }, 'events.user']) // Load user relation for events if needed
+                         ->with([
+                             'user', 
+                             'files', 
+                             'snapshots' => function($query) {
+                                 $query->orderBy('created_at', 'desc');
+                             },
+                             'events' => function ($query) {
+                                 // Order events, newest first
+                                 $query->orderBy('created_at', 'desc');
+                             }, 
+                             'events.user'
+                         ])
                          ->first();
 
         if (!$pitch) {
@@ -59,11 +67,160 @@ class ClientPortalController extends Controller
             abort(404, 'Project details could not be loaded.'); // Or show an error view
         }
 
-        // Pass project, pitch, and maybe a way to regenerate the signed URL for actions
+        // Enhanced: Prepare snapshot history and current snapshot
+        $snapshotHistory = $this->prepareSnapshotHistory($pitch);
+        $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
+
+        // Pass enhanced data to view
         return view('client_portal.show', [
             'project' => $project,
             'pitch' => $pitch,
+            'snapshotHistory' => $snapshotHistory,
+            'currentSnapshot' => $currentSnapshot,
         ]);
+    }
+
+    /**
+     * Show a specific snapshot in the client portal.
+     */
+    public function showSnapshot(Project $project, \App\Models\PitchSnapshot $snapshot, Request $request)
+    {
+        // Basic validation: Ensure it's a client management project
+        if (!$project->isClientManagement()) {
+            abort(404, 'Project not found or not accessible via client portal.');
+        }
+
+        // Validate the signed URL (Laravel handles this via middleware, but double-check)
+        if (!$request->hasValidSignature()) {
+             abort(403, 'Invalid or expired link.');
+        }
+
+        // Ensure snapshot belongs to this project
+        $pitch = $project->pitches()->first();
+        if (!$pitch || $snapshot->pitch_id !== $pitch->id) {
+            abort(404, 'Snapshot not found for this project.');
+        }
+
+        // Load the pitch with all necessary relationships
+        $pitch = $project->pitches()
+                         ->with([
+                             'user', 
+                             'files', 
+                             'snapshots' => function($query) {
+                                 $query->orderBy('created_at', 'desc');
+                             },
+                             'events' => function ($query) {
+                                 $query->orderBy('created_at', 'desc');
+                             }, 
+                             'events.user'
+                         ])
+                         ->first();
+
+        // Prepare data for view
+        $snapshotHistory = $this->prepareSnapshotHistory($pitch);
+        
+        // Use the specific snapshot as current
+        $currentSnapshot = $snapshot;
+
+        return view('client_portal.show', [
+            'project' => $project,
+            'pitch' => $pitch,
+            'snapshotHistory' => $snapshotHistory,
+            'currentSnapshot' => $currentSnapshot,
+        ]);
+    }
+
+    /**
+     * Prepare snapshot history data for client view.
+     */
+    private function prepareSnapshotHistory($pitch)
+    {
+        $snapshots = $pitch->snapshots;
+        
+        // If we have real snapshots, use them
+        if ($snapshots->count() > 0) {
+            return $snapshots->map(function($snapshot, $index) {
+                return [
+                    'id' => $snapshot->id,
+                    'version' => $snapshot->snapshot_data['version'] ?? ($index + 1),
+                    'submitted_at' => $snapshot->created_at,
+                    'status' => $snapshot->status,
+                    'file_count' => count($snapshot->snapshot_data['file_ids'] ?? []),
+                    'response_to_feedback' => $snapshot->snapshot_data['response_to_feedback'] ?? null,
+                ];
+            });
+        }
+        
+        // Fallback: If no snapshots but files exist, create virtual snapshot history
+        if ($pitch->files->count() > 0) {
+            return collect([[
+                'id' => 'current',
+                'version' => 1,
+                'submitted_at' => $pitch->updated_at,
+                'status' => 'pending',
+                'file_count' => $pitch->files->count(),
+                'response_to_feedback' => null,
+            ]]);
+        }
+        
+        // No snapshots and no files
+        return collect();
+    }
+
+    /**
+     * Get the current snapshot to display.
+     */
+    private function getCurrentSnapshot($pitch, $request)
+    {
+        $snapshotId = $request->get('snapshot');
+        
+        if ($snapshotId) {
+            // Use eager-loaded snapshots instead of querying
+            return $pitch->snapshots->find($snapshotId);
+        }
+        
+        // Try to get latest snapshot first (use eager-loaded collection)
+        $latestSnapshot = $pitch->snapshots->sortByDesc('created_at')->first();
+        
+        if ($latestSnapshot) {
+            return $latestSnapshot;
+        }
+        
+        // Fallback: Create a virtual snapshot from current pitch files for backward compatibility
+        if ($pitch->files->count() > 0) {
+            // Create a dynamic class that mimics PitchSnapshot behavior
+            $virtualSnapshot = new class {
+                public $id;
+                public $pitch_id;
+                public $created_at;
+                public $snapshot_data;
+                public $status;
+                public $files;
+                public $version;
+                public $response_to_feedback;
+                
+                public function hasFiles() {
+                    return $this->files && $this->files->count() > 0;
+                }
+            };
+            
+            $virtualSnapshot->id = 'current';
+            $virtualSnapshot->pitch_id = $pitch->id;
+            $virtualSnapshot->created_at = $pitch->updated_at;
+            $virtualSnapshot->snapshot_data = [
+                'version' => 1,
+                'file_ids' => $pitch->files->pluck('id')->toArray(),
+                'response_to_feedback' => null
+            ];
+            $virtualSnapshot->status = 'pending';
+            $virtualSnapshot->files = $pitch->files;
+            $virtualSnapshot->version = 1;
+            $virtualSnapshot->response_to_feedback = null;
+            
+            return $virtualSnapshot;
+        }
+        
+        return null;
     }
 
     /**

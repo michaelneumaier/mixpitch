@@ -9,6 +9,7 @@ use App\Models\PayoutSchedule;
 use App\Models\User;
 use App\Models\Project;
 use App\Services\PayoutProcessingService;
+use App\Services\PayoutHoldService;
 use App\Services\StripeConnectService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -153,6 +154,31 @@ class PayoutScheduleResource extends Resource
                             ]),
                     ]),
 
+                Forms\Components\Section::make('Hold Period Bypass Information')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Toggle::make('hold_bypassed')
+                                    ->label('Hold Period Bypassed')
+                                    ->disabled(),
+
+                                Forms\Components\DateTimePicker::make('bypassed_at')
+                                    ->label('Bypassed At')
+                                    ->disabled(),
+
+                                Forms\Components\Select::make('bypass_admin_id')
+                                    ->label('Bypassed By Admin')
+                                    ->relationship('bypassAdmin', 'name')
+                                    ->disabled(),
+
+                                Forms\Components\Textarea::make('bypass_reason')
+                                    ->label('Bypass Reason')
+                                    ->disabled()
+                                    ->columnSpanFull(),
+                            ]),
+                    ])
+                    ->visible(fn ($record) => $record && $record->hold_bypassed),
+
                 Forms\Components\Section::make('Stripe Integration')
                     ->schema([
                         Forms\Components\Grid::make(2)
@@ -280,6 +306,27 @@ class PayoutScheduleResource extends Resource
                     ->trueColor('success')
                     ->falseColor('warning'),
 
+                Tables\Columns\IconColumn::make('hold_bypassed')
+                    ->label('Bypassed')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-shield-exclamation')
+                    ->falseIcon('heroicon-o-shield-check')
+                    ->trueColor('warning')
+                    ->falseColor('success')
+                    ->tooltip(fn (PayoutSchedule $record): ?string => 
+                        $record->hold_bypassed 
+                            ? "Bypassed by admin: {$record->bypass_reason}" 
+                            : 'Normal hold period processing'
+                    )
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('bypassed_at')
+                    ->label('Bypassed At')
+                    ->dateTime('M j, Y g:i A')
+                    ->sortable()
+                    ->toggleable()
+                    ->placeholder('—'),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime('M j, Y g:i A')
@@ -323,6 +370,19 @@ class PayoutScheduleResource extends Resource
                               ->where('hold_release_date', '>', now())
                     )
                     ->toggle(),
+
+                Tables\Filters\Filter::make('bypassed_holds')
+                    ->label('Bypassed Holds')
+                    ->query(fn (Builder $query): Builder => 
+                        $query->where('hold_bypassed', true)
+                    )
+                    ->toggle(),
+
+                Tables\Filters\SelectFilter::make('bypass_admin')
+                    ->label('Bypassed By')
+                    ->relationship('bypassAdmin', 'name')
+                    ->searchable()
+                    ->preload(),
 
                 Tables\Filters\SelectFilter::make('producer')
                     ->relationship('producer', 'name')
@@ -382,22 +442,59 @@ class PayoutScheduleResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 
+                Action::make('bypass_hold')
+                    ->label('Bypass Hold Period')
+                    ->icon('heroicon-o-shield-exclamation')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Bypass Hold Period')
+                    ->modalDescription('This will bypass the hold period and make the payout immediately available for processing.')
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Bypass Reason')
+                            ->helperText('Provide a reason for bypassing the hold period (required for audit trail)')
+                            ->required()
+                            ->maxLength(500),
+                    ])
+                    ->visible(function (PayoutSchedule $record): bool {
+                        $holdService = app(PayoutHoldService::class);
+                        return $record->status === 'scheduled' 
+                            && !$record->hold_bypassed 
+                            && $holdService->canBypassHold();
+                    })
+                    ->action(function (PayoutSchedule $record, array $data): void {
+                        try {
+                            $holdService = app(PayoutHoldService::class);
+                            $holdService->bypassHoldPeriod($record, $data['reason']);
+                            
+                            Notification::make()
+                                ->title('Hold Period Bypassed')
+                                ->success()
+                                ->body("Hold period bypassed for payout {$record->id}. Reason: {$data['reason']}")
+                                ->send();
+                                
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Bypass Failed')
+                                ->danger()
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                    }),
+
                 Action::make('process_immediately')
                     ->label('Process Now')
                     ->icon('heroicon-o-play')
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Process Payout Immediately')
-                    ->modalDescription('This will bypass the hold period and process the payout immediately. Are you sure?')
-                    ->visible(fn (PayoutSchedule $record): bool => $record->status === 'scheduled')
+                    ->modalDescription('This will process the payout right now.')
+                    ->visible(fn (PayoutSchedule $record): bool => 
+                        $record->status === 'scheduled' && $record->hold_release_date->isPast()
+                    )
                     ->action(function (PayoutSchedule $record): void {
                         try {
                             $payoutService = app(PayoutProcessingService::class);
-                            
-                            // Update hold release date to now to bypass hold
-                            $record->update(['hold_release_date' => now()]);
-                            
-                            // Process the payout
                             $payoutService->processSinglePayout($record);
                             
                             Notification::make()

@@ -42,6 +42,8 @@ use App\Filament\Resources\PayoutScheduleResource;
 use App\Filament\Resources\StripeTransactionResource;
 use App\Filament\Pages\EmailAuditPage;
 use App\Filament\Pages\EmailSuppressionPage;
+use App\Filament\Pages\PayoutHoldSettings;
+use App\Filament\Widgets\HoldPeriodStatsWidget;
 use App\Filament\Plugins\BillingPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -111,8 +113,8 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Financial')
                     ->icon('heroicon-o-banknotes')
                     ->collapsible(),
-                'System Settings' => \Filament\Navigation\NavigationGroup::make()
-                    ->label('System Settings')
+                'System' => \Filament\Navigation\NavigationGroup::make()
+                    ->label('System')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->collapsible(),
             ])
@@ -135,12 +137,14 @@ class AdminPanelProvider extends PanelProvider
                 Settings::class,
                 EmailAuditPage::class,
                 EmailSuppressionPage::class,
+                PayoutHoldSettings::class,
             ])
             ->widgets([
                 // Core metrics - shown first
                 StatsOverview::class,
                 \App\Filament\Widgets\PayoutStatsOverview::class,
                 \App\Filament\Widgets\PayoutManagementWidget::class,
+                HoldPeriodStatsWidget::class,
                 ProjectStats::class,
                 UserVerificationStats::class,
                 EmailStats::class,

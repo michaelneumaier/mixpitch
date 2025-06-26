@@ -240,7 +240,7 @@
             <div style="background: #eff6ff; border-radius: 8px; padding: 20px; margin-top: 30px;">
                 <h4 style="margin: 0 0 10px 0; color: #1e40af;">ℹ️ What Happens Next?</h4>
                 <ul style="margin: 0; padding-left: 20px; color: #3730a3;">
-                    <li><strong>Hold Period:</strong> All payouts have a 3-business day hold for security</li>
+                    <li><strong>Hold Period:</strong> {{ ucfirst(app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('standard')['description']) }} for security</li>
                     <li><strong>Release:</strong> Funds will be automatically released on the scheduled date</li>
                     <li><strong>Transfer:</strong> Money will be sent directly to your connected Stripe account</li>
                     <li><strong>Notification:</strong> You'll receive confirmation when the transfer completes</li>

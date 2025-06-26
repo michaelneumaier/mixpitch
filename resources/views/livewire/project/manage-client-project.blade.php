@@ -210,7 +210,7 @@
                                                 class="text-green-600 hover:text-green-800 text-sm">
                                             <i class="fas fa-download mr-1"></i>Download
                                         </button>
-                                        @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
+                                        @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
                                         <button wire:click="confirmDeleteFile({{ $file->id }})" 
                                                 class="text-red-600 hover:text-red-800 text-sm">
                                             <i class="fas fa-trash mr-1"></i>Delete
@@ -230,7 +230,7 @@
             </div>
 
             <!-- Response to Feedback Section (if applicable) -->
-            @if($pitch->status === \App\Models\Pitch::STATUS_REVISIONS_REQUESTED)
+            @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
             <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <h4 class="text-lg font-semibold text-amber-800 mb-3 flex items-center">
                     <i class="fas fa-reply text-amber-600 mr-2"></i>Respond to Feedback
@@ -246,6 +246,87 @@
                     @error('responseToFeedback') 
                         <span class="text-red-500 text-xs mt-1">{{ $message }}</span> 
                     @enderror
+                </div>
+            </div>
+            @endif
+
+            <!-- Submit for Review Section -->
+            @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
+            <div class="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50 rounded-xl p-6 shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4 shadow-lg">
+                        <i class="fas fa-paper-plane text-white"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-purple-800">Ready to Submit for Review?</h4>
+                        <p class="text-purple-600 text-sm">Submit your work to your client for review and approval</p>
+                    </div>
+                </div>
+
+                @if($this->producerFiles->count() === 0)
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-amber-500 mr-3"></i>
+                            <div>
+                                <h5 class="font-medium text-amber-800">No deliverables uploaded</h5>
+                                <p class="text-sm text-amber-700">You need to upload at least one file before submitting for review.</p>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <div>
+                                <h5 class="font-medium text-green-800">{{ $this->producerFiles->count() }} {{ Str::plural('file', $this->producerFiles->count()) }} ready</h5>
+                                <p class="text-sm text-green-700">Your deliverables are ready to be submitted to the client.</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]) && $responseToFeedback)
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <h5 class="font-medium text-blue-800 mb-2">Your Response to Feedback:</h5>
+                        <p class="text-sm text-blue-700 italic">{{ $responseToFeedback }}</p>
+                    </div>
+                @endif
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    @if($this->producerFiles->count() > 0)
+                        <button wire:click="submitForReview" 
+                                wire:loading.attr="disabled"
+                                class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold text-lg transition-all duration-200 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:transform-none relative overflow-hidden group">
+                            <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                            <span wire:loading wire:target="submitForReview" class="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></span>
+                            <i wire:loading.remove wire:target="submitForReview" class="fas fa-paper-plane mr-3 relative z-10"></i>
+                            <span class="relative z-10">
+                                @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
+                                    Submit Revisions
+                                @else
+                                    Submit for Review
+                                @endif
+                            </span>
+                        </button>
+                    @else
+                        <button disabled
+                                class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gray-400 text-white rounded-xl font-bold text-lg opacity-50 cursor-not-allowed">
+                            <i class="fas fa-paper-plane mr-3"></i>
+                            Submit for Review
+                        </button>
+                    @endif
+                    
+                    <button onclick="window.scrollTo({top: document.querySelector('.bg-green-50').offsetTop - 100, behavior: 'smooth'})"
+                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-purple-100 to-indigo-100 hover:from-purple-200 hover:to-indigo-200 text-purple-800 border border-purple-300 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-md">
+                        <i class="fas fa-upload mr-3"></i>Upload More Files
+                    </button>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <p class="text-sm text-purple-600">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Once submitted, your client will receive an email notification and can review your work through their secure portal.
+                    </p>
                 </div>
             </div>
             @endif

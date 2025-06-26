@@ -254,7 +254,7 @@
                     <h3 class="text-sm font-medium text-blue-800">About Refund Requests</h3>
                     <div class="mt-2 text-sm text-blue-700">
                         <ul class="list-disc pl-5 space-y-1">
-                            <li>Clients can request refunds within 3 days of payment completion</li>
+                            <li>Clients can request refunds within {{ app(\App\Services\RefundRequestService::class)->getRefundEligibilityWindow() }} days of payment completion</li>
                             <li>You have 2 days to respond to each refund request</li>
                             <li>Approved refunds will reverse your payout and refund the client</li>
                             <li>Denied requests are escalated to platform mediation</li>

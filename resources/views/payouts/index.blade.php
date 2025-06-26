@@ -355,7 +355,7 @@
                     <div class="mt-2 text-sm text-blue-700">
                         <ul class="list-disc pl-5 space-y-1">
                             <li><strong>Automatic Processing:</strong> Payouts are automatically scheduled when projects are completed or contest prizes are awarded</li>
-                            <li><strong>Hold Period:</strong> All payouts have a 3-business day hold period for fraud protection</li>
+                            <li><strong>Hold Period:</strong> {{ ucfirst(app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('standard')['description']) }} for fraud protection</li>
                             <li><strong>Direct Transfer:</strong> Funds are transferred directly to your connected Stripe account</li>
                             <li><strong>Commission:</strong> Platform commission is deducted from gross amount before payout</li>
                             <li><strong>Notifications:</strong> You'll receive email and in-app notifications for all payout status changes</li>

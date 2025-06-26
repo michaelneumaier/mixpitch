@@ -190,7 +190,9 @@ class ContestPrizePaymentController extends Controller
                     'payout_schedules' => count($payoutSchedules),
                 ]);
 
-                $successMessage = 'Contest prizes have been paid successfully! Payouts will be processed after the 3-day hold period.';
+                $holdService = app(\App\Services\PayoutHoldService::class);
+            $holdInfo = $holdService->getHoldPeriodInfo('contest');
+            $successMessage = 'Contest prizes have been paid successfully! Payouts will be processed after ' . $holdInfo['description'] . '.';
                 
                 // Add note about partial payment if some winners were invalid
                 if (!empty($invalidWinners)) {
@@ -447,7 +449,7 @@ class ContestPrizePaymentController extends Controller
 
                 $successMessage = "Prize payment of $" . number_format($prizeAmount, 2) . " for " . 
                                 $targetWinner['prize']->getPlacementDisplayName() . " place has been processed successfully! " .
-                                "{$targetWinner['user']->name} will receive their payout after the 3-day hold period.";
+                                "{$targetWinner['user']->name} will receive their payout after " . app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('contest')['description'] . ".";
 
                 return redirect()->route('contest.prizes.overview', $project)
                     ->with('success', $successMessage);

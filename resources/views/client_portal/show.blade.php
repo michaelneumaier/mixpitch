@@ -407,24 +407,24 @@
                             <p class="text-sm text-blue-800 mb-6 leading-relaxed">Upload briefs, references, or examples to help the producer understand your requirements perfectly.</p>
                             
                             {{-- Enhanced File Upload Area --}}
-                            <div class="upload-area border-2 border-dashed border-blue-300 hover:border-blue-400 rounded-2xl p-8 text-center mb-6 transition-all duration-300 cursor-pointer group" id="client-upload-area">
+                            <label for="client-file-input" class="upload-area border-2 border-dashed border-blue-300 hover:border-blue-400 rounded-2xl p-8 text-center mb-6 transition-all duration-300 cursor-pointer group block" id="client-upload-area">
                                 <div class="flex flex-col items-center">
                                     <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
                                         <i class="fas fa-cloud-upload-alt text-2xl text-blue-500"></i>
                                     </div>
                                     <p class="text-blue-700 font-semibold mb-2">
-                                        <label for="client-file-input" class="cursor-pointer hover:text-blue-600 transition-colors duration-200">
+                                        <span class="hover:text-blue-600 transition-colors duration-200">
                                             Click to upload files
-                            </label>
+                                        </span>
                                         <span class="text-blue-600"> or drag and drop</span>
                                     </p>
                                     <p class="text-xs text-blue-600 bg-blue-100/50 rounded-lg px-3 py-1">
                                         PDF, DOC, MP3, WAV, JPG, PNG (max 200MB each)
-                        </p>
+                                    </p>
                                 </div>
-                        <input id="client-file-input" type="file" class="hidden" multiple 
-                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.mp3,.wav,.m4a">
-                    </div>
+                                <input id="client-file-input" type="file" class="hidden" multiple 
+                                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.mp3,.wav,.m4a">
+                            </label>
                     
                     {{-- Client Files List --}}
                     <div id="client-files-list">
@@ -466,47 +466,132 @@
                     </div>
                 </div>
                 
-                {{-- Producer Deliverables Section --}}
-                        <div class="bg-gradient-to-br from-green-50/90 to-emerald-50/80 backdrop-blur-md border border-green-200/50 rounded-2xl p-6 shadow-lg">
-                            <h4 class="font-bold text-green-900 mb-3 flex items-center text-lg">
-                                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3">
-                                    <i class="fas fa-check-circle text-white text-sm"></i>
-                                </div>
-                        Producer Deliverables
-                    </h4>
-                            <p class="text-sm text-green-800 mb-6 leading-relaxed">Files delivered by {{ $pitch->user->name }} for your review and approval.</p>
+                {{-- ENHANCED Producer Deliverables with Snapshot Navigation --}}
+                <div class="bg-gradient-to-br from-green-50/90 to-emerald-50/80 backdrop-blur-md border border-green-200/50 rounded-2xl p-6 shadow-lg">
                     
-                    {{-- Producer Files List --}}
-                    @if($pitch->files->count() > 0)
-                                <div class="space-y-3">
-                            @foreach($pitch->files as $file)
-                                        <div class="flex items-center justify-between p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
-                                    <div class="flex items-center">
-                                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-sm">
-                                                    <i class="fas fa-music text-white text-sm"></i>
-                                                </div>
-                                                <div>
-                                                    <span class="text-sm font-semibold text-green-900">{{ $file->file_name }}</span>
-                                                    <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB</div>
-                                                </div>
+                    {{-- Header with Version Info --}}
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3">
+                                <i class="fas fa-history text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-green-900 text-lg">Producer Deliverables</h4>
+                                <p class="text-sm text-green-700">
+                                    @if($currentSnapshot)
+                                        Version {{ $currentSnapshot->version ?? 1 }} of {{ $snapshotHistory->count() }}
+                                    @else
+                                        No submissions yet
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        
+                        @if($snapshotHistory->count() > 1)
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-lg">
+                                {{ $snapshotHistory->count() }} versions available
+                            </span>
+                        </div>
+                        @endif
+                    </div>
+
+                    {{-- Snapshot Navigation (if multiple versions) --}}
+                    @if($snapshotHistory->count() > 1)
+                    <div class="mb-6">
+                        <div class="bg-gradient-to-r from-blue-50/80 to-green-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
+                            <h5 class="font-semibold text-blue-800 mb-3">Submission History</h5>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                @foreach($snapshotHistory as $snapshot)
+                                <a href="{{ URL::temporarySignedRoute('client.portal.snapshot', now()->addHours(24), ['project' => $project->id, 'snapshot' => $snapshot['id']]) }}"
+                                   class="group p-3 rounded-lg border transition-all duration-200 hover:shadow-md
+                                          {{ $currentSnapshot && $currentSnapshot->id === $snapshot['id'] 
+                                             ? 'bg-green-100 border-green-300 ring-2 ring-green-500' 
+                                             : 'bg-white border-gray-200 hover:border-green-300' }}">
+                                    
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3
+                                                        {{ $currentSnapshot && $currentSnapshot->id === $snapshot['id']
+                                                           ? 'bg-green-500 text-white' 
+                                                           : 'bg-gray-100 text-gray-600' }}">
+                                                <i class="fas fa-camera text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-semibold text-sm">V{{ $snapshot['version'] }}</div>
+                                                <div class="text-xs text-gray-500">{{ $snapshot['submitted_at']->format('M j') }}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-xs px-2 py-1 rounded-lg
+                                                    {{ $snapshot['status'] === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                       ($snapshot['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-gray-100 text-gray-600') }}">
+                                            {{ ucfirst($snapshot['status']) }}
+                                        </div>
                                     </div>
-                                    <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
-                                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-sm">
-                                                <i class="fas fa-download mr-2"></i>Download
-                                    </a>
+                                </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Current Snapshot Files Display --}}
+                    @if($currentSnapshot && (method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0))
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="font-semibold text-green-800">
+                                Files in Version {{ $currentSnapshot->version ?? 1 }}
+                            </h5>
+                            <span class="text-sm text-green-600">
+                                Submitted {{ $currentSnapshot->created_at->format('M j, Y g:i A') }}
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            @foreach(($currentSnapshot->files ?? collect()) as $file)
+                            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                                <div class="flex items-center">
+                                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-sm">
+                                        <i class="fas fa-music text-white text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-semibold text-green-900">{{ $file->file_name }}</span>
+                                        <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB</div>
+                                    </div>
                                 </div>
+                                <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
+                                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-sm">
+                                    <i class="fas fa-download mr-2"></i>Download
+                                </a>
+                            </div>
                             @endforeach
                         </div>
-                    @else
-                                <div class="text-center py-8">
-                                    <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                        <i class="fas fa-clock text-green-500 text-xl"></i>
-                                    </div>
-                                    <p class="text-green-700 font-medium mb-2">No deliverables uploaded yet</p>
-                                    <p class="text-green-600 text-sm leading-relaxed max-w-md mx-auto">The producer will upload files here as they work on your project. You'll be notified when new files are available.</p>
-                                </div>
-                    @endif
+                        
+                        {{-- Response to Feedback (if any) --}}
+                        @if($currentSnapshot->response_to_feedback ?? false)
+                        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h6 class="font-semibold text-blue-800 mb-2">Producer's Response to Feedback:</h6>
+                            <p class="text-blue-700 text-sm">{{ $currentSnapshot->response_to_feedback }}</p>
                         </div>
+                        @endif
+                    </div>
+                    @else
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-clock text-green-500 text-xl"></i>
+                        </div>
+                        @if($currentSnapshot)
+                            <p class="text-green-700 font-medium mb-2">No files in this version</p>
+                            <p class="text-green-600 text-sm">The producer hasn't uploaded files for this submission yet.</p>
+                        @else
+                            <p class="text-green-700 font-medium mb-2">No deliverables uploaded yet</p>
+                            <p class="text-green-600 text-sm leading-relaxed max-w-md mx-auto">The producer will upload files here as they work on your project. You'll be notified when new files are available.</p>
+                        @endif
+                    </div>
+                    @endif
+                </div>
                     </div>
                 </div>
                 </div>
@@ -567,8 +652,8 @@
                                     </p>
                                 </div>
                                 
-                                <form action="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
-                            @csrf
+                                <form action="{{ URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
+                                    @csrf
                                     <button type="submit" class="group w-full relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 hover:shadow-2xl">
                                         <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                         <div class="relative flex items-center justify-center">
@@ -603,8 +688,8 @@
                                     </p>
                                 </div>
                                 
-                        <form action="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.revisions', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
-                            @csrf
+                                <form action="{{ URL::temporarySignedRoute('client.portal.revisions', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
+                                    @csrf
                                     <label for="feedback" class="block text-sm font-semibold text-amber-800 mb-3">Detailed Feedback</label>
                                     <textarea name="feedback" id="feedback" rows="4" required 
                                               class="w-full rounded-xl border-amber-300 shadow-sm focus:border-amber-500 focus:ring focus:ring-amber-500 focus:ring-opacity-20 transition-all duration-300 bg-white/80 backdrop-blur-sm" 
@@ -740,8 +825,8 @@
 
                     {{-- Comment Form --}}
                     <div class="bg-gradient-to-br from-blue-50/80 to-purple-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-6 mb-6">
-                        <form action="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.comments.store', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
-                    @csrf
+                            <form action="{{ URL::temporarySignedRoute('client.portal.comments.store', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
+                                @csrf
                             <label for="comment" class="block text-sm font-semibold text-blue-900 mb-3">Add a Comment</label>
                             <textarea name="comment" id="comment" rows="4" required 
                                       class="w-full rounded-xl border-blue-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-300 bg-white/80 backdrop-blur-sm" 
@@ -850,6 +935,18 @@
                 e.preventDefault();
                 uploadArea.classList.remove('border-blue-500', 'bg-blue-100', 'scale-105');
                 handleFiles(e.dataTransfer.files);
+            });
+            
+            // Ensure the entire upload area is clickable (redundant with label, but good for clarity)
+            uploadArea.addEventListener('click', function(e) {
+                // The label will handle the click, but we can add visual feedback here if needed
+                if (!e.target.closest('input')) {
+                    // Add a subtle click animation
+                    uploadArea.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        uploadArea.style.transform = '';
+                    }, 100);
+                }
             });
             
             function handleFiles(files) {
@@ -1092,5 +1189,4 @@
     </script>
 
 </body>
-</html> 
 </html> 

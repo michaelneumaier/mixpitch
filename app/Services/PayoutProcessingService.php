@@ -53,8 +53,8 @@ class PayoutProcessingService
             $commissionAmount = $payoutAmount * ($commissionRate / 100);
             $netAmount = $payoutAmount - $commissionAmount;
             
-            // Calculate hold release date (3 business days)
-            $holdReleaseDate = $this->calculateHoldReleaseDate();
+            // Calculate hold release date using dynamic configuration
+            $holdReleaseDate = $this->calculateHoldReleaseDate($workflowType);
             
             // Create transaction record
             $transaction = Transaction::createForPitch(
@@ -136,7 +136,7 @@ class PayoutProcessingService
 
         return DB::transaction(function () use ($project, $winners, $stripeInvoiceId) {
             $payoutSchedules = [];
-            $holdReleaseDate = $this->calculateHoldReleaseDate();
+            $holdReleaseDate = $this->calculateHoldReleaseDate('contest');
 
             foreach ($winners as $winner) {
                 $pitch = $winner['pitch'];
@@ -435,26 +435,15 @@ class PayoutProcessingService
     }
 
     /**
-     * Calculate hold release date (3 business days from now)
+     * Calculate hold release date using dynamic configuration
      *
+     * @param string $workflowType
      * @return Carbon
      */
-    protected function calculateHoldReleaseDate(): Carbon
+    protected function calculateHoldReleaseDate(string $workflowType = 'standard'): Carbon
     {
-        $date = now();
-        $businessDaysAdded = 0;
-
-        while ($businessDaysAdded < 3) {
-            $date->addDay();
-            
-            // Skip weekends (Saturday = 6, Sunday = 0)
-            if (!in_array($date->dayOfWeek, [0, 6])) {
-                $businessDaysAdded++;
-            }
-        }
-
-        // Set to 9 AM for consistent processing time
-        return $date->setTime(9, 0, 0);
+        $holdService = app(\App\Services\PayoutHoldService::class);
+        return $holdService->calculateHoldReleaseDate($workflowType);
     }
 
     /**

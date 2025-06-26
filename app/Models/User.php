@@ -100,6 +100,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'plan_started_at',
         'monthly_pitch_count',
         'monthly_pitch_reset_date',
+        'is_admin',
     ];
 
     /**
@@ -126,6 +127,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'profile_completed' => 'boolean',
         'plan_started_at' => 'datetime',
         'monthly_pitch_reset_date' => 'date',
+        'is_admin' => 'boolean',
     ];
 
     /**

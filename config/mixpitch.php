@@ -1,16 +1,18 @@
 <?php
 
-// config/mixpitch.php
+// config/mixpitch.php - Legacy configuration, migrated to config/business.php
+// This file is kept for backward compatibility
 return [
     /*
     |--------------------------------------------------------------------------
-    | Client Portal Settings
+    | Client Portal Settings (DEPRECATED)
     |--------------------------------------------------------------------------
     |
-    | Configuration values related to the client management portal feature.
+    | These settings have been moved to config/business.php
+    | This file is maintained for backward compatibility only.
     |
     */
-    'client_portal_link_expiry_days' => env('CLIENT_PORTAL_LINK_EXPIRY_DAYS', 7),
+    'client_portal_link_expiry_days' => config('business.client_portal_link_expiry_days', 7),
 
     /*
     |--------------------------------------------------------------------------

@@ -200,16 +200,29 @@
                                             @endif
                                         @endif
                                         
-                                        @if ($project->is_published)
-                                            <button wire:click="unpublish"
-                                                class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
-                                                <i class="fas fa-eye-slash mr-2"></i>Unpublish Project
-                                            </button>
+                                        @if (!$project->isClientManagement())
+                                            @if ($project->is_published)
+                                                <button wire:click="unpublish"
+                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
+                                                    <i class="fas fa-eye-slash mr-2"></i>Unpublish Project
+                                                </button>
+                                            @else
+                                                <button wire:click="publish"
+                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
+                                                    <i class="fas fa-globe mr-2"></i>Publish Project
+                                                </button>
+                                            @endif
                                         @else
-                                            <button wire:click="publish"
-                                                class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
-                                                <i class="fas fa-globe mr-2"></i>Publish Project
-                                            </button>
+                                            {{-- Client Management projects remain private by design --}}
+                                            <div class="col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 text-center">
+                                                <div class="flex items-center justify-center mb-2">
+                                                    <i class="fas fa-user-shield text-blue-600 mr-2"></i>
+                                                    <span class="font-semibold text-blue-800">Private Project</span>
+                                                </div>
+                                                <p class="text-sm text-blue-700">
+                                                    Client Management projects remain private and are only accessible through secure client portals.
+                                                </p>
+                                            </div>
                                         @endif
                                     </div>
                                 </div>
@@ -687,16 +700,29 @@
                                             @endif
                                         @endif
                                         
-                                        @if ($project->is_published)
-                                            <button wire:click="unpublish"
-                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
-                                                <i class="fas fa-eye-slash mr-2"></i>Unpublish
-                                            </button>
+                                        @if (!$project->isClientManagement())
+                                            @if ($project->is_published)
+                                                <button wire:click="unpublish"
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
+                                                    <i class="fas fa-eye-slash mr-2"></i>Unpublish
+                                                </button>
+                                            @else
+                                                <button wire:click="publish"
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
+                                                    <i class="fas fa-globe mr-2"></i>Publish Project
+                                                </button>
+                                            @endif
                                         @else
-                                            <button wire:click="publish"
-                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
-                                                <i class="fas fa-globe mr-2"></i>Publish Project
-                                            </button>
+                                            {{-- Client Management projects remain private by design --}}
+                                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 text-center">
+                                                <div class="flex items-center justify-center mb-1">
+                                                    <i class="fas fa-user-shield text-blue-600 mr-2"></i>
+                                                    <span class="font-semibold text-blue-800 text-sm">Private Project</span>
+                                                </div>
+                                                <p class="text-xs text-blue-700">
+                                                    Client projects remain private and accessible only through secure portals.
+                                                </p>
+                                            </div>
                                         @endif
                                     </div>
                                 </div>
@@ -895,16 +921,29 @@
                                             @endif
                                         @endif
                                         
-                                        @if ($project->is_published)
-                                            <button wire:click="unpublish"
-                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
-                                                <i class="fas fa-eye-slash mr-2"></i>Unpublish Contest
-                                            </button>
+                                        @if (!$project->isClientManagement())
+                                            @if ($project->is_published)
+                                                <button wire:click="unpublish"
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
+                                                    <i class="fas fa-eye-slash mr-2"></i>Unpublish Contest
+                                                </button>
+                                            @else
+                                                <button wire:click="publish"
+                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
+                                                    <i class="fas fa-globe mr-2"></i>Publish Contest
+                                                </button>
+                                            @endif
                                         @else
-                                            <button wire:click="publish"
-                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
-                                                <i class="fas fa-globe mr-2"></i>Publish Contest
-                                            </button>
+                                            {{-- Client Management projects should not appear in contest sections --}}
+                                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 text-center">
+                                                <div class="flex items-center justify-center mb-1">
+                                                    <i class="fas fa-user-shield text-blue-600 mr-2"></i>
+                                                    <span class="font-semibold text-blue-800 text-sm">Private Project</span>
+                                                </div>
+                                                <p class="text-xs text-blue-700">
+                                                    Client projects remain private and accessible only through secure portals.
+                                                </p>
+                                            </div>
                                         @endif
                                     </div>
                                 </div>

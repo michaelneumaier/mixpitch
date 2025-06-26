@@ -84,15 +84,9 @@ class ProjectsComponent extends Component
                     } else {
                         $subQ->whereRaw('1 = 0');
                     }
-                })
-                ->orWhere(function ($subQ) use ($userId) {
-                    $subQ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
-                    if ($userId) {
-                         $subQ->where('user_id', $userId);
-                    } else {
-                         $subQ->whereRaw('1 = 0');
-                    }
                 });
+                // REMOVED: Client Management projects should NEVER appear on /projects page
+                // This is a public marketplace, not a place to manage private client projects
             })
             ->filterAndSort($filters);
 

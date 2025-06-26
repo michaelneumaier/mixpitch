@@ -16,7 +16,7 @@ class RevenueOverview extends BaseWidget
     
     public static function canView(): bool
     {
-        return auth()->user()->can('view-financial-data') || auth()->user()->hasRole('admin');
+        return auth()->user()->is_admin || auth()->user()->hasRole('admin');
     }
     
     protected function getStats(): array

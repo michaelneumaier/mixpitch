@@ -48,6 +48,53 @@ class PitchSnapshot extends Model
     }
 
     /**
+     * Get the files associated with this snapshot.
+     * Files are determined by the file_ids in snapshot_data.
+     */
+    public function getFilesAttribute()
+    {
+        $fileIds = $this->snapshot_data['file_ids'] ?? [];
+        if (empty($fileIds)) {
+            return collect();
+        }
+        
+        return PitchFile::whereIn('id', $fileIds)->orderBy('created_at')->get();
+    }
+
+    /**
+     * Get the version number for this snapshot.
+     */
+    public function getVersionAttribute()
+    {
+        return $this->snapshot_data['version'] ?? 1;
+    }
+
+    /**
+     * Get the response to feedback for this snapshot.
+     */
+    public function getResponseToFeedbackAttribute()
+    {
+        return $this->snapshot_data['response_to_feedback'] ?? null;
+    }
+
+    /**
+     * Check if this snapshot has files.
+     */
+    public function hasFiles(): bool
+    {
+        $fileIds = $this->snapshot_data['file_ids'] ?? [];
+        return !empty($fileIds);
+    }
+
+    /**
+     * Get the count of files in this snapshot.
+     */
+    public function getFileCountAttribute(): int
+    {
+        return count($this->snapshot_data['file_ids'] ?? []);
+    }
+
+    /**
      * Get all defined status constants.
      *
      * @return array

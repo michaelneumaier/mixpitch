@@ -920,6 +920,11 @@ Route::get('/projects/{project:id}/portal', [ClientPortalController::class, 'sho
     ->name('client.portal.view')
     ->middleware('signed');
 
+// Client Portal Snapshot Navigation - NEW
+Route::get('/projects/{project:id}/portal/snapshot/{snapshot}', [ClientPortalController::class, 'showSnapshot'])
+    ->name('client.portal.snapshot')
+    ->middleware('signed');
+
 // Client ACTION routes (need signed middleware)
 Route::post('/client-portal/project/{project:id}/comments', [ClientPortalController::class, 'storeComment'])
     ->name('client.portal.comments.store')

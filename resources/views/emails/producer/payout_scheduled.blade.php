@@ -17,7 +17,7 @@ Great news! Your payout for "**{{ $projectTitle }}**" has been scheduled and wil
 
 ## What Happens Next?
 
-Your payout will be automatically processed on {{ $holdReleaseDate->format('F j, Y') }} and transferred to your connected payout account. This hold period ensures transaction security and allows for any potential disputes to be resolved.
+Your payout will be automatically processed on {{ $holdReleaseDate->format('F j, Y') }} and transferred to your connected payout account. {{ ucfirst(app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('standard')['description']) }} ensures transaction security and allows for any potential disputes to be resolved.
 
 You'll receive another notification once the payout has been successfully processed and transferred.
 

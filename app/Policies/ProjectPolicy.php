@@ -143,6 +143,13 @@ class ProjectPolicy
     {
         Log::debug("[ProjectPolicy] publish check: User ID: {$user->id}, Project User ID: {$project->user_id}");
         $isOwner = $user->id === $project->user_id;
+        
+        // Client Management projects should never be published
+        if ($project->isClientManagement()) {
+            Log::debug("[ProjectPolicy] publish check: Client Management project cannot be published");
+            return false;
+        }
+        
         Log::debug("[ProjectPolicy] publish check result: " . ($isOwner ? 'true' : 'false'));
         return $isOwner;
     }
@@ -158,6 +165,13 @@ class ProjectPolicy
     {
         Log::debug("[ProjectPolicy] unpublish check: User ID: {$user->id}, Project User ID: {$project->user_id}");
         $isOwner = $user->id === $project->user_id;
+        
+        // Client Management projects are already unpublished by design
+        if ($project->isClientManagement()) {
+            Log::debug("[ProjectPolicy] unpublish check: Client Management project is already unpublished by design");
+            return false;
+        }
+        
         Log::debug("[ProjectPolicy] unpublish check result: " . ($isOwner ? 'true' : 'false'));
         return $isOwner;
     }

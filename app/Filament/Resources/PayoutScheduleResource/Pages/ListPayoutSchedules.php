@@ -20,6 +20,16 @@ class ListPayoutSchedules extends ListRecords
         return [
             Actions\CreateAction::make(),
             
+            Actions\Action::make('hold_settings')
+                ->label('Hold Period Settings')
+                ->icon('heroicon-o-cog-6-tooth')
+                ->color('gray')
+                ->url('/admin/payout-hold-settings')
+                ->visible(function (): bool {
+                    $holdService = app(\App\Services\PayoutHoldService::class);
+                    return $holdService->canBypassHold(auth()->user());
+                }),
+            
             Actions\Action::make('process_ready_payouts')
                 ->label('Process Ready Payouts')
                 ->icon('heroicon-o-play')

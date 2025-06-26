@@ -49,6 +49,10 @@ class PayoutSchedule extends Model
         'subscription_plan',
         'subscription_tier',
         'metadata',
+        'hold_bypassed',
+        'bypass_reason',
+        'bypass_admin_id',
+        'bypassed_at',
     ];
 
     protected $casts = [
@@ -63,6 +67,8 @@ class PayoutSchedule extends Model
         'cancelled_at' => 'datetime',
         'reversed_at' => 'datetime',
         'metadata' => 'array',
+        'hold_bypassed' => 'boolean',
+        'bypassed_at' => 'datetime',
     ];
 
     // ========== RELATIONSHIPS ==========
@@ -115,6 +121,14 @@ class PayoutSchedule extends Model
     public function refundRequests(): HasMany
     {
         return $this->hasMany(RefundRequest::class);
+    }
+
+    /**
+     * Get the admin user who bypassed the hold period
+     */
+    public function bypassAdmin(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'bypass_admin_id');
     }
 
     // ========== STATUS METHODS ==========
