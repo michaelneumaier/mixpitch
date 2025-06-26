@@ -23,7 +23,11 @@ class DateTime extends Component
 
     public function render(): View|Closure|string
     {
-        return view('components.datetime');
+        return view('components.datetime', [
+            'formattedDate' => $this->getFormattedDate(),
+            'relativeDate' => $this->getRelativeDate(),
+            'isoDate' => $this->getIsoDate(),
+        ]);
     }
     
     public function getFormattedDate(): string
