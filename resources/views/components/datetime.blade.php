@@ -1,13 +1,13 @@
 <time 
-    datetime="{{ $getIsoDate() }}" 
+    datetime="{{ $this->getIsoDate() }}" 
     class="{{ $class }}"
     @if($tooltip)
-        title="{{ $getFormattedDate() }}"
+        title="{{ $this->getFormattedDate() }}"
     @endif
 >
     @if($relative)
-        {{ $getRelativeDate() }}
+        {{ $this->getRelativeDate() }}
     @else
-        {{ $getFormattedDate() }}
+        {{ $this->getFormattedDate() }}
     @endif
 </time> 
