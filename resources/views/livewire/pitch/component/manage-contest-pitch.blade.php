@@ -45,9 +45,11 @@
                         <div class="bg-white/60 backdrop-blur-sm border border-yellow-200/30 rounded-xl p-4">
                             <dt class="text-sm font-medium text-yellow-700 mb-2">Deadline</dt>
                             <dd class="text-sm font-medium text-yellow-900">
-                                {{ $project->submission_deadline->format('M d, Y') }}
-                                <br>
-                                <span class="text-xs text-yellow-700">{{ $project->submission_deadline->diffForHumans() }}</span>
+                                <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
+                                <div class="text-xs text-yellow-700 mt-1">
+                                    <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
+                                </div>
+                                <span class="text-xs text-yellow-700"><x-datetime :date="$project->submission_deadline" relative="true" /></span>
                             </dd>
                         </div>
                     @endif

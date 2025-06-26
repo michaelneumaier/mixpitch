@@ -316,8 +316,8 @@
                         @enderror
                 </div>
                 
-                    <!-- Location & Website Row -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Location, Timezone & Website Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Location -->
                         <div class="space-y-2">
                             <label for="location" class="block text-sm font-semibold text-gray-700">
@@ -334,6 +334,36 @@
                                     <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
                     </div>
                             @enderror
+                </div>
+
+                <!-- Timezone -->
+                <div class="space-y-2">
+                    <label for="timezone" class="block text-sm font-semibold text-gray-700">
+                        <div class="flex items-center">
+                            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg p-1.5 w-6 h-6 flex items-center justify-center mr-2 shadow-md">
+                                <i class="fas fa-clock text-white text-xs"></i>
+                            </div>
+                            Timezone
+                        </div>
+                    </label>
+                    <div class="relative">
+                        <select wire:model="timezone" id="timezone" 
+                                class="w-full px-4 py-3 bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all duration-200">
+                            @foreach($this->getTimezoneOptions() as $tz => $label)
+                                <option value="{{ $tz }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 pointer-events-none opacity-0 focus-within:opacity-100 transition-opacity duration-200"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 bg-indigo-50/80 backdrop-blur-sm border border-indigo-200/50 rounded-lg px-3 py-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        All project deadlines and times will be shown in your timezone
+                    </p>
+                    @error('timezone') 
+                        <div class="flex items-center text-red-600 text-sm bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-lg px-3 py-2">
+                            <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
+                        </div>
+                    @enderror
                 </div>
                 
                 <!-- Website -->

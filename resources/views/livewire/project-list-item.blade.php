@@ -127,10 +127,18 @@
                             </div>
                         @endif
                         
-                        @if($project->deadline)
+                        @if($project->isContest() ? $project->submission_deadline : $project->deadline)
                             <div class="text-sm text-gray-600 flex items-center">
                                 <i class="fas fa-calendar-alt mr-1 text-gray-400"></i>
-                                <span>{{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}</span>
+                                <div>
+                                    @if($project->isContest())
+                                        <div><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" /></div>
+                                        <div class="text-xs text-gray-500"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" /></div>
+                                    @else
+                                        <div><x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" /></div>
+                                        <div class="text-xs text-gray-500"><x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" /></div>
+                                    @endif
+                                </div>
                             </div>
                         @endif
                     </div>

@@ -49,7 +49,7 @@
                 <div class="text-center p-4 bg-white/50 rounded-xl border border-yellow-200/30">
                     <div class="text-2xl font-bold text-gray-900">
                         @if($project->submission_deadline)
-                            {{ $project->submission_deadline->format('M j, Y') }}
+                            <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M j, Y" />
                         @else
                             No Deadline
                         @endif

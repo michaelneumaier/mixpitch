@@ -7,6 +7,7 @@ namespace App\Livewire;
 use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
 use App\Models\ContestPrize;
+use App\Models\User;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -90,6 +91,12 @@ class CreateProject extends Component
     // Form change tracking
     public $hasUnsavedChanges = false;
     public $initialFormState = [];
+    
+    // Browser timezone for datetime-local conversion
+    public $browserTimezone;
+    
+    // User's profile timezone
+    public $userTimezone;
 
     protected $listeners = [
         'prizesUpdated' => 'handlePrizesUpdated',
@@ -520,10 +527,51 @@ class CreateProject extends Component
             $this->subgenre_id = $project->subgenre_id;
             $this->visibility = $project->visibility;
 
+            // Initialize timezone service for datetime conversions
+            $timezoneService = app(\App\Services\TimezoneService::class);
+
             // Populate workflow-specific fields
             if ($this->workflow_type === Project::WORKFLOW_TYPE_CONTEST) {
-                $this->submission_deadline = $project->submission_deadline ? $project->submission_deadline->format('Y-m-d\TH:i') : null;
-                $this->judging_deadline = $project->judging_deadline ? $project->judging_deadline->format('Y-m-d\TH:i') : null;
+                // Convert UTC times to user's timezone for datetime-local inputs
+                // Note: Contest deadlines are now properly converted from UTC to user timezone
+                
+                // Convert contest deadlines - parse raw database values as UTC
+                if ($project->submission_deadline) {
+                    $rawSubmissionDeadline = $project->getRawOriginal('submission_deadline');
+                    $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
+                    $convertedTime = $timezoneService->convertToUserTimezone($utcTime, auth()->user());
+                    $this->submission_deadline = $convertedTime->format('Y-m-d\TH:i');
+                    
+                    \Log::info('CreateProject: CORRECT submission_deadline conversion', [
+                        'raw_database' => $rawSubmissionDeadline,
+                        'parsed_as_utc' => $utcTime->format('Y-m-d H:i:s T'),
+                        'converted_to_user' => $convertedTime->format('Y-m-d H:i:s T'),
+                        'final_formatted' => $this->submission_deadline
+                    ]);
+                } else {
+                    $this->submission_deadline = null;
+                }
+                
+                if ($project->judging_deadline) {
+                    $rawJudgingDeadline = $project->getRawOriginal('judging_deadline');
+                    $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
+                    $convertedTime = $timezoneService->convertToUserTimezone($utcTime, auth()->user());
+                    $this->judging_deadline = $convertedTime->format('Y-m-d\TH:i');
+                    
+                    \Log::info('CreateProject: CORRECT judging_deadline conversion', [
+                        'raw_database' => $rawJudgingDeadline,
+                        'parsed_as_utc' => $utcTime->format('Y-m-d H:i:s T'),
+                        'converted_to_user' => $convertedTime->format('Y-m-d H:i:s T'),
+                        'final_formatted' => $this->judging_deadline
+                    ]);
+                } else {
+                    $this->judging_deadline = null;
+                }
+                
+                \Log::info('CreateProject: Converted contest deadlines', [
+                    'submission_deadline_converted' => $this->submission_deadline,
+                    'judging_deadline_converted' => $this->judging_deadline
+                ]);
                 
                 // Load prize data from new ContestPrize system
                 $this->totalPrizeBudget = $project->getTotalPrizeBudget();
@@ -573,7 +621,26 @@ class CreateProject extends Component
             // projectImage is handled separately for display/upload
             $this->form->budgetType = $project->budget > 0 ? 'paid' : 'free'; // Determine budget type
             $this->form->budget = $project->budget;
-            $this->form->deadline = $project->deadline ? $project->deadline->format('Y-m-d') : null;
+            // Convert standard deadline - parse raw database value as UTC
+            if ($project->deadline) {
+                // Parse the raw database value explicitly as UTC to bypass middleware timezone effects
+                $rawDeadline = $project->getRawOriginal('deadline');
+                $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
+                $convertedTime = $timezoneService->convertToUserTimezone($utcTime, auth()->user());
+                $this->form->deadline = $convertedTime->format('Y-m-d\TH:i');
+                
+                \Log::info('CreateProject: CORRECT standard deadline conversion', [
+                    'project_id' => $project->id,
+                    'raw_database' => $rawDeadline,
+                    'parsed_as_utc' => $utcTime->format('Y-m-d H:i:s T'),
+                    'converted_to_user' => $convertedTime->format('Y-m-d H:i:s T'),
+                    'final_formatted' => $this->form->deadline,
+                    'user_timezone' => auth()->user()->getTimezone()
+                ]);
+            } else {
+                $this->form->deadline = null;
+            }
+
             // Collaboration types need mapping
             $this->mapCollaborationTypesToForm($project->collaboration_type);
             // Notes might be part of the project or a related model - assuming project for now
@@ -600,6 +667,9 @@ class CreateProject extends Component
             // Component's workflow_type already defaults to WORKFLOW_TYPE_STANDARD
         }
 
+        // Initialize user timezone
+        $this->userTimezone = auth()->user()->getTimezone();
+        
         // Initialize form tracking
         $this->initializeFormTracking();
     }
@@ -782,14 +852,7 @@ class CreateProject extends Component
     public function save(ProjectManagementService $projectService)
     {
         try {
-            // Format deadline if it exists
-            if (!empty($this->form->deadline)) {
-                try {
-                    $this->form->deadline = \Carbon\Carbon::parse($this->form->deadline)->startOfDay()->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $this->form->deadline = null;
-                }
-            }
+            // Don't format deadline here - it will be handled later in the convertDateTimeToUtc method
 
             // Format budget based on budgetType
             if ($this->form->budgetType === 'free') {
@@ -842,8 +905,8 @@ class CreateProject extends Component
                 
                 // Format deadline for database (use submission_deadline for contests, standard deadline for others)
                 'deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? 
-                            ($this->submission_deadline ? \Carbon\Carbon::parse($this->submission_deadline) : null) :
-                            (!empty($this->form->deadline) ? \Carbon\Carbon::parse($this->form->deadline) : null),
+                            ($this->submission_deadline ? $this->convertDateTimeToUtc($this->submission_deadline, auth()->user()) : null) :
+                            (!empty($this->form->deadline) ? $this->convertDateTimeToUtc($this->form->deadline, auth()->user()) : null),
                 
                 'genre' => $this->form->genre ?: 'Pop', // Default genre for client management
                 'genre_id' => $this->genre_id,
@@ -852,8 +915,10 @@ class CreateProject extends Component
                 
                 // Workflow specific fields
                 'workflow_type' => $this->workflow_type,
-                'submission_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->submission_deadline : null,
-                'judging_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST ? $this->judging_deadline : null,
+                'submission_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST && $this->submission_deadline ? 
+                    $this->convertDateTimeToUtc($this->submission_deadline, auth()->user()) : null,
+                'judging_deadline' => $this->workflow_type === Project::WORKFLOW_TYPE_CONTEST && $this->judging_deadline ? 
+                    $this->convertDateTimeToUtc($this->judging_deadline, auth()->user()) : null,
                 // Note: prize_amount and prize_currency are now managed by ContestPrizeConfigurator
                 'target_producer_id' => $this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE ? $this->target_producer_id : null,
                 'client_email' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_email : null,
@@ -1073,6 +1138,74 @@ class CreateProject extends Component
     public function render()
     {
         return view('livewire.project.page.create-project');
+    }
+
+    /**
+     * Convert datetime-local input to UTC for database storage
+     * This method treats datetime-local inputs as being in the user's timezone
+     */
+    private function convertDateTimeToUtc(string $dateTime, ?User $user = null): Carbon
+    {
+        $user = $user ?? auth()->user();
+        $userTimezone = $user->getTimezone();
+        
+        Log::debug('CreateProject convertDateTimeToUtc called', [
+            'input' => $dateTime,
+            'user_timezone' => $userTimezone,
+            'input_type' => gettype($dateTime),
+        ]);
+
+        // Handle datetime-local format: "2025-06-29T13:00"
+        if (str_contains($dateTime, 'T')) {
+            // Convert T to space and add seconds if needed
+            $formattedDateTime = str_replace('T', ' ', $dateTime);
+            if (substr_count($formattedDateTime, ':') === 1) {
+                $formattedDateTime .= ':00'; // Add seconds
+            }
+            
+            // Create Carbon instance in user's timezone and convert to UTC
+            $result = Carbon::createFromFormat('Y-m-d H:i:s', $formattedDateTime, $userTimezone)->utc();
+            
+            Log::debug('CreateProject: Datetime-local conversion', [
+                'input' => $dateTime,
+                'formatted' => $formattedDateTime,
+                'user_timezone' => $userTimezone,
+                'output_utc' => $result->toDateTimeString()
+            ]);
+            
+            return $result;
+        }
+        
+        // Fallback: assume it's already in UTC or parse as-is
+        $result = Carbon::parse($dateTime)->utc();
+        Log::debug('CreateProject: Fallback conversion', [
+            'input' => $dateTime,
+            'output' => $result->toDateTimeString()
+        ]);
+        return $result;
+    }
+
+    /**
+     * Get user-friendly timezone display name for indicators
+     */
+    public function getTimezoneDisplayName(): string
+    {
+        try {
+            $userTimezone = auth()->user()->getTimezone();
+            $browserTimezone = $this->browserTimezone;
+            
+            // Use user's profile timezone if available, otherwise fall back to browser timezone
+            $timezoneToUse = $userTimezone ?: $browserTimezone ?: 'UTC';
+            
+            // Get timezone abbreviation
+            $date = new \DateTime('now', new \DateTimeZone($timezoneToUse));
+            $abbreviation = $date->format('T');
+            
+            return $abbreviation . ' (' . $timezoneToUse . ')';
+        } catch (\Exception $e) {
+            // Fallback if timezone operations fail
+            return auth()->user()->getTimezone() ?: 'UTC';
+        }
     }
 
     // Property watchers to track form changes

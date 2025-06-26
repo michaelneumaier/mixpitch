@@ -330,7 +330,7 @@
                 <div class="space-y-2 text-sm">
                     <div class="flex items-center justify-between">
                         <span class="text-yellow-700">Contest Deadline:</span>
-                        <span class="font-medium text-yellow-900">{{ $project->submission_deadline->format('M d, Y H:i') }}</span>
+                        <span class="font-medium text-yellow-900"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y g:i A" /></span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-yellow-700">Time Remaining:</span>
@@ -338,14 +338,14 @@
                             @if($contestEnded)
                                 Contest Ended
                             @else
-                                {{ $project->submission_deadline->diffForHumans() }}
+                                <x-datetime :date="$project->submission_deadline" relative="true" />
                             @endif
                         </span>
                     </div>
                     @if($pitch->submitted_at)
                         <div class="flex items-center justify-between">
                             <span class="text-yellow-700">Your Submission:</span>
-                            <span class="font-medium text-green-600">{{ $pitch->submitted_at->format('M d, Y H:i') }}</span>
+                            <span class="font-medium text-green-600"><x-datetime :date="$pitch->submitted_at" format="M d, Y g:i A" /></span>
                         </div>
                     @endif
                 </div>

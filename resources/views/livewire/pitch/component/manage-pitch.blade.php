@@ -60,7 +60,7 @@
                                     @if($project->submission_deadline)
                                         <li class="flex items-start">
                                             <i class="fas fa-clock mr-2 text-amber-600 mt-0.5 text-xs"></i>
-                                            <span>Contest deadline: <strong>{{ $project->submission_deadline->format('M d, Y \a\t H:i T') }}</strong></span>
+                                            <span>Contest deadline: <strong><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t H:i T" /></strong></span>
                                         </li>
                                     @endif
                                 </ul>

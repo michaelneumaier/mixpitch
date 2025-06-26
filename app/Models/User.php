@@ -80,6 +80,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'website',
         'tipjar_link',
         'location',
+        'timezone',
         'social_links',
         'username_locked',
         'featured_work',
@@ -128,6 +129,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'plan_started_at' => 'datetime',
         'monthly_pitch_reset_date' => 'date',
         'is_admin' => 'boolean',
+        'timezone' => 'string',
     ];
 
     /**
@@ -1300,6 +1302,40 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     {
         $stripeConnectService = app(\App\Services\StripeConnectService::class);
         return $stripeConnectService->isAccountReadyForPayouts($this);
+    }
+
+    // ========== TIMEZONE METHODS ==========
+
+    /**
+     * Get user's timezone preference
+     *
+     * @return string
+     */
+    public function getTimezone(): string
+    {
+        return $this->timezone ?? config('timezone.default');
+    }
+
+    /**
+     * Format date for this user's timezone
+     *
+     * @param \Carbon\Carbon $date
+     * @param string|null $format
+     * @return string
+     */
+    public function formatDate(\Carbon\Carbon $date, ?string $format = null): string
+    {
+        return app(\App\Services\TimezoneService::class)->formatForUser($date, $this, $format);
+    }
+
+    /**
+     * Get current time in user's timezone
+     *
+     * @return \Carbon\Carbon
+     */
+    public function now(): \Carbon\Carbon
+    {
+        return app(\App\Services\TimezoneService::class)->now($this);
     }
 
     // If the trait doesn't automatically provide the relationship,

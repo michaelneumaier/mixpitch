@@ -228,18 +228,18 @@
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-amber-700">Time in Stage:</span>
-                        <span class="font-medium text-amber-900">{{ $timeInStatus->diffForHumans() }}</span>
+                        <span class="font-medium text-amber-900"><x-datetime :date="$timeInStatus" relative="true" /></span>
                     </div>
                     @if($project->submission_deadline)
                         <div class="flex items-center justify-between">
                             <span class="text-amber-700">Submission Deadline:</span>
-                            <span class="font-medium text-amber-900">{{ $project->submission_deadline->format('M d, Y H:i') }}</span>
+                            <span class="font-medium text-amber-900"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y g:i A" /></span>
                         </div>
                     @endif
                     @if($project->judging_finalized_at)
                         <div class="flex items-center justify-between">
                             <span class="text-amber-700">Judging Finalized:</span>
-                            <span class="font-medium text-green-700">{{ $project->judging_finalized_at->format('M d, Y H:i') }}</span>
+                            <span class="font-medium text-green-700"><x-datetime :date="$project->judging_finalized_at" format="M d, Y g:i A" /></span>
                         </div>
                     @endif
                 </div>

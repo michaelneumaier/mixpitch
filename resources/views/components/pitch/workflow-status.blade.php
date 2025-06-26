@@ -419,7 +419,7 @@
                     <div class="flex items-center text-sm mt-2">
                         <i class="fas fa-clock text-amber-600 mr-2"></i>
                         <span class="font-medium text-amber-800">Deadline:</span>
-                        <span class="text-amber-700 ml-1">{{ $project->submission_deadline->format('M d, Y \a\t H:i T') }}</span>
+                        <span class="text-amber-700 ml-1"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t H:i T" /></span>
                     </div>
                 @endif
             </div>

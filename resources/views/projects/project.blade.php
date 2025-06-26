@@ -297,6 +297,30 @@
                                     <span class="text-sm font-semibold text-gray-900">{{ $project->created_at->format('M d, Y') }}</span>
                                 </div>
 
+                                <!-- Deadline -->
+                                @if($project->isContest() ? $project->submission_deadline : $project->deadline)
+                                    <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg border border-purple-200/30">
+                                        <span class="text-sm font-medium text-gray-700">{{ $project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
+                                        <div class="text-right">
+                                            @if($project->isContest())
+                                                <div class="text-sm font-semibold text-gray-900">
+                                                    <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
+                                                </div>
+                                                <div class="text-xs text-gray-600">
+                                                    <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
+                                                </div>
+                                            @else
+                                                <div class="text-sm font-semibold text-gray-900">
+                                                    <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
+                                                </div>
+                                                <div class="text-xs text-gray-600">
+                                                    <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
+
                                 <!-- Files Count -->
                                 <div class="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50/50 to-blue-50/50 rounded-lg border border-gray-200/30">
                                     <span class="text-sm font-medium text-gray-700">Files</span>

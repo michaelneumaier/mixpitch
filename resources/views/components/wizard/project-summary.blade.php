@@ -64,13 +64,14 @@
                         </div>
                     </div>
                     <span class="text-xs font-bold bg-gradient-to-r from-indigo-700 to-indigo-800 bg-clip-text text-transparent block mb-1">Deadline</span>
-                    <span class="text-sm font-bold text-indigo-900">
+                    <div class="text-sm font-bold text-indigo-900">
                         @if(isset($project['deadline']) && $project['deadline'])
-                            {{ \Carbon\Carbon::parse($project['deadline'])->format('M d, Y') }}
+                            <div><x-datetime :date="\Carbon\Carbon::parse($project['deadline'])" :convertToViewer="true" format="M d, Y" /></div>
+                            <div class="text-xs text-indigo-700 mt-1"><x-datetime :date="\Carbon\Carbon::parse($project['deadline'])" :convertToViewer="true" format="g:i A T" /></div>
                         @else
                             Not set
                         @endif
-                    </span>
+                    </div>
                 </div>
             </div>
         </div>

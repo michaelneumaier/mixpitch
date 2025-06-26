@@ -83,23 +83,44 @@
         </div>
 
         <!-- Deadline (if applicable) -->
-        @if($project->deadline)
+        @if($project->isContest() ? $project->submission_deadline : $project->deadline)
             <div class="bg-amber-50 border border-amber-200/50 rounded-xl p-4">
                 <div class="flex items-center mb-2">
                     <i class="fas fa-calendar-alt text-amber-600 mr-2"></i>
-                    <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Deadline</span>
+                    <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">{{ $project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
                 </div>
-                <div class="text-sm font-bold text-amber-900">
-                    {{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}
-                </div>
-                @if(\Carbon\Carbon::parse($project->deadline)->isPast())
-                    <div class="text-xs text-red-600 mt-1">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
+                @if($project->isContest())
+                    <div class="text-sm font-bold text-amber-900">
+                        <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
                     </div>
+                    <div class="text-xs text-amber-700 mt-1">
+                        <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
+                    </div>
+                    @if($project->submission_deadline->isPast())
+                        <div class="text-xs text-red-600 mt-1">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
+                        </div>
+                    @else
+                        <div class="text-xs text-amber-600 mt-1">
+                            <x-datetime :date="$project->submission_deadline" relative="true" />
+                        </div>
+                    @endif
                 @else
-                    <div class="text-xs text-amber-600 mt-1">
-                        {{ \Carbon\Carbon::parse($project->deadline)->diffForHumans() }}
+                    <div class="text-sm font-bold text-amber-900">
+                        <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
                     </div>
+                    <div class="text-xs text-amber-700 mt-1">
+                        <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
+                    </div>
+                    @if($project->deadline->isPast())
+                        <div class="text-xs text-red-600 mt-1">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
+                        </div>
+                    @else
+                        <div class="text-xs text-amber-600 mt-1">
+                            <x-datetime :date="$project->deadline" relative="true" />
+                        </div>
+                    @endif
                 @endif
             </div>
         @endif

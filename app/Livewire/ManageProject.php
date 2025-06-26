@@ -23,6 +23,7 @@ use App\Exceptions\File\StorageLimitException;
 use App\Exceptions\File\FileDeletionException;
 use App\Services\NotificationService;
 use App\Jobs\PostProjectToReddit;
+use Carbon\Carbon;
 
 class ManageProject extends Component
 {
@@ -39,7 +40,8 @@ class ManageProject extends Component
     public $storageRemaining = 0;
 
     public bool $showDeleteModal = false;
-    public $fileToDelete;
+    public $fileToDelete = null;
+    public $showDeleteConfirmation = false;
 
     // Project deletion properties
     public bool $showProjectDeleteModal = false;
@@ -53,6 +55,13 @@ class ManageProject extends Component
     // Reddit posting state
     public bool $isPostingToReddit = false;
     public $redditPostingStartedAt = null;
+
+    // Browser timezone for datetime-local conversion
+    public $browserTimezone;
+    
+    // Contest deadline properties (for editing contest projects)
+    public $submission_deadline = null;
+    public $judging_deadline = null;
 
     // Add listener for the new file uploader component
     protected $listeners = [
@@ -93,16 +102,62 @@ class ManageProject extends Component
         // Use the fill method to populate the form from the model
         $this->form->fill($this->project);
 
-        // Ensure the form's deadline is a 'Y-m-d' string
+        // Initialize timezone service for datetime conversions
+        $timezoneService = app(\App\Services\TimezoneService::class);
+        
+        // Handle standard project deadline - parse raw database value as UTC
         if ($this->project->deadline && $this->project->deadline instanceof \Carbon\Carbon) {
-            // If the model has a Carbon instance, format it for the form
-            $this->form->deadline = $this->project->deadline->format('Y-m-d');
+            $rawDeadline = $this->project->getRawOriginal('deadline');
+            $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
+            $this->form->deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+            
+            \Log::info('ManageProject: CORRECT standard project deadline', [
+                'project_id' => $this->project->id,
+                'raw_database' => $rawDeadline,
+                'parsed_as_utc' => $utcTime->format('Y-m-d H:i:s T'),
+                'deadline_converted' => $this->form->deadline,
+                'user_timezone' => auth()->user()->getTimezone()
+            ]);
         } elseif (is_string($this->project->deadline)) {
             // If the model has a string, assume it's correctly formatted and ensure the form has it
             // fill() might have already handled this, but this makes it explicit
             $this->form->deadline = $this->project->deadline;
         } else {
             $this->form->deadline = null; // Default to null if model deadline isn't set or Carbon
+        }
+        
+        // Handle contest deadlines if this is a contest project
+        if ($this->project->isContest()) {
+            \Log::info('ManageProject: Converting contest deadlines for editing', [
+                'project_id' => $this->project->id,
+                'submission_deadline_utc' => $this->project->submission_deadline,
+                'judging_deadline_utc' => $this->project->judging_deadline,
+                'user_timezone' => auth()->user()->getTimezone()
+            ]);
+            
+            // Convert UTC times to user's timezone for datetime-local inputs - parse raw as UTC
+            if ($this->project->submission_deadline) {
+                $rawSubmissionDeadline = $this->project->getRawOriginal('submission_deadline');
+                $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
+                $this->submission_deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+            } else {
+                $this->submission_deadline = null;
+            }
+            
+            if ($this->project->judging_deadline) {
+                $rawJudgingDeadline = $this->project->getRawOriginal('judging_deadline');
+                $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
+                $this->judging_deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+            } else {
+                $this->judging_deadline = null;
+            }
+            
+            \Log::info('ManageProject: CORRECT contest deadlines', [
+                'submission_raw' => $this->project->getRawOriginal('submission_deadline'),
+                'judging_raw' => $this->project->getRawOriginal('judging_deadline'),
+                'submission_deadline_converted' => $this->submission_deadline,
+                'judging_deadline_converted' => $this->judging_deadline
+            ]);
         }
 
         // Handle mapping collaboration types (assuming ProjectForm has boolean properties)
@@ -607,6 +662,17 @@ class ManageProject extends Component
         
         $validatedData = $this->form->validate();
         
+        // Add contest deadline validation if this is a contest project
+        if ($this->project->isContest()) {
+            $contestValidation = $this->validate([
+                'submission_deadline' => 'nullable|date|after:now',
+                'judging_deadline' => 'nullable|date|after:submission_deadline',
+            ]);
+            
+            // Merge contest deadline validation with form validation
+            $validatedData = array_merge($validatedData, $contestValidation);
+        }
+        
         // Log the validated data
         Log::debug('ManageProject: After validate()', ['validated_data' => $validatedData]);
 
@@ -648,6 +714,20 @@ class ManageProject extends Component
         // Extract image if present
         $imageFile = $validatedData['projectImage'] ?? null;
         unset($validatedData['projectImage']);
+        
+        // Convert deadline to UTC if provided
+        if (isset($validatedData['deadline']) && $validatedData['deadline']) {
+            $validatedData['deadline'] = $this->convertDateTimeToUtc($validatedData['deadline']);
+        }
+        
+        // Convert contest deadline fields to UTC if provided
+        if (isset($validatedData['submission_deadline']) && $validatedData['submission_deadline']) {
+            $validatedData['submission_deadline'] = $this->convertDateTimeToUtc($validatedData['submission_deadline']);
+        }
+        
+        if (isset($validatedData['judging_deadline']) && $validatedData['judging_deadline']) {
+            $validatedData['judging_deadline'] = $this->convertDateTimeToUtc($validatedData['judging_deadline']);
+        }
         
         Log::debug('ManageProject: Before calling service->updateProject', [
             'project_id' => $this->project->id,
@@ -1053,8 +1133,49 @@ class ManageProject extends Component
     {
         $this->isPostingToReddit = false;
         $this->redditPostingStartedAt = null;
-        $this->dispatch('stop-reddit-polling');
+    }
+    
+    /**
+     * Convert datetime-local input to UTC for database storage
+     * This method treats datetime-local inputs as being in the user's timezone
+     */
+    private function convertDateTimeToUtc(string $dateTime): Carbon
+    {
+        $userTimezone = auth()->user()->getTimezone();
         
-        Toaster::info('Reddit posting state has been reset.');
+        Log::debug('ManageProject convertDateTimeToUtc called', [
+            'input' => $dateTime,
+            'user_timezone' => $userTimezone,
+            'input_type' => gettype($dateTime),
+        ]);
+
+        // Handle datetime-local format: "2025-06-29T13:00"
+        if (str_contains($dateTime, 'T')) {
+            // Convert T to space and add seconds if needed
+            $formattedDateTime = str_replace('T', ' ', $dateTime);
+            if (substr_count($formattedDateTime, ':') === 1) {
+                $formattedDateTime .= ':00'; // Add seconds
+            }
+            
+            // Create Carbon instance in user's timezone and convert to UTC
+            $result = Carbon::createFromFormat('Y-m-d H:i:s', $formattedDateTime, $userTimezone)->utc();
+            
+            Log::debug('ManageProject: Datetime-local conversion', [
+                'input' => $dateTime,
+                'formatted' => $formattedDateTime,
+                'user_timezone' => $userTimezone,
+                'output_utc' => $result->toDateTimeString()
+            ]);
+            
+            return $result;
+        }
+        
+        // Fallback: assume it's already in UTC or parse as-is
+        $result = Carbon::parse($dateTime)->utc();
+        Log::debug('ManageProject: Fallback conversion', [
+            'input' => $dateTime,
+            'output' => $result->toDateTimeString()
+        ]);
+        return $result;
     }
 }

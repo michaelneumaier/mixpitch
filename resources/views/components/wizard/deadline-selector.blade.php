@@ -125,6 +125,20 @@
                     <label class="text-sm font-medium text-gray-700">
                         <i class="fas fa-calendar-alt text-gray-500 mr-2"></i>
                         Custom Date
+                        <span class="ml-2 text-xs font-normal text-gray-600 bg-gray-100 px-2 py-1 rounded-md" id="wizard-deadline-timezone-indicator">
+                            @php
+                                $userTimezone = auth()->user()->getTimezone();
+                                $browserTimezone = 'Loading...';
+                                try {
+                                    $date = new DateTime();
+                                    $timeString = $date->format('T');
+                                    $abbreviation = $timeString;
+                                    echo $abbreviation . ' (' . $userTimezone . ')';
+                                } catch (Exception $e) {
+                                    echo $userTimezone ?: 'Loading timezone...';
+                                }
+                            @endphp
+                        </span>
                     </label>
                     <button type="button" @click="setPreset('custom')"
                             class="text-xs px-2 py-1 rounded border transition-colors"
@@ -134,10 +148,9 @@
                 </div>
                 
                 <div class="space-y-3">
-                    <input type="date" 
+                    <input type="datetime-local" 
                            x-model="customDate"
                            @change="updateCustomDate()"
-                           wire:model.blur="form.deadline"
                            :min="new Date().toISOString().split('T')[0]"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                 </div>
@@ -164,4 +177,68 @@
         </p>
         @enderror
     </div>
-</div> 
+</div>
+
+<script>
+// Updated timezone handling - v2.1
+/**
+ * Update wizard timezone indicator on page load
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    updateWizardTimezoneIndicator();
+    
+    // Update timezone indicator after Livewire updates
+    document.addEventListener('livewire:updated', function() {
+        updateWizardTimezoneIndicator();
+    });
+});
+
+function updateWizardTimezoneIndicator() {
+    try {
+        // Get user's profile timezone (passed from blade template)
+        const userTimezone = @js(auth()->user()->getTimezone());
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Use user's profile timezone if available, otherwise fall back to browser timezone
+        const timezoneToUse = userTimezone || browserTimezone;
+        const timezoneDisplayName = getWizardTimezoneDisplayName(timezoneToUse);
+        
+        const indicator = document.getElementById('wizard-deadline-timezone-indicator');
+        if (indicator) {
+            indicator.textContent = timezoneDisplayName;
+        }
+        
+    } catch (error) {
+        console.error('Error updating wizard timezone indicator:', error);
+    }
+}
+
+function getWizardTimezoneDisplayName(timezone) {
+    try {
+        // Use toLocaleString with timeZoneName to get abbreviation
+        const date = new Date();
+        const timeString = date.toLocaleString('en-US', {
+            timeZone: timezone,
+            timeZoneName: 'short'
+        });
+        
+        // Extract timezone abbreviation from the end of the string
+        const match = timeString.match(/\b([A-Z]{2,5})\s*$/);
+        const abbreviation = match ? match[1] : null;
+        
+        if (abbreviation) {
+            return `${abbreviation} (${timezone})`;
+        }
+        
+        // Fallback: just return the timezone identifier
+        return timezone;
+    } catch (error) {
+        console.error('Error getting wizard timezone display name:', error);
+        return timezone;
+    }
+}
+
+// JavaScript timezone conversion function removed
+// Now using server-side timezone conversion with wire:model bindings
+// This eliminates the double-conversion issue and browser compatibility problems
+</script> 

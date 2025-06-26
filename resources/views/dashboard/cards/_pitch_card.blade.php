@@ -143,23 +143,46 @@
                         @endif
                     @endif
                     
-                    @if($pitch->project && $pitch->project->deadline)
+                    @if($pitch->project && ($pitch->project->isContest() ? $pitch->project->submission_deadline : $pitch->project->deadline))
                         <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200/50">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-calendar text-purple-600 mr-2"></i>
-                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Deadline</span>
+                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">{{ $pitch->project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
                             </div>
-                            <div class="text-sm font-bold text-purple-900">{{ \Carbon\Carbon::parse($pitch->project->deadline)->format('M d, Y') }}</div>
-                            @php
-                                $daysUntilDeadline = \Carbon\Carbon::parse($pitch->project->deadline)->diffInDays(now(), false);
-                            @endphp
+                            @if($pitch->project->isContest())
+                                <div class="text-sm font-bold text-purple-900">
+                                    <x-datetime :date="$pitch->project->submission_deadline" :user="$pitch->project->user" :convertToViewer="true" format="M d, Y" />
+                                </div>
+                                <div class="text-xs text-purple-600 mt-1">
+                                    <x-datetime :date="$pitch->project->submission_deadline" :user="$pitch->project->user" :convertToViewer="true" format="g:i A T" />
+                                </div>
+                                @php
+                                    $deadlineField = $pitch->project->submission_deadline;
+                                    $daysUntilDeadline = auth()->user() ? 
+                                        auth()->user()->now()->diffInDays($deadlineField, false) : 
+                                        now()->diffInDays($deadlineField, false);
+                                @endphp
+                            @else
+                                <div class="text-sm font-bold text-purple-900">
+                                    <x-datetime :date="$pitch->project->deadline" :user="$pitch->project->user" :convertToViewer="true" format="M d, Y" />
+                                </div>
+                                <div class="text-xs text-purple-600 mt-1">
+                                    <x-datetime :date="$pitch->project->deadline" :user="$pitch->project->user" :convertToViewer="true" format="g:i A T" />
+                                </div>
+                                @php
+                                    $deadlineField = $pitch->project->deadline;
+                                    $daysUntilDeadline = auth()->user() ? 
+                                        auth()->user()->now()->diffInDays($deadlineField, false) : 
+                                        now()->diffInDays($deadlineField, false);
+                                @endphp
+                            @endif
                             <div class="text-xs text-purple-600 mt-1">
                                 @if($daysUntilDeadline < 0)
-                                    {{ abs($daysUntilDeadline) }} days left
+                                    {{ abs($daysUntilDeadline) }} days overdue
                                 @elseif($daysUntilDeadline === 0)
                                     Due today
                                 @else
-                                    {{ $daysUntilDeadline }} days overdue
+                                    {{ $daysUntilDeadline }} days left
                                 @endif
                             </div>
                         </div>
@@ -206,7 +229,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div class="text-sm text-gray-500 flex items-center">
                         <i class="fas fa-clock mr-2"></i>
-                        <span>Updated {{ $pitch->updated_at->diffForHumans() }}</span>
+                        <span>Updated <x-datetime :date="$pitch->updated_at" relative="true" /></span>
                     </div>
                     
                     <div class="flex flex-wrap gap-2">

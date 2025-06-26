@@ -18,6 +18,7 @@ class UserProfileEdit extends Component
     public $headline;
     public $bio;
     public $location;
+    public $timezone;
     public $website;
     public $tipjar_link;
     public $skills = [];
@@ -52,6 +53,7 @@ class UserProfileEdit extends Component
             'headline' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:5000',
             'location' => 'nullable|string|max:255',
+            'timezone' => 'required|string|in:' . implode(',', array_keys(config('timezone.user_selectable', []))),
             'website' => 'nullable|string|max:255',
             'tipjar_link' => 'nullable|string|max:255|allowed_tipjar_domain',
             'profilePhoto' => 'nullable|image|max:1024',
@@ -111,6 +113,7 @@ class UserProfileEdit extends Component
         $this->headline = $user->headline;
         $this->bio = $user->bio;
         $this->location = $user->location;
+        $this->timezone = $user->timezone ?? config('timezone.default');
         $this->website = $user->website;
         $this->tipjar_link = $user->tipjar_link;
         $this->social_links = $user->social_links ?? [];
@@ -219,6 +222,7 @@ class UserProfileEdit extends Component
             'headline' => $this->headline,
             'bio' => $this->bio,
             'location' => $this->location,
+            'timezone' => $this->timezone,
             'website' => $this->website,
             'tipjar_link' => $this->tipjar_link,
             'social_links' => array_filter($this->social_links ?? []),
@@ -261,6 +265,11 @@ class UserProfileEdit extends Component
         } catch (\Exception $e) {
             Toaster::error('An error occurred while updating your profile. Please try again.');
         }
+    }
+
+    public function getTimezoneOptions(): array
+    {
+        return config('timezone.user_selectable');
     }
 
     public function render()

@@ -41,12 +41,12 @@
                                 @if($project->submission_deadline)
                                     <div class="flex items-center justify-between">
                                         <span>Original deadline:</span>
-                                        <span class="font-medium">{{ $project->submission_deadline->format('M d, Y \a\t g:i A') }}</span>
+                                        <span class="font-medium"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t g:i A" /></span>
                                     </div>
                                     <div class="flex items-center justify-between">
                                         <span>Time saved:</span>
                                         <span class="font-medium text-green-600">
-                                            {{ $project->submissions_closed_early_at->diffForHumans($project->submission_deadline, true) }} early
+                                            <x-datetime :date="$project->submissions_closed_early_at" relative="true" /> early
                                         </span>
                                     </div>
                                 @endif
@@ -82,7 +82,7 @@
                             <div class="space-y-2 text-sm text-gray-600">
                                 <div class="flex items-center justify-between">
                                     <span>Deadline was:</span>
-                                    <span class="font-medium">{{ $project->submission_deadline->format('M d, Y \a\t g:i A') }}</span>
+                                    <span class="font-medium"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t g:i A" /></span>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span>Closed:</span>
@@ -110,7 +110,7 @@
                                 @if($project->submission_deadline)
                                     <div class="flex items-center justify-between">
                                         <span>Deadline:</span>
-                                        <span class="font-medium">{{ $project->submission_deadline->format('M d, Y \a\t g:i A') }}</span>
+                                        <span class="font-medium"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t g:i A" /></span>
                                     </div>
                                     <div class="flex items-center justify-between">
                                         <span>Time remaining:</span>

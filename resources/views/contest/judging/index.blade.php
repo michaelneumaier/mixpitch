@@ -8,7 +8,7 @@
                 <p class="text-sm text-gray-600 mt-1">
                     {{ $contestEntries->count() }} entries submitted
                     @if($project->submission_deadline)
-                        • Deadline: {{ $project->submission_deadline->format('M d, Y \a\t g:i A') }}
+                        • Deadline: <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t g:i A" />
                     @endif
                 </p>
             </div>

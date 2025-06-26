@@ -157,7 +157,12 @@ class RedditService
             }
             
             if ($project->deadline) {
-                $details[] = "**⏰ Deadline:** {$project->deadline->format('M j, Y')}";
+                // Parse raw database value as UTC to avoid middleware timezone conversion
+                $rawDeadline = $project->getRawOriginal('deadline');
+                $utcDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
+                $ownerTimezone = $project->user->getTimezone();
+                $formattedDate = $utcDeadline->setTimezone($ownerTimezone)->format('M j, Y');
+                $details[] = "**⏰ Deadline:** {$formattedDate}";
             }
         }
         
@@ -285,11 +290,21 @@ class RedditService
         $text = "";
         
         if ($project->submission_deadline) {
-            $text .= "• **Submission Deadline:** {$project->submission_deadline->format('M j, Y \a\t g:i A T')}\n";
+            // Parse raw database value as UTC to avoid middleware timezone conversion
+            $rawSubmissionDeadline = $project->getRawOriginal('submission_deadline');
+            $utcSubmissionDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
+            $ownerTimezone = $project->user->getTimezone();
+            $formattedDate = $utcSubmissionDeadline->setTimezone($ownerTimezone)->format('M j, Y \a\t g:i A T');
+            $text .= "• **Submission Deadline:** {$formattedDate}\n";
         }
         
         if ($project->judging_deadline) {
-            $text .= "• **Judging Complete By:** {$project->judging_deadline->format('M j, Y')}\n";
+            // Parse raw database value as UTC to avoid middleware timezone conversion
+            $rawJudgingDeadline = $project->getRawOriginal('judging_deadline');
+            $utcJudgingDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
+            $ownerTimezone = $project->user->getTimezone();
+            $formattedDate = $utcJudgingDeadline->setTimezone($ownerTimezone)->format('M j, Y');
+            $text .= "• **Judging Complete By:** {$formattedDate}\n";
         }
         
         return $text;
@@ -300,11 +315,21 @@ class RedditService
         $deadlines = [];
         
         if ($project->submission_deadline) {
-            $deadlines[] = "**⏰ Submission Deadline:** {$project->submission_deadline->format('M j, Y \a\t g:i A T')}";
+            // Parse raw database value as UTC to avoid middleware timezone conversion
+            $rawSubmissionDeadline = $project->getRawOriginal('submission_deadline');
+            $utcSubmissionDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
+            $ownerTimezone = $project->user->getTimezone();
+            $formattedDate = $utcSubmissionDeadline->setTimezone($ownerTimezone)->format('M j, Y \a\t g:i A T');
+            $deadlines[] = "**⏰ Submission Deadline:** {$formattedDate}";
         }
         
         if ($project->judging_deadline) {
-            $deadlines[] = "**🏁 Judging Complete By:** {$project->judging_deadline->format('M j, Y')}";
+            // Parse raw database value as UTC to avoid middleware timezone conversion
+            $rawJudgingDeadline = $project->getRawOriginal('judging_deadline');
+            $utcJudgingDeadline = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
+            $ownerTimezone = $project->user->getTimezone();
+            $formattedDate = $utcJudgingDeadline->setTimezone($ownerTimezone)->format('M j, Y');
+            $deadlines[] = "**🏁 Judging Complete By:** {$formattedDate}";
         }
         
         return $deadlines;

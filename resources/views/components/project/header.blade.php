@@ -242,15 +242,29 @@
                     @endif
 
                     <!-- Deadline -->
-                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200/50 col-span-2 lg:col-span-1">
-                        <div class="flex items-center mb-2">
-                            <i class="fas fa-calendar text-purple-600 mr-2"></i>
-                            <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Deadline</span>
+                    @if($project->isContest() ? $project->submission_deadline : $project->deadline)
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200/50 col-span-2 lg:col-span-1">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-calendar text-purple-600 mr-2"></i>
+                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">{{ $project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
+                            </div>
+                            @if($project->isContest())
+                                <div class="text-sm font-bold text-purple-900">
+                                    <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
+                                </div>
+                                <div class="text-xs text-purple-600 mt-1">
+                                    <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
+                                </div>
+                            @else
+                                <div class="text-sm font-bold text-purple-900">
+                                    <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
+                                </div>
+                                <div class="text-xs text-purple-600 mt-1">
+                                    <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
+                                </div>
+                            @endif
                         </div>
-                        <div class="text-sm font-bold text-purple-900">
-                            {{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}
-                        </div>
-                    </div>
+                    @endif
                 </div>
 
                 <!-- Action Buttons -->
