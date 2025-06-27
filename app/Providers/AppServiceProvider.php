@@ -7,6 +7,7 @@ use Livewire\Livewire;
 use Illuminate\Support\Facades\Blade;
 use App\Services\PitchWorkflowService;
 use App\Services\NotificationService;
+use App\View\Components\DateTimeFixed;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -45,5 +46,7 @@ class AppServiceProvider extends ServiceProvider
         Blade::directive('recaptchav3', function ($action) {
             return "<?php echo app('recaptcha')->htmlScriptTagJsApi(['action' => $action]); ?>";
         });
+
+        Blade::component('datetime', DateTimeFixed::class);
     }
 }

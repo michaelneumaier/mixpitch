@@ -9,7 +9,7 @@ use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
-class DateTime extends Component
+class DateTimeFixed extends Component
 {
     public function __construct(
         public Carbon $date,
