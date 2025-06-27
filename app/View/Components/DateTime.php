@@ -23,10 +23,22 @@ class DateTime extends Component
 
     public function render(): View|Closure|string
     {
-        // Temporarily simplify to debug the issue
-        $formattedDate = $this->date->format($this->format ?? 'M d, Y g:i A');
-        $relativeDate = $this->date->diffForHumans();
-        $isoDate = $this->date->toISOString();
+        try {
+            $formattedDate = $this->getFormattedDate();
+            $relativeDate = $this->getRelativeDate();
+            $isoDate = $this->getIsoDate();
+        } catch (\Exception $e) {
+            \Log::error('DateTime component error: ' . $e->getMessage(), [
+                'date' => $this->date->toString(),
+                'format' => $this->format,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Fallback to basic formatting to prevent site crash
+            $formattedDate = $this->date->format($this->format ?? 'M d, Y g:i A');
+            $relativeDate = $this->date->diffForHumans();
+            $isoDate = $this->date->toISOString();
+        }
 
         return view('components.datetime', [
             'formattedDate' => $formattedDate,
