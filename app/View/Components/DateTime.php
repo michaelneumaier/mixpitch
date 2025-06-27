@@ -38,6 +38,10 @@ class DateTime extends Component
             'formattedDate' => $formattedDate,
             'relativeDate' => $relativeDate,
             'isoDate' => $isoDate,
+            'class' => $this->class,
+            'tooltip' => $this->tooltip,
+            'relative' => $this->relative,
+            'date' => $this->date,
         ]);
     }
     
