@@ -1,13 +1,13 @@
 <time 
-    datetime="{{ $isoDate }}" 
+    datetime="{{ $isoDate ?? $date->toISOString() }}" 
     class="{{ $class }}"
     @if($tooltip)
-        title="{{ $formattedDate }}"
+        title="{{ $formattedDate ?? $date->format('M d, Y g:i A') }}"
     @endif
 >
     @if($relative)
-        {{ $relativeDate }}
+        {{ $relativeDate ?? $date->diffForHumans() }}
     @else
-        {{ $formattedDate }}
+        {{ $formattedDate ?? $date->format('M d, Y g:i A') }}
     @endif
 </time> 
