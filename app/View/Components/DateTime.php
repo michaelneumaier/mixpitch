@@ -23,10 +23,21 @@ class DateTime extends Component
 
     public function render(): View|Closure|string
     {
+        try {
+            $formattedDate = $this->getFormattedDate();
+            $relativeDate = $this->getRelativeDate();
+            $isoDate = $this->getIsoDate();
+        } catch (\Exception $e) {
+            // Fallback to basic formatting if timezone service fails
+            $formattedDate = $this->date->format($this->format ?? 'M d, Y g:i A');
+            $relativeDate = $this->date->diffForHumans();
+            $isoDate = $this->date->toISOString();
+        }
+
         return view('components.datetime', [
-            'formattedDate' => $this->getFormattedDate(),
-            'relativeDate' => $this->getRelativeDate(),
-            'isoDate' => $this->getIsoDate(),
+            'formattedDate' => $formattedDate,
+            'relativeDate' => $relativeDate,
+            'isoDate' => $isoDate,
         ]);
     }
     
