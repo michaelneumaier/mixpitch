@@ -33,46 +33,7 @@ use App\Livewire\EditProject;
 use App\Http\Controllers\LicenseSignatureController;
 use App\Http\Controllers\StripeConnectController;
 use App\Http\Controllers\ContestPrizePaymentController;
-use Illuminate\Support\Facades\Artisan;
 
-// Temporary route to fix shared hosting opcode cache issue.
-// REMOVE THIS AFTER THE PROBLEM IS SOLVED.
-Route::get('/clear-component-cache-for-real/kGZtN8xW4vA9bE2yP1qR0cO3uL7iF5jX', function () {
-    if (!app()->isProduction()) {
-        return 'This route is for production environments only.';
-    }
-
-    $filePath = app_path('View/Components/DateTime.php');
-    $messages = [];
-
-    if (!file_exists($filePath)) {
-        return "ERROR: Component file not found at {$filePath}";
-    }
-
-    // Attempt to invalidate OPcache
-    if (function_exists('opcache_invalidate')) {
-        if (opcache_invalidate($filePath, true)) {
-            $messages[] = "SUCCESS: The server's OPcache for the DateTime component has been cleared.";
-        } else {
-            $messages[] = "WARNING: opcache_invalidate() failed. The server may have this function disabled.";
-        }
-    } else {
-        $messages[] = "INFO: OPcache does not appear to be active on your server.";
-    }
-
-    // Also 'touch' the file to update its modification timestamp
-    if (touch($filePath)) {
-        $messages[] = "SUCCESS: The component file's modification timestamp was updated.";
-    } else {
-        $messages[] = "WARNING: Could not 'touch' the component file. Check file permissions.";
-    }
-    
-    // Run standard clearing for good measure
-    Artisan::call('optimize:clear');
-    $messages[] = "SUCCESS: Ran 'php artisan optimize:clear'.";
-
-    return '<pre>' . implode("\n\n", $messages) . '</pre>';
-});
 
 /*
 |--------------------------------------------------------------------------

@@ -10,8 +10,8 @@
         <div class="absolute bottom-1/3 right-1/4 w-48 h-48 bg-gradient-to-l from-indigo-300/15 to-purple-300/15 rounded-full blur-xl"></div>
     </div>
 
-    <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30 py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30 py-4 md:py-12">
+        <div class="max-w-7xl mx-auto px-2 lg:px-8">
 
             <!-- Enhanced Hero Section -->
             <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl overflow-hidden mb-16">
@@ -32,7 +32,7 @@
                     </div>
                 </div>
 
-                <div class="relative z-10 px-8 sm:px-12 py-16 text-center">
+                <div class="relative z-10 px-2 md:px-8 py-8 md:py-16 text-center">
                     <div class="max-w-4xl mx-auto">
                         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent">
                             About MixPitch
@@ -66,7 +66,7 @@
                     <div class="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-indigo-50/20"></div>
                     <div class="absolute top-4 right-4 w-20 h-20 bg-blue-400/10 rounded-full blur-xl"></div>
                     
-                    <div class="relative p-8 sm:p-12">
+                    <div class="relative p-4 md:p-8">
                         <div class="flex items-center mb-8">
                             <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3 w-14 h-14 flex items-center justify-center mr-4 shadow-lg">
                                 <i class="fas fa-bolt text-white text-xl"></i>
@@ -88,7 +88,7 @@
                     <div class="absolute inset-0 bg-gradient-to-br from-purple-50/20 to-pink-50/20"></div>
                     <div class="absolute bottom-4 left-4 w-16 h-16 bg-purple-400/10 rounded-full blur-lg"></div>
                     
-                    <div class="relative p-8 sm:p-12">
+                    <div class="relative p-4 md:p-8">
                         <div class="flex items-center mb-8">
                             <div class="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-3 w-14 h-14 flex items-center justify-center mr-4 shadow-lg">
                                 <i class="fas fa-book-open text-white text-xl"></i>

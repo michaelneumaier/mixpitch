@@ -339,20 +339,17 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                     </div>
                 @empty
                     <!-- Enhanced Empty State -->
-                    <div class="text-center py-12">
+                    <div class="text-center py-8 lg:py-12">
                         <!-- Enhanced Icon Container -->
-                        <div class="relative mb-6">
-                            <div class="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 backdrop-blur-sm border border-purple-200/50 rounded-2xl mx-auto shadow-lg">
-                                <i class="fas fa-paper-plane text-3xl text-purple-500"></i>
-                            </div>
-                            <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                <i class="fas fa-plus text-white text-sm"></i>
+                        <div class="mb-4 lg:mb-6">
+                            <div class="flex items-center justify-center w-16 lg:w-20 h-16 lg:h-20 bg-gradient-to-br from-purple-100 to-blue-100 backdrop-blur-sm border border-purple-200/50 rounded-2xl mx-auto shadow-lg">
+                                <i class="fas fa-paper-plane text-2xl lg:text-3xl text-purple-500"></i>
                             </div>
                         </div>
                         
                         <!-- Enhanced Text Content -->
-                        <div class="mb-6">
-                            <h4 class="text-xl font-bold text-gray-800 mb-2">No pitches submitted yet</h4>
+                        <div class="mb-4 lg:mb-6">
+                            <h4 class="text-lg lg:text-xl font-bold text-gray-800 mb-2">No pitches submitted yet</h4>
                             <p class="text-gray-600 max-w-md mx-auto leading-relaxed">
                                 Your project is ready to receive pitches from talented producers. 
                                 Once users submit their proposals, they'll appear here for your review.

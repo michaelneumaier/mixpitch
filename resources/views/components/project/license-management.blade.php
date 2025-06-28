@@ -15,27 +15,18 @@
 <div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
     <!-- Gradient Border Effect -->
     <div class="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-teal-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-    <div class="relative bg-white/95 backdrop-blur-sm rounded-2xl m-0.5 p-6">
+    <div class="relative bg-white/95 backdrop-blur-sm rounded-2xl m-0.5 p-4 lg:p-6">
         <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center">
+        <div class="flex items-center mb-6">
                 <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
                     <i class="fas fa-file-contract text-white text-lg"></i>
                 </div>
                 <div>
-                    <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-purple-800 bg-clip-text text-transparent">
+                <h3 class="text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 to-purple-800 bg-clip-text text-transparent">
                         License Management
                     </h3>
                     <p class="text-gray-600 text-sm">Track license agreements and compliance</p>
                 </div>
-            </div>
-            
-            <!-- Edit License Button -->
-            <a href="{{ route('projects.edit', $project) }}#license" 
-               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
-                <i class="fas fa-edit mr-2"></i>
-                Edit License
-            </a>
         </div>
 
         @if($licenseTemplate || $requiresAgreement || $hasLicenseNotes)

@@ -4,10 +4,10 @@
     <div class="absolute top-4 left-4 w-24 h-24 bg-blue-400/10 rounded-full blur-xl"></div>
     <div class="absolute top-4 right-4 w-16 h-16 bg-purple-400/10 rounded-full blur-lg"></div>
     
-    <div class="relative p-6 sm:p-8">
+    <div class="relative p-2 md:p-6">
         
         <!-- Enhanced Profile Form Header -->
-        <div class="mb-8">
+        <div class="mb-4 md:mb-8">
             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
                 <!-- Title Section -->
                 <div class="flex-1">
@@ -108,7 +108,7 @@
             id="profile-edit-form"
             class="space-y-8">
             <!-- Enhanced Profile Photo Section -->
-            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg mb-8">
+            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-6 shadow-lg mb-4 md:mb-8">
                 <!-- Section Background -->
                 <div class="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 rounded-2xl"></div>
                 
@@ -189,7 +189,7 @@
             </div>
             
             <!-- Enhanced Basic Profile Info -->
-            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-6 lg:p-8 shadow-lg">
+            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-6 shadow-lg">
                 <!-- Section Background -->
                 <div class="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-indigo-50/20 rounded-2xl"></div>
                 <div class="absolute top-4 right-4 w-16 h-16 bg-blue-400/10 rounded-full blur-lg"></div>
@@ -415,7 +415,7 @@
             </div>
             
             <!-- Enhanced Professional Skills / Tags -->
-            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-6 lg:p-8 shadow-lg">
+            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-6 shadow-lg">
                 <!-- Section Background -->
                 <div class="absolute inset-0 bg-gradient-to-br from-purple-50/20 to-indigo-50/20 rounded-2xl"></div>
                 <div class="absolute top-4 right-4 w-20 h-20 bg-purple-400/10 rounded-full blur-xl"></div>
@@ -567,7 +567,7 @@
             </div>
             
             <!-- Enhanced Social Media Links -->
-            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-6 lg:p-8 shadow-lg">
+            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-6 shadow-lg">
                 <!-- Section Background -->
                 <div class="absolute inset-0 bg-gradient-to-br from-pink-50/20 to-blue-50/20 rounded-2xl"></div>
                 <div class="absolute top-4 right-4 w-16 h-16 bg-pink-400/10 rounded-full blur-lg"></div>
@@ -723,7 +723,7 @@
             </div>
             
             <!-- Enhanced Notification Settings -->
-            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-6 lg:p-8 shadow-lg" x-data="{ notificationsExpanded: false }">
+            <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-6 shadow-lg" x-data="{ notificationsExpanded: false }">
                 <!-- Section Background -->
                 <div class="absolute inset-0 bg-gradient-to-br from-green-50/20 to-teal-50/20 rounded-2xl"></div>
                 <div class="absolute top-4 right-4 w-16 h-16 bg-green-400/10 rounded-full blur-lg"></div>
@@ -784,7 +784,7 @@
                 <!-- Background Effects -->
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-50/30 to-purple-50/30 rounded-2xl blur-sm"></div>
                 
-                <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-6 shadow-lg">
+                <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-6 shadow-lg">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <!-- Save Status Info -->
                         <div class="flex-1">

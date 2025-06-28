@@ -8,7 +8,7 @@
     <div
         x-show="open"
         @click.away="open = false"
-        class="absolute right-0 mt-3 w-96 bg-white/90 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl overflow-hidden z-50"
+        class="absolute -right-12 mt-3 w-80 md:w-96 max-w-[calc(100vw-2rem)] bg-white/90 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl overflow-hidden z-50"
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 transform scale-95 translate-y-2"
         x-transition:enter-end="opacity-100 transform scale-100 translate-y-0"

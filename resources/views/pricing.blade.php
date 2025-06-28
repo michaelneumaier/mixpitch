@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
-    <div class="container mx-auto px-4 py-16">
+    <div class="container mx-auto px-2 md:px-4 py-8 md:py-16">
         <div class="max-w-7xl mx-auto">
             <!-- Header Section -->
-            <div class="text-center mb-16">
+            <div class="text-center mb-8 md:mb-16">
                 <h1 class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
                     Choose Your Plan
                 </h1>

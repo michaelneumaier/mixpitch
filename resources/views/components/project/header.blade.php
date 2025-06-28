@@ -17,9 +17,9 @@
     
     <!-- Main Header Card -->
     <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
-        <div class="flex flex-col lg:flex-row min-h-[320px] lg:min-h-[400px]">
+        <div class="flex flex-col lg:flex-row min-h-[280px] sm:min-h-[320px] lg:min-h-[400px]">
             <!-- Project Image Section -->
-            <div x-data="{ lightbox: { isOpen: false } }" class="relative lg:w-80 flex-shrink-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col">
+            <div x-data="{ lightbox: { isOpen: false } }" class="relative lg:w-80 flex-shrink-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col h-[200px] sm:h-[240px] lg:h-full lg:min-h-[400px]">
                 @if($project->image_path)
                     <img @click="lightbox.isOpen = true" 
                          src="{{ $project->imageUrl }}" 
@@ -28,7 +28,7 @@
                 @else
                     <div class="w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 flex items-center justify-center flex-1">
                         <div class="text-center">
-                            <i class="fas fa-music text-6xl lg:text-7xl text-blue-400/60 mb-2"></i>
+                            <i class="fas fa-music text-5xl sm:text-6xl lg:text-7xl text-blue-400/60 mb-2"></i>
                             <p class="text-sm text-gray-500 font-medium">No Image</p>
                         </div>
                     </div>
@@ -105,19 +105,21 @@
                         </button>
                     </div>
                     
-                    <!-- Mobile: Full-width button at bottom -->
-                    <div class="sm:hidden absolute bottom-0 left-0 right-0 p-4">
+                    <!-- Mobile: Smaller circular button -->
+                    <div class="sm:hidden absolute bottom-3 right-3 z-10">
                         <button @click="$wire.showImageUpload()" 
-                                class="w-full bg-white/95 backdrop-blur-md hover:bg-white border border-white/40 hover:border-blue-300 rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-200">
-                            <div class="flex items-center justify-center">
+                                class="group relative bg-white/90 backdrop-blur-md hover:bg-white border-2 border-white/20 hover:border-blue-300 rounded-full p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110">
+                            <!-- Button Content -->
+                            <div class="flex items-center justify-center w-6 h-6">
                                 @if($project->image_path)
-                                    <i class="fas fa-edit text-blue-600 mr-3"></i>
-                                    <span class="text-blue-600 font-medium">Update Image</span>
+                                    <i class="fas fa-edit text-blue-600 group-hover:text-blue-700 transition-colors text-sm"></i>
                                 @else
-                                    <i class="fas fa-camera text-blue-600 mr-3"></i>
-                                    <span class="text-blue-600 font-medium">Add Image</span>
+                                    <i class="fas fa-camera text-blue-600 group-hover:text-blue-700 transition-colors text-sm"></i>
                                 @endif
                             </div>
+                            
+                            <!-- Hover Ring -->
+                            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                         </button>
                     </div>
                 @endif
@@ -271,7 +273,7 @@
                 @if($showActions)
                     <div class="mt-auto">
                         @if($context === 'manage' || ($showEditButton && auth()->check() && $project->isOwnedByUser(auth()->user())))
-                            <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="{{ $context === 'manage' ? 'hidden lg:flex' : 'flex' }} flex-col sm:flex-row gap-3">
                                 @if($context !== 'manage')
                                     <a href="{{ route('projects.manage', $project) }}" 
                                        class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl text-center font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">

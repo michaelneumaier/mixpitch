@@ -155,7 +155,7 @@
                             {{-- Quick Actions - Show first on mobile for immediate access --}}
                             @if ($project->isStandard() || $project->isContest())
                                 <div
-                                    class="rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-6 shadow-xl backdrop-blur-md lg:hidden">
+                                    class="rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-4 shadow-xl backdrop-blur-md lg:hidden">
                                     <div class="mb-4 flex items-center">
                                         <div
                                             class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
@@ -166,14 +166,14 @@
                                             <p class="text-sm text-blue-600">Manage your project efficiently</p>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3">
+                                    <div class="grid grid-cols-2 gap-2">
                                         <a href="{{ route('projects.show', $project) }}"
-                                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg">
-                                            <i class="fas fa-eye mr-2"></i>View Public
+                                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg">
+                                            <i class="fas fa-eye mr-1.5"></i>View Public
                                         </a>
                                         <a href="{{ route('projects.edit', $project) }}"
-                                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
-                                            <i class="fas fa-edit mr-2"></i>Edit Project
+                                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-3 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
+                                            <i class="fas fa-edit mr-1.5"></i>Edit Project
                                         </a>
                                         
                                         {{-- Reddit Post Button --}}
@@ -261,7 +261,7 @@
                                 <div x-data="{ showUploader: true }"
                                     class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
                                     <div
-                                        class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-6 backdrop-blur-sm">
+                                        class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
                                         <div class="flex items-center justify-between">
                                             <div class="flex items-center">
                                                 <div
@@ -274,17 +274,17 @@
                                                         resources</p>
                                                 </div>
                                             </div>
-                                            <button @click="showUploader = !showUploader"
-                                                class="inline-flex items-center rounded-xl bg-gradient-to-r from-purple-100 to-indigo-100 px-4 py-2 font-medium text-purple-700 transition-all duration-200 hover:scale-105 hover:from-purple-200 hover:to-indigo-200">
-                                                <span x-text="showUploader ? 'Hide Uploader' : 'Show Uploader'"></span>
-                                                <i class="fas ml-2"
-                                                    :class="showUploader ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                                            </button>
+                                                                        <button @click="showUploader = !showUploader"
+                                class="inline-flex items-center rounded-xl bg-gradient-to-r from-purple-100 to-indigo-100 px-3 lg:px-4 py-2 font-medium text-purple-700 transition-all duration-200 hover:scale-105 hover:from-purple-200 hover:to-indigo-200">
+                                <span class="hidden lg:inline" x-text="showUploader ? 'Hide Uploader' : 'Show Uploader'"></span>
+                                <i class="fas lg:ml-2"
+                                    :class="showUploader ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                            </button>
                                         </div>
                                     </div>
 
                                     <!-- Storage Usage Indicator -->
-                                    <div class="border-b border-white/20 p-6">
+                                    <div class="border-b border-white/20 p-4 lg:p-6">
                                         <div
                                             class="rounded-xl border border-purple-200/50 bg-gradient-to-br from-white/80 to-purple-50/80 p-4 backdrop-blur-sm">
                                             <div class="mb-3 flex items-center justify-between">
@@ -314,7 +314,7 @@
                                     </div>
 
                                     <!-- File Uploader Component -->
-                                    <div x-show="showUploader" x-transition class="border-b border-white/20 p-6">
+                                    <div x-show="showUploader" x-transition class="border-b border-white/20 p-4 lg:p-6">
                                         <div
                                             class="overflow-hidden rounded-2xl border border-purple-200/50 bg-gradient-to-br from-white/90 to-purple-50/90 shadow-lg backdrop-blur-sm">
                                             <div
@@ -340,7 +340,7 @@
 
                                     <!-- Files List Section -->
                                     <div
-                                        class="m-6 mt-0 overflow-hidden rounded-2xl border border-purple-200/50 bg-gradient-to-br from-white/90 to-purple-50/90 shadow-lg backdrop-blur-sm">
+                                        class="mx-4 lg:mx-6 mt-0 mb-4 lg:mb-6 overflow-hidden rounded-2xl border border-purple-200/50 bg-gradient-to-br from-white/90 to-purple-50/90 shadow-lg backdrop-blur-sm">
                                         <div
                                             class="border-b border-purple-200/50 bg-gradient-to-r from-purple-100/80 to-indigo-100/80 p-4 backdrop-blur-sm">
                                             <div class="flex items-center justify-between">
@@ -435,7 +435,7 @@
                             {{-- Tips for Success - Show on mobile after main content --}}
                             @if ($project->isStandard())
                                 <div
-                                    class="rounded-2xl border border-green-200/50 bg-gradient-to-br from-green-50/90 to-emerald-50/90 p-6 shadow-lg backdrop-blur-sm lg:hidden">
+                                    class="rounded-2xl border border-green-200/50 bg-gradient-to-br from-green-50/90 to-emerald-50/90 p-4 shadow-lg backdrop-blur-sm lg:hidden">
                                     <div class="mb-4 flex items-center">
                                         <div
                                             class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
@@ -512,7 +512,7 @@
                             {{-- Standard Project Info - Show on mobile after tips --}}
                             @if ($project->isStandard())
                                 <div
-                                    class="rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 p-6 shadow-lg backdrop-blur-sm lg:hidden">
+                                    class="rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 p-4 shadow-lg backdrop-blur-sm lg:hidden">
                                     <div class="mb-4 flex items-center">
                                         <div
                                             class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
@@ -571,7 +571,7 @@
 
                                     <!-- Content -->
                                     <div
-                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-md">
+                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-4 lg:p-6 shadow-xl backdrop-blur-md">
                                         <div class="mb-4 flex items-center">
                                             <div
                                                 class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
@@ -603,7 +603,7 @@
                             {{-- Workflow Type Specific Information --}}
                             @if ($project->isStandard())
                                 <div
-                                    class="mb-6 hidden rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 p-6 shadow-lg backdrop-blur-sm lg:block">
+                                    class="mb-6 hidden rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 p-4 lg:p-6 shadow-lg backdrop-blur-sm lg:block">
                                     <div class="mb-4 flex items-center">
                                         <div
                                             class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
@@ -655,7 +655,7 @@
 
                                 <!-- Quick Actions -->
                                 <div
-                                    class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-6 shadow-xl backdrop-blur-md lg:block">
+                                    class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-4 lg:p-6 shadow-xl backdrop-blur-md lg:block">
                                     <div class="mb-4 flex items-center">
                                         <div
                                             class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
@@ -729,7 +729,7 @@
 
                                 <!-- Tips & Best Practices -->
                                 <div
-                                    class="mb-6 hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-green-50/90 to-emerald-50/90 p-6 shadow-lg backdrop-blur-sm lg:block">
+                                    class="mb-6 hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-green-50/90 to-emerald-50/90 p-4 lg:p-6 shadow-lg backdrop-blur-sm lg:block">
                                     <div class="mb-4 flex items-center">
                                         <div
                                             class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
@@ -828,7 +828,7 @@
 
                                     <!-- Content -->
                                     <div
-                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-md">
+                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-4 lg:p-6 shadow-xl backdrop-blur-md">
                                         <div class="mb-4 flex items-center">
                                             <div
                                                 class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
@@ -863,7 +863,7 @@
 
                                 {{-- Quick Actions for Contest Projects --}}
                                 <div
-                                    class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-6 shadow-xl backdrop-blur-md lg:block">
+                                    class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-4 lg:p-6 shadow-xl backdrop-blur-md lg:block">
                                     <div class="mb-4 flex items-center">
                                         <div
                                             class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
@@ -962,7 +962,7 @@
 
                                     <!-- Content -->
                                     <div
-                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-md">
+                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-4 lg:p-6 shadow-xl backdrop-blur-md">
                                         <div class="mb-4 flex items-center">
                                             <div
                                                 class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
@@ -1082,7 +1082,7 @@
         <x-project.image-upload-modal :project="$project" :imagePreviewUrl="$imagePreviewUrl" />
         
         <!-- Complete Pitch Modal -->
-        @livewire('project.complete-pitch-modal', key('complete-pitch-modal'))
+        @livewire('project.complete-pitch-modal',[] , key('complete-pitch-modal'))
     </div>
     
     {{-- Reddit Posting Polling Script --}}

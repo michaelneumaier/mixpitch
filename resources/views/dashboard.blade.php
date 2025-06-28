@@ -4,40 +4,14 @@
 
 @section('content')
 <div class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-2 py-4 lg:py-8">
         <div class="max-w-7xl mx-auto">
-            <!-- Enhanced Header -->
-            <div class="relative mb-8">
-                <!-- Header Content -->
-                <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-8">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                        <!-- Title Section -->
-                        <div>
-                            <h1 class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
-                                Dashboard
-                            </h1>
-                            <p class="text-lg text-gray-600 font-medium">Manage your projects, pitches, and collaborations</p>
-                            </div>
-                            
-                        <!-- Action Button -->
-                        <div class="flex-shrink-0">
-                            <a href="{{ route('projects.create') }}"
-                               class="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
-                                <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
-                                Create Project
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Subscription Status & Alerts -->
-            @if(isset($subscription))
-            <div class="mb-8">
-                <!-- Subscription Alerts -->
-                @if(!empty($subscription['alerts']))
+            <!-- Enhanced Dashboard Header -->
+            <div class="relative mb-4 lg:mb-8">
+                <!-- Subscription Alerts (if any) -->
+                @if(isset($subscription) && !empty($subscription['alerts']))
                     @foreach($subscription['alerts'] as $alert)
-                    <div class="mb-4 p-4 rounded-lg border {{ $alert['level'] === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800' }}">
+                    <div class="mb-3 lg:mb-4 p-3 lg:p-4 rounded-lg border {{ $alert['level'] === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800' }}">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 <i class="fas {{ $alert['level'] === 'error' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle' }} mr-2"></i>
@@ -53,45 +27,89 @@
                     @endforeach
                 @endif
 
-                <!-- Subscription Status Bar -->
-                <div class="bg-white/95 backdrop-blur-md border border-white/20 rounded-xl shadow-lg p-6">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-6">
-                            <!-- Current Plan -->
-                            <div class="flex items-center">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ ($subscription['plan'] !== 'free') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                    <i class="{{ ($subscription['plan'] !== 'free') ? 'fas fa-crown' : 'fas fa-user' }} mr-1.5 text-xs"></i>
+                <!-- Unified Header Content -->
+                <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-4 lg:p-6 xl:p-8">
+                                         <!-- Main Header Row -->
+                     <div class="mb-4 lg:mb-6">
+                         <!-- Mobile: Compact Layout -->
+                         <div class="flex flex-col lg:hidden gap-2 lg:gap-3">
+                             <!-- Title + Button Row -->
+                             <div class="flex items-center justify-between gap-4">
+                                 <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent flex-1 min-w-0">
+                                     Dashboard
+                                 </h1>
+                                 <a href="{{ route('projects.create') }}"
+                                    class="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex-shrink-0">
+                                     <i class="fas fa-plus mr-1.5 group-hover:scale-110 transition-transform text-sm"></i>
+                                     <span class="text-sm">Create</span>
+                                 </a>
+                             </div>
+                             <!-- Subtitle -->
+                             <p class="text-base text-gray-600 font-medium leading-snug">Manage your projects, pitches, and collaborations</p>
+                         </div>
+
+                         <!-- Desktop: Original Layout -->
+                         <div class="hidden lg:flex lg:items-start lg:justify-between gap-6">
+                             <!-- Title Section -->
+                             <div class="flex-1">
+                                 <h1 class="text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
+                                     Dashboard
+                                 </h1>
+                                 <p class="text-lg text-gray-600 font-medium">Manage your projects, pitches, and collaborations</p>
+                             </div>
+                                 
+                             <!-- Action Button -->
+                             <div class="flex-shrink-0">
+                                 <a href="{{ route('projects.create') }}"
+                                    class="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                     <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
+                                     Create Project
+                                 </a>
+                             </div>
+                         </div>
+                     </div>
+
+                    <!-- Subscription Status Integration -->
+                    @if(isset($subscription))
+                    <div class="border-t border-gray-200/60 pt-4 lg:pt-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                                         <!-- Account Status -->
+                             <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+                                 <!-- Current Plan Badge -->
+                                 <div class="flex items-center flex-shrink-0">
+                                     <span class="inline-flex items-center px-3 py-2 rounded-xl text-sm font-semibold {{ ($subscription['plan'] !== 'free') ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200' : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300' }} shadow-sm">
+                                         <i class="{{ ($subscription['plan'] !== 'free') ? 'fas fa-crown' : 'fas fa-user' }} mr-2 text-xs"></i>
                                     {{ $subscription['display_name'] ?? ucfirst($subscription['plan']) }}
                                 </span>
                             </div>
 
                             <!-- Usage Stats -->
                             @if($subscription['limits'])
-                            <div class="flex items-center space-x-4 text-sm">
+                                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm min-w-0">
                                 <!-- Projects -->
-                                <div class="flex items-center">
-                                    <i class="fas fa-folder text-blue-500 mr-1"></i>
-                                    <span class="text-gray-600">Projects:</span>
-                                    <span class="font-medium ml-1 {{ $subscription['limits']->max_projects && $subscription['usage']['total_projects'] >= $subscription['limits']->max_projects ? 'text-red-600' : 'text-gray-900' }}">
+                                     <div class="flex items-center bg-blue-50/80 px-2.5 py-1.5 rounded-lg border border-blue-100 flex-shrink-0">
+                                         <i class="fas fa-folder text-blue-500 mr-1.5 text-xs"></i>
+                                         <span class="text-blue-700 font-medium">Projects:</span>
+                                         <span class="font-semibold ml-1 {{ $subscription['limits']->max_projects && $subscription['usage']['total_projects'] >= $subscription['limits']->max_projects ? 'text-red-600' : 'text-blue-900' }}">
                                         {{ $subscription['usage']['total_projects'] }}{{ $subscription['limits']->max_projects ? '/' . $subscription['limits']->max_projects : '' }}
                                     </span>
                                 </div>
 
                                 <!-- Active Pitches -->
-                                <div class="flex items-center">
-                                    <i class="fas fa-paper-plane text-green-500 mr-1"></i>
-                                    <span class="text-gray-600">Active Pitches:</span>
-                                    <span class="font-medium ml-1 {{ $subscription['limits']->max_active_pitches && $subscription['usage']['active_pitches_count'] >= $subscription['limits']->max_active_pitches ? 'text-red-600' : 'text-gray-900' }}">
+                                     <div class="flex items-center bg-green-50/80 px-2.5 py-1.5 rounded-lg border border-green-100 flex-shrink-0">
+                                         <i class="fas fa-paper-plane text-green-500 mr-1.5 text-xs"></i>
+                                         <span class="text-green-700 font-medium">Pitches:</span>
+                                         <span class="font-semibold ml-1 {{ $subscription['limits']->max_active_pitches && $subscription['usage']['active_pitches_count'] >= $subscription['limits']->max_active_pitches ? 'text-red-600' : 'text-green-900' }}">
                                         {{ $subscription['usage']['active_pitches_count'] }}{{ $subscription['limits']->max_active_pitches ? '/' . $subscription['limits']->max_active_pitches : '' }}
                                     </span>
                                 </div>
 
                                 <!-- Monthly Pitches (Pro Engineer only) -->
                                 @if($subscription['limits']->max_monthly_pitches)
-                                <div class="flex items-center">
-                                    <i class="fas fa-calendar text-purple-500 mr-1"></i>
-                                    <span class="text-gray-600">Monthly:</span>
-                                    <span class="font-medium ml-1 {{ $subscription['usage']['monthly_pitches_used'] >= $subscription['limits']->max_monthly_pitches ? 'text-red-600' : 'text-gray-900' }}">
+                                     <div class="flex items-center bg-purple-50/80 px-2.5 py-1.5 rounded-lg border border-purple-100 flex-shrink-0">
+                                         <i class="fas fa-calendar text-purple-500 mr-1.5 text-xs"></i>
+                                         <span class="text-purple-700 font-medium">Monthly:</span>
+                                         <span class="font-semibold ml-1 {{ $subscription['usage']['monthly_pitches_used'] >= $subscription['limits']->max_monthly_pitches ? 'text-red-600' : 'text-purple-900' }}">
                                         {{ $subscription['usage']['monthly_pitches_used'] }}/{{ $subscription['limits']->max_monthly_pitches }}
                                     </span>
                                 </div>
@@ -101,37 +119,38 @@
                         </div>
 
                         <!-- Action Buttons -->
-                        <div class="flex items-center space-x-3">
+                            <div class="flex items-center gap-3">
                             @if($subscription['plan'] === 'free')
-                                <a href="{{ route('subscription.index') }}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                                    <i class="fas fa-arrow-up mr-1.5"></i>
+                                    <a href="{{ route('subscription.index') }}" class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                                        <i class="fas fa-arrow-up mr-2"></i>
                                     Upgrade to Pro
                                 </a>
                             @else
-                                <a href="{{ route('subscription.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors duration-200">
-                                    <i class="fas fa-cog mr-1.5"></i>
+                                    <a href="{{ route('subscription.index') }}" class="inline-flex items-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl border border-gray-200 transition-all duration-200 hover:shadow-sm">
+                                        <i class="fas fa-cog mr-2"></i>
                                     Manage Plan
                                 </a>
                             @endif
-                            <a href="{{ route('subscription.index') }}" class="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200">
-                                View Details
+                                <a href="{{ route('subscription.index') }}" class="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors duration-200 px-2">
+                                    View Details →
                             </a>
+                            </div>
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
-            @endif
 
             <!-- Payout Status Banner -->
             <x-payout-status-banner :user="auth()->user()" />
 
             <!-- Phase 3: Producer Analytics Section -->
             @if(isset($producerData))
-            <div class="mb-8">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="mb-4 lg:mb-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-4 lg:mb-6">
                     <!-- Earnings Overview -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
-                        <div class="flex items-center justify-between mb-4">
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 lg:p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-3 lg:mb-4">
                             <div class="flex items-center space-x-3">
                                 <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-2 rounded-lg shadow-md">
                                     <i class="fas fa-dollar-sign text-white text-lg"></i>
@@ -179,8 +198,8 @@
 
                     <!-- Client Management Stats -->
                     @if($producerData['client_management']['total_projects'] > 0)
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-lg">
-                        <div class="flex items-center justify-between mb-4">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 lg:p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-3 lg:mb-4">
                             <div class="flex items-center space-x-3">
                                 <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-md">
                                     <i class="fas fa-users text-white text-lg"></i>
@@ -218,8 +237,8 @@
                     @endif
 
                     <!-- Stripe Connect Status -->
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 shadow-lg">
-                        <div class="flex items-center justify-between mb-4">
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 lg:p-6 shadow-lg">
+                        <div class="flex items-center justify-between mb-3 lg:mb-4">
                             <div class="flex items-center space-x-3">
                                 <div class="bg-gradient-to-r from-purple-500 to-pink-600 p-2 rounded-lg shadow-md">
                                     <i class="fas fa-credit-card text-white text-lg"></i>
@@ -269,7 +288,7 @@
                 <!-- Recent Payouts -->
                 @if($producerData['recent_payouts']->isNotEmpty())
                 <div class="bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                                 <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center mr-3 shadow-md">
@@ -284,7 +303,7 @@
                             </a>
                         </div>
                     </div>
-                    <div class="p-6">
+                    <div class="p-4 lg:p-6">
                         <div class="space-y-4">
                             @foreach($producerData['recent_payouts'] as $payout)
                             <div class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 rounded-lg transition-all duration-200 hover:shadow-md">
@@ -327,9 +346,9 @@
 
             <!-- Work Section -->
             <div class="relative">
-                <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6 lg:p-8" x-data="{ filter: 'all' }">
+                <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-4 lg:p-6 xl:p-8" x-data="{ filter: 'all' }">
                     <!-- Section Header with Filters -->
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6 mb-6 lg:mb-8">
                         <div>
                             <h2 class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
                                 My Work
@@ -400,17 +419,17 @@
 
                     @if ($workItems->isEmpty())
                         <!-- Enhanced Empty State -->
-                        <div class="text-center py-16">
-                            <div class="mx-auto w-32 h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center mb-8 shadow-lg">
-                                <i class="fas fa-rocket text-5xl text-blue-500"></i>
+                        <div class="text-center py-12 lg:py-16">
+                            <div class="mx-auto w-24 lg:w-32 h-24 lg:h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center mb-6 lg:mb-8 shadow-lg">
+                                <i class="fas fa-rocket text-4xl lg:text-5xl text-blue-500"></i>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-800 mb-4">Ready to Start Creating?</h3>
-                            <p class="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+                            <h3 class="text-xl lg:text-2xl font-bold text-gray-800 mb-3 lg:mb-4">Ready to Start Creating?</h3>
+                            <p class="text-gray-600 mb-6 lg:mb-8 max-w-md mx-auto leading-relaxed">
                                 You don't have any active work items yet. Create your first project or find exciting collaborations to get started on your musical journey.
                             </p>
-                            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                            <div class="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center">
                                 <a href="{{ route('projects.create') }}" 
-                                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
                                     <i class="fas fa-plus mr-2"></i>Create Project
                                 </a>
                                 <a href="{{ route('projects.index') }}" 
@@ -421,7 +440,7 @@
                         </div>
                     @else
                         <!-- Work Items Grid -->
-                        <div class="grid gap-6">
+                        <div class="grid gap-4 lg:gap-6">
                             @foreach ($workItems as $item)
                                 @php
                                     $itemType = 'unknown';
@@ -478,10 +497,10 @@
             </div>
 
             <!-- License Templates Section -->
-            <div class="relative mt-8">
-                <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-6 lg:p-8">
+            <div class="relative mt-4 lg:mt-8">
+                <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl p-4 lg:p-6 xl:p-8">
                     <!-- Section Header -->
-                    <div class="mb-8">
+                    <div class="mb-6 lg:mb-8">
                         <h2 class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2 flex items-center">
                             <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
                                 <i class="fas fa-file-contract text-white text-sm"></i>

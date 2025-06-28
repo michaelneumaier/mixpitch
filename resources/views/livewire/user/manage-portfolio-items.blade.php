@@ -8,7 +8,7 @@
     </div>
 
     <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30 py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-2 md:px-6 lg:px-8">
 
         <!-- Enhanced Header Section -->
         <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden mb-8">
@@ -103,7 +103,7 @@
             <div class="absolute top-4 right-4 w-20 h-20 bg-indigo-400/10 rounded-full blur-xl"></div>
             <div class="absolute bottom-4 left-4 w-16 h-16 bg-purple-400/10 rounded-full blur-lg"></div>
             
-            <div class="relative p-6 sm:p-8">
+            <div class="relative p-2 md:p-6">
                 @if(count($portfolioItems ?? []) > 0)
                     <!-- Portfolio Grid Header -->
                     <div class="flex items-center justify-between mb-6">
@@ -229,9 +229,7 @@
                                 <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full p-6 w-24 h-24 mx-auto shadow-xl">
                                     <i class="fas fa-images text-white text-3xl"></i>
                                 </div>
-                                <div class="absolute -top-2 -right-2 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full p-2 w-8 h-8 shadow-lg">
-                                    <i class="fas fa-plus text-white text-xs"></i>
-                                </div>
+                                
                     </div>
                             
                             <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent mb-3">
@@ -254,14 +252,14 @@
 
         <!-- Add/Edit Form Modal -->
                 @if($showForm)
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4">
             <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <!-- Modal Background Effects -->
                 <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-50/30 via-purple-50/20 to-blue-50/30 rounded-t-2xl"></div>
                 <div class="absolute top-4 left-4 w-16 h-16 bg-indigo-400/10 rounded-full blur-lg"></div>
                 <div class="absolute top-4 right-4 w-12 h-12 bg-purple-400/10 rounded-full blur-md"></div>
                 
-                <div class="relative p-6 sm:p-8">
+                <div class="relative p-4 md:p-6">
                     <!-- Modal Header -->
                     <div class="flex items-center justify-between mb-8">
                         <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent flex items-center">
@@ -284,12 +282,12 @@
                                 // Type change handling
                             });
                         }
-                    }" class="relative space-y-6">
+                    }" class="relative space-y-2 md:space-y-6">
                         
                         <!-- Form Loading Overlay -->
                         <div wire:loading wire:target="saveItem" class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl z-10 flex items-center justify-center">
                             <div class="text-center">
-                                <div class="bg-white/90 backdrop-blur-sm border border-white/30 rounded-2xl p-8 shadow-xl">
+                                <div class="bg-white/90 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-8 shadow-xl">
                                     <div class="flex items-center justify-center mb-4">
                                         <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -308,7 +306,7 @@
                         </div>
                         
                         <!-- Form Fields Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-6">
                             <!-- Item Type -->
                             <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
                                 <label class="block text-sm font-semibold text-gray-700 mb-3">Item Type</label>
