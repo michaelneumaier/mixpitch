@@ -132,6 +132,7 @@ class Project extends Model
         'reddit_post_id',
         'reddit_permalink',
         'reddit_posted_at',
+        'auto_allow_access',
     ];
 
     protected $casts = [
@@ -151,6 +152,7 @@ class Project extends Model
         'results_announced_at' => 'datetime',
         'submissions_closed_early_at' => 'datetime',
         'show_submissions_publicly' => 'boolean',
+        'auto_allow_access' => 'boolean',
         // License casts
         'custom_license_terms' => 'array',
         'license_signed_at' => 'datetime',
@@ -353,8 +355,7 @@ class Project extends Model
      */
     public function requiresLicenseAgreement(): bool
     {
-        return $this->requires_license_agreement && 
-               ($this->license_template_id || !empty($this->custom_license_terms));
+        return $this->requires_license_agreement;
     }
 
     /**

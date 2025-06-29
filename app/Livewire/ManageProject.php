@@ -30,6 +30,7 @@ class ManageProject extends Component
     use WithFileUploads;
     public Project $project;
     public ProjectForm $form;
+    public bool $autoAllowAccess;
 
     public $hasPreviewTrack = false;
     public $audioUrl;
@@ -84,6 +85,7 @@ class ManageProject extends Component
         }
 
         $this->project = $project;
+        $this->autoAllowAccess = $this->project->auto_allow_access;
 
         // Eager load relationships needed based on workflow type
         if ($this->project->isDirectHire()) {
@@ -1177,5 +1179,14 @@ class ManageProject extends Component
             'output' => $result->toDateTimeString()
         ]);
         return $result;
+    }
+
+    public function updatedAutoAllowAccess(bool $value)
+    {
+        $this->project->update(['auto_allow_access' => $value]);
+        $this->project->refresh();
+
+        $message = $value ? 'Automatic access enabled.' : 'Automatic access disabled.';
+        Toaster::success($message);
     }
 }

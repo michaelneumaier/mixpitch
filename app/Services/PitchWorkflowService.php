@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\Pitch;
 use App\Models\User;
+use App\Models\LicenseSignature;
 use Illuminate\Support\Facades\DB;
 use App\Exceptions\Pitch\PitchCreationException;
 use App\Exceptions\Pitch\UnauthorizedActionException; // General purpose
@@ -90,6 +91,11 @@ class PitchWorkflowService
                 // Slug generation is handled by the Sluggable trait on saving
                 $pitch->save();
 
+                // Create license signature if project requires agreement
+                if ($project->requiresLicenseAgreement() && isset($validatedData['agree_license'])) {
+                    $this->createLicenseSignature($project, $user);
+                }
+
                 // Create initial event (Consider moving to an Observer: PitchObserver::created)
                 $pitch->events()->create([
                     'event_type' => 'status_change',
@@ -103,12 +109,52 @@ class PitchWorkflowService
                 // Note: notifyPitchSubmitted() needs to be implemented in NotificationService
                 $this->notificationService->notifyPitchSubmitted($pitch);
 
+                // Automatically approve the pitch if the project owner has enabled it
+                if ($project->auto_allow_access && $project->isStandard()) {
+                    $this->_approveInitialPitch($pitch, $project->user, true);
+                }
+
                 return $pitch;
             });
         } catch (\Exception $e) {
             // Don't expose raw DB errors
             throw new PitchCreationException('An error occurred while creating your pitch. Please try again.');
         }
+    }
+
+    /**
+     * Create a license signature for a user on a project
+     *
+     * @param Project $project
+     * @param User $user
+     * @return LicenseSignature
+     */
+    private function createLicenseSignature(Project $project, User $user): LicenseSignature
+    {
+        // Check if signature already exists (prevent duplicates)
+        $existingSignature = LicenseSignature::where('project_id', $project->id)
+            ->where('user_id', $user->id)
+            ->first();
+            
+        if ($existingSignature) {
+            return $existingSignature;
+        }
+
+        return LicenseSignature::create([
+            'project_id' => $project->id,
+            'user_id' => $user->id,
+            'license_template_id' => $project->license_template_id,
+            'signature_text' => $user->name, // Auto-sign with user's name
+            'signature_method' => 'electronic',
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'agreement_hash' => hash('sha256', $project->getLicenseContent()),
+            'status' => 'active',
+            'metadata' => [
+                'signed_during_pitch_creation' => true,
+                'signed_at' => now()->toISOString(),
+            ],
+        ]);
     }
 
     /**
@@ -138,15 +184,24 @@ class PitchWorkflowService
             throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_IN_PROGRESS, 'Pitch must be pending for initial approval.');
         }
 
+        return $this->_approveInitialPitch($pitch, $approvingUser);
+    }
+
+    private function _approveInitialPitch(Pitch $pitch, User $approvingUser, $autoApproved = false)
+    {
         try {
-            return DB::transaction(function () use ($pitch, $approvingUser) { // Pass $approvingUser
+            return DB::transaction(function () use ($pitch, $approvingUser, $autoApproved) { // Pass $approvingUser
                 $pitch->status = Pitch::STATUS_IN_PROGRESS;
                 $pitch->save();
+
+                $comment = $autoApproved
+                    ? 'Pitch application auto-approved.'
+                    : 'Pitch application approved by project owner.';
 
                 // Create event
                 $pitch->events()->create([
                     'event_type' => 'status_change',
-                    'comment' => 'Pitch application approved by project owner.',
+                    'comment' => $comment,
                     'status' => $pitch->status,
                     'created_by' => $approvingUser->id, // Use the approver's ID
                 ]);

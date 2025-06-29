@@ -181,14 +181,19 @@
                             @endif
 
                             @if($requiresAgreement)
-                                <div class="bg-amber-50/60 rounded-lg p-4 border border-amber-200/30 mb-4">
+                                <div class="bg-purple-50/60 rounded-lg p-4 border border-purple-200/30 mb-4">
                                     <div class="flex items-start">
-                                        <i class="fas fa-file-signature text-amber-600 mr-3 mt-1"></i>
+                                        <i class="fas fa-file-signature text-purple-600 mr-3 mt-1"></i>
                                         <div>
-                                            <h6 class="font-semibold text-amber-900 mb-1">License Agreement Required</h6>
-                                            <p class="text-amber-800 text-sm">
-                                                If your pitch is selected, you'll be required to sign the project license agreement before work begins.
+                                            <h6 class="font-semibold text-purple-900 mb-1">Project License Agreement</h6>
+                                            <p class="text-purple-800 text-sm">
+                                                This project requires agreement to specific license terms. You must agree to these terms to submit your pitch.
                                             </p>
+                                            <button type="button" onclick="openProjectLicenseModal()" 
+                                                    class="text-purple-600 hover:text-purple-800 text-sm font-medium mt-2 flex items-center transition-colors">
+                                                <i class="fas fa-eye mr-1"></i>
+                                                Review License Terms
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -214,7 +219,8 @@
                     @csrf
                     <input type="hidden" name="project_id" value="{{ $project->id }}">
 
-                    <div class="bg-gradient-to-br from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 rounded-2xl p-6">
+                    <!-- Platform Terms Agreement -->
+                    <div class="bg-gradient-to-br from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 rounded-2xl p-6 mb-4">
                         <div class="flex items-start">
                             <div class="flex items-center h-6 mt-1">
                                 <input id="agree_terms" name="agree_terms" type="checkbox"
@@ -230,6 +236,32 @@
                             </div>
                         </div>
                     </div>
+
+                    @if($requiresAgreement)
+                        <!-- Project License Agreement -->
+                        <div class="bg-gradient-to-br from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-6">
+                            <div class="flex items-start">
+                                <div class="flex items-center h-6 mt-1">
+                                    <input id="agree_license" name="agree_license" type="checkbox"
+                                        class="w-5 h-5 text-purple-600 bg-white border-purple-300 rounded focus:ring-purple-500 focus:ring-2 transition-all duration-200">
+                                </div>
+                                <div class="ml-4">
+                                    <label for="agree_license" class="text-base font-medium text-purple-800 cursor-pointer">
+                                        I agree to the project license terms
+                                    </label>
+                                    <p class="text-sm text-purple-600 mt-1">
+                                        By checking this box, you agree to the specific license terms for this project.
+                                    </p>
+                                    @if($licenseTemplate)
+                                        <p class="text-xs text-purple-500 mt-2">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            License: {{ $licenseTemplate->name }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </form>
             </div>
 
@@ -339,15 +371,17 @@
             };
 
             window.submitPitchForm = function () {
-                const checkbox = document.getElementById('agree_terms');
+                const termsCheckbox = document.getElementById('agree_terms');
+                const licenseCheckbox = document.getElementById('agree_license');
                 const submitButton = event.target;
                 
-                if (!checkbox.checked) {
-                    // Enhanced error feedback
-                    const checkboxContainer = checkbox.closest('.bg-gradient-to-br');
+                let hasErrors = false;
+                
+                // Check platform terms
+                if (!termsCheckbox.checked) {
+                    const checkboxContainer = termsCheckbox.closest('.bg-gradient-to-br');
                     checkboxContainer.classList.add('ring-2', 'ring-red-500', 'ring-opacity-50');
                     
-                    // Show error message
                     let errorMsg = checkboxContainer.querySelector('.error-message');
                     if (!errorMsg) {
                         errorMsg = document.createElement('p');
@@ -356,12 +390,36 @@
                         checkboxContainer.appendChild(errorMsg);
                     }
                     
-                    // Remove error styling after a few seconds
                     setTimeout(() => {
                         checkboxContainer.classList.remove('ring-2', 'ring-red-500', 'ring-opacity-50');
                         if (errorMsg) errorMsg.remove();
                     }, 3000);
                     
+                    hasErrors = true;
+                }
+                
+                // Check license agreement (if required)
+                if (licenseCheckbox && !licenseCheckbox.checked) {
+                    const checkboxContainer = licenseCheckbox.closest('.bg-gradient-to-br');
+                    checkboxContainer.classList.add('ring-2', 'ring-red-500', 'ring-opacity-50');
+                    
+                    let errorMsg = checkboxContainer.querySelector('.error-message');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('p');
+                        errorMsg.className = 'error-message text-sm text-red-600 mt-2 flex items-center';
+                        errorMsg.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Please agree to the project license terms to continue.';
+                        checkboxContainer.appendChild(errorMsg);
+                    }
+                    
+                    setTimeout(() => {
+                        checkboxContainer.classList.remove('ring-2', 'ring-red-500', 'ring-opacity-50');
+                        if (errorMsg) errorMsg.remove();
+                    }, 3000);
+                    
+                    hasErrors = true;
+                }
+                
+                if (hasErrors) {
                     return;
                 }
 

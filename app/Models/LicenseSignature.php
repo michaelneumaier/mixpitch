@@ -103,7 +103,7 @@ class LicenseSignature extends Model
     /**
      * Revoke this signature
      */
-    public function revoke(string $reason, User $revokedBy = null): void
+    public function revoke(string $reason, ?User $revokedBy = null): void
     {
         $this->update([
             'status' => 'revoked',

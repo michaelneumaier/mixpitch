@@ -5,10 +5,10 @@
     $requiresAgreement = $project->requires_license_agreement ?? false;
     $hasLicenseNotes = !empty($project->license_notes);
     
-    // Get license signatures for this project
-    $licenseSignatures = $project->licenseSignatures ?? collect();
+    // Get fresh license signatures for this project
+    $licenseSignatures = $project->licenseSignatures()->get();
     $pendingSignatures = $licenseSignatures->where('status', 'pending');
-    $signedSignatures = $licenseSignatures->where('status', 'signed');
+    $signedSignatures = $licenseSignatures->where('status', 'active'); // Fixed: looking for 'active' status
 @endphp
 
 <!-- License Management Section -->
@@ -97,114 +97,61 @@
             </div>
 
             @if($requiresAgreement)
-                <!-- License Signatures Section -->
-                <div class="bg-gradient-to-r from-gray-50/50 to-slate-50/50 rounded-xl p-6 border border-gray-200/30 mb-6">
-                    <h4 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <i class="fas fa-signature text-gray-600 mr-2"></i>
-                        License Agreements
+                <!-- Active License Agreements Section -->
+                <div class="bg-gradient-to-r from-green-50/50 to-emerald-50/50 rounded-xl p-6 border border-green-200/30 mb-6">
+                    <h4 class="text-lg font-bold text-green-900 mb-4 flex items-center">
+                        <i class="fas fa-check-shield text-green-600 mr-2"></i>
+                        License Compliance
                     </h4>
 
-                    <!-- Signature Statistics -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-white/60 rounded-lg p-4 border border-gray-200/50">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Total Required</p>
-                                    <p class="text-2xl font-bold text-gray-900">{{ $licenseSignatures->count() }}</p>
-                                </div>
-                                <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-users text-gray-600"></i>
-                                </div>
-                            </div>
-                        </div>
-
+                    <!-- Compliance Statistics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div class="bg-white/60 rounded-lg p-4 border border-green-200/50">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-sm font-medium text-green-600">Signed</p>
-                                    <p class="text-2xl font-bold text-green-800">{{ $signedSignatures->count() }}</p>
+                                    <p class="text-sm font-medium text-green-600">Active Agreements</p>
+                                    <p class="text-2xl font-bold text-green-700">{{ $signedSignatures->count() }}</p>
+                                    <p class="text-xs text-green-600 mt-1">Users who agreed during pitch creation</p>
                                 </div>
                                 <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                                     <i class="fas fa-check-circle text-green-600"></i>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="bg-white/60 rounded-lg p-4 border border-amber-200/50">
+                        
+                        <div class="bg-white/60 rounded-lg p-4 border border-blue-200/50">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-sm font-medium text-amber-600">Pending</p>
-                                    <p class="text-2xl font-bold text-amber-800">{{ $pendingSignatures->count() }}</p>
+                                    <p class="text-sm font-medium text-blue-600">Compliance Status</p>
+                                    <p class="text-lg font-bold text-blue-700">
+                                        @if($signedSignatures->count() > 0)
+                                            <i class="fas fa-shield-check mr-1"></i>Active
+                                        @else
+                                            <i class="fas fa-info-circle mr-1"></i>Ready
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-blue-600 mt-1">
+                                        @if($signedSignatures->count() > 0)
+                                            All participants have agreed to terms
+                                        @else
+                                            License terms will be enforced on participation
+                                        @endif
+                                    </p>
                                 </div>
-                                <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-clock text-amber-600"></i>
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-shield-alt text-blue-600"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    @if($licenseSignatures->isNotEmpty())
-                        <!-- Signature List -->
-                        <div class="space-y-3">
-                            <h5 class="text-md font-semibold text-gray-800 mb-3">Collaborator Agreements</h5>
-                            @foreach($licenseSignatures as $signature)
-                                <div class="flex items-center justify-between p-4 bg-white/80 rounded-lg border border-gray-200/50 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-3">
-                                            @if($signature->user && $signature->user->profile_photo_url)
-                                                <img src="{{ $signature->user->profile_photo_url }}" 
-                                                     class="w-10 h-10 rounded-full object-cover" 
-                                                     alt="{{ $signature->user->name }}">
-                                            @else
-                                                <i class="fas fa-user text-gray-600"></i>
-                                            @endif
-                                        </div>
-                                        <div>
-                                            <p class="font-medium text-gray-900">
-                                                {{ $signature->user ? $signature->user->name : 'Unknown User' }}
-                                            </p>
-                                            <p class="text-sm text-gray-600">
-                                                @if($signature->signed_at)
-                                                    Signed {{ $signature->signed_at->format('M j, Y \a\t g:i A') }}
-                                                @else
-                                                    Agreement sent {{ $signature->created_at->format('M j, Y') }}
-                                                @endif
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center">
-                                        @if($signature->status === 'signed')
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                                                <i class="fas fa-check-circle mr-1"></i>
-                                                Signed
-                                            </span>
-                                        @elseif($signature->status === 'pending')
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                                                <i class="fas fa-clock mr-1"></i>
-                                                Pending
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                                                <i class="fas fa-times-circle mr-1"></i>
-                                                {{ ucfirst($signature->status) }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endforeach
+                    <!-- License Status Summary -->
+                    <div class="text-center py-4">
+                        <div class="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            License status is shown with each pitch submission
                         </div>
-                    @else
-                        <!-- No Signatures Yet -->
-                        <div class="text-center py-8">
-                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="fas fa-signature text-2xl text-gray-400"></i>
-                            </div>
-                            <h5 class="text-lg font-medium text-gray-700 mb-2">No Agreements Yet</h5>
-                            <p class="text-gray-500 max-w-md mx-auto">
-                                License agreements will appear here when collaborators join the project and need to sign the license terms.
-                            </p>
-                        </div>
-                    @endif
+                    </div>
                 </div>
             @endif
 
@@ -214,7 +161,7 @@
                     <button onclick="viewLicenseModal()" 
                             class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
                         <i class="fas fa-eye mr-2"></i>
-                        View License
+                        View License Terms
                     </button>
                 @endif
                 
@@ -224,12 +171,11 @@
                     Modify License
                 </a>
 
-                @if($requiresAgreement && $pendingSignatures->isNotEmpty())
-                    <button onclick="sendReminders()" 
-                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
-                        <i class="fas fa-bell mr-2"></i>
-                        Send Reminders
-                    </button>
+                @if($requiresAgreement)
+                    <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl shadow-lg">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Auto-enforced on pitch creation
+                    </div>
                 @endif
             </div>
         @else

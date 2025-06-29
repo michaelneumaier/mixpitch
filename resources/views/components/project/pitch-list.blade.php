@@ -44,6 +44,19 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
 
     <!-- Content Area -->
     <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h4 class="text-lg font-semibold text-purple-800">Review Pitches</h4>
+            <div class="flex items-center">
+                <label for="auto-allow-access" class="flex items-center cursor-pointer">
+                    <span class="text-sm font-medium text-gray-700 mr-3">Automatically Allow Access</span>
+                    <div class="relative">
+                        <input type="checkbox" id="auto-allow-access" class="sr-only" wire:model.live="autoAllowAccess">
+                        <div class="block bg-gray-200 w-14 h-8 rounded-full"></div>
+                        <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition"></div>
+                    </div>
+                </label>
+            </div>
+        </div>
         <div class="flex flex-col space-y-4">
         <div class="flex flex-col divide-y divide-white/20">
             @forelse($sortedPitches as $pitch)
@@ -134,6 +147,29 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                                         <i class="fas fa-clock mr-1.5 text-gray-400"></i>
                                                         {{ $pitch->created_at->diffForHumans() }}
                                                     </div>
+                                                    {{-- License Agreement Status --}}
+                                                    @php
+                                                        $hasLicenseAgreement = $project->requiresLicenseAgreement() && 
+                                                            $project->licenseSignatures()
+                                                                ->where('user_id', $pitch->user_id)
+                                                                ->where('status', 'active')
+                                                                ->exists();
+                                                    @endphp
+                                                    @if($project->requiresLicenseAgreement())
+                                                        <div class="flex items-center">
+                                                            @if($hasLicenseAgreement)
+                                                                <div class="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium border border-green-200">
+                                                                    <i class="fas fa-shield-check mr-1.5"></i>
+                                                                    License Agreed
+                                                                </div>
+                                                            @else
+                                                                <div class="inline-flex items-center px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium border border-amber-200">
+                                                                    <i class="fas fa-shield-exclamation mr-1.5"></i>
+                                                                    License Pending
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @endif
                                                 </div>
                                                 {{-- Enhanced Rating Display --}}
                                                 @if($pitch->status === 'completed' && $pitch->getCompletionRating())
@@ -394,4 +430,15 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<style>
+    /* Toggle B */
+    input:checked ~ .dot {
+        transform: translateX(100%);
+        background-color: #4f46e5;
+    }
+    input:checked ~ .block {
+        background-color: #c7d2fe;
+    }
+</style> 
