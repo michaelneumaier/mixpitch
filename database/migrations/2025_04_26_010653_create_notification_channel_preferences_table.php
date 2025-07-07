@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Unique constraint for user, type, and channel
-            $table->unique(['user_id', 'notification_type', 'channel']);
+            $table->unique(['user_id', 'notification_type', 'channel'], 'notif_channel_prefs_unique');
         });
 
         // Optional: Migrate existing preferences from the old table?
