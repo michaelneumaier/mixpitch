@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2); // Price at time of order
             $table->string('currency', 3);
             $table->string('payment_status')->default('pending'); // e.g., pending, paid, failed, refunded
-            $table->foreignId('invoice_id')->nullable()->constrained('invoices')->onDelete('set null');
+            $table->unsignedBigInteger('invoice_id')->nullable(); // Will add foreign key constraint later
             $table->text('requirements_submitted')->nullable(); // Client's input
             $table->unsignedInteger('revision_count')->default(0);
             $table->timestamp('delivered_at')->nullable(); // Added this missing column
@@ -33,6 +33,7 @@ return new class extends Migration
             $table->index('client_user_id');
             $table->index('producer_user_id');
             $table->index('payment_status');
+            $table->index('invoice_id'); // Add index for performance
         });
     }
 
