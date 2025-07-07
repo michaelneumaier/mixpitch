@@ -15,7 +15,7 @@ class TagSeeder extends Seeder
     public function run(): void
     {
         // Clear existing tags to avoid duplicates
-        DB::table('tags')->truncate();
+        DB::table('tags')->delete();
 
         $tags = [
             // Skills
