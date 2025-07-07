@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pitches', function (Blueprint $table) {
-            $table->text('internal_notes')->nullable()->after('status_message');
+            $table->text('internal_notes')->nullable();
         });
     }
 
