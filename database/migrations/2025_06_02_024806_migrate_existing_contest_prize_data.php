@@ -15,7 +15,7 @@ return new class extends Migration
     public function up(): void
     {
         // First, clean up any existing test data
-        DB::table('contest_prizes')->truncate();
+        DB::table('contest_prizes')->delete();
 
         // Migrate existing contest prize data to new structure
         $contestProjects = DB::table('projects')
