@@ -19,15 +19,17 @@ return new class extends Migration
             });
         }
         
-        // Check if the unique constraint exists
-        $indexExists = collect(DB::select("PRAGMA index_list('pitches')"))->pluck('name')->contains('project_pitch_slug_unique');
-        
-        if (!$indexExists) {
+        // Add the unique constraint - Laravel will handle checking if it exists
+        // We'll use a try-catch to handle cases where the index might already exist
+        try {
             Schema::table('pitches', function (Blueprint $table) {
                 // Create a composite unique index on slug and project_id
                 // This ensures slugs are unique within each project
                 $table->unique(['project_id', 'slug'], 'project_pitch_slug_unique');
             });
+        } catch (\Exception $e) {
+            // Index might already exist, which is fine
+            // We can safely ignore this error
         }
     }
 
@@ -37,12 +39,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pitches', function (Blueprint $table) {
-            // Remove the unique constraint if it exists
-            if (Schema::hasTable('pitches')) {
-                $indexExists = collect(DB::select("PRAGMA index_list('pitches')"))->pluck('name')->contains('project_pitch_slug_unique');
-                if ($indexExists) {
-                    $table->dropUnique('project_pitch_slug_unique');
-                }
+            // Try to drop the unique constraint
+            try {
+                $table->dropUnique('project_pitch_slug_unique');
+            } catch (\Exception $e) {
+                // Index might not exist, which is fine
             }
             
             // Only drop the column if it exists
