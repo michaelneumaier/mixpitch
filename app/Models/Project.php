@@ -317,10 +317,7 @@ class Project extends Model
         return $this->status === self::STATUS_OPEN;
     }
 
-    public function mixes()
-    {
-        return $this->hasMany(Mix::class);
-    }
+
 
     // ========== LICENSE RELATIONSHIPS ==========
 

@@ -39,6 +39,7 @@ return new class extends Migration
             $table->enum('status', ['active', 'revoked', 'expired'])->default('active');
             $table->text('revocation_reason')->nullable();
             $table->timestamp('revoked_at')->nullable();
+            $table->foreignId('revoked_by')->nullable()->constrained('users')->onDelete('set null');
             
             $table->timestamps();
             
@@ -47,6 +48,8 @@ return new class extends Migration
             $table->index(['license_template_id']);
             $table->index(['status']);
             $table->index(['created_at']); // For audit queries
+            $table->index(['project_id', 'status']);
+            $table->index(['user_id', 'status']);
         });
     }
 

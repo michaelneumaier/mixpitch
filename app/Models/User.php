@@ -27,7 +27,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\SubscriptionLimit;
 use App\Models\Transaction;
-use App\Models\Mix;
+
 use App\Models\LicenseTemplate;
 use App\Models\VisibilityBoost;
 use App\Models\UserMonthlyLimit;
@@ -312,10 +312,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     {
         return $this->hasMany(Pitch::class);
     }
-    public function mixes()
-    {
-        return $this->hasMany(Mix::class);
-    }
+
 
     /**
      * Check if the user has completed their profile setup

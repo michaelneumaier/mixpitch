@@ -12,20 +12,15 @@ return new class extends Migration
      * @return void
      */
     public function up()
-{
-    Schema::create('reviews', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('user_id');
-        $table->unsignedBigInteger('mix_id');
-        $table->text('comment')->nullable();
-        $table->integer('rating');
-        $table->timestamps();
-
-        $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-        $table->foreign('mix_id')->references('id')->on('mixes')->onDelete('cascade');
-    });
-}
-
+    {
+        Schema::create('reviews', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->text('comment')->nullable();
+            $table->integer('rating');
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.
