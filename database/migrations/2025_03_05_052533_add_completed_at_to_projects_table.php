@@ -17,7 +17,12 @@ return new class extends Migration
         });
         
         // Set completed_at for projects with status 'completed'
-        DB::statement("UPDATE projects SET completed_at = datetime('now') WHERE status = 'completed'");
+        // Use database-agnostic approach
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement("UPDATE projects SET completed_at = datetime('now') WHERE status = 'completed'");
+        } else {
+            DB::statement("UPDATE projects SET completed_at = NOW() WHERE status = 'completed'");
+        }
     }
 
     /**
