@@ -15,7 +15,7 @@ class ProjectTypeSeeder extends Seeder
     public function run(): void
     {
         // Clear existing project types to avoid duplicates
-        DB::table('project_types')->truncate();
+        DB::table('project_types')->delete();
 
         $projectTypes = [
             [
