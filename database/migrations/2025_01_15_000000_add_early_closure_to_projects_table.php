@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::table('projects', function (Blueprint $table) {
             // Early closure functionality
-            $table->timestamp('submissions_closed_early_at')->nullable()->after('submission_deadline');
-            $table->foreignId('submissions_closed_early_by')->nullable()->constrained('users')->onDelete('set null')->after('submissions_closed_early_at');
-            $table->text('early_closure_reason')->nullable()->after('submissions_closed_early_by');
+            $table->timestamp('submissions_closed_early_at')->nullable();
+            $table->foreignId('submissions_closed_early_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->text('early_closure_reason')->nullable();
             
             // Index for performance
             $table->index(['workflow_type', 'submissions_closed_early_at']);
