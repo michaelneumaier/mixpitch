@@ -690,6 +690,45 @@ class PitchWorkflowService
                     }
                 }
 
+                // Process audio files for Standard Workflow projects
+                if ($pitch->project->isStandard()) {
+                    try {
+                        // Get all audio files for this pitch
+                        $audioFiles = $pitch->files()
+                            ->where(function($query) {
+                                $query->whereRaw("LOWER(file_path) LIKE '%.mp3'")
+                                      ->orWhereRaw("LOWER(file_path) LIKE '%.wav'")
+                                      ->orWhereRaw("LOWER(file_path) LIKE '%.ogg'")
+                                      ->orWhereRaw("LOWER(file_path) LIKE '%.aac'")
+                                      ->orWhereRaw("LOWER(file_path) LIKE '%.m4a'")
+                                      ->orWhereRaw("LOWER(file_path) LIKE '%.flac'");
+                            })
+                            ->get();
+
+                        if ($audioFiles->isNotEmpty()) {
+                            Log::info('Dispatching audio processing job for Standard Workflow submission', [
+                                'pitch_id' => $pitch->id,
+                                'audio_files_count' => $audioFiles->count(),
+                                'snapshot_id' => $snapshot->id
+                            ]);
+
+                            // Dispatch job to process audio files (transcoding and watermarking)
+                            dispatch(new \App\Jobs\ProcessAudioForSubmission($pitch, $audioFiles->toArray()));
+                        } else {
+                            Log::info('No audio files found for processing', [
+                                'pitch_id' => $pitch->id,
+                                'snapshot_id' => $snapshot->id
+                            ]);
+                        }
+                    } catch (\Exception $audioProcessingException) {
+                        Log::warning('Failed to dispatch audio processing job', [
+                            'pitch_id' => $pitch->id,
+                            'error' => $audioProcessingException->getMessage(),
+                        ]);
+                        // Continue execution - audio processing failure shouldn't fail the whole operation
+                    }
+                }
+
                 return $pitch->fresh(['currentSnapshot']); // Reload with snapshot relationship
             });
 

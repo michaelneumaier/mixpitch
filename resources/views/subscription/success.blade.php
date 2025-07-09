@@ -35,7 +35,7 @@
                         <p class="text-sm text-yellow-800">
                             <strong>Note:</strong> It may take a few minutes for your subscription to be activated. 
                             If you don't see your Pro features within 5 minutes, please 
-                            <a href="#" class="text-yellow-900 underline">contact support</a>.
+                            <a href="mailto:support@mixpitch.com" class="text-yellow-900 underline hover:text-yellow-700">contact support</a>.
                         </p>
                     </div>
                 @endif

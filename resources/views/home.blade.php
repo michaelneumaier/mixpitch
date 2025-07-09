@@ -6,10 +6,10 @@ showcase your mixing and mastering talents.')
 
 @section('content')
 <x-home.hero />
-<x-home.features />
+<x-home.your-journey />
 {{-- <x-home.statistics /> --}}
 <x-home.how-it-works />
-<x-home.testimonials />
+{{-- <x-home.testimonials /> --}}
 <x-home.faq />
 <x-home.cta />
 @endsection

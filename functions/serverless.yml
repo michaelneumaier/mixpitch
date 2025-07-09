@@ -1,0 +1,77 @@
+service: mixpitch-audio-processing
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-2'}
+  memorySize: 1024
+  timeout: 300  # 5 minutes
+  
+  environment:
+    AWS_BUCKET: ${env:AWS_BUCKET}
+    AUDIO_PROCESSING_BUCKET: ${env:AUDIO_PROCESSING_BUCKET, env:AWS_BUCKET}
+    
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource: 
+        - "arn:aws:s3:::${env:AWS_BUCKET}/*"
+        - "arn:aws:s3:::${env:AUDIO_PROCESSING_BUCKET, env:AWS_BUCKET}/*"
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource: "arn:aws:logs:*:*:*"
+
+functions:
+  waveform:
+    handler: generate_waveform.lambda_handler
+    description: Generate waveform data from audio files
+    layers:
+      - arn:aws:lambda:us-east-2:${aws:accountId}:layer:ffmpeg:1  # FFmpeg layer
+    events:
+      - http:
+          path: /waveform
+          method: post
+          cors: true
+    environment:
+      FUNCTION_NAME: waveform-generator
+      
+  transcode:
+    handler: transcode_audio.lambda_handler
+    description: Transcode and watermark audio files
+    layers:
+      - arn:aws:lambda:us-east-2:${aws:accountId}:layer:ffmpeg:1  # FFmpeg layer
+    events:
+      - http:
+          path: /transcode
+          method: post
+          cors: true
+    environment:
+      FUNCTION_NAME: audio-transcoder
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: false
+    slim: true
+    strip: false
+    useDownloadCache: true
+    useStaticCache: true
+    
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!.git/**'
+    - '!.serverless/**'
+    - '!__pycache__/**'
+    - '!*.pyc' 

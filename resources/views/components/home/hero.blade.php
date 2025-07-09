@@ -26,7 +26,7 @@
     <div class="relative z-10 flex items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
         <div class="max-w-7xl mx-auto text-center">
             <!-- Animated Badge -->
-            <div class="mt-2 animate-fade-in-up" style="animation-delay: 0.2s;">
+            <div class="mt-2 mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-sm font-medium">
                     <div class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
                     <span>Collaboration Platform</span>
@@ -38,16 +38,23 @@
 
             <!-- Revolutionary Heading -->
             <div class="mb-12 animate-fade-in-up" style="animation-delay: 0.4s;">
-                <h1 class="text-4xl sm:text-6xl lg:text-8xl font-bold text-white mb-6 leading-relaxed pb-2">
-                    <span class="block">Empower Musicians.</span>
-                    <span class="block">Elevate Mixers.</span>
-                    <span class="block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x pb-2">
-                        Unleash Creativity.
-                    </span>
+                <h1 class="text-3xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 leading-relaxed">
+                    <div class="grid grid-cols-2 gap-2 max-w-fit mx-auto">
+                        <div class="text-right">
+                            <div>Empower</div>
+                            <div>Elevate</div>
+                            <div>Unleash</div>
+                        </div>
+                        <div class="text-left">
+                            <div>Musicians.</div>
+                            <div>Mixers.</div>
+                            <div class="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x pb-2">Creativity.</div>
+                        </div>
+                    </div>
                 </h1>
                 <div class="max-w-4xl mx-auto">
-                    <p class="text-xl sm:text-2xl text-white/80 leading-relaxed font-light">
-                        Connect with world-class audio professionals and transform your musical vision into reality through the power of global collaboration.
+                    <p class="text-lg md:text-2xl text-white/80 leading-relaxed font-light">
+                        Whether you're just starting in audio, an artist seeking fresh perspectives, or a studio managing clients - gain real-world experience and connect with talent through our comprehensive collaboration platform.
                     </p>
                 </div>
             </div>
@@ -86,7 +93,7 @@
                 <div id="artist-content" class="role-content active animate-fade-in-up" style="animation-delay: 0.8s;">
                     <div class="max-w-4xl mx-auto">
                         <p class="text-xl sm:text-2xl text-white/90 leading-relaxed mb-6">
-                            Upload your tracks and connect with talented audio professionals who will bring your music to life. 
+                            Upload your tracks and connect with talented audio professionals - many just starting their careers - who will bring fresh perspectives to your music. 
                             <span class="text-blue-300 font-semibold">Pay only for the mix that matches your vision.</span>
                         </p>
                         <div class="flex flex-wrap justify-center gap-4 text-sm text-white/70">
@@ -94,19 +101,19 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Global talent pool
+                                Fresh perspectives
                             </div>
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Risk-free collaboration
+                                Support emerging talent
                             </div>
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Professional results
+                                Multiple creative options
                             </div>
                         </div>
                     </div>
@@ -115,27 +122,27 @@
                 <div id="producer-content" class="role-content hidden">
                     <div class="max-w-4xl mx-auto">
                         <p class="text-xl sm:text-2xl text-white/90 leading-relaxed mb-6">
-                            Showcase your mixing and production skills, build your portfolio, and earn income by collaborating with musicians from around the world.
-                            <span class="text-purple-300 font-semibold">Turn your passion into profit.</span>
+                            Start your audio career with real-world projects. Build your portfolio, gain experience, and earn money - even if you're just beginning. 
+                            <span class="text-purple-300 font-semibold">Your first professional experience starts here.</span>
                         </p>
                         <div class="flex flex-wrap justify-center gap-4 text-sm text-white/70">
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Diverse projects
+                                No experience required
                             </div>
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Portfolio growth
+                                Real project experience
                             </div>
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Earn opportunities
+                                Build your portfolio
                             </div>
                         </div>
                     </div>
@@ -184,7 +191,7 @@
                 </div>
 
                 <!-- Trust indicators -->
-                <div class="mt-12 flex flex-wrap justify-center items-center gap-8 text-white/60 text-sm">
+                <div class="mt-12 mb-4 flex flex-wrap justify-center items-center gap-8 text-white/60 text-sm">
                     <div class="flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -193,15 +200,15 @@
                     </div>
                     <div class="flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                         </svg>
-                        Lightning fast
+                        Pay only when satisfied
                     </div>
                     <div class="flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
-                        Global community
+                        Copyright protected
                     </div>
                 </div>
             </div>

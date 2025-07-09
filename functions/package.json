@@ -1,0 +1,33 @@
+{
+    "name": "mixpitch-audio-processing",
+    "version": "1.0.0",
+    "description": "AWS Lambda functions for audio processing in MixPitch",
+    "main": "index.js",
+    "scripts": {
+        "deploy": "serverless deploy",
+        "deploy-dev": "serverless deploy --stage dev",
+        "deploy-prod": "serverless deploy --stage prod",
+        "remove": "serverless remove",
+        "logs-waveform": "serverless logs -f waveform -t",
+        "logs-transcode": "serverless logs -f transcode -t",
+        "invoke-waveform": "serverless invoke -f waveform",
+        "invoke-transcode": "serverless invoke -f transcode"
+    },
+    "devDependencies": {
+        "serverless": "^3.38.0",
+        "serverless-python-requirements": "^6.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/your-org/mixpitch.git"
+    },
+    "keywords": [
+        "audio",
+        "processing",
+        "lambda",
+        "ffmpeg",
+        "transcoding",
+        "watermarking"
+    ],
+    "license": "MIT"
+}

@@ -103,6 +103,11 @@ class Pitch extends Model implements HasMedia
         'client_approved_at',
         'client_revision_requested_at',
         'client_submitted_at',
+        // Audio processing fields
+        'audio_processed',
+        'audio_processed_at',
+        'audio_processing_results',
+        'audio_processing_error',
     ];
 
     protected $dates = [
@@ -134,6 +139,9 @@ class Pitch extends Model implements HasMedia
         'client_submitted_at' => 'datetime',
         'payment_completed_at' => 'datetime',
         'amount' => 'decimal:2',
+        'audio_processed' => 'boolean',
+        'audio_processed_at' => 'datetime',
+        'audio_processing_results' => 'json',
     ];
 
     public static $transitions = [
