@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('pitches', function (Blueprint $table) {
-            $table->boolean('audio_processed')->default(false)->after('waveform_processed_at');
+        Schema::table('pitch_files', function (Blueprint $table) {
+            $table->boolean('audio_processed')->default(false)->after('duration');
             $table->timestamp('audio_processed_at')->nullable()->after('audio_processed');
             $table->json('audio_processing_results')->nullable()->after('audio_processed_at');
             $table->text('audio_processing_error')->nullable()->after('audio_processing_results');
@@ -25,7 +25,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('pitches', function (Blueprint $table) {
+        Schema::table('pitch_files', function (Blueprint $table) {
             $table->dropIndex(['audio_processed', 'audio_processed_at']);
             $table->dropColumn([
                 'audio_processed',
