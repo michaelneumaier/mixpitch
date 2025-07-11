@@ -33,15 +33,25 @@ class FileDownloadController extends Controller
             // Authorization: Use Policy
             $this->authorize('downloadFile', $file);
 
-            // Generate URL using the service
-            $signedUrl = $this->fileManagementService->getTemporaryDownloadUrl($file, Auth::user());
+            // Use the PitchFile model's permission-based download URL
+            $signedUrl = $file->getDownloadUrl(Auth::user(), 60);
+
+            if (!$signedUrl) {
+                Log::error('Could not generate download URL for pitch file', [
+                    'file_id' => $file->id,
+                    'file_uuid' => $file->uuid,
+                    'user_id' => Auth::id()
+                ]);
+                return back()->with('error', 'Unable to generate download URL. Please try again.');
+            }
 
             // Log the successful download attempt
             Log::info('Pitch file download requested', [
                 'file_id' => $file->id,
                 'file_uuid' => $file->uuid,
                 'user_id' => Auth::id(),
-                'filename' => $file->file_name
+                'filename' => $file->file_name,
+                'will_receive_watermarked' => $file->shouldServeWatermarked(Auth::user())
             ]);
 
             // Redirect to the signed URL

@@ -4,7 +4,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: python3.9
+  runtime: python3.11
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-2'}
   memorySize: 1024
@@ -13,6 +13,11 @@ provider:
   environment:
     AWS_BUCKET: ${env:AWS_BUCKET}
     AUDIO_PROCESSING_BUCKET: ${env:AUDIO_PROCESSING_BUCKET, env:AWS_BUCKET}
+    # R2 Configuration for direct upload (optional - falls back to S3 if not provided)
+    CF_R2_ACCESS_KEY_ID: ${env:CF_R2_ACCESS_KEY_ID, ''}
+    CF_R2_SECRET_ACCESS_KEY: ${env:CF_R2_SECRET_ACCESS_KEY, ''}
+    CF_R2_ENDPOINT: ${env:CF_R2_ENDPOINT, ''}
+    CF_R2_BUCKET: ${env:CF_R2_BUCKET, ''}
     
   iamRoleStatements:
     - Effect: Allow
@@ -35,7 +40,7 @@ functions:
     handler: generate_waveform.lambda_handler
     description: Generate waveform data from audio files
     layers:
-      - arn:aws:lambda:us-east-2:${aws:accountId}:layer:ffmpeg:1  # FFmpeg layer
+      - arn:aws:lambda:us-east-2:881533634640:layer:ffmpeg-layer-dev:1
     events:
       - http:
           path: /waveform
@@ -48,7 +53,7 @@ functions:
     handler: transcode_audio.lambda_handler
     description: Transcode and watermark audio files
     layers:
-      - arn:aws:lambda:us-east-2:${aws:accountId}:layer:ffmpeg:1  # FFmpeg layer
+      - arn:aws:lambda:us-east-2:881533634640:layer:ffmpeg-layer-dev:1
     events:
       - http:
           path: /transcode

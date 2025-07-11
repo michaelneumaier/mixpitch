@@ -4,9 +4,9 @@ import subprocess
 import tempfile
 import os
 import sys
-import numpy as np
 import urllib.request
 import logging
+import struct
 
 os.environ['PATH'] = '/opt/bin:' + os.environ['PATH']
 
@@ -98,12 +98,17 @@ def generate_waveform(audio_path, num_peaks):
     raw_audio = raw_data_result.stdout
     logger.info(f"Raw PCM data size: {len(raw_audio)} bytes")
     
-    # Convert to numpy array for processing
-    samples = np.frombuffer(raw_audio, dtype=np.int16)
-    logger.info(f"Converted to {len(samples)} samples")
+    # Convert raw bytes to 16-bit integers using struct
+    sample_count = len(raw_audio) // 2  # 2 bytes per 16-bit sample
+    samples = []
+    
+    logger.info(f"Converting {sample_count} samples")
+    
+    # Unpack all samples at once for efficiency
+    samples = list(struct.unpack(f'<{sample_count}h', raw_audio))
     
     # Take absolute values for waveform
-    samples = np.abs(samples)
+    samples = [abs(sample) for sample in samples]
     
     # Create segments and take max in each segment
     samples_per_peak = max(1, len(samples) // num_peaks)
@@ -121,9 +126,9 @@ def generate_waveform(audio_path, num_peaks):
             continue
             
         segment = samples[start:end]
-        if len(segment) > 0:
+        if segment:
             # Normalize to 0-1 range and create symmetrical peaks
-            max_value = np.max(segment) / 32768.0
+            max_value = max(segment) / 32768.0
             peaks.append([-max_value, max_value])
         else:
             peaks.append([0, 0])

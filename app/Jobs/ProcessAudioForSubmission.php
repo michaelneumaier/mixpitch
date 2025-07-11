@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Pitch;
 use App\Models\PitchFile;
+use App\Models\Pitch;
 use App\Services\AudioProcessingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,143 +11,182 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class ProcessAudioForSubmission implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $pitch;
-    protected $audioFiles;
+    /**
+     * The pitch file to process.
+     *
+     * @var \App\Models\PitchFile
+     */
+    public $pitchFile;
 
     /**
-     * The number of times the job may be attempted.
+     * The maximum number of times the job may be attempted.
+     *
+     * @var int
      */
     public $tries = 3;
 
     /**
      * The number of seconds the job can run before timing out.
+     *
+     * @var int
      */
-    public $timeout = 600; // 10 minutes for audio processing
+    public $timeout = 600; // 10 minutes
 
     /**
      * Create a new job instance.
+     *
+     * @param  \App\Models\PitchFile  $pitchFile
+     * @return void
      */
-    public function __construct(Pitch $pitch, array $audioFiles = [])
+    public function __construct(PitchFile $pitchFile)
     {
-        $this->pitch = $pitch;
-        $this->audioFiles = $audioFiles;
+        $this->pitchFile = $pitchFile;
     }
 
     /**
      * Execute the job.
+     *
+     * @param  \App\Services\AudioProcessingService  $audioProcessingService
+     * @return void
      */
     public function handle(AudioProcessingService $audioProcessingService)
     {
-        // Only process for Standard Workflow projects
-        if (!$this->pitch->project->isStandard()) {
-            Log::info('Skipping audio processing for non-standard workflow', [
-                'pitch_id' => $this->pitch->id,
-                'workflow_type' => $this->pitch->project->workflow_type
-            ]);
-            return;
-        }
-
-        // If no specific files provided, process all audio files
-        if (empty($this->audioFiles)) {
-            $this->audioFiles = $this->pitch->files()
-                ->whereRaw("LOWER(file_path) LIKE '%.mp3'")
-                ->orWhereRaw("LOWER(file_path) LIKE '%.wav'")
-                ->orWhereRaw("LOWER(file_path) LIKE '%.ogg'")
-                ->orWhereRaw("LOWER(file_path) LIKE '%.aac'")
-                ->orWhereRaw("LOWER(file_path) LIKE '%.m4a'")
-                ->orWhereRaw("LOWER(file_path) LIKE '%.flac'")
-                ->get()
-                ->toArray();
-        }
-
-        if (empty($this->audioFiles)) {
-            Log::info('No audio files to process', ['pitch_id' => $this->pitch->id]);
-            return;
-        }
-
-        Log::info('Starting audio processing for submission', [
-            'pitch_id' => $this->pitch->id,
-            'project_id' => $this->pitch->project_id,
-            'file_count' => count($this->audioFiles)
-        ]);
-
+        // Store the file ID before refreshing
+        $fileId = $this->pitchFile->id;
+        
         try {
-            $results = [];
+            // Refresh the PitchFile from database to ensure we have current data
+            $this->pitchFile = PitchFile::with('pitch.project')->find($fileId);
             
-            foreach ($this->audioFiles as $audioFile) {
-                $pitchFile = is_array($audioFile) ? PitchFile::find($audioFile['id']) : $audioFile;
-                
-                if (!$pitchFile) {
-                    Log::warning('Audio file not found', ['file_id' => $audioFile['id'] ?? 'unknown']);
-                    continue;
-                }
-
-                Log::info('Processing audio file', [
-                    'file_id' => $pitchFile->id,
-                    'file_name' => $pitchFile->file_name,
-                    'pitch_id' => $this->pitch->id
+            // Verify the PitchFile still exists
+            if (!$this->pitchFile) {
+                Log::error('PitchFile not found in database', [
+                    'file_id' => $fileId
                 ]);
+                throw new \Exception('PitchFile not found in database');
+            }
+            
+            // Verify relationships loaded correctly
+            if (!$this->pitchFile->pitch) {
+                Log::error('Pitch relationship not found for PitchFile', [
+                    'file_id' => $this->pitchFile->id,
+                    'pitch_id' => $this->pitchFile->pitch_id
+                ]);
+                throw new \Exception('Pitch relationship not found for PitchFile ' . $this->pitchFile->id);
+            }
+            
+            // Store pitch reference safely
+            $pitch = $this->pitchFile->pitch;
+            
+            // Verify project relationship exists
+            if (!$pitch->project) {
+                Log::error('Project relationship not found for Pitch', [
+                    'file_id' => $this->pitchFile->id,
+                    'pitch_id' => $this->pitchFile->pitch_id,
+                    'project_id' => $pitch->project_id ?? 'null'
+                ]);
+                throw new \Exception('Project relationship not found for Pitch ' . $pitch->id);
+            }
+            
+            $project = $pitch->project;
+            
+            Log::info('Processing audio file for submission', [
+                'file_id' => $this->pitchFile->id,
+                'file_name' => $this->pitchFile->file_name,
+                'pitch_id' => $this->pitchFile->pitch_id,
+                'project_id' => $project->id
+            ]);
 
-                try {
-                    $result = $audioProcessingService->processAudioFileForSubmission($pitchFile, $this->pitch);
-                    $results[] = $result;
-                    
-                    Log::info('Audio file processed successfully', [
-                        'file_id' => $pitchFile->id,
-                        'transcoded' => $result['transcoded'],
-                        'watermarked' => $result['watermarked'],
-                        'output_path' => $result['output_path'] ?? null
-                    ]);
-                    
-                } catch (\Exception $e) {
-                    Log::error('Failed to process audio file', [
-                        'file_id' => $pitchFile->id,
-                        'pitch_id' => $this->pitch->id,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ]);
-                    
-                    // Continue processing other files even if one fails
-                    continue;
-                }
+            // Check if the file should be processed
+            if (!$this->pitchFile->shouldBeWatermarked()) {
+                Log::info('File does not require watermarking, skipping processing', [
+                    'file_id' => $this->pitchFile->id,
+                    'project_workflow' => $project->workflow ?? 'unknown'
+                ]);
+                return;
             }
 
-            // Update pitch with processing results
-            $this->pitch->update([
-                'audio_processed' => true,
-                'audio_processed_at' => now(),
-                'audio_processing_results' => json_encode($results)
+            // Check if already processed
+            if ($this->pitchFile->audio_processed) {
+                Log::info('File already processed, skipping', [
+                    'file_id' => $this->pitchFile->id,
+                    'processed_at' => $this->pitchFile->audio_processed_at
+                ]);
+                return;
+            }
+            
+            // Process the file
+            $result = $audioProcessingService->processAudioFileForSubmission($this->pitchFile, $pitch);
+
+            Log::info('Audio processing completed for file', [
+                'file_id' => $this->pitchFile->id,
+                'success' => !$result['error'],
+                'transcoded' => $result['transcoded'] ?? false,
+                'watermarked' => $result['watermarked'] ?? false,
+                'processing_time' => $result['processing_time'] ?? 0
             ]);
 
-            Log::info('Audio processing completed for submission', [
-                'pitch_id' => $this->pitch->id,
-                'processed_files' => count($results),
-                'total_files' => count($this->audioFiles)
-            ]);
-
+            if ($result['error']) {
+                Log::error('Audio processing failed for file', [
+                    'file_id' => $this->pitchFile->id,
+                    'error' => $result['error']
+                ]);
+            }
+            
         } catch (\Exception $e) {
-            Log::error('Audio processing failed for submission', [
-                'pitch_id' => $this->pitch->id,
+            Log::error('ProcessAudioForSubmission job encountered an error', [
+                'file_id' => $fileId,
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // Mark as failed after max attempts
-            if ($this->attempts() >= $this->tries) {
-                $this->pitch->update([
-                    'audio_processed' => false,
-                    'audio_processed_at' => now(),
-                    'audio_processing_error' => $e->getMessage()
-                ]);
-            }
-            
+            // Re-throw the exception to trigger the failed() method
             throw $e;
+        }
+    }
+
+    /**
+     * Handle a job failure.
+     *
+     * @param  \Throwable  $exception
+     * @return void
+     */
+    public function failed(\Throwable $exception)
+    {
+        $fileId = $this->pitchFile->id ?? 'unknown';
+        
+        Log::error('ProcessAudioForSubmission job failed', [
+            'file_id' => $fileId,
+            'error' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTraceAsString()
+        ]);
+
+        // Mark the file as failed if we can access it
+        try {
+            if ($this->pitchFile && method_exists($this->pitchFile, 'markAsProcessingFailed')) {
+                $this->pitchFile->markAsProcessingFailed('Job failed: ' . $exception->getMessage());
+            } else {
+                // Try to find the file by ID and mark it as failed
+                $pitchFile = PitchFile::find($fileId);
+                if ($pitchFile) {
+                    $pitchFile->markAsProcessingFailed('Job failed: ' . $exception->getMessage());
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to mark PitchFile as failed in job failure handler', [
+                'file_id' => $fileId,
+                'original_error' => $exception->getMessage(),
+                'handler_error' => $e->getMessage()
+            ]);
         }
     }
 } 

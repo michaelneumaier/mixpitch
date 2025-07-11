@@ -1,197 +1,104 @@
 <?php
 
 return [
+    
     /*
     |--------------------------------------------------------------------------
     | Audio Processing Configuration
     |--------------------------------------------------------------------------
     |
-    | Configuration for audio processing features including transcoding,
-    | watermarking, and waveform generation.
+    | This file contains the configuration for audio processing, including
+    | watermarking, transcoding, and supported formats.
     |
     */
 
-    'processing' => [
-        /*
-        |--------------------------------------------------------------------------
-        | Processing Method
-        |--------------------------------------------------------------------------
-        |
-        | Choose the primary method for audio processing:
-        | - 'lambda' for AWS Lambda processing
-        | - 'local' for local FFmpeg processing
-        | - 'auto' to automatically choose based on availability
-        |
-        */
-        'method' => env('AUDIO_PROCESSING_METHOD', 'auto'),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Use AWS Lambda
-        |--------------------------------------------------------------------------
-        |
-        | Whether to use AWS Lambda for audio processing when available.
-        | If false, will fall back to local processing.
-        |
-        */
-        'use_lambda' => env('AUDIO_USE_LAMBDA', true),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Processing Timeout
-        |--------------------------------------------------------------------------
-        |
-        | Maximum time (in seconds) to allow for audio processing.
-        | Lambda: 300 seconds (5 minutes)
-        | Local: 600 seconds (10 minutes)
-        |
-        */
-        'timeout' => [
-            'lambda' => env('AUDIO_LAMBDA_TIMEOUT', 300),
-            'local' => env('AUDIO_LOCAL_TIMEOUT', 600),
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | Retry Configuration
-        |--------------------------------------------------------------------------
-        |
-        | Number of retry attempts for failed audio processing jobs.
-        |
-        */
-        'retries' => env('AUDIO_PROCESSING_RETRIES', 3),
+    'supported_formats' => [
+        'mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Transcoding Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Settings for audio transcoding functionality.
-    |
-    */
-    'transcoding' => [
-        /*
-        |--------------------------------------------------------------------------
-        | Enabled
-        |--------------------------------------------------------------------------
-        |
-        | Whether to enable audio transcoding for submissions.
-        |
-        */
-        'enabled' => env('AUDIO_TRANSCODING_ENABLED', true),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Supported Input Formats
-        |--------------------------------------------------------------------------
-        |
-        | List of audio formats that can be transcoded.
-        |
-        */
-        'supported_formats' => ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'],
-
-        /*
-        |--------------------------------------------------------------------------
-        | Target Format
-        |--------------------------------------------------------------------------
-        |
-        | The target format for transcoded audio files.
-        |
-        */
-        'target_format' => env('AUDIO_TARGET_FORMAT', 'mp3'),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Quality Settings
-        |--------------------------------------------------------------------------
-        |
-        | Quality settings for transcoded audio.
-        |
-        */
-        'quality' => [
-            'bitrate' => env('AUDIO_TARGET_BITRATE', '192k'),
-            'sample_rate' => env('AUDIO_TARGET_SAMPLE_RATE', '44100'),
-            'channels' => env('AUDIO_TARGET_CHANNELS', '2'),
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | Workflow Types
-        |--------------------------------------------------------------------------
-        |
-        | Which workflow types should have transcoding enabled.
-        |
-        */
-        'workflows' => [
-            'standard' => env('AUDIO_TRANSCODING_STANDARD', true),
-            'contest' => env('AUDIO_TRANSCODING_CONTEST', false),
-            'direct_hire' => env('AUDIO_TRANSCODING_DIRECT_HIRE', false),
-            'client_management' => env('AUDIO_TRANSCODING_CLIENT_MANAGEMENT', false),
-        ],
-    ],
+    'target_format' => 'mp3',
+    'target_bitrate' => '192k',
 
     /*
     |--------------------------------------------------------------------------
     | Watermarking Configuration
     |--------------------------------------------------------------------------
     |
-    | Settings for audio watermarking functionality.
+    | Configuration for audio watermarking based on project workflow type.
+    | Watermarking is applied to protect intellectual property during review
+    | phases before final approval and payment.
     |
     */
+
     'watermarking' => [
-        /*
-        |--------------------------------------------------------------------------
-        | Enabled
-        |--------------------------------------------------------------------------
-        |
-        | Whether to enable audio watermarking for submissions.
-        |
-        */
-        'enabled' => env('AUDIO_WATERMARKING_ENABLED', true),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Watermark Type
-        |--------------------------------------------------------------------------
-        |
-        | Type of watermark to apply:
-        | - 'tone' for audio tone watermark
-        | - 'noise' for noise-based watermark
-        | - 'spectral' for spectral watermark (requires advanced processing)
-        |
-        */
-        'type' => env('AUDIO_WATERMARK_TYPE', 'tone'),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Watermark Settings
-        |--------------------------------------------------------------------------
-        |
-        | Configuration for watermark generation.
-        |
-        */
-        'settings' => [
-            'frequency' => env('AUDIO_WATERMARK_FREQUENCY', 1000), // Hz
-            'volume' => env('AUDIO_WATERMARK_VOLUME', 0.1), // 0.0 to 1.0
-            'duration' => env('AUDIO_WATERMARK_DURATION', 0.5), // seconds
-            'interval' => env('AUDIO_WATERMARK_INTERVAL', 30), // seconds
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | Workflow Types
-        |--------------------------------------------------------------------------
-        |
-        | Which workflow types should have watermarking enabled.
-        |
-        */
+        'enabled' => true,
+        
+        // Workflow types that require watermarking
         'workflows' => [
-            'standard' => env('AUDIO_WATERMARKING_STANDARD', true),
-            'contest' => env('AUDIO_WATERMARKING_CONTEST', false),
-            'direct_hire' => env('AUDIO_WATERMARKING_DIRECT_HIRE', false),
-            'client_management' => env('AUDIO_WATERMARKING_CLIENT_MANAGEMENT', false),
+            'standard' => true,
+            'contest' => false,
+            'direct_hire' => false,
+            'client_management' => false,
         ],
+        
+        // Default watermark settings
+        'default_settings' => [
+            'type' => 'periodic_tone',
+            'frequency' => 1000,      // 1kHz tone
+            'volume' => 0.5,          // 50% volume - very audible
+            'duration' => 0.8,        // 800ms - duration of each watermark burst
+            'interval' => 20,         // Every 20 seconds
+        ],
+        
+        // Advanced watermark settings for different noise types
+        'noise_types' => [
+            'sine' => [
+                'description' => 'Pure sine wave tone',
+                'command_pattern' => 'sine=frequency={frequency}:duration={duration}',
+            ],
+            'white_noise' => [
+                'description' => 'White noise across all frequencies',
+                'command_pattern' => 'anoisesrc=color=white:sample_rate=44100:amplitude=0.5',
+            ],
+            'pink_noise' => [
+                'description' => 'Pink noise with 1/f frequency distribution',
+                'command_pattern' => 'anoisesrc=color=pink:sample_rate=44100:amplitude=0.5',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | AWS Lambda Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for AWS Lambda audio processing functions.
+    | These functions handle transcoding and watermarking in the cloud.
+    |
+    */
+
+    'aws_lambda' => [
+        'enabled' => env('AWS_LAMBDA_AUDIO_ENABLED', true),
+        'url' => env('AWS_LAMBDA_AUDIO_PROCESSOR_URL'),
+        'timeout' => 300, // 5 minutes
+        'retry_attempts' => 2,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Local FFmpeg Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for local FFmpeg processing as a fallback when AWS Lambda
+    | is not available or configured.
+    |
+    */
+
+    'ffmpeg' => [
+        'enabled' => true,
+        'path' => env('FFMPEG_PATH', 'ffmpeg'),
+        'timeout' => 300, // 5 minutes
+        'memory_limit' => '512M',
     ],
 
     /*
@@ -199,101 +106,32 @@ return [
     | File Storage Configuration
     |--------------------------------------------------------------------------
     |
-    | Settings for processed audio file storage.
+    | Configuration for processed file storage and management.
     |
     */
+
     'storage' => [
-        /*
-        |--------------------------------------------------------------------------
-        | Processed Files Directory
-        |--------------------------------------------------------------------------
-        |
-        | Directory where processed audio files are stored.
-        |
-        */
-        'processed_directory' => env('AUDIO_PROCESSED_DIRECTORY', 'processed'),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Cleanup Policy
-        |--------------------------------------------------------------------------
-        |
-        | Whether to clean up temporary files after processing.
-        |
-        */
+        'processed_files_path' => 'pitches/{pitch_id}/processed/',
+        'temp_files_path' => 'temp/audio/',
+        'cleanup_after_days' => 30,
         'cleanup_temp_files' => env('AUDIO_CLEANUP_TEMP_FILES', true),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Keep Original Files
-        |--------------------------------------------------------------------------
-        |
-        | Whether to keep original files after processing.
-        |
-        */
-        'keep_original_files' => env('AUDIO_KEEP_ORIGINAL_FILES', true),
+        'cleanup_delay_minutes' => env('AUDIO_CLEANUP_DELAY_MINUTES', 60), // Wait 1 hour before cleanup
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Waveform Generation
+    | Security Configuration
     |--------------------------------------------------------------------------
     |
-    | Settings for audio waveform generation (existing functionality).
+    | Configuration for audio file security and access control.
     |
     */
-    'waveform' => [
-        /*
-        |--------------------------------------------------------------------------
-        | Enabled
-        |--------------------------------------------------------------------------
-        |
-        | Whether waveform generation is enabled.
-        |
-        */
-        'enabled' => env('AUDIO_WAVEFORM_ENABLED', true),
 
-        /*
-        |--------------------------------------------------------------------------
-        | Data Points
-        |--------------------------------------------------------------------------
-        |
-        | Number of data points to generate for waveform visualization.
-        |
-        */
-        'peaks_count' => env('AUDIO_WAVEFORM_PEAKS', 200),
+    'security' => [
+        'signed_url_expiration' => 3600,    // 1 hour
+        'download_url_expiration' => 900,   // 15 minutes
+        'streaming_url_expiration' => 7200, // 2 hours
+        'max_file_size' => 100 * 1024 * 1024, // 100MB
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cost Optimization
-    |--------------------------------------------------------------------------
-    |
-    | Settings for optimizing processing costs.
-    |
-    */
-    'cost_optimization' => [
-        /*
-        |--------------------------------------------------------------------------
-        | Processing Limits
-        |--------------------------------------------------------------------------
-        |
-        | Limits to prevent excessive processing costs.
-        |
-        */
-        'max_file_size' => env('AUDIO_MAX_FILE_SIZE', 200 * 1024 * 1024), // 200MB
-        'max_duration' => env('AUDIO_MAX_DURATION', 600), // 10 minutes
-        'max_files_per_pitch' => env('AUDIO_MAX_FILES_PER_PITCH', 10),
-
-        /*
-        |--------------------------------------------------------------------------
-        | Processing Schedule
-        |--------------------------------------------------------------------------
-        |
-        | Whether to process files immediately or queue for later processing.
-        |
-        */
-        'immediate_processing' => env('AUDIO_IMMEDIATE_PROCESSING', true),
-        'queue_processing' => env('AUDIO_QUEUE_PROCESSING', true),
-    ],
 ]; 

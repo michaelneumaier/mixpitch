@@ -45,9 +45,13 @@ show_usage() {
     echo "  -v, --verbose         Verbose output"
     echo "  -h, --help            Show this help message"
     echo ""
-    echo "Environment Variables (required):"
-    echo "  AWS_BUCKET                S3 bucket name"
-    echo "  AWS_ACCOUNT_ID           AWS Account ID"
+    echo "Environment Variables (required via .env.STAGE file):"
+    echo "  CF_R2_ACCESS_KEY_ID      Cloudflare R2 Access Key ID"
+    echo "  CF_R2_SECRET_ACCESS_KEY  Cloudflare R2 Secret Access Key"
+    echo "  CF_R2_ENDPOINT           Cloudflare R2 Endpoint URL"
+    echo "  CF_R2_BUCKET             Cloudflare R2 Bucket Name"
+    echo "  AWS_BUCKET               S3 bucket name (for fallback)"
+    echo "  AWS_ACCOUNT_ID           AWS Account ID (can be detected)"
     echo ""
     echo "Examples:"
     echo "  $0 --stage dev"
@@ -95,6 +99,21 @@ if [[ ! -f "serverless.yml" ]]; then
     exit 1
 fi
 
+# Check for environment file
+ENV_FILE=".env.$STAGE"
+if [[ ! -f "$ENV_FILE" ]]; then
+    print_error "Environment file '$ENV_FILE' not found."
+    print_error "Please create it from '$ENV_FILE.example' and fill in the values."
+    exit 1
+fi
+
+print_status "Using environment file: $ENV_FILE"
+
+# Load environment variables from the file
+set -o allexport
+source "$ENV_FILE"
+set +o allexport
+
 # Check required tools
 command -v serverless >/dev/null 2>&1 || {
     print_error "Serverless framework not found. Please install it:"
@@ -107,33 +126,22 @@ command -v aws >/dev/null 2>&1 || {
     exit 1
 }
 
-command -v docker >/dev/null 2>&1 || {
-    print_error "Docker not found. Docker is required for Python packaging."
-    exit 1
-}
+# Check Docker (only if dockerizePip is enabled)
+DOCKER_REQUIRED=$(grep -q "dockerizePip.*true" serverless.yml && echo "true" || echo "false")
 
-# Check environment variables
-if [[ -z "$AWS_BUCKET" ]]; then
-    print_error "AWS_BUCKET environment variable is required"
-    exit 1
-fi
-
-if [[ -z "$AWS_ACCOUNT_ID" ]]; then
-    print_warning "AWS_ACCOUNT_ID not set. Attempting to detect..."
-    AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")
-    if [[ -z "$AWS_ACCOUNT_ID" ]]; then
-        print_error "Could not detect AWS Account ID. Please set AWS_ACCOUNT_ID environment variable."
+if [[ "$DOCKER_REQUIRED" == "true" ]]; then
+    command -v docker >/dev/null 2>&1 || {
+        print_error "Docker not found. Docker is required for Python packaging."
+        print_error "Please install Docker Desktop or Docker Engine."
         exit 1
-    fi
-    print_success "Detected AWS Account ID: $AWS_ACCOUNT_ID"
+    }
+    print_status "Docker is available for Python packaging"
+else
+    print_status "Docker not required (dockerizePip disabled)"
 fi
 
-# Check AWS credentials
-print_status "Verifying AWS credentials..."
-if ! aws sts get-caller-identity >/dev/null 2>&1; then
-    print_error "AWS credentials not configured or invalid. Please run 'aws configure'."
-    exit 1
-fi
+# Check environment variables from file (now handled by serverless-dotenv-plugin)
+# The deployment will fail with a clear message if variables are missing.
 
 # Install dependencies if needed
 if [[ ! -d "node_modules" ]]; then

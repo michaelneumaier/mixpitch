@@ -706,14 +706,16 @@ class PitchWorkflowService
                             ->get();
 
                         if ($audioFiles->isNotEmpty()) {
-                            Log::info('Dispatching audio processing job for Standard Workflow submission', [
+                            Log::info('Dispatching audio processing jobs for Standard Workflow submission', [
                                 'pitch_id' => $pitch->id,
                                 'audio_files_count' => $audioFiles->count(),
                                 'snapshot_id' => $snapshot->id
                             ]);
 
-                            // Dispatch job to process audio files (transcoding and watermarking)
-                            dispatch(new \App\Jobs\ProcessAudioForSubmission($pitch, $audioFiles->toArray()));
+                            // Dispatch individual jobs for each audio file (transcoding and watermarking)
+                            foreach ($audioFiles as $audioFile) {
+                                dispatch(new \App\Jobs\ProcessAudioForSubmission($audioFile));
+                            }
                         } else {
                             Log::info('No audio files found for processing', [
                                 'pitch_id' => $pitch->id,

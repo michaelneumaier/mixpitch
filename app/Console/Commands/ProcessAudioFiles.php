@@ -223,30 +223,28 @@ class ProcessAudioFiles extends Command
         $this->info("Processing synchronously...");
 
         try {
-            $results = [];
+            $processedCount = 0;
+            $errorCount = 0;
             
             foreach ($audioFiles as $audioFile) {
                 $this->info("Processing file: {$audioFile->file_name}");
                 
                 $result = $audioProcessingService->processAudioFileForSubmission($audioFile, $pitch);
-                $results[] = $result;
                 
                 if ($result['error']) {
                     $this->error("Error: {$result['error']}");
+                    $errorCount++;
                 } else {
                     $this->info("Success - Transcoded: {$result['transcoded']}, Watermarked: {$result['watermarked']}");
+                    $processedCount++;
                 }
             }
 
-            // Update pitch with results
-            $pitch->update([
-                'audio_processed' => true,
-                'audio_processed_at' => now(),
-                'audio_processing_results' => json_encode($results)
-            ]);
-
-            $this->info("Processing completed for pitch {$pitch->id}");
-            return 0;
+            $this->info("Processing completed for pitch {$pitch->id}:");
+            $this->info("  Processed: {$processedCount}");
+            $this->info("  Errors: {$errorCount}");
+            
+            return $errorCount > 0 ? 1 : 0;
 
         } catch (\Exception $e) {
             $this->error("Processing failed: {$e->getMessage()}");
@@ -262,11 +260,13 @@ class ProcessAudioFiles extends Command
         $this->info("Dispatching to queue...");
 
         try {
-            dispatch(new ProcessAudioForSubmission($pitch, $audioFiles->toArray()));
-            $this->info("Job dispatched for pitch {$pitch->id}");
+            foreach ($audioFiles as $audioFile) {
+                dispatch(new ProcessAudioForSubmission($audioFile));
+            }
+            $this->info("Jobs dispatched for {$audioFiles->count()} files from pitch {$pitch->id}");
             return 0;
         } catch (\Exception $e) {
-            $this->error("Failed to dispatch job: {$e->getMessage()}");
+            $this->error("Failed to dispatch jobs: {$e->getMessage()}");
             return 1;
         }
     }

@@ -720,4 +720,27 @@ class Pitch extends Model implements HasMedia
     {
         return !is_null($this->placement_finalized_at);
     }
+
+    /**
+     * Check if the pitch has been completed and paid for
+     *
+     * @return bool
+     */
+    public function isCompletedAndPaid(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED && 
+               $this->payment_status === self::PAYMENT_STATUS_PAID;
+    }
+
+    /**
+     * Check if the pitch has been accepted or completed and paid for
+     * This is used for determining when project owners can access original files
+     *
+     * @return bool
+     */
+    public function isAcceptedCompletedAndPaid(): bool
+    {
+        return in_array($this->status, [self::STATUS_APPROVED, self::STATUS_COMPLETED]) && 
+               $this->payment_status === self::PAYMENT_STATUS_PAID;
+    }
 }

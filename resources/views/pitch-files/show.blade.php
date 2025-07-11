@@ -53,10 +53,16 @@
                                 </div>
                                 
                                 <!-- Download Button -->
-                                <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                    <i class="fas fa-download mr-2"></i> Download
-                                </a>
+                                @can('downloadFile', $file)
+                                    <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
+                                       class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                        <i class="fas fa-download mr-2"></i> Download
+                                    </a>
+                                @else
+                                    <div class="inline-flex items-center px-4 py-2 bg-gray-400 text-white rounded-xl font-medium opacity-50 cursor-not-allowed">
+                                        <i class="fas fa-lock mr-2"></i> Download Restricted
+                                    </div>
+                                @endcan
                             </div>
                             
                             <!-- File Metadata Row -->
