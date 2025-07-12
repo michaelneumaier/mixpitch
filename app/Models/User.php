@@ -122,6 +122,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
      * @var array<string, string>
      */
     protected $casts = [
+        'id' => 'integer',
         'email_verified_at' => 'datetime',
         'social_links' => 'array',
         'username_locked' => 'boolean',

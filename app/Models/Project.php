@@ -136,6 +136,8 @@ class Project extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
+        'client_user_id' => 'integer',
         'collaboration_type' => 'array',
         'is_published' => 'boolean',
         'is_private' => 'boolean',
