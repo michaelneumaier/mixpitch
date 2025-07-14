@@ -38,13 +38,8 @@ class BillingController extends Controller
         $limits = $user->getSubscriptionLimits();
         $usage = [
             'projects_count' => $user->projects()->count(),
-            'active_pitches_count' => $user->pitches()->whereIn('status', [
-                \App\Models\Pitch::STATUS_PENDING,
-                \App\Models\Pitch::STATUS_IN_PROGRESS,
-                \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
-                \App\Models\Pitch::STATUS_PENDING_REVIEW,
-            ])->count(),
-            'monthly_pitches_used' => $user->monthly_pitch_count ?? 0,
+            'active_pitches_count' => $user->getActivePitchesCount(),
+            'monthly_pitches_used' => $user->getMonthlyPitchCount(),
             'visibility_boosts_used' => $user->getRemainingVisibilityBoosts() ?? 0,
             'private_projects_used' => $user->getRemainingPrivateProjects() ?? 0,
             'license_templates_count' => $user->licenseTemplates()->count() ?? 0,

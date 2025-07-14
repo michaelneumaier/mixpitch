@@ -134,6 +134,12 @@ class ProjectController extends Controller
      */
     public function store(StoreProjectRequest $request)
     {
+        // Check subscription limits before creating project
+        if (!$request->user()->canCreateProject()) {
+            return redirect()->route('subscription.index')
+                ->with('error', 'You have reached your project limit. Upgrade to Pro for unlimited projects.');
+        }
+        
         // Authorization and validation handled by StoreProjectRequest
         try {
             $project = $this->projectService->createProject(

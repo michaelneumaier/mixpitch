@@ -37,6 +37,11 @@ class PitchPolicy
      */
     public function createPitch(User $user, Project $project): bool
     {
+        // Check subscription limits first
+        if (!$user->canCreatePitch()) {
+            return false;
+        }
+
         // Deny public creation for Direct Hire / Client Management workflows
         if ($project->isDirectHire() || $project->isClientManagement()) {
             return false;

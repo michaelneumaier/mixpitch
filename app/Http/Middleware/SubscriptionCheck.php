@@ -29,19 +29,22 @@ class SubscriptionCheck
         switch ($action) {
             case 'create_project':
                 if (!$user->canCreateProject()) {
+                    $activeProjectsCount = $user->getActiveProjectsCount();
+                    
                     Log::info('User blocked from creating project due to subscription limits', [
                         'user_id' => $user->id,
                         'plan' => $user->subscription_plan,
                         'tier' => $user->subscription_tier,
-                        'current_projects' => $user->projects()->count(),
+                        'active_projects' => $activeProjectsCount,
+                        'total_projects' => $user->projects()->count(),
                         'limit' => $limits?->max_projects_owned
                     ]);
                     
                     // Send limit reached notification if not already sent recently
-                    $this->sendLimitNotificationIfNeeded($user, 'projects', $user->projects()->count(), $limits?->max_projects_owned);
+                    $this->sendLimitNotificationIfNeeded($user, 'projects', $activeProjectsCount, $limits?->max_projects_owned);
                     
                     return redirect()->route('subscription.index')
-                        ->with('error', 'You have reached your project limit. Upgrade to Pro for unlimited projects.');
+                        ->with('error', 'You have reached your active project limit. Upgrade to Pro for unlimited projects or complete existing projects.');
                 }
                 break;
                 

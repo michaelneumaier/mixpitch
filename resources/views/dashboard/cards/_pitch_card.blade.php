@@ -48,12 +48,12 @@
                 <div class="absolute bottom-4 left-4">
                     @if($pitch->project)
                         @php
-                            // For pitches, show "Pitch" as the primary type
+                            // For pitches, show appropriate label based on workflow type
                             $workflowConfig = [
                                 'standard' => ['bg' => 'bg-indigo-100/90', 'text' => 'text-indigo-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
                                 'contest' => ['bg' => 'bg-purple-100/90', 'text' => 'text-purple-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
                                 'direct_hire' => ['bg' => 'bg-green-100/90', 'text' => 'text-green-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
-                                'client_management' => ['bg' => 'bg-orange-100/90', 'text' => 'text-orange-800', 'icon' => 'fa-paper-plane', 'label' => 'Pitch'],
+                                'client_management' => ['bg' => 'bg-orange-100/90', 'text' => 'text-orange-800', 'icon' => 'fa-briefcase', 'label' => 'Client'],
                             ];
                             $workflowType = $pitch->project->workflow_type ?? 'standard';
                             $workflowStyle = $workflowConfig[$workflowType] ?? $workflowConfig['standard'];

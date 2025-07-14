@@ -90,9 +90,12 @@
                                      <div class="flex items-center bg-blue-50/80 px-2.5 py-1.5 rounded-lg border border-blue-100 flex-shrink-0">
                                          <i class="fas fa-folder text-blue-500 mr-1.5 text-xs"></i>
                                          <span class="text-blue-700 font-medium">Projects:</span>
-                                         <span class="font-semibold ml-1 {{ $subscription['limits']->max_projects && $subscription['usage']['total_projects'] >= $subscription['limits']->max_projects ? 'text-red-600' : 'text-blue-900' }}">
-                                        {{ $subscription['usage']['total_projects'] }}{{ $subscription['limits']->max_projects ? '/' . $subscription['limits']->max_projects : '' }}
+                                         <span class="font-semibold ml-1 {{ $subscription['limits']->max_projects_owned && $subscription['usage']['active_projects'] >= $subscription['limits']->max_projects_owned ? 'text-red-600' : 'text-blue-900' }}">
+                                        {{ $subscription['usage']['active_projects'] }}{{ $subscription['limits']->max_projects_owned ? '/' . $subscription['limits']->max_projects_owned : '' }}
                                     </span>
+                                    @if($subscription['usage']['completed_projects'] > 0)
+                                        <span class="text-xs text-gray-500 ml-1">(+{{ $subscription['usage']['completed_projects'] }} completed)</span>
+                                    @endif
                                 </div>
 
                                 <!-- Active Pitches -->
@@ -140,6 +143,9 @@
                     @endif
                 </div>
             </div>
+
+            <!-- Profile Setup Banner -->
+            <x-profile-setup-banner :user="auth()->user()" />
 
             <!-- Payout Status Banner -->
             <x-payout-status-banner :user="auth()->user()" />
@@ -197,7 +203,6 @@
                     </div>
 
                     <!-- Client Management Stats -->
-                    @if($producerData['client_management']['total_projects'] > 0)
                     <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 lg:p-6 shadow-lg">
                         <div class="flex items-center justify-between mb-3 lg:mb-4">
                             <div class="flex items-center space-x-3">
@@ -215,6 +220,8 @@
                             </a>
                         </div>
                         
+                        @if($producerData['client_management']['total_projects'] > 0)
+                        <!-- Has Client Projects - Show Stats -->
                         <div class="grid grid-cols-2 gap-4">
                             <div class="text-center p-3 bg-white/50 rounded-lg">
                                 <div class="text-2xl font-bold text-blue-900">{{ $producerData['client_management']['total_projects'] }}</div>
@@ -233,8 +240,22 @@
                                 <div class="text-xs text-blue-600">Revenue</div>
                             </div>
                         </div>
+                        @else
+                        <!-- No Client Projects - Show Empty State with CTA -->
+                        <div class="text-center">
+                            <div class="mb-4">
+
+                                <h4 class="text-lg font-semibold text-blue-800 mb-2">No Client Projects Yet</h4>
+                                <p class="text-sm text-blue-600 mb-4">Start managing client projects to earn more and build your portfolio</p>
+                            </div>
+                            <a href="{{ route('projects.create') }}?workflow_type=client_management" 
+                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                                <i class="fas fa-plus mr-2"></i>
+                                Create Client Project
+                            </a>
+                        </div>
+                        @endif
                     </div>
-                    @endif
 
                     <!-- Stripe Connect Status -->
                     <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 lg:p-6 shadow-lg">

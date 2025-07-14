@@ -15,6 +15,10 @@ class PitchObserver
     {
         // When a pitch is created, update the project status if needed
         $this->syncProjectStatus($pitch);
+        // Increment monthly pitch count for non-client management pitches
+        if ($pitch->user) {
+            $pitch->user->incrementMonthlyPitchCount($pitch);
+        }
     }
 
     /**

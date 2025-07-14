@@ -70,7 +70,7 @@ class ProjectResource extends Resource
                                 
                                 Forms\Components\Select::make('workflow_type')
                                     ->label('Workflow Type')
-                                    ->options(collect(Project::getWorkflowTypes())->mapWithKeys(fn($type) => [$type => Project::getReadableWorkflowTypeAttribute($type)]))
+                                    ->options(collect(Project::getWorkflowTypes())->mapWithKeys(fn($type) => [$type => Project::getReadableWorkflowType($type)]))
                                     ->required()
                                     ->reactive()
                                     ->afterStateUpdated(fn (callable $set) => $set('target_producer_id', null)),

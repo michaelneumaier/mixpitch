@@ -44,6 +44,11 @@ class ProjectPolicy
      */
     public function create(User $user)
     {
+        // Check subscription limits
+        if (!$user->canCreateProject()) {
+            return false;
+        }
+        
         return true;
     }
 

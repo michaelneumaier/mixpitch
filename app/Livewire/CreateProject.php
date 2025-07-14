@@ -852,6 +852,15 @@ class CreateProject extends Component
     public function save(ProjectManagementService $projectService)
     {
         try {
+            // Add subscription validation before project creation
+            if (!$this->isEdit) {
+                // Check if user can create a new project
+                if (!auth()->user()->canCreateProject()) {
+                    Toaster::error('You have reached your project limit. Upgrade to Pro for unlimited projects.');
+                    return redirect()->route('subscription.index');
+                }
+            }
+
             // Don't format deadline here - it will be handled later in the convertDateTimeToUtc method
 
             // Format budget based on budgetType

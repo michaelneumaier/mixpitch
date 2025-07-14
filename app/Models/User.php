@@ -316,7 +316,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 
 
     /**
-     * Check if the user has completed their profile setup
+     * Check if the user has completed their profile
      * 
      * @return bool
      */
@@ -324,6 +324,47 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     {
         // Consider a profile complete if the user has set their username and bio
         return !empty($this->username) && !empty($this->bio);
+    }
+
+    /**
+     * Get profile completion status with detailed breakdown
+     * 
+     * @return array
+     */
+    public function getProfileCompletionStatus(): array
+    {
+        $fields = [
+            'username' => !empty($this->username),
+            'bio' => !empty($this->bio),
+            'location' => !empty($this->location),
+            'website' => !empty($this->website),
+            'social_links' => !empty($this->social_links),
+        ];
+        
+        $completedCount = count(array_filter($fields));
+        $totalCount = count($fields);
+        $percentage = $totalCount > 0 ? round(($completedCount / $totalCount) * 100) : 0;
+        
+        return [
+            'is_complete' => $this->hasCompletedProfile(),
+            'percentage' => $percentage,
+            'completed_count' => $completedCount,
+            'total_count' => $totalCount,
+            'fields' => $fields,
+        ];
+    }
+
+    /**
+     * Get missing profile fields
+     * 
+     * @return array
+     */
+    public function getMissingProfileFields(): array
+    {
+        $status = $this->getProfileCompletionStatus();
+        return array_keys(array_filter($status['fields'], function($completed) {
+            return !$completed;
+        }));
     }
 
     /**
@@ -617,13 +658,39 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             return true; // Unlimited
         }
         
-        return $this->projects()->count() < $limits->max_projects_owned;
+        // Count only non-completed projects
+        $activeProjectsCount = $this->getActiveProjectsCount();
+        
+        return $activeProjectsCount < $limits->max_projects_owned;
+    }
+
+    /**
+     * Get the count of active (non-completed) projects
+     *
+     * @return int
+     */
+    public function getActiveProjectsCount(): int
+    {
+        return $this->projects()
+            ->whereNotIn('status', [Project::STATUS_COMPLETED])
+            ->count();
+    }
+
+    /**
+     * Get the count of completed projects
+     *
+     * @return int
+     */
+    public function getCompletedProjectsCount(): int
+    {
+        return $this->projects()
+            ->where('status', Project::STATUS_COMPLETED)
+            ->count();
     }
 
     /**
      * Check if user can create a new pitch (general check)
-     *
-     * @return bool
+     * Excludes client management from limits
      */
     public function canCreatePitch(): bool
     {
@@ -631,16 +698,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         if (!$limits || $limits->max_active_pitches === null) {
             return true; // Unlimited
         }
-        
-        $activePitches = $this->pitches()
-            ->whereIn('status', [
-                Pitch::STATUS_PENDING,
-                Pitch::STATUS_IN_PROGRESS,
-                Pitch::STATUS_READY_FOR_REVIEW,
-                Pitch::STATUS_PENDING_REVIEW,
-            ])
-            ->count();
-            
+        $activePitches = $this->getActivePitchesCount();
         return $activePitches < $limits->max_active_pitches;
     }
 
@@ -681,14 +739,15 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
     }
 
     /**
-     * Increment the monthly pitch count
-     *
-     * @return void
+     * Increment the monthly pitch count (excluding client management)
+     * Pass the pitch as an argument
      */
-    public function incrementMonthlyPitchCount(): void
+    public function incrementMonthlyPitchCount(Pitch $pitch): void
     {
         $this->resetMonthlyPitchCountIfNeeded();
-        $this->increment('monthly_pitch_count');
+        if ($pitch->project && !$pitch->project->isClientManagement()) {
+            $this->increment('monthly_pitch_count');
+        }
     }
 
     /**
@@ -990,14 +1049,34 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 
     /**
      * Get the number of pitches created by this user in the current month
-     *
-     * @return int
+     * Excludes client management pitches
      */
     public function getMonthlyPitchCount(): int
     {
         return $this->pitches()
             ->whereYear('created_at', now()->year)
             ->whereMonth('created_at', now()->month)
+            ->whereHas('project', function($query) {
+                $query->where('workflow_type', '!=', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+            })
+            ->count();
+    }
+
+    /**
+     * Get count of active pitches (excluding client management)
+     */
+    public function getActivePitchesCount(): int
+    {
+        return $this->pitches()
+            ->whereIn('status', [
+                Pitch::STATUS_PENDING,
+                Pitch::STATUS_IN_PROGRESS,
+                Pitch::STATUS_READY_FOR_REVIEW,
+                Pitch::STATUS_PENDING_REVIEW,
+            ])
+            ->whereHas('project', function($query) {
+                $query->where('workflow_type', '!=', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+            })
             ->count();
     }
 

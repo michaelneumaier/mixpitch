@@ -1112,6 +1112,24 @@ class Project extends Model
     }
 
     /**
+     * Get human-readable workflow type name for a given workflow type.
+     *
+     * @param string $workflowType
+     * @return string
+     */
+    public static function getReadableWorkflowType(string $workflowType): string
+    {
+        $types = [
+            self::WORKFLOW_TYPE_STANDARD => 'Standard Project',
+            self::WORKFLOW_TYPE_CONTEST => 'Contest',
+            self::WORKFLOW_TYPE_DIRECT_HIRE => 'Direct Hire',
+            self::WORKFLOW_TYPE_CLIENT_MANAGEMENT => 'Client Management',
+        ];
+        
+        return $types[$workflowType] ?? 'Unknown Type';
+    }
+
+    /**
      * Get the CSS color class for the current status
      * 
      * @return string

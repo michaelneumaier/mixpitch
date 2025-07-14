@@ -22,13 +22,8 @@ class SubscriptionController extends Controller
         
         $usage = [
             'projects_count' => $user->projects()->count(),
-            'active_pitches_count' => $user->pitches()->whereIn('status', [
-                Pitch::STATUS_PENDING,
-                Pitch::STATUS_IN_PROGRESS,
-                Pitch::STATUS_READY_FOR_REVIEW,
-                Pitch::STATUS_PENDING_REVIEW,
-            ])->count(),
-            'monthly_pitches_used' => $user->monthly_pitch_count,
+            'active_pitches_count' => $user->getActivePitchesCount(),
+            'monthly_pitches_used' => $user->getMonthlyPitchCount(),
         ];
         
         return view('subscription.index', compact('user', 'limits', 'usage'));

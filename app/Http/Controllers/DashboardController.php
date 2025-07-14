@@ -60,39 +60,33 @@ class DashboardController extends Controller
         if ($limits) {
             $subscriptionData['limits'] = $limits;
             
-            // Project counts
+            // Project counts using new methods
             $totalProjects = $user->projects->count();
-            $activeProjects = $user->projects->whereIn('status', [
-                Project::STATUS_OPEN, 
-                Project::STATUS_IN_PROGRESS
-            ])->count();
+            $activeProjects = $user->getActiveProjectsCount();
+            $completedProjects = $user->getCompletedProjectsCount();
             
-            // Pitch counts
-            $activePitches = $user->pitches->whereIn('status', [
-                Pitch::STATUS_PENDING, 
-                Pitch::STATUS_IN_PROGRESS, 
-                Pitch::STATUS_READY_FOR_REVIEW,
-                Pitch::STATUS_REVISIONS_REQUESTED
-            ])->count();
-            
+            // Pitch counts (excluding client management)
+            $activePitches = $user->getActivePitchesCount();
+
             $subscriptionData['usage'] = [
                 'total_projects' => $totalProjects,
                 'active_projects' => $activeProjects,
+                'completed_projects' => $completedProjects,
                 'active_pitches_count' => $activePitches,
                 'monthly_pitches_used' => $user->getMonthlyPitchCount(),
             ];
             
-            // Generate alerts based on usage
-            if ($limits->max_projects && $totalProjects >= $limits->max_projects) {
+            // Generate alerts based on usage (now using active projects)
+            if ($limits->max_projects_owned && $activeProjects >= $limits->max_projects_owned) {
                 $subscriptionData['alerts'][] = [
                     'type' => 'projects',
-                    'message' => 'You have reached your project limit. Upgrade to Pro for unlimited projects.',
+                    'message' => 'You have reached your active project limit. Upgrade to Pro for unlimited projects or complete existing projects.',
                     'level' => 'error'
                 ];
-            } elseif ($limits->max_projects && $totalProjects >= ($limits->max_projects * 0.8)) {
+            } elseif ($limits->max_projects_owned && $activeProjects >= ($limits->max_projects_owned * 0.8)) {
                 $subscriptionData['alerts'][] = [
                     'type' => 'projects',
-                    'message' => 'You are approaching your project limit.',
+                    'message' => 'You are approaching your active project limit.',
                     'level' => 'warning'
                 ];
             }
