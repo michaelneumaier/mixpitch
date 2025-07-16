@@ -47,50 +47,50 @@
         <div class="absolute top-1/2 left-1/4 w-16 h-16 bg-pink-200/30 rounded-full blur-xl"></div>
     </div>
 
-    <div class="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-5xl">
+    <div class="relative z-10 container mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 max-w-5xl">
 
         {{-- Enhanced Header Card with Project Status Dashboard --}}
-        <div class="mb-8 animate-fade-in-up">
-            <div class="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-8">
+        <div class="mb-6 sm:mb-8 animate-fade-in-up">
+            <div class="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-4 sm:p-6 lg:p-8">
                 <!-- Background Effects -->
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 rounded-2xl"></div>
                 
                 <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
                         <div class="flex items-center">
-                            <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mr-6 shadow-lg">
-                                <i class="fas fa-briefcase text-white text-2xl"></i>
+                            <div class="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mr-4 sm:mr-6 shadow-lg flex-shrink-0">
+                                <i class="fas fa-briefcase text-white text-lg sm:text-2xl"></i>
                             </div>
-                            <div>
-                                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $project->title }}</h1>
-                                <p class="text-lg text-gray-600">Managed by {{ $pitch->user->name }}</p>
+                            <div class="min-w-0 flex-1">
+                                <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 break-words">{{ $project->title }}</h1>
+                                <p class="text-sm sm:text-base lg:text-lg text-gray-600 truncate">Managed by {{ $pitch->user->name }}</p>
                             </div>
                         </div>
                         
                         <!-- Enhanced Status Badge -->
-                        <div class="bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl px-6 py-3 shadow-sm">
-                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold {{ $pitch->getStatusColorClass() }} border-2 border-white/50 shadow-lg backdrop-blur-sm">
-                                <div class="w-2 h-2 rounded-full mr-2 bg-current animate-pulse"></div>
-                                {{ $pitch->readable_status }}
+                        <div class="bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl px-3 sm:px-6 py-2 sm:py-3 shadow-sm self-start sm:self-auto">
+                            <span class="inline-flex items-center px-2 sm:px-4 py-1 sm:py-2 rounded-xl text-xs sm:text-sm font-bold {{ $pitch->getStatusColorClass() }} border-2 border-white/50 shadow-lg backdrop-blur-sm">
+                                <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1 sm:mr-2 bg-current animate-pulse"></div>
+                                <span class="truncate">{{ $pitch->readable_status }}</span>
                             </span>
                         </div>
                     </div>
                     
                     <!-- Project Status Dashboard -->
                     <div class="mb-6">
-                        <div class="bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-6">
+                        <div class="bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-3 sm:p-4 lg:p-6">
                             <h3 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
                                 <i class="fas fa-route mr-2 text-blue-500"></i>
                                 Project Progress
                             </h3>
                             
                             <!-- Progress Steps -->
-                            <div class="flex items-center justify-between relative">
+                            <div class="flex items-center justify-between relative overflow-x-auto">
                                 <!-- Progress Line Background -->
-                                <div class="absolute top-4 left-4 right-4 h-0.5 bg-gray-200 rounded-full"></div>
+                                <div class="absolute top-4 left-4 right-4 h-0.5 bg-gray-200 rounded-full hidden sm:block"></div>
                                 
                                 <!-- Dynamic Progress Line -->
-                                <div class="absolute top-4 left-4 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-1000 ease-out" 
+                                <div class="absolute top-4 left-4 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-1000 ease-out hidden sm:block" 
                                      style="width: {{ 
                                         $pitch->status === \App\Models\Pitch::STATUS_PENDING ? '0%' :
                                         ($pitch->status === \App\Models\Pitch::STATUS_IN_PROGRESS ? '25%' :
@@ -100,63 +100,63 @@
                                      }}"></div>
                                 
                                 <!-- Step 1: Project Started -->
-                                <div class="relative flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center {{ 
+                                <div class="relative flex flex-col items-center min-w-0 flex-1">
+                                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center {{ 
                                         in_array($pitch->status, [\App\Models\Pitch::STATUS_PENDING, \App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_APPROVED, \App\Models\Pitch::STATUS_COMPLETED]) 
                                         ? 'bg-blue-500 border-blue-500 text-white' 
                                         : 'bg-white border-gray-300 text-gray-400' 
                                     }}">
                                         <i class="fas fa-play text-xs"></i>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-600 mt-2 text-center">Started</span>
+                                    <span class="text-xs font-medium text-gray-600 mt-1 sm:mt-2 text-center truncate w-full">Started</span>
                                 </div>
                                 
                                 <!-- Step 2: In Progress -->
-                                <div class="relative flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center {{ 
+                                <div class="relative flex flex-col items-center min-w-0 flex-1">
+                                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center {{ 
                                         in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_APPROVED, \App\Models\Pitch::STATUS_COMPLETED]) 
                                         ? 'bg-purple-500 border-purple-500 text-white' 
                                         : 'bg-white border-gray-300 text-gray-400' 
                                     }}">
                                         <i class="fas fa-cog text-xs {{ $pitch->status === \App\Models\Pitch::STATUS_IN_PROGRESS ? 'animate-spin' : '' }}"></i>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-600 mt-2 text-center">In Progress</span>
+                                    <span class="text-xs font-medium text-gray-600 mt-1 sm:mt-2 text-center truncate w-full">In Progress</span>
                                 </div>
                                 
                                 <!-- Step 3: Ready for Review -->
-                                <div class="relative flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center {{ 
+                                <div class="relative flex flex-col items-center min-w-0 flex-1">
+                                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center {{ 
                                         in_array($pitch->status, [\App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_APPROVED, \App\Models\Pitch::STATUS_COMPLETED]) 
                                         ? 'bg-amber-500 border-amber-500 text-white' 
                                         : 'bg-white border-gray-300 text-gray-400' 
                                     }}">
                                         <i class="fas fa-eye text-xs {{ $pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW ? 'animate-pulse' : '' }}"></i>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-600 mt-2 text-center">Review</span>
+                                    <span class="text-xs font-medium text-gray-600 mt-1 sm:mt-2 text-center truncate w-full">Review</span>
                                 </div>
                                 
                                 <!-- Step 4: Approved -->
-                                <div class="relative flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center {{ 
+                                <div class="relative flex flex-col items-center min-w-0 flex-1">
+                                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center {{ 
                                         in_array($pitch->status, [\App\Models\Pitch::STATUS_APPROVED, \App\Models\Pitch::STATUS_COMPLETED]) 
                                         ? 'bg-green-500 border-green-500 text-white' 
                                         : 'bg-white border-gray-300 text-gray-400' 
                                     }}">
                                         <i class="fas fa-check text-xs"></i>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-600 mt-2 text-center">Approved</span>
+                                    <span class="text-xs font-medium text-gray-600 mt-1 sm:mt-2 text-center truncate w-full">Approved</span>
                                 </div>
                                 
                                 <!-- Step 5: Completed -->
-                                <div class="relative flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center {{ 
+                                <div class="relative flex flex-col items-center min-w-0 flex-1">
+                                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center {{ 
                                         $pitch->status === \App\Models\Pitch::STATUS_COMPLETED 
                                         ? 'bg-emerald-500 border-emerald-500 text-white' 
                                         : 'bg-white border-gray-300 text-gray-400' 
                                     }}">
                                         <i class="fas fa-trophy text-xs"></i>
                                     </div>
-                                    <span class="text-xs font-medium text-gray-600 mt-2 text-center">Complete</span>
+                                    <span class="text-xs font-medium text-gray-600 mt-1 sm:mt-2 text-center truncate w-full">Complete</span>
                                 </div>
                             </div>
                             
@@ -188,17 +188,17 @@
                     </div>
                     
                     <!-- Client Info & Payment Information -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                         <!-- Client Info -->
-                        <div class="bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-4">
+                        <div class="bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-3 sm:p-4">
                             <div class="flex items-center">
-                                <i class="fas fa-user-circle text-blue-500 text-xl mr-3"></i>
-                                <div>
+                                <i class="fas fa-user-circle text-blue-500 text-lg sm:text-xl mr-2 sm:mr-3 flex-shrink-0"></i>
+                                <div class="min-w-0 flex-1">
             @if($project->client_name)
-                                        <p class="font-semibold text-gray-800">{{ $project->client_name }}</p>
-                                        <p class="text-sm text-gray-600">{{ $project->client_email }}</p>
+                                        <p class="font-semibold text-gray-800 text-sm sm:text-base truncate">{{ $project->client_name }}</p>
+                                        <p class="text-xs sm:text-sm text-gray-600 truncate">{{ $project->client_email }}</p>
                                     @else
-                                        <p class="font-semibold text-gray-800">{{ $project->client_email }}</p>
+                                        <p class="font-semibold text-gray-800 text-sm sm:text-base truncate">{{ $project->client_email }}</p>
                                     @endif
                                 </div>
                             </div>
@@ -206,25 +206,27 @@
                         
                         <!-- Payment Information -->
                         @if($pitch->payment_amount > 0)
-                        <div class="bg-gradient-to-r from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 rounded-xl p-4">
+                        <div class="bg-gradient-to-r from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 rounded-xl p-3 sm:p-4">
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <i class="fas fa-dollar-sign text-green-500 text-xl mr-3"></i>
-                                    <div>
-                                        <p class="font-semibold text-gray-800">${{ number_format($pitch->payment_amount, 2) }}</p>
-                                        <p class="text-sm text-gray-600">Project Value</p>
+                                <div class="flex items-center min-w-0 flex-1">
+                                    <i class="fas fa-dollar-sign text-green-500 text-lg sm:text-xl mr-2 sm:mr-3 flex-shrink-0"></i>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="font-semibold text-gray-800 text-sm sm:text-base">${{ number_format($pitch->payment_amount, 2) }}</p>
+                                        <p class="text-xs sm:text-sm text-gray-600">Project Value</p>
                                     </div>
                                 </div>
-                                <div class="text-right">
+                                <div class="text-right flex-shrink-0 ml-2">
                                     @if($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
                                         <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800">
                                             <i class="fas fa-check-circle mr-1"></i>
-                                            Paid
+                                            <span class="hidden sm:inline">Paid</span>
+                                            <span class="sm:hidden">✓</span>
                                         </span>
             @else
                                         <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-800">
                                             <i class="fas fa-clock mr-1"></i>
-                                            Payment Due
+                                            <span class="hidden sm:inline">Payment Due</span>
+                                            <span class="sm:hidden">Due</span>
                                         </span>
                                     @endif
                                 </div>
@@ -381,23 +383,23 @@
                 
                 <div class="relative z-10">
                     <!-- Header -->
-                    <div class="bg-gradient-to-r from-purple-50/80 to-blue-50/80 backdrop-blur-sm border-b border-purple-200/30 p-6">
+                    <div class="bg-gradient-to-r from-purple-50/80 to-blue-50/80 backdrop-blur-sm border-b border-purple-200/30 p-3 sm:p-4 lg:p-6">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
-                                <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl mr-4 shadow-lg">
-                                    <i class="fas fa-folder-open text-white"></i>
+                                <div class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl mr-3 sm:mr-4 shadow-lg">
+                                    <i class="fas fa-folder-open text-white text-sm sm:text-base"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-xl font-bold text-purple-900">Project Files</h3>
-                                    <p class="text-sm text-purple-700 mt-1">Manage your project files and deliverables</p>
+                                    <h3 class="text-lg sm:text-xl font-bold text-purple-900">Project Files</h3>
+                                    <p class="text-xs sm:text-sm text-purple-700 mt-1">Manage your project files and deliverables</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="p-6 space-y-6">
+                    <div class="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
                 {{-- Client Reference Files Section --}}
-                        <div class="bg-gradient-to-br from-blue-50/90 to-indigo-50/80 backdrop-blur-md border border-blue-200/50 rounded-2xl p-6 shadow-lg">
+                        <div class="bg-gradient-to-br from-blue-50/90 to-indigo-50/80 backdrop-blur-md border border-blue-200/50 rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg">
                             <h4 class="font-bold text-blue-900 mb-3 flex items-center text-lg">
                                 <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3">
                                     <i class="fas fa-upload text-white text-sm"></i>
@@ -431,24 +433,24 @@
                         @if($project->files->count() > 0)
                                     <div class="space-y-3">
                                 @foreach($project->files as $file)
-                                            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-white/80 to-blue-50/60 backdrop-blur-sm border border-blue-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200" data-file-id="{{ $file->id }}">
-                                        <div class="flex items-center">
-                                                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3 shadow-sm">
-                                                        <i class="fas fa-file text-white text-sm"></i>
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-gradient-to-r from-white/80 to-blue-50/60 backdrop-blur-sm border border-blue-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 space-y-3 sm:space-y-0" data-file-id="{{ $file->id }}">
+                                        <div class="flex items-center min-w-0 flex-1">
+                                                    <div class="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-2 sm:mr-3 shadow-sm flex-shrink-0">
+                                                        <i class="fas fa-file text-white text-xs sm:text-sm"></i>
                                                     </div>
-                                                    <div>
-                                                        <span class="text-sm font-semibold text-blue-900">{{ $file->file_name }}</span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <span class="text-xs sm:text-sm font-semibold text-blue-900 block truncate">{{ $file->file_name }}</span>
                                                         <div class="text-xs text-blue-600">{{ number_format($file->size / 1024, 1) }} KB</div>
                                                     </div>
                                         </div>
-                                                <div class="flex items-center space-x-2">
+                                                <div class="flex items-center space-x-2 self-start sm:self-auto">
                                         <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client.portal.download_project_file', now()->addHours(24), ['project' => $project->id, 'projectFile' => $file->id]) }}" 
-                                                       class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-sm">
-                                                        <i class="fas fa-download mr-2"></i>Download
+                                                       class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm">
+                                                        <i class="fas fa-download mr-1 sm:mr-2"></i><span class="hidden sm:inline">Download</span>
                                         </a>
                                                     <button onclick="deleteFile({{ $file->id }}, '{{ $file->file_name }}')" 
-                                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-sm">
-                                                        <i class="fas fa-trash mr-2"></i>Delete
+                                                            class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm">
+                                                        <i class="fas fa-trash mr-1 sm:mr-2"></i><span class="hidden sm:inline">Delete</span>
                                                     </button>
                                                 </div>
                                     </div>
@@ -551,19 +553,19 @@
                         
                         <div class="space-y-3">
                             @foreach(($currentSnapshot->files ?? collect()) as $file)
-                            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
-                                <div class="flex items-center">
-                                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-sm">
+                            <div class="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                                <div class="flex items-center min-w-0 flex-1 mr-3">
+                                    <div class="hidden sm:flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-sm flex-shrink-0">
                                         <i class="fas fa-music text-white text-sm"></i>
                                     </div>
-                                    <div>
-                                        <span class="text-sm font-semibold text-green-900">{{ $file->file_name }}</span>
+                                    <div class="min-w-0 flex-1">
+                                        <span class="text-xs sm:text-sm font-semibold text-green-900 block truncate">{{ $file->file_name }}</span>
                                         <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB</div>
                                     </div>
                                 </div>
                                 <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-sm">
-                                    <i class="fas fa-download mr-2"></i>Download
+                                   class="inline-flex items-center px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm flex-shrink-0">
+                                    <i class="fas fa-download mr-1 sm:mr-2"></i><span class="hidden sm:inline">Download</span>
                                 </a>
                             </div>
                             @endforeach
@@ -599,43 +601,43 @@
 
         {{-- Enhanced Action Forms with Payment Flow --}}
             @if ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
-            <div class="mb-8 animate-fade-in-up" style="animation-delay: 0.4s;">
-                <div class="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-8">
+            <div class="mb-6 sm:mb-8 animate-fade-in-up" style="animation-delay: 0.4s;">
+                <div class="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-4 sm:p-6 lg:p-8">
                     <div class="absolute inset-0 bg-gradient-to-r from-green-600/5 via-blue-600/5 to-purple-600/5 rounded-2xl"></div>
                     
                     <div class="relative z-10">
-                        <div class="flex items-center mb-6">
-                            <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl mr-4 shadow-lg">
-                                <i class="fas fa-tasks text-white animate-pulse"></i>
+                        <div class="flex items-center mb-4 sm:mb-6">
+                            <div class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl mr-3 sm:mr-4 shadow-lg flex-shrink-0">
+                                <i class="fas fa-tasks text-white animate-pulse text-sm sm:text-base"></i>
                             </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900">Review & Approval</h3>
-                                <p class="text-gray-600 text-sm">The project is ready for your review. Please approve or request revisions.</p>
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-lg sm:text-xl font-bold text-gray-900">Review & Approval</h3>
+                                <p class="text-gray-600 text-xs sm:text-sm">The project is ready for your review. Please approve or request revisions.</p>
                             </div>
                         </div>
                         
                         <!-- Payment Information Banner (if payment required) -->
                         @if($pitch->payment_amount > 0)
-                        <div class="mb-6 p-4 bg-gradient-to-r from-blue-50/80 to-green-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-credit-card text-white text-sm"></i>
+                        <div class="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-blue-50/80 to-green-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                                <div class="flex items-center min-w-0 flex-1">
+                                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                                        <i class="fas fa-credit-card text-white text-xs sm:text-sm"></i>
                                     </div>
-                                    <div>
-                                        <p class="font-semibold text-gray-800">Payment Required: ${{ number_format($pitch->payment_amount, 2) }}</p>
-                                        <p class="text-sm text-gray-600">Secure payment processing via Stripe</p>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="font-semibold text-gray-800 text-sm sm:text-base">Payment Required: ${{ number_format($pitch->payment_amount, 2) }}</p>
+                                        <p class="text-xs sm:text-sm text-gray-600">Secure payment processing via Stripe</p>
                                     </div>
                                 </div>
-                                <div class="flex items-center text-green-600">
-                                    <i class="fas fa-shield-alt mr-2"></i>
-                                    <span class="text-sm font-medium">Secure</span>
+                                <div class="flex items-center text-green-600 self-start sm:self-auto">
+                                    <i class="fas fa-shield-alt mr-1 sm:mr-2"></i>
+                                    <span class="text-xs sm:text-sm font-medium">Secure</span>
                                 </div>
                             </div>
                         </div>
                         @endif
                         
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             {{-- Enhanced Approve Form --}}
                             <div class="bg-gradient-to-br from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 rounded-xl p-6">
                                 <div class="mb-4">
@@ -808,23 +810,23 @@
         @endif
 
         {{-- Enhanced Communication Section --}}
-        <div class="mb-8 animate-fade-in-up" style="animation-delay: 0.5s;">
-            <div class="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-8">
+        <div class="mb-6 sm:mb-8 animate-fade-in-up" style="animation-delay: 0.5s;">
+            <div class="bg-white/95 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl p-4 sm:p-6 lg:p-8">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-blue-600/5 to-pink-600/5 rounded-2xl"></div>
                 
                 <div class="relative z-10">
-                    <div class="flex items-center mb-6">
-                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl mr-4 shadow-lg">
-                            <i class="fas fa-comments text-white"></i>
+                    <div class="flex items-center mb-4 sm:mb-6">
+                        <div class="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl mr-3 sm:mr-4 shadow-lg flex-shrink-0">
+                            <i class="fas fa-comments text-white text-sm sm:text-base"></i>
                         </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-900">Project Communication</h3>
-                            <p class="text-gray-600 text-sm">Stay in touch with your producer throughout the project</p>
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-900">Project Communication</h3>
+                            <p class="text-gray-600 text-xs sm:text-sm">Stay in touch with your producer throughout the project</p>
                         </div>
                     </div>
 
                     {{-- Comment Form --}}
-                    <div class="bg-gradient-to-br from-blue-50/80 to-purple-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-6 mb-6">
+                    <div class="bg-gradient-to-br from-blue-50/80 to-purple-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
                             <form action="{{ URL::temporarySignedRoute('client.portal.comments.store', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
                                 @csrf
                             <label for="comment" class="block text-sm font-semibold text-blue-900 mb-3">Add a Comment</label>

@@ -1,0 +1,616 @@
+<div x-data="enhancedFileUploader(@js($uploadConfig), @js($model->id))" 
+     x-init="init()"
+     class="enhanced-file-uploader">
+    
+    {{-- Enhanced File Upload Interface --}}
+    <div class="mb-4" x-show="filePondSupported">
+        <div class="flex flex-col">
+            <label class="mb-1.5 sm:mb-2 text-sm sm:text-base text-gray-700">
+                Upload files
+                @if($uploadConfig['allowMultiple'])
+                    <span class="text-xs text-gray-500">(Multiple files supported)</span>
+                @endif
+            </label>
+            
+            {{-- FilePond Container --}}
+            <div class="filepond-container mb-4" wire:ignore>
+                <input type="file" 
+                       class="filepond"
+                       x-ref="filePondInput"
+                       @if($uploadConfig['allowMultiple']) multiple @endif
+                       accept="audio/*,application/pdf,image/*,application/zip">
+            </div>
+            
+            {{-- Upload Progress Summary (for multiple files) --}}
+            @if($uploadConfig['allowMultiple'] && $queueCount > 0)
+            <div class="bg-base-200/50 p-3 rounded-lg mb-3">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="font-medium text-sm">Upload Progress</h4>
+                    <div class="text-xs text-gray-500">
+                        {{ $activeUploadCount }} of {{ $queueCount }} uploading
+                    </div>
+                </div>
+                
+                {{-- Overall Progress Bar --}}
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                         x-bind:style="`width: ${overallProgress}%`"></div>
+                </div>
+                
+                <div class="flex justify-between text-xs text-gray-600">
+                    <span x-text="`${completedFiles} completed`"></span>
+                    <span x-text="`${Math.round(overallProgress)}% complete`"></span>
+                </div>
+            </div>
+            @endif
+            
+            {{-- File Queue Display (for multiple files) --}}
+            @if($uploadConfig['allowMultiple'])
+            <div x-show="fileQueue.length > 0" class="space-y-2 max-h-64 overflow-y-auto">
+                <template x-for="file in fileQueue" :key="file.id">
+                    <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center flex-1 min-w-0">
+                                <i class="fas fa-file-alt text-purple-500 mr-2"></i>
+                                <div class="truncate flex-1">
+                                    <span class="text-sm font-medium" x-text="file.filename || file.name"></span>
+                                    <span class="text-xs text-gray-500 ml-1" x-text="`(${formatFileSize(file.size)})`"></span>
+                                </div>
+                            </div>
+                            
+                            {{-- Status Badge and Actions --}}
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 text-xs rounded-full"
+                                      :class="{
+                                          'bg-yellow-100 text-yellow-800': file.status === 'queued',
+                                          'bg-blue-100 text-blue-800': file.status === 'uploading',
+                                          'bg-orange-100 text-orange-800': file.status === 'paused',
+                                          'bg-green-100 text-green-800': file.status === 'completed',
+                                          'bg-red-100 text-red-800': file.status === 'error'
+                                      }"
+                                      x-text="file.status"></span>
+                                
+                                {{-- Action Buttons --}}
+                                <div class="flex space-x-1">
+                                    {{-- Pause/Resume Button --}}
+                                    <button x-show="file.status === 'uploading'" 
+                                            @click="$wire.pauseUpload(file.id)"
+                                            class="text-orange-500 hover:text-orange-700 transition-colors p-1"
+                                            title="Pause upload">
+                                        <i class="fas fa-pause text-xs"></i>
+                                    </button>
+                                    
+                                    <button x-show="file.status === 'paused'" 
+                                            @click="$wire.resumeUpload(file.id)"
+                                            class="text-blue-500 hover:text-blue-700 transition-colors p-1"
+                                            title="Resume upload">
+                                        <i class="fas fa-play text-xs"></i>
+                                    </button>
+                                    
+                                    {{-- Retry Button --}}
+                                    <button x-show="file.status === 'error'" 
+                                            @click="$wire.retryUpload(file.id)"
+                                            class="text-green-500 hover:text-green-700 transition-colors p-1"
+                                            title="Retry upload">
+                                        <i class="fas fa-redo text-xs"></i>
+                                    </button>
+                                    
+                                    {{-- Remove Button --}}
+                                    <button @click="removeFile(file.id)" 
+                                            class="text-red-500 hover:text-red-700 transition-colors p-1"
+                                            :disabled="file.status === 'uploading'"
+                                            title="Remove file">
+                                        <i class="fas fa-times text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {{-- Progress Bar --}}
+                        <div x-show="file.status === 'uploading' || file.status === 'completed' || file.status === 'paused'" 
+                             class="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+                            <div class="h-1.5 rounded-full transition-all duration-300" 
+                                 :class="{
+                                     'bg-blue-500': file.status === 'uploading',
+                                     'bg-green-500': file.status === 'completed',
+                                     'bg-orange-500': file.status === 'paused'
+                                 }"
+                                 :style="`width: ${file.progress}%`"></div>
+                        </div>
+                        
+                        {{-- Error Message --}}
+                        <div x-show="file.status === 'error' && file.error" 
+                             class="text-xs text-red-600 mt-1 font-medium bg-red-50 p-2 rounded"
+                             x-text="file.error"></div>
+                        
+                        {{-- Upload Speed and Time Remaining --}}
+                        <div x-show="file.status === 'uploading' && (file.uploadSpeed || file.timeRemaining)" 
+                             class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span x-show="file.uploadSpeed" x-text="`${file.uploadSpeed}/s`"></span>
+                            <span x-show="file.timeRemaining" x-text="`${file.timeRemaining} remaining`"></span>
+                        </div>
+                        
+                        {{-- Completion Info --}}
+                        <div x-show="file.status === 'completed' && file.uploadedAt" 
+                             class="text-xs text-green-600 mt-1">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            <span>Completed successfully</span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            @endif
+            
+            {{-- Action Buttons --}}
+            <div class="flex justify-between items-center mt-4">
+                <div class="flex space-x-2">
+                    @if($uploadConfig['allowMultiple'])
+                    <button @click="clearQueue()" 
+                            x-show="fileQueue.length > 0"
+                            class="btn btn-sm btn-outline btn-error">
+                        <i class="fas fa-trash mr-1"></i> Clear Queue
+                    </button>
+                    @endif
+                </div>
+                
+                <div class="flex space-x-2">
+                    @if($uploadConfig['allowMultiple'])
+                    {{-- Start Upload Button --}}
+                    <button @click="$wire.startQueueProcessing()" 
+                            x-show="fileQueue.filter(f => f.status === 'queued').length > 0"
+                            class="btn btn-sm btn-primary">
+                        <i class="fas fa-upload mr-1"></i> Start Upload
+                    </button>
+                    
+                    {{-- Pause All Button --}}
+                    <button @click="$wire.pauseAllUploads()" 
+                            x-show="activeUploads > 0"
+                            class="btn btn-sm btn-outline">
+                        <i class="fas fa-pause mr-1"></i> Pause All
+                    </button>
+                    
+                    {{-- Resume All Button --}}
+                    <button @click="$wire.resumeAllUploads()" 
+                            x-show="pausedUploads > 0"
+                            class="btn btn-sm btn-outline">
+                        <i class="fas fa-play mr-1"></i> Resume All
+                    </button>
+                    @else
+                    {{-- Single File Upload Button --}}
+                    <button @click="startSingleUpload()" 
+                            x-show="pond && pond.getFiles().length > 0"
+                            class="btn btn-sm btn-primary">
+                        <i class="fas fa-upload mr-1"></i> Upload File
+                    </button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {{-- Fallback to Original FileUploader --}}
+    <div x-show="!filePondSupported" class="fallback-uploader">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                <span class="text-sm text-yellow-800">
+                    Enhanced upload features are not supported in your browser. Using basic upload instead.
+                </span>
+            </div>
+        </div>
+        
+        {{-- Include original file uploader as fallback --}}
+        @include('livewire.file-uploader-basic')
+    </div>
+</div>
+
+{{-- Alpine.js Component Script --}}
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('enhancedFileUploader', (config, modelId) => ({
+        // Configuration
+        config: config,
+        
+        // FilePond instance
+        pond: null,
+        filePondSupported: true,
+        
+        // File queue management
+        fileQueue: [],
+        activeUploads: 0,
+        completedFiles: 0,
+        pausedUploads: 0,
+        
+        // Progress tracking
+        overallProgress: 0,
+        uploadSpeeds: {},
+        
+        // Initialization tracking
+        initializationAttempts: 0,
+        maxInitializationAttempts: 20,
+        initializationCompleted: false,
+        initializationInProgress: false,
+        
+        init() {
+            this.checkFilePondSupport();
+            if (this.filePondSupported) {
+                // Use a more robust initialization approach
+                this.initializeFilePondWithRetry();
+            }
+            this.setupEventListeners();
+        },
+        
+        checkFilePondSupport() {
+            // Check for required browser features
+            const hasRequiredFeatures = !!(
+                window.File && 
+                window.FileReader && 
+                window.FileList && 
+                window.Blob &&
+                window.FormData
+            );
+            
+            // Check if FilePond is loaded
+            const hasFilePond = typeof FilePond !== 'undefined';
+            
+            if (!hasRequiredFeatures) {
+                console.warn('Browser does not support required file features');
+                this.filePondSupported = false;
+                return;
+            }
+            
+            if (!hasFilePond) {
+                console.warn('FilePond library not loaded');
+                this.filePondSupported = false;
+                return;
+            }
+            
+            console.log('FilePond support confirmed');
+        },
+        
+        initializeFilePondWithRetry() {
+            // Prevent multiple initialization attempts
+            if (this.initializationCompleted || this.initializationInProgress) {
+                console.log('FilePond initialization already completed or in progress');
+                return;
+            }
+            
+            this.initializationInProgress = true;
+            
+            const attemptInitialization = () => {
+                this.initializationAttempts++;
+                
+                // Check if element exists
+                if (!this.$refs.filePondInput) {
+                    console.log(`FilePond input not found, attempt ${this.initializationAttempts}/${this.maxInitializationAttempts}`);
+                    
+                    if (this.initializationAttempts < this.maxInitializationAttempts) {
+                        // Use Alpine.js nextTick for better timing
+                        this.$nextTick(() => {
+                            attemptInitialization();
+                        });
+                        return;
+                    } else {
+                        console.error('FilePond input element not found after maximum attempts');
+                        this.filePondSupported = false;
+                        this.initializationInProgress = false;
+                        return;
+                    }
+                }
+                
+                // Check if FilePond is already initialized on this element
+                if (this.$refs.filePondInput.classList.contains('filepond--root') || 
+                    this.$refs.filePondInput.parentElement?.classList.contains('filepond--root')) {
+                    console.log('FilePond already initialized on this element');
+                    this.initializationCompleted = true;
+                    this.initializationInProgress = false;
+                    return;
+                }
+                
+                // Verify element is properly attached to DOM
+                if (!this.$refs.filePondInput.parentNode || !document.contains(this.$refs.filePondInput)) {
+                    console.log(`FilePond input not attached to DOM, attempt ${this.initializationAttempts}/${this.maxInitializationAttempts}`);
+                    
+                    if (this.initializationAttempts < this.maxInitializationAttempts) {
+                        this.$nextTick(() => {
+                            attemptInitialization();
+                        });
+                        return;
+                    } else {
+                        console.error('FilePond input element not properly attached to DOM');
+                        this.filePondSupported = false;
+                        this.initializationInProgress = false;
+                        return;
+                    }
+                }
+                
+                // All checks passed, initialize FilePond
+                this.createFilePondInstance();
+            };
+            
+            // Start the initialization process
+            attemptInitialization();
+        },
+        
+        createFilePondInstance() {
+            try {
+                console.log('Creating FilePond instance...');
+                
+                // Register FilePond plugins if available
+                if (window.FilePondPluginFileValidateType) {
+                    FilePond.registerPlugin(window.FilePondPluginFileValidateType);
+                }
+                if (window.FilePondPluginFileValidateSize) {
+                    FilePond.registerPlugin(window.FilePondPluginFileValidateSize);
+                }
+                if (window.FilePondPluginImagePreview) {
+                    FilePond.registerPlugin(window.FilePondPluginImagePreview);
+                }
+                
+                // Create FilePond instance with TRUE chunked uploads
+                this.pond = FilePond.create(this.$refs.filePondInput, {
+                    allowMultiple: this.config.allowMultiple || false,
+                    allowDrop: this.config.enableDragDrop !== false,
+                    allowBrowse: true,
+                    allowReplace: !this.config.allowMultiple,
+                    allowRevert: false, // Disable revert to avoid 404 errors
+                    allowRemove: true,
+                    maxFiles: this.config.allowMultiple ? 10 : 1,
+                    maxFileSize: this.config.maxFileSize || '200MB',
+                    acceptedFileTypes: ['audio/*', 'application/pdf', 'image/*', 'application/zip'],
+                    
+                    // ENABLE TRUE CHUNKED UPLOADS
+                    chunkUploads: this.config.enableChunking,
+                    chunkSize: this.config.chunkSize || 5 * 1024 * 1024, // 5MB chunks
+                    chunkRetryDelays: [500, 1000, 3000], // Exponential backoff
+                    chunkForce: false, // Only chunk large files
+                    
+                    // Use sopamo/laravel-filepond package - simple configuration
+                    server: '/filepond/api',
+                    
+                    labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
+                    labelFileProcessing: 'Uploading',
+                    labelFileProcessingComplete: 'Upload complete',
+                    labelFileProcessingAborted: 'Upload cancelled',
+                    labelFileProcessingError: 'Error during upload',
+                    labelTapToCancel: 'tap to cancel',
+                    labelTapToRetry: 'tap to retry',
+                    labelTapToUndo: 'tap to undo',
+                    
+                    onaddfile: (error, file) => this.handleFileAdd(error, file),
+                    onprocessfile: (error, file) => this.handleFileProcessed(error, file),
+                    onprocessfileprogress: (file, progress) => this.handleFileProgress(file, progress),
+                    onprocessfileerror: (error, file) => this.handleFileError(error, file),
+                    onremovefile: (error, file) => this.handleFileRemove(error, file)
+                });
+                
+                console.log('FilePond initialized successfully with chunking:', this.config.enableChunking);
+                this.initializationCompleted = true;
+                this.initializationInProgress = false;
+                
+            } catch (error) {
+                console.error('Failed to initialize FilePond:', error);
+                this.filePondSupported = false;
+                this.initializationInProgress = false;
+            }
+        },
+        
+        setupEventListeners() {
+            // Listen for Livewire events
+            this.$wire.on('fileQueueUpdated', (queue) => {
+                this.fileQueue = queue;
+                this.updateProgress();
+            });
+            
+            this.$wire.on('fileUploadStarted', (fileId) => {
+                this.activeUploads++;
+                this.updateFileStatus(fileId, 'uploading');
+            });
+            
+            this.$wire.on('fileUploadCompleted', (fileId, result) => {
+                this.activeUploads--;
+                this.completedFiles++;
+                this.updateFileStatus(fileId, 'completed');
+                this.updateProgress();
+            });
+            
+            this.$wire.on('fileUploadError', (fileId, error) => {
+                this.activeUploads--;
+                this.updateFileStatus(fileId, 'error', error);
+                this.updateProgress();
+            });
+            
+            this.$wire.on('fileUploadProgress', (fileId, progress) => {
+                this.updateFileProgress(fileId, progress);
+                this.updateProgress();
+            });
+        },
+        
+        handleFileAdd(error, file) {
+            if (error) {
+                console.error('Error adding file:', error);
+                return;
+            }
+            
+            // For single file mode, trigger upload via Livewire
+            if (!this.config.allowMultiple) {
+                // Convert FilePond file to standard File object and trigger Livewire upload
+                this.triggerLivewireUpload(file);
+            } else {
+                // For multiple files, add to queue
+                const fileData = {
+                    id: file.id,
+                    name: file.filename,
+                    size: file.fileSize,
+                    status: 'queued',
+                    progress: 0,
+                    error: null,
+                    uploadSpeed: null,
+                    timeRemaining: null
+                };
+                
+                this.fileQueue.push(fileData);
+                this.updateProgress();
+            }
+        },
+        
+        triggerLivewireUpload(file) {
+            // For single file uploads, we can trigger the processing directly
+            if (this.pond && file) {
+                console.log('Triggering upload for file:', file.filename);
+                // The processFileWithLivewire method will handle the actual upload
+            }
+        },
+        
+        handleFileProcessed(error, file) {
+            if (error) {
+                this.handleFileError(error, file);
+                return;
+            }
+            
+            this.updateFileStatus(file.id, 'completed');
+            this.completedFiles++;
+            this.updateProgress();
+            
+            // Notify parent component
+            this.$wire.dispatch('filesUploaded');
+        },
+        
+        handleFileProgress(file, progress) {
+            this.updateFileProgress(file.id, Math.round(progress * 100));
+            this.updateProgress();
+        },
+        
+        handleFileError(error, file) {
+            this.updateFileStatus(file.id, 'error', error.body || 'Upload failed');
+            this.updateProgress();
+            
+            console.error('File upload error:', error);
+        },
+        
+        handleFileRemove(error, file) {
+            this.removeFile(file.id);
+        },
+        
+        updateFileStatus(fileId, status, error = null) {
+            const fileIndex = this.fileQueue.findIndex(f => f.id === fileId);
+            if (fileIndex !== -1) {
+                this.fileQueue[fileIndex].status = status;
+                if (error) {
+                    this.fileQueue[fileIndex].error = error;
+                }
+            }
+        },
+        
+        updateFileProgress(fileId, progress) {
+            const fileIndex = this.fileQueue.findIndex(f => f.id === fileId);
+            if (fileIndex !== -1) {
+                this.fileQueue[fileIndex].progress = progress;
+            }
+        },
+        
+        updateProgress() {
+            if (this.fileQueue.length === 0) {
+                this.overallProgress = 0;
+                return;
+            }
+            
+            const totalProgress = this.fileQueue.reduce((sum, file) => sum + file.progress, 0);
+            this.overallProgress = totalProgress / this.fileQueue.length;
+        },
+        
+        removeFile(fileId) {
+            this.fileQueue = this.fileQueue.filter(f => f.id !== fileId);
+            this.updateProgress();
+            
+            // Remove from FilePond if it exists
+            if (this.pond) {
+                const pondFile = this.pond.getFiles().find(f => f.id === fileId);
+                if (pondFile) {
+                    this.pond.removeFile(pondFile);
+                }
+            }
+        },
+        
+        clearQueue() {
+            this.fileQueue = [];
+            this.activeUploads = 0;
+            this.completedFiles = 0;
+            this.pausedUploads = 0;
+            this.overallProgress = 0;
+            
+            if (this.pond) {
+                this.pond.removeFiles();
+            }
+        },
+        
+        startSingleUpload() {
+            if (this.pond && this.pond.processFiles) {
+                this.pond.processFiles();
+            }
+        },
+        
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+        
+        formatTime(seconds) {
+            if (seconds < 60) return Math.round(seconds) + 's';
+            if (seconds < 3600) return Math.round(seconds / 60) + 'm';
+            return Math.round(seconds / 3600) + 'h';
+        }
+    }));
+});
+</script>
+@endpush
+
+{{-- Styles --}}
+@push('styles')
+<style>
+.enhanced-file-uploader .filepond--root {
+    margin-bottom: 0;
+}
+
+.enhanced-file-uploader .filepond--drop-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.enhanced-file-uploader .filepond--panel-root {
+    border-radius: 0.5rem;
+    border: 2px dashed #d1d5db;
+    background-color: #f9fafb;
+}
+
+.enhanced-file-uploader .filepond--panel-root:hover {
+    background-color: #f3f4f6;
+}
+
+.enhanced-file-uploader .filepond--item {
+    width: calc(50% - 0.5em);
+}
+
+@media (max-width: 640px) {
+    .enhanced-file-uploader .filepond--item {
+        width: 100%;
+    }
+}
+
+.enhanced-file-uploader .filepond--file-action-button {
+    border-radius: 0.375rem;
+}
+
+.enhanced-file-uploader .filepond--file-status-main {
+    font-size: 0.75rem;
+}
+
+.enhanced-file-uploader .filepond--progress-indicator {
+    color: #3b82f6;
+}
+</style>
+@endpush

@@ -47,9 +47,12 @@ class ProjectFile extends Model
         return $this->formatBytes($bytes);
     }
 
+    /**
+     * Get the display name for the file (original filename if available, otherwise basename of file_path)
+     */
     public function getFileNameAttribute()
     {
-        return basename($this->file_path);
+        return $this->original_file_name ?: basename($this->file_path);
     }
 
     /**

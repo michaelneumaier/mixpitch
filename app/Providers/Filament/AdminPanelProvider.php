@@ -40,10 +40,13 @@ use App\Filament\Resources\EmailAuditResource;
 use App\Filament\Resources\MarketplaceTemplateResource;
 use App\Filament\Resources\PayoutScheduleResource;
 use App\Filament\Resources\StripeTransactionResource;
+use App\Filament\Resources\FileUploadSettingResource;
 use App\Filament\Pages\EmailAuditPage;
 use App\Filament\Pages\EmailSuppressionPage;
 use App\Filament\Pages\PayoutHoldSettings;
+use App\Filament\Pages\FileUploadSettingsManager;
 use App\Filament\Widgets\HoldPeriodStatsWidget;
+use App\Filament\Widgets\FileUploadSettingsOverview;
 use App\Filament\Plugins\BillingPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -130,6 +133,7 @@ class AdminPanelProvider extends PanelProvider
                 EmailSuppressionResource::class,
                 EmailTestResource::class,
                 MarketplaceTemplateResource::class,
+                FileUploadSettingResource::class,
             ])
             ->pages([
                 Dashboard::class,
@@ -138,6 +142,7 @@ class AdminPanelProvider extends PanelProvider
                 EmailAuditPage::class,
                 EmailSuppressionPage::class,
                 PayoutHoldSettings::class,
+                FileUploadSettingsManager::class,
             ])
             ->widgets([
                 // Core metrics - shown first
@@ -148,6 +153,7 @@ class AdminPanelProvider extends PanelProvider
                 ProjectStats::class,
                 UserVerificationStats::class,
                 EmailStats::class,
+                FileUploadSettingsOverview::class,
                 
                 // Activity and trend widgets
                 UserActivity::class,

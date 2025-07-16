@@ -104,7 +104,7 @@ class FileUploader extends Component
             // This line will only execute if validation passes
             if (!$this->file) {
                 Toaster::error('No file selected for upload.');
-                return;
+                return ['success' => false, 'error' => 'No file selected for upload.'];
             }
 
             Log::info('FileUploader: Starting saveFile process', [
@@ -204,6 +204,9 @@ class FileUploader extends Component
                     // Success feedback for async processing
                     Toaster::success("Large file {$originalFilename} is being processed in the background. You'll be notified when it's ready.");
                     
+                    // Return success for async processing
+                    return ['success' => true, 'message' => "Large file {$originalFilename} is being processed in the background."];
+                    
                 } else {
                     // For smaller files, process synchronously as before
                     // Now create an UploadedFile instance from the locally stored temporary file
@@ -240,6 +243,9 @@ class FileUploader extends Component
                     
                     // Success feedback for sync processing
                     Toaster::success("Successfully uploaded {$originalFilename}");
+                    
+                    // Return success for sync processing
+                    return ['success' => true, 'message' => "Successfully uploaded {$originalFilename}"];
                 }
                 
                 // Clear the file input and progress
@@ -251,10 +257,12 @@ class FileUploader extends Component
                 Toaster::error($e->getMessage());
                 // Keep track of error in progress
                 $this->uploadProgress[$tempFilename] = 'Error: ' . $e->getMessage(); 
+                return ['success' => false, 'error' => $e->getMessage()];
             } catch (FileUploadException $e) {
                 Log::error("FileUploader: File upload exception for file {$originalFilename}", ['error' => $e->getMessage()]);
                 Toaster::error("Error uploading {$originalFilename}: " . $e->getMessage());
                 $this->uploadProgress[$tempFilename] = 'Error: ' . $e->getMessage();
+                return ['success' => false, 'error' => $e->getMessage()];
             } catch (\Exception $e) {
                 Log::error("FileUploader: General error uploading file {$originalFilename}", [
                     'error' => $e->getMessage(), 
@@ -269,6 +277,7 @@ class FileUploader extends Component
                 
                 Toaster::error($errorMessage);
                 $this->uploadProgress[$tempFilename] = 'Error: ' . $errorMessage;
+                return ['success' => false, 'error' => $errorMessage];
             }
 
             Log::info('FileUploader: Finished saveFile process');
@@ -285,6 +294,7 @@ class FileUploader extends Component
                 'model_id' => $this->model->id
             ]);
             Toaster::error('An error occurred while uploading the file.');
+            return ['success' => false, 'error' => 'An error occurred while uploading the file.'];
         }
     }
     

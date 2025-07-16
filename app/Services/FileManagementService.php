@@ -354,4 +354,151 @@ class FileManagementService
         $project->preview_track = null;
         $project->save();
     }
+
+    /**
+     * Create a ProjectFile record for a file that was uploaded directly to S3.
+     * Authorization should be checked before calling this method.
+     *
+     * @param Project $project
+     * @param string $s3Key
+     * @param string $fileName
+     * @param int $fileSize
+     * @param string $mimeType
+     * @param User|null $uploader
+     * @param array $metadata
+     * @return ProjectFile
+     * @throws FileUploadException|StorageLimitException
+     */
+    public function createProjectFileFromS3(Project $project, string $s3Key, string $fileName, int $fileSize, string $mimeType, ?User $uploader = null, array $metadata = []): ProjectFile
+    {
+        // Authorization is assumed to be handled by the caller
+
+        // Validate file size and project storage capacity
+        $maxFileSize = config('files.max_project_file_size', 100 * 1024 * 1024);
+        if ($fileSize > $maxFileSize) {
+            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSize} bytes.");
+        }
+        if (!$project->hasStorageCapacity($fileSize)) {
+            throw new StorageLimitException('Project storage limit reached. Cannot upload file.');
+        }
+
+        // Verify the file actually exists in S3
+        if (!Storage::disk('s3')->exists($s3Key)) {
+            throw new FileUploadException("File '{$fileName}' not found in S3 storage.");
+        }
+
+        try {
+            return DB::transaction(function () use ($project, $s3Key, $fileName, $fileSize, $mimeType, $uploader, $metadata) {
+                $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
+                Log::info('Creating ProjectFile record from S3 upload', array_merge([
+                    'filename' => $fileName,
+                    's3_key' => $s3Key,
+                    'project_id' => $project->id,
+                    'file_size' => $fileSize
+                ], $uploaderInfo, $metadata));
+
+                $projectFile = $project->files()->create([
+                    'storage_path' => $s3Key,
+                    'file_path' => $s3Key,
+                    'file_name' => $fileName,
+                    'original_file_name' => $fileName,
+                    'size' => $fileSize,
+                    'user_id' => $uploader?->id,
+                    'mime_type' => $mimeType,
+                    'metadata' => !empty($metadata) ? json_encode($metadata) : null,
+                ]);
+
+                // Atomically update project storage usage
+                $project->incrementStorageUsed($fileSize);
+
+                return $projectFile;
+            });
+        } catch (\Exception $e) {
+            $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
+            Log::error('Error creating ProjectFile record from S3 upload', array_merge([
+                'project_id' => $project->id,
+                'filename' => $fileName,
+                's3_key' => $s3Key,
+                'error' => $e->getMessage()
+            ], $uploaderInfo));
+            
+            throw new FileUploadException("Failed to create file record for '{$fileName}'.", 0, $e);
+        }
+    }
+
+    /**
+     * Create a PitchFile record for a file that was uploaded directly to S3.
+     * Authorization should be checked before calling this method.
+     *
+     * @param Pitch $pitch
+     * @param string $s3Key
+     * @param string $fileName
+     * @param int $fileSize
+     * @param string $mimeType
+     * @param User|null $uploader
+     * @param array $metadata
+     * @return PitchFile
+     * @throws FileUploadException|StorageLimitException
+     */
+    public function createPitchFileFromS3(Pitch $pitch, string $s3Key, string $fileName, int $fileSize, string $mimeType, ?User $uploader = null, array $metadata = []): PitchFile
+    {
+        // Authorization is assumed to be handled by the caller
+
+        // Validate file size and pitch storage capacity
+        $maxFileSize = config('files.max_pitch_file_size', 100 * 1024 * 1024);
+        if ($fileSize > $maxFileSize) {
+            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSize} bytes.");
+        }
+        if (!$pitch->hasStorageCapacity($fileSize)) {
+            throw new StorageLimitException('Pitch storage limit reached. Cannot upload file.');
+        }
+
+        // Verify the file actually exists in S3
+        if (!Storage::disk('s3')->exists($s3Key)) {
+            throw new FileUploadException("File '{$fileName}' not found in S3 storage.");
+        }
+
+        try {
+            return DB::transaction(function () use ($pitch, $s3Key, $fileName, $fileSize, $mimeType, $uploader, $metadata) {
+                $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
+                Log::info('Creating PitchFile record from S3 upload', array_merge([
+                    'filename' => $fileName,
+                    's3_key' => $s3Key,
+                    'pitch_id' => $pitch->id,
+                    'file_size' => $fileSize
+                ], $uploaderInfo, $metadata));
+
+                $pitchFile = $pitch->files()->create([
+                    'storage_path' => $s3Key,
+                    'file_path' => $s3Key,
+                    'file_name' => $fileName,
+                    'original_file_name' => $fileName,
+                    'size' => $fileSize,
+                    'user_id' => $uploader?->id,
+                    'mime_type' => $mimeType,
+                    'metadata' => !empty($metadata) ? json_encode($metadata) : null,
+                ]);
+
+                // Atomically update pitch storage usage
+                $pitch->incrementStorageUsed($fileSize);
+
+                // If file upload triggers waveform generation
+                if (str_starts_with($pitchFile->mime_type, 'audio/')) {
+                    dispatch(new \App\Jobs\GenerateAudioWaveform($pitchFile));
+                }
+
+                return $pitchFile;
+            });
+        } catch (\Exception $e) {
+            $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
+            Log::error('Error creating PitchFile record from S3 upload', array_merge([
+                'pitch_id' => $pitch->id,
+                'filename' => $fileName,
+                's3_key' => $s3Key,
+                'error' => $e->getMessage()
+            ], $uploaderInfo));
+            
+            throw new FileUploadException("Failed to create file record for '{$fileName}'.", 0, $e);
+        }
+    }
 } 

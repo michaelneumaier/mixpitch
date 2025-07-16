@@ -205,7 +205,7 @@
                         </div>
                     </div>
                     <div class="p-4">
-                        <livewire:file-uploader :model="$pitch" wire:key="'contest-uploader-' . $pitch->id" />
+                        <livewire:uppy-file-uploader :model="$pitch" wire:key="'enhanced-contest-uploader-' . $pitch->id" />
                     </div>
                 </div>
             @else

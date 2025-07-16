@@ -42,6 +42,7 @@ class ManageProject extends Component
 
     public bool $showDeleteModal = false;
     public $fileToDelete = null;
+    public bool $isDeleting = false;
     public $showDeleteConfirmation = false;
 
     // Project deletion properties
@@ -413,6 +414,8 @@ class ManageProject extends Component
      */
     public function deleteFile($fileId = null)
     {
+        $this->isDeleting = true;
+        
         $idToDelete = $fileId ?? $this->fileToDelete;
         
         Log::debug('Starting file deletion process', [
@@ -422,6 +425,7 @@ class ManageProject extends Component
         ]);
         
         if (!$idToDelete) {
+            $this->isDeleting = false;
             Toaster::error('No file selected for deletion.');
             return;
         }
@@ -434,7 +438,7 @@ class ManageProject extends Component
             ]);
             
             // Authorization: Use Policy
-            $this->authorize('deleteFile', $projectFile);
+            $this->authorize('delete', $projectFile);
             Log::debug('Authorization passed');
             
             // Get service via protected method
@@ -499,6 +503,7 @@ class ManageProject extends Component
         } finally {
             $this->showDeleteModal = false;
             $this->fileToDelete = null;
+            $this->isDeleting = false;
         }
     }
 

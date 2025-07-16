@@ -18,7 +18,12 @@ use Illuminate\Http\Request;
 use App\Livewire\LivewireViewFactory;
 use App\Http\Controllers\Admin\StatsController;
 use App\Http\Controllers\Billing\BillingController;
+use App\Http\Controllers\CustomUppyS3MultipartController;
 use App\Http\Controllers\UserController;
+
+// Custom S3 multipart upload route (override package route)
+Route::post('/s3/multipart', [CustomUppyS3MultipartController::class, 'createMultipartUpload'])
+    ->name('s3.multipart.create.custom');
 use App\Http\Controllers\PitchSnapshotController;
 use App\Http\Controllers\PitchStatusController;
 use App\Livewire\User\ManagePortfolioItems;

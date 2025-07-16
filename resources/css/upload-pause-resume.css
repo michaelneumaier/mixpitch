@@ -1,0 +1,263 @@
+/* Upload Pause/Resume UI Styles */
+
+.upload-item {
+    position: relative;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 0.375rem;
+    background: #fff;
+    transition: all 0.2s ease;
+}
+
+.upload-item.upload-status-uploading {
+    border-color: #007bff;
+    background: #f8f9ff;
+}
+
+.upload-item.upload-status-paused {
+    border-color: #ffc107;
+    background: #fffbf0;
+}
+
+.upload-item.upload-status-completed {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.upload-item.upload-status-failed,
+.upload-item.upload-status-cancelled {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+
+.upload-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.upload-pause-resume-btn,
+.upload-cancel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+
+.upload-pause-resume-btn:hover,
+.upload-cancel-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.upload-pause-resume-btn.btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.upload-pause-resume-btn.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: #fff;
+}
+
+.upload-cancel-btn.btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+    background-color: transparent;
+}
+
+.upload-cancel-btn.btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.upload-notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1050;
+    min-width: 300px;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: slideInRight 0.3s ease;
+}
+
+.upload-notification.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.upload-notification.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.upload-notification.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.upload-notification .btn-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-left: auto;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+
+.upload-notification .btn-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Progress indicators for paused uploads */
+.upload-item.upload-status-paused::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ffc107 0%, #ffc107 50%, transparent 50%, transparent 100%);
+    background-size: 20px 3px;
+    animation: pausedProgress 2s linear infinite;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+@keyframes pausedProgress {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 20px 0;
+    }
+}
+
+/* Keyboard shortcut hints */
+.upload-controls::after {
+    content: 'Space: Pause/Resume • Enter: Resume • Esc: Cancel';
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.upload-item:hover .upload-controls::after {
+    opacity: 1;
+}
+
+/* Network status indicator */
+.network-status {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    z-index: 1040;
+    transition: all 0.3s ease;
+}
+
+.network-status.online {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.network-status.offline {
+    background-color: #dc3545;
+    color: #fff;
+    animation: pulse 2s infinite;
+}
+
+.network-status.slow {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .upload-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .upload-controls::after {
+        display: none;
+    }
+    
+    .upload-notification {
+        left: 1rem;
+        right: 1rem;
+        min-width: auto;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .upload-item {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .upload-item.upload-status-uploading {
+        background: #1a202c;
+        border-color: #3182ce;
+    }
+    
+    .upload-item.upload-status-paused {
+        background: #2d2016;
+        border-color: #d69e2e;
+    }
+    
+    .upload-item.upload-status-completed {
+        background: #1a2e1a;
+        border-color: #38a169;
+    }
+    
+    .upload-item.upload-status-failed,
+    .upload-item.upload-status-cancelled {
+        background: #2d1b1b;
+        border-color: #e53e3e;
+    }
+}

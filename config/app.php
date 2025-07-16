@@ -174,6 +174,7 @@ return [
         App\Providers\EmailServiceProvider::class,
         App\Providers\TipjarServiceProvider::class,
         App\Providers\FilamentBillingServiceProvider::class,
+        App\Providers\FileUploadSettingsServiceProvider::class,
     ])->toArray(),
 
     /*

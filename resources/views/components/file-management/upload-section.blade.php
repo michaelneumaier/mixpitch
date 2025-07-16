@@ -6,6 +6,6 @@
         <p class="text-xs text-gray-500 mt-1">{{ $description }}</p>
     </div>
     <div class="p-4">
-        <livewire:file-uploader :model="$model" wire:key="'uploader-' . $model->id" />
+        <livewire:uppy-file-uploader :model="$model" wire:key="'uppy-uploader-' . $model->id" />
     </div>
 </div> 

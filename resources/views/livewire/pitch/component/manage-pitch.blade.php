@@ -576,7 +576,7 @@
                             </div>
                         </div>
                         <div class="p-4">
-                            <livewire:file-uploader :model="$pitch" wire:key="'pitch-uploader-' . $pitch->id" />
+                            <livewire:uppy-file-uploader :model="$pitch" wire:key="'enhanced-pitch-uploader-' . $pitch->id" />
                         </div>
                     </div>
 

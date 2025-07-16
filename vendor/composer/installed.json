@@ -9324,6 +9324,79 @@
             "install-path": "../pusher/pusher-php-server"
         },
         {
+            "name": "rahulhaque/laravel-filepond",
+            "version": "v10.1.2",
+            "version_normalized": "10.1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rahulhaque/laravel-filepond.git",
+                "reference": "ed3cd613bc8baf188e6fc298e2c921d9c4eb0d88"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rahulhaque/laravel-filepond/zipball/ed3cd613bc8baf188e6fc298e2c921d9c4eb0d88",
+                "reference": "ed3cd613bc8baf188e6fc298e2c921d9c4eb0d88",
+                "shasum": ""
+            },
+            "require": {
+                "laravel/framework": "^10",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.13",
+                "league/flysystem-aws-s3-v3": "^3.0",
+                "orchestra/testbench": "^8.0",
+                "phpunit/phpunit": "^10.1"
+            },
+            "time": "2025-05-08T08:49:02+00:00",
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Filepond": "RahulHaque\\Filepond\\Facades\\Filepond"
+                    },
+                    "providers": [
+                        "RahulHaque\\Filepond\\FilepondServiceProvider"
+                    ]
+                }
+            },
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "RahulHaque\\Filepond\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Rahul Haque",
+                    "email": "rahulhaque07@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Use FilePond the Laravel way",
+            "homepage": "https://github.com/rahulhaque/laravel-filepond",
+            "keywords": [
+                "filepond",
+                "filepond-laravel",
+                "laravel-filepond"
+            ],
+            "support": {
+                "issues": "https://github.com/rahulhaque/laravel-filepond/issues",
+                "source": "https://github.com/rahulhaque/laravel-filepond/tree/v10.1.2"
+            },
+            "funding": [
+                {
+                    "url": "https://ko-fi.com/rahulhaque",
+                    "type": "ko_fi"
+                }
+            ],
+            "install-path": "../rahulhaque/laravel-filepond"
+        },
+        {
             "name": "ralouphie/getallheaders",
             "version": "3.0.3",
             "version_normalized": "3.0.3.0",
@@ -15805,6 +15878,78 @@
                 "source": "https://github.com/ta-tikoma/phpunit-architecture-test/tree/0.8.5"
             },
             "install-path": "../ta-tikoma/phpunit-architecture-test"
+        },
+        {
+            "name": "tapp/laravel-uppy-s3-multipart-upload",
+            "version": "v1.2.1",
+            "version_normalized": "1.2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/TappNetwork/laravel-uppy-s3-multipart-upload.git",
+                "reference": "7d5487f07f46167595ab3341aac63a695c6ab21b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/TappNetwork/laravel-uppy-s3-multipart-upload/zipball/7d5487f07f46167595ab3341aac63a695c6ab21b",
+                "reference": "7d5487f07f46167595ab3341aac63a695c6ab21b",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^8.0|^9.0|^10.0|^11.0",
+                "league/flysystem-aws-s3-v3": "^3.0",
+                "php": "^7.4|^8.0",
+                "spatie/laravel-package-tools": "^1.1"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^6.0 | ^7.0 | ^8.0 | ^9.0",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-phpunit": "^1.0",
+                "phpunit/phpunit": "^9.3",
+                "spatie/laravel-ray": "^1.9",
+                "vimeo/psalm": "^4.4"
+            },
+            "time": "2024-04-05T21:17:53+00:00",
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "LaravelUppyS3MultipartUpload": "Tapp\\LaravelUppyS3MultipartUpload\\LaravelUppyS3MultipartUploadFacade"
+                    },
+                    "providers": [
+                        "Tapp\\LaravelUppyS3MultipartUpload\\LaravelUppyS3MultipartUploadServiceProvider"
+                    ]
+                }
+            },
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Tapp\\LaravelUppyS3MultipartUpload\\": "src",
+                    "Tapp\\LaravelUppyS3MultipartUpload\\Database\\Factories\\": "database/factories"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Tapp Network",
+                    "email": "steve@tappnetwork.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Multipart Uploads using Laravel, AWS S3, and Uppy",
+            "homepage": "https://github.com/TappNetwork/laravel-uppy-s3-multipart-upload",
+            "keywords": [
+                "laravel-uppy-s3-multipart-upload",
+                "tapp network"
+            ],
+            "support": {
+                "issues": "https://github.com/TappNetwork/laravel-uppy-s3-multipart-upload/issues",
+                "source": "https://github.com/TappNetwork/laravel-uppy-s3-multipart-upload/tree/v1.2.1"
+            },
+            "install-path": "../tapp/laravel-uppy-s3-multipart-upload"
         },
         {
             "name": "theseer/tokenizer",

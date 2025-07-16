@@ -1,5 +1,6 @@
 import './bootstrap';
 import '../../vendor/masmerise/livewire-toaster/resources/js';
+import './uppy-config';
 
 // Load Stripe handler if available
 try {

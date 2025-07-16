@@ -59,6 +59,14 @@ class PitchFile extends Model
     ];
 
     /**
+     * Get the display name for the file (original filename if available, otherwise file_name)
+     */
+    public function getFileNameAttribute($value)
+    {
+        return $this->original_file_name ?: $value;
+    }
+
+    /**
      * Boot the model and generate UUID on creation
      */
     protected static function boot()

@@ -1,0 +1,659 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Livewire\FileUploader;
+use App\Services\FileUploadSettingsService;
+use App\Services\UploadErrorHandler;
+use App\Models\FileUploadSetting;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+
+class EnhancedFileUploader extends FileUploader
+{
+    // Enhanced properties for chunked uploads
+    public bool $enableChunking = true;
+    public bool $allowMultiple = false;
+    public array $uploadSettings = [];
+    public string $uploadContext = FileUploadSetting::CONTEXT_GLOBAL;
+    
+    // FilePond specific properties
+    public array $filePondConfig = [];
+    public bool $enableDragDrop = true;
+    public bool $enableProgressIndicator = true;
+    
+    // Multiple file support
+    public array $fileQueue = [];
+    public int $maxConcurrentUploads = 3;
+    public array $activeUploads = [];
+    
+    protected FileUploadSettingsService $settingsService;
+    protected UploadErrorHandler $errorHandler;
+
+    public function mount(Model $model, array $config = [])
+    {
+        // Call parent mount first
+        parent::mount($model);
+        
+        // Initialize services
+        $this->settingsService = app(FileUploadSettingsService::class);
+        $this->errorHandler = app(UploadErrorHandler::class);
+        
+        // Determine upload context based on model type
+        $this->uploadContext = $this->determineUploadContext($model);
+        
+        // Load upload settings for this context
+        $this->loadUploadSettings();
+        
+        // Apply configuration overrides
+        $this->applyConfiguration($config);
+        
+        // Initialize FilePond configuration
+        $this->initializeFilePondConfig();
+        
+        // ENABLE CHUNKING for large files
+        $this->enableChunking = true;
+        
+        Log::info('EnhancedFileUploader initialized', [
+            'model_type' => get_class($model),
+            'model_id' => $model->id,
+            'context' => $this->uploadContext,
+            'chunking_enabled' => $this->enableChunking,
+            'multiple_enabled' => $this->allowMultiple
+        ]);
+    }
+
+    /**
+     * Get upload configuration for frontend
+     */
+    public function getUploadConfig(): array
+    {
+        return [
+            'enableChunking' => true, // ENABLE CHUNKING
+            'allowMultiple' => $this->allowMultiple,
+            'maxFileSize' => $this->uploadSettings['max_file_size_mb'] * 1024 * 1024, // Convert to bytes
+            'chunkSize' => $this->uploadSettings['chunk_size_mb'] * 1024 * 1024, // Convert to bytes
+            'maxConcurrentUploads' => $this->maxConcurrentUploads,
+            'maxRetryAttempts' => $this->uploadSettings['max_retry_attempts'],
+            'sessionTimeout' => $this->uploadSettings['session_timeout_hours'] * 3600, // Convert to seconds
+            'context' => $this->uploadContext,
+            'modelId' => $this->model->id, // Add model ID for proper file association
+            'filePondConfig' => $this->filePondConfig,
+            'enableDragDrop' => $this->enableDragDrop,
+            'enableProgressIndicator' => $this->enableProgressIndicator,
+            'fallbackToSimpleUpload' => true, // Enable fallback
+            'enableFallback' => true, // Enable fallback mode
+        ];
+    }
+
+    /**
+     * Get validation rules with enhanced settings
+     */
+    public function rules()
+    {
+        $maxFileSizeKB = $this->uploadSettings['max_file_size_mb'] * 1024; // Convert MB to KB
+        $allowedMimes = 'mp3,wav,aac,ogg,pdf,jpg,jpeg,png,gif,zip';
+
+        $rules = [
+            'file' => [
+                'nullable',
+                'file',
+                'mimes:' . $allowedMimes,
+                'max:' . $maxFileSizeKB,
+            ],
+        ];
+
+        // Add multiple file validation if enabled
+        if ($this->allowMultiple) {
+            $rules['fileQueue.*'] = [
+                'file',
+                'mimes:' . $allowedMimes,
+                'max:' . $maxFileSizeKB,
+            ];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Enhanced validation messages
+     */
+    public function messages()
+    {
+        $maxSizeMB = $this->uploadSettings['max_file_size_mb'];
+        
+        return [
+            'file.file' => 'The uploaded item must be a file.',
+            'file.mimes' => 'Invalid file type. Allowed types: mp3, wav, aac, ogg, pdf, jpg, jpeg, png, gif, zip.',
+            'file.max' => "The file must not be greater than {$maxSizeMB}MB.",
+            'fileQueue.*.file' => 'Each uploaded item must be a file.',
+            'fileQueue.*.mimes' => 'Invalid file type. Allowed types: mp3, wav, aac, ogg, pdf, jpg, jpeg, png, gif, zip.',
+            'fileQueue.*.max' => "Each file must not be greater than {$maxSizeMB}MB.",
+        ];
+    }
+
+    /**
+     * Handle multiple file selection
+     */
+    public function addFilesToQueue(array $files): void
+    {
+        if (!$this->allowMultiple) {
+            return;
+        }
+
+        foreach ($files as $file) {
+            // Validate file before adding to queue
+            $validator = \Illuminate\Support\Facades\Validator::make(
+                ['file' => $file],
+                ['file' => $this->getFileValidationRules()]
+            );
+
+            if ($validator->fails()) {
+                $this->dispatch('fileValidationError', [
+                    'filename' => $file->getClientOriginalName(),
+                    'errors' => $validator->errors()->first('file')
+                ]);
+                continue;
+            }
+
+            $this->fileQueue[] = [
+                'id' => uniqid('file_', true),
+                'file' => $file,
+                'filename' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'status' => 'queued',
+                'progress' => 0,
+                'error' => null,
+                'uploadedAt' => null,
+                'uploadSpeed' => null,
+                'timeRemaining' => null,
+                'startTime' => null,
+            ];
+        }
+
+        $this->dispatch('fileQueueUpdated', $this->fileQueue);
+        
+        Log::info('Files added to upload queue', [
+            'count' => count($files),
+            'queue_size' => count($this->fileQueue),
+            'context' => $this->uploadContext
+        ]);
+    }
+
+    /**
+     * Get file validation rules for queue validation
+     */
+    protected function getFileValidationRules(): array
+    {
+        $maxFileSizeKB = $this->uploadSettings['max_file_size_mb'] * 1024;
+        $allowedMimes = 'mp3,wav,aac,ogg,pdf,jpg,jpeg,png,gif,zip';
+
+        return [
+            'required',
+            'file',
+            'mimes:' . $allowedMimes,
+            'max:' . $maxFileSizeKB,
+        ];
+    }
+
+    /**
+     * Remove file from queue
+     */
+    public function removeFromQueue(string $fileId): void
+    {
+        $this->fileQueue = array_filter($this->fileQueue, function ($item) use ($fileId) {
+            return $item['id'] !== $fileId;
+        });
+
+        $this->dispatch('fileQueueUpdated', $this->fileQueue);
+        
+        Log::info('File removed from upload queue', ['file_id' => $fileId]);
+    }
+
+    /**
+     * Clear entire queue
+     */
+    public function clearQueue(): void
+    {
+        $this->fileQueue = [];
+        $this->activeUploads = [];
+        $this->dispatch('fileQueueUpdated', $this->fileQueue);
+        
+        Log::info('Upload queue cleared');
+    }
+
+    /**
+     * Process upload queue with concurrency control
+     */
+    public function processQueue(): void
+    {
+        if (!$this->allowMultiple || empty($this->fileQueue)) {
+            return;
+        }
+
+        $queuedFiles = array_filter($this->fileQueue, function ($item) {
+            return $item['status'] === 'queued';
+        });
+
+        $availableSlots = $this->maxConcurrentUploads - count($this->activeUploads);
+        $filesToProcess = array_slice($queuedFiles, 0, $availableSlots);
+
+        foreach ($filesToProcess as $fileItem) {
+            $this->startFileUpload($fileItem['id']);
+        }
+        
+        // Dispatch queue status update
+        $this->dispatch('queueStatusUpdated', [
+            'total' => count($this->fileQueue),
+            'queued' => count($queuedFiles),
+            'active' => count($this->activeUploads),
+            'completed' => count(array_filter($this->fileQueue, fn($item) => $item['status'] === 'completed')),
+            'failed' => count(array_filter($this->fileQueue, fn($item) => $item['status'] === 'error'))
+        ]);
+    }
+
+    /**
+     * Start processing all queued files
+     */
+    public function startQueueProcessing(): void
+    {
+        if (!$this->allowMultiple) {
+            return;
+        }
+
+        Log::info('Starting queue processing', [
+            'queue_size' => count($this->fileQueue),
+            'max_concurrent' => $this->maxConcurrentUploads
+        ]);
+
+        $this->processQueue();
+    }
+
+    /**
+     * Pause all active uploads
+     */
+    public function pauseAllUploads(): void
+    {
+        foreach ($this->activeUploads as $fileId => $active) {
+            if ($active) {
+                $this->pauseUpload($fileId);
+            }
+        }
+        
+        $this->dispatch('allUploadsPaused');
+        Log::info('All uploads paused');
+    }
+
+    /**
+     * Resume all paused uploads
+     */
+    public function resumeAllUploads(): void
+    {
+        $pausedFiles = array_filter($this->fileQueue, function ($item) {
+            return $item['status'] === 'paused';
+        });
+
+        foreach ($pausedFiles as $fileItem) {
+            $this->resumeUpload($fileItem['id']);
+        }
+        
+        $this->dispatch('allUploadsResumed');
+        Log::info('All uploads resumed');
+    }
+
+    /**
+     * Pause a specific upload
+     */
+    public function pauseUpload(string $fileId): void
+    {
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex !== false && $this->fileQueue[$fileIndex]['status'] === 'uploading') {
+            $this->fileQueue[$fileIndex]['status'] = 'paused';
+            unset($this->activeUploads[$fileId]);
+            
+            $this->dispatch('uploadPaused', $fileId);
+            Log::info('Upload paused', ['file_id' => $fileId]);
+        }
+    }
+
+    /**
+     * Resume a specific upload
+     */
+    public function resumeUpload(string $fileId): void
+    {
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex !== false && $this->fileQueue[$fileIndex]['status'] === 'paused') {
+            $this->fileQueue[$fileIndex]['status'] = 'queued';
+            
+            $this->dispatch('uploadResumed', $fileId);
+            $this->processQueue(); // Try to start the upload again
+            
+            Log::info('Upload resumed', ['file_id' => $fileId]);
+        }
+    }
+
+    /**
+     * Retry a failed upload
+     */
+    public function retryUpload(string $fileId): void
+    {
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex !== false && $this->fileQueue[$fileIndex]['status'] === 'error') {
+            $this->fileQueue[$fileIndex]['status'] = 'queued';
+            $this->fileQueue[$fileIndex]['error'] = null;
+            $this->fileQueue[$fileIndex]['progress'] = 0;
+            
+            $this->dispatch('uploadRetrying', $fileId);
+            $this->processQueue(); // Try to start the upload again
+            
+            Log::info('Upload retry initiated', ['file_id' => $fileId]);
+        }
+    }
+
+    /**
+     * Get overall queue progress
+     */
+    public function getQueueProgress(): array
+    {
+        if (empty($this->fileQueue)) {
+            return [
+                'overall_progress' => 0,
+                'completed_files' => 0,
+                'total_files' => 0,
+                'active_uploads' => 0,
+                'failed_uploads' => 0,
+                'average_speed' => null
+            ];
+        }
+
+        $totalFiles = count($this->fileQueue);
+        $completedFiles = count(array_filter($this->fileQueue, fn($item) => $item['status'] === 'completed'));
+        $activeUploads = count($this->activeUploads);
+        $failedUploads = count(array_filter($this->fileQueue, fn($item) => $item['status'] === 'error'));
+        
+        // Calculate overall progress
+        $totalProgress = array_sum(array_column($this->fileQueue, 'progress'));
+        $overallProgress = $totalFiles > 0 ? $totalProgress / $totalFiles : 0;
+        
+        // Calculate average upload speed
+        $activeSpeeds = array_filter(array_column($this->fileQueue, 'uploadSpeed'));
+        $averageSpeed = !empty($activeSpeeds) ? array_sum($activeSpeeds) / count($activeSpeeds) : null;
+
+        return [
+            'overall_progress' => round($overallProgress, 2),
+            'completed_files' => $completedFiles,
+            'total_files' => $totalFiles,
+            'active_uploads' => $activeUploads,
+            'failed_uploads' => $failedUploads,
+            'average_speed' => $averageSpeed
+        ];
+    }
+
+    /**
+     * Start upload for a specific file
+     */
+    protected function startFileUpload(string $fileId): void
+    {
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex === false) {
+            return;
+        }
+
+        $this->fileQueue[$fileIndex]['status'] = 'uploading';
+        $this->activeUploads[$fileId] = true;
+
+        $this->dispatch('fileUploadStarted', $fileId);
+        
+        Log::info('File upload started', ['file_id' => $fileId]);
+    }
+
+    /**
+     * Handle upload completion
+     */
+    public function handleUploadComplete(string $fileId, array $result): void
+    {
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex !== false) {
+            $this->fileQueue[$fileIndex]['status'] = 'completed';
+            $this->fileQueue[$fileIndex]['progress'] = 100;
+            $this->fileQueue[$fileIndex]['uploadedAt'] = now();
+            unset($this->activeUploads[$fileId]);
+        }
+
+        $this->dispatch('fileUploadCompleted', $fileId, $result);
+        
+        // Continue processing queue
+        $this->processQueue();
+        
+        Log::info('File upload completed', ['file_id' => $fileId]);
+    }
+
+    /**
+     * Handle upload error with automatic retry mechanisms
+     */
+    public function handleUploadError(string $fileId, string $error): void
+    {
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex !== false) {
+            // Get current retry count
+            $retryCount = $this->fileQueue[$fileIndex]['retry_count'] ?? 0;
+            $maxRetries = $this->uploadSettings['max_retry_attempts'] ?? 3;
+
+            // Check if we should retry
+            if ($retryCount < $maxRetries && $this->shouldRetryError($error)) {
+                // Increment retry count and schedule retry
+                $this->fileQueue[$fileIndex]['retry_count'] = $retryCount + 1;
+                $this->fileQueue[$fileIndex]['status'] = 'retrying';
+                $this->fileQueue[$fileIndex]['error'] = "Retrying... (attempt " . ($retryCount + 1) . "/$maxRetries)";
+
+                // Calculate exponential backoff delay
+                $delay = min(pow(2, $retryCount) * 1000, 30000); // Max 30 seconds
+
+                // Schedule retry using JavaScript setTimeout
+                $this->dispatch('scheduleRetry', [
+                    'fileId' => $fileId,
+                    'delay' => $delay,
+                    'attempt' => $retryCount + 1
+                ]);
+
+                Log::info('Scheduling upload retry', [
+                    'file_id' => $fileId,
+                    'attempt' => $retryCount + 1,
+                    'delay' => $delay,
+                    'error' => $error
+                ]);
+
+                return;
+            }
+
+            // Max retries reached or non-retryable error
+            $this->fileQueue[$fileIndex]['status'] = 'error';
+            $this->fileQueue[$fileIndex]['error'] = $error;
+            unset($this->activeUploads[$fileId]);
+        }
+
+        $this->dispatch('fileUploadError', $fileId, $error);
+        
+        // Continue processing queue
+        $this->processQueue();
+        
+        Log::error('File upload error (no retry)', ['file_id' => $fileId, 'error' => $error]);
+    }
+
+    /**
+     * Determine if an error should trigger a retry
+     */
+    protected function shouldRetryError(string $error): bool
+    {
+        $retryableErrors = [
+            'timeout',
+            'network',
+            'connection',
+            'temporary',
+            'server error',
+            '500',
+            '502',
+            '503',
+            '504'
+        ];
+
+        $error = strtolower($error);
+        
+        foreach ($retryableErrors as $retryableError) {
+            if (str_contains($error, $retryableError)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Execute retry for a specific file
+     */
+    public function executeRetry(string $fileId): void
+    {
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex !== false && $this->fileQueue[$fileIndex]['status'] === 'retrying') {
+            // Reset file status and restart upload
+            $this->fileQueue[$fileIndex]['status'] = 'queued';
+            $this->fileQueue[$fileIndex]['progress'] = 0;
+            
+            // Try to start the upload again
+            $this->processQueue();
+            
+            Log::info('Executing upload retry', ['file_id' => $fileId]);
+        }
+    }
+
+    /**
+     * Handle upload progress update
+     * Override parent method to maintain compatibility
+     */
+    public function handleUploadProgress($name, $progress)
+    {
+        // For enhanced uploader, $name could be a file ID or temp filename
+        $fileId = $name;
+        
+        $fileIndex = array_search($fileId, array_column($this->fileQueue, 'id'));
+        
+        if ($fileIndex !== false) {
+            $this->fileQueue[$fileIndex]['progress'] = $progress;
+        }
+
+        $this->dispatch('fileUploadProgress', $fileId, $progress);
+        
+        // Call parent method to maintain compatibility
+        parent::handleUploadProgress($name, $progress);
+    }
+
+    /**
+     * Determine upload context based on model type
+     */
+    protected function determineUploadContext(Model $model): string
+    {
+        if ($model instanceof \App\Models\Project) {
+            return FileUploadSetting::CONTEXT_PROJECTS;
+        } elseif ($model instanceof \App\Models\Pitch) {
+            return FileUploadSetting::CONTEXT_PITCHES;
+        }
+        
+        return FileUploadSetting::CONTEXT_GLOBAL;
+    }
+
+    /**
+     * Load upload settings for the current context
+     */
+    protected function loadUploadSettings(): void
+    {
+        $this->uploadSettings = $this->settingsService->getSettings($this->uploadContext);
+        
+        // Apply settings to component properties
+        $this->enableChunking = $this->uploadSettings['enable_chunking'] ?? true;
+        $this->maxConcurrentUploads = $this->uploadSettings['max_concurrent_uploads'] ?? 3;
+        
+        Log::info('Upload settings loaded', [
+            'context' => $this->uploadContext,
+            'settings' => $this->uploadSettings
+        ]);
+    }
+
+    /**
+     * Apply configuration overrides
+     */
+    protected function applyConfiguration(array $config): void
+    {
+        if (isset($config['allowMultiple'])) {
+            $this->allowMultiple = (bool) $config['allowMultiple'];
+        }
+        
+        if (isset($config['enableChunking'])) {
+            $this->enableChunking = (bool) $config['enableChunking'];
+        }
+        
+        if (isset($config['enableDragDrop'])) {
+            $this->enableDragDrop = (bool) $config['enableDragDrop'];
+        }
+        
+        if (isset($config['maxConcurrentUploads'])) {
+            $this->maxConcurrentUploads = (int) $config['maxConcurrentUploads'];
+        }
+        
+        Log::info('Configuration applied', ['config' => $config]);
+    }
+
+    /**
+     * Initialize FilePond configuration
+     */
+    protected function initializeFilePondConfig(): void
+    {
+        $this->filePondConfig = [
+            'allowMultiple' => $this->allowMultiple,
+            'allowDrop' => $this->enableDragDrop,
+            'allowBrowse' => true,
+            'allowPaste' => false,
+            'allowReplace' => !$this->allowMultiple,
+            'allowRevert' => true,
+            'allowRemove' => true,
+            'maxFiles' => $this->allowMultiple ? 10 : 1,
+            'maxFileSize' => $this->uploadSettings['max_file_size_mb'] . 'MB',
+            'chunkUploads' => $this->enableChunking,
+            'chunkSize' => $this->uploadSettings['chunk_size_mb'] * 1024 * 1024, // Convert to bytes
+            'chunkRetryDelays' => [500, 1000, 3000], // Exponential backoff
+            'acceptedFileTypes' => ['audio/*', 'application/pdf', 'image/*', 'application/zip'],
+            'labelIdle' => 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
+            'labelFileProcessing' => 'Uploading',
+            'labelFileProcessingComplete' => 'Upload complete',
+            'labelFileProcessingAborted' => 'Upload cancelled',
+            'labelFileProcessingError' => 'Error during upload',
+            'labelTapToCancel' => 'tap to cancel',
+            'labelTapToRetry' => 'tap to retry',
+            'labelTapToUndo' => 'tap to undo',
+        ];
+        
+        Log::info('FilePond configuration initialized', [
+            'chunking_enabled' => $this->enableChunking,
+            'multiple_enabled' => $this->allowMultiple,
+            'max_file_size' => $this->filePondConfig['maxFileSize']
+        ]);
+    }
+
+    /**
+     * Render the enhanced component
+     */
+    public function render()
+    {
+        return view('livewire.enhanced-file-uploader', [
+            'uploadConfig' => $this->getUploadConfig(),
+            'queueCount' => count($this->fileQueue),
+            'activeUploadCount' => count($this->activeUploads),
+        ]);
+    }
+}

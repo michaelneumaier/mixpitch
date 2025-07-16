@@ -56,8 +56,8 @@ class GenerateAudioWaveform implements ShouldQueue
     public function handle()
     {
         try {
-            // Get the S3 URL for the file
-            $fileUrl = $this->pitchFile->fullFilePath;
+            // Get the original S3 URL for the file (bypass watermarking logic for waveform generation)
+            $fileUrl = $this->pitchFile->getOriginalFileUrl(120); // 2 hour expiration for processing
             
             Log::info("Processing audio file for waveform generation", [
                 'file_id' => $this->pitchFile->id,
