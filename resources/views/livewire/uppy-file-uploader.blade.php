@@ -30,6 +30,12 @@
                     this.$wire.on('resetUploader', () => {
                         this.clearCompletedFiles();
                     });
+                    
+                    // Listen for settings updates from Livewire
+                    this.$wire.on('settingsUpdated', (newConfig) => {
+                        console.log('Settings updated, reinitializing Uppy with new config:', newConfig);
+                        this.reinitializeWithNewConfig(newConfig);
+                    });
                 },
                 
                 initializeUppy() {
@@ -61,7 +67,7 @@
                     this.uppy
                         .use(window.UppyDragDrop, {
                             target: `#uppy-drag-drop-${modelId}`,
-                            note: 'Drop multiple files here or click to browse (max {{ $this->formatFileSize($uploadConfig["maxFileSize"]) }} each)',
+                            note: `Drop multiple files here or click to browse (max ${this.formatFileSize(config.maxFileSize)} each)`,
                             width: '100%',
                             height: 200,
                             multiple: true,
@@ -85,12 +91,12 @@
                             }
                         })
                         .use(window.UppyAwsS3, {
-                            shouldUseMultipart: true,
-                            limit: 4, // Number of concurrent uploads
-                            retryDelays: [0, 1000, 3000, 5000],
+                            shouldUseMultipart: config.chunking.enabled,
+                            limit: config.chunking.limit, // Number of concurrent uploads from settings
+                            retryDelays: config.chunking.retryDelays, // Retry delays from settings
                             getChunkSize(file) {
-                                // Use 5MB chunks for files larger than 100MB
-                                return file.size > 100 * 1024 * 1024 ? 5 * 1024 * 1024 : null;
+                                // Use chunk size from settings for files that should be chunked
+                                return config.chunking.enabled ? config.chunking.chunkSize : null;
                             },
                             createMultipartUpload(file) {
                                 return fetch('/s3/multipart', {
@@ -260,6 +266,22 @@
                     }
                 },
                 
+                reinitializeWithNewConfig(newConfig) {
+                    // Destroy current Uppy instance
+                    if (this.uppy) {
+                        this.uppy.destroy();
+                        this.uppy = null;
+                    }
+                    
+                    // Update the global config
+                    window.uppyConfig_{{ $uploadConfig['modelId'] }} = newConfig;
+                    
+                    // Reinitialize with new settings
+                    this.initializeUppy();
+                    
+                    console.log('Uppy reinitialized with new settings');
+                },
+                
                 extractS3KeyFromUrl(url) {
                     try {
                         const urlObj = new URL(url);
@@ -268,6 +290,18 @@
                     } catch (e) {
                         console.error('Failed to extract S3 key from URL:', url, e);
                         return null;
+                    }
+                },
+                
+                formatFileSize(bytes) {
+                    if (bytes >= 1024 * 1024 * 1024) {
+                        return Math.round(bytes / (1024 * 1024 * 1024) * 10) / 10 + 'GB';
+                    } else if (bytes >= 1024 * 1024) {
+                        return Math.round(bytes / (1024 * 1024) * 10) / 10 + 'MB';
+                    } else if (bytes >= 1024) {
+                        return Math.round(bytes / 1024 * 10) / 10 + 'KB';
+                    } else {
+                        return bytes + 'B';
                     }
                 },
                 

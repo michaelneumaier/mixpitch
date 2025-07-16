@@ -9,6 +9,7 @@ use ZipArchive;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Models\Track;
+use App\Models\FileUploadSetting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use GuzzleHttp\Client;
@@ -273,8 +274,12 @@ class ProjectController extends Controller
     public function uploadSingle(Request $request)
     {
         try {
+            // Get project context settings
+            $settings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_PROJECTS);
+            $maxFileSizeKB = $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
+            
             $request->validate([
-                'file' => 'required|file|max:204800', // 200MB max
+                'file' => "required|file|max:{$maxFileSizeKB}",
                 'project_id' => 'required|exists:projects,id',
             ]);
 
@@ -307,6 +312,9 @@ class ProjectController extends Controller
                 'storage_percentage' => $project->getStorageUsedPercentage(),
                 'storage_limit_message' => $project->getStorageLimitMessage(),
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions to get proper 422 response
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Error uploading project file via AJAX', [
                 'error' => $e->getMessage(),

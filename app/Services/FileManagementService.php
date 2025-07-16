@@ -6,6 +6,7 @@ use App\Models\Pitch;
 use App\Models\ProjectFile;
 use App\Models\PitchFile;
 use App\Models\User;
+use App\Models\FileUploadSetting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -38,11 +39,15 @@ class FileManagementService
         $fileName = $file->getClientOriginalName();
         $fileSize = $file->getSize();
 
-        // Validate file size and project storage capacity
-        // Fetch max size from config, provide a sensible default (e.g., 100MB in bytes)
-        $maxFileSize = config('files.max_project_file_size', 100 * 1024 * 1024);
+        // Validate file size using project context settings
+        $maxFileSizeMB = FileUploadSetting::getSetting(
+            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::CONTEXT_PROJECTS
+        );
+        $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
+        
         if ($fileSize > $maxFileSize) {
-            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSize} bytes.");
+            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
         if (!$project->hasStorageCapacity($fileSize)) { // Assume this instance method exists in Project model
             throw new StorageLimitException('Project storage limit reached. Cannot upload file.');
@@ -116,11 +121,15 @@ class FileManagementService
         $fileName = $file->getClientOriginalName();
         $fileSize = $file->getSize();
 
-        // File size / Pitch storage limits
-        // Fetch max size from config, provide a sensible default (e.g., 100MB in bytes)
-        $maxFileSize = config('files.max_pitch_file_size', 100 * 1024 * 1024);
+        // Validate file size using pitch context settings
+        $maxFileSizeMB = FileUploadSetting::getSetting(
+            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::CONTEXT_PITCHES
+        );
+        $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
+        
         if ($fileSize > $maxFileSize) {
-            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSize} bytes.");
+            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
         if (!$pitch->hasStorageCapacity($fileSize)) { // Assume instance method in Pitch model
             throw new StorageLimitException('Pitch storage limit exceeded. Cannot upload file.');
@@ -373,10 +382,15 @@ class FileManagementService
     {
         // Authorization is assumed to be handled by the caller
 
-        // Validate file size and project storage capacity
-        $maxFileSize = config('files.max_project_file_size', 100 * 1024 * 1024);
+        // Validate file size using project context settings
+        $maxFileSizeMB = FileUploadSetting::getSetting(
+            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::CONTEXT_PROJECTS
+        );
+        $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
+        
         if ($fileSize > $maxFileSize) {
-            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSize} bytes.");
+            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
         if (!$project->hasStorageCapacity($fileSize)) {
             throw new StorageLimitException('Project storage limit reached. Cannot upload file.');
@@ -444,10 +458,15 @@ class FileManagementService
     {
         // Authorization is assumed to be handled by the caller
 
-        // Validate file size and pitch storage capacity
-        $maxFileSize = config('files.max_pitch_file_size', 100 * 1024 * 1024);
+        // Validate file size using pitch context settings
+        $maxFileSizeMB = FileUploadSetting::getSetting(
+            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::CONTEXT_PITCHES
+        );
+        $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
+        
         if ($fileSize > $maxFileSize) {
-            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSize} bytes.");
+            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
         if (!$pitch->hasStorageCapacity($fileSize)) {
             throw new StorageLimitException('Pitch storage limit reached. Cannot upload file.');

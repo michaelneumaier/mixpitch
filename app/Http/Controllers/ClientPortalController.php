@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Pitch; // Assuming one pitch per client project
+use App\Models\FileUploadSetting;
 use App\Services\PitchWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -669,10 +670,13 @@ class ClientPortalController extends Controller
         // Note: Signed URL validation is handled by the signed middleware
         // Removing redundant check that was causing 403 errors
         
-        // Validate file upload
+        // Validate file upload using client portal context settings
         try {
+            $settings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_CLIENT_PORTALS);
+            $maxFileSizeKB = $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
+            
             $request->validate([
-                'file' => 'required|file|max:204800', // 200MB max
+                'file' => "required|file|max:{$maxFileSizeKB}",
             ]);
             Log::info('File validation passed', ['project_id' => $project->id]);
         } catch (\Exception $e) {

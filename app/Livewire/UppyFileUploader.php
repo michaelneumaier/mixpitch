@@ -15,8 +15,10 @@ class UppyFileUploader extends Component
     public bool $allowMultiple = true;
     public string $uploadContext = FileUploadSetting::CONTEXT_GLOBAL;
     public array $acceptedFileTypes = ['audio/*', 'application/pdf', 'image/*', 'application/zip'];
-    public string $maxFileSize = '200MB';
     public int $maxFiles = 1000;
+    
+    // Dynamic settings loaded from FileUploadSetting
+    protected array $uploadSettings = [];
     
     // Uppy specific properties
     public array $uploadedFiles = [];
@@ -39,6 +41,9 @@ class UppyFileUploader extends Component
         // Determine upload context based on model type
         $this->uploadContext = $this->determineUploadContext($model);
         
+        // Load upload settings for this context
+        $this->loadUploadSettings();
+        
         // Apply configuration overrides
         $this->applyConfiguration($config);
         
@@ -46,7 +51,8 @@ class UppyFileUploader extends Component
             'model_type' => get_class($model),
             'model_id' => $model->id,
             'context' => $this->uploadContext,
-            'allow_multiple' => $this->allowMultiple
+            'allow_multiple' => $this->allowMultiple,
+            'settings' => $this->uploadSettings
         ]);
     }
 
@@ -167,9 +173,15 @@ class UppyFileUploader extends Component
      */
     public function getUploadConfig(): array
     {
+        $maxFileSize = $this->uploadSettings[FileUploadSetting::MAX_FILE_SIZE_MB] ?? 200;
+        $chunkSize = $this->uploadSettings[FileUploadSetting::CHUNK_SIZE_MB] ?? 5;
+        $maxConcurrent = $this->uploadSettings[FileUploadSetting::MAX_CONCURRENT_UPLOADS] ?? 3;
+        $maxRetries = $this->uploadSettings[FileUploadSetting::MAX_RETRY_ATTEMPTS] ?? 3;
+        $enableChunking = $this->uploadSettings[FileUploadSetting::ENABLE_CHUNKING] ?? true;
+        
         return [
             'allowMultiple' => $this->allowMultiple,
-            'maxFileSize' => $this->convertMaxFileSize($this->maxFileSize),
+            'maxFileSize' => $maxFileSize * 1024 * 1024, // Convert MB to bytes
             'maxFiles' => $this->maxFiles,
             'acceptedFileTypes' => $this->acceptedFileTypes,
             'context' => $this->uploadContext,
@@ -177,28 +189,59 @@ class UppyFileUploader extends Component
             'modelType' => get_class($this->model),
             's3Endpoint' => '/s3/multipart',
             'csrfToken' => csrf_token(),
+            
+            // Uppy-specific configuration
+            'restrictions' => [
+                'maxFileSize' => $maxFileSize * 1024 * 1024,
+                'maxNumberOfFiles' => $this->allowMultiple ? $this->maxFiles : 1,
+                'allowedFileTypes' => $this->acceptedFileTypes
+            ],
+            
+            // Chunking configuration
+            'chunking' => [
+                'enabled' => $enableChunking,
+                'chunkSize' => $chunkSize * 1024 * 1024, // Convert MB to bytes
+                'limit' => $maxConcurrent,
+                'retryDelays' => array_fill(0, $maxRetries, 1000) // 1 second delays
+            ],
+            
+            // Settings metadata
+            'settings' => $this->uploadSettings,
+            'settingsContext' => $this->uploadContext
         ];
     }
 
     /**
-     * Convert max file size string to bytes
+     * Load upload settings for the current context
      */
-    protected function convertMaxFileSize(string $maxFileSize): int
+    protected function loadUploadSettings(): void
     {
-        $size = strtoupper($maxFileSize);
-        $unit = substr($size, -2);
-        $value = (int) substr($size, 0, -2);
-
-        switch ($unit) {
-            case 'KB':
-                return $value * 1024;
-            case 'MB':
-                return $value * 1024 * 1024;
-            case 'GB':
-                return $value * 1024 * 1024 * 1024;
-            default:
-                return (int) $maxFileSize; // Assume bytes
+        try {
+            $this->uploadSettings = FileUploadSetting::getSettings($this->uploadContext);
+            
+            Log::info('Upload settings loaded', [
+                'context' => $this->uploadContext,
+                'settings' => $this->uploadSettings
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to load upload settings, using defaults', [
+                'context' => $this->uploadContext,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Fallback to default values
+            $this->uploadSettings = FileUploadSetting::DEFAULT_VALUES;
         }
+    }
+
+    /**
+     * Refresh upload settings (useful for dynamic updates)
+     */
+    public function refreshSettings(): void
+    {
+        $this->loadUploadSettings();
+        $this->dispatch('settingsUpdated', $this->getUploadConfig());
     }
 
     /**
@@ -225,15 +268,23 @@ class UppyFileUploader extends Component
             $this->maxFiles = $this->allowMultiple ? 10 : 1;
         }
         
-        if (isset($config['maxFileSize'])) {
-            $this->maxFileSize = $config['maxFileSize'];
+        if (isset($config['maxFiles'])) {
+            $this->maxFiles = (int) $config['maxFiles'];
         }
         
         if (isset($config['acceptedFileTypes'])) {
             $this->acceptedFileTypes = $config['acceptedFileTypes'];
         }
         
-        Log::info('Configuration applied', ['config' => $config]);
+        // Allow overriding upload settings
+        if (isset($config['uploadSettings']) && is_array($config['uploadSettings'])) {
+            $this->uploadSettings = array_merge($this->uploadSettings, $config['uploadSettings']);
+        }
+        
+        Log::info('Configuration applied', [
+            'config' => $config,
+            'final_settings' => $this->uploadSettings
+        ]);
     }
 
     /**

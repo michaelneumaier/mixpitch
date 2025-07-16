@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Pitch;
 use App\Models\PitchFile;
+use App\Models\FileUploadSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Jobs\GenerateAudioWaveform;
@@ -73,17 +74,21 @@ class PitchFileController extends Controller
      */
     public function uploadSingle(Request $request, Pitch $pitch = null)
     {
+        // Get pitch context settings for validation
+        $settings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_PITCHES);
+        $maxFileSizeKB = $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
+        
         // Get pitch from route parameter or request body
         if ($pitch) {
             // Pitch passed as route parameter
             $validated = $request->validate([
-                'file' => 'required|file',
+                'file' => "required|file|max:{$maxFileSizeKB}",
             ]);
             $targetPitch = $pitch;
         } else {
             // Legacy format with pitch_id in request body
             $validated = $request->validate([
-                'file' => 'required|file',
+                'file' => "required|file|max:{$maxFileSizeKB}",
                 'pitch_id' => 'required|exists:pitches,id',
             ]);
             $targetPitch = Pitch::findOrFail($validated['pitch_id']);

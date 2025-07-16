@@ -49,6 +49,26 @@ class ProjectFilePolicy
     }
 
     /**
+     * Determine whether the user can upload files to a project.
+     * This is used for the project upload functionality.
+     */
+    public function uploadFile(User $user, \App\Models\Project $project): bool
+    {
+        // Only the project owner can upload project files
+        return $user->id === $project->user_id;
+    }
+
+    /**
+     * Determine whether the user can upload files to the project.
+     * This is an alias for the create method to maintain consistency with controller calls.
+     */
+    public function uploadFile(User $user, \App\Models\Project $project): bool
+    {
+        // Only the project owner can upload files to their project
+        return $user->id === $project->user_id;
+    }
+
+    /**
      * Note: Client file uploads don't use this policy since clients don't have user accounts.
      * Client uploads are handled via signed URLs in the ClientPortalController.
      */

@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'pitch.file.access' => \App\Http\Middleware\CheckPitchFileAccess::class,
         'subscription' => \App\Http\Middleware\SubscriptionCheck::class,
+        'upload.validate' => \App\Http\Middleware\ValidateUploadSettings::class,
     ];
 }

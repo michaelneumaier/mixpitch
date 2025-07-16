@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 class FileUploadSettingsManager extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-cloud-arrow-up';
+    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     
     protected static ?string $navigationGroup = 'System';
     
@@ -92,7 +92,11 @@ class FileUploadSettingsManager extends Page
                         ->minValue(1)
                         ->maxValue(2048)
                         ->placeholder(FileUploadSetting::DEFAULT_VALUES[FileUploadSetting::MAX_FILE_SIZE_MB])
-                        ->helperText('Leave empty to use default or parent context value'),
+                        ->helperText('Leave empty to use default or parent context value')
+                        ->suffixIcon('heroicon-m-document-arrow-up')
+                        ->extraInputAttributes([
+                            'class' => 'transition-colors duration-200'
+                        ]),
                         
                     Forms\Components\TextInput::make(FileUploadSetting::CHUNK_SIZE_MB)
                         ->label('Chunk Size (MB)')
@@ -100,7 +104,11 @@ class FileUploadSettingsManager extends Page
                         ->minValue(1)
                         ->maxValue(50)
                         ->placeholder(FileUploadSetting::DEFAULT_VALUES[FileUploadSetting::CHUNK_SIZE_MB])
-                        ->helperText('Leave empty to use default or parent context value'),
+                        ->helperText('Leave empty to use default or parent context value')
+                        ->suffixIcon('heroicon-m-squares-2x2')
+                        ->extraInputAttributes([
+                            'class' => 'transition-colors duration-200'
+                        ]),
                         
                     Forms\Components\TextInput::make(FileUploadSetting::MAX_CONCURRENT_UPLOADS)
                         ->label('Maximum Concurrent Uploads')
@@ -108,7 +116,11 @@ class FileUploadSettingsManager extends Page
                         ->minValue(1)
                         ->maxValue(10)
                         ->placeholder(FileUploadSetting::DEFAULT_VALUES[FileUploadSetting::MAX_CONCURRENT_UPLOADS])
-                        ->helperText('Leave empty to use default or parent context value'),
+                        ->helperText('Leave empty to use default or parent context value')
+                        ->suffixIcon('heroicon-m-arrow-up-tray')
+                        ->extraInputAttributes([
+                            'class' => 'transition-colors duration-200'
+                        ]),
                         
                     Forms\Components\TextInput::make(FileUploadSetting::MAX_RETRY_ATTEMPTS)
                         ->label('Maximum Retry Attempts')
@@ -116,11 +128,19 @@ class FileUploadSettingsManager extends Page
                         ->minValue(1)
                         ->maxValue(5)
                         ->placeholder(FileUploadSetting::DEFAULT_VALUES[FileUploadSetting::MAX_RETRY_ATTEMPTS])
-                        ->helperText('Leave empty to use default or parent context value'),
+                        ->helperText('Leave empty to use default or parent context value')
+                        ->suffixIcon('heroicon-m-arrow-path')
+                        ->extraInputAttributes([
+                            'class' => 'transition-colors duration-200'
+                        ]),
                         
                     Forms\Components\Toggle::make(FileUploadSetting::ENABLE_CHUNKING)
                         ->label('Enable Chunked Uploads')
-                        ->helperText('Leave unchecked to use default or parent context value'),
+                        ->helperText('Leave unchecked to use default or parent context value')
+                        ->inline(false)
+                        ->extraAttributes([
+                            'class' => 'transition-colors duration-200'
+                        ]),
                         
                     Forms\Components\TextInput::make(FileUploadSetting::SESSION_TIMEOUT_HOURS)
                         ->label('Session Timeout (Hours)')
@@ -128,7 +148,11 @@ class FileUploadSettingsManager extends Page
                         ->minValue(1)
                         ->maxValue(168)
                         ->placeholder(FileUploadSetting::DEFAULT_VALUES[FileUploadSetting::SESSION_TIMEOUT_HOURS])
-                        ->helperText('Leave empty to use default or parent context value'),
+                        ->helperText('Leave empty to use default or parent context value')
+                        ->suffixIcon('heroicon-m-clock')
+                        ->extraInputAttributes([
+                            'class' => 'transition-colors duration-200'
+                        ]),
                 ]),
         ];
     }

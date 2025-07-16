@@ -130,6 +130,9 @@ class FileUploadSetting extends Model
 
             return true;
             
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions so tests can catch them
+            throw $e;
         } catch (\Exception $e) {
             Log::error("Failed to update file upload settings", [
                 'context' => $context,

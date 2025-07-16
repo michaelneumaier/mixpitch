@@ -31,4 +31,9 @@ Route::post('/webhooks/ses', [SesWebhookController::class, 'handle'])
 Route::middleware('auth:sanctum')->group(function () {
     // License preview routes
     Route::get('/licenses/{license}/preview', [LicenseController::class, 'preview']);
+    
+    // Upload settings routes
+    Route::get('/upload-settings/{context?}', [\App\Http\Controllers\Api\UploadSettingsController::class, 'getSettings']);
+    Route::post('/upload-settings/for-model', [\App\Http\Controllers\Api\UploadSettingsController::class, 'getSettingsForModel']);
+    Route::post('/upload-settings/test', [\App\Http\Controllers\Api\UploadSettingsController::class, 'testSettings']);
 });

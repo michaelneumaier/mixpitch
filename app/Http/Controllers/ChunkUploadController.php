@@ -9,6 +9,7 @@ use App\Models\UploadSession;
 use App\Models\UploadChunk;
 use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\FileUploadSetting;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +34,36 @@ class ChunkUploadController extends Controller
     }
 
     /**
+     * Get upload validation rules based on context
+     */
+    protected function getUploadValidationRules(string $context = FileUploadSetting::CONTEXT_GLOBAL): array
+    {
+        $settings = FileUploadSetting::getSettings($context);
+        $maxFileSizeKB = $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
+        $maxChunkSizeKB = $settings[FileUploadSetting::CHUNK_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
+        
+        return [
+            'file_rules' => "required|file|max:{$maxFileSizeKB}",
+            'chunk_rules' => "required|file|max:{$maxChunkSizeKB}",
+            'total_size_max' => $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024 * 1024, // bytes
+            'chunk_size_max' => $settings[FileUploadSetting::CHUNK_SIZE_MB] * 1024 * 1024, // bytes
+            'settings' => $settings
+        ];
+    }
+
+    /**
+     * Determine context from model type
+     */
+    protected function getContextFromModelType(string $modelType): string
+    {
+        return match($modelType) {
+            'projects' => FileUploadSetting::CONTEXT_PROJECTS,
+            'pitches' => FileUploadSetting::CONTEXT_PITCHES,
+            default => FileUploadSetting::CONTEXT_GLOBAL
+        };
+    }
+
+    /**
      * Create a new upload session
      * 
      * @param Request $request
@@ -41,12 +72,17 @@ class ChunkUploadController extends Controller
     public function createUploadSession(Request $request): JsonResponse
     {
         try {
+            // Get context and validation rules
+            $modelType = $request->input('model_type', 'global');
+            $context = $this->getContextFromModelType($modelType);
+            $validationRules = $this->getUploadValidationRules($context);
+            
             // Validate the request
             $validator = Validator::make($request->all(), [
                 'original_filename' => 'required|string|max:255',
-                'total_size' => 'required|integer|min:1',
+                'total_size' => 'required|integer|min:1|max:' . $validationRules['total_size_max'],
                 'total_chunks' => 'required|integer|min:1',
-                'chunk_size' => 'required|integer|min:1024', // At least 1KB
+                'chunk_size' => 'required|integer|min:1024|max:' . $validationRules['chunk_size_max'],
                 'model_type' => 'required|string|in:projects,pitches,global',
                 'model_id' => 'nullable|integer',
             ]);
@@ -156,9 +192,14 @@ class ChunkUploadController extends Controller
     public function simpleUpload(Request $request): JsonResponse
     {
         try {
+            // Get context and validation rules
+            $modelType = $request->input('model_type', 'global');
+            $context = $this->getContextFromModelType($modelType);
+            $validationRules = $this->getUploadValidationRules($context);
+            
             // Validate the request
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|max:524288', // 512MB max for simple upload
+                'file' => $validationRules['file_rules'],
                 'model_type' => 'required|string|in:projects,pitches,global',
                 'model_id' => 'nullable|integer',
             ]);
@@ -277,11 +318,26 @@ class ChunkUploadController extends Controller
     public function uploadChunk(Request $request): JsonResponse
     {
         try {
+            // First, get the upload session to determine context
+            $uploadSessionId = $request->input('upload_session_id');
+            $uploadSession = UploadSession::find($uploadSessionId);
+            
+            if (!$uploadSession) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Upload session not found'
+                ], 404);
+            }
+
+            // Get context-based validation rules
+            $context = $this->getContextFromModelType($uploadSession->model_type);
+            $validationRules = $this->getUploadValidationRules($context);
+            
             // Validate the request
             $validator = Validator::make($request->all(), [
                 'upload_session_id' => 'required|string|exists:upload_sessions,id',
                 'chunk_index' => 'required|integer|min:0',
-                'chunk' => 'required|file|max:52428800', // 50MB max chunk size
+                'chunk' => $validationRules['chunk_rules'],
                 'chunk_hash' => 'nullable|string|size:64', // SHA256 hash is 64 characters
             ]);
 
@@ -293,19 +349,9 @@ class ChunkUploadController extends Controller
                 ], 422);
             }
 
-            $uploadSessionId = $request->input('upload_session_id');
             $chunkIndex = $request->input('chunk_index');
             $chunkHash = $request->input('chunk_hash');
             $chunkFile = $request->file('chunk');
-
-            // Find and authorize the upload session
-            $uploadSession = UploadSession::find($uploadSessionId);
-            if (!$uploadSession) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Upload session not found'
-                ], 404);
-            }
 
             // Check authorization - user must own the upload session
             if ($uploadSession->user_id !== Auth::id()) {
