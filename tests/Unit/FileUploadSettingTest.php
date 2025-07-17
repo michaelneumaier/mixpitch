@@ -15,7 +15,7 @@ class FileUploadSettingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Clear any existing settings and cache
         FileUploadSetting::query()->delete();
         Cache::flush();
@@ -25,7 +25,7 @@ class FileUploadSettingTest extends TestCase
     public function it_has_correct_default_values()
     {
         $defaults = FileUploadSetting::DEFAULT_VALUES;
-        
+
         $this->assertEquals(500, $defaults[FileUploadSetting::MAX_FILE_SIZE_MB]);
         $this->assertEquals(5, $defaults[FileUploadSetting::CHUNK_SIZE_MB]);
         $this->assertEquals(3, $defaults[FileUploadSetting::MAX_CONCURRENT_UPLOADS]);
@@ -38,7 +38,7 @@ class FileUploadSettingTest extends TestCase
     public function it_has_correct_validation_rules()
     {
         $rules = FileUploadSetting::VALIDATION_RULES;
-        
+
         $this->assertEquals('integer|min:1|max:2048', $rules[FileUploadSetting::MAX_FILE_SIZE_MB]);
         $this->assertEquals('integer|min:1|max:50', $rules[FileUploadSetting::CHUNK_SIZE_MB]);
         $this->assertEquals('integer|min:1|max:10', $rules[FileUploadSetting::MAX_CONCURRENT_UPLOADS]);
@@ -54,7 +54,7 @@ class FileUploadSettingTest extends TestCase
         $this->assertTrue(FileUploadSetting::validateContext(FileUploadSetting::CONTEXT_PROJECTS));
         $this->assertTrue(FileUploadSetting::validateContext(FileUploadSetting::CONTEXT_PITCHES));
         $this->assertTrue(FileUploadSetting::validateContext(FileUploadSetting::CONTEXT_CLIENT_PORTALS));
-        
+
         $this->assertFalse(FileUploadSetting::validateContext('invalid_context'));
     }
 
@@ -65,7 +65,7 @@ class FileUploadSettingTest extends TestCase
         FileUploadSetting::validateSetting(FileUploadSetting::MAX_FILE_SIZE_MB, 1000);
         FileUploadSetting::validateSetting(FileUploadSetting::CHUNK_SIZE_MB, 10);
         FileUploadSetting::validateSetting(FileUploadSetting::ENABLE_CHUNKING, true);
-        
+
         // This assertion passes if no exception is thrown
         $this->assertTrue(true);
     }
@@ -125,13 +125,13 @@ class FileUploadSettingTest extends TestCase
     public function it_can_update_single_setting()
     {
         $result = FileUploadSetting::updateSetting(
-            FileUploadSetting::MAX_FILE_SIZE_MB, 
-            800, 
+            FileUploadSetting::MAX_FILE_SIZE_MB,
+            800,
             FileUploadSetting::CONTEXT_GLOBAL
         );
-        
+
         $this->assertTrue($result);
-        
+
         $settings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_GLOBAL);
         $this->assertEquals(800, $settings[FileUploadSetting::MAX_FILE_SIZE_MB]);
     }
@@ -152,7 +152,7 @@ class FileUploadSettingTest extends TestCase
         $this->assertEquals(1200, $settings[FileUploadSetting::MAX_FILE_SIZE_MB]);
         $this->assertEquals(8, $settings[FileUploadSetting::CHUNK_SIZE_MB]);
         $this->assertFalse($settings[FileUploadSetting::ENABLE_CHUNKING]);
-        
+
         // Other settings should remain at defaults
         $this->assertEquals(
             FileUploadSetting::DEFAULT_VALUES[FileUploadSetting::MAX_CONCURRENT_UPLOADS],
@@ -175,13 +175,13 @@ class FileUploadSettingTest extends TestCase
         ], FileUploadSetting::CONTEXT_PROJECTS);
 
         $projectSettings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_PROJECTS);
-        
+
         // Should get project-specific max file size
         $this->assertEquals(1500, $projectSettings[FileUploadSetting::MAX_FILE_SIZE_MB]);
-        
+
         // Should inherit global chunk size
         $this->assertEquals(6, $projectSettings[FileUploadSetting::CHUNK_SIZE_MB]);
-        
+
         // Should use default for unset values
         $this->assertEquals(
             FileUploadSetting::DEFAULT_VALUES[FileUploadSetting::MAX_CONCURRENT_UPLOADS],
@@ -194,10 +194,10 @@ class FileUploadSettingTest extends TestCase
     {
         // First call should hit the database
         $settings1 = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_GLOBAL);
-        
+
         // Second call should hit cache (we can't easily test this directly, but we can verify consistent results)
         $settings2 = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_GLOBAL);
-        
+
         $this->assertEquals($settings1, $settings2);
     }
 
@@ -270,13 +270,13 @@ class FileUploadSettingTest extends TestCase
     public function it_provides_settings_schema()
     {
         $schema = FileUploadSetting::getSettingsSchema();
-        
+
         $this->assertArrayHasKey(FileUploadSetting::MAX_FILE_SIZE_MB, $schema);
         $this->assertArrayHasKey('description', $schema[FileUploadSetting::MAX_FILE_SIZE_MB]);
         $this->assertArrayHasKey('validation', $schema[FileUploadSetting::MAX_FILE_SIZE_MB]);
         $this->assertArrayHasKey('default', $schema[FileUploadSetting::MAX_FILE_SIZE_MB]);
         $this->assertArrayHasKey('type', $schema[FileUploadSetting::MAX_FILE_SIZE_MB]);
-        
+
         $this->assertEquals('integer', $schema[FileUploadSetting::MAX_FILE_SIZE_MB]['type']);
         $this->assertEquals('boolean', $schema[FileUploadSetting::ENABLE_CHUNKING]['type']);
     }
@@ -285,7 +285,7 @@ class FileUploadSettingTest extends TestCase
     public function it_has_correct_valid_contexts()
     {
         $contexts = FileUploadSetting::getValidContexts();
-        
+
         $this->assertCount(4, $contexts);
         $this->assertContains(FileUploadSetting::CONTEXT_GLOBAL, $contexts);
         $this->assertContains(FileUploadSetting::CONTEXT_PROJECTS, $contexts);
@@ -297,7 +297,7 @@ class FileUploadSettingTest extends TestCase
     public function it_has_correct_valid_keys()
     {
         $keys = FileUploadSetting::getValidKeys();
-        
+
         $this->assertCount(6, $keys);
         $this->assertContains(FileUploadSetting::MAX_FILE_SIZE_MB, $keys);
         $this->assertContains(FileUploadSetting::CHUNK_SIZE_MB, $keys);

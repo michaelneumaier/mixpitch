@@ -2,13 +2,12 @@
 
 namespace Tests\Unit\Observers;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\NotificationService;
-use Illuminate\Support\Str;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ProjectObserverTest extends TestCase
 {
@@ -52,7 +51,7 @@ class ProjectObserverTest extends TestCase
             'client_name' => 'New Client',
             'title' => 'Client Project Title',
             'description' => 'Client project description.',
-            'payment_amount' => $paymentAmount, 
+            'payment_amount' => $paymentAmount,
         ])->toArray();
 
         // Mock NotificationService
@@ -64,7 +63,7 @@ class ProjectObserverTest extends TestCase
         $createdPitch = $project->pitches->first();
 
         // Assert: Check Pitch creation
-        $this->assertNotNull($createdPitch, "Pitch was not created.");
+        $this->assertNotNull($createdPitch, 'Pitch was not created.');
         $this->assertDatabaseHas('pitches', [
             'project_id' => $project->id,
             'user_id' => $producer->id,
@@ -111,4 +110,4 @@ class ProjectObserverTest extends TestCase
             'payment_status' => Pitch::PAYMENT_STATUS_NOT_REQUIRED,
         ]);
     }
-} 
+}

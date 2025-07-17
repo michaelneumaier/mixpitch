@@ -1,10 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 use App\Models\ProjectType;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -19,7 +17,7 @@ return new class extends Migration
             'album' => 'album',
             'ep' => 'ep',
             'remix' => 'remix',
-            'mixtape' => 'mixtape', 
+            'mixtape' => 'mixtape',
             'demo' => 'demo',
             // Add any other values found in existing data
         ];
@@ -27,13 +25,13 @@ return new class extends Migration
         foreach ($mappings as $oldValue => $slug) {
             // Find the project type by slug
             $projectType = ProjectType::where('slug', $slug)->first();
-            
+
             if ($projectType) {
                 // Update all projects with this string value
                 $updatedCount = DB::table('projects')
                     ->where('project_type', $oldValue)
                     ->update(['project_type_id' => $projectType->id]);
-                
+
                 if ($updatedCount > 0 && app()->environment() !== 'testing') {
                     echo "Migrated projects with project_type '{$oldValue}' to project_type_id {$projectType->id}\n";
                 }
@@ -50,13 +48,13 @@ return new class extends Migration
         if ($defaultProjectType) {
             $updatedCount = DB::table('projects')
                 ->whereNull('project_type_id')
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereNull('project_type')
-                          ->orWhere('project_type', '')
-                          ->orWhere('project_type', 'single'); // Catch 'single' values that might not have been updated above
+                        ->orWhere('project_type', '')
+                        ->orWhere('project_type', 'single'); // Catch 'single' values that might not have been updated above
                 })
                 ->update(['project_type_id' => $defaultProjectType->id]);
-            
+
             if ($updatedCount > 0 && app()->environment() !== 'testing') {
                 echo "Set {$updatedCount} projects with empty/null project_type to default 'single'\n";
             }
@@ -86,7 +84,7 @@ return new class extends Migration
     {
         // Clear all project_type_id values to reverse the migration
         DB::table('projects')->update(['project_type_id' => null]);
-        
+
         if (app()->environment() !== 'testing') {
             echo "Cleared all project_type_id values\n";
         }

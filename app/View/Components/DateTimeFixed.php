@@ -28,12 +28,12 @@ class DateTimeFixed extends Component
             $relativeDate = $this->getRelativeDate();
             $isoDate = $this->getIsoDate();
         } catch (\Exception $e) {
-            \Log::error('DateTime component error: ' . $e->getMessage(), [
+            \Log::error('DateTime component error: '.$e->getMessage(), [
                 'date' => $this->date->toString(),
                 'format' => $this->format,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             // Fallback to basic formatting to prevent site crash
             $formattedDate = $this->date->format($this->format ?? 'M d, Y g:i A');
             $relativeDate = $this->date->diffForHumans();
@@ -50,44 +50,45 @@ class DateTimeFixed extends Component
             'date' => $this->date,
         ]);
     }
-    
+
     public function getFormattedDate(): string
     {
         $service = app(TimezoneService::class);
-        
+
         if ($this->convertToViewer) {
             $targetUser = auth()->user();
         } else {
             $targetUser = $this->user ?? auth()->user();
         }
-        
+
         return $service->formatForUser($this->date, $targetUser, $this->format);
     }
-    
+
     public function getRelativeDate(): string
     {
         $service = app(TimezoneService::class);
-        
+
         if ($this->convertToViewer) {
             $targetUser = auth()->user();
         } else {
             $targetUser = $this->user ?? auth()->user();
         }
-        
+
         $userDate = $service->convertToUserTimezone($this->date, $targetUser);
+
         return $userDate->diffForHumans();
     }
-    
+
     public function getIsoDate(): string
     {
         $service = app(TimezoneService::class);
-        
+
         if ($this->convertToViewer) {
             $targetUser = auth()->user();
         } else {
             $targetUser = $this->user ?? auth()->user();
         }
-        
+
         return $service->convertToUserTimezone($this->date, $targetUser)->toISOString();
     }
-} 
+}

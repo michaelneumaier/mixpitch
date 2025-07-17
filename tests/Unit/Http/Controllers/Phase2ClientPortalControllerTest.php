@@ -2,30 +2,35 @@
 
 namespace Tests\Unit\Http\Controllers;
 
-use Tests\TestCase;
 use App\Http\Controllers\ClientPortalController;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Models\User;
 use App\Models\PitchFile;
-use App\Services\PitchWorkflowService;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
 use Mockery;
+use Tests\TestCase;
 
 class Phase2ClientPortalControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $controller;
+
     protected $pitchWorkflowService;
+
     protected $notificationService;
+
     protected $project;
+
     protected $pitch;
+
     protected $producer;
 
     protected function setUp(): void
@@ -45,7 +50,7 @@ class Phase2ClientPortalControllerTest extends TestCase
         // Create test data
         $this->producer = User::factory()->create([
             'role' => User::ROLE_PRODUCER,
-            'name' => 'Test Producer'
+            'name' => 'Test Producer',
         ]);
 
         $this->project = Project::factory()->create([
@@ -53,7 +58,7 @@ class Phase2ClientPortalControllerTest extends TestCase
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',
             'title' => 'Test Project',
-            'description' => 'Test project description'
+            'description' => 'Test project description',
         ]);
 
         $this->pitch = Pitch::factory()->create([
@@ -61,7 +66,7 @@ class Phase2ClientPortalControllerTest extends TestCase
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
             'payment_amount' => 500.00,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
     }
 
@@ -113,7 +118,7 @@ class Phase2ClientPortalControllerTest extends TestCase
         // Create existing user
         User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -145,7 +150,7 @@ class Phase2ClientPortalControllerTest extends TestCase
         $request = Request::create($signedUrl, 'POST', [
             'name' => 'New Client',
             'password' => 'password123',
-            'password_confirmation' => 'password123'
+            'password_confirmation' => 'password123',
         ]);
 
         $request->setRouteResolver(function () {
@@ -176,7 +181,7 @@ class Phase2ClientPortalControllerTest extends TestCase
         // Create existing user
         User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -188,7 +193,7 @@ class Phase2ClientPortalControllerTest extends TestCase
         $request = Request::create($signedUrl, 'POST', [
             'name' => 'New Client',
             'password' => 'password123',
-            'password_confirmation' => 'password123'
+            'password_confirmation' => 'password123',
         ]);
 
         $request->setRouteResolver(function () {
@@ -234,14 +239,14 @@ class Phase2ClientPortalControllerTest extends TestCase
             'pitch_id' => $this->pitch->id,
             'file_name' => 'final_mix.wav',
             'note' => 'deliverable',
-            'size' => 1024000
+            'size' => 1024000,
         ]);
 
         $deliverable2 = PitchFile::factory()->create([
             'pitch_id' => $this->pitch->id,
             'file_name' => 'master.wav',
             'note' => 'final deliverable',
-            'size' => 2048000
+            'size' => 2048000,
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -293,7 +298,7 @@ class Phase2ClientPortalControllerTest extends TestCase
     {
         $client = User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $this->project->update(['client_user_id' => $client->id]);
@@ -328,7 +333,7 @@ class Phase2ClientPortalControllerTest extends TestCase
     {
         $nonClientProject = Project::factory()->create([
             'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
-            'client_email' => 'client@example.com'
+            'client_email' => 'client@example.com',
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -391,4 +396,4 @@ class Phase2ClientPortalControllerTest extends TestCase
 
         $this->controller->invoice($this->project, $request);
     }
-} 
+}

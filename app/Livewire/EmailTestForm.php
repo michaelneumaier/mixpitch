@@ -9,43 +9,49 @@ use Livewire\Component;
 class EmailTestForm extends Component
 {
     public $email;
+
     public $subject = 'Test Email from MixPitch';
+
     public $template = 'emails.test';
+
     public $variables = [];
+
     public $variableKey = '';
+
     public $variableValue = '';
-    
+
     public $status = null;
+
     public $message = '';
-    
+
     protected $rules = [
         'email' => 'required|email',
         'subject' => 'required|string|max:255',
         'template' => 'required|string',
     ];
-    
+
     public function addVariable()
     {
         if (empty($this->variableKey)) {
             return;
         }
-        
+
         $this->variables[$this->variableKey] = $this->variableValue;
         $this->variableKey = '';
         $this->variableValue = '';
     }
-    
+
     public function removeVariable($key)
     {
         if (isset($this->variables[$key])) {
             unset($this->variables[$key]);
         }
     }
-    
+
     public function sendTest()
     {
         $this->validate();
-        
+
         try {
             // Create a test record
             $test = EmailTest::create([
@@ -55,7 +61,7 @@ class EmailTestForm extends Component
                 'content_variables' => $this->variables,
                 'status' => 'pending',
             ]);
-            
+
             // Send the test email
             $emailService = app(EmailService::class);
             $result = $emailService->sendTestEmail(
@@ -64,17 +70,17 @@ class EmailTestForm extends Component
                 $this->template,
                 $this->variables
             );
-            
+
             // Update the test record
             $test->update([
                 'status' => 'sent',
                 'result' => $result,
                 'sent_at' => now(),
             ]);
-            
+
             $this->status = 'success';
             $this->message = 'Test email sent successfully!';
-            
+
         } catch (\Exception $e) {
             // Update the test record with failure if it exists
             if (isset($test)) {
@@ -83,12 +89,12 @@ class EmailTestForm extends Component
                     'result' => ['error' => $e->getMessage()],
                 ]);
             }
-            
+
             $this->status = 'error';
-            $this->message = 'Failed to send test email: ' . $e->getMessage();
+            $this->message = 'Failed to send test email: '.$e->getMessage();
         }
     }
-    
+
     public function render()
     {
         return view('livewire.email-test-form');

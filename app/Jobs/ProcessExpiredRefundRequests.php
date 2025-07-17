@@ -48,15 +48,15 @@ class ProcessExpiredRefundRequests implements ShouldQueue
 
             Log::info('Expired refund request processing completed', [
                 'expired' => $results['expired'],
-                'escalated' => $results['escalated']
+                'escalated' => $results['escalated'],
             ]);
 
             // Send admin notification if requests were escalated to mediation
             if ($results['escalated'] > 0) {
                 Log::info('Refund requests escalated to mediation', [
-                    'escalated_count' => $results['escalated']
+                    'escalated_count' => $results['escalated'],
                 ]);
-                
+
                 // TODO: Send notification to admin team about mediation required
                 // This is normal business process, not an error
             }
@@ -64,7 +64,7 @@ class ProcessExpiredRefundRequests implements ShouldQueue
         } catch (\Exception $e) {
             Log::error('Expired refund request processing job failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             // Re-throw to mark job as failed
@@ -79,7 +79,7 @@ class ProcessExpiredRefundRequests implements ShouldQueue
     {
         Log::error('ProcessExpiredRefundRequests job failed permanently', [
             'error' => $exception->getMessage(),
-            'trace' => $exception->getTraceAsString()
+            'trace' => $exception->getTraceAsString(),
         ]);
 
         // TODO: Send alert to admin team

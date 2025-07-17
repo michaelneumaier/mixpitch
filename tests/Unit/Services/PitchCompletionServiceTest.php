@@ -2,27 +2,27 @@
 
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use App\Services\PitchCompletionService;
-use App\Services\Project\ProjectManagementService;
-use App\Services\NotificationService;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
-use App\Models\PitchSnapshot;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Exceptions\Pitch\CompletionValidationException;
 use App\Exceptions\Pitch\UnauthorizedActionException;
+use App\Models\Pitch;
+use App\Models\PitchSnapshot;
+use App\Models\Project;
+use App\Models\User;
+use App\Services\NotificationService;
+use App\Services\PitchCompletionService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Mockery;
+use Tests\TestCase;
 
 class PitchCompletionServiceTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $projectManagementServiceMock;
+
     protected $notificationServiceMock;
+
     protected $service;
 
     protected function setUp(): void
@@ -57,20 +57,20 @@ class PitchCompletionServiceTest extends TestCase
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
-                'current_snapshot_id' => $snapshot->id
+                'current_snapshot_id' => $snapshot->id,
             ]);
         $snapshot->pitch_id = $pitchToComplete->id; // Ensure association
         $snapshot->save();
 
         // Mock dependencies
         $this->projectManagementServiceMock->shouldReceive('completeProject')
-            ->once()->with(Mockery::on(fn($p) => $p instanceof Project && $p->id === $project->id))
+            ->once()->with(Mockery::on(fn ($p) => $p instanceof Project && $p->id === $project->id))
             ->andReturn($project); // Return the project
         $this->notificationServiceMock->shouldReceive('notifyPitchCompleted')->once();
         $this->notificationServiceMock->shouldReceive('notifyPitchClosed')->never(); // No other pitches to close
 
         // Mock DB transaction
-        DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb());
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn ($cb) => $cb());
 
         $feedback = 'Great work!';
         $completedPitch = $this->service->completePitch($pitchToComplete, $projectOwner, $feedback);
@@ -79,11 +79,11 @@ class PitchCompletionServiceTest extends TestCase
         $this->assertEquals(Pitch::PAYMENT_STATUS_NOT_REQUIRED, $completedPitch->payment_status);
         $this->assertEquals($feedback, $completedPitch->completion_feedback);
         $this->assertNotNull($completedPitch->completed_at);
-        
+
         // Verify the snapshot status
         $snapshot->refresh();
         $this->assertEquals(PitchSnapshot::STATUS_COMPLETED, $snapshot->status);
-        
+
         // Verify the event was created
         $event = $completedPitch->events()
             ->where('event_type', 'status_change')
@@ -103,14 +103,15 @@ class PitchCompletionServiceTest extends TestCase
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
-                'current_snapshot_id' => $snapshot->id
+                'current_snapshot_id' => $snapshot->id,
             ]);
-         $snapshot->pitch_id = $pitchToComplete->id; $snapshot->save();
+        $snapshot->pitch_id = $pitchToComplete->id;
+        $snapshot->save();
 
         // Mock dependencies
         $this->projectManagementServiceMock->shouldReceive('completeProject')->once()->andReturn($project);
         $this->notificationServiceMock->shouldReceive('notifyPitchCompleted')->once();
-        DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb());
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn ($cb) => $cb());
 
         $completedPitch = $this->service->completePitch($pitchToComplete, $projectOwner);
 
@@ -130,9 +131,10 @@ class PitchCompletionServiceTest extends TestCase
             ->for($project)->for($pitchCreator1, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
-                'current_snapshot_id' => $snapshot1->id
+                'current_snapshot_id' => $snapshot1->id,
             ]);
-         $snapshot1->pitch_id = $pitchToComplete->id; $snapshot1->save();
+        $snapshot1->pitch_id = $pitchToComplete->id;
+        $snapshot1->save();
 
         // Create another active pitch
         $otherPitch = Pitch::factory()
@@ -144,8 +146,8 @@ class PitchCompletionServiceTest extends TestCase
         $this->notificationServiceMock->shouldReceive('notifyPitchCompleted')->once();
         $this->notificationServiceMock->shouldReceive('notifyPitchClosed')
             ->once()
-            ->with(Mockery::on(fn($p) => $p instanceof Pitch && $p->id === $otherPitch->id));
-        DB::shouldReceive('transaction')->once()->andReturnUsing(fn($cb) => $cb());
+            ->with(Mockery::on(fn ($p) => $p instanceof Pitch && $p->id === $otherPitch->id));
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn ($cb) => $cb());
 
         $this->service->completePitch($pitchToComplete, $projectOwner);
 
@@ -196,7 +198,7 @@ class PitchCompletionServiceTest extends TestCase
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED, // Status is okay
-                'payment_status' => Pitch::PAYMENT_STATUS_PAID // But already paid
+                'payment_status' => Pitch::PAYMENT_STATUS_PAID, // But already paid
             ]);
 
         $this->expectException(CompletionValidationException::class);
@@ -205,7 +207,7 @@ class PitchCompletionServiceTest extends TestCase
         $this->service->completePitch($pitchToComplete, $projectOwner);
     }
 
-     /** @test */
+    /** @test */
     public function complete_pitch_fails_on_db_error()
     {
         $projectOwner = User::factory()->create();
@@ -228,4 +230,4 @@ class PitchCompletionServiceTest extends TestCase
 
         $this->service->completePitch($pitchToComplete, $projectOwner);
     }
-} 
+}

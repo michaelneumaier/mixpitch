@@ -15,7 +15,7 @@ class SetUserTimezone
             config(['app.timezone' => $timezone]);
             date_default_timezone_set($timezone);
         }
-        
+
         return $next($request);
     }
-} 
+}

@@ -47,7 +47,7 @@ return [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],
         ],
-        
+
         'reverb' => [
             'driver' => 'reverb',
             'app_id' => env('REVERB_APP_ID', 'MixPitch'),
@@ -57,7 +57,7 @@ return [
             'port' => env('REVERB_PORT', 8080),
             'scheme' => env('REVERB_SCHEME', 'http'),
         ],
-        
+
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),

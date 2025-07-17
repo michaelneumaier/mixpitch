@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Carbon\Carbon;
 
 class PayoutSchedule extends Model
 {
@@ -15,11 +14,17 @@ class PayoutSchedule extends Model
 
     // Status constants
     const STATUS_SCHEDULED = 'scheduled';
+
     const STATUS_PROCESSING = 'processing';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_DISPUTED = 'disputed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_REVERSED = 'reversed';
 
     protected $fillable = [
@@ -180,7 +185,7 @@ class PayoutSchedule extends Model
     /**
      * Mark payout as completed
      */
-    public function markAsCompleted(string $stripeTransferId = null): void
+    public function markAsCompleted(?string $stripeTransferId = null): void
     {
         $this->update([
             'status' => self::STATUS_COMPLETED,
@@ -199,7 +204,7 @@ class PayoutSchedule extends Model
     /**
      * Cancel the payout
      */
-    public function cancel(string $reason = null): void
+    public function cancel(?string $reason = null): void
     {
         $metadata = $this->metadata ?? [];
         if ($reason) {
@@ -220,15 +225,15 @@ class PayoutSchedule extends Model
         if ($this->project_id) {
             return $this->project;
         }
-        
+
         if ($this->pitch) {
             return $this->pitch->project;
         }
-        
+
         if ($this->contestPrize) {
             return $this->contestPrize->project;
         }
-        
+
         return null;
     }
 
@@ -237,7 +242,7 @@ class PayoutSchedule extends Model
      */
     public function getFormattedAmountAttribute(): string
     {
-        return '$' . number_format($this->gross_amount, 2);
+        return '$'.number_format($this->gross_amount, 2);
     }
 
     /**
@@ -245,7 +250,7 @@ class PayoutSchedule extends Model
      */
     public function getFormattedNetAmountAttribute(): string
     {
-        return '$' . number_format($this->net_amount, 2);
+        return '$'.number_format($this->net_amount, 2);
     }
 
     /**
@@ -253,7 +258,7 @@ class PayoutSchedule extends Model
      */
     public function getFormattedCommissionAttribute(): string
     {
-        return '$' . number_format($this->commission_amount, 2);
+        return '$'.number_format($this->commission_amount, 2);
     }
 
     /**
@@ -307,4 +312,4 @@ class PayoutSchedule extends Model
     {
         return $query->where('producer_user_id', $user->id);
     }
-} 
+}

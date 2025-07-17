@@ -2,11 +2,10 @@
 
 namespace App\Mail;
 
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -18,8 +17,11 @@ class ProducerClientApprovedAndCompleted extends Mailable
     use Queueable, SerializesModels;
 
     public User $producer;
+
     public Project $project;
+
     public Pitch $pitch;
+
     public bool $hasPayment;
 
     /**
@@ -31,7 +33,7 @@ class ProducerClientApprovedAndCompleted extends Mailable
         $this->project = $project;
         $this->pitch = $pitch;
         $this->hasPayment = $hasPayment;
-        
+
         // Log the email details for development
         $this->logEmailContent();
     }
@@ -41,10 +43,10 @@ class ProducerClientApprovedAndCompleted extends Mailable
      */
     public function envelope(): Envelope
     {
-        $subject = $this->hasPayment 
-            ? 'Great News! Client Approved & Paid for "' . $this->project->title . '"'
-            : 'Great News! Client Approved "' . $this->project->title . '"';
-            
+        $subject = $this->hasPayment
+            ? 'Great News! Client Approved & Paid for "'.$this->project->title.'"'
+            : 'Great News! Client Approved "'.$this->project->title.'"';
+
         return new Envelope(
             subject: $subject,
         );
@@ -87,9 +89,9 @@ class ProducerClientApprovedAndCompleted extends Mailable
         try {
             Log::info('📧 PRODUCER CLIENT APPROVED AND COMPLETED EMAIL', [
                 'to' => $this->producer->email,
-                'subject' => $this->hasPayment 
-                    ? 'Great News! Client Approved & Paid for "' . $this->project->title . '"'
-                    : 'Great News! Client Approved "' . $this->project->title . '"',
+                'subject' => $this->hasPayment
+                    ? 'Great News! Client Approved & Paid for "'.$this->project->title.'"'
+                    : 'Great News! Client Approved "'.$this->project->title.'"',
                 'producer_id' => $this->producer->id,
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
@@ -105,15 +107,15 @@ class ProducerClientApprovedAndCompleted extends Mailable
                     'projectUrl' => route('projects.manage-client', $this->project),
                     'dashboardUrl' => route('dashboard'),
                 ],
-                'template' => 'emails.producer.client_approved_and_completed'
+                'template' => 'emails.producer.client_approved_and_completed',
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to log ProducerClientApprovedAndCompleted email content', [
                 'error' => $e->getMessage(),
                 'producer_id' => $this->producer->id,
                 'project_id' => $this->project->id,
-                'pitch_id' => $this->pitch->id
+                'pitch_id' => $this->pitch->id,
             ]);
         }
     }
-} 
+}

@@ -2,13 +2,13 @@
 
 namespace App\Http\Livewire\Profile;
 
+use App\Models\Tag;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Log;
-use App\Models\Tag;
-use Illuminate\Support\Collection;
 
 class UpdateProfileInformationForm extends Component
 {
@@ -30,25 +30,27 @@ class UpdateProfileInformationForm extends Component
 
     /**
      * User's selected skill tags (array of IDs).
+     *
      * @var array
      */
     public $skillTags = [];
 
     /**
      * User's selected equipment tags (array of IDs).
+     *
      * @var array
      */
     public $equipmentTags = [];
 
     /**
      * User's selected specialty tags (array of IDs).
+     *
      * @var array
      */
     public $specialtyTags = [];
 
     /**
      * All available tags, grouped by type.
-     * @var Collection
      */
     public Collection $allTags;
 
@@ -82,7 +84,6 @@ class UpdateProfileInformationForm extends Component
     /**
      * Update the user's profile information.
      *
-     * @param  \Laravel\Fortify\Contracts\UpdatesUserProfileInformation  $updater
      * @return void
      */
     public function updateProfileInformation(UpdatesUserProfileInformation $updater)
@@ -111,23 +112,23 @@ class UpdateProfileInformationForm extends Component
             $this->dispatch('refresh-navigation-menu');
 
             // Refresh tag data after save
-            $this->mount(); 
+            $this->mount();
 
         } catch (\Exception $e) {
             Log::error('Error updating profile information', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(), // Add trace for debugging
                 'user_id' => Auth::id(),
-                'photo_present' => isset($this->photo)
+                'photo_present' => isset($this->photo),
             ]);
-            
+
             // Add specific error handling if validation fails in the action
             if ($e instanceof \Illuminate\Validation\ValidationException) {
-                 $this->setErrorBag($e->validator->errors());
+                $this->setErrorBag($e->validator->errors());
             } else {
                 session()->flash('error', 'An unexpected error occurred while updating your profile.');
                 // Potentially add a more specific error for photo uploads if needed
-                 $this->addError('general', 'An unexpected error occurred. Please try again.');
+                $this->addError('general', 'An unexpected error occurred. Please try again.');
             }
         }
     }
@@ -175,4 +176,4 @@ class UpdateProfileInformationForm extends Component
     {
         return view('profile.update-profile-information-form');
     }
-} 
+}

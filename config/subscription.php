@@ -36,7 +36,7 @@ return [
             'features' => [
                 '1 Project',
                 '3 Active Pitches',
-                '1GB Storage per Project',
+                '10GB Total Storage Space',
                 'Basic Support',
                 '3 License Templates',
                 '10% Commission Rate',
@@ -52,7 +52,7 @@ return [
             'features' => [
                 'Unlimited Projects',
                 'Unlimited Active Pitches',
-                '5GB Storage per Project',
+                '50GB Total Storage Space',
                 'Priority Support',
                 'Custom License Templates',
                 '8% Commission Rate',
@@ -72,7 +72,7 @@ return [
             'features' => [
                 'Unlimited Projects',
                 'Unlimited Active Pitches',
-                '10GB Storage per Project',
+                '100GB Total Storage Space',
                 'Priority Support (24h SLA)',
                 'Unlimited License Templates',
                 '6% Commission Rate',
@@ -105,7 +105,7 @@ return [
         'yearly' => [
             'name' => 'Yearly',
             'description' => 'Billed annually',
-            'interval' => 'year', 
+            'interval' => 'year',
             'interval_count' => 1,
             'discount_text' => 'Save 17%',
         ],
@@ -132,4 +132,4 @@ return [
             'retry_period_days' => 14,
         ],
     ],
-]; 
+];

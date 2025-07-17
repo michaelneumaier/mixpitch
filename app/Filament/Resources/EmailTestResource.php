@@ -3,25 +3,20 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EmailTestResource\Pages;
-use App\Filament\Resources\EmailTestResource\RelationManagers;
 use App\Models\EmailTest;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Services\EmailService;
 use Filament\Forms\Components\Card;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Resources\Resource;
+use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 
 class EmailTestResource extends Resource
 {
@@ -46,12 +41,12 @@ class EmailTestResource extends Resource
                             ->required()
                             ->label('Recipient Email')
                             ->placeholder('Enter recipient email'),
-                            
+
                         TextInput::make('subject')
                             ->label('Subject')
                             ->placeholder('Test email subject')
                             ->default('Test Email from MixPitch'),
-                            
+
                         Select::make('template')
                             ->label('Email Template')
                             ->options([
@@ -60,7 +55,7 @@ class EmailTestResource extends Resource
                             ])
                             ->default('emails.test')
                             ->required(),
-                            
+
                         KeyValue::make('content_variables')
                             ->label('Content Variables')
                             ->keyLabel('Variable')
@@ -81,33 +76,33 @@ class EmailTestResource extends Resource
                 TextColumn::make('id')
                     ->label('ID')
                     ->sortable(),
-                    
+
                 TextColumn::make('recipient_email')
                     ->label('Recipient')
                     ->searchable()
                     ->sortable(),
-                    
+
                 TextColumn::make('subject')
                     ->label('Subject')
                     ->searchable()
                     ->limit(30),
-                    
+
                 TextColumn::make('template')
                     ->label('Template')
                     ->searchable(),
-                    
+
                 Tables\Columns\BadgeColumn::make('status')
                     ->colors([
                         'danger' => 'failed',
                         'warning' => 'pending',
                         'success' => 'sent',
                     ]),
-                    
+
                 TextColumn::make('sent_at')
                     ->label('Sent At')
                     ->dateTime()
                     ->sortable(),
-                    
+
                 TextColumn::make('created_at')
                     ->label('Created At')
                     ->dateTime()
@@ -136,26 +131,26 @@ class EmailTestResource extends Resource
                                 $record->template,
                                 $record->content_variables ?? []
                             );
-                            
+
                             // Update the record
                             $record->update([
                                 'status' => 'sent',
                                 'result' => $result,
                                 'sent_at' => now(),
                             ]);
-                            
+
                             Notification::make()
                                 ->title('Test email sent successfully')
                                 ->success()
                                 ->send();
-                                
+
                         } catch (\Exception $e) {
                             // Update the record with failure
                             $record->update([
                                 'status' => 'failed',
                                 'result' => ['error' => $e->getMessage()],
                             ]);
-                            
+
                             Notification::make()
                                 ->title('Failed to send test email')
                                 ->body($e->getMessage())
@@ -164,7 +159,7 @@ class EmailTestResource extends Resource
                         }
                     })
                     ->visible(fn (EmailTest $record): bool => $record->status !== 'sent'),
-                    
+
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

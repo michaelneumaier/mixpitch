@@ -32,17 +32,18 @@ class SendTestEmail extends Command
         $this->info("Sending test email to {$email}...");
 
         try {
-            $result = $emailService->send(new TestMail(), $email, 'test');
-            
+            $result = $emailService->send(new TestMail, $email, 'test');
+
             if ($result) {
                 $this->info('Test email sent successfully!');
             } else {
                 $this->warn('Email was not sent (possibly due to suppression list)');
             }
         } catch (\Exception $e) {
-            $this->error('Error sending test email: ' . $e->getMessage());
+            $this->error('Error sending test email: '.$e->getMessage());
             $this->line('Trace:');
             $this->line($e->getTraceAsString());
+
             return Command::FAILURE;
         }
 

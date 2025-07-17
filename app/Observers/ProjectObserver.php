@@ -2,12 +2,12 @@
 
 namespace App\Observers;
 
-use App\Models\Project;
-use Illuminate\Support\Facades\Log;
 use App\Models\Pitch;
-use App\Services\NotificationService;
-use Illuminate\Support\Str;
+use App\Models\Project;
 use App\Services\FileManagementService;
+use App\Services\NotificationService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ProjectObserver
 {
@@ -30,35 +30,35 @@ class ProjectObserver
             $initialStatus = Pitch::STATUS_IN_PROGRESS;
             Log::info('Creating automatic pitch for Direct Hire project', ['project_id' => $project->id, 'target_producer_id' => $project->target_producer_id, 'initial_status' => $initialStatus]);
             try {
-                 // Simplify pitch creation for debugging
-                 Log::info('Attempting Pitch::create for Direct Hire');
+                // Simplify pitch creation for debugging
+                Log::info('Attempting Pitch::create for Direct Hire');
 
-                 // Ensure title is always present, use project->title
-                 $pitchTitle = !empty($project->title) ? $project->title . ' - Direct Offer' : 'Direct Hire Offer'; // Default title
-                 
-                 $pitchData = [
-                     'project_id' => $project->id,
-                     'user_id' => $project->target_producer_id,
-                     'status' => $initialStatus,
-                     'title' => $pitchTitle, // Use the guaranteed title
-                     'terms_agreed' => true, // Assuming implicit agreement for direct hire
-                 ];
-                 
-                 // Debugging the data we're about to insert
-                 Log::info('Pitch creation data', $pitchData);
-                 
-                 // Attempt to create the pitch with explicit data
-                 $pitch = Pitch::create($pitchData);
-                 
-                 // Check if pitch creation was successful before proceeding
-                 if (!$pitch) {
-                     throw new \Exception("Pitch::create returned null or false.");
-                 }
+                // Ensure title is always present, use project->title
+                $pitchTitle = ! empty($project->title) ? $project->title.' - Direct Offer' : 'Direct Hire Offer'; // Default title
 
-                 Log::info('Pitch::create successful', [
-                     'pitch_id' => $pitch->id,
-                     'pitch_status' => $pitch->status
-                 ]);
+                $pitchData = [
+                    'project_id' => $project->id,
+                    'user_id' => $project->target_producer_id,
+                    'status' => $initialStatus,
+                    'title' => $pitchTitle, // Use the guaranteed title
+                    'terms_agreed' => true, // Assuming implicit agreement for direct hire
+                ];
+
+                // Debugging the data we're about to insert
+                Log::info('Pitch creation data', $pitchData);
+
+                // Attempt to create the pitch with explicit data
+                $pitch = Pitch::create($pitchData);
+
+                // Check if pitch creation was successful before proceeding
+                if (! $pitch) {
+                    throw new \Exception('Pitch::create returned null or false.');
+                }
+
+                Log::info('Pitch::create successful', [
+                    'pitch_id' => $pitch->id,
+                    'pitch_status' => $pitch->status,
+                ]);
 
                 // Create initial event
                 $pitch->events()->create([
@@ -76,7 +76,7 @@ class ProjectObserver
                     'project_id' => $project->id,
                     'target_producer_id' => $project->target_producer_id,
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString() // Log full trace for debugging
+                    'trace' => $e->getTraceAsString(), // Log full trace for debugging
                 ]);
                 // Re-throw the exception to potentially rollback transaction or signal failure
                 throw $e;
@@ -86,15 +86,15 @@ class ProjectObserver
             Log::info('Creating automatic pitch and inviting client for Client Management project', ['project_id' => $project->id, 'client_email' => $project->client_email]);
             try {
                 // Determine pitch title
-                $pitchTitle = !empty($project->title) ? $project->title : 'Client Project';
+                $pitchTitle = ! empty($project->title) ? $project->title : 'Client Project';
 
                 // Manually generate the slug before creating the pitch
                 $slug = Str::slug($pitchTitle);
                 // Ensure uniqueness (optional but recommended, mimicking Sluggable logic)
                 // This simple check might suffice if titles are generally unique per producer
-                $count = Pitch::where('slug', $slug)->where('user_id', $project->user_id)->count(); 
+                $count = Pitch::where('slug', $slug)->where('user_id', $project->user_id)->count();
                 if ($count > 0) {
-                    $slug = $slug . '-' . ($count + 1); 
+                    $slug = $slug.'-'.($count + 1);
                 }
 
                 // Added: Get payment amount from the project (set via CreateProject component)
@@ -115,8 +115,8 @@ class ProjectObserver
                     'payment_status' => $initialPaymentStatus,
                 ]);
 
-                if (!$pitch) {
-                    throw new \Exception("Pitch::create returned null or false for Client Management.");
+                if (! $pitch) {
+                    throw new \Exception('Pitch::create returned null or false for Client Management.');
                 }
 
                 // Create initial event
@@ -143,7 +143,7 @@ class ProjectObserver
                     'project_id' => $project->id,
                     'client_email' => $project->client_email,
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
                 // Re-throw exception to signal failure
                 throw $e;
@@ -165,11 +165,11 @@ class ProjectObserver
     public function deleted(Project $project): void
     {
         Log::info('ProjectObserver: Project deletion started', ['project_id' => $project->id]);
-        
+
         // Delete associated pitches and their files
         $project->pitches()->each(function ($pitch) {
             Log::info('ProjectObserver: Processing pitch deletion', ['pitch_id' => $pitch->id]);
-            
+
             // Delete pitch files first
             $pitch->files()->each(function ($file) {
                 try {
@@ -178,16 +178,16 @@ class ProjectObserver
                 } catch (\Exception $e) {
                     Log::error('ProjectObserver: Failed to delete pitch file during project deletion', [
                         'file_id' => $file->id,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             });
-            
+
             // Delete the pitch
             $pitch->delete();
             Log::info('ProjectObserver: Pitch deleted', ['pitch_id' => $pitch->id]);
         });
-        
+
         // Delete project files
         $project->files()->each(function ($file) {
             try {
@@ -196,11 +196,11 @@ class ProjectObserver
             } catch (\Exception $e) {
                 Log::error('ProjectObserver: Failed to delete project file during project deletion', [
                     'file_id' => $file->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         });
-        
+
         Log::info('ProjectObserver: Project deletion completed', ['project_id' => $project->id]);
     }
 

@@ -3,19 +3,19 @@
 namespace App\Filament\Plugins\Billing\Widgets;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Laravel\Cashier\Cashier;
-use Carbon\Carbon;
 
 class UserBillingStatusWidget extends BaseWidget
 {
     protected static ?int $sort = 2;
-    
-    protected int | string | array $columnSpan = 'full';
-    
+
+    protected int|string|array $columnSpan = 'full';
+
     public function table(Table $table): Table
     {
         return $table
@@ -36,19 +36,24 @@ class UserBillingStatusWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Payment Method')
                     ->getStateUsing(function (User $record): string {
-                        if (!$record->stripe_id) return 'None';
-                        
+                        if (! $record->stripe_id) {
+                            return 'None';
+                        }
+
                         try {
                             $stripe = Cashier::stripe();
                             $methods = $stripe->paymentMethods->all([
                                 'customer' => $record->stripe_id,
                                 'type' => 'card',
                             ]);
-                            
-                            if (count($methods->data) === 0) return 'None';
-                            
+
+                            if (count($methods->data) === 0) {
+                                return 'None';
+                            }
+
                             $method = $methods->data[0];
-                            return ucfirst($method->card->brand) . ' •••• ' . $method->card->last4;
+
+                            return ucfirst($method->card->brand).' •••• '.$method->card->last4;
                         } catch (\Exception $e) {
                             return 'Error fetching';
                         }
@@ -56,8 +61,10 @@ class UserBillingStatusWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('total_spent')
                     ->label('Total Spent')
                     ->getStateUsing(function (User $record): string {
-                        if (!$record->stripe_id) return '$0.00';
-                        
+                        if (! $record->stripe_id) {
+                            return '$0.00';
+                        }
+
                         try {
                             $stripe = Cashier::stripe();
                             $charges = $stripe->charges->all([
@@ -65,13 +72,13 @@ class UserBillingStatusWidget extends BaseWidget
                                 'status' => 'succeeded',
                                 'limit' => 100,
                             ]);
-                            
+
                             $total = 0;
                             foreach ($charges->data as $charge) {
                                 $total += $charge->amount;
                             }
-                            
-                            return '$' . number_format($total / 100, 2);
+
+                            return '$'.number_format($total / 100, 2);
                         } catch (\Exception $e) {
                             return 'Error fetching';
                         }
@@ -80,8 +87,10 @@ class UserBillingStatusWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('last_payment')
                     ->label('Last Payment')
                     ->getStateUsing(function (User $record): string {
-                        if (!$record->stripe_id) return 'Never';
-                        
+                        if (! $record->stripe_id) {
+                            return 'Never';
+                        }
+
                         try {
                             $stripe = Cashier::stripe();
                             $charges = $stripe->charges->all([
@@ -89,10 +98,13 @@ class UserBillingStatusWidget extends BaseWidget
                                 'status' => 'succeeded',
                                 'limit' => 1,
                             ]);
-                            
-                            if (count($charges->data) === 0) return 'Never';
-                            
+
+                            if (count($charges->data) === 0) {
+                                return 'Never';
+                            }
+
                             $lastCharge = $charges->data[0];
+
                             return Carbon::createFromTimestamp($lastCharge->created)->diffForHumans();
                         } catch (\Exception $e) {
                             return 'Error fetching';
@@ -131,4 +143,4 @@ class UserBillingStatusWidget extends BaseWidget
             ->emptyStateHeading('No Users Found')
             ->emptyStateDescription('No users matching your filters have been found.');
     }
-} 
+}

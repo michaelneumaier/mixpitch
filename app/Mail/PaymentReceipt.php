@@ -7,19 +7,23 @@ use App\Models\Project;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Mail\Mailables\Address;
 
 class PaymentReceipt extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     public $pitch;
+
     public $project;
+
     public $amount;
+
     public $invoiceId;
+
     public $recipientType; // 'owner' or 'creator'
 
     /**
@@ -59,8 +63,8 @@ class PaymentReceipt extends Mailable implements ShouldQueue
                 'invoiceId' => $this->invoiceId,
                 'recipientType' => $this->recipientType,
                 'recipientName' => $this->getRecipientName(),
-                'paymentDate' => $this->pitch->payment_completed_at ? 
-                    $this->pitch->payment_completed_at->format('F j, Y') : 
+                'paymentDate' => $this->pitch->payment_completed_at ?
+                    $this->pitch->payment_completed_at->format('F j, Y') :
                     now()->format('F j, Y'),
                 'isFreeProject' => $this->amount == 0,
             ],
@@ -76,7 +80,7 @@ class PaymentReceipt extends Mailable implements ShouldQueue
     {
         return [];
     }
-    
+
     /**
      * Get the appropriate subject line based on recipient type
      */
@@ -85,14 +89,14 @@ class PaymentReceipt extends Mailable implements ShouldQueue
         if ($this->amount == 0) {
             return "Free Project Completion Confirmation - {$this->project->name}";
         }
-        
+
         if ($this->recipientType === 'owner') {
             return "Payment Receipt for {$this->project->name} - Pitch #{$this->pitch->id}";
         } else {
             return "Payment Received for {$this->project->name} - Pitch #{$this->pitch->id}";
         }
     }
-    
+
     /**
      * Get the recipient's name
      */

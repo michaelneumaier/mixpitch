@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FileUploadSetting;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class UploadSettingsController extends Controller
@@ -17,16 +17,16 @@ class UploadSettingsController extends Controller
     {
         try {
             // Validate context
-            if (!FileUploadSetting::validateContext($context)) {
+            if (! FileUploadSetting::validateContext($context)) {
                 return response()->json([
                     'error' => 'Invalid context',
-                    'valid_contexts' => FileUploadSetting::getValidContexts()
+                    'valid_contexts' => FileUploadSetting::getValidContexts(),
                 ], 400);
             }
 
             // Get settings for the context
             $settings = FileUploadSetting::getSettings($context);
-            
+
             // Add metadata for frontend consumption
             $response = [
                 'context' => $context,
@@ -34,7 +34,7 @@ class UploadSettingsController extends Controller
                 'metadata' => [
                     'schema' => FileUploadSetting::getSettingsSchema(),
                     'defaults' => FileUploadSetting::getContextDefaults($context),
-                    'validation_rules' => FileUploadSetting::getContextValidationRules($context)
+                    'validation_rules' => FileUploadSetting::getContextValidationRules($context),
                 ],
                 'computed' => [
                     'max_file_size_bytes' => $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024 * 1024,
@@ -43,14 +43,14 @@ class UploadSettingsController extends Controller
                     'uppy_restrictions' => [
                         'maxFileSize' => $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024 * 1024,
                         'maxNumberOfFiles' => null, // Will be set by component
-                        'allowedFileTypes' => ['audio/*', 'application/pdf', 'image/*', 'application/zip']
+                        'allowedFileTypes' => ['audio/*', 'application/pdf', 'image/*', 'application/zip'],
                     ],
                     'upload_config' => [
                         'chunkSize' => $settings[FileUploadSetting::CHUNK_SIZE_MB] * 1024 * 1024,
                         'limit' => $settings[FileUploadSetting::MAX_CONCURRENT_UPLOADS],
-                        'retryDelays' => array_fill(0, $settings[FileUploadSetting::MAX_RETRY_ATTEMPTS], 1000)
-                    ]
-                ]
+                        'retryDelays' => array_fill(0, $settings[FileUploadSetting::MAX_RETRY_ATTEMPTS], 1000),
+                    ],
+                ],
             ];
 
             return response()->json($response);
@@ -58,12 +58,12 @@ class UploadSettingsController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to get upload settings', [
                 'context' => $context,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'error' => 'Failed to retrieve upload settings',
-                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }
     }
@@ -75,12 +75,12 @@ class UploadSettingsController extends Controller
     {
         $validated = $request->validate([
             'model_type' => 'required|string|in:App\\Models\\Project,App\\Models\\Pitch',
-            'model_id' => 'required|integer|exists:projects,id|exists:pitches,id'
+            'model_id' => 'required|integer|exists:projects,id|exists:pitches,id',
         ]);
 
         try {
             // Determine context from model type
-            $context = match($validated['model_type']) {
+            $context = match ($validated['model_type']) {
                 'App\\Models\\Project' => FileUploadSetting::CONTEXT_PROJECTS,
                 'App\\Models\\Pitch' => FileUploadSetting::CONTEXT_PITCHES,
                 default => FileUploadSetting::CONTEXT_GLOBAL
@@ -92,12 +92,12 @@ class UploadSettingsController extends Controller
             Log::error('Failed to get model-based upload settings', [
                 'model_type' => $validated['model_type'],
                 'model_id' => $validated['model_id'],
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'error' => 'Failed to retrieve upload settings for model',
-                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }
     }
@@ -110,7 +110,7 @@ class UploadSettingsController extends Controller
         $validated = $request->validate([
             'context' => 'required|string',
             'file_size' => 'required|integer|min:1',
-            'file_type' => 'required|string'
+            'file_type' => 'required|string',
         ]);
 
         try {
@@ -118,7 +118,7 @@ class UploadSettingsController extends Controller
             $fileSize = $validated['file_size'];
             $fileType = $validated['file_type'];
 
-            if (!FileUploadSetting::validateContext($context)) {
+            if (! FileUploadSetting::validateContext($context)) {
                 return response()->json(['error' => 'Invalid context'], 400);
             }
 
@@ -134,7 +134,7 @@ class UploadSettingsController extends Controller
                 'is_type_valid' => $this->isFileTypeAllowed($fileType),
                 'chunking_enabled' => $settings[FileUploadSetting::ENABLE_CHUNKING],
                 'will_be_chunked' => $settings[FileUploadSetting::ENABLE_CHUNKING] && $fileSize > ($settings[FileUploadSetting::CHUNK_SIZE_MB] * 1024 * 1024),
-                'settings_used' => $settings
+                'settings_used' => $settings,
             ];
 
             return response()->json($result);
@@ -142,12 +142,12 @@ class UploadSettingsController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to test upload settings', [
                 'request_data' => $validated,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'error' => 'Failed to test upload settings',
-                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }
     }
@@ -158,7 +158,7 @@ class UploadSettingsController extends Controller
     private function isFileTypeAllowed(string $mimeType): bool
     {
         $allowedTypes = ['audio/*', 'application/pdf', 'image/*', 'application/zip'];
-        
+
         foreach ($allowedTypes as $allowedType) {
             if (str_ends_with($allowedType, '/*')) {
                 $prefix = substr($allowedType, 0, -2);
@@ -169,7 +169,7 @@ class UploadSettingsController extends Controller
                 return true;
             }
         }
-        
+
         return false;
     }
 }

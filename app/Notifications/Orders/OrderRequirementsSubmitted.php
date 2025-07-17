@@ -4,7 +4,6 @@ namespace App\Notifications\Orders;
 
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -41,12 +40,12 @@ class OrderRequirementsSubmitted extends Notification
         $orderUrl = route('orders.show', $this->order->id);
 
         return (new MailMessage)
-                    ->subject("Requirements Submitted for Order #{$this->order->id}")
-                    ->greeting("Hello {$notifiable->name},")
-                    ->line("{$clientName} has submitted the requirements for order #{$this->order->id} - '{$this->order->servicePackage->title}'.")
-                    ->line('You can now review the requirements and begin working on the order.')
-                    ->action('View Order', $orderUrl)
-                    ->line('Thank you for using our application!');
+            ->subject("Requirements Submitted for Order #{$this->order->id}")
+            ->greeting("Hello {$notifiable->name},")
+            ->line("{$clientName} has submitted the requirements for order #{$this->order->id} - '{$this->order->servicePackage->title}'.")
+            ->line('You can now review the requirements and begin working on the order.')
+            ->action('View Order', $orderUrl)
+            ->line('Thank you for using our application!');
     }
 
     /**

@@ -27,4 +27,4 @@ return new class extends Migration
             $table->dropColumn(['waveform_peaks', 'waveform_processed', 'waveform_processed_at']);
         });
     }
-}; 
+};

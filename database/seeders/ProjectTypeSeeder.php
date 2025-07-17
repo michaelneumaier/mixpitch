@@ -2,9 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\ProjectType;
 use Illuminate\Support\Facades\DB;
 
 class ProjectTypeSeeder extends Seeder
@@ -27,7 +25,7 @@ class ProjectTypeSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 1,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'name' => 'Album',
@@ -38,7 +36,7 @@ class ProjectTypeSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 2,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'name' => 'Remix',
@@ -49,7 +47,7 @@ class ProjectTypeSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 3,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'name' => 'EP',
@@ -60,7 +58,7 @@ class ProjectTypeSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 4,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'name' => 'Mixtape',
@@ -71,7 +69,7 @@ class ProjectTypeSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 5,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'name' => 'Demo',
@@ -82,13 +80,13 @@ class ProjectTypeSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 6,
                 'created_at' => now(),
-                'updated_at' => now()
-            ]
+                'updated_at' => now(),
+            ],
         ];
 
         // Use DB::table for bulk insert performance
         DB::table('project_types')->insert($projectTypes);
 
-        $this->command->info('Created ' . count($projectTypes) . ' project types.');
+        $this->command->info('Created '.count($projectTypes).' project types.');
     }
 }

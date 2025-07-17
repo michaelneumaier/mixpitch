@@ -26,7 +26,7 @@ The MixPitch subscription system has been thoroughly tested and is working corre
 - **Project Creation**: Correctly blocks free users with 3/1 projects
 - **Pitch Creation**: Allows creation within limits
 - **Pro Upgrade**: Unlimited access works correctly
-- **Storage Limits**: 100MB for free, 500MB for pro users
+- **Storage Limits**: 10GB for free, 50GB for pro users
 
 ### 3. User Interface ✅
 - **Subscription Dashboard**: 30,881 characters - comprehensive interface
@@ -58,7 +58,7 @@ Email: mikeneumaier@gmail.com
 Plan: free.basic
 Projects: 3/1 (OVER LIMIT - correctly blocked)
 Active Pitches: 0/3 (within limit)
-Storage per Project: 100MB (subscription-based)
+Total Storage: 10GB (subscription-based)
 ```
 
 ### Limit Enforcement Testing

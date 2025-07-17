@@ -17,8 +17,11 @@ class SendNotificationEmailJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public User $user;
+
     public string $notificationType;
+
     public array $data;
+
     public ?int $originalNotificationId; // Nullable in case it's ever dispatched without one
 
     /**
@@ -41,7 +44,7 @@ class SendNotificationEmailJob implements ShouldQueue
             // Here you could potentially have logic to choose different Mailables
             // based on $this->notificationType if needed in the future.
             // For now, we use a generic one.
-            
+
             $mailable = new GenericNotificationEmail(
                 $this->user,
                 $this->notificationType,
@@ -55,7 +58,7 @@ class SendNotificationEmailJob implements ShouldQueue
                 'user_id' => $this->user->id,
                 'email' => $this->user->email,
                 'notification_type' => $this->notificationType,
-                'original_notification_id' => $this->originalNotificationId
+                'original_notification_id' => $this->originalNotificationId,
             ]);
 
         } catch (\Exception $e) {
@@ -71,7 +74,7 @@ class SendNotificationEmailJob implements ShouldQueue
 
             // Optional: Decide if the job should be released back onto the queue
             // $this->release(60); // Release back for 60 seconds
-            
+
             // Or fail the job permanently
             $this->fail($e);
         }

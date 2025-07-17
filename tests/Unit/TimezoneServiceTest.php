@@ -17,7 +17,7 @@ class TimezoneServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new TimezoneService();
+        $this->service = new TimezoneService;
     }
 
     /** @test */
@@ -56,9 +56,9 @@ class TimezoneServiceTest extends TestCase
     public function it_gets_user_timezone()
     {
         $user = User::factory()->create(['timezone' => 'Europe/London']);
-        
+
         $timezone = $this->service->getUserTimezone($user);
-        
+
         $this->assertEquals('Europe/London', $timezone);
     }
 
@@ -69,9 +69,9 @@ class TimezoneServiceTest extends TestCase
         $user = User::factory()->create();
         $user->update(['timezone' => null]);
         $user->refresh();
-        
+
         $timezone = $this->service->getUserTimezone($user);
-        
+
         $this->assertEquals('America/New_York', $timezone);
     }
 
@@ -79,7 +79,7 @@ class TimezoneServiceTest extends TestCase
     public function it_defaults_to_est_for_no_user()
     {
         $timezone = $this->service->getUserTimezone(null);
-        
+
         $this->assertEquals('America/New_York', $timezone);
     }
 
@@ -87,7 +87,7 @@ class TimezoneServiceTest extends TestCase
     public function it_gets_available_timezones()
     {
         $timezones = $this->service->getAvailableTimezones();
-        
+
         $this->assertIsArray($timezones);
         $this->assertArrayHasKey('America/New_York', $timezones);
         $this->assertArrayHasKey('America/Los_Angeles', $timezones);
@@ -98,9 +98,9 @@ class TimezoneServiceTest extends TestCase
     public function it_converts_user_input_to_utc()
     {
         $user = User::factory()->create(['timezone' => 'America/New_York']);
-        
+
         $utcDate = $this->service->convertToUtc('2024-01-01 12:00:00', $user);
-        
+
         $this->assertEquals('UTC', $utcDate->timezone->getName());
         $this->assertEquals('2024-01-01 17:00:00', $utcDate->format('Y-m-d H:i:s'));
     }
@@ -110,10 +110,10 @@ class TimezoneServiceTest extends TestCase
     {
         $user = User::factory()->create(['timezone' => 'Asia/Tokyo']);
         Carbon::setTestNow(Carbon::parse('2024-01-01 12:00:00', 'UTC'));
-        
+
         $userNow = $this->service->now($user);
-        
+
         $this->assertEquals('Asia/Tokyo', $userNow->timezone->getName());
         $this->assertEquals('2024-01-01 21:00:00', $userNow->format('Y-m-d H:i:s'));
     }
-} 
+}

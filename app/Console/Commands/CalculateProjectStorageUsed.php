@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Project;
-use App\Models\ProjectFile;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 class CalculateProjectStorageUsed extends Command
@@ -29,26 +28,26 @@ class CalculateProjectStorageUsed extends Command
     public function handle()
     {
         $this->info('Calculating storage usage for all projects...');
-        
+
         // Get all projects
         $projects = Project::all();
-        
+
         $bar = $this->output->createProgressBar(count($projects));
         $bar->start();
-        
+
         foreach ($projects as $project) {
             // Calculate total storage used
             $totalBytes = DB::table('project_files')
                 ->where('project_id', $project->id)
                 ->sum('size');
-                
+
             // Update the project
             $project->total_storage_used = $totalBytes;
             $project->save();
-            
+
             $bar->advance();
         }
-        
+
         $bar->finish();
         $this->newLine();
         $this->info('Storage usage calculation completed!');

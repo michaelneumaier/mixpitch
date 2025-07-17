@@ -37,7 +37,7 @@ return new class extends Migration
                 'featured_work',
                 'headline',
                 'portfolio_layout',
-                'profile_completed'
+                'profile_completed',
             ]);
         });
     }

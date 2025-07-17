@@ -3,13 +3,11 @@
 namespace App\Policies;
 
 use App\Models\Pitch;
-use App\Models\User;
 use App\Models\PitchSnapshot;
-use Illuminate\Auth\Access\HandlesAuthorization;
 use App\Models\Project;
-use Illuminate\Auth\Access\Response;
-use Illuminate\Support\Facades\Log;
+use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class PitchPolicy
 {
@@ -18,8 +16,6 @@ class PitchPolicy
     /**
      * Determine whether the user can view the pitch.
      *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
      * @return \Illuminate\Auth\Access\Response|bool
      */
     public function view(User $user, Pitch $pitch)
@@ -30,15 +26,11 @@ class PitchPolicy
 
     /**
      * Determine whether the user can create pitches for the project.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Project  $project
-     * @return bool
      */
     public function createPitch(User $user, Project $project): bool
     {
         // Check subscription limits first
-        if (!$user->canCreatePitch()) {
+        if (! $user->canCreatePitch()) {
             return false;
         }
 
@@ -53,14 +45,12 @@ class PitchPolicy
         // User must not already have a pitch for this project
         return $user->id !== $project->user_id &&
                $project->isOpenForPitches() &&
-               !$project->userPitch($user->id); // Check if user already has a pitch
+               ! $project->userPitch($user->id); // Check if user already has a pitch
     }
 
     /**
      * Determine whether the user can update the pitch.
      *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
      * @return \Illuminate\Auth\Access\Response|bool
      */
     public function update(User $user, Pitch $pitch)
@@ -76,12 +66,12 @@ class PitchPolicy
                 Pitch::STATUS_DENIED, // Allow denied pitches to be editable
                 Pitch::STATUS_PENDING_REVIEW, // Allow review-pending to be editable
             ];
-            
+
             // For Client Management projects, also allow editing when READY_FOR_REVIEW (for recall functionality)
             if ($pitch->project->isClientManagement() && $pitch->status === Pitch::STATUS_READY_FOR_REVIEW) {
                 $allowedStatuses[] = Pitch::STATUS_READY_FOR_REVIEW;
             }
-            
+
             return in_array($pitch->status, $allowedStatuses);
         }
 
@@ -91,8 +81,6 @@ class PitchPolicy
     /**
      * Determine whether the user can delete the pitch.
      *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
      * @return \Illuminate\Auth\Access\Response|bool
      */
     public function delete(User $user, Pitch $pitch)
@@ -111,9 +99,7 @@ class PitchPolicy
     /**
      * Determine whether the project owner can approve an initial pitch application.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function approveInitial(User $user, Pitch $pitch): bool
     {
@@ -126,9 +112,7 @@ class PitchPolicy
     /**
      * Determine whether the project owner can approve a submitted snapshot.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function approveSubmission(User $user, Pitch $pitch): bool
     {
@@ -145,15 +129,13 @@ class PitchPolicy
 
         return $user->id === $pitch->project->user_id &&
                $pitch->status === Pitch::STATUS_READY_FOR_REVIEW &&
-               !$isPaidAndCompleted;
+               ! $isPaidAndCompleted;
     }
 
     /**
      * Determine whether the project owner can deny a submitted snapshot.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function denySubmission(User $user, Pitch $pitch): bool
     {
@@ -168,15 +150,13 @@ class PitchPolicy
 
         return $user->id === $pitch->project->user_id &&
                $pitch->status === Pitch::STATUS_READY_FOR_REVIEW &&
-               !$isPaidAndCompleted;
+               ! $isPaidAndCompleted;
     }
 
     /**
      * Determine whether the project owner can request revisions for a submitted snapshot.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function requestRevisions(User $user, Pitch $pitch): bool
     {
@@ -191,15 +171,13 @@ class PitchPolicy
 
         return $user->id === $pitch->project->user_id &&
                $pitch->status === Pitch::STATUS_READY_FOR_REVIEW &&
-               !$isPaidAndCompleted;
+               ! $isPaidAndCompleted;
     }
 
     /**
      * Determine whether the pitch creator can cancel their submission.
      *
-     * @param  \App\Models\User  $user (Pitch Creator)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Pitch Creator)
      */
     public function cancelSubmission(User $user, Pitch $pitch): bool
     {
@@ -226,14 +204,12 @@ class PitchPolicy
     /**
      * Determine whether the pitch creator can recall their submission (Client Management specific).
      *
-     * @param  \App\Models\User  $user (Pitch Creator)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Pitch Creator)
      */
     public function recallSubmission(User $user, Pitch $pitch): bool
     {
         // Only for Client Management projects
-        if (!$pitch->project->isClientManagement()) {
+        if (! $pitch->project->isClientManagement()) {
             return false;
         }
 
@@ -246,9 +222,8 @@ class PitchPolicy
     /**
      * Determine whether the pitch creator can submit the pitch for review.
      *
-     * @param  \App\Models\User  $user (Pitch Creator)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Pitch Creator)
+     *
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
     public function submitForReview(User $user, Pitch $pitch): bool
@@ -258,9 +233,9 @@ class PitchPolicy
             'pitch_id' => $pitch->id,
             'pitch_user_id' => $pitch->user_id,
             'is_contest' => $pitch->project->isContest(),
-            'would_return' => $user->id === $pitch->user_id && !$pitch->project->isContest()
+            'would_return' => $user->id === $pitch->user_id && ! $pitch->project->isContest(),
         ]);
-        
+
         // Block for Contests
         if ($pitch->project->isContest()) {
             throw new AuthorizationException('Contest pitches cannot be submitted directly.');
@@ -269,36 +244,34 @@ class PitchPolicy
         // Only the pitch owner (producer for DH/CM) can submit
         // Pitch must be in an active state allowing submission
         $isTargetProducer = $user->id === $pitch->user_id;
-        if (!$isTargetProducer) {
+        if (! $isTargetProducer) {
             throw new AuthorizationException('Only the pitch owner can submit it for review.');
         }
-        
+
         $isCorrectStatus = in_array($pitch->status, [
             Pitch::STATUS_IN_PROGRESS,
             Pitch::STATUS_REVISIONS_REQUESTED,
-            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED // Added for Client Mgmt
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Added for Client Mgmt
         ]);
 
-        if (!$isCorrectStatus) {
+        if (! $isCorrectStatus) {
             throw new AuthorizationException('Pitch cannot be submitted in its current status.');
         }
-        
+
         \Illuminate\Support\Facades\Log::debug('PitchPolicy::submitForReview results.', [
             'isTargetProducer' => $isTargetProducer,
             'isCorrectStatus' => $isCorrectStatus,
             'pitch_status' => $pitch->status,
-            'would_return' => $isTargetProducer && $isCorrectStatus
+            'would_return' => $isTargetProducer && $isCorrectStatus,
         ]);
-        
+
         return true; // If we reached here, all checks passed
     }
 
     /**
      * Determine whether the project owner can mark the pitch as complete.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function complete(User $user, Pitch $pitch): bool
     {
@@ -327,9 +300,7 @@ class PitchPolicy
     /**
      * Determine whether the user can return a completed pitch to approved status.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function returnToApproved(User $user, Pitch $pitch): bool
     {
@@ -337,6 +308,7 @@ class PitchPolicy
         if ($pitch->project->isContest() || $pitch->project->isClientManagement()) {
             return false;
         }
+
         // Only the project owner can perform this action
         return $user->id === $pitch->project->user_id &&
                $pitch->status === Pitch::STATUS_COMPLETED; // Must be completed
@@ -346,9 +318,7 @@ class PitchPolicy
      * Determine whether the user can upload files to the pitch.
      * Added from PitchFilePolicy as the check relates to the Pitch status/ownership.
      *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch The pitch to upload to.
-     * @return bool
+     * @param  \App\Models\Pitch  $pitch  The pitch to upload to.
      */
     public function uploadFile(User $user, Pitch $pitch): bool
     {
@@ -362,7 +332,7 @@ class PitchPolicy
             Pitch::STATUS_IN_PROGRESS,
             Pitch::STATUS_REVISIONS_REQUESTED,
             Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Allow producer upload after client request
-            Pitch::STATUS_CONTEST_ENTRY // Allow contest entry upload
+            Pitch::STATUS_CONTEST_ENTRY, // Allow contest entry upload
             // Maybe Pitch::STATUS_PENDING if initial files are allowed before approval?
         ];
 
@@ -371,10 +341,6 @@ class PitchPolicy
 
     /**
      * Determine whether the user can manage access for a pitch (grant/revoke access)
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
      */
     public function manageAccess(User $user, Pitch $pitch): bool
     {
@@ -384,10 +350,6 @@ class PitchPolicy
 
     /**
      * Determine whether the user can manage review status of a pitch
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
      */
     public function manageReview(User $user, Pitch $pitch): bool
     {
@@ -409,9 +371,7 @@ class PitchPolicy
     /**
      * Determine whether the project owner can select a contest winner.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function selectWinner(User $user, Pitch $pitch): bool
     {
@@ -424,9 +384,7 @@ class PitchPolicy
     /**
      * Determine whether the project owner can select a contest runner-up.
      *
-     * @param  \App\Models\User  $user (Project Owner)
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
+     * @param  \App\Models\User  $user  (Project Owner)
      */
     public function selectRunnerUp(User $user, Pitch $pitch): bool
     {
@@ -438,10 +396,6 @@ class PitchPolicy
 
     /**
      * Determine whether the user can accept a Direct Hire offer.
-     *
-     * @param User $user
-     * @param Pitch $pitch
-     * @return boolean
      */
     public function acceptDirectHire(User $user, Pitch $pitch): bool
     {
@@ -453,10 +407,6 @@ class PitchPolicy
 
     /**
      * Determine whether the user can reject a Direct Hire offer.
-     *
-     * @param User $user
-     * @param Pitch $pitch
-     * @return boolean
      */
     public function rejectDirectHire(User $user, Pitch $pitch): bool
     {
@@ -472,26 +422,18 @@ class PitchPolicy
 
     /**
      * Determine whether the user can set contest placement for a pitch.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
      */
     public function setContestPlacement(User $user, Pitch $pitch): bool
     {
         // Only the contest runner can set placements
         return $user->id === $pitch->project->user_id &&
                $pitch->project->isContest() &&
-               !$pitch->project->isJudgingFinalized() &&
+               ! $pitch->project->isJudgingFinalized() &&
                in_array($pitch->status, [Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP]);
     }
 
     /**
      * Determine whether the user can view contest entry snapshots.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
      */
     public function viewContestEntry(User $user, Pitch $pitch): bool
     {
@@ -508,10 +450,10 @@ class PitchPolicy
         // Other participants can view if submissions are public or judging is finalized
         if ($pitch->project->isContest()) {
             $hasEntry = $pitch->project->pitches()
-                                      ->where('user_id', $user->id)
-                                      ->where('status', 'like', '%contest%')
-                                      ->exists();
-            
+                ->where('user_id', $user->id)
+                ->where('status', 'like', '%contest%')
+                ->exists();
+
             if ($hasEntry && ($pitch->project->show_submissions_publicly || $pitch->project->isJudgingFinalized())) {
                 return true;
             }
@@ -527,26 +469,18 @@ class PitchPolicy
 
     /**
      * Determine whether the user can judge this specific contest entry.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
      */
     public function judgeContestEntry(User $user, Pitch $pitch): bool
     {
         // Only the contest runner can judge entries, and only if judging isn't finalized
         return $user->id === $pitch->project->user_id &&
                $pitch->project->isContest() &&
-               !$pitch->project->isJudgingFinalized() &&
+               ! $pitch->project->isJudgingFinalized() &&
                in_array($pitch->status, [Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP]);
     }
 
     /**
      * Determine whether the user can access contest judging features for this pitch.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Pitch  $pitch
-     * @return bool
      */
     public function accessContestJudging(User $user, Pitch $pitch): bool
     {

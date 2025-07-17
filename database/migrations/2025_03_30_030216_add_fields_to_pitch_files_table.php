@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -38,13 +38,13 @@ return new class extends Migration
                 $table->dropColumn('original_file_name');
             });
         }
-        
+
         if (Schema::hasColumn($tableName, 'mime_type')) {
             Schema::table($tableName, function (Blueprint $table) {
                 $table->dropColumn('mime_type');
             });
         }
-        
+
         if (Schema::hasColumn($tableName, 'storage_path')) {
             Schema::table($tableName, function (Blueprint $table) {
                 $table->dropColumn('storage_path');

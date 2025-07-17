@@ -27,6 +27,7 @@ class TagFactory extends Factory
     {
         $name = $this->faker->unique()->word;
         $type = $this->faker->randomElement(['skill', 'equipment', 'specialty']);
+
         return [
             'name' => $name,
             'slug' => Str::slug($name),

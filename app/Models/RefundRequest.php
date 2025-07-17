@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class RefundRequest extends Model
 {
@@ -13,9 +12,13 @@ class RefundRequest extends Model
 
     // Status constants
     const STATUS_REQUESTED = 'requested';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_DENIED = 'denied';
+
     const STATUS_PROCESSED = 'processed';
+
     const STATUS_EXPIRED = 'expired';
 
     protected $fillable = [
@@ -129,7 +132,7 @@ class RefundRequest extends Model
      */
     public function canBeRespondedTo(): bool
     {
-        return $this->isPending() && !$this->isExpired();
+        return $this->isPending() && ! $this->isExpired();
     }
 
     // ========== BUSINESS LOGIC METHODS ==========
@@ -139,7 +142,7 @@ class RefundRequest extends Model
      */
     public function approve(User $approver): void
     {
-        if (!$this->canBeRespondedTo()) {
+        if (! $this->canBeRespondedTo()) {
             throw new \Exception('Refund request cannot be approved in current state');
         }
 
@@ -155,7 +158,7 @@ class RefundRequest extends Model
      */
     public function deny(User $denier, string $reason): void
     {
-        if (!$this->canBeRespondedTo()) {
+        if (! $this->canBeRespondedTo()) {
             throw new \Exception('Refund request cannot be denied in current state');
         }
 
@@ -208,7 +211,7 @@ class RefundRequest extends Model
      */
     public function getFormattedAmountAttribute(): string
     {
-        return '$' . number_format($this->amount, 2);
+        return '$'.number_format($this->amount, 2);
     }
 
     /**
@@ -231,7 +234,7 @@ class RefundRequest extends Model
      */
     public function getTimeRemainingAttribute(): ?string
     {
-        if (!$this->isPending()) {
+        if (! $this->isPending()) {
             return null;
         }
 
@@ -241,13 +244,13 @@ class RefundRequest extends Model
         }
 
         $diff = $now->diff($this->expires_at);
-        
+
         if ($diff->days > 0) {
-            return $diff->days . ' day' . ($diff->days > 1 ? 's' : '') . ' remaining';
+            return $diff->days.' day'.($diff->days > 1 ? 's' : '').' remaining';
         } elseif ($diff->h > 0) {
-            return $diff->h . ' hour' . ($diff->h > 1 ? 's' : '') . ' remaining';
+            return $diff->h.' hour'.($diff->h > 1 ? 's' : '').' remaining';
         } else {
-            return $diff->i . ' minute' . ($diff->i > 1 ? 's' : '') . ' remaining';
+            return $diff->i.' minute'.($diff->i > 1 ? 's' : '').' remaining';
         }
     }
 
@@ -286,4 +289,4 @@ class RefundRequest extends Model
         return $query->pending()
             ->where('expires_at', '>', now());
     }
-} 
+}

@@ -2,9 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use App\Models\Project;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -54,10 +53,10 @@ return new class extends Migration
                 Schema::table('projects', function (Blueprint $table) use ($index) {
                     try {
                         // Index name usually follows convention: table_column_index
-                        $table->dropIndex('projects_' . $index . '_index');
+                        $table->dropIndex('projects_'.$index.'_index');
                     } catch (\Illuminate\Database\QueryException $e) {
                         // Log if index drop fails (e.g., non-standard name or already dropped)
-                        Log::warning("Could not drop index for {$index} during migration rollback: " . $e->getMessage());
+                        Log::warning("Could not drop index for {$index} during migration rollback: ".$e->getMessage());
                     }
                 });
             }

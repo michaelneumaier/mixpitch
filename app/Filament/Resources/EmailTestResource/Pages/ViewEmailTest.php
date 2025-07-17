@@ -21,15 +21,15 @@ class ViewEmailTest extends ViewRecord
                 ->color('success')
                 ->action(function () {
                     $record = $this->record;
-                    
+
                     // Get the resource class and invoke the send action
                     $resource = static::getResource();
-                    $table = $resource::table(new \Filament\Tables\Table());
-                    
+                    $table = $resource::table(new \Filament\Tables\Table);
+
                     // Find the send action
                     $sendAction = collect($table->getActions())
                         ->first(fn ($action) => $action->getName() === 'send');
-                    
+
                     if ($sendAction) {
                         $sendAction->call([$record]);
                     }
@@ -37,4 +37,4 @@ class ViewEmailTest extends ViewRecord
                 ->visible(fn () => $this->record->status !== 'sent'),
         ];
     }
-} 
+}

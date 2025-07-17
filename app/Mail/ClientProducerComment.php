@@ -2,8 +2,8 @@
 
 namespace App\Mail;
 
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -13,9 +13,13 @@ class ClientProducerComment extends Mailable
     use Queueable, SerializesModels;
 
     public Project $project;
+
     public Pitch $pitch;
+
     public string $comment;
+
     public string $signedUrl;
+
     public ?string $clientName;
 
     /**
@@ -41,13 +45,13 @@ class ClientProducerComment extends Mailable
     public function build()
     {
         return $this->subject("New Message from {$this->pitch->user->name} - {$this->project->title}")
-                    ->markdown('emails.client.producer_comment')
-                    ->with([
-                        'project' => $this->project,
-                        'pitch' => $this->pitch,
-                        'comment' => $this->comment,
-                        'signedUrl' => $this->signedUrl,
-                        'clientName' => $this->clientName,
-                    ]);
+            ->markdown('emails.client.producer_comment')
+            ->with([
+                'project' => $this->project,
+                'pitch' => $this->pitch,
+                'comment' => $this->comment,
+                'signedUrl' => $this->signedUrl,
+                'clientName' => $this->clientName,
+            ]);
     }
-} 
+}

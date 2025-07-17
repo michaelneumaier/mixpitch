@@ -9,7 +9,9 @@ use Illuminate\View\Component;
 class ProjectStatusButton extends Component
 {
     public $status;
+
     public $type;
+
     /**
      * Create a new component instance.
      */

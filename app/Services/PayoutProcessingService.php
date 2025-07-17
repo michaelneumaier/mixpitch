@@ -2,20 +2,20 @@
 
 namespace App\Services;
 
-use App\Models\PayoutSchedule;
-use App\Models\Transaction;
-use App\Models\Pitch;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\ContestPrize;
-use App\Services\StripeConnectService;
+use App\Models\PayoutSchedule;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\Transaction;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class PayoutProcessingService
 {
     protected NotificationService $notificationService;
+
     protected StripeConnectService $stripeConnectService;
 
     public function __construct(NotificationService $notificationService, StripeConnectService $stripeConnectService)
@@ -27,10 +27,6 @@ class PayoutProcessingService
     /**
      * Schedule payout for a completed pitch payment
      * Called from PitchWorkflowService::markPitchAsPaid() and webhook handlers
-     *
-     * @param Pitch $pitch
-     * @param string $stripeInvoiceId
-     * @return PayoutSchedule
      */
     public function schedulePayoutForPitch(Pitch $pitch, string $stripeInvoiceId): PayoutSchedule
     {
@@ -38,7 +34,7 @@ class PayoutProcessingService
             'pitch_id' => $pitch->id,
             'project_id' => $pitch->project_id,
             'stripe_invoice_id' => $stripeInvoiceId,
-            'workflow_type' => $pitch->project->workflow_type
+            'workflow_type' => $pitch->project->workflow_type,
         ]);
 
         return DB::transaction(function () use ($pitch, $stripeInvoiceId) {
@@ -46,16 +42,16 @@ class PayoutProcessingService
             $project = $pitch->project;
             $producer = $pitch->user; // Pitch creator is the producer
             $workflowType = $project->workflow_type;
-            
+
             // Calculate payout details
             $payoutAmount = $pitch->payment_amount ?? $project->budget;
             $commissionRate = $producer->getPlatformCommissionRate();
             $commissionAmount = $payoutAmount * ($commissionRate / 100);
             $netAmount = $payoutAmount - $commissionAmount;
-            
+
             // Calculate hold release date using dynamic configuration
             $holdReleaseDate = $this->calculateHoldReleaseDate($workflowType);
-            
+
             // Create transaction record
             $transaction = Transaction::createForPitch(
                 $producer, // Producer receives the payout
@@ -71,8 +67,8 @@ class PayoutProcessingService
                     'metadata' => [
                         'stripe_invoice_id' => $stripeInvoiceId,
                         'hold_release_date' => $holdReleaseDate->toISOString(),
-                        'workflow_type' => $workflowType
-                    ]
+                        'workflow_type' => $workflowType,
+                    ],
                 ]
             );
 
@@ -96,8 +92,8 @@ class PayoutProcessingService
                     'pitch_title' => $pitch->title,
                     'project_name' => $project->name,
                     'client_email' => $project->client_email,
-                    'original_budget' => $project->budget
-                ]
+                    'original_budget' => $project->budget,
+                ],
             ]);
 
             // Link transaction to payout schedule
@@ -107,7 +103,7 @@ class PayoutProcessingService
                 'payout_schedule_id' => $payoutSchedule->id,
                 'transaction_id' => $transaction->id,
                 'net_amount' => $netAmount,
-                'hold_release_date' => $holdReleaseDate->toISOString()
+                'hold_release_date' => $holdReleaseDate->toISOString(),
             ]);
 
             // Send notification to producer
@@ -121,9 +117,7 @@ class PayoutProcessingService
      * Schedule payouts for contest winners
      * Called when contest prizes are awarded
      *
-     * @param Project $project
-     * @param array $winners Array of ['pitch' => Pitch, 'prize' => ContestPrize]
-     * @param string $stripeInvoiceId
+     * @param  array  $winners  Array of ['pitch' => Pitch, 'prize' => ContestPrize]
      * @return array Array of PayoutSchedule objects
      */
     public function schedulePayoutsForContest(Project $project, array $winners, string $stripeInvoiceId): array
@@ -131,7 +125,7 @@ class PayoutProcessingService
         Log::info('Scheduling contest payouts', [
             'project_id' => $project->id,
             'winner_count' => count($winners),
-            'stripe_invoice_id' => $stripeInvoiceId
+            'stripe_invoice_id' => $stripeInvoiceId,
         ]);
 
         return DB::transaction(function () use ($project, $winners, $stripeInvoiceId) {
@@ -170,8 +164,8 @@ class PayoutProcessingService
                             'contest_prize_id' => $prize->id,
                             'prize_position' => $prize->placement,
                             'stripe_invoice_id' => $stripeInvoiceId,
-                            'hold_release_date' => $holdReleaseDate->toISOString()
-                        ]
+                            'hold_release_date' => $holdReleaseDate->toISOString(),
+                        ],
                     ]
                 );
 
@@ -196,8 +190,8 @@ class PayoutProcessingService
                         'prize_position' => $prize->placement,
                         'prize_title' => $prize->title,
                         'pitch_title' => $pitch->title,
-                        'project_name' => $project->name
-                    ]
+                        'project_name' => $project->name,
+                    ],
                 ]);
 
                 // Link transaction to payout schedule
@@ -212,7 +206,7 @@ class PayoutProcessingService
             Log::info('Contest payouts scheduled successfully', [
                 'project_id' => $project->id,
                 'payout_count' => count($payoutSchedules),
-                'total_net_amount' => array_sum(array_column($payoutSchedules, 'net_amount'))
+                'total_net_amount' => array_sum(array_column($payoutSchedules, 'net_amount')),
             ]);
 
             return $payoutSchedules;
@@ -230,7 +224,7 @@ class PayoutProcessingService
         $results = [
             'processed' => 0,
             'failed' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         // Get payouts ready for processing
@@ -249,13 +243,13 @@ class PayoutProcessingService
                 $results['failed']++;
                 $results['errors'][] = [
                     'payout_id' => $payout->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
 
                 Log::error('Failed to process payout', [
                     'payout_schedule_id' => $payout->id,
                     'producer_id' => $payout->producer_user_id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -265,33 +259,30 @@ class PayoutProcessingService
 
     /**
      * Process a single payout via Stripe Connect
-     *
-     * @param PayoutSchedule $payoutSchedule
-     * @return void
      */
     public function processSinglePayout(PayoutSchedule $payoutSchedule): void
     {
         Log::info('Processing single payout', [
             'payout_schedule_id' => $payoutSchedule->id,
             'producer_id' => $payoutSchedule->producer_user_id,
-            'net_amount' => $payoutSchedule->net_amount
+            'net_amount' => $payoutSchedule->net_amount,
         ]);
 
         DB::transaction(function () use ($payoutSchedule) {
             // Update status to processing
             $payoutSchedule->update([
                 'status' => PayoutSchedule::STATUS_PROCESSING,
-                'processed_at' => now()
+                'processed_at' => now(),
             ]);
 
             $producer = $payoutSchedule->producer;
 
             // Check if producer has a Stripe Connect account ready for payouts
-            if (!$this->stripeConnectService->isAccountReadyForPayouts($producer)) {
+            if (! $this->stripeConnectService->isAccountReadyForPayouts($producer)) {
                 Log::warning('Producer account not ready for payouts', [
                     'payout_schedule_id' => $payoutSchedule->id,
                     'producer_id' => $producer->id,
-                    'stripe_account_id' => $producer->stripe_account_id
+                    'stripe_account_id' => $producer->stripe_account_id,
                 ]);
 
                 // Update status to failed with reason
@@ -300,12 +291,13 @@ class PayoutProcessingService
                     'failed_at' => now(),
                     'failure_reason' => 'Producer Stripe Connect account not ready for payouts',
                     'metadata' => array_merge($payoutSchedule->metadata ?? [], [
-                        'failure_details' => 'Account setup incomplete or restricted'
-                    ])
+                        'failure_details' => 'Account setup incomplete or restricted',
+                    ]),
                 ]);
 
                 // Send notification to producer about account setup needed
                 $this->notificationService->notifyPayoutFailed($producer, $payoutSchedule, 'Account setup required');
+
                 return;
             }
 
@@ -332,8 +324,8 @@ class PayoutProcessingService
                     'completed_at' => now(),
                     'metadata' => array_merge($payoutSchedule->metadata ?? [], [
                         'stripe_transfer_created' => now()->toISOString(),
-                        'transfer_amount_cents' => round($payoutSchedule->net_amount * 100)
-                    ])
+                        'transfer_amount_cents' => round($payoutSchedule->net_amount * 100),
+                    ]),
                 ]);
 
                 // Update transaction status if it exists
@@ -344,7 +336,7 @@ class PayoutProcessingService
                 Log::info('Payout processed successfully via Stripe Connect', [
                     'payout_schedule_id' => $payoutSchedule->id,
                     'stripe_transfer_id' => $transferResult['transfer_id'],
-                    'net_amount' => $payoutSchedule->net_amount
+                    'net_amount' => $payoutSchedule->net_amount,
                 ]);
 
                 // Send success notification to producer
@@ -358,8 +350,8 @@ class PayoutProcessingService
                     'failure_reason' => $transferResult['error'],
                     'metadata' => array_merge($payoutSchedule->metadata ?? [], [
                         'stripe_error' => $transferResult['error'],
-                        'failed_at' => now()->toISOString()
-                    ])
+                        'failed_at' => now()->toISOString(),
+                    ]),
                 ]);
 
                 // Update transaction status if it exists
@@ -369,13 +361,13 @@ class PayoutProcessingService
 
                 Log::error('Stripe transfer failed', [
                     'payout_schedule_id' => $payoutSchedule->id,
-                    'error' => $transferResult['error']
+                    'error' => $transferResult['error'],
                 ]);
 
                 // Send failure notification to producer
                 $this->notificationService->notifyPayoutFailed($producer, $payoutSchedule, $transferResult['error']);
 
-                throw new \Exception('Stripe transfer failed: ' . $transferResult['error']);
+                throw new \Exception('Stripe transfer failed: '.$transferResult['error']);
             }
         });
     }
@@ -390,6 +382,7 @@ class PayoutProcessingService
 
         if ($payoutSchedule->workflow_type === Project::WORKFLOW_TYPE_CONTEST && $payoutSchedule->contestPrize) {
             $prize = $payoutSchedule->contestPrize;
+
             return "Contest Prize: {$prize->placement} place - {$project->name}";
         }
 
@@ -398,15 +391,11 @@ class PayoutProcessingService
 
     /**
      * Cancel a scheduled payout (e.g., due to refund request)
-     *
-     * @param PayoutSchedule $payoutSchedule
-     * @param string $reason
-     * @return void
      */
     public function cancelPayout(PayoutSchedule $payoutSchedule, string $reason): void
     {
-        if (!in_array($payoutSchedule->status, [PayoutSchedule::STATUS_SCHEDULED, PayoutSchedule::STATUS_PROCESSING])) {
-            throw new \InvalidArgumentException('Cannot cancel payout in current status: ' . $payoutSchedule->status);
+        if (! in_array($payoutSchedule->status, [PayoutSchedule::STATUS_SCHEDULED, PayoutSchedule::STATUS_PROCESSING])) {
+            throw new \InvalidArgumentException('Cannot cancel payout in current status: '.$payoutSchedule->status);
         }
 
         DB::transaction(function () use ($payoutSchedule, $reason) {
@@ -415,8 +404,8 @@ class PayoutProcessingService
                 'cancelled_at' => now(),
                 'metadata' => array_merge($payoutSchedule->metadata ?? [], [
                     'cancellation_reason' => $reason,
-                    'cancelled_at' => now()->toISOString()
-                ])
+                    'cancelled_at' => now()->toISOString(),
+                ]),
             ]);
 
             // Update transaction status if it exists
@@ -426,7 +415,7 @@ class PayoutProcessingService
 
             Log::info('Payout cancelled', [
                 'payout_schedule_id' => $payoutSchedule->id,
-                'reason' => $reason
+                'reason' => $reason,
             ]);
 
             // Send notification to producer
@@ -436,21 +425,16 @@ class PayoutProcessingService
 
     /**
      * Calculate hold release date using dynamic configuration
-     *
-     * @param string $workflowType
-     * @return Carbon
      */
     protected function calculateHoldReleaseDate(string $workflowType = 'standard'): Carbon
     {
         $holdService = app(\App\Services\PayoutHoldService::class);
+
         return $holdService->calculateHoldReleaseDate($workflowType);
     }
 
     /**
      * Get payout statistics for admin dashboard
-     *
-     * @param array $filters
-     * @return array
      */
     public function getPayoutStatistics(array $filters = []): array
     {
@@ -485,7 +469,7 @@ class PayoutProcessingService
                 ->keyBy('workflow_type'),
             'pending_release' => PayoutSchedule::where('status', PayoutSchedule::STATUS_SCHEDULED)
                 ->where('hold_release_date', '<=', now())
-                ->count()
+                ->count(),
         ];
 
         return $stats;
@@ -494,8 +478,6 @@ class PayoutProcessingService
     /**
      * Get producer payout history
      *
-     * @param User $producer
-     * @param int $limit
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getProducerPayoutHistory(User $producer, int $limit = 20)
@@ -505,4 +487,4 @@ class PayoutProcessingService
             ->orderBy('created_at', 'desc')
             ->paginate($limit);
     }
-} 
+}

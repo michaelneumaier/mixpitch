@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Invoice;
-use App\Models\User;
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class InvoiceFactory extends Factory
 {
     protected $model = Invoice::class;
+
     /**
      * Define the model's default state.
      *
@@ -27,7 +28,7 @@ class InvoiceFactory extends Factory
         return [
             'user_id' => $user->id,
             'order_id' => $order->id,
-            'stripe_invoice_id' => 'in_' . $this->faker->unique()->regexify('[a-zA-Z0-9]{24}'), // Example Stripe ID
+            'stripe_invoice_id' => 'in_'.$this->faker->unique()->regexify('[a-zA-Z0-9]{24}'), // Example Stripe ID
             'status' => Invoice::STATUS_PENDING, // Default status
             'amount' => $order->price ?? $this->faker->numberBetween(1000, 50000) / 100, // Use order price or random
             'currency' => $order->currency ?? 'USD',
@@ -47,13 +48,13 @@ class InvoiceFactory extends Factory
     }
 
     // State for a failed invoice
-     public function failed(): static
+    public function failed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => Invoice::STATUS_FAILED, 
+            'status' => Invoice::STATUS_FAILED,
         ]);
     }
-    
+
     // State for void invoice
     public function void(): static
     {

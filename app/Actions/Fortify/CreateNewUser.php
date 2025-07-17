@@ -5,10 +5,9 @@ namespace App\Actions\Fortify;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Config;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -27,8 +26,8 @@ class CreateNewUser implements CreatesNewUsers
             if (isset($input['g-recaptcha-response'])) {
                 // Get reCAPTCHA response
                 $response = app('recaptcha')->validate($input['g-recaptcha-response'], request()->ip());
-                
-                if (!$response) {
+
+                if (! $response) {
                     throw ValidationException::withMessages([
                         'recaptcha' => ['The reCAPTCHA verification failed. Please try again.'],
                     ]);

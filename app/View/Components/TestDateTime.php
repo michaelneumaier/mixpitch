@@ -21,7 +21,7 @@ class TestDateTime extends Component
     public function render()
     {
         return view('components.test-datetime', [
-            'computedValue' => 'computed-' . $this->testValue,
+            'computedValue' => 'computed-'.$this->testValue,
             'isoDate' => $this->date->toISOString(),
             'testValue' => $this->testValue,
         ]);

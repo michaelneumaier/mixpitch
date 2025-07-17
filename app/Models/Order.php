@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Arr;
 
 class Order extends Model
 {
@@ -14,37 +13,63 @@ class Order extends Model
 
     // Order Status Constants
     const STATUS_PENDING_PAYMENT = 'pending_payment';
+
     const STATUS_PENDING_REQUIREMENTS = 'pending_requirements';
+
     const STATUS_IN_PROGRESS = 'in_progress';
+
     const STATUS_NEEDS_CLARIFICATION = 'needs_clarification';
+
     const STATUS_READY_FOR_REVIEW = 'ready_for_review'; // Producer delivered
+
     const STATUS_REVISIONS_REQUESTED = 'revisions_requested'; // Client requested revisions
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
+
     const STATUS_DISPUTED = 'disputed';
 
     // Order Payment Status Constants
     const PAYMENT_STATUS_PENDING = 'pending';
+
     const PAYMENT_STATUS_PAID = 'paid';
+
     const PAYMENT_STATUS_FAILED = 'failed';
+
     const PAYMENT_STATUS_REFUNDED = 'refunded';
-    
+
     // Order Event Type Constants (copied from OrderEvent for convenience)
     const EVENT_CREATED = 'order_created';
+
     const EVENT_REQUIREMENTS_SUBMITTED = 'requirements_submitted';
+
     const EVENT_PRODUCER_STARTED = 'producer_started';
+
     const EVENT_CLARIFICATION_REQUESTED = 'clarification_requested';
+
     const EVENT_CLARIFICATION_PROVIDED = 'clarification_provided';
+
     const EVENT_DELIVERY_SUBMITTED = 'delivery_submitted';
+
     const EVENT_REVISIONS_REQUESTED = 'revisions_requested';
+
     const EVENT_REVISIONS_SUBMITTED = 'revisions_submitted';
+
     const EVENT_DELIVERY_ACCEPTED = 'delivery_accepted';
+
     const EVENT_COMPLETED = 'order_completed';
+
     const EVENT_CANCELLED = 'order_cancelled';
+
     const EVENT_DISPUTE_OPENED = 'dispute_opened';
+
     const EVENT_STATUS_CHANGE = 'status_change';
+
     const EVENT_PAYMENT_RECEIVED = 'payment_received';
+
     const EVENT_PAYMENT_FAILED = 'payment_failed';
+
     const EVENT_MESSAGE = 'message';
 
     /**
@@ -131,6 +156,7 @@ class Order extends Model
             return false;
         }
         $revisionsAllowed = $this->servicePackage->revisions_included ?? 0;
+
         return $this->revision_count < $revisionsAllowed;
     }
 
@@ -188,5 +214,4 @@ class Order extends Model
             self::PAYMENT_STATUS_REFUNDED,
         ];
     }
-
 }

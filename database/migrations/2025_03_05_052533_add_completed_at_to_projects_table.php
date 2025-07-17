@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::table('projects', function (Blueprint $table) {
             $table->timestamp('completed_at')->nullable()->after('is_published');
         });
-        
+
         // Set completed_at for projects with status 'completed'
         // Use database-agnostic approach
         if (DB::getDriverName() === 'sqlite') {

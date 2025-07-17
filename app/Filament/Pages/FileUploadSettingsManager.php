@@ -4,28 +4,31 @@ namespace App\Filament\Pages;
 
 use App\Models\FileUploadSetting;
 use App\Services\FileUploadSettingsService;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Pages\Page;
-use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 use Illuminate\Support\Facades\Log;
 
 class FileUploadSettingsManager extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-    
+
     protected static ?string $navigationGroup = 'System';
-    
+
     protected static ?string $navigationLabel = 'Upload Settings Manager';
-    
+
     protected static string $view = 'filament.pages.file-upload-settings-manager';
-    
+
     protected static ?int $navigationSort = 9;
 
     public array $globalSettings = [];
+
     public array $projectsSettings = [];
+
     public array $pitchesSettings = [];
+
     public array $clientPortalsSettings = [];
 
     public function mount(): void
@@ -45,11 +48,11 @@ class FileUploadSettingsManager extends Page
     {
         $settings = [];
         $contextSettings = FileUploadSetting::where('context', $context)->pluck('value', 'key')->toArray();
-        
+
         foreach (FileUploadSetting::DEFAULT_VALUES as $key => $defaultValue) {
             $settings[$key] = $contextSettings[$key] ?? null;
         }
-        
+
         return $settings;
     }
 
@@ -95,9 +98,9 @@ class FileUploadSettingsManager extends Page
                         ->helperText('Leave empty to use default or parent context value')
                         ->suffixIcon('heroicon-m-document-arrow-up')
                         ->extraInputAttributes([
-                            'class' => 'transition-colors duration-200'
+                            'class' => 'transition-colors duration-200',
                         ]),
-                        
+
                     Forms\Components\TextInput::make(FileUploadSetting::CHUNK_SIZE_MB)
                         ->label('Chunk Size (MB)')
                         ->numeric()
@@ -107,9 +110,9 @@ class FileUploadSettingsManager extends Page
                         ->helperText('Leave empty to use default or parent context value')
                         ->suffixIcon('heroicon-m-squares-2x2')
                         ->extraInputAttributes([
-                            'class' => 'transition-colors duration-200'
+                            'class' => 'transition-colors duration-200',
                         ]),
-                        
+
                     Forms\Components\TextInput::make(FileUploadSetting::MAX_CONCURRENT_UPLOADS)
                         ->label('Maximum Concurrent Uploads')
                         ->numeric()
@@ -119,9 +122,9 @@ class FileUploadSettingsManager extends Page
                         ->helperText('Leave empty to use default or parent context value')
                         ->suffixIcon('heroicon-m-arrow-up-tray')
                         ->extraInputAttributes([
-                            'class' => 'transition-colors duration-200'
+                            'class' => 'transition-colors duration-200',
                         ]),
-                        
+
                     Forms\Components\TextInput::make(FileUploadSetting::MAX_RETRY_ATTEMPTS)
                         ->label('Maximum Retry Attempts')
                         ->numeric()
@@ -131,17 +134,17 @@ class FileUploadSettingsManager extends Page
                         ->helperText('Leave empty to use default or parent context value')
                         ->suffixIcon('heroicon-m-arrow-path')
                         ->extraInputAttributes([
-                            'class' => 'transition-colors duration-200'
+                            'class' => 'transition-colors duration-200',
                         ]),
-                        
+
                     Forms\Components\Toggle::make(FileUploadSetting::ENABLE_CHUNKING)
                         ->label('Enable Chunked Uploads')
                         ->helperText('Leave unchecked to use default or parent context value')
                         ->inline(false)
                         ->extraAttributes([
-                            'class' => 'transition-colors duration-200'
+                            'class' => 'transition-colors duration-200',
                         ]),
-                        
+
                     Forms\Components\TextInput::make(FileUploadSetting::SESSION_TIMEOUT_HOURS)
                         ->label('Session Timeout (Hours)')
                         ->numeric()
@@ -151,7 +154,7 @@ class FileUploadSettingsManager extends Page
                         ->helperText('Leave empty to use default or parent context value')
                         ->suffixIcon('heroicon-m-clock')
                         ->extraInputAttributes([
-                            'class' => 'transition-colors duration-200'
+                            'class' => 'transition-colors duration-200',
                         ]),
                 ]),
         ];
@@ -165,7 +168,7 @@ class FileUploadSettingsManager extends Page
                 ->icon('heroicon-o-check')
                 ->color('success')
                 ->action('saveAllSettings'),
-                
+
             Action::make('reset_all')
                 ->label('Reset All to Defaults')
                 ->icon('heroicon-o-arrow-path')
@@ -174,7 +177,7 @@ class FileUploadSettingsManager extends Page
                 ->modalHeading('Reset All Settings')
                 ->modalDescription('This will reset all context-specific settings to defaults. This action cannot be undone.')
                 ->action('resetAllSettings'),
-                
+
             Action::make('clear_cache')
                 ->label('Clear Settings Cache')
                 ->icon('heroicon-o-trash')
@@ -187,25 +190,25 @@ class FileUploadSettingsManager extends Page
     {
         try {
             $service = app(FileUploadSettingsService::class);
-            
+
             // Use the service for better caching and event handling
             $service->updateSettings($this->globalSettings, FileUploadSetting::CONTEXT_GLOBAL);
             $service->updateSettings($this->projectsSettings, FileUploadSetting::CONTEXT_PROJECTS);
             $service->updateSettings($this->pitchesSettings, FileUploadSetting::CONTEXT_PITCHES);
             $service->updateSettings($this->clientPortalsSettings, FileUploadSetting::CONTEXT_CLIENT_PORTALS);
-            
+
             Notification::make()
                 ->title('Settings Saved')
                 ->body('All upload settings have been saved successfully with real-time cache updates.')
                 ->success()
                 ->send();
-                
+
         } catch (\Exception $e) {
             Log::error('Failed to save upload settings', ['error' => $e->getMessage()]);
-            
+
             Notification::make()
                 ->title('Save Failed')
-                ->body('Failed to save settings: ' . $e->getMessage())
+                ->body('Failed to save settings: '.$e->getMessage())
                 ->danger()
                 ->send();
         }
@@ -222,13 +225,13 @@ class FileUploadSettingsManager extends Page
             } else {
                 // Validate the setting
                 FileUploadSetting::validateSetting($key, $value);
-                
+
                 // Save the setting
                 FileUploadSetting::updateOrCreate(
                     ['context' => $context, 'key' => $key],
                     [
                         'value' => $value,
-                        'description' => FileUploadSetting::getSettingsSchema()[$key]['description'] ?? null
+                        'description' => FileUploadSetting::getSettingsSchema()[$key]['description'] ?? null,
                     ]
                 );
             }
@@ -241,21 +244,21 @@ class FileUploadSettingsManager extends Page
             foreach (FileUploadSetting::getValidContexts() as $context) {
                 FileUploadSetting::resetToDefaults($context);
             }
-            
+
             $this->loadSettings();
-            
+
             Notification::make()
                 ->title('Settings Reset')
                 ->body('All settings have been reset to defaults.')
                 ->success()
                 ->send();
-                
+
         } catch (\Exception $e) {
             Log::error('Failed to reset upload settings', ['error' => $e->getMessage()]);
-            
+
             Notification::make()
                 ->title('Reset Failed')
-                ->body('Failed to reset settings: ' . $e->getMessage())
+                ->body('Failed to reset settings: '.$e->getMessage())
                 ->danger()
                 ->send();
         }
@@ -265,7 +268,7 @@ class FileUploadSettingsManager extends Page
     {
         $service = app(FileUploadSettingsService::class);
         $service->clearAllCache();
-        
+
         Notification::make()
             ->title('Cache Cleared')
             ->body('Settings cache has been cleared using the enhanced caching service.')

@@ -1,8 +1,9 @@
 <?php
+
 namespace App\Http\Requests\Project;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Project;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateProjectRequest extends FormRequest
@@ -54,4 +55,4 @@ class UpdateProjectRequest extends FormRequest
             'notes' => 'nullable|string|max:5000',
         ];
     }
-} 
+}

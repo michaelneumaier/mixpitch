@@ -23,4 +23,4 @@ class PitchEventFactory extends Factory
             // TODO: Define default attributes
         ];
     }
-} 
+}

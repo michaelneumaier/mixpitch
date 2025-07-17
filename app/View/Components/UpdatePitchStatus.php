@@ -2,13 +2,15 @@
 
 namespace App\View\Components;
 
-use Illuminate\View\Component;
 use App\Models\Pitch;
+use Illuminate\View\Component;
 
 class UpdatePitchStatus extends Component
 {
     public $pitch;
+
     public $status;
+
     public $hasCompletedPitch;
 
     /**
@@ -27,7 +29,7 @@ class UpdatePitchStatus extends Component
             'pitch_id' => $pitch->id,
             'status' => $this->status,
             'revisions_requested_const' => Pitch::STATUS_REVISIONS_REQUESTED,
-            'is_matching' => $this->status === Pitch::STATUS_REVISIONS_REQUESTED
+            'is_matching' => $this->status === Pitch::STATUS_REVISIONS_REQUESTED,
         ]);
     }
 

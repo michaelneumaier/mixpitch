@@ -1,8 +1,9 @@
 <?php
+
 namespace App\Http\Requests\Pitch;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Project;
+use Illuminate\Foundation\Http\FormRequest;
 
 class StorePitchRequest extends FormRequest
 {
@@ -10,24 +11,26 @@ class StorePitchRequest extends FormRequest
     {
         // Get the project from the 'project' route parameter
         $project = $this->route('project');
-        
-        if (!$project) {
+
+        if (! $project) {
             // Handle case where project isn't route bound (e.g., coming from a different form)
             $projectId = $this->input('project_id');
             if ($projectId) {
                 $project = Project::find($projectId);
             } else {
                 // Attempt to get project from input if available
-                 $projectData = $this->input('project');
-                 if (is_array($projectData) && isset($projectData['id'])) {
-                     $project = Project::find($projectData['id']);
-                 } elseif (is_numeric($projectData)) {
-                     $project = Project::find($projectData);
-                 }
+                $projectData = $this->input('project');
+                if (is_array($projectData) && isset($projectData['id'])) {
+                    $project = Project::find($projectData['id']);
+                } elseif (is_numeric($projectData)) {
+                    $project = Project::find($projectData);
+                }
             }
         }
-        
-        if (!$project) return false;
+
+        if (! $project) {
+            return false;
+        }
 
         // Use Policy: User can create a pitch for *this specific project*
         // Note: createPitch policy method needs to be implemented in ProjectPolicy
@@ -44,13 +47,13 @@ class StorePitchRequest extends FormRequest
             // 'title' => 'required|string|max:255',
             // 'description' => 'nullable|string|max:2048',
         ];
-        
+
         // Add license agreement requirement if project requires it
         $project = $this->route('project') ?? Project::find($this->input('project_id'));
         if ($project && $project->requiresLicenseAgreement()) {
             $rules['agree_license'] = 'accepted';
         }
-        
+
         return $rules;
     }
 
@@ -61,4 +64,4 @@ class StorePitchRequest extends FormRequest
             'agree_license.accepted' => 'You must agree to the project license terms to submit a pitch.',
         ];
     }
-} 
+}

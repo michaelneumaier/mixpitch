@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmailAudit extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
      *
@@ -22,9 +22,9 @@ class EmailAudit extends Model
         'status',
         'metadata',
         'headers',
-        'content'
+        'content',
     ];
-    
+
     /**
      * The attributes that should be cast.
      *
@@ -32,33 +32,24 @@ class EmailAudit extends Model
      */
     protected $casts = [
         'metadata' => 'array',
-        'headers' => 'array'
+        'headers' => 'array',
     ];
-    
+
     /**
      * Log comprehensive email audit information
      *
-     * @param string $email
-     * @param string $subject
-     * @param string $status
-     * @param array|null $metadata
-     * @param array|null $headers
-     * @param string|null $content
-     * @param string|null $messageId
-     * @param string|null $recipientName
      * @return \App\Models\EmailAudit
      */
     public static function log(
-        string $email, 
-        string $subject, 
-        string $status, 
+        string $email,
+        string $subject,
+        string $status,
         ?array $metadata = null,
         ?array $headers = null,
         ?string $content = null,
         ?string $messageId = null,
         ?string $recipientName = null
-    )
-    {
+    ) {
         return static::create([
             'email' => $email,
             'recipient_name' => $recipientName,
@@ -67,10 +58,10 @@ class EmailAudit extends Model
             'status' => $status,
             'metadata' => $metadata,
             'headers' => $headers,
-            'content' => $content
+            'content' => $content,
         ]);
     }
-    
+
     /**
      * Relationship to email events
      */
@@ -78,7 +69,7 @@ class EmailAudit extends Model
     {
         return $this->hasMany(EmailEvent::class, 'email', 'email');
     }
-    
+
     /**
      * Get the test record that triggered this audit, if any
      */
@@ -88,7 +79,7 @@ class EmailAudit extends Model
         if ($this->message_id) {
             return $this->belongsTo(EmailTest::class, 'message_id', 'id');
         }
-        
+
         // Fallback to a query on recipient and timing
         return null;
     }

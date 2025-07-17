@@ -3,16 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectFileResource\Pages;
-use App\Filament\Resources\ProjectFileResource\RelationManagers;
 use App\Models\ProjectFile;
 use Filament\Forms;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\Section;
 use Illuminate\Support\Str;
 
 class ProjectFileResource extends Resource
@@ -20,18 +17,18 @@ class ProjectFileResource extends Resource
     protected static ?string $model = ProjectFile::class;
 
     protected static ?string $navigationIcon = 'heroicon-m-document-duplicate';
-    
+
     protected static ?string $navigationGroup = 'Content Management';
-    
+
     protected static ?int $navigationSort = 5;
-    
+
     protected static ?string $recordTitleAttribute = 'file_name';
-    
+
     public static function getNavigationLabel(): string
     {
         return 'Project Files';
     }
-    
+
     public static function getPluralModelLabel(): string
     {
         return 'Project Files';
@@ -48,12 +45,12 @@ class ProjectFileResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
-                            
+
                         Forms\Components\TextInput::make('name')
                             ->maxLength(255)
                             ->required()
                             ->label('File Name'),
-                            
+
                         Forms\Components\FileUpload::make('file_path')
                             ->required()
                             ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/aiff', 'audio/mp3', 'audio/flac', 'audio/ogg', 'application/zip', 'application/x-zip-compressed', 'application/pdf', 'image/jpeg', 'image/png'])
@@ -62,7 +59,7 @@ class ProjectFileResource extends Resource
                             ->maxSize(200 * 1024) // 200MB
                             ->label('File')
                             ->columnSpanFull(),
-                            
+
                         Forms\Components\Select::make('type')
                             ->options([
                                 'audio' => 'Audio',
@@ -74,7 +71,7 @@ class ProjectFileResource extends Resource
                                 'other' => 'Other',
                             ])
                             ->required(),
-                            
+
                         Forms\Components\Textarea::make('description')
                             ->rows(3)
                             ->columnSpanFull(),
@@ -90,12 +87,12 @@ class ProjectFileResource extends Resource
                     ->label('File Name')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('project.name')
                     ->label('Project')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('type')
                     ->label('Type')
                     ->badge()
@@ -109,11 +106,11 @@ class ProjectFileResource extends Resource
                         'artwork' => 'pink',
                         default => 'gray',
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('formatted_size')
                     ->label('Size')
                     ->sortable(query: fn ($query, $direction) => $query->orderBy('size', $direction)),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Uploaded')
                     ->dateTime()

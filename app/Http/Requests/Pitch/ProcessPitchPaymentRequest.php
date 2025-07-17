@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Pitch;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Pitch;
+use Illuminate\Foundation\Http\FormRequest;
 
 class ProcessPitchPaymentRequest extends FormRequest
 {
@@ -14,7 +14,7 @@ class ProcessPitchPaymentRequest extends FormRequest
     {
         $pitch = $this->route('pitch'); // Assuming route model binding for the pitch
 
-        if (!$pitch instanceof Pitch) {
+        if (! $pitch instanceof Pitch) {
             // If route model binding fails or isn't used, try finding it another way
             // Or simply return false if the pitch object isn't available
             return false;
@@ -29,7 +29,7 @@ class ProcessPitchPaymentRequest extends FormRequest
             Pitch::PAYMENT_STATUS_PENDING,
             Pitch::PAYMENT_STATUS_FAILED,
             null,
-            ''
+            '',
         ];
 
         $producer = $pitch->user;
@@ -80,7 +80,7 @@ class ProcessPitchPaymentRequest extends FormRequest
     protected function prepareForValidation()
     {
         // Handle either payment_method or payment_method_id by consolidating them
-        if ($this->has('payment_method') && !$this->has('payment_method_id')) {
+        if ($this->has('payment_method') && ! $this->has('payment_method_id')) {
             $this->merge([
                 'payment_method_id' => $this->input('payment_method'),
             ]);
@@ -97,19 +97,19 @@ class ProcessPitchPaymentRequest extends FormRequest
     protected function failedAuthorization()
     {
         $pitch = $this->route('pitch');
-        
+
         if ($pitch instanceof Pitch) {
             $producer = $pitch->user;
-            
+
             // Check specifically for Stripe Connect issues to provide better error message
-            if (!$producer->stripe_account_id || !$producer->hasValidStripeConnectAccount()) {
+            if (! $producer->stripe_account_id || ! $producer->hasValidStripeConnectAccount()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'stripe_connect' => "Payment cannot be processed: {$producer->name} needs to complete their Stripe Connect account setup to receive payments. Please ask them to set up their payout account first."
+                    'stripe_connect' => "Payment cannot be processed: {$producer->name} needs to complete their Stripe Connect account setup to receive payments. Please ask them to set up their payout account first.",
                 ]);
             }
         }
-        
+
         // Fall back to default authorization failure
         parent::failedAuthorization();
     }
-} 
+}

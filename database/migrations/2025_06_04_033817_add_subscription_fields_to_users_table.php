@@ -28,10 +28,10 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn([
                 'subscription_plan',
-                'subscription_tier', 
+                'subscription_tier',
                 'plan_started_at',
                 'monthly_pitch_count',
-                'monthly_pitch_reset_date'
+                'monthly_pitch_reset_date',
             ]);
         });
     }

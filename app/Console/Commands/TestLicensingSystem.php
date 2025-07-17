@@ -2,12 +2,12 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\LicenseTemplate;
 use App\Models\LicenseSignature;
+use App\Models\LicenseTemplate;
+use App\Models\Project;
 use App\Models\SubscriptionLimit;
+use App\Models\User;
+use Illuminate\Console\Command;
 
 class TestLicensingSystem extends Command
 {
@@ -35,10 +35,10 @@ class TestLicensingSystem extends Command
 
         // Test 1: Enhanced License Template Model
         $this->info('1️⃣ Testing Enhanced License Template Model');
-        
+
         $user = User::factory()->create([
             'name' => 'Test Artist',
-            'email' => 'artist-' . time() . '@test.com'
+            'email' => 'artist-'.time().'@test.com',
         ]);
 
         // Create enhanced license template
@@ -63,15 +63,15 @@ class TestLicensingSystem extends Command
             'usage_stats' => ['created' => now()->toISOString(), 'times_used' => 0],
         ]);
 
-        $this->line("  ✅ Enhanced license template created");
+        $this->line('  ✅ Enhanced license template created');
         $this->line("     - Name: {$template->name}");
         $this->line("     - Category: {$template->category_name}");
         $this->line("     - Use Case: {$template->use_case_name}");
-        $this->line("     - Industry Tags: " . implode(', ', $template->industry_tags));
+        $this->line('     - Industry Tags: '.implode(', ', $template->industry_tags));
 
         // Test template methods
-        $this->line("  ✅ Testing template methods:");
-        $this->line("     - Is Approved: " . ($template->isApproved() ? 'Yes' : 'No'));
+        $this->line('  ✅ Testing template methods:');
+        $this->line('     - Is Approved: '.($template->isApproved() ? 'Yes' : 'No'));
         $this->line("     - Usage Count: {$template->getUsageCount()}");
 
         // Test 2: Project with License Integration
@@ -96,29 +96,29 @@ class TestLicensingSystem extends Command
             'license_jurisdiction' => 'US',
         ]);
 
-        $this->line("  ✅ Project with license created");
+        $this->line('  ✅ Project with license created');
         $this->line("     - Project: {$project->name}");
         $this->line("     - License Template: {$project->licenseTemplate->name}");
-        $this->line("     - Requires Agreement: " . ($project->requiresLicenseAgreement() ? 'Yes' : 'No'));
+        $this->line('     - Requires Agreement: '.($project->requiresLicenseAgreement() ? 'Yes' : 'No'));
         $this->line("     - License Status: {$project->getLicenseStatusLabel()}");
 
         // Test license content generation
         $licenseContent = $project->getLicenseContent();
-        $this->line("  ✅ Generated license content (excerpt):");
-        $this->line("     " . substr($licenseContent, 0, 100) . "...");
+        $this->line('  ✅ Generated license content (excerpt):');
+        $this->line('     '.substr($licenseContent, 0, 100).'...');
 
         // Test effective license terms
         $terms = $project->getEffectiveLicenseTerms();
-        $this->line("  ✅ Effective license terms:");
-        $this->line("     - Commercial Use: " . ($terms['commercial_use'] ? 'Allowed' : 'Not Allowed'));
-        $this->line("     - Sync Licensing: " . ($terms['sync_licensing_allowed'] ? 'Allowed' : 'Not Allowed'));
+        $this->line('  ✅ Effective license terms:');
+        $this->line('     - Commercial Use: '.($terms['commercial_use'] ? 'Allowed' : 'Not Allowed'));
+        $this->line('     - Sync Licensing: '.($terms['sync_licensing_allowed'] ? 'Allowed' : 'Not Allowed'));
 
         // Test 3: License Signature System
         $this->info('3️⃣ Testing License Signature System');
 
         $collaborator = User::factory()->create([
             'name' => 'Test Collaborator',
-            'email' => 'collaborator-' . time() . '@test.com'
+            'email' => 'collaborator-'.time().'@test.com',
         ]);
 
         // Create license signature
@@ -128,15 +128,15 @@ class TestLicensingSystem extends Command
             'metadata' => ['browser' => 'Chrome', 'device' => 'Desktop'],
         ]);
 
-        $this->line("  ✅ License signature created");
+        $this->line('  ✅ License signature created');
         $this->line("     - Signer: {$signature->user->name}");
         $this->line("     - Method: {$signature->signature_method}");
         $this->line("     - Status: {$signature->status}");
-        $this->line("     - Valid: " . ($signature->isValid() ? 'Yes' : 'No'));
+        $this->line('     - Valid: '.($signature->isValid() ? 'Yes' : 'No'));
 
         // Test signature verification
         $signature->verify($user);
-        $this->line("  ✅ Signature verified by project owner");
+        $this->line('  ✅ Signature verified by project owner');
 
         // Test 4: User Subscription Integration
         $this->info('4️⃣ Testing Subscription Integration');
@@ -162,24 +162,24 @@ class TestLicensingSystem extends Command
 
         // Test license template limits
         $user->update(['subscription_plan' => 'free']);
-        $this->line("  ✅ User set to Free tier (3 template limit)");
+        $this->line('  ✅ User set to Free tier (3 template limit)');
 
         $canCreate = LicenseTemplate::canUserCreate($user);
-        $this->line("     - Can create templates: " . ($canCreate ? 'Yes' : 'No'));
+        $this->line('     - Can create templates: '.($canCreate ? 'Yes' : 'No'));
         $this->line("     - Current template count: {$user->licenseTemplates()->count()}");
 
         // Upgrade to Pro
         $user->update(['subscription_plan' => 'pro_artist']);
         $canCreatePro = LicenseTemplate::canUserCreate($user);
-        $this->line("  ✅ User upgraded to Pro (unlimited templates)");
-        $this->line("     - Can create templates: " . ($canCreatePro ? 'Yes' : 'No'));
+        $this->line('  ✅ User upgraded to Pro (unlimited templates)');
+        $this->line('     - Can create templates: '.($canCreatePro ? 'Yes' : 'No'));
 
         // Test 5: Template Forking
         $this->info('5️⃣ Testing Template Forking');
 
         $anotherUser = User::factory()->create([
             'name' => 'Another Artist',
-            'email' => 'another-' . time() . '@test.com',
+            'email' => 'another-'.time().'@test.com',
             'subscription_plan' => 'pro_artist',
         ]);
 
@@ -188,10 +188,10 @@ class TestLicensingSystem extends Command
             'description' => 'Customized version of the sync license',
         ]);
 
-        $this->line("  ✅ Template forked successfully");
+        $this->line('  ✅ Template forked successfully');
         $this->line("     - Original: {$template->name}");
         $this->line("     - Fork: {$forkedTemplate->name}");
-        $this->line("     - Is Fork: " . ($forkedTemplate->isFork() ? 'Yes' : 'No'));
+        $this->line('     - Is Fork: '.($forkedTemplate->isFork() ? 'Yes' : 'No'));
         $this->line("     - Parent ID: {$forkedTemplate->parent_template_id}");
 
         // Test 6: Advanced License Features
@@ -200,15 +200,15 @@ class TestLicensingSystem extends Command
         // Test template relationships
         $templateProjects = $template->projects()->count();
         $templateSignatures = $template->signatures()->count();
-        $this->line("  ✅ Template relationships:");
+        $this->line('  ✅ Template relationships:');
         $this->line("     - Projects using template: {$templateProjects}");
         $this->line("     - Total signatures: {$templateSignatures}");
 
         // Test project license methods
         $hasUserSigned = $project->hasUserSignedLicense($collaborator);
-        $this->line("  ✅ Project license methods:");
-        $this->line("     - Has collaborator signed: " . ($hasUserSigned ? 'Yes' : 'No'));
-        $this->line("     - License is pending: " . ($project->isLicensePending() ? 'Yes' : 'No'));
+        $this->line('  ✅ Project license methods:');
+        $this->line('     - Has collaborator signed: '.($hasUserSigned ? 'Yes' : 'No'));
+        $this->line('     - License is pending: '.($project->isLicensePending() ? 'Yes' : 'No'));
 
         // Test marketplace templates
         $marketplaceTemplates = LicenseTemplate::marketplace()->count();
@@ -225,7 +225,7 @@ class TestLicensingSystem extends Command
         $this->line('   - Created license_signatures table');
 
         $this->line('✅ Model Enhancements:');
-        $this->line('   - LicenseTemplate: ' . count(get_class_methods(LicenseTemplate::class)) . ' methods');
+        $this->line('   - LicenseTemplate: '.count(get_class_methods(LicenseTemplate::class)).' methods');
         $this->line('   - Project: License relationships and methods added');
         $this->line('   - LicenseSignature: Complete signature tracking');
 

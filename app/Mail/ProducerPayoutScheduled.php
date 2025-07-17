@@ -2,10 +2,9 @@
 
 namespace App\Mail;
 
-use App\Models\User;
 use App\Models\PayoutSchedule;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -17,7 +16,9 @@ class ProducerPayoutScheduled extends Mailable
     use Queueable, SerializesModels;
 
     public User $producer;
+
     public float $netAmount;
+
     public PayoutSchedule $payoutSchedule;
 
     /**
@@ -28,7 +29,7 @@ class ProducerPayoutScheduled extends Mailable
         $this->producer = $producer;
         $this->netAmount = $netAmount;
         $this->payoutSchedule = $payoutSchedule;
-        
+
         // Log the email details for development
         $this->logEmailContent();
     }
@@ -39,7 +40,7 @@ class ProducerPayoutScheduled extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Payout Scheduled: $' . number_format($this->netAmount, 2) . ' for "' . ($this->payoutSchedule->project->title ?? 'Project') . '"',
+            subject: 'Payout Scheduled: $'.number_format($this->netAmount, 2).' for "'.($this->payoutSchedule->project->title ?? 'Project').'"',
         );
     }
 
@@ -83,7 +84,7 @@ class ProducerPayoutScheduled extends Mailable
         try {
             Log::info('📧 PRODUCER PAYOUT SCHEDULED EMAIL', [
                 'to' => $this->producer->email,
-                'subject' => 'Payout Scheduled: $' . number_format($this->netAmount, 2) . ' for "' . ($this->payoutSchedule->project->title ?? 'Project') . '"',
+                'subject' => 'Payout Scheduled: $'.number_format($this->netAmount, 2).' for "'.($this->payoutSchedule->project->title ?? 'Project').'"',
                 'producer_id' => $this->producer->id,
                 'payout_schedule_id' => $this->payoutSchedule->id,
                 'net_amount' => $this->netAmount,
@@ -103,14 +104,14 @@ class ProducerPayoutScheduled extends Mailable
                     'dashboardUrl' => route('dashboard'),
                     'payoutScheduleId' => $this->payoutSchedule->id,
                 ],
-                'template' => 'emails.producer.payout_scheduled'
+                'template' => 'emails.producer.payout_scheduled',
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to log ProducerPayoutScheduled email content', [
                 'error' => $e->getMessage(),
                 'producer_id' => $this->producer->id,
-                'payout_schedule_id' => $this->payoutSchedule->id
+                'payout_schedule_id' => $this->payoutSchedule->id,
             ]);
         }
     }
-} 
+}

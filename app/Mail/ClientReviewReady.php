@@ -5,7 +5,6 @@ namespace App\Mail;
 use App\Models\Pitch;
 use App\Models\Project;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -17,8 +16,11 @@ class ClientReviewReady extends Mailable
     use Queueable, SerializesModels;
 
     public Project $project;
+
     public Pitch $pitch;
+
     public string $signedUrl;
+
     public ?string $clientName;
 
     /**
@@ -30,7 +32,7 @@ class ClientReviewReady extends Mailable
         $this->pitch = $pitch;
         $this->signedUrl = $signedUrl;
         $this->clientName = $clientName;
-        
+
         // Log the email details for development
         $this->logEmailContent();
     }
@@ -41,7 +43,7 @@ class ClientReviewReady extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Project "' . $this->project->title . '" is Ready for Review',
+            subject: 'Your Project "'.$this->project->title.'" is Ready for Review',
         );
     }
 
@@ -81,7 +83,7 @@ class ClientReviewReady extends Mailable
             // Log the email details without rendering the view (to avoid mail hint issues)
             Log::info('📧 CLIENT REVIEW READY EMAIL', [
                 'to' => $this->project->client_email,
-                'subject' => 'Your Project "' . $this->project->title . '" is Ready for Review',
+                'subject' => 'Your Project "'.$this->project->title.'" is Ready for Review',
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
                 'client_name' => $this->clientName,
@@ -95,14 +97,14 @@ class ClientReviewReady extends Mailable
                     'portalUrl' => $this->signedUrl,
                     'fileCount' => $this->pitch->files->count(),
                 ],
-                'template' => 'emails.client.review_ready'
+                'template' => 'emails.client.review_ready',
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to log ClientReviewReady email content', [
                 'error' => $e->getMessage(),
                 'project_id' => $this->project->id,
-                'pitch_id' => $this->pitch->id
+                'pitch_id' => $this->pitch->id,
             ]);
         }
     }
-} 
+}

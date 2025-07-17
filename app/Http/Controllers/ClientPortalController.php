@@ -2,27 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\Pitch\InvalidStatusTransitionException;
+use App\Models\FileUploadSetting; // Assuming one pitch per client project
+use App\Models\Pitch;
+use App\Models\PitchFile;
 use App\Models\Project;
-use App\Models\Pitch; // Assuming one pitch per client project
-use App\Models\FileUploadSetting;
+use App\Models\User;
+use App\Services\FileManagementService;
+use App\Services\NotificationService; // Added for notifications
 use App\Services\PitchWorkflowService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\URL;
-use App\Services\NotificationService; // Added for notifications
-use Illuminate\Support\Facades\Storage;
-use App\Models\PitchFile;
-use App\Exceptions\Pitch\InvalidStatusTransitionException; // Already used, keep
-use App\Models\User; // Needed for Cashier
-use Laravel\Cashier\Exceptions\PaymentActionRequired; // Needed for Cashier
-use Laravel\Cashier\Exceptions\IncompletePayment; // Needed for Cashier
-use App\Services\FileManagementService; // Add FileManagementService
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth; // Already used, keep
+use Illuminate\Support\Facades\Hash; // Needed for Cashier
+use Illuminate\Support\Facades\Log; // Needed for Cashier
+use Illuminate\Support\Facades\Storage; // Needed for Cashier
+use Illuminate\Support\Facades\URL; // Add FileManagementService
+use Laravel\Cashier\Exceptions\IncompletePayment;
+use Laravel\Cashier\Exceptions\PaymentActionRequired;
 
 class ClientPortalController extends Controller
 {
     protected PitchWorkflowService $pitchWorkflowService;
+
     protected NotificationService $notificationService;
 
     public function __construct(PitchWorkflowService $pitchWorkflowService, NotificationService $notificationService)
@@ -37,33 +38,33 @@ class ClientPortalController extends Controller
     public function show(Project $project, Request $request)
     {
         // Basic validation: Ensure it's a client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             abort(404, 'Project not found or not accessible via client portal.');
         }
 
         // Validate the signed URL (Laravel handles this via middleware, but double-check)
-        if (!$request->hasValidSignature()) {
-             abort(403, 'Invalid or expired link.');
+        if (! $request->hasValidSignature()) {
+            abort(403, 'Invalid or expired link.');
         }
 
         // Retrieve the single pitch associated with this project
         // Enhanced: Eager load snapshots and their associated files
         $pitch = $project->pitches()
-                         ->with([
-                             'user', 
-                             'files', 
-                             'snapshots' => function($query) {
-                                 $query->orderBy('created_at', 'desc');
-                             },
-                             'events' => function ($query) {
-                                 // Order events, newest first
-                                 $query->orderBy('created_at', 'desc');
-                             }, 
-                             'events.user'
-                         ])
-                         ->first();
+            ->with([
+                'user',
+                'files',
+                'snapshots' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'events' => function ($query) {
+                    // Order events, newest first
+                    $query->orderBy('created_at', 'desc');
+                },
+                'events.user',
+            ])
+            ->first();
 
-        if (!$pitch) {
+        if (! $pitch) {
             Log::error('Client portal accessed but no pitch found for project.', ['project_id' => $project->id]);
             abort(404, 'Project details could not be loaded.'); // Or show an error view
         }
@@ -87,39 +88,39 @@ class ClientPortalController extends Controller
     public function showSnapshot(Project $project, \App\Models\PitchSnapshot $snapshot, Request $request)
     {
         // Basic validation: Ensure it's a client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             abort(404, 'Project not found or not accessible via client portal.');
         }
 
         // Validate the signed URL (Laravel handles this via middleware, but double-check)
-        if (!$request->hasValidSignature()) {
-             abort(403, 'Invalid or expired link.');
+        if (! $request->hasValidSignature()) {
+            abort(403, 'Invalid or expired link.');
         }
 
         // Ensure snapshot belongs to this project
         $pitch = $project->pitches()->first();
-        if (!$pitch || $snapshot->pitch_id !== $pitch->id) {
+        if (! $pitch || $snapshot->pitch_id !== $pitch->id) {
             abort(404, 'Snapshot not found for this project.');
         }
 
         // Load the pitch with all necessary relationships
         $pitch = $project->pitches()
-                         ->with([
-                             'user', 
-                             'files', 
-                             'snapshots' => function($query) {
-                                 $query->orderBy('created_at', 'desc');
-                             },
-                             'events' => function ($query) {
-                                 $query->orderBy('created_at', 'desc');
-                             }, 
-                             'events.user'
-                         ])
-                         ->first();
+            ->with([
+                'user',
+                'files',
+                'snapshots' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'events' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'events.user',
+            ])
+            ->first();
 
         // Prepare data for view
         $snapshotHistory = $this->prepareSnapshotHistory($pitch);
-        
+
         // Use the specific snapshot as current
         $currentSnapshot = $snapshot;
 
@@ -137,10 +138,10 @@ class ClientPortalController extends Controller
     private function prepareSnapshotHistory($pitch)
     {
         $snapshots = $pitch->snapshots;
-        
+
         // If we have real snapshots, use them
         if ($snapshots->count() > 0) {
-            return $snapshots->map(function($snapshot, $index) {
+            return $snapshots->map(function ($snapshot, $index) {
                 return [
                     'id' => $snapshot->id,
                     'version' => $snapshot->snapshot_data['version'] ?? ($index + 1),
@@ -151,7 +152,7 @@ class ClientPortalController extends Controller
                 ];
             });
         }
-        
+
         // Fallback: If no snapshots but files exist, create virtual snapshot history
         if ($pitch->files->count() > 0) {
             return collect([[
@@ -163,7 +164,7 @@ class ClientPortalController extends Controller
                 'response_to_feedback' => null,
             ]]);
         }
-        
+
         // No snapshots and no files
         return collect();
     }
@@ -174,53 +175,62 @@ class ClientPortalController extends Controller
     private function getCurrentSnapshot($pitch, $request)
     {
         $snapshotId = $request->get('snapshot');
-        
+
         if ($snapshotId) {
             // Use eager-loaded snapshots instead of querying
             return $pitch->snapshots->find($snapshotId);
         }
-        
+
         // Try to get latest snapshot first (use eager-loaded collection)
         $latestSnapshot = $pitch->snapshots->sortByDesc('created_at')->first();
-        
+
         if ($latestSnapshot) {
             return $latestSnapshot;
         }
-        
+
         // Fallback: Create a virtual snapshot from current pitch files for backward compatibility
         if ($pitch->files->count() > 0) {
             // Create a dynamic class that mimics PitchSnapshot behavior
-            $virtualSnapshot = new class {
+            $virtualSnapshot = new class
+            {
                 public $id;
+
                 public $pitch_id;
+
                 public $created_at;
+
                 public $snapshot_data;
+
                 public $status;
+
                 public $files;
+
                 public $version;
+
                 public $response_to_feedback;
-                
-                public function hasFiles() {
+
+                public function hasFiles()
+                {
                     return $this->files && $this->files->count() > 0;
                 }
             };
-            
+
             $virtualSnapshot->id = 'current';
             $virtualSnapshot->pitch_id = $pitch->id;
             $virtualSnapshot->created_at = $pitch->updated_at;
             $virtualSnapshot->snapshot_data = [
                 'version' => 1,
                 'file_ids' => $pitch->files->pluck('id')->toArray(),
-                'response_to_feedback' => null
+                'response_to_feedback' => null,
             ];
             $virtualSnapshot->status = 'pending';
             $virtualSnapshot->files = $pitch->files;
             $virtualSnapshot->version = 1;
             $virtualSnapshot->response_to_feedback = null;
-            
+
             return $virtualSnapshot;
         }
-        
+
         return null;
     }
 
@@ -229,7 +239,9 @@ class ClientPortalController extends Controller
      */
     public function storeComment(Project $project, Request $request)
     {
-        if (!$project->isClientManagement()) abort(403);
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
         $pitch = $project->pitches()->firstOrFail(); // Assuming one pitch
 
         $request->validate(['comment' => 'required|string|max:5000']);
@@ -241,7 +253,7 @@ class ClientPortalController extends Controller
                 'comment' => $request->input('comment'),
                 'status' => $pitch->status,
                 'created_by' => null, // Indicate client origin
-                'metadata' => ['client_email' => $project->client_email] // Store identifier
+                'metadata' => ['client_email' => $project->client_email], // Store identifier
             ]);
 
             // Notify producer
@@ -253,8 +265,9 @@ class ClientPortalController extends Controller
             Log::error('Failed to store client comment', [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return back()->withErrors(['comment' => 'Could not add comment at this time.']);
         }
     }
@@ -264,12 +277,15 @@ class ClientPortalController extends Controller
      */
     public function approvePitch(Project $project, Request $request)
     {
-        if (!$project->isClientManagement()) abort(403);
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
         $pitch = $project->pitches()->with('user')->firstOrFail(); // Eager load producer
         $producer = $pitch->user; // Get the producer user model
 
-        if (!$producer) {
+        if (! $producer) {
             Log::error('Producer not found for pitch during client approval', ['pitch_id' => $pitch->id, 'project_id' => $project->id]);
+
             return back()->withErrors(['approval' => 'Could not approve pitch due to an internal error (Producer not found).']);
         }
 
@@ -279,8 +295,8 @@ class ClientPortalController extends Controller
 
             if ($needsPayment) {
                 Log::info('Client approval requires payment. Initiating Stripe Checkout.', ['pitch_id' => $pitch->id, 'amount' => $pitch->payment_amount]);
-                
-                // --- Initiate Stripe Checkout --- 
+
+                // --- Initiate Stripe Checkout ---
                 $successUrl = URL::signedRoute('client.portal.view', ['project' => $project->id, 'checkout_status' => 'success']);
                 $cancelUrl = URL::signedRoute('client.portal.view', ['project' => $project->id, 'checkout_status' => 'cancel']);
 
@@ -289,7 +305,7 @@ class ClientPortalController extends Controller
                     'price_data' => [
                         'currency' => config('cashier.currency'), // Assumes USD or configured default
                         'product_data' => [
-                            'name' => 'Payment for Project: ' . $project->title,
+                            'name' => 'Payment for Project: '.$project->title,
                             'description' => 'Client payment for completed pitch deliverables.',
                         ],
                         // Amount should be in cents
@@ -313,23 +329,27 @@ class ClientPortalController extends Controller
                 return redirect($checkoutSession->url);
 
             } else {
-                // --- No Payment Required --- 
+                // --- No Payment Required ---
                 Log::info('Client approval does not require payment. Proceeding with approval workflow.', ['pitch_id' => $pitch->id]);
                 // The service method needs to handle authorization (status check)
                 $this->pitchWorkflowService->clientApprovePitch($pitch, $project->client_email);
+
                 return back()->with('success', 'Pitch approved successfully.');
             }
 
         } catch (InvalidStatusTransitionException $e) {
             Log::warning('Client attempted to approve pitch with invalid status.', ['project_id' => $project->id, 'pitch_id' => $pitch->id, 'current_status' => $pitch->status]);
+
             return back()->withErrors(['approval' => $e->getMessage()]); // Show specific error
-        } catch (PaymentActionRequired | IncompletePayment $e) {
+        } catch (PaymentActionRequired|IncompletePayment $e) {
             // Handle specific Cashier exceptions related to SCA or failed payments if needed
             // This might happen if checkout() is used differently, less likely with direct redirect
             Log::error('Cashier payment exception during client approval checkout initiation.', ['pitch_id' => $pitch->id, 'error' => $e->getMessage()]);
-            return back()->withErrors(['approval' => 'Payment processing failed: ' . $e->getMessage()]);
+
+            return back()->withErrors(['approval' => 'Payment processing failed: '.$e->getMessage()]);
         } catch (\Exception $e) {
             Log::error('Client failed to approve pitch or initiate payment', ['project_id' => $project->id, 'pitch_id' => $pitch->id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
             return back()->withErrors(['approval' => 'Could not approve pitch at this time. Please try again later.']);
         }
     }
@@ -339,22 +359,27 @@ class ClientPortalController extends Controller
      */
     public function requestRevisions(Project $project, Request $request)
     {
-         if (!$project->isClientManagement()) abort(403);
-         $pitch = $project->pitches()->firstOrFail();
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
+        $pitch = $project->pitches()->firstOrFail();
 
-         $request->validate(['feedback' => 'required|string|max:5000']);
+        $request->validate(['feedback' => 'required|string|max:5000']);
 
-         try {
-             // Service method handles authorization (status check)
-             $this->pitchWorkflowService->clientRequestRevisions($pitch, $request->input('feedback'), $project->client_email);
-             return back()->with('success', 'Revision request submitted successfully.');
-         } catch (\App\Exceptions\Pitch\InvalidStatusTransitionException $e) {
+        try {
+            // Service method handles authorization (status check)
+            $this->pitchWorkflowService->clientRequestRevisions($pitch, $request->input('feedback'), $project->client_email);
+
+            return back()->with('success', 'Revision request submitted successfully.');
+        } catch (\App\Exceptions\Pitch\InvalidStatusTransitionException $e) {
             Log::warning('Client attempted to request revisions on pitch with invalid status.', ['project_id' => $project->id, 'pitch_id' => $pitch->id, 'current_status' => $pitch->status]);
+
             return back()->withErrors(['revisions' => $e->getMessage()]); // Show specific error
-         } catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Client failed to request revisions', ['project_id' => $project->id, 'pitch_id' => $pitch->id, 'error' => $e->getMessage()]);
+
             return back()->withErrors(['revisions' => 'Could not request revisions at this time. Please try again later.']);
-         }
+        }
     }
 
     /**
@@ -363,11 +388,11 @@ class ClientPortalController extends Controller
     public function showUpgrade(Project $project, Request $request)
     {
         // Validate signed URL access
-        if (!$request->hasValidSignature()) {
+        if (! $request->hasValidSignature()) {
             abort(403, 'Invalid or expired link.');
         }
 
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             abort(404, 'Project not found or not accessible via client portal.');
         }
 
@@ -386,11 +411,11 @@ class ClientPortalController extends Controller
     public function createAccount(Request $request, Project $project)
     {
         // Validate signed URL access
-        if (!$request->hasValidSignature()) {
+        if (! $request->hasValidSignature()) {
             abort(403, 'Invalid or expired link.');
         }
 
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             abort(403, 'Invalid project type.');
         }
 
@@ -424,7 +449,7 @@ class ClientPortalController extends Controller
             Log::info('Client account created and linked to projects', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'linked_projects' => Project::where('client_user_id', $user->id)->count()
+                'linked_projects' => Project::where('client_user_id', $user->id)->count(),
             ]);
 
             return redirect()->route('dashboard')->with('success', 'Account created successfully! Welcome to MIXPITCH.');
@@ -433,8 +458,9 @@ class ClientPortalController extends Controller
             Log::error('Failed to create client account', [
                 'project_id' => $project->id,
                 'email' => $project->client_email,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return back()->withErrors(['account' => 'Could not create account at this time. Please try again later.']);
         }
     }
@@ -445,25 +471,25 @@ class ClientPortalController extends Controller
     public function invoice(Project $project, Request $request)
     {
         // Validate access (signed URL or authenticated client)
-        if (!$this->validateClientAccess($project, $request)) {
+        if (! $this->validateClientAccess($project, $request)) {
             abort(403, 'Access denied.');
         }
 
         $pitch = $project->pitches()
-                         ->where('payment_status', Pitch::PAYMENT_STATUS_PAID)
-                         ->with(['user', 'events'])
-                         ->firstOrFail();
+            ->where('payment_status', Pitch::PAYMENT_STATUS_PAID)
+            ->with(['user', 'events'])
+            ->firstOrFail();
 
         // Get payment information from events or metadata
         $paymentEvent = $pitch->events()
-                             ->where('event_type', 'payment_completed')
-                             ->first();
+            ->where('event_type', 'payment_completed')
+            ->first();
 
         $invoiceData = [
             'project' => $project,
             'pitch' => $pitch,
             'payment_event' => $paymentEvent,
-            'invoice_number' => 'INV-' . $project->id . '-' . $pitch->id,
+            'invoice_number' => 'INV-'.$project->id.'-'.$pitch->id,
             'payment_date' => $paymentEvent ? $paymentEvent->created_at : $pitch->updated_at,
             'amount' => $pitch->payment_amount,
         ];
@@ -477,24 +503,24 @@ class ClientPortalController extends Controller
     public function deliverables(Project $project, Request $request)
     {
         // Validate access (signed URL or authenticated client)
-        if (!$this->validateClientAccess($project, $request)) {
+        if (! $this->validateClientAccess($project, $request)) {
             abort(403, 'Access denied.');
         }
 
         $pitch = $project->pitches()
-                         ->where('status', Pitch::STATUS_COMPLETED)
-                         ->with(['user', 'files'])
-                         ->firstOrFail();
+            ->where('status', Pitch::STATUS_COMPLETED)
+            ->with(['user', 'files'])
+            ->firstOrFail();
 
         // Get deliverable files (files marked as deliverables in note field or all files for completed pitch)
         $deliverables = $pitch->files()
-                             ->where(function($query) {
-                                 $query->where('note', 'LIKE', '%deliverable%')
-                                       ->orWhere('note', 'LIKE', '%final%')
-                                       ->orWhereNull('note'); // Include all files if no specific deliverable marking
-                             })
-                             ->orderBy('created_at', 'desc')
-                             ->get();
+            ->where(function ($query) {
+                $query->where('note', 'LIKE', '%deliverable%')
+                    ->orWhere('note', 'LIKE', '%final%')
+                    ->orWhereNull('note'); // Include all files if no specific deliverable marking
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return view('client_portal.deliverables', compact('project', 'pitch', 'deliverables'));
     }
@@ -502,16 +528,17 @@ class ClientPortalController extends Controller
     /**
      * Phase 2: Validate client access to project (signed URL or authenticated user).
      */
-    private function validateClientAccess(Project $project, Request $request = null): bool
+    private function validateClientAccess(Project $project, ?Request $request = null): bool
     {
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             return false;
         }
 
         // Check if user is authenticated and owns the project
         if (Auth::check()) {
             $user = Auth::user();
-            return $user->hasRole(User::ROLE_CLIENT) && 
+
+            return $user->hasRole(User::ROLE_CLIENT) &&
                    ($project->client_user_id === $user->id || $project->client_email === $user->email);
         }
 
@@ -537,15 +564,16 @@ class ClientPortalController extends Controller
         Log::debug('Resend Invite Check:', ['project_id' => $project->id, 'workflow_type' => $project->workflow_type, 'expected_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT]);
 
         // Validation: Ensure it's a client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             Log::error('Resend Invite Failed: Project is NOT Client Management', ['project_id' => $project->id, 'actual_type' => $project->workflow_type]);
             abort(404, 'Project type does not support client invites.');
         }
 
         // Validation: Ensure client email exists
         if (empty($project->client_email)) {
-             Log::warning('Attempted to resend client invite for project without client email', ['project_id' => $project->id]);
-             return back()->withErrors(['resend' => 'Client email is not set for this project.']);
+            Log::warning('Attempted to resend client invite for project without client email', ['project_id' => $project->id]);
+
+            return back()->withErrors(['resend' => 'Client email is not set for this project.']);
         }
 
         try {
@@ -560,7 +588,7 @@ class ClientPortalController extends Controller
             Log::info('Client invite URL generated for resend', [
                 'project_id' => $project->id,
                 'client_email' => $project->client_email,
-                'signed_url' => $signedUrl
+                'signed_url' => $signedUrl,
             ]);
 
             // Re-trigger the notification
@@ -574,8 +602,9 @@ class ClientPortalController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to resend client invite', [
                 'project_id' => $project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return back()->withErrors(['resend' => 'Could not resend invitation at this time.']);
         }
     }
@@ -586,20 +615,20 @@ class ClientPortalController extends Controller
     public function downloadFile(Project $project, PitchFile $pitchFile, Request $request)
     {
         // Double-check signature validity (middleware should handle, but good practice)
-        if (!$request->hasValidSignature()) {
+        if (! $request->hasValidSignature()) {
             Log::warning('Client portal download attempt with invalid signature.', ['project_id' => $project->id, 'file_id' => $pitchFile->id]);
             abort(403, 'Invalid or expired link.');
         }
 
         // Ensure it's a client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             Log::warning('Client portal download attempt for non-client project.', ['project_id' => $project->id, 'file_id' => $pitchFile->id]);
             abort(404); // Or 403
         }
 
         // Get the associated pitch
         $pitch = $project->pitches()->first();
-        if (!$pitch) {
+        if (! $pitch) {
             Log::error('Client portal download failed: Pitch not found for project.', ['project_id' => $project->id, 'file_id' => $pitchFile->id]);
             abort(404);
         }
@@ -610,7 +639,7 @@ class ClientPortalController extends Controller
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'file_id' => $pitchFile->id,
-                'file_actual_pitch_id' => $pitchFile->pitch_id
+                'file_actual_pitch_id' => $pitchFile->pitch_id,
             ]);
             abort(403, 'Access denied to this file.');
         }
@@ -627,7 +656,7 @@ class ClientPortalController extends Controller
                 'file_id' => $pitchFile->id,
                 'disk' => $pitchFile->disk,
                 'path' => $pitchFile->file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             abort(404, 'File not found.');
         } catch (\Exception $e) {
@@ -635,7 +664,7 @@ class ClientPortalController extends Controller
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'file_id' => $pitchFile->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             abort(500, 'Could not download file at this time.');
         }
@@ -659,22 +688,23 @@ class ClientPortalController extends Controller
         ]);
 
         // Validate client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             Log::warning('Upload rejected: Not a client management project', ['project_id' => $project->id]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'File upload is only available for client management projects.'
+                'message' => 'File upload is only available for client management projects.',
             ], 403);
         }
-        
+
         // Note: Signed URL validation is handled by the signed middleware
         // Removing redundant check that was causing 403 errors
-        
+
         // Validate file upload using client portal context settings
         try {
             $settings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_CLIENT_PORTALS);
             $maxFileSizeKB = $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
-            
+
             $request->validate([
                 'file' => "required|file|max:{$maxFileSizeKB}",
             ]);
@@ -682,17 +712,18 @@ class ClientPortalController extends Controller
         } catch (\Exception $e) {
             Log::error('File validation failed', [
                 'project_id' => $project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'File validation failed: ' . $e->getMessage()
+                'message' => 'File validation failed: '.$e->getMessage(),
             ], 422);
         }
-        
+
         try {
             Log::info('Starting file upload process', ['project_id' => $project->id]);
-            
+
             // Upload as PROJECT file (not pitch file) with no user (client upload)
             $projectFile = $fileService->uploadProjectFile(
                 $project,
@@ -701,17 +732,17 @@ class ClientPortalController extends Controller
                 [
                     'uploaded_by_client' => true,
                     'client_email' => $project->client_email,
-                    'upload_context' => 'client_portal'
+                    'upload_context' => 'client_portal',
                 ]
             );
-            
+
             Log::info('Client uploaded project file successfully.', [
                 'project_id' => $project->id,
                 'file_id' => $projectFile->id,
                 'file_name' => $projectFile->file_name,
-                'client_email' => $project->client_email
+                'client_email' => $project->client_email,
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'file' => [
@@ -720,20 +751,20 @@ class ClientPortalController extends Controller
                     'size' => $projectFile->size,
                     'type' => $projectFile->mime_type,
                 ],
-                'message' => 'File uploaded successfully.'
+                'message' => 'File uploaded successfully.',
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Client file upload failed.', [
                 'project_id' => $project->id,
                 'client_email' => $project->client_email,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
-                'message' => 'File upload failed. Please try again.'
+                'message' => 'File upload failed. Please try again.',
             ], 500);
         }
     }
@@ -744,39 +775,39 @@ class ClientPortalController extends Controller
     public function downloadProjectFile(Project $project, \App\Models\ProjectFile $projectFile, FileManagementService $fileService)
     {
         // Validate client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             abort(403, 'Access denied.');
         }
-        
+
         // Ensure the file belongs to this project
         if ($projectFile->project_id !== $project->id) {
             abort(404, 'File not found.');
         }
-        
+
         // Double-check signature validity (middleware should handle, but good practice)
-        if (!request()->hasValidSignature()) {
+        if (! request()->hasValidSignature()) {
             abort(403, 'Invalid or expired link.');
         }
-        
+
         try {
             // Generate temporary download URL
             $downloadUrl = $fileService->getTemporaryDownloadUrl($projectFile);
-            
+
             Log::info('Client downloaded project file.', [
                 'project_id' => $project->id,
                 'file_id' => $projectFile->id,
-                'client_email' => $project->client_email
+                'client_email' => $project->client_email,
             ]);
-            
+
             return redirect($downloadUrl);
-            
+
         } catch (\Exception $e) {
             Log::error('Client project file download failed.', [
                 'project_id' => $project->id,
                 'file_id' => $projectFile->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             abort(500, 'Unable to download file.');
         }
     }
@@ -787,48 +818,48 @@ class ClientPortalController extends Controller
     public function deleteProjectFile(Project $project, \App\Models\ProjectFile $projectFile, FileManagementService $fileService)
     {
         // Validate client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Access denied.'
+                'message' => 'Access denied.',
             ], 403);
         }
-        
+
         // Ensure the file belongs to this project
         if ($projectFile->project_id !== $project->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'File not found.'
+                'message' => 'File not found.',
             ], 404);
         }
-        
+
         try {
             // Use the FileManagementService to delete the file
             $fileService->deleteProjectFile($projectFile);
-            
+
             Log::info('Client deleted project file.', [
                 'project_id' => $project->id,
                 'file_id' => $projectFile->id,
                 'file_name' => $projectFile->file_name,
-                'client_email' => $project->client_email
+                'client_email' => $project->client_email,
             ]);
-            
+
             return response()->json([
                 'success' => true,
-                'message' => 'File deleted successfully.'
+                'message' => 'File deleted successfully.',
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Client project file deletion failed.', [
                 'project_id' => $project->id,
                 'file_id' => $projectFile->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to delete file. Please try again.'
+                'message' => 'Unable to delete file. Please try again.',
             ], 500);
         }
     }
-} 
+}

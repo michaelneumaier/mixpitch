@@ -5,28 +5,30 @@ namespace App\Livewire\User;
 use App\Models\PortfolioItem;
 use App\Models\Project;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Livewire\Attributes\Rule;
-use Illuminate\Support\Str;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class ManagePortfolioItems extends Component
 {
     use WithFileUploads;
 
     public User $user;
+
     public Collection $portfolioItems;
+
     public $availableProjects;
 
     // Form state properties
     public bool $showForm = false;
+
     public ?int $editingItemId = null;
     // public string $itemType = 'audio_upload'; // Old property, replaced by type
 
@@ -72,7 +74,7 @@ class ManagePortfolioItems extends Component
     public function mount()
     {
         $this->user = Auth::user();
-        if (!$this->user) {
+        if (! $this->user) {
             // Handle unauthorized access appropriately
             abort(403, 'You need to be logged in to manage portfolios.');
         }
@@ -97,7 +99,7 @@ class ManagePortfolioItems extends Component
     {
         $this->reset([
             'editingItemId', 'type', 'title', 'description', 'video_url',
-            'audioFile', 'isPublic', 'existingFilePath'
+            'audioFile', 'isPublic', 'existingFilePath',
         ]);
         $this->showForm = false;
         $this->resetValidation();
@@ -136,7 +138,7 @@ class ManagePortfolioItems extends Component
         $this->title = $item->title;
         $this->description = $item->description ?? '';
         $this->isPublic = $item->is_public;
-        
+
         // Set type-specific properties
         if ($item->item_type === PortfolioItem::TYPE_AUDIO) {
             $this->existingFilePath = $item->file_path;
@@ -145,16 +147,16 @@ class ManagePortfolioItems extends Component
             $this->video_url = $item->video_url ?? '';
             $this->existingFilePath = null; // Clear file path for YouTube items
         }
-        
+
         $this->showForm = true;
-        
+
         // Dispatch browser event to ensure UI is updated
         $this->dispatch('portfolio-form-opened');
     }
 
     public function saveItem()
     {
-        Log::info('Entering saveItem method.', ['type' => $this->type, 'editingItemId' => $this->editingItemId, 'video_url' => $this->video_url, 'has_audio_file' => !is_null($this->audioFile)]);
+        Log::info('Entering saveItem method.', ['type' => $this->type, 'editingItemId' => $this->editingItemId, 'video_url' => $this->video_url, 'has_audio_file' => ! is_null($this->audioFile)]);
 
         // Common validation rules
         $rules = [
@@ -167,10 +169,11 @@ class ManagePortfolioItems extends Component
         // Add type-specific rules AND pre-validation for required file on create
         if ($this->type === PortfolioItem::TYPE_AUDIO) {
             // Explicitly check for required file when creating
-            if (!$this->editingItemId && !$this->audioFile) {
-                 Log::warning('Audio validation failed: New item requires file.');
-                 $this->addError('audioFile', 'Please select an audio file to upload.');
-                 return; // Fail fast
+            if (! $this->editingItemId && ! $this->audioFile) {
+                Log::warning('Audio validation failed: New item requires file.');
+                $this->addError('audioFile', 'Please select an audio file to upload.');
+
+                return; // Fail fast
             }
             // Only require file if creating new or if no existing file path (rule remains for size/mimes)
             $audioRule = ($this->editingItemId && $this->existingFilePath) ? 'nullable' : 'required';
@@ -179,7 +182,7 @@ class ManagePortfolioItems extends Component
         } elseif ($this->type === PortfolioItem::TYPE_YOUTUBE) {
             // Use a custom validator for YouTube URLs to handle various formats
             $rules['video_url'] = ['required', 'url', function ($attribute, $value, $fail) {
-                if (!PortfolioItem::extractYouTubeVideoId($value)) {
+                if (! PortfolioItem::extractYouTubeVideoId($value)) {
                     $fail('Please enter a valid YouTube video URL.');
                 }
             }];
@@ -190,10 +193,11 @@ class ManagePortfolioItems extends Component
         Log::info('Attempting combined validation.');
         try {
             // Use the dynamically built rules array
-            $validatedData = $this->validate($rules); 
+            $validatedData = $this->validate($rules);
             Log::info('Combined validation passed.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Combined validation failed.', ['errors' => $e->errors()]);
+
             // Errors are automatically handled by Livewire, just log and return
             return;
         }
@@ -215,7 +219,7 @@ class ManagePortfolioItems extends Component
 
         Log::info('Portfolio item data prepared for save.', [
             'data' => $data,
-            'editing_item_id' => $this->editingItemId
+            'editing_item_id' => $this->editingItemId,
         ]);
 
         // Process based on type
@@ -227,19 +231,19 @@ class ManagePortfolioItems extends Component
                 try {
                     $this->audioFile = $validatedData['audioFile']; // Ensure we use the validated file instance
                     Log::info('Processing audio file upload', ['original_name' => $this->audioFile->getClientOriginalName()]);
-                    
+
                     $originalName = pathinfo($this->audioFile->getClientOriginalName(), PATHINFO_FILENAME);
-                    $safeName = Str::slug($originalName) . '-' . time();
+                    $safeName = Str::slug($originalName).'-'.time();
                     $extension = $this->audioFile->getClientOriginalExtension();
                     $filePath = "portfolio-audio/{$data['user_id']}/{$safeName}.{$extension}";
-                    
+
                     Log::info('Attempting to store file on S3', ['path' => $filePath]);
                     $path = $this->audioFile->storeAs('/', $filePath, 's3');
 
-                    if (!$path) {
-                        throw new \Exception("File storage failed for unknown reasons.");
+                    if (! $path) {
+                        throw new \Exception('File storage failed for unknown reasons.');
                     }
-                    
+
                     $data['file_path'] = $filePath;
                     $data['file_name'] = basename($filePath);
                     $data['original_filename'] = $this->audioFile->getClientOriginalName();
@@ -255,7 +259,8 @@ class ManagePortfolioItems extends Component
 
                 } catch (\Exception $e) {
                     Log::error('Error uploading audio file.', ['error' => $e->getMessage()]);
-                    $this->dispatch('toast', type: 'error', message: 'Error uploading audio file: ' . $e->getMessage());
+                    $this->dispatch('toast', type: 'error', message: 'Error uploading audio file: '.$e->getMessage());
+
                     return;
                 }
             } elseif ($this->editingItemId && $this->existingFilePath) {
@@ -269,14 +274,15 @@ class ManagePortfolioItems extends Component
                 $data['file_size'] = $item->file_size;
             } else {
                 // Should not happen due to validation, but log just in case
-                 Log::error('Audio save logic reached invalid state.', ['editing' => $this->editingItemId, 'existingPath' => $this->existingFilePath]);
-                 $this->dispatch('toast', type: 'error', message: 'An unexpected error occurred saving the audio item.');
-                 return;
+                Log::error('Audio save logic reached invalid state.', ['editing' => $this->editingItemId, 'existingPath' => $this->existingFilePath]);
+                $this->dispatch('toast', type: 'error', message: 'An unexpected error occurred saving the audio item.');
+
+                return;
             }
-            
+
             // Clear video fields for audio type
-             $data['video_url'] = null;
-             $data['video_id'] = null;
+            $data['video_url'] = null;
+            $data['video_id'] = null;
 
         } elseif ($this->type === PortfolioItem::TYPE_YOUTUBE) {
             Log::info('Processing YouTube save logic.');
@@ -296,8 +302,8 @@ class ManagePortfolioItems extends Component
                 if ($this->editingItemId) {
                     $item = PortfolioItem::find($this->editingItemId);
                     if ($item && $item->item_type === PortfolioItem::TYPE_AUDIO && $item->file_path) {
-                         Log::info('Deleting old audio file when switching to YouTube.', ['path' => $item->file_path]);
-                         Storage::disk('s3')->delete($item->file_path);
+                        Log::info('Deleting old audio file when switching to YouTube.', ['path' => $item->file_path]);
+                        Storage::disk('s3')->delete($item->file_path);
                     }
                 }
                 Log::info('YouTube data processed.', ['video_id' => $videoId]);
@@ -305,6 +311,7 @@ class ManagePortfolioItems extends Component
                 // This should not happen due to validation, but good to handle
                 Log::error('YouTube video ID extraction failed after validation pass.', ['url' => $validatedData['video_url']]);
                 $this->addError('video_url', 'Failed to process the YouTube URL.');
+
                 return;
             }
         }
@@ -337,11 +344,11 @@ class ManagePortfolioItems extends Component
                 'error' => $e->getMessage(),
                 'trace' => Str::limit($e->getTraceAsString(), 1000),
                 'editingItemId' => $this->editingItemId,
-                'data' => $data
+                'data' => $data,
             ]);
             session()->flash('toast', [
                 'type' => 'error',
-                'message' => 'An unexpected error occurred while saving the item. Please try again. Details: ' . $e->getMessage()
+                'message' => 'An unexpected error occurred while saving the item. Please try again. Details: '.$e->getMessage(),
             ]);
         }
     }
@@ -362,21 +369,21 @@ class ManagePortfolioItems extends Component
             $this->loadItems(); // Reload items after deletion
             session()->flash('toast', [
                 'type' => 'success',
-                'message' => 'Portfolio item deleted'
+                'message' => 'Portfolio item deleted',
             ]);
         } catch (AuthorizationException $e) {
-             Log::warning('Authorization failed deleting portfolio item', ['item_id' => $itemId, 'user_id' => auth()->id()]);
-             session()->flash('toast', [
+            Log::warning('Authorization failed deleting portfolio item', ['item_id' => $itemId, 'user_id' => auth()->id()]);
+            session()->flash('toast', [
                 'type' => 'error',
-                'message' => 'You are not authorized to perform this action'
-             ]);
-             // Re-dispatch for Livewire test helper if session flash isn't caught
-             $this->dispatch('toast', type: 'error', message: 'You are not authorized to perform this action');
+                'message' => 'You are not authorized to perform this action',
+            ]);
+            // Re-dispatch for Livewire test helper if session flash isn't caught
+            $this->dispatch('toast', type: 'error', message: 'You are not authorized to perform this action');
         } catch (\Exception $e) {
             Log::error("Error deleting portfolio item {$itemId}", ['error' => $e->getMessage()]);
             session()->flash('toast', [
                 'type' => 'error',
-                'message' => 'An error occurred while deleting the item'
+                'message' => 'An error occurred while deleting the item',
             ]);
         }
     }
@@ -385,108 +392,108 @@ class ManagePortfolioItems extends Component
     {
         try {
             Log::info('Received sort update', ['data' => $orderedIds, 'user_id' => auth()->id()]);
-            
+
             // Validate input data
             if (empty($orderedIds)) {
                 Log::warning('Empty order data received');
                 throw new \InvalidArgumentException('No items to sort');
             }
-            
+
             // Ensure we only process items belonging to the authenticated user
             $userItems = PortfolioItem::where('user_id', auth()->id())->pluck('id')->toArray();
-            
+
             // Handle different data formats from Livewire sortable
             $receivedItemIds = [];
             if (isset($orderedIds[0]) && is_array($orderedIds[0]) && isset($orderedIds[0]['value'])) {
                 // Complex format: [['order' => 1, 'value' => '123'], ...]
-            $receivedItemIds = array_column($orderedIds, 'value');
+                $receivedItemIds = array_column($orderedIds, 'value');
             } else {
                 // Simple format: ['123', '456', '789'] - Livewire's default format
                 $receivedItemIds = $orderedIds;
             }
-            
+
             // Convert to integers
             $receivedItemIds = array_map('intval', $receivedItemIds);
-            
+
             // Validate that all received items belong to the user
             $unauthorizedItems = array_diff($receivedItemIds, $userItems);
-            if (!empty($unauthorizedItems)) {
+            if (! empty($unauthorizedItems)) {
                 Log::warning('Attempted to update order for unauthorized items', [
                     'unauthorized_items' => $unauthorizedItems,
-                    'user_id' => auth()->id()
+                    'user_id' => auth()->id(),
                 ]);
                 throw new \UnauthorizedHttpException('Unauthorized items detected');
             }
-            
+
             // Use database transaction for atomic updates
             DB::transaction(function () use ($receivedItemIds) {
                 foreach ($receivedItemIds as $index => $itemId) {
                     $newOrder = $index + 1;
-                    
-                        $updated = PortfolioItem::where('id', $itemId)
-                            ->where('user_id', auth()->id()) // Extra security check
-                            ->update(['display_order' => $newOrder]);
-                        
-                        if ($updated) {
-                            Log::info('Updated item order', [
-                                'item_id' => $itemId,
-                                'new_order' => $newOrder
-                            ]);
-                        } else {
-                            Log::warning('Failed to update item order - item not found or unauthorized', [
-                                'item_id' => $itemId,
-                                'user_id' => auth()->id()
-                            ]);
+
+                    $updated = PortfolioItem::where('id', $itemId)
+                        ->where('user_id', auth()->id()) // Extra security check
+                        ->update(['display_order' => $newOrder]);
+
+                    if ($updated) {
+                        Log::info('Updated item order', [
+                            'item_id' => $itemId,
+                            'new_order' => $newOrder,
+                        ]);
+                    } else {
+                        Log::warning('Failed to update item order - item not found or unauthorized', [
+                            'item_id' => $itemId,
+                            'user_id' => auth()->id(),
+                        ]);
                     }
                 }
             });
-            
+
             // Reload items to reflect new order
             $this->loadItems();
-            
+
             // Show success message
             session()->flash('toast', [
                 'type' => 'success',
-                'message' => 'Portfolio order updated successfully'
+                'message' => 'Portfolio order updated successfully',
             ]);
-            
+
             Log::info('Portfolio sort update completed successfully', ['user_id' => auth()->id()]);
-            
+
         } catch (\InvalidArgumentException $e) {
             Log::error('Invalid sort data provided', [
                 'error' => $e->getMessage(),
                 'data' => $orderedIds,
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
-            
+
             session()->flash('toast', [
                 'type' => 'error',
-                'message' => 'Invalid sort data provided'
+                'message' => 'Invalid sort data provided',
             ]);
-            
+
         } catch (\UnauthorizedHttpException $e) {
             Log::error('Unauthorized sort attempt', [
                 'error' => $e->getMessage(),
                 'data' => $orderedIds,
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
-            
+
             session()->flash('toast', [
                 'type' => 'error',
-                'message' => 'Unauthorized operation'
+                'message' => 'Unauthorized operation',
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Error updating portfolio sort order', [
                 'error' => $e->getMessage(),
                 'trace' => Str::limit($e->getTraceAsString(), 2000),
                 'data_received' => $orderedIds,
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
-            
+
             session()->flash('toast', [
                 'type' => 'error',
-                'message' => 'Failed to update portfolio order. Please try again.'
+                'message' => 'Failed to update portfolio order. Please try again.',
             ]);
         }
     }
@@ -495,7 +502,7 @@ class ManagePortfolioItems extends Component
     {
         return view('livewire.user.manage-portfolio-items', [
             'portfolioItems' => $this->portfolioItems,
-            'availableProjects' => $this->availableProjects
+            'availableProjects' => $this->availableProjects,
         ]);
     }
 }

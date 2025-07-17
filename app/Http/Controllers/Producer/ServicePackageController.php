@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\ServicePackage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Requests\Producer\StoreServicePackageRequest;
-use App\Http\Requests\Producer\UpdateServicePackageRequest;
 
 class ServicePackageController extends Controller
 {
@@ -18,6 +16,7 @@ class ServicePackageController extends Controller
     {
         // TODO: Fetch and display producer's service packages
         $packages = Auth::user()->servicePackages()->latest()->paginate(15);
+
         return view('producer.services.packages.index', compact('packages'));
     }
 
@@ -64,6 +63,7 @@ class ServicePackageController extends Controller
     {
         // TODO: Implement authorization (ensure producer owns package)
         $this->authorize('view', $package);
+
         return view('producer.services.packages.show', compact('package'));
     }
 
@@ -74,6 +74,7 @@ class ServicePackageController extends Controller
     {
         // TODO: Implement authorization (ensure producer owns package)
         $this->authorize('update', $package);
+
         return view('producer.services.packages.edit', compact('package'));
     }
 
@@ -84,7 +85,7 @@ class ServicePackageController extends Controller
     {
         // TODO: Implement authorization (ensure producer owns package)
         $this->authorize('update', $package);
-        
+
         // TODO: Validate and update the package
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -97,7 +98,7 @@ class ServicePackageController extends Controller
             'requirements_prompt' => 'nullable|string',
             'is_published' => 'nullable|boolean',
         ]);
-        
+
         $validated['is_published'] = $request->boolean('is_published');
 
         $package->update($validated);
@@ -112,9 +113,9 @@ class ServicePackageController extends Controller
     {
         // TODO: Implement authorization (ensure producer owns package)
         $this->authorize('delete', $package);
-        
+
         $package->delete(); // Uses SoftDeletes
 
         return redirect()->route('producer.services.packages.index')->with('success', 'Service package deleted successfully.');
     }
-} 
+}

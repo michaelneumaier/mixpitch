@@ -2,44 +2,42 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Pages\Page;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
 use App\Models\EmailAudit;
-use Illuminate\Support\Facades\DB;
-use Filament\Widgets\StatsOverviewWidget\Stat;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
+use Filament\Pages\Page;
 
 class Analytics extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-    
+
     protected static ?string $navigationGroup = 'Analytics';
-    
+
     protected static ?int $navigationSort = 1;
-    
+
     protected static string $view = 'filament.pages.analytics';
-    
+
     public static function getNavigationLabel(): string
     {
         return 'Platform Analytics';
     }
-    
+
     public function getTitle(): string
     {
         return 'Platform Analytics';
     }
-    
+
     public function getSubheading(): ?string
     {
         return 'Comprehensive insights into platform performance and user engagement';
     }
-    
+
     public static function canAccess(): bool
     {
         return auth()->user()->can('view-analytics') || auth()->user()->hasRole('admin');
     }
-    
+
     public function getViewData(): array
     {
         $timeRanges = [
@@ -51,25 +49,25 @@ class Analytics extends Page
             'last_month' => ['start' => now()->subMonth()->startOfMonth(), 'end' => now()->startOfMonth(), 'label' => 'Last Month'],
             'this_year' => ['start' => now()->startOfYear(), 'label' => 'This Year'],
         ];
-        
+
         // User Analytics
         $userMetrics = $this->getUserMetrics($timeRanges);
-        
+
         // Project Analytics
         $projectMetrics = $this->getProjectMetrics($timeRanges);
-        
+
         // Pitch Analytics
         $pitchMetrics = $this->getPitchMetrics($timeRanges);
-        
+
         // Financial Analytics
         $financialMetrics = $this->getFinancialMetrics($timeRanges);
-        
+
         // Email Analytics
         $emailMetrics = $this->getEmailMetrics($timeRanges);
-        
+
         // Growth Trends (last 30 days)
         $growthTrends = $this->getGrowthTrends();
-        
+
         return [
             'userMetrics' => $userMetrics,
             'projectMetrics' => $projectMetrics,
@@ -80,11 +78,11 @@ class Analytics extends Page
             'topPerformers' => $this->getTopPerformers(),
         ];
     }
-    
+
     private function getUserMetrics(array $timeRanges): array
     {
         $metrics = [];
-        
+
         foreach ($timeRanges as $key => $range) {
             $query = User::where('created_at', '>=', $range['start']);
             if (isset($range['end'])) {
@@ -92,7 +90,7 @@ class Analytics extends Page
             }
             $metrics[$key] = $query->count();
         }
-        
+
         return array_merge($metrics, [
             'total' => User::count(),
             'verified' => User::whereNotNull('email_verified_at')->count(),
@@ -101,11 +99,11 @@ class Analytics extends Page
             'with_pitches' => User::has('pitches')->count(),
         ]);
     }
-    
+
     private function getProjectMetrics(array $timeRanges): array
     {
         $metrics = [];
-        
+
         foreach ($timeRanges as $key => $range) {
             $query = Project::where('created_at', '>=', $range['start']);
             if (isset($range['end'])) {
@@ -113,7 +111,7 @@ class Analytics extends Page
             }
             $metrics[$key] = $query->count();
         }
-        
+
         return array_merge($metrics, [
             'total' => Project::count(),
             'published' => Project::where('is_published', true)->count(),
@@ -123,11 +121,11 @@ class Analytics extends Page
             'completion_rate' => Project::count() > 0 ? round((Project::where('status', 'completed')->count() / Project::count()) * 100, 1) : 0,
         ]);
     }
-    
+
     private function getPitchMetrics(array $timeRanges): array
     {
         $metrics = [];
-        
+
         foreach ($timeRanges as $key => $range) {
             $query = Pitch::where('created_at', '>=', $range['start']);
             if (isset($range['end'])) {
@@ -135,7 +133,7 @@ class Analytics extends Page
             }
             $metrics[$key] = $query->count();
         }
-        
+
         return array_merge($metrics, [
             'total' => Pitch::count(),
             'approved' => Pitch::where('status', 'approved')->count(),
@@ -144,11 +142,11 @@ class Analytics extends Page
             'avg_per_project' => Project::count() > 0 ? round(Pitch::count() / Project::count(), 1) : 0,
         ]);
     }
-    
+
     private function getFinancialMetrics(array $timeRanges): array
     {
         $completed = Project::where('status', 'completed')->where('budget', '>', 0);
-        
+
         return [
             'total_value' => Project::where('budget', '>', 0)->sum('budget'),
             'completed_revenue' => $completed->sum('budget'),
@@ -158,13 +156,13 @@ class Analytics extends Page
             'conversion_rate' => Project::count() > 0 ? round((Project::where('budget', '>', 0)->count() / Project::count()) * 100, 1) : 0,
         ];
     }
-    
+
     private function getEmailMetrics(array $timeRanges): array
     {
-        if (!class_exists(EmailAudit::class)) {
+        if (! class_exists(EmailAudit::class)) {
             return ['total' => 0, 'today' => 0, 'this_week' => 0, 'this_month' => 0];
         }
-        
+
         return [
             'total' => EmailAudit::count(),
             'today' => EmailAudit::where('created_at', '>=', now()->startOfDay())->count(),
@@ -173,23 +171,24 @@ class Analytics extends Page
             'bounce_rate' => $this->calculateBounceRate(),
         ];
     }
-    
+
     private function calculateBounceRate(): float
     {
-        if (!class_exists(EmailAudit::class)) {
+        if (! class_exists(EmailAudit::class)) {
             return 0;
         }
-        
+
         $total = EmailAudit::whereIn('status', ['sent', 'bounced'])->count();
         $bounced = EmailAudit::where('status', 'bounced')->count();
-        
+
         return $total > 0 ? round(($bounced / $total) * 100, 1) : 0;
     }
-    
+
     private function getGrowthTrends(): array
     {
         $days = collect(range(29, 0))->map(function ($daysAgo) {
             $date = now()->subDays($daysAgo);
+
             return [
                 'date' => $date->format('M j'),
                 'users' => User::whereDate('created_at', $date)->count(),
@@ -197,10 +196,10 @@ class Analytics extends Page
                 'pitches' => Pitch::whereDate('created_at', $date)->count(),
             ];
         });
-        
+
         return $days->toArray();
     }
-    
+
     private function getTopPerformers(): array
     {
         return [
@@ -224,4 +223,4 @@ class Analytics extends Page
                 ->get(),
         ];
     }
-} 
+}

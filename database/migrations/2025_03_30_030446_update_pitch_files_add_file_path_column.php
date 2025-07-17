@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         // First check if the column doesn't already exist
-        if (!Schema::hasColumn('pitch_files', 'file_path')) {
+        if (! Schema::hasColumn('pitch_files', 'file_path')) {
             Schema::table('pitch_files', function (Blueprint $table) {
                 $table->string('file_path')->nullable();
             });

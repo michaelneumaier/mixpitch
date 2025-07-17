@@ -8,14 +8,21 @@ use Livewire\Component;
 class FiltersProjectsComponent extends Component
 {
     public $genres = [];
+
     public $statuses = [];
+
     public $projectTypes = [];
+
     public $selected_collaboration_types = [];
+
     public $min_budget = null;
+
     public $max_budget = null;
+
     public $deadline_start = null;
+
     public $deadline_end = null;
-    
+
     // Define available collaboration types (adjust as needed)
     public $availableCollaborationTypes = [
         'Mixing',
@@ -27,13 +34,13 @@ class FiltersProjectsComponent extends Component
     ];
 
     public function mount(
-        $genres = [], 
-        $statuses = [], 
-        $projectTypes = [], 
-        $min_budget = null, 
-        $max_budget = null, 
-        $deadline_start = null, 
-        $deadline_end = null, 
+        $genres = [],
+        $statuses = [],
+        $projectTypes = [],
+        $min_budget = null,
+        $max_budget = null,
+        $deadline_start = null,
+        $deadline_end = null,
         $selected_collaboration_types = []
     ) {
         $this->genres = $genres;
@@ -54,7 +61,7 @@ class FiltersProjectsComponent extends Component
     public function dispatchFiltersUpdated()
     {
         $this->dispatch('filters-updated', [
-            'genres' => $this->genres, 
+            'genres' => $this->genres,
             'statuses' => $this->statuses,
             'projectTypes' => $this->projectTypes,
             'selected_collaboration_types' => $this->selected_collaboration_types,
@@ -83,9 +90,9 @@ class FiltersProjectsComponent extends Component
 
     public function updatedSkillSearchPlaceholder() // Placeholder hook
     {
-        // For now, this doesn't update the parent. 
+        // For now, this doesn't update the parent.
         // When real skills filter is added, this will dispatch selected skills.
-        //$this->dispatchFiltersUpdated(); 
+        // $this->dispatchFiltersUpdated();
     }
 
     public function updatedSelectedCollaborationTypes()
@@ -130,7 +137,7 @@ class FiltersProjectsComponent extends Component
         $this->deadline_end = $filters['deadline_end'] ?? null;
         // $this->selected_skills = $filters['selected_skills'] ?? []; // Add when implemented
     }
-    
+
     /**
      * Listen for the filters-cleared event from the parent and reset local state
      */
@@ -145,7 +152,7 @@ class FiltersProjectsComponent extends Component
         $this->max_budget = null;
         $this->deadline_start = null;
         $this->deadline_end = null;
-        
+
         // Dispatch an event that Alpine components can listen for
         $this->dispatch('filters-reset');
     }
@@ -164,7 +171,7 @@ class FiltersProjectsComponent extends Component
         $this->max_budget = null;
         $this->deadline_start = null;
         $this->deadline_end = null;
-        
+
         // Then call parent method to clear parent state and refresh the results
         $this->dispatch('clear-parent-filters');
     }

@@ -17,8 +17,11 @@ class NotificationCreatedListenerTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private NotificationCreatedListener $listener;
+
     private string $notificationType = 'test_notification_type';
+
     private string $channel = 'email';
 
     protected function setUp(): void
@@ -27,7 +30,7 @@ class NotificationCreatedListenerTest extends TestCase
 
         Queue::fake();
         $this->user = User::factory()->create();
-        $this->listener = new NotificationCreatedListener();
+        $this->listener = new NotificationCreatedListener;
     }
 
     private function createNotification(array $data = ['test_data' => 'value']): Notification
@@ -89,10 +92,10 @@ class NotificationCreatedListenerTest extends TestCase
         $this->listener->handle($event);
 
         Queue::assertPushed(SendNotificationEmailJob::class, function ($job) use ($notification) {
-             return $job->user->is($this->user) &&
-                   $job->notificationType === $notification->type &&
-                   $job->data === $notification->data &&
-                   $job->originalNotificationId === $notification->id;
+            return $job->user->is($this->user) &&
+                  $job->notificationType === $notification->type &&
+                  $job->data === $notification->data &&
+                  $job->originalNotificationId === $notification->id;
         });
     }
 }

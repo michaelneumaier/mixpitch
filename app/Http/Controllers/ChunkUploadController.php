@@ -2,26 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Exceptions\FileUploadException;
+use App\Models\FileUploadSetting;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\UploadChunk;
+use App\Models\UploadSession;
 use App\Services\ChunkProcessingService;
 use App\Services\FileManagementService;
-use App\Models\UploadSession;
-use App\Models\UploadChunk;
-use App\Models\Project;
-use App\Models\Pitch;
-use App\Models\FileUploadSetting;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
-use App\Exceptions\FileUploadException;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ChunkUploadController extends Controller
 {
     protected ChunkProcessingService $chunkProcessingService;
+
     protected FileManagementService $fileManagementService;
 
     public function __construct(
@@ -41,13 +41,13 @@ class ChunkUploadController extends Controller
         $settings = FileUploadSetting::getSettings($context);
         $maxFileSizeKB = $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
         $maxChunkSizeKB = $settings[FileUploadSetting::CHUNK_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
-        
+
         return [
             'file_rules' => "required|file|max:{$maxFileSizeKB}",
             'chunk_rules' => "required|file|max:{$maxChunkSizeKB}",
             'total_size_max' => $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024 * 1024, // bytes
             'chunk_size_max' => $settings[FileUploadSetting::CHUNK_SIZE_MB] * 1024 * 1024, // bytes
-            'settings' => $settings
+            'settings' => $settings,
         ];
     }
 
@@ -56,7 +56,7 @@ class ChunkUploadController extends Controller
      */
     protected function getContextFromModelType(string $modelType): string
     {
-        return match($modelType) {
+        return match ($modelType) {
             'projects' => FileUploadSetting::CONTEXT_PROJECTS,
             'pitches' => FileUploadSetting::CONTEXT_PITCHES,
             default => FileUploadSetting::CONTEXT_GLOBAL
@@ -65,9 +65,6 @@ class ChunkUploadController extends Controller
 
     /**
      * Create a new upload session
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function createUploadSession(Request $request): JsonResponse
     {
@@ -76,13 +73,13 @@ class ChunkUploadController extends Controller
             $modelType = $request->input('model_type', 'global');
             $context = $this->getContextFromModelType($modelType);
             $validationRules = $this->getUploadValidationRules($context);
-            
+
             // Validate the request
             $validator = Validator::make($request->all(), [
                 'original_filename' => 'required|string|max:255',
-                'total_size' => 'required|integer|min:1|max:' . $validationRules['total_size_max'],
+                'total_size' => 'required|integer|min:1|max:'.$validationRules['total_size_max'],
                 'total_chunks' => 'required|integer|min:1',
-                'chunk_size' => 'required|integer|min:1024|max:' . $validationRules['chunk_size_max'],
+                'chunk_size' => 'required|integer|min:1024|max:'.$validationRules['chunk_size_max'],
                 'model_type' => 'required|string|in:projects,pitches,global',
                 'model_id' => 'nullable|integer',
             ]);
@@ -91,7 +88,7 @@ class ChunkUploadController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -104,18 +101,18 @@ class ChunkUploadController extends Controller
             if ($modelId && $modelType !== 'global') {
                 if ($modelType === 'projects') {
                     $model = Project::find($modelId);
-                    if (!$model || $model->user_id !== $user->id) {
+                    if (! $model || $model->user_id !== $user->id) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Project not found or access denied'
+                            'message' => 'Project not found or access denied',
                         ], 404);
                     }
                 } elseif ($modelType === 'pitches') {
                     $model = Pitch::find($modelId);
-                    if (!$model || $model->user_id !== $user->id) {
+                    if (! $model || $model->user_id !== $user->id) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Pitch not found or access denied'
+                            'message' => 'Pitch not found or access denied',
                         ], 404);
                     }
                 }
@@ -135,7 +132,7 @@ class ChunkUploadController extends Controller
                 'status' => UploadSession::STATUS_PENDING,
                 'metadata' => [
                     'context' => $modelType,
-                    'created_via' => 'enhanced_uploader'
+                    'created_via' => 'enhanced_uploader',
                 ],
                 'expires_at' => now()->addHours(24), // 24 hour expiration
             ]);
@@ -147,7 +144,7 @@ class ChunkUploadController extends Controller
                 'model_id' => $modelId,
                 'filename' => $request->input('original_filename'),
                 'total_size' => $request->input('total_size'),
-                'total_chunks' => $request->input('total_chunks')
+                'total_chunks' => $request->input('total_chunks'),
             ]);
 
             return response()->json([
@@ -158,36 +155,33 @@ class ChunkUploadController extends Controller
                     'expires_at' => $uploadSession->expires_at->toISOString(),
                     'chunk_size' => $uploadSession->chunk_size,
                     'total_chunks' => $uploadSession->total_chunks,
-                    'status' => $uploadSession->status
-                ]
+                    'status' => $uploadSession->status,
+                ],
             ]);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
             Log::error('Error creating upload session', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while creating upload session'
+                'message' => 'An error occurred while creating upload session',
             ], 500);
         }
     }
 
     /**
      * Handle simple (non-chunked) file upload
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function simpleUpload(Request $request): JsonResponse
     {
@@ -196,7 +190,7 @@ class ChunkUploadController extends Controller
             $modelType = $request->input('model_type', 'global');
             $context = $this->getContextFromModelType($modelType);
             $validationRules = $this->getUploadValidationRules($context);
-            
+
             // Validate the request
             $validator = Validator::make($request->all(), [
                 'file' => $validationRules['file_rules'],
@@ -208,7 +202,7 @@ class ChunkUploadController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -222,18 +216,18 @@ class ChunkUploadController extends Controller
             if ($modelId && $modelType !== 'global') {
                 if ($modelType === 'projects') {
                     $model = Project::find($modelId);
-                    if (!$model || $model->user_id !== $user->id) {
+                    if (! $model || $model->user_id !== $user->id) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Project not found or access denied'
+                            'message' => 'Project not found or access denied',
                         ], 404);
                     }
                 } elseif ($modelType === 'pitches') {
                     $model = Pitch::find($modelId);
-                    if (!$model || $model->user_id !== $user->id) {
+                    if (! $model || $model->user_id !== $user->id) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Pitch not found or access denied'
+                            'message' => 'Pitch not found or access denied',
                         ], 404);
                     }
                 }
@@ -247,7 +241,7 @@ class ChunkUploadController extends Controller
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Simple upload requires a valid model (project or pitch)'
+                    'message' => 'Simple upload requires a valid model (project or pitch)',
                 ], 400);
             }
 
@@ -257,7 +251,7 @@ class ChunkUploadController extends Controller
                 'model_id' => $model->id,
                 'file_record_id' => $fileRecord->id,
                 'filename' => $file->getClientOriginalName(),
-                'file_size' => $file->getSize()
+                'file_size' => $file->getSize(),
             ]);
 
             // For FilePond compatibility, check if this is a FilePond request
@@ -269,8 +263,8 @@ class ChunkUploadController extends Controller
                         'file_id' => $fileRecord->id,
                         'file_type' => get_class($fileRecord),
                         'original_filename' => $file->getClientOriginalName(),
-                        'file_size' => $file->getSize()
-                    ]
+                        'file_size' => $file->getSize(),
+                    ],
                 ]);
             } else {
                 // FilePond expects just the file ID as plain text response
@@ -280,40 +274,37 @@ class ChunkUploadController extends Controller
         } catch (FileUploadException $e) {
             Log::error('File upload exception during simple upload', [
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
             Log::error('Unexpected error during simple upload', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An unexpected error occurred during file upload'
+                'message' => 'An unexpected error occurred during file upload',
             ], 500);
         }
     }
 
     /**
      * Upload an individual chunk
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function uploadChunk(Request $request): JsonResponse
     {
@@ -321,18 +312,18 @@ class ChunkUploadController extends Controller
             // First, get the upload session to determine context
             $uploadSessionId = $request->input('upload_session_id');
             $uploadSession = UploadSession::find($uploadSessionId);
-            
-            if (!$uploadSession) {
+
+            if (! $uploadSession) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Upload session not found'
+                    'message' => 'Upload session not found',
                 ], 404);
             }
 
             // Get context-based validation rules
             $context = $this->getContextFromModelType($uploadSession->model_type);
             $validationRules = $this->getUploadValidationRules($context);
-            
+
             // Validate the request
             $validator = Validator::make($request->all(), [
                 'upload_session_id' => 'required|string|exists:upload_sessions,id',
@@ -345,7 +336,7 @@ class ChunkUploadController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -357,7 +348,7 @@ class ChunkUploadController extends Controller
             if ($uploadSession->user_id !== Auth::id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access to upload session'
+                    'message' => 'Unauthorized access to upload session',
                 ], 403);
             }
 
@@ -365,16 +356,16 @@ class ChunkUploadController extends Controller
             if ($uploadSession->isExpired()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Upload session has expired'
+                    'message' => 'Upload session has expired',
                 ], 410);
             }
 
             // Check if session is in valid state for chunk uploads
-            if (!in_array($uploadSession->status, [UploadSession::STATUS_PENDING, UploadSession::STATUS_UPLOADING])) {
+            if (! in_array($uploadSession->status, [UploadSession::STATUS_PENDING, UploadSession::STATUS_UPLOADING])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Upload session is not in a valid state for chunk uploads',
-                    'current_status' => $uploadSession->status
+                    'current_status' => $uploadSession->status,
                 ], 409);
             }
 
@@ -398,7 +389,7 @@ class ChunkUploadController extends Controller
                 'upload_session_id' => $uploadSessionId,
                 'chunk_index' => $chunkIndex,
                 'user_id' => Auth::id(),
-                'progress_percentage' => $progress['progress_percentage']
+                'progress_percentage' => $progress['progress_percentage'],
             ]);
 
             return response()->json([
@@ -407,8 +398,8 @@ class ChunkUploadController extends Controller
                 'data' => [
                     'chunk_index' => $chunkIndex,
                     'storage_path' => $storagePath,
-                    'progress' => $progress
-                ]
+                    'progress' => $progress,
+                ],
             ]);
 
         } catch (FileUploadException $e) {
@@ -416,19 +407,19 @@ class ChunkUploadController extends Controller
                 'upload_session_id' => $request->input('upload_session_id'),
                 'chunk_index' => $request->input('chunk_index'),
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
@@ -437,21 +428,18 @@ class ChunkUploadController extends Controller
                 'chunk_index' => $request->input('chunk_index'),
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An unexpected error occurred during chunk upload'
+                'message' => 'An unexpected error occurred during chunk upload',
             ], 500);
         }
     }
 
     /**
      * Assemble chunks into final file
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function assembleFile(Request $request): JsonResponse
     {
@@ -467,7 +455,7 @@ class ChunkUploadController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -476,10 +464,10 @@ class ChunkUploadController extends Controller
 
             // Find and authorize the upload session
             $uploadSession = UploadSession::find($uploadSessionId);
-            if (!$uploadSession) {
+            if (! $uploadSession) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Upload session not found'
+                    'message' => 'Upload session not found',
                 ], 404);
             }
 
@@ -487,7 +475,7 @@ class ChunkUploadController extends Controller
             if ($uploadSession->user_id !== Auth::id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access to upload session'
+                    'message' => 'Unauthorized access to upload session',
                 ], 403);
             }
 
@@ -495,7 +483,7 @@ class ChunkUploadController extends Controller
             if ($uploadSession->isExpired()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Upload session has expired'
+                    'message' => 'Upload session has expired',
                 ], 410);
             }
 
@@ -504,17 +492,18 @@ class ChunkUploadController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Upload session is not ready for assembly',
-                    'current_status' => $uploadSession->status
+                    'current_status' => $uploadSession->status,
                 ], 409);
             }
 
             // Validate that all chunks are uploaded
-            if (!$uploadSession->isComplete()) {
+            if (! $uploadSession->isComplete()) {
                 $progress = $this->chunkProcessingService->getUploadProgress($uploadSessionId);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Not all chunks have been uploaded',
-                    'progress' => $progress
+                    'progress' => $progress,
                 ], 400);
             }
 
@@ -529,7 +518,7 @@ class ChunkUploadController extends Controller
                     'success' => false,
                     'message' => 'Incomplete chunk set detected',
                     'expected_chunks' => $uploadSession->total_chunks,
-                    'uploaded_chunks' => $uploadedChunks->count()
+                    'uploaded_chunks' => $uploadedChunks->count(),
                 ], 400);
             }
 
@@ -538,11 +527,11 @@ class ChunkUploadController extends Controller
             $actualIndices = $uploadedChunks->pluck('chunk_index')->toArray();
             $missingIndices = array_diff($expectedIndices, $actualIndices);
 
-            if (!empty($missingIndices)) {
+            if (! empty($missingIndices)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Missing chunks detected',
-                    'missing_chunk_indices' => array_values($missingIndices)
+                    'missing_chunk_indices' => array_values($missingIndices),
                 ], 400);
             }
 
@@ -554,7 +543,7 @@ class ChunkUploadController extends Controller
                 'user_id' => Auth::id(),
                 'file_record_id' => $fileRecord->id,
                 'file_record_type' => get_class($fileRecord),
-                'original_filename' => $uploadSession->original_filename
+                'original_filename' => $uploadSession->original_filename,
             ]);
 
             return response()->json([
@@ -565,15 +554,15 @@ class ChunkUploadController extends Controller
                     'file_type' => get_class($fileRecord),
                     'original_filename' => $uploadSession->original_filename,
                     'file_size' => $uploadSession->total_size,
-                    'upload_session_id' => $uploadSessionId
-                ]
+                    'upload_session_id' => $uploadSessionId,
+                ],
             ]);
 
         } catch (FileUploadException $e) {
             Log::error('File upload exception during assembly', [
                 'upload_session_id' => $request->input('upload_session_id'),
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             // Cleanup on failure
@@ -583,14 +572,14 @@ class ChunkUploadController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
@@ -598,7 +587,7 @@ class ChunkUploadController extends Controller
                 'upload_session_id' => $request->input('upload_session_id'),
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             // Cleanup on failure
@@ -608,26 +597,23 @@ class ChunkUploadController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'An unexpected error occurred during file assembly'
+                'message' => 'An unexpected error occurred during file assembly',
             ], 500);
         }
     }
 
     /**
      * Get upload status and progress information
-     * 
-     * @param string $uploadSessionId
-     * @return JsonResponse
      */
     public function getUploadStatus(string $uploadSessionId): JsonResponse
     {
         try {
             // Find and authorize the upload session
             $uploadSession = UploadSession::find($uploadSessionId);
-            if (!$uploadSession) {
+            if (! $uploadSession) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Upload session not found'
+                    'message' => 'Upload session not found',
                 ], 404);
             }
 
@@ -635,7 +621,7 @@ class ChunkUploadController extends Controller
             if ($uploadSession->user_id !== Auth::id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access to upload session'
+                    'message' => 'Unauthorized access to upload session',
                 ], 403);
             }
 
@@ -646,34 +632,31 @@ class ChunkUploadController extends Controller
                 'upload_session_id' => $uploadSessionId,
                 'user_id' => Auth::id(),
                 'status' => $progress['status'],
-                'progress_percentage' => $progress['progress_percentage']
+                'progress_percentage' => $progress['progress_percentage'],
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Upload status retrieved successfully',
-                'data' => $progress
+                'data' => $progress,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error retrieving upload status', [
                 'upload_session_id' => $uploadSessionId,
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while retrieving upload status'
+                'message' => 'An error occurred while retrieving upload status',
             ], 500);
         }
     }
 
     /**
      * Clean up chunks for an upload session
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function cleanupChunks(Request $request): JsonResponse
     {
@@ -687,7 +670,7 @@ class ChunkUploadController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -695,10 +678,10 @@ class ChunkUploadController extends Controller
 
             // Find and authorize the upload session
             $uploadSession = UploadSession::find($uploadSessionId);
-            if (!$uploadSession) {
+            if (! $uploadSession) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Upload session not found'
+                    'message' => 'Upload session not found',
                 ], 404);
             }
 
@@ -706,21 +689,21 @@ class ChunkUploadController extends Controller
             if ($uploadSession->user_id !== Auth::id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access to upload session'
+                    'message' => 'Unauthorized access to upload session',
                 ], 403);
             }
 
             // Only allow cleanup for failed or completed sessions, or expired sessions
             $allowedStatuses = [
                 UploadSession::STATUS_FAILED,
-                UploadSession::STATUS_COMPLETED
+                UploadSession::STATUS_COMPLETED,
             ];
 
-            if (!in_array($uploadSession->status, $allowedStatuses) && !$uploadSession->isExpired()) {
+            if (! in_array($uploadSession->status, $allowedStatuses) && ! $uploadSession->isExpired()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot cleanup chunks for active upload session',
-                    'current_status' => $uploadSession->status
+                    'current_status' => $uploadSession->status,
                 ], 409);
             }
 
@@ -731,22 +714,22 @@ class ChunkUploadController extends Controller
                 Log::info('Manual chunk cleanup completed', [
                     'upload_session_id' => $uploadSessionId,
                     'user_id' => Auth::id(),
-                    'session_status' => $uploadSession->status
+                    'session_status' => $uploadSession->status,
                 ]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Chunks cleaned up successfully'
+                    'message' => 'Chunks cleaned up successfully',
                 ]);
             } else {
                 Log::warning('Manual chunk cleanup completed with errors', [
                     'upload_session_id' => $uploadSessionId,
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Chunk cleanup completed with some errors'
+                    'message' => 'Chunk cleanup completed with some errors',
                 ], 500);
             }
 
@@ -754,28 +737,25 @@ class ChunkUploadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
             Log::error('Error during manual chunk cleanup', [
                 'upload_session_id' => $request->input('upload_session_id'),
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred during chunk cleanup'
+                'message' => 'An error occurred during chunk cleanup',
             ], 500);
         }
     }
 
     /**
      * Cancel an upload session and clean up resources
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function cancelUpload(Request $request): JsonResponse
     {
@@ -783,14 +763,14 @@ class ChunkUploadController extends Controller
             // Validate the request
             $validator = Validator::make($request->all(), [
                 'upload_session_id' => 'required|string|exists:upload_sessions,id',
-                'reason' => 'nullable|string|max:255'
+                'reason' => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -799,10 +779,10 @@ class ChunkUploadController extends Controller
 
             // Find and authorize the upload session
             $uploadSession = UploadSession::find($uploadSessionId);
-            if (!$uploadSession) {
+            if (! $uploadSession) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Upload session not found'
+                    'message' => 'Upload session not found',
                 ], 404);
             }
 
@@ -810,7 +790,7 @@ class ChunkUploadController extends Controller
             if ($uploadSession->user_id !== Auth::id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access to upload session'
+                    'message' => 'Unauthorized access to upload session',
                 ], 403);
             }
 
@@ -818,14 +798,14 @@ class ChunkUploadController extends Controller
             $cancellableStatuses = [
                 UploadSession::STATUS_PENDING,
                 UploadSession::STATUS_UPLOADING,
-                UploadSession::STATUS_ASSEMBLING
+                UploadSession::STATUS_ASSEMBLING,
             ];
 
-            if (!in_array($uploadSession->status, $cancellableStatuses)) {
+            if (! in_array($uploadSession->status, $cancellableStatuses)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot cancel upload session in current status',
-                    'current_status' => $uploadSession->status
+                    'current_status' => $uploadSession->status,
                 ], 409);
             }
 
@@ -839,7 +819,7 @@ class ChunkUploadController extends Controller
                 'upload_session_id' => $uploadSessionId,
                 'user_id' => Auth::id(),
                 'reason' => $reason,
-                'cleanup_success' => $cleanupSuccess
+                'cleanup_success' => $cleanupSuccess,
             ]);
 
             return response()->json([
@@ -847,27 +827,27 @@ class ChunkUploadController extends Controller
                 'message' => 'Upload cancelled successfully',
                 'data' => [
                     'upload_session_id' => $uploadSessionId,
-                    'cleanup_success' => $cleanupSuccess
-                ]
+                    'cleanup_success' => $cleanupSuccess,
+                ],
             ]);
 
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
             Log::error('Error during upload cancellation', [
                 'upload_session_id' => $request->input('upload_session_id'),
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred during upload cancellation'
+                'message' => 'An error occurred during upload cancellation',
             ], 500);
         }
     }

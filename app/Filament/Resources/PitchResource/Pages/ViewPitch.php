@@ -8,4 +8,4 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewPitch extends ViewRecord
 {
     protected static string $resource = PitchResource::class;
-} 
+}

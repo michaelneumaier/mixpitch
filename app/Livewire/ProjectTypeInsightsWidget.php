@@ -27,7 +27,7 @@ class ProjectTypeInsightsWidget extends Component
             ->map(function ($projects) {
                 return [
                     'count' => $projects->count(),
-                    'type' => $projects->first()->projectType
+                    'type' => $projects->first()->projectType,
                 ];
             })
             ->sortByDesc('count')
@@ -48,7 +48,7 @@ class ProjectTypeInsightsWidget extends Component
             'total_projects' => $totalProjects,
             'active_types' => $activeTypes,
             'recent_projects' => $recentProjects,
-            'growth_rate' => $recentProjects > 0 ? round(($recentProjects / 7), 1) : 0
+            'growth_rate' => $recentProjects > 0 ? round(($recentProjects / 7), 1) : 0,
         ];
     }
 

@@ -15,13 +15,13 @@ return new class extends Migration
             // Add producer details for payout tracking
             $table->foreignId('producer_user_id')->nullable()->after('user_id')->constrained('users')->onDelete('set null');
             $table->string('producer_stripe_account_id')->nullable()->after('producer_user_id');
-            
+
             // Add workflow context
             $table->string('workflow_type', 50)->nullable()->after('user_subscription_tier');
-            
+
             // Add payout schedule relationship
             $table->foreignId('payout_schedule_id')->nullable()->after('pitch_id')->constrained()->onDelete('set null');
-            
+
             // Add indexes for better performance
             $table->index('producer_user_id');
             $table->index('workflow_type');
@@ -40,13 +40,13 @@ return new class extends Migration
             $table->dropIndex(['producer_user_id']);
             $table->dropIndex(['workflow_type']);
             $table->dropIndex(['status', 'type']);
-            
+
             $table->dropColumn([
                 'producer_user_id',
                 'producer_stripe_account_id',
                 'workflow_type',
-                'payout_schedule_id'
+                'payout_schedule_id',
             ]);
         });
     }
-}; 
+};

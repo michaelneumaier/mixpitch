@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -16,7 +16,7 @@ return new class extends Migration
         if (Schema::hasColumn('users', 'is_username_locked')) {
             // First, copy any data from is_username_locked to username_locked if needed
             DB::statement('UPDATE users SET username_locked = is_username_locked WHERE username_locked = 0 AND is_username_locked = 1');
-            
+
             Schema::table('users', function (Blueprint $table) {
                 $table->dropColumn('is_username_locked');
             });

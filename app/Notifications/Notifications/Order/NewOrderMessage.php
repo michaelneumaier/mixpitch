@@ -14,7 +14,9 @@ class NewOrderMessage extends Notification implements ShouldQueue
     use Queueable;
 
     protected $order;
+
     protected $sender;
+
     protected $messageContent;
 
     /**
@@ -23,7 +25,7 @@ class NewOrderMessage extends Notification implements ShouldQueue
     public function __construct(Order $order, User $sender, string $messageContent)
     {
         $this->order = $order->withoutRelations();
-        $this->sender = $sender; 
+        $this->sender = $sender;
         $this->messageContent = $messageContent;
     }
 
@@ -47,15 +49,15 @@ class NewOrderMessage extends Notification implements ShouldQueue
         $senderRole = ($this->sender->id === $this->order->client_user_id) ? 'Client' : 'Producer';
 
         // Truncate message for subject/preview line if too long
-        $messagePreview = strlen($this->messageContent) > 50 ? substr($this->messageContent, 0, 47) . '...' : $this->messageContent;
+        $messagePreview = strlen($this->messageContent) > 50 ? substr($this->messageContent, 0, 47).'...' : $this->messageContent;
 
         return (new MailMessage)
-                    ->subject("New Message on Order #{$this->order->id} from {$senderName}")
-                    ->greeting('Hello ' . ($notifiable->name ?? 'User') . ',')
-                    ->line("You have received a new message regarding Order #{$this->order->id} ('{$this->order->servicePackage->title}') from the {$senderRole} ({$senderName}).")
-                    ->line("Message:")
-                    ->line("> " . nl2br(e($this->messageContent))) // Blockquote style
-                    ->action('View Order & Reply', $orderUrl);
+            ->subject("New Message on Order #{$this->order->id} from {$senderName}")
+            ->greeting('Hello '.($notifiable->name ?? 'User').',')
+            ->line("You have received a new message regarding Order #{$this->order->id} ('{$this->order->servicePackage->title}') from the {$senderRole} ({$senderName}).")
+            ->line('Message:')
+            ->line('> '.nl2br(e($this->messageContent))) // Blockquote style
+            ->action('View Order & Reply', $orderUrl);
     }
 
     /**
@@ -65,7 +67,8 @@ class NewOrderMessage extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-         $senderRole = ($this->sender->id === $this->order->client_user_id) ? 'Client' : 'Producer';
+        $senderRole = ($this->sender->id === $this->order->client_user_id) ? 'Client' : 'Producer';
+
         return [
             'order_id' => $this->order->id,
             'order_title' => $this->order->servicePackage->title ?? 'N/A',
@@ -73,7 +76,7 @@ class NewOrderMessage extends Notification implements ShouldQueue
             'sender_name' => $this->sender->name ?? 'N/A',
             'sender_role' => $senderRole,
             'message' => "New message from {$senderRole} on order #{$this->order->id}.",
-            'message_content_preview' => strlen($this->messageContent) > 100 ? substr($this->messageContent, 0, 97) . '...' : $this->messageContent,
+            'message_content_preview' => strlen($this->messageContent) > 100 ? substr($this->messageContent, 0, 97).'...' : $this->messageContent,
             'url' => route('orders.show', $this->order),
         ];
     }

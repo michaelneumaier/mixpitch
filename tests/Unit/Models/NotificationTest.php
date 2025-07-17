@@ -8,7 +8,6 @@ use App\Models\PitchFile;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class NotificationTest extends TestCase
@@ -16,7 +15,9 @@ class NotificationTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected Pitch $pitch;
 
     protected function setUp(): void
@@ -128,10 +129,10 @@ class NotificationTest extends TestCase
             'related_id' => $pitchFile->id,
             'related_type' => PitchFile::class,
             'type' => Notification::TYPE_PITCH_FILE_COMMENT,
-            'data' => ['comment_id' => $commentId]
+            'data' => ['comment_id' => $commentId],
         ]);
 
-        $expectedUrl = route('pitch-files.show', $pitchFile) . '#comment-' . $commentId;
+        $expectedUrl = route('pitch-files.show', $pitchFile).'#comment-'.$commentId;
         $this->assertEquals($expectedUrl, $notification->getUrl());
     }
 
@@ -153,6 +154,7 @@ class NotificationTest extends TestCase
 
     /**
      * @dataProvider notificationDescriptionProvider
+     *
      * @test
      */
     public function get_readable_description_returns_correct_string(string $type, array $dataTemplate, string $relatedModelClass, array $expectedStringContains)
@@ -165,7 +167,7 @@ class NotificationTest extends TestCase
         $testPitchFile = PitchFile::factory()->for($testPitch)->create(['original_file_name' => 'audio-test.mp3']);
 
         // Prepare data by replacing placeholders
-        $data = collect($dataTemplate)->map(function ($value) use ($testSubmitter, $testProject, $testPitch, $testPitchFile) {
+        $data = collect($dataTemplate)->map(function ($value) use ($testSubmitter, $testProject, $testPitchFile) {
             return match ($value) {
                 '{submitterName}' => $testSubmitter->name,
                 '{projectName}' => $testProject->name,
@@ -196,8 +198,8 @@ class NotificationTest extends TestCase
         $description = $notification->getReadableDescription();
 
         // Prepare expected strings
-        $resolvedExpected = collect($expectedStringContains)->map(function ($value) use ($testSubmitter, $testProject, $testPitch, $testPitchFile, $data) {
-             return match ($value) {
+        $resolvedExpected = collect($expectedStringContains)->map(function ($value) use ($testSubmitter, $testProject, $testPitchFile, $data) {
+            return match ($value) {
                 '{submitterName}' => $testSubmitter->name,
                 '{projectName}' => $testProject->name,
                 '{pitchTitle}' => 'Pitch Title Placeholder',
@@ -223,43 +225,43 @@ class NotificationTest extends TestCase
                 Notification::TYPE_PITCH_SUBMITTED,
                 ['project_name' => '{projectName}', 'submitter_name' => '{submitterName}'],
                 Pitch::class,
-                ['{submitterName}', 'submitted a pitch for project', '{projectName}']
+                ['{submitterName}', 'submitted a pitch for project', '{projectName}'],
             ],
             'pitch_status_change_approved' => [
                 Notification::TYPE_PITCH_STATUS_CHANGE,
                 ['status' => Pitch::STATUS_APPROVED, 'project_name' => '{projectName}'],
                 Pitch::class,
-                ['Pitch status updated to "approved" for project', '{projectName}']
+                ['Pitch status updated to "approved" for project', '{projectName}'],
             ],
             'pitch_comment' => [
                 Notification::TYPE_PITCH_COMMENT,
                 ['commenter_name' => '{submitterName}', 'project_name' => '{projectName}'],
                 Pitch::class,
-                ['{submitterName}', 'commented on your pitch for project', '{projectName}']
+                ['{submitterName}', 'commented on your pitch for project', '{projectName}'],
             ],
             'pitch_file_comment' => [
                 Notification::TYPE_PITCH_FILE_COMMENT,
                 ['commenter_name' => '{submitterName}'],
                 PitchFile::class,
-                ['{submitterName}', 'commented on your audio file']
+                ['{submitterName}', 'commented on your audio file'],
             ],
             'snapshot_approved' => [
                 Notification::TYPE_SNAPSHOT_APPROVED,
                 ['project_name' => '{projectName}'],
                 Pitch::class,
-                ['Your snapshot for pitch on project', '{projectName}', 'was approved']
+                ['Your snapshot for pitch on project', '{projectName}', 'was approved'],
             ],
             'file_uploaded' => [
                 Notification::TYPE_FILE_UPLOADED,
                 ['uploader_name' => '{uploaderName}', 'file_name' => '{fileName}', 'project_name' => '{projectName}'],
                 Pitch::class,
-                ['{uploaderName}', 'uploaded', '{fileName}', 'to a pitch on project', '{projectName}']
+                ['{uploaderName}', 'uploaded', '{fileName}', 'to a pitch on project', '{projectName}'],
             ],
             'payment_processed' => [
                 Notification::TYPE_PAYMENT_PROCESSED,
                 ['project_name' => '{projectName}', 'amount' => '{amount}'],
                 Pitch::class,
-                ['Payment processed for your pitch on project', '{projectName}']
+                ['Payment processed for your pitch on project', '{projectName}'],
             ],
         ];
     }
@@ -278,8 +280,7 @@ class NotificationTest extends TestCase
         // Should still return a generic message without errors
         $description = $notification->getReadableDescription();
         // Update assertion to match the new default for PITCH_SUBMITTED
-        $this->assertEquals('A producer submitted a pitch for project', $description); 
+        $this->assertEquals('A producer submitted a pitch for project', $description);
         $this->assertStringNotContainsString('""', $description); // Ensure project name fallback doesn't show empty quotes
     }
-
-} 
+}

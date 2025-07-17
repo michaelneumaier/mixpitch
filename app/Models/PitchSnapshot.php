@@ -11,12 +11,18 @@ class PitchSnapshot extends Model
 
     // Status Constants
     const STATUS_PENDING = 'pending';
+
     const STATUS_ACCEPTED = 'accepted';
+
     const STATUS_DENIED = 'denied';
+
     const STATUS_REVISIONS_REQUESTED = 'revisions_requested';
+
     const STATUS_CANCELLED = 'cancelled'; // Added for cancellation feature
+
     // Removed unused statuses based on current implementation, can be added back if needed
-    const STATUS_REVISION_ADDRESSED = 'revision_addressed'; 
+    const STATUS_REVISION_ADDRESSED = 'revision_addressed';
+
     const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [
@@ -57,7 +63,7 @@ class PitchSnapshot extends Model
         if (empty($fileIds)) {
             return collect();
         }
-        
+
         return PitchFile::whereIn('id', $fileIds)->orderBy('created_at')->get();
     }
 
@@ -83,7 +89,8 @@ class PitchSnapshot extends Model
     public function hasFiles(): bool
     {
         $fileIds = $this->snapshot_data['file_ids'] ?? [];
-        return !empty($fileIds);
+
+        return ! empty($fileIds);
     }
 
     /**
@@ -96,8 +103,6 @@ class PitchSnapshot extends Model
 
     /**
      * Get all defined status constants.
-     *
-     * @return array
      */
     public static function getStatuses(): array
     {
@@ -117,13 +122,12 @@ class PitchSnapshot extends Model
     {
         // Use a static map for labels
         $statusMapping = self::getStatusLabels();
+
         return $statusMapping[$this->status] ?? ucfirst($this->status);
     }
 
     /**
      * Get a map of status constants to human-readable labels.
-     *
-     * @return array
      */
     public static function getStatusLabels(): array
     {
@@ -146,8 +150,6 @@ class PitchSnapshot extends Model
 
     /**
      * Check if the snapshot is approved (accepted)
-     *
-     * @return bool
      */
     public function isAccepted(): bool // Renamed from isApproved for clarity
     {
@@ -156,8 +158,6 @@ class PitchSnapshot extends Model
 
     /**
      * Check if the snapshot is denied
-     *
-     * @return bool
      */
     public function isDenied(): bool
     {
@@ -166,8 +166,6 @@ class PitchSnapshot extends Model
 
     /**
      * Check if the snapshot is pending review
-     *
-     * @return bool
      */
     public function isPending(): bool
     {
@@ -176,8 +174,6 @@ class PitchSnapshot extends Model
 
     /**
      * Check if the snapshot is cancelled
-     *
-     * @return bool
      */
     public function isCancelled(): bool
     {
@@ -186,19 +182,17 @@ class PitchSnapshot extends Model
 
     /**
      * Change the status of the snapshot
-     *
-     * @param string $status
-     * @return bool
      */
     public function changeStatus(string $status): bool
     {
         $allowedStatuses = self::getStatuses();
 
-        if (!in_array($status, $allowedStatuses)) {
+        if (! in_array($status, $allowedStatuses)) {
             throw new \InvalidArgumentException("Invalid snapshot status: {$status}");
         }
 
         $this->status = $status;
+
         return $this->save();
     }
 }

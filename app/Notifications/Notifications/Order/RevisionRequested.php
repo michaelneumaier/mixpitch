@@ -14,6 +14,7 @@ class RevisionRequested extends Notification implements ShouldQueue
     use Queueable;
 
     protected $order;
+
     protected $feedback;
 
     /**
@@ -44,13 +45,13 @@ class RevisionRequested extends Notification implements ShouldQueue
         $clientName = $this->order->client->name ?? 'The Client';
 
         return (new MailMessage)
-                    ->subject('Revision Requested for Order #' . $this->order->id)
-                    ->greeting('Hello ' . ($notifiable->name ?? 'Producer') . ',')
-                    ->line("{$clientName} has requested revisions for Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line('Please review the feedback below and submit an updated delivery.')
-                    ->line(new HtmlString("<strong>Client Feedback:</strong><br><pre style=\"white-space: pre-wrap; background-color: #f8f9fa; padding: 10px; border-radius: 4px;\">" . e($this->feedback) . "</pre>"))
-                    ->action('View Order', $orderUrl)
-                    ->line('Thank you for using our platform!');
+            ->subject('Revision Requested for Order #'.$this->order->id)
+            ->greeting('Hello '.($notifiable->name ?? 'Producer').',')
+            ->line("{$clientName} has requested revisions for Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line('Please review the feedback below and submit an updated delivery.')
+            ->line(new HtmlString('<strong>Client Feedback:</strong><br><pre style="white-space: pre-wrap; background-color: #f8f9fa; padding: 10px; border-radius: 4px;">'.e($this->feedback).'</pre>'))
+            ->action('View Order', $orderUrl)
+            ->line('Thank you for using our platform!');
     }
 
     /**
@@ -64,7 +65,7 @@ class RevisionRequested extends Notification implements ShouldQueue
             'order_id' => $this->order->id,
             'order_title' => $this->order->servicePackage->title ?? 'N/A',
             'client_name' => $this->order->client->name ?? 'N/A',
-            'message' => 'Revisions requested for Order #' . $this->order->id,
+            'message' => 'Revisions requested for Order #'.$this->order->id,
             'feedback' => $this->feedback,
             'url' => route('orders.show', $this->order),
         ];

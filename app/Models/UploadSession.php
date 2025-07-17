@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Carbon\Carbon;
 
 class UploadSession extends Model
 {
@@ -24,7 +23,7 @@ class UploadSession extends Model
         'uploaded_chunks',
         'status',
         'metadata',
-        'expires_at'
+        'expires_at',
     ];
 
     protected $casts = [
@@ -33,14 +32,18 @@ class UploadSession extends Model
         'total_size' => 'integer',
         'chunk_size' => 'integer',
         'total_chunks' => 'integer',
-        'uploaded_chunks' => 'integer'
+        'uploaded_chunks' => 'integer',
     ];
 
     // Status constants
     const STATUS_PENDING = 'pending';
+
     const STATUS_UPLOADING = 'uploading';
+
     const STATUS_ASSEMBLING = 'assembling';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_FAILED = 'failed';
 
     // Valid status transitions
@@ -49,7 +52,7 @@ class UploadSession extends Model
         self::STATUS_UPLOADING => [self::STATUS_ASSEMBLING, self::STATUS_FAILED],
         self::STATUS_ASSEMBLING => [self::STATUS_COMPLETED, self::STATUS_FAILED],
         self::STATUS_COMPLETED => [],
-        self::STATUS_FAILED => [self::STATUS_PENDING, self::STATUS_UPLOADING]
+        self::STATUS_FAILED => [self::STATUS_PENDING, self::STATUS_UPLOADING],
     ];
 
     /**
@@ -97,11 +100,12 @@ class UploadSession extends Model
      */
     public function transitionTo(string $newStatus): bool
     {
-        if (!$this->canTransitionTo($newStatus)) {
+        if (! $this->canTransitionTo($newStatus)) {
             return false;
         }
 
         $this->status = $newStatus;
+
         return $this->save();
     }
 
@@ -111,8 +115,8 @@ class UploadSession extends Model
     public function canTransitionTo(string $newStatus): bool
     {
         $currentStatus = $this->status;
-        
-        if (!isset(self::VALID_TRANSITIONS[$currentStatus])) {
+
+        if (! isset(self::VALID_TRANSITIONS[$currentStatus])) {
             return false;
         }
 
@@ -153,6 +157,7 @@ class UploadSession extends Model
     public function incrementUploadedChunks(): bool
     {
         $this->uploaded_chunks = $this->uploaded_chunks + 1;
+
         return $this->save();
     }
 
@@ -166,8 +171,9 @@ class UploadSession extends Model
             $metadata['error'] = $errorMessage;
             $metadata['failed_at'] = now()->toISOString();
         }
-        
+
         $this->metadata = $metadata;
+
         return $this->transitionTo(self::STATUS_FAILED);
     }
 
@@ -205,7 +211,7 @@ class UploadSession extends Model
             self::STATUS_UPLOADING,
             self::STATUS_ASSEMBLING,
             self::STATUS_COMPLETED,
-            self::STATUS_FAILED
+            self::STATUS_FAILED,
         ];
     }
 }

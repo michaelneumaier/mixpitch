@@ -185,8 +185,8 @@
                 <div class="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
                     <i class="fas fa-hdd text-blue-600"></i>
                     <div>
-                        <p class="font-medium text-blue-900">{{ $user->getStoragePerProjectGB() }}GB Storage</p>
-                        <p class="text-sm text-blue-700">Per project</p>
+                        <p class="font-medium text-blue-900">{{ $user->getStorageLimitGB() }}GB Storage</p>
+                        <p class="text-sm text-blue-700">Total storage</p>
                     </div>
                 </div>
 

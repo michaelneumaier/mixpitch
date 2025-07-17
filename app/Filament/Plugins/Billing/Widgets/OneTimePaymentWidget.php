@@ -2,12 +2,12 @@
 
 namespace App\Filament\Plugins\Billing\Widgets;
 
-use Filament\Widgets\Widget;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
+use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 
@@ -16,18 +16,20 @@ class OneTimePaymentWidget extends Widget implements Forms\Contracts\HasForms
     use Forms\Concerns\InteractsWithForms;
 
     protected static string $view = 'filament.widgets.billing.one-time-payment-widget';
-    
-    protected int | string | array $columnSpan = 'full';
-    
+
+    protected int|string|array $columnSpan = 'full';
+
     public ?array $paymentMethod = null;
+
     public bool $hasPaymentMethod = false;
+
     public ?array $data = [];
 
     public function mount(): void
     {
         $user = Auth::user();
         $this->hasPaymentMethod = $user->hasDefaultPaymentMethod();
-        
+
         if ($this->hasPaymentMethod) {
             $method = $user->defaultPaymentMethod();
             $this->paymentMethod = [
@@ -38,10 +40,10 @@ class OneTimePaymentWidget extends Widget implements Forms\Contracts\HasForms
                 'exp_year' => $method->card->exp_year,
             ];
         }
-        
+
         $this->form->fill();
     }
-    
+
     public function form(Form $form): Form
     {
         return $form
@@ -67,15 +69,15 @@ class OneTimePaymentWidget extends Widget implements Forms\Contracts\HasForms
             ])
             ->statePath('data');
     }
-    
+
     #[On('payment-method-updated')]
     public function refreshPaymentMethod(): void
     {
         $user = Auth::user();
-        
+
         // Refresh payment method data
         $this->hasPaymentMethod = $user->hasDefaultPaymentMethod();
-        
+
         if ($this->hasPaymentMethod) {
             $method = $user->defaultPaymentMethod();
             $this->paymentMethod = [
@@ -85,18 +87,18 @@ class OneTimePaymentWidget extends Widget implements Forms\Contracts\HasForms
                 'exp_month' => $method->card->exp_month,
                 'exp_year' => $method->card->exp_year,
             ];
-            
+
             $this->data['payment_method'] = $method->id;
         } else {
             $this->paymentMethod = null;
             $this->data['payment_method'] = null;
         }
     }
-    
+
     public function processPayment(): void
     {
         $data = $this->form->getState();
-        
+
         // Validate that we have a payment method
         if (empty($data['payment_method'])) {
             Notification::make()
@@ -104,23 +106,23 @@ class OneTimePaymentWidget extends Widget implements Forms\Contracts\HasForms
                 ->body('Please add a payment method before making a payment.')
                 ->danger()
                 ->send();
-                
+
             return;
         }
-        
+
         $user = Auth::user();
         $amount = floatval($data['amount']) * 100; // Convert to cents
         $description = $data['description'] ?? 'One-time payment';
         $paymentMethod = $data['payment_method'];
-        
+
         try {
             // Create Stripe customer if one doesn't exist yet
-            if (!$user->stripe_id) {
+            if (! $user->stripe_id) {
                 $user->createAsStripeCustomer();
             }
-            
+
             $stripe = new \Stripe\StripeClient(config('cashier.secret'));
-            
+
             // First create the invoice
             $invoice = $stripe->invoices->create([
                 'customer' => $user->stripe_id,
@@ -130,52 +132,52 @@ class OneTimePaymentWidget extends Widget implements Forms\Contracts\HasForms
                 'metadata' => [
                     'source' => 'one_time_payment',
                     'user_id' => $user->id,
-                    'amount' => $amount
-                ]
+                    'amount' => $amount,
+                ],
             ]);
-            
+
             // Then create an invoice item attached to the invoice
             $invoiceItem = $stripe->invoiceItems->create([
                 'customer' => $user->stripe_id,
-                'amount' => (int)$amount, // Ensure amount is an integer
+                'amount' => (int) $amount, // Ensure amount is an integer
                 'currency' => 'usd',
                 'description' => $description,
                 'invoice' => $invoice->id, // Attach to the invoice we just created
             ]);
-            
+
             // Finalize the invoice
             $invoice = $stripe->invoices->finalizeInvoice($invoice->id);
-            
+
             // Pay the invoice using the specified payment method
             $payResult = $stripe->invoices->pay($invoice->id, [
                 'payment_method' => $paymentMethod,
                 'off_session' => true,
             ]);
-            
+
             // Reset the form
             $this->form->fill([
                 'amount' => null,
                 'description' => null,
                 'payment_method' => $this->paymentMethod['id'],
             ]);
-            
+
             // Notify user of success
             Notification::make()
                 ->title('Payment processed')
-                ->body('Your payment of $' . number_format($amount / 100, 2) . ' was successful.')
+                ->body('Your payment of $'.number_format($amount / 100, 2).' was successful.')
                 ->success()
                 ->send();
-                
+
             // Emit event to refresh invoice list
             $this->dispatch('invoices-updated');
-            
+
         } catch (\Stripe\Exception\CardException $e) {
             Notification::make()
                 ->title('Card error')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
-                
+
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Error processing payment')
@@ -184,4 +186,4 @@ class OneTimePaymentWidget extends Widget implements Forms\Contracts\HasForms
                 ->send();
         }
     }
-} 
+}

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LicenseTemplate;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LicenseController extends Controller
@@ -16,16 +15,16 @@ class LicenseController extends Controller
     {
         try {
             // Check if user can access this license
-            if (!$this->canUserAccessLicense($license)) {
+            if (! $this->canUserAccessLicense($license)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Access denied to this license template'
+                    'message' => 'Access denied to this license template',
                 ], 403);
             }
 
             // Get the rendered license content and properly format it
             $content = $license->generateLicenseContent();
-            
+
             // Convert newlines to HTML breaks and escape content properly
             $formattedContent = nl2br(e($content));
 
@@ -38,12 +37,12 @@ class LicenseController extends Controller
                     'category' => $license->category,
                     'content' => $formattedContent,
                     'license_terms' => $license->terms,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error loading license preview'
+                'message' => 'Error loading license preview',
             ], 500);
         }
     }
@@ -54,8 +53,8 @@ class LicenseController extends Controller
     private function canUserAccessLicense(LicenseTemplate $license): bool
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
 
@@ -68,7 +67,7 @@ class LicenseController extends Controller
         if ($license->is_system_template || $license->user_id === null) {
             return true;
         }
-        
+
         // User can access marketplace licenses
         if (isset($license->is_marketplace) && $license->is_marketplace) {
             return true;
@@ -81,4 +80,4 @@ class LicenseController extends Controller
 
         return false;
     }
-} 
+}

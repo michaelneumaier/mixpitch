@@ -1,20 +1,22 @@
 <?php
+
 namespace App\Services;
 
+use App\Exceptions\Pitch\CompletionValidationException;
+use App\Exceptions\Pitch\UnauthorizedActionException;
 use App\Models\Pitch;
+use App\Models\PitchSnapshot;
 use App\Models\Project;
 use App\Models\User;
-use App\Models\PitchSnapshot;
+use App\Services\Project\ProjectManagementService; // Assuming this exists or will be created
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Exceptions\Pitch\CompletionValidationException; // Assuming this exists or will be created
-use App\Exceptions\Pitch\UnauthorizedActionException;
-use App\Services\Project\ProjectManagementService;
 use Illuminate\Support\Facades\URL;
 
 class PitchCompletionService
 {
     protected $projectManagementService;
+
     protected $notificationService;
 
     public function __construct(
@@ -28,11 +30,12 @@ class PitchCompletionService
     /**
      * Mark a pitch as completed, close others, and complete the project.
      *
-     * @param Pitch $pitchToComplete The pitch being marked as complete.
-     * @param User $completingUser (Project Owner)
-     * @param string|null $feedback Optional feedback.
-     * @param int|null $rating Optional rating (1-5).
+     * @param  Pitch  $pitchToComplete  The pitch being marked as complete.
+     * @param  User  $completingUser  (Project Owner)
+     * @param  string|null  $feedback  Optional feedback.
+     * @param  int|null  $rating  Optional rating (1-5).
      * @return Pitch The completed pitch.
+     *
      * @throws CompletionValidationException|UnauthorizedActionException|\RuntimeException
      */
     public function completePitch(Pitch $pitchToComplete, User $completingUser, ?string $feedback = null, ?int $rating = null): Pitch
@@ -62,7 +65,7 @@ class PitchCompletionService
         }
 
         try {
-            DB::transaction(function() use ($pitchToComplete, $project, $completingUser, $feedback, $rating) {
+            DB::transaction(function () use ($pitchToComplete, $project, $completingUser, $feedback, $rating) {
                 // 1. Mark the selected pitch as completed
                 $pitchToComplete->status = Pitch::STATUS_COMPLETED;
                 $pitchToComplete->completed_at = now();
@@ -89,7 +92,7 @@ class PitchCompletionService
                         ->whereNotIn('status', [
                             Pitch::STATUS_COMPLETED,
                             Pitch::STATUS_CLOSED,
-                            Pitch::STATUS_DENIED // Keep denied as is?
+                            Pitch::STATUS_DENIED, // Keep denied as is?
                         ]) // Close pending, in_progress, approved, revisions_requested etc.
                         ->get();
 
@@ -117,7 +120,7 @@ class PitchCompletionService
                 // 5. Create Event for the completed pitch, including the rating
                 $pitchToComplete->events()->create([
                     'event_type' => 'status_change',
-                    'comment' => 'Pitch marked as completed by project owner.' . ($feedback ? " Feedback: {$feedback}" : ''),
+                    'comment' => 'Pitch marked as completed by project owner.'.($feedback ? " Feedback: {$feedback}" : ''),
                     'status' => $pitchToComplete->status,
                     'created_by' => $completingUser->id,
                     'rating' => $rating, // Save the rating here
@@ -157,10 +160,10 @@ class PitchCompletionService
                 'pitch_id' => $pitchToComplete->id,
                 'user_id' => $completingUser->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString() // Optional for detailed debugging
+                'trace' => $e->getTraceAsString(), // Optional for detailed debugging
             ]);
             // Re-throw a runtime exception to indicate failure
             throw new \RuntimeException('An unexpected error occurred while completing the pitch.', 0, $e);
         }
     }
-} 
+}

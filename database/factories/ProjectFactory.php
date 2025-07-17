@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Factories;
 
 use App\Models\Project;
@@ -99,7 +100,8 @@ class ProjectFactory extends Factory
                     $state['client_name'] = $options['client_name'] ?? $this->faker->name();
                     break;
             }
+
             return $state;
         });
     }
-} 
+}

@@ -71,11 +71,12 @@ class PayoutHoldSetting extends Model
      */
     public function getHoldDaysForWorkflow(string $workflowType): int
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return 0;
         }
 
         $workflowDays = $this->workflow_days ?? [];
+
         return $workflowDays[$workflowType] ?? $this->default_days;
     }
 
@@ -113,4 +114,4 @@ class PayoutHoldSetting extends Model
             'log_bypasses' => 'boolean',
         ];
     }
-} 
+}

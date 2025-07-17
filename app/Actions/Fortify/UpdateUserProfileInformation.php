@@ -4,18 +4,17 @@ namespace App\Actions\Fortify;
 
 use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class UpdateUserProfileInformation implements UpdatesUserProfileInformation
 {
     /**
      * Validate and update the given user's profile information.
      *
-     * @param  User $user
      * @param  array<string, mixed>  $input
      */
     public function update(User $user, array $input): void
@@ -54,12 +53,12 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             'social_links' => $input['social_links'] ?? [],
             'tipjar_link' => $input['tipjar_link'] ?? null,
         ];
-        
+
         $needsVerification = $input['email'] !== $user->email && $user instanceof MustVerifyEmail;
         if ($needsVerification) {
             $userData['email_verified_at'] = null;
         }
-        
+
         DB::transaction(function () use ($user, $userData, $input, $needsVerification) {
             Log::info('Updating user profile inside transaction', ['user_id' => $user->id, 'data' => $userData]);
             $user->forceFill($userData)->save();
@@ -74,7 +73,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
                 $input['equipmentTags'] ?? [],
                 $input['specialtyTags'] ?? []
             );
-            $user->tags()->sync($allTagIds); 
+            $user->tags()->sync($allTagIds);
 
             if ($needsVerification) {
                 $user->sendEmailVerificationNotification();
@@ -85,7 +84,6 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
     /**
      * Update the given verified user's profile information.
      *
-     * @param  User $user
      * @param  array<string, string>  $input
      */
     protected function updateVerifiedUser(User $user, array $input): void

@@ -11,11 +11,15 @@ class UploadProjectComponent extends Component
     use WithFileUploads;
 
     public $step = 1;
+
     public $projectName;
+
     public $projectGenre;
 
     public $projectDescription;
+
     public $projectImage = null;
+
     public $files;
 
     public $projectId;
@@ -43,7 +47,7 @@ class UploadProjectComponent extends Component
             'projectImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $project = new Project();
+        $project = new Project;
         $project->user_id = auth()->id();
         $project->name = $this->projectName;
         $project->description = $this->projectDescription;
@@ -63,7 +67,6 @@ class UploadProjectComponent extends Component
         $this->projectId = $project->id;
         $this->projectSlug = $project->slug;
         $this->step = 2;
-
 
     }
 }

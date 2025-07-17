@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class UploadChunk extends Model
 {
@@ -18,18 +18,21 @@ class UploadChunk extends Model
         'chunk_hash',
         'storage_path',
         'size',
-        'status'
+        'status',
     ];
 
     protected $casts = [
         'chunk_index' => 'integer',
-        'size' => 'integer'
+        'size' => 'integer',
     ];
 
     // Status constants
     const STATUS_PENDING = 'pending';
+
     const STATUS_UPLOADED = 'uploaded';
+
     const STATUS_VERIFIED = 'verified';
+
     const STATUS_FAILED = 'failed';
 
     /**
@@ -48,56 +51,60 @@ class UploadChunk extends Model
         try {
             // Use provided hash or the stored hash
             $hashToValidate = $expectedHash ?? $this->chunk_hash;
-            
-            if (!$hashToValidate) {
-                Log::warning("No hash available for chunk validation", [
+
+            if (! $hashToValidate) {
+                Log::warning('No hash available for chunk validation', [
                     'chunk_id' => $this->id,
-                    'upload_session_id' => $this->upload_session_id
+                    'upload_session_id' => $this->upload_session_id,
                 ]);
+
                 return false;
             }
 
             // Check if file exists
-            if (!$this->fileExists()) {
-                Log::error("Chunk file not found during validation", [
+            if (! $this->fileExists()) {
+                Log::error('Chunk file not found during validation', [
                     'chunk_id' => $this->id,
-                    'storage_path' => $this->storage_path
+                    'storage_path' => $this->storage_path,
                 ]);
+
                 return false;
             }
 
             // Calculate hash of stored file
             $actualHash = $this->calculateFileHash();
-            
-            if (!$actualHash) {
-                Log::error("Failed to calculate hash for chunk file", [
+
+            if (! $actualHash) {
+                Log::error('Failed to calculate hash for chunk file', [
                     'chunk_id' => $this->id,
-                    'storage_path' => $this->storage_path
+                    'storage_path' => $this->storage_path,
                 ]);
+
                 return false;
             }
 
             $isValid = hash_equals($hashToValidate, $actualHash);
-            
+
             if ($isValid) {
                 $this->markAsVerified();
             } else {
-                Log::warning("Chunk integrity validation failed", [
+                Log::warning('Chunk integrity validation failed', [
                     'chunk_id' => $this->id,
                     'expected_hash' => $hashToValidate,
-                    'actual_hash' => $actualHash
+                    'actual_hash' => $actualHash,
                 ]);
                 $this->markAsFailed();
             }
 
             return $isValid;
-            
+
         } catch (\Exception $e) {
-            Log::error("Exception during chunk integrity validation", [
+            Log::error('Exception during chunk integrity validation', [
                 'chunk_id' => $this->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             $this->markAsFailed();
+
             return false;
         }
     }
@@ -108,19 +115,21 @@ class UploadChunk extends Model
     public function calculateFileHash(): ?string
     {
         try {
-            if (!$this->fileExists()) {
+            if (! $this->fileExists()) {
                 return null;
             }
 
             $filePath = $this->getFullStoragePath();
+
             return hash_file('sha256', $filePath);
-            
+
         } catch (\Exception $e) {
-            Log::error("Failed to calculate file hash", [
+            Log::error('Failed to calculate file hash', [
                 'chunk_id' => $this->id,
                 'storage_path' => $this->storage_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -130,18 +139,19 @@ class UploadChunk extends Model
      */
     public function fileExists(): bool
     {
-        if (!$this->storage_path) {
+        if (! $this->storage_path) {
             return false;
         }
 
         try {
             return Storage::disk('local')->exists($this->storage_path);
         } catch (\Exception $e) {
-            Log::error("Error checking chunk file existence", [
+            Log::error('Error checking chunk file existence', [
                 'chunk_id' => $this->id,
                 'storage_path' => $this->storage_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -151,18 +161,19 @@ class UploadChunk extends Model
      */
     public function getFullStoragePath(): ?string
     {
-        if (!$this->storage_path) {
+        if (! $this->storage_path) {
             return null;
         }
 
         try {
             return Storage::disk('local')->path($this->storage_path);
         } catch (\Exception $e) {
-            Log::error("Error getting full storage path", [
+            Log::error('Error getting full storage path', [
                 'chunk_id' => $this->id,
                 'storage_path' => $this->storage_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -173,18 +184,19 @@ class UploadChunk extends Model
     public function getFileContents(): ?string
     {
         try {
-            if (!$this->fileExists()) {
+            if (! $this->fileExists()) {
                 return null;
             }
 
             return Storage::disk('local')->get($this->storage_path);
-            
+
         } catch (\Exception $e) {
-            Log::error("Failed to get chunk file contents", [
+            Log::error('Failed to get chunk file contents', [
                 'chunk_id' => $this->id,
                 'storage_path' => $this->storage_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -195,7 +207,7 @@ class UploadChunk extends Model
     public function deleteFile(): bool
     {
         try {
-            if (!$this->storage_path) {
+            if (! $this->storage_path) {
                 return true; // Nothing to delete
             }
 
@@ -204,13 +216,14 @@ class UploadChunk extends Model
             }
 
             return true; // File doesn't exist, consider it deleted
-            
+
         } catch (\Exception $e) {
-            Log::error("Failed to delete chunk file", [
+            Log::error('Failed to delete chunk file', [
                 'chunk_id' => $this->id,
                 'storage_path' => $this->storage_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -221,6 +234,7 @@ class UploadChunk extends Model
     public function markAsUploaded(): bool
     {
         $this->status = self::STATUS_UPLOADED;
+
         return $this->save();
     }
 
@@ -230,6 +244,7 @@ class UploadChunk extends Model
     public function markAsVerified(): bool
     {
         $this->status = self::STATUS_VERIFIED;
+
         return $this->save();
     }
 
@@ -239,6 +254,7 @@ class UploadChunk extends Model
     public function markAsFailed(): bool
     {
         $this->status = self::STATUS_FAILED;
+
         return $this->save();
     }
 
@@ -307,7 +323,7 @@ class UploadChunk extends Model
             self::STATUS_PENDING,
             self::STATUS_UPLOADED,
             self::STATUS_VERIFIED,
-            self::STATUS_FAILED
+            self::STATUS_FAILED,
         ];
     }
 

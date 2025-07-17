@@ -4,13 +4,12 @@
 
 namespace App\Models;
 
+use Exception;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
-use Exception;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
-use App\Models\User;
 
 class PitchFile extends Model
 {
@@ -42,7 +41,7 @@ class PitchFile extends Model
         'processed_format',
         'processed_bitrate',
         'processing_metadata',
-        'processing_error'
+        'processing_error',
     ];
 
     protected $casts = [
@@ -91,13 +90,13 @@ class PitchFile extends Model
     /**
      * Format bytes to human-readable format
      *
-     * @param int $bytes
-     * @param int $precision
+     * @param  int  $bytes
+     * @param  int  $precision
      * @return string
      */
-    function formatBytes($bytes, $precision = 2)
+    public function formatBytes($bytes, $precision = 2)
     {
-        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
@@ -105,7 +104,7 @@ class PitchFile extends Model
 
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
 
     /**
@@ -118,6 +117,7 @@ class PitchFile extends Model
     public function getFullFilePathAttribute()
     {
         $user = auth()->user();
+
         return $this->getStreamingUrl($user);
     }
 
@@ -125,7 +125,7 @@ class PitchFile extends Model
      * Get a signed URL for downloading the file
      * This uses a longer expiration time and appropriate headers for downloading
      *
-     * @param int $expirationMinutes Minutes until URL expires (default: 60)
+     * @param  int  $expirationMinutes  Minutes until URL expires (default: 60)
      * @return string|null
      */
     public function getSignedUrlAttribute($expirationMinutes = 60)
@@ -135,15 +135,16 @@ class PitchFile extends Model
                 $this->file_path,
                 now()->addMinutes($expirationMinutes),
                 [
-                    'ResponseContentDisposition' => 'attachment; filename="' . $this->file_name . '"'
+                    'ResponseContentDisposition' => 'attachment; filename="'.$this->file_name.'"',
                 ]
             );
         } catch (Exception $e) {
             \Log::error('Error generating signed download URL for pitch file', [
                 'file_id' => $this->id,
                 'file_path' => $this->file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -161,28 +162,30 @@ class PitchFile extends Model
         }
 
         // Otherwise try to get the size from storage, only if file_path exists
-        if ($this->file_path) { 
+        if ($this->file_path) {
             try {
                 $size = Storage::disk('s3')->size($this->file_path);
+
                 return $this->formatBytes($size);
             } catch (Exception $e) {
                 // Log error or handle as needed
                 \Log::warning("Could not get size for file path: {$this->file_path}", ['error' => $e->getMessage()]);
+
                 return '-';
             }
-        } 
+        }
 
         return '-'; // Return default if no size attribute and no file_path
     }
 
     /**
      * Get waveform peaks data as PHP array
-     * 
+     *
      * @return array|null
      */
     public function getWaveformPeaksArrayAttribute()
     {
-        if (!$this->waveform_peaks) {
+        if (! $this->waveform_peaks) {
             return null;
         }
 
@@ -197,12 +200,14 @@ class PitchFile extends Model
     public function name()
     {
         $pathInfo = pathinfo($this->file_name);
+
         return $pathInfo['filename'];
     }
 
     public function extension()
     {
         $pathInfo = pathinfo($this->file_name);
+
         return $pathInfo['extension'];
     }
 
@@ -229,23 +234,21 @@ class PitchFile extends Model
      */
     public function getFormattedProcessedSizeAttribute()
     {
-        if (!$this->processed_file_size) {
+        if (! $this->processed_file_size) {
             return '-';
         }
-        
+
         return $this->formatBytes($this->processed_file_size);
     }
 
     /**
      * Check if the file should be watermarked based on project workflow
-     *
-     * @return bool
      */
     public function shouldBeWatermarked(): bool
     {
         $project = $this->pitch->project;
         $workflowConfig = config('audio.watermarking.workflows', []);
-        
+
         // Check if watermarking is enabled for this workflow type
         if ($project->isStandard()) {
             return $workflowConfig['standard'] ?? true;
@@ -256,16 +259,12 @@ class PitchFile extends Model
         } elseif ($project->isClientManagement()) {
             return $workflowConfig['client_management'] ?? false;
         }
-        
+
         return false;
     }
 
     /**
      * Get the appropriate streaming URL based on user permissions
-     *
-     * @param User|null $user
-     * @param int $expiration
-     * @return string|null
      */
     public function getStreamingUrl(?User $user = null, int $expiration = 7200): ?string
     {
@@ -278,35 +277,29 @@ class PitchFile extends Model
 
     /**
      * Determine if watermarked version should be served to user
-     *
-     * @param User|null $user
-     * @return bool
      */
     public function shouldServeWatermarked(?User $user = null): bool
     {
         // If no user provided, serve watermarked version
-        if (!$user) {
+        if (! $user) {
             return true;
         }
 
         // If file is not processed or watermarked, serve original
-        if (!$this->audio_processed || !$this->is_watermarked) {
+        if (! $this->audio_processed || ! $this->is_watermarked) {
             return false;
         }
 
         // Check if user can access original file
-        return !$this->canAccessOriginalFile($user);
+        return ! $this->canAccessOriginalFile($user);
     }
 
     /**
      * Check if user can access the original (non-watermarked) file
-     *
-     * @param User|null $user
-     * @return bool
      */
     public function canAccessOriginalFile(?User $user = null): bool
     {
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -325,9 +318,6 @@ class PitchFile extends Model
 
     /**
      * Get original file URL with appropriate expiration
-     *
-     * @param int $expirationMinutes
-     * @return string|null
      */
     public function getOriginalFileUrl(int $expirationMinutes = 30): ?string
     {
@@ -340,24 +330,22 @@ class PitchFile extends Model
             \Log::error('Error generating original file URL', [
                 'file_id' => $this->id,
                 'file_path' => $this->file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     /**
      * Get processed file URL with appropriate expiration
-     *
-     * @param int $expirationMinutes
-     * @return string|null
      */
     public function getProcessedFileUrl(int $expirationMinutes = 30): ?string
     {
-        if (!$this->processed_file_path) {
+        if (! $this->processed_file_path) {
             return null;
         }
-        
+
         try {
             return Storage::disk('s3')->temporaryUrl(
                 $this->processed_file_path,
@@ -367,18 +355,15 @@ class PitchFile extends Model
             \Log::error('Error generating processed file URL', [
                 'file_id' => $this->id,
                 'processed_file_path' => $this->processed_file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     /**
      * Get download URL based on user permissions
-     *
-     * @param User|null $user
-     * @param int $expiration
-     * @return string|null
      */
     public function getDownloadUrl(?User $user = null, int $expiration = 900): ?string
     {
@@ -391,15 +376,13 @@ class PitchFile extends Model
 
     /**
      * Check if file is an audio file that can be processed
-     *
-     * @return bool
      */
     public function isAudioFile(): bool
     {
-        if (!$this->mime_type) {
+        if (! $this->mime_type) {
             return false;
         }
-        
+
         $audioMimes = [
             'audio/mpeg',
             'audio/mp3',
@@ -409,29 +392,24 @@ class PitchFile extends Model
             'audio/m4a',
             'audio/flac',
             'audio/x-wav',
-            'audio/x-flac'
+            'audio/x-flac',
         ];
-        
+
         return in_array($this->mime_type, $audioMimes);
     }
 
     /**
      * Check if file needs processing
-     *
-     * @return bool
      */
     public function needsProcessing(): bool
     {
-        return $this->isAudioFile() && 
-               $this->shouldBeWatermarked() && 
-               !$this->audio_processed;
+        return $this->isAudioFile() &&
+               $this->shouldBeWatermarked() &&
+               ! $this->audio_processed;
     }
 
     /**
      * Mark file as processed and store results
-     *
-     * @param array $processedData
-     * @return void
      */
     public function markAsProcessed(array $processedData): void
     {
@@ -446,21 +424,18 @@ class PitchFile extends Model
             'processed_format' => $processedData['format'] ?? null,
             'processed_bitrate' => $processedData['bitrate'] ?? null,
             'processing_metadata' => $processedData['metadata'] ?? null,
-            'processing_error' => null // Clear any previous errors
+            'processing_error' => null, // Clear any previous errors
         ]);
     }
 
     /**
      * Mark file as failed processing
-     *
-     * @param string $error
-     * @return void
      */
     public function markAsProcessingFailed(string $error): void
     {
         $this->update([
             'audio_processed' => false,
-            'processing_error' => $error
+            'processing_error' => $error,
         ]);
     }
 }

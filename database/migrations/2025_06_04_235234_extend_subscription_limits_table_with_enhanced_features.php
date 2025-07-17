@@ -15,16 +15,16 @@ return new class extends Migration
             // Storage & File Management
             $table->decimal('storage_per_project_gb', 5, 2)->default(1.00)->after('custom_portfolio');
             $table->integer('file_retention_days')->default(30)->after('storage_per_project_gb');
-            
-            // Business Features  
+
+            // Business Features
             $table->decimal('platform_commission_rate', 4, 2)->default(10.00)->after('file_retention_days');
             $table->integer('max_license_templates')->nullable()->after('platform_commission_rate');
-            
+
             // Engagement Features
             $table->integer('monthly_visibility_boosts')->default(0)->after('max_license_templates');
             $table->decimal('reputation_multiplier', 3, 2)->default(1.00)->after('monthly_visibility_boosts');
             $table->integer('max_private_projects_monthly')->nullable()->after('reputation_multiplier');
-            
+
             // Access & Support Features
             $table->boolean('has_client_portal')->default(false)->after('max_private_projects_monthly');
             $table->enum('analytics_level', ['basic', 'track', 'client_earnings'])->default('basic')->after('has_client_portal');
@@ -56,7 +56,7 @@ return new class extends Migration
                 'has_judge_access',
                 'support_sla_hours',
                 'support_channels',
-                'user_badge'
+                'user_badge',
             ]);
         });
     }

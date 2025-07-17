@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB; // Import DB facade
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema; // Import DB facade
 
 return new class extends Migration
 {
@@ -37,11 +37,11 @@ return new class extends Migration
         // Drop foreign key first if exists
         if (Schema::hasColumn($tableName, 'user_id')) {
             Schema::table($tableName, function (Blueprint $table) {
-                 // For broader compatibility, let's just drop the column. SQLite handles FK constraints differently.
-                 $table->dropColumn('user_id');
+                // For broader compatibility, let's just drop the column. SQLite handles FK constraints differently.
+                $table->dropColumn('user_id');
             });
         }
-        
+
         // Drop other columns individually
         if (Schema::hasColumn($tableName, 'original_file_name')) {
             Schema::table($tableName, function (Blueprint $table) {

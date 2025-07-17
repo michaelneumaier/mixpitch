@@ -7,6 +7,7 @@ use Livewire\Component;
 class ProjectCard extends Component
 {
     public $project;
+
     public $isDashboardView = false;
 
     public function cardClickRoute()

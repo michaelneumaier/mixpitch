@@ -2,14 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\FileUploadSetting;
+use App\Models\Pitch;
+use App\Models\Project;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Models\FileUploadSetting;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
-use App\Models\Project;
-use App\Models\Pitch;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 class ValidateUploadSettings
 {
@@ -21,7 +21,7 @@ class ValidateUploadSettings
     public function handle(Request $request, Closure $next, string $context = 'global'): Response
     {
         // Skip validation for non-upload requests
-        if (!$this->isUploadRequest($request)) {
+        if (! $this->isUploadRequest($request)) {
             return $next($request);
         }
 
@@ -32,10 +32,10 @@ class ValidateUploadSettings
             }
 
             // Validate context
-            if (!FileUploadSetting::validateContext($context)) {
+            if (! FileUploadSetting::validateContext($context)) {
                 return response()->json([
                     'error' => 'Invalid upload context',
-                    'valid_contexts' => FileUploadSetting::getValidContexts()
+                    'valid_contexts' => FileUploadSetting::getValidContexts(),
                 ], 400);
             }
 
@@ -63,7 +63,7 @@ class ValidateUploadSettings
             }
 
             // Validate file size for presigned URL requests
-            if ($request->has('file_size') && !$request->hasFile('file')) {
+            if ($request->has('file_size') && ! $request->hasFile('file')) {
                 $this->validateTotalSize($request->input('file_size'), $settings, $context);
             }
 
@@ -73,19 +73,19 @@ class ValidateUploadSettings
             Log::info('Upload validation passed', [
                 'context' => $context,
                 'settings' => $settings,
-                'request_path' => $request->path()
+                'request_path' => $request->path(),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Upload validation failed', [
                 'context' => $context,
                 'error' => $e->getMessage(),
-                'request_path' => $request->path()
+                'request_path' => $request->path(),
             ]);
 
             return response()->json([
                 'error' => 'Upload validation failed',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         }
 
@@ -97,8 +97,8 @@ class ValidateUploadSettings
      */
     private function isUploadRequest(Request $request): bool
     {
-        return $request->hasFile('file') || 
-               $request->hasFile('chunk') || 
+        return $request->hasFile('file') ||
+               $request->hasFile('chunk') ||
                $request->has('total_size') ||
                $request->has('file_size') || // For presigned URL requests
                str_contains($request->path(), 'upload') ||
@@ -117,7 +117,7 @@ class ValidateUploadSettings
 
         // Check for explicit model_type parameter
         if ($request->has('model_type')) {
-            return match($request->input('model_type')) {
+            return match ($request->input('model_type')) {
                 'projects' => FileUploadSetting::CONTEXT_PROJECTS,
                 'pitches' => FileUploadSetting::CONTEXT_PITCHES,
                 'client_portals' => FileUploadSetting::CONTEXT_CLIENT_PORTALS,
@@ -205,20 +205,20 @@ class ValidateUploadSettings
     private function validateAuthorization(Request $request, string $context): void
     {
         // Skip authorization for non-authenticated requests (client portals use signed URLs)
-        if (!$request->user()) {
+        if (! $request->user()) {
             return;
         }
 
         if ($context === FileUploadSetting::CONTEXT_PROJECTS) {
             $project = $this->extractProjectFromRequest($request);
-            if ($project && !Gate::forUser($request->user())->allows('uploadFile', $project)) {
+            if ($project && ! Gate::forUser($request->user())->allows('uploadFile', $project)) {
                 throw new \Exception('Upload not allowed for this project. Project may be completed or you may not have permission.');
             }
         }
 
         if ($context === FileUploadSetting::CONTEXT_PITCHES) {
             $pitch = $this->extractPitchFromRequest($request);
-            if ($pitch && !Gate::forUser($request->user())->allows('uploadFile', $pitch)) {
+            if ($pitch && ! Gate::forUser($request->user())->allows('uploadFile', $pitch)) {
                 throw new \Exception('Upload not allowed for this pitch. Pitch may be in a terminal state or you may not have permission.');
             }
         }
@@ -266,13 +266,13 @@ class ValidateUploadSettings
     private function formatBytes(int $bytes): string
     {
         if ($bytes >= 1024 * 1024 * 1024) {
-            return round($bytes / (1024 * 1024 * 1024), 1) . 'GB';
+            return round($bytes / (1024 * 1024 * 1024), 1).'GB';
         } elseif ($bytes >= 1024 * 1024) {
-            return round($bytes / (1024 * 1024), 1) . 'MB';
+            return round($bytes / (1024 * 1024), 1).'MB';
         } elseif ($bytes >= 1024) {
-            return round($bytes / 1024, 1) . 'KB';
+            return round($bytes / 1024, 1).'KB';
         } else {
-            return $bytes . 'B';
+            return $bytes.'B';
         }
     }
 }

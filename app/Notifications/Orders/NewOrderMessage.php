@@ -15,7 +15,9 @@ class NewOrderMessage extends Notification implements ShouldQueue
     use Queueable;
 
     public Order $order;
+
     public User $sender;
+
     public string $messageContent;
 
     /**
@@ -39,6 +41,7 @@ class NewOrderMessage extends Notification implements ShouldQueue
         if ($notifiable->id === $this->sender->id) {
             return [];
         }
+
         return ['mail', 'database'];
     }
 
@@ -52,13 +55,13 @@ class NewOrderMessage extends Notification implements ShouldQueue
         $orderUrl = route('orders.show', $this->order->id);
 
         return (new MailMessage)
-                    ->subject("New Message on Order #{$this->order->id}")
-                    ->greeting("Hello {$notifiable->name},")
-                    ->line("You have received a new message from {$senderName} ({$senderRole}) regarding order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line("\nMessage:")
-                    ->line(nl2br(e($this->messageContent))) // Display message content safely
-                    ->action('Reply in Order', $orderUrl)
-                    ->line('Thank you!');
+            ->subject("New Message on Order #{$this->order->id}")
+            ->greeting("Hello {$notifiable->name},")
+            ->line("You have received a new message from {$senderName} ({$senderRole}) regarding order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line("\nMessage:")
+            ->line(nl2br(e($this->messageContent))) // Display message content safely
+            ->action('Reply in Order', $orderUrl)
+            ->line('Thank you!');
     }
 
     /**

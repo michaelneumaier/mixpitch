@@ -43,13 +43,13 @@ class DeliveryAccepted extends Notification implements ShouldQueue
         // Potential TODO: Add payout information if applicable
 
         return (new MailMessage)
-                    ->subject("Delivery Accepted for Order #{$this->order->id}")
-                    ->greeting("Hello {$notifiable->name},")
-                    ->line("Good news! {$clientName} has accepted the delivery for order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line('The order is now marked as complete.')
+            ->subject("Delivery Accepted for Order #{$this->order->id}")
+            ->greeting("Hello {$notifiable->name},")
+            ->line("Good news! {$clientName} has accepted the delivery for order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line('The order is now marked as complete.')
                     // ->line('Payment is being processed and should arrive according to the standard schedule.') // Uncomment if payout is triggered
-                    ->action('View Completed Order', $orderUrl)
-                    ->line('Thank you for your work!');
+            ->action('View Completed Order', $orderUrl)
+            ->line('Thank you for your work!');
     }
 
     /**

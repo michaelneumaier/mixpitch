@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\User;
-use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,7 +16,7 @@ class ContestEarlyClosureService
     /**
      * Close contest submissions early
      */
-    public function closeContestEarly(Project $project, User $user, string $reason = null): bool
+    public function closeContestEarly(Project $project, User $user, ?string $reason = null): bool
     {
         // Comprehensive validation
         $this->validateEarlyClosure($project, $user);
@@ -27,7 +26,7 @@ class ContestEarlyClosureService
             $project->update([
                 'submissions_closed_early_at' => now(),
                 'submissions_closed_early_by' => $user->id,
-                'early_closure_reason' => $reason
+                'early_closure_reason' => $reason,
             ]);
 
             // Log the action
@@ -39,7 +38,7 @@ class ContestEarlyClosureService
                 'reason' => $reason,
                 'original_deadline' => $project->submission_deadline?->toISOString(),
                 'closed_at' => now()->toISOString(),
-                'entries_count' => $project->getContestEntries()->count()
+                'entries_count' => $project->getContestEntries()->count(),
             ]);
 
             // Notify all participants about early closure
@@ -62,7 +61,7 @@ class ContestEarlyClosureService
             $project->update([
                 'submissions_closed_early_at' => null,
                 'submissions_closed_early_by' => null,
-                'early_closure_reason' => null
+                'early_closure_reason' => null,
             ]);
 
             // Log the action
@@ -72,7 +71,7 @@ class ContestEarlyClosureService
                 'reopened_by' => $user->id,
                 'reopened_by_name' => $user->name,
                 'original_deadline' => $project->submission_deadline?->toISOString(),
-                'reopened_at' => now()->toISOString()
+                'reopened_at' => now()->toISOString(),
             ]);
 
             // Notify participants that submissions are open again
@@ -87,7 +86,7 @@ class ContestEarlyClosureService
      */
     private function validateEarlyClosure(Project $project, User $user): void
     {
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             throw new \InvalidArgumentException('Only contest projects can be closed early');
         }
 
@@ -95,7 +94,7 @@ class ContestEarlyClosureService
             throw new \InvalidArgumentException('Only the contest owner can close submissions early');
         }
 
-        if (!$project->canCloseEarly()) {
+        if (! $project->canCloseEarly()) {
             if ($project->getContestEntries()->isEmpty()) {
                 throw new \InvalidArgumentException('Cannot close contest early with no entries');
             }
@@ -118,7 +117,7 @@ class ContestEarlyClosureService
      */
     private function validateReopening(Project $project, User $user): void
     {
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             throw new \InvalidArgumentException('Only contest projects can have submissions reopened');
         }
 
@@ -126,7 +125,7 @@ class ContestEarlyClosureService
             throw new \InvalidArgumentException('Only the contest owner can reopen submissions');
         }
 
-        if (!$project->wasClosedEarly()) {
+        if (! $project->wasClosedEarly()) {
             throw new \InvalidArgumentException('Contest was not closed early');
         }
 
@@ -146,7 +145,7 @@ class ContestEarlyClosureService
     private function notifyParticipantsOfEarlyClosure(Project $project, ?string $reason): void
     {
         $contestEntries = $project->getContestEntries();
-        
+
         foreach ($contestEntries as $entry) {
             // For now, we'll use a generic notification method
             // TODO: Implement specific early closure notification methods
@@ -159,14 +158,14 @@ class ContestEarlyClosureService
                         'project_id' => $project->id,
                         'pitch_id' => $entry->id,
                         'user_id' => $entry->user_id,
-                        'reason' => $reason
+                        'reason' => $reason,
                     ]);
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to send early closure notification', [
                     'project_id' => $project->id,
                     'pitch_id' => $entry->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -182,7 +181,7 @@ class ContestEarlyClosureService
     private function notifyParticipantsOfReopening(Project $project): void
     {
         $contestEntries = $project->getContestEntries();
-        
+
         foreach ($contestEntries as $entry) {
             // For now, we'll use a generic notification method
             // TODO: Implement specific reopening notification methods
@@ -194,14 +193,14 @@ class ContestEarlyClosureService
                     Log::info('Contest submissions reopened notification', [
                         'project_id' => $project->id,
                         'pitch_id' => $entry->id,
-                        'user_id' => $entry->user_id
+                        'user_id' => $entry->user_id,
                     ]);
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to send reopening notification', [
                     'project_id' => $project->id,
                     'pitch_id' => $entry->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -212,7 +211,7 @@ class ContestEarlyClosureService
      */
     public function getEarlyClosureStats(Project $project): array
     {
-        if (!$project->wasClosedEarly()) {
+        if (! $project->wasClosedEarly()) {
             return [];
         }
 
@@ -229,7 +228,7 @@ class ContestEarlyClosureService
             'time_saved' => $originalDeadline ? $closedAt->diffForHumans($originalDeadline, true) : null,
             'days_early' => $originalDeadline ? $closedAt->diffInDays($originalDeadline) : null,
             'entries_at_closure' => $entriesCount,
-            'effective_contest_duration' => $project->created_at->diffForHumans($closedAt, true)
+            'effective_contest_duration' => $project->created_at->diffForHumans($closedAt, true),
         ];
     }
-} 
+}

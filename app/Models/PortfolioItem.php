@@ -11,6 +11,7 @@ class PortfolioItem extends Model
     use HasFactory;
 
     const TYPE_AUDIO = 'audio';
+
     const TYPE_YOUTUBE = 'youtube';
 
     /**
@@ -54,7 +55,7 @@ class PortfolioItem extends Model
 
         static::saving(function ($item) {
             // Extract YouTube video ID if item_type is youtube and URL is provided
-            if ($item->item_type === self::TYPE_YOUTUBE && !empty($item->video_url)) {
+            if ($item->item_type === self::TYPE_YOUTUBE && ! empty($item->video_url)) {
                 $item->video_id = self::extractYouTubeVideoId($item->video_url);
                 // Nullify audio fields if item_type is youtube
                 $item->file_path = null;
@@ -96,14 +97,12 @@ class PortfolioItem extends Model
 
     /**
      * Helper function to extract YouTube video ID from various URL formats.
-     *
-     * @param string $url
-     * @return string|null
      */
     public static function extractYouTubeVideoId(string $url): ?string
     {
         $pattern = '/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/';
         preg_match($pattern, $url, $matches);
+
         return $matches[1] ?? null;
     }
 }

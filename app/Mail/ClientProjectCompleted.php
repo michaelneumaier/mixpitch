@@ -5,7 +5,6 @@ namespace App\Mail;
 use App\Models\Pitch;
 use App\Models\Project;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -17,10 +16,15 @@ class ClientProjectCompleted extends Mailable
     use Queueable, SerializesModels;
 
     public Project $project;
+
     public Pitch $pitch;
+
     public string $signedUrl;
+
     public ?string $clientName;
+
     public ?string $feedback;
+
     public ?int $rating;
 
     /**
@@ -40,7 +44,7 @@ class ClientProjectCompleted extends Mailable
         $this->clientName = $clientName;
         $this->feedback = $feedback;
         $this->rating = $rating;
-        
+
         // Log the email details for development
         $this->logEmailContent();
     }
@@ -107,13 +111,13 @@ class ClientProjectCompleted extends Mailable
                     'feedback' => $this->feedback,
                     'rating' => $this->rating,
                 ],
-                'template' => 'emails.client.project_completed'
+                'template' => 'emails.client.project_completed',
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to log ClientProjectCompleted email content', [
                 'error' => $e->getMessage(),
                 'project_id' => $this->project->id,
-                'pitch_id' => $this->pitch->id
+                'pitch_id' => $this->pitch->id,
             ]);
         }
     }

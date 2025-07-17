@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Models\PayoutSchedule;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PayoutScheduleFactory extends Factory
@@ -31,7 +31,7 @@ class PayoutScheduleFactory extends Factory
                 PayoutSchedule::STATUS_SCHEDULED,
                 PayoutSchedule::STATUS_PROCESSING,
                 PayoutSchedule::STATUS_COMPLETED,
-                PayoutSchedule::STATUS_FAILED
+                PayoutSchedule::STATUS_FAILED,
             ]),
             'hold_release_date' => $this->faker->dateTimeBetween('-30 days', '+7 days'),
             'processed_at' => null,
@@ -47,11 +47,12 @@ class PayoutScheduleFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $completedAt = $this->faker->dateTimeBetween('-30 days', 'now');
+
             return [
                 'status' => PayoutSchedule::STATUS_COMPLETED,
                 'processed_at' => $completedAt,
                 'completed_at' => $completedAt,
-                'stripe_transfer_id' => 'tr_' . $this->faker->lexify('????????????????????????????????'),
+                'stripe_transfer_id' => 'tr_'.$this->faker->lexify('????????????????????????????????'),
             ];
         });
     }
@@ -72,7 +73,7 @@ class PayoutScheduleFactory extends Factory
             return [
                 'status' => PayoutSchedule::STATUS_PROCESSING,
                 'processed_at' => $this->faker->dateTimeBetween('-1 day', 'now'),
-                'stripe_transfer_id' => 'tr_' . $this->faker->lexify('????????????????????????????????'),
+                'stripe_transfer_id' => 'tr_'.$this->faker->lexify('????????????????????????????????'),
             ];
         });
     }
@@ -88,7 +89,7 @@ class PayoutScheduleFactory extends Factory
                     'insufficient_balance',
                     'invalid_account',
                     'bank_declined',
-                    'stripe_error'
+                    'stripe_error',
                 ]),
             ];
         });
@@ -123,4 +124,4 @@ class PayoutScheduleFactory extends Factory
             ];
         });
     }
-} 
+}

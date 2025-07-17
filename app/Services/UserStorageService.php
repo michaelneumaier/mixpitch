@@ -19,10 +19,11 @@ class UserStorageService
 
         // Use subscription-based limit
         $subscriptionLimits = $user->getSubscriptionLimits();
-        if (!$subscriptionLimits) {
+        if (! $subscriptionLimits) {
             // Fallback for tests or users without subscription limits
             return 10 * 1024 * 1024 * 1024; // 10GB default
         }
+
         return (int) ($subscriptionLimits->total_user_storage_gb * 1024 * 1024 * 1024);
     }
 
@@ -48,9 +49,12 @@ class UserStorageService
     public function getUserStoragePercentage(User $user): float
     {
         $limit = $this->getUserStorageLimit($user);
-        if ($limit === 0) return 0;
-        
+        if ($limit === 0) {
+            return 0;
+        }
+
         $used = $this->getUserStorageUsed($user);
+
         return min(100, ($used / $limit) * 100);
     }
 
@@ -89,10 +93,10 @@ class UserStorageService
     {
         $used = $this->getUserStorageUsed($user);
         $limit = $this->getUserStorageLimit($user);
-        
+
         $usedMB = round($used / (1024 * 1024), 1);
         $limitGB = round($limit / (1024 * 1024 * 1024), 1);
-        
+
         return "{$usedMB}MB of {$limitGB}GB used";
     }
 
@@ -133,7 +137,7 @@ class UserStorageService
     {
         $remaining = $this->getUserStorageRemaining($user);
         $remainingGB = round($remaining / (1024 * 1024 * 1024), 1);
-        
+
         return "{$remainingGB}GB remaining";
     }
 }

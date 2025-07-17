@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TransactionFactory extends Factory
@@ -30,7 +30,7 @@ class TransactionFactory extends Factory
             'commission_amount' => $commissionAmount,
             'commission_rate' => $commissionRate,
             'payment_method' => 'stripe',
-            'external_transaction_id' => 'pi_' . $this->faker->lexify('????????????????????????????????'),
+            'external_transaction_id' => 'pi_'.$this->faker->lexify('????????????????????????????????'),
             'user_subscription_plan' => 'pro',
             'user_subscription_tier' => 'artist',
             'description' => 'Test transaction',
@@ -107,4 +107,4 @@ class TransactionFactory extends Factory
             ];
         });
     }
-} 
+}

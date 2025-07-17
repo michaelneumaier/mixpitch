@@ -13,6 +13,7 @@ class OrderDelivered extends Notification implements ShouldQueue
     use Queueable;
 
     protected $order;
+
     protected $deliveryMessage;
 
     /**
@@ -43,18 +44,18 @@ class OrderDelivered extends Notification implements ShouldQueue
         $producerName = $this->order->producer->name ?? 'The Producer';
 
         $mail = (new MailMessage)
-                    ->subject('Your Order Has Been Delivered: Order #' . $this->order->id)
-                    ->greeting('Hello ' . ($notifiable->name ?? 'Client') . ',')
-                    ->line("{$producerName} has delivered your Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line('Please review the delivery and either accept it or request revisions if needed.');
+            ->subject('Your Order Has Been Delivered: Order #'.$this->order->id)
+            ->greeting('Hello '.($notifiable->name ?? 'Client').',')
+            ->line("{$producerName} has delivered your Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line('Please review the delivery and either accept it or request revisions if needed.');
 
         if ($this->deliveryMessage) {
             $mail->line("Producer's Message:")
-                 ->line("> " . nl2br(e($this->deliveryMessage))); // Blockquote style for message
+                ->line('> '.nl2br(e($this->deliveryMessage))); // Blockquote style for message
         }
 
         $mail->action('View Order & Delivery', $orderUrl)
-             ->line('Thank you for using our platform!');
+            ->line('Thank you for using our platform!');
 
         return $mail;
     }
@@ -70,7 +71,7 @@ class OrderDelivered extends Notification implements ShouldQueue
             'order_id' => $this->order->id,
             'order_title' => $this->order->servicePackage->title ?? 'N/A',
             'producer_name' => $this->order->producer->name ?? 'N/A',
-            'message' => 'Order #' . $this->order->id . ' has been delivered.',
+            'message' => 'Order #'.$this->order->id.' has been delivered.',
             'delivery_message' => $this->deliveryMessage,
             'url' => route('orders.show', $this->order),
         ];

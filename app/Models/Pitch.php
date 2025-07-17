@@ -2,36 +2,45 @@
 
 namespace App\Models;
 
-use App\Exceptions\Pitch\InvalidStatusTransitionException;
-use App\Exceptions\Pitch\UnauthorizedActionException;
-use App\Exceptions\Pitch\SnapshotException;
+use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Pitch extends Model implements HasMedia
 {
-    use HasFactory, Sluggable, SoftDeletes, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia, Sluggable, SoftDeletes;
+
     const STATUS_PENDING = 'pending';
+
     const STATUS_IN_PROGRESS = 'in_progress';
+
     const STATUS_READY_FOR_REVIEW = 'ready_for_review';
+
     const STATUS_PENDING_REVIEW = 'pending_review';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_DENIED = 'denied';
+
     const STATUS_REVISIONS_REQUESTED = 'revisions_requested';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CLOSED = 'closed';
+
     const STATUS_INPROGRESS = 'inprogress';
 
     // Contest Statuses
     const STATUS_CONTEST_ENTRY = 'contest_entry';
+
     const STATUS_CONTEST_WINNER = 'contest_winner';
+
     const STATUS_CONTEST_RUNNER_UP = 'contest_runner_up';
+
     const STATUS_CONTEST_NOT_SELECTED = 'contest_not_selected';
 
     // Direct Hire Status (Optional - for explicit acceptance flow)
@@ -42,23 +51,31 @@ class Pitch extends Model implements HasMedia
 
     // Payment status constants
     const PAYMENT_STATUS_PENDING = 'pending';
+
     const PAYMENT_STATUS_PROCESSING = 'processing';
+
     const PAYMENT_STATUS_PAID = 'paid';
+
     const PAYMENT_STATUS_FAILED = 'failed';
+
     const PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required';
+
     const PAYMENT_STATUS_REFUNDED = 'refunded';
 
     // Contest rank constants
     const RANK_FIRST = '1st';
+
     const RANK_SECOND = '2nd';
+
     const RANK_THIRD = '3rd';
+
     const RANK_RUNNER_UP = 'runner-up';
 
     /**
      * The maximum storage allowed per pitch in bytes (1GB)
      */
     const MAX_STORAGE_BYTES = 1073741824; // 1GB in bytes
-    
+
     /**
      * The maximum file size allowed per upload in bytes (200MB)
      */
@@ -202,7 +219,7 @@ class Pitch extends Model implements HasMedia
                 \Log::info('Pitch status changed', [
                     'pitch_id' => $pitch->id,
                     'old_status' => $oldStatus,
-                    'new_status' => $newStatus
+                    'new_status' => $newStatus,
                 ]);
 
                 // Don't create a generic status change notification if we're going to create a more specific one
@@ -219,7 +236,7 @@ class Pitch extends Model implements HasMedia
                     ($oldStatus === self::STATUS_PENDING_REVIEW && in_array($newStatus, [
                         self::STATUS_APPROVED,
                         self::STATUS_DENIED,
-                        self::STATUS_REVISIONS_REQUESTED
+                        self::STATUS_REVISIONS_REQUESTED,
                     ]));
 
                 // Remove the generic notification entirely - it's redundant with the toast messages
@@ -312,7 +329,7 @@ class Pitch extends Model implements HasMedia
             case self::STATUS_CLIENT_REVISIONS_REQUESTED:
                 return 'The client has requested revisions. Please review their feedback and submit an update.';
             default:
-                return 'This pitch is in the ' . strtolower(str_replace('_', ' ', $this->status)) . ' status.';
+                return 'This pitch is in the '.strtolower(str_replace('_', ' ', $this->status)).' status.';
         }
     }
 
@@ -323,9 +340,10 @@ class Pitch extends Model implements HasMedia
 
     public function isOwner($user)
     {
-        if (!$user) {
+        if (! $user) {
             return false;
         }
+
         return $this->user_id == $user->id;
     }
 
@@ -346,8 +364,6 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Get the completion rating for this pitch, if it exists.
-     *
-     * @return int|null
      */
     public function getCompletionRating(): ?int
     {
@@ -357,10 +373,10 @@ class Pitch extends Model implements HasMedia
 
         // Find the event that marked the pitch as completed
         $completionEvent = $this->events()
-                                ->where('event_type', 'status_change')
-                                ->where('status', self::STATUS_COMPLETED)
-                                ->orderBy('created_at', 'desc')
-                                ->first();
+            ->where('event_type', 'status_change')
+            ->where('status', self::STATUS_COMPLETED)
+            ->orderBy('created_at', 'desc')
+            ->first();
 
         return $completionEvent?->rating;
     }
@@ -378,17 +394,17 @@ class Pitch extends Model implements HasMedia
     /**
      * Check if the provided file size is allowed based on the defined limit.
      *
-     * @param int $fileSize The file size in bytes
+     * @param  int  $fileSize  The file size in bytes
      * @return bool Whether the file size is allowed
      */
     public static function isFileSizeAllowed($fileSize)
     {
         return $fileSize <= self::MAX_FILE_SIZE_BYTES;
     }
-    
+
     /**
      * Get user-friendly message about storage limits
-     * 
+     *
      * @return string
      */
     public function getStorageLimitMessage()
@@ -396,7 +412,7 @@ class Pitch extends Model implements HasMedia
         $used = self::formatBytes($this->total_storage_used);
         $total = self::formatBytes(self::MAX_STORAGE_BYTES);
         $remaining = self::formatBytes($this->getRemainingStorageBytes());
-        
+
         return "Using $used of $total ($remaining available)";
     }
 
@@ -413,7 +429,7 @@ class Pitch extends Model implements HasMedia
     /**
      * Check if the pitch has enough storage for the given file size
      *
-     * @param int $fileSize The file size in bytes
+     * @param  int  $fileSize  The file size in bytes
      * @return bool Whether there is enough storage
      */
     public function hasEnoughStorageFor($fileSize)
@@ -423,7 +439,7 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Check if payment is finalized (paid, processing, or not required)
-     * 
+     *
      * @return bool
      */
     public function isPaymentFinalized()
@@ -431,7 +447,7 @@ class Pitch extends Model implements HasMedia
         return in_array($this->payment_status, [
             self::PAYMENT_STATUS_PAID,
             self::PAYMENT_STATUS_PROCESSING, // Once processing begins, it should be considered finalized
-            self::PAYMENT_STATUS_NOT_REQUIRED
+            self::PAYMENT_STATUS_NOT_REQUIRED,
         ]);
     }
 
@@ -444,38 +460,34 @@ class Pitch extends Model implements HasMedia
     {
         return 'slug';
     }
-    
+
     /**
      * Generate a unique slug for this pitch
-     *
-     * @return string
      */
     public function generateSlug(): string
     {
         // If we have a title, use it as base
-        if (!empty($this->title)) {
+        if (! empty($this->title)) {
             $baseSlug = \Illuminate\Support\Str::slug($this->title);
         } else {
             // Use pitch-{id} or pitch-{uniqid} as fallback
-            $baseSlug = $this->id ? 'pitch-' . $this->id : 'pitch-' . uniqid();
+            $baseSlug = $this->id ? 'pitch-'.$this->id : 'pitch-'.uniqid();
         }
-        
+
         // Ensure uniqueness
         $slug = $baseSlug;
         $counter = 1;
-        
+
         while (static::where('slug', $slug)->where('id', '!=', $this->id ?? 0)->exists()) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
-        
+
         return $slug;
     }
 
     /**
      * Return the sluggable configuration array for this model.
-     *
-     * @return array
      */
     public function sluggable(): array
     {
@@ -487,14 +499,14 @@ class Pitch extends Model implements HasMedia
                 },
                 'unique' => true,
                 'includeTrashed' => false,
-            ]
+            ],
         ];
     }
 
     /**
      * Check if the pitch has available storage capacity
-     * 
-     * @param int $additionalBytes Additional bytes to check if they would fit
+     *
+     * @param  int  $additionalBytes  Additional bytes to check if they would fit
      * @return bool
      */
     public function hasStorageCapacity($additionalBytes = 0)
@@ -502,10 +514,10 @@ class Pitch extends Model implements HasMedia
         // Use contest-specific storage limit for contest entries
         if ($this->status === self::STATUS_CONTEST_ENTRY) {
             // Load project if not loaded
-            if (!$this->relationLoaded('project')) {
+            if (! $this->relationLoaded('project')) {
                 $this->load('project');
             }
-            
+
             if ($this->project && $this->project->isContest()) {
                 $storageLimit = 100 * 1024 * 1024; // 100MB for contest entries
             } else {
@@ -515,13 +527,13 @@ class Pitch extends Model implements HasMedia
             // Use the limit set in the database if it exists, otherwise fall back to constant
             $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
         }
-        
+
         return ($this->total_storage_used + $additionalBytes) <= $storageLimit;
     }
-    
+
     /**
      * Get remaining storage capacity in bytes
-     * 
+     *
      * @return int
      */
     public function getRemainingStorageBytes()
@@ -529,10 +541,10 @@ class Pitch extends Model implements HasMedia
         // Use contest-specific storage limit for contest entries
         if ($this->status === self::STATUS_CONTEST_ENTRY) {
             // Load project if not loaded
-            if (!$this->relationLoaded('project')) {
+            if (! $this->relationLoaded('project')) {
                 $this->load('project');
             }
-            
+
             if ($this->project && $this->project->isContest()) {
                 $storageLimit = 100 * 1024 * 1024; // 100MB for contest entries
             } else {
@@ -541,31 +553,32 @@ class Pitch extends Model implements HasMedia
         } else {
             $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
         }
-        
+
         $remaining = $storageLimit - $this->total_storage_used;
+
         return max(0, $remaining);
     }
-    
+
     /**
      * Format bytes to human readable format
-     * 
-     * @param int $bytes The size in bytes
-     * @param int $precision The precision for decimal places
+     *
+     * @param  int  $bytes  The size in bytes
+     * @param  int  $precision  The precision for decimal places
      * @return string The formatted size
      */
     public static function formatBytes($bytes, $precision = 2)
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
+
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
-        
+
         $bytes /= pow(1024, $pow);
-        
-        return round($bytes, $precision) . ' ' . $units[$pow];
+
+        return round($bytes, $precision).' '.$units[$pow];
     }
-    
+
     /**
      * Get the storage used percentage
      *
@@ -576,10 +589,10 @@ class Pitch extends Model implements HasMedia
         // Use contest-specific storage limit for contest entries
         if ($this->status === self::STATUS_CONTEST_ENTRY) {
             // Load project if not loaded
-            if (!$this->relationLoaded('project')) {
+            if (! $this->relationLoaded('project')) {
                 $this->load('project');
             }
-            
+
             if ($this->project && $this->project->isContest()) {
                 $storageLimit = 100 * 1024 * 1024; // 100MB for contest entries
             } else {
@@ -588,10 +601,10 @@ class Pitch extends Model implements HasMedia
         } else {
             $storageLimit = $this->total_storage_limit_bytes ?? self::MAX_STORAGE_BYTES;
         }
-        
+
         return round(($this->total_storage_used / $storageLimit) * 100, 2);
     }
-    
+
     /**
      * Atomically increment the total storage used.
      */
@@ -607,6 +620,7 @@ class Pitch extends Model implements HasMedia
     {
         // Ensure storage doesn't go below zero
         $bytesToDecrement = min($bytes, $this->total_storage_used);
+
         return $this->decrement('total_storage_used', $bytesToDecrement);
     }
 
@@ -620,8 +634,6 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Get all defined status constants.
-     *
-     * @return array
      */
     public static function getStatuses(): array
     {
@@ -634,6 +646,7 @@ class Pitch extends Model implements HasMedia
                 $statuses[$value] = $value; // Use value as both key and value, or generate readable name
             }
         }
+
         return $statuses;
     }
 
@@ -647,8 +660,6 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Check if the pitch is a contest entry.
-     *
-     * @return bool
      */
     public function isContestEntry(): bool
     {
@@ -657,8 +668,6 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Check if the pitch is a contest winner.
-     *
-     * @return bool
      */
     public function isContestWinner(): bool
     {
@@ -673,8 +682,6 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Get the appropriate Tailwind CSS background and text color class based on pitch status.
-     *
-     * @return string
      */
     public function getStatusColorClass(): string
     {
@@ -696,7 +703,7 @@ class Pitch extends Model implements HasMedia
      */
     public function isPlaced(): bool
     {
-        return !is_null($this->rank);
+        return ! is_null($this->rank);
     }
 
     /**
@@ -704,9 +711,9 @@ class Pitch extends Model implements HasMedia
      */
     public function getPlacementLabel(): ?string
     {
-        return match($this->rank) {
+        return match ($this->rank) {
             self::RANK_FIRST => '1st Place',
-            self::RANK_SECOND => '2nd Place', 
+            self::RANK_SECOND => '2nd Place',
             self::RANK_THIRD => '3rd Place',
             self::RANK_RUNNER_UP => 'Runner-up',
             default => null
@@ -718,29 +725,25 @@ class Pitch extends Model implements HasMedia
      */
     public function isPlacementFinalized(): bool
     {
-        return !is_null($this->placement_finalized_at);
+        return ! is_null($this->placement_finalized_at);
     }
 
     /**
      * Check if the pitch has been completed and paid for
-     *
-     * @return bool
      */
     public function isCompletedAndPaid(): bool
     {
-        return $this->status === self::STATUS_COMPLETED && 
+        return $this->status === self::STATUS_COMPLETED &&
                $this->payment_status === self::PAYMENT_STATUS_PAID;
     }
 
     /**
      * Check if the pitch has been accepted or completed and paid for
      * This is used for determining when project owners can access original files
-     *
-     * @return bool
      */
     public function isAcceptedCompletedAndPaid(): bool
     {
-        return in_array($this->status, [self::STATUS_APPROVED, self::STATUS_COMPLETED]) && 
+        return in_array($this->status, [self::STATUS_APPROVED, self::STATUS_COMPLETED]) &&
                $this->payment_status === self::PAYMENT_STATUS_PAID;
     }
 }

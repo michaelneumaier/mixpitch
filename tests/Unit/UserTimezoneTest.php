@@ -15,7 +15,7 @@ class UserTimezoneTest extends TestCase
     public function user_can_have_timezone_preference()
     {
         $user = User::factory()->create(['timezone' => 'America/Los_Angeles']);
-        
+
         $this->assertEquals('America/Los_Angeles', $user->timezone);
         $this->assertEquals('America/Los_Angeles', $user->getTimezone());
     }
@@ -27,7 +27,7 @@ class UserTimezoneTest extends TestCase
         $user = User::factory()->create();
         $user->update(['timezone' => null]);
         $user->refresh();
-        
+
         $this->assertEquals('America/New_York', $user->getTimezone());
     }
 
@@ -36,9 +36,9 @@ class UserTimezoneTest extends TestCase
     {
         $user = User::factory()->create(['timezone' => 'Europe/London']);
         $utcDate = Carbon::parse('2024-01-01 12:00:00', 'UTC');
-        
+
         $formatted = $user->formatDate($utcDate, 'M j, Y g:i A');
-        
+
         $this->assertEquals('Jan 1, 2024 12:00 PM', $formatted);
     }
 
@@ -48,9 +48,9 @@ class UserTimezoneTest extends TestCase
         $user = User::factory()->create();
         $user->timezone = 'Asia/Tokyo';
         $user->save();
-        
+
         $user->refresh();
-        
+
         $this->assertEquals('Asia/Tokyo', $user->timezone);
     }
 
@@ -59,10 +59,10 @@ class UserTimezoneTest extends TestCase
     {
         $user = User::factory()->create(['timezone' => 'America/Chicago']);
         Carbon::setTestNow(Carbon::parse('2024-01-01 18:00:00', 'UTC'));
-        
+
         $userNow = $user->now();
-        
+
         $this->assertEquals('America/Chicago', $userNow->timezone->getName());
         $this->assertEquals('2024-01-01 12:00:00', $userNow->format('Y-m-d H:i:s'));
     }
-} 
+}

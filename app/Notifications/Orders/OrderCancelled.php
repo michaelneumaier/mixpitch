@@ -14,7 +14,9 @@ class OrderCancelled extends Notification implements ShouldQueue
     use Queueable;
 
     public Order $order;
+
     public User $canceller;
+
     public string $reason;
 
     /**
@@ -47,15 +49,15 @@ class OrderCancelled extends Notification implements ShouldQueue
         $orderUrl = route('orders.show', $this->order->id);
 
         return (new MailMessage)
-                    ->subject("Order Cancelled: #{$this->order->id}")
-                    ->greeting("Hello {$notifiable->name},")
-                    ->line("Order #{$this->order->id} ('{$this->order->servicePackage->title}') has been cancelled by the {$cancellerRole} ({$cancellerName}).")
-                    ->line("\nReason provided:")
-                    ->line($this->reason)
+            ->subject("Order Cancelled: #{$this->order->id}")
+            ->greeting("Hello {$notifiable->name},")
+            ->line("Order #{$this->order->id} ('{$this->order->servicePackage->title}') has been cancelled by the {$cancellerRole} ({$cancellerName}).")
+            ->line("\nReason provided:")
+            ->line($this->reason)
                     // TODO: Add information about potential refunds or next steps if applicable
                     // ->line('If a payment was made, a refund will be processed according to our policy.')
-                    ->action('View Order Details', $orderUrl)
-                    ->line('Please contact support if you have any questions.');
+            ->action('View Order Details', $orderUrl)
+            ->line('Please contact support if you have any questions.');
     }
 
     /**

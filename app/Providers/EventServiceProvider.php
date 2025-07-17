@@ -2,14 +2,14 @@
 
 namespace App\Providers;
 
-use App\Models\Pitch;
-use App\Observers\PitchObserver;
-use App\Models\Project;
-use App\Observers\ProjectObserver;
-use App\Models\ContestResult;
-use App\Observers\ContestResultObserver;
 use App\Events\NotificationCreated;
 use App\Listeners\NotificationCreatedListener;
+use App\Models\ContestResult;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Observers\ContestResultObserver;
+use App\Observers\PitchObserver;
+use App\Observers\ProjectObserver;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;

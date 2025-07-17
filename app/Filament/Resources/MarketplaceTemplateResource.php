@@ -6,10 +6,10 @@ use App\Filament\Resources\MarketplaceTemplateResource\Pages;
 use App\Models\LicenseTemplate;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,15 +18,15 @@ class MarketplaceTemplateResource extends Resource
     protected static ?string $model = LicenseTemplate::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
-    
+
     protected static ?string $navigationLabel = 'Marketplace Templates';
-    
+
     protected static ?string $modelLabel = 'Template';
-    
+
     protected static ?string $pluralModelLabel = 'Marketplace Templates';
-    
+
     protected static ?string $navigationGroup = 'Content Management';
-    
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
@@ -39,11 +39,11 @@ class MarketplaceTemplateResource extends Resource
                             ->required()
                             ->maxLength(100)
                             ->disabled(),
-                        
+
                         Forms\Components\Textarea::make('description')
                             ->maxLength(500)
                             ->disabled(),
-                        
+
                         Forms\Components\Select::make('category')
                             ->options([
                                 'music' => 'Music',
@@ -53,7 +53,7 @@ class MarketplaceTemplateResource extends Resource
                                 'general' => 'General',
                             ])
                             ->disabled(),
-                        
+
                         Forms\Components\Select::make('use_case')
                             ->options([
                                 'collaboration' => 'Collaboration',
@@ -72,13 +72,13 @@ class MarketplaceTemplateResource extends Resource
                             ->label('Marketplace Title')
                             ->required()
                             ->maxLength(150),
-                        
+
                         Forms\Components\Textarea::make('marketplace_description')
                             ->label('Marketplace Description')
                             ->required()
                             ->maxLength(1000)
                             ->rows(4),
-                        
+
                         Forms\Components\Textarea::make('submission_notes')
                             ->label('Submitter Notes')
                             ->disabled()
@@ -95,11 +95,11 @@ class MarketplaceTemplateResource extends Resource
                             ])
                             ->required()
                             ->live(),
-                        
+
                         Forms\Components\Toggle::make('marketplace_featured')
                             ->label('Featured Template')
                             ->visible(fn (Forms\Get $get) => $get('approval_status') === 'approved'),
-                        
+
                         Forms\Components\Textarea::make('rejection_reason')
                             ->label('Rejection Reason')
                             ->visible(fn (Forms\Get $get) => $get('approval_status') === 'rejected')
@@ -127,16 +127,16 @@ class MarketplaceTemplateResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                
+
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Submitted By')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('category')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
-                
+
                 Tables\Columns\BadgeColumn::make('approval_status')
                     ->label('Status')
                     ->colors([
@@ -145,7 +145,7 @@ class MarketplaceTemplateResource extends Resource
                         'danger' => 'rejected',
                     ])
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
-                
+
                 Tables\Columns\IconColumn::make('marketplace_featured')
                     ->label('Featured')
                     ->boolean()
@@ -153,17 +153,17 @@ class MarketplaceTemplateResource extends Resource
                     ->falseIcon('heroicon-o-star')
                     ->trueColor('warning')
                     ->falseColor('gray'),
-                
+
                 Tables\Columns\TextColumn::make('fork_count')
                     ->label('Forks')
                     ->sortable()
                     ->alignCenter(),
-                
+
                 Tables\Columns\TextColumn::make('view_count')
                     ->label('Views')
                     ->sortable()
                     ->alignCenter(),
-                
+
                 Tables\Columns\TextColumn::make('submitted_for_approval_at')
                     ->label('Submitted')
                     ->dateTime()
@@ -176,7 +176,7 @@ class MarketplaceTemplateResource extends Resource
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                     ]),
-                
+
                 Tables\Filters\SelectFilter::make('category')
                     ->options([
                         'music' => 'Music',
@@ -185,14 +185,14 @@ class MarketplaceTemplateResource extends Resource
                         'mastering' => 'Mastering',
                         'general' => 'General',
                     ]),
-                
+
                 Tables\Filters\TernaryFilter::make('marketplace_featured')
                     ->label('Featured Templates'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                
+
                 Tables\Actions\Action::make('approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
@@ -200,7 +200,7 @@ class MarketplaceTemplateResource extends Resource
                     ->action(function (Model $record) {
                         try {
                             \Log::info('Approving template', ['id' => $record->id, 'current_status' => $record->approval_status]);
-                            
+
                             $updated = $record->update([
                                 'approval_status' => 'approved',
                                 'is_public' => true,
@@ -208,26 +208,26 @@ class MarketplaceTemplateResource extends Resource
                                 'approved_at' => now(),
                                 'rejection_reason' => null,
                             ]);
-                            
+
                             \Log::info('Update result', ['updated' => $updated, 'new_status' => $record->fresh()->approval_status]);
-                            
+
                             Notification::make()
                                 ->title('Template Approved')
                                 ->body("Template '{$record->marketplace_title}' has been approved for marketplace.")
                                 ->success()
                                 ->send();
-                                
+
                         } catch (\Exception $e) {
                             \Log::error('Approval failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-                            
+
                             Notification::make()
                                 ->title('Approval Failed')
-                                ->body('Error: ' . $e->getMessage())
+                                ->body('Error: '.$e->getMessage())
                                 ->danger()
                                 ->send();
                         }
                     }),
-                
+
                 Tables\Actions\Action::make('reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
@@ -247,29 +247,29 @@ class MarketplaceTemplateResource extends Resource
                             'approved_at' => now(),
                             'rejection_reason' => $data['rejection_reason'],
                         ]);
-                        
+
                         Notification::make()
                             ->title('Template Rejected')
                             ->body("Template '{$record->marketplace_title}' has been rejected.")
                             ->warning()
                             ->send();
                     }),
-                
+
                 Tables\Actions\Action::make('feature')
                     ->icon('heroicon-o-star')
                     ->color('warning')
-                    ->visible(fn (Model $record) => $record->approval_status === 'approved' && !$record->marketplace_featured)
+                    ->visible(fn (Model $record) => $record->approval_status === 'approved' && ! $record->marketplace_featured)
                     ->requiresConfirmation()
                     ->action(function (Model $record) {
                         $record->update(['marketplace_featured' => true]);
-                        
+
                         Notification::make()
                             ->title('Template Featured')
                             ->body("Template '{$record->marketplace_title}' is now featured.")
                             ->success()
                             ->send();
                     }),
-                
+
                 Tables\Actions\Action::make('unfeature')
                     ->icon('heroicon-o-star')
                     ->color('gray')
@@ -277,7 +277,7 @@ class MarketplaceTemplateResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Model $record) {
                         $record->update(['marketplace_featured' => false]);
-                        
+
                         Notification::make()
                             ->title('Template Unfeatured')
                             ->body("Template '{$record->marketplace_title}' is no longer featured.")
@@ -306,7 +306,7 @@ class MarketplaceTemplateResource extends Resource
                                     $count++;
                                 }
                             }
-                            
+
                             Notification::make()
                                 ->title('Templates Approved')
                                 ->body("{$count} template(s) approved for marketplace.")
@@ -333,14 +333,14 @@ class MarketplaceTemplateResource extends Resource
             'edit' => Pages\EditMarketplaceTemplate::route('/{record}/edit'),
         ];
     }
-    
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::whereNotNull('submitted_for_approval_at')
             ->where('approval_status', 'pending')
             ->count();
     }
-    
+
     public static function getNavigationBadgeColor(): ?string
     {
         return 'warning';

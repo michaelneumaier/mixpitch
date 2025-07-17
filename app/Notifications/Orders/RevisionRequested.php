@@ -13,6 +13,7 @@ class RevisionRequested extends Notification implements ShouldQueue
     use Queueable;
 
     public Order $order;
+
     public string $feedback;
 
     /**
@@ -43,13 +44,13 @@ class RevisionRequested extends Notification implements ShouldQueue
         $orderUrl = route('orders.show', $this->order->id);
 
         return (new MailMessage)
-                    ->subject("Revisions Requested for Order #{$this->order->id}")
-                    ->greeting("Hello {$notifiable->name},")
-                    ->line("{$clientName} has requested revisions for order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line("\nFeedback:")
-                    ->line($this->feedback)
-                    ->action('View Order', $orderUrl)
-                    ->line('Please review the feedback and submit a revised delivery.');
+            ->subject("Revisions Requested for Order #{$this->order->id}")
+            ->greeting("Hello {$notifiable->name},")
+            ->line("{$clientName} has requested revisions for order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line("\nFeedback:")
+            ->line($this->feedback)
+            ->action('View Order', $orderUrl)
+            ->line('Please review the feedback and submit a revised delivery.');
     }
 
     /**

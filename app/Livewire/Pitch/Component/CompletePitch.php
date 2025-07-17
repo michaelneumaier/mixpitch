@@ -3,32 +3,24 @@
 namespace App\Livewire\Pitch\Component;
 
 use App\Exceptions\Pitch\InvalidStatusTransitionException;
-use App\Exceptions\Pitch\UnauthorizedActionException;
 use App\Exceptions\Pitch\SnapshotException;
-use Livewire\Component;
+use App\Exceptions\Pitch\UnauthorizedActionException;
 use App\Models\Pitch;
+use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 use Masmerise\Toaster\Toaster;
-use App\Services\NotificationService;
-use App\Models\Project;
-use App\Models\PitchFeedback;
-use App\Services\PitchCompletionService;
-use Illuminate\Auth\Access\AuthorizationException;
-use App\Exceptions\Pitch\CompletionValidationException;
-use App\Services\PitchWorkflowService;
-use App\Helpers\RouteHelpers;
-use Illuminate\Validation\Rule;
 
 class CompletePitch extends Component
 {
     public $pitch;
+
     public $hasOtherApprovedPitches = false;
+
     public $otherApprovedPitchesCount = 0;
+
     public $hasCompletedPitch = false;
-
-
 
     public function mount(Pitch $pitch, bool $hasCompletedPitch = false)
     {
@@ -53,8 +45,9 @@ class CompletePitch extends Component
     /**
      * Check if the user is authorized to complete the pitch
      *
-     * @throws UnauthorizedActionException
      * @return bool
+     *
+     * @throws UnauthorizedActionException
      */
     public function isAuthorized()
     {
@@ -62,7 +55,7 @@ class CompletePitch extends Component
             $this->pitch->project->user_id === Auth::id() &&
             $this->pitch->status === Pitch::STATUS_APPROVED;
 
-        if (!$isAuthorized) {
+        if (! $isAuthorized) {
             throw new UnauthorizedActionException(
                 'complete',
                 'You are not authorized to complete this pitch'
@@ -91,7 +84,7 @@ class CompletePitch extends Component
                 'projectTitle' => $this->pitch->project->title,
                 'hasOtherApprovedPitches' => $this->hasOtherApprovedPitches,
                 'otherApprovedPitchesCount' => $this->otherApprovedPitchesCount,
-                'projectBudget' => $this->pitch->project->budget ?? 0
+                'projectBudget' => $this->pitch->project->budget ?? 0,
             ]);
 
         } catch (UnauthorizedActionException $e) {
@@ -99,26 +92,24 @@ class CompletePitch extends Component
             Log::error('Unauthorized attempt to complete pitch', [
                 'pitch_id' => $this->pitch->id,
                 'user_id' => Auth::id() ?? 'unauthenticated',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-        } catch (InvalidStatusTransitionException | SnapshotException $e) {
+        } catch (InvalidStatusTransitionException|SnapshotException $e) {
             Toaster::error($e->getMessage());
             Log::error('Invalid pitch completion attempt', [
                 'pitch_id' => $this->pitch->id,
                 'status' => $this->pitch->status,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         } catch (\Exception $e) {
             Toaster::error('An unexpected error occurred');
             Log::error('Error in pitch completion request', [
                 'pitch_id' => $this->pitch->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
-
-
 
     public function render()
     {

@@ -25,7 +25,7 @@ return new class extends Migration
     public function down(): void
     {
         $columns = ['content', 'headers', 'message_id', 'recipient_name'];
-        
+
         // Drop columns one by one for SQLite compatibility
         foreach ($columns as $column) {
             if (Schema::hasColumn('email_audits', $column)) {

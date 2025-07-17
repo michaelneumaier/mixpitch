@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\PitchFile;
 use App\Models\ProjectFile;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use App\Services\FileManagementService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class FileDownloadController extends Controller
 {
@@ -24,7 +23,6 @@ class FileDownloadController extends Controller
     /**
      * Handle secure downloads for pitch files
      *
-     * @param  \App\Models\PitchFile  $file
      * @return \Illuminate\Http\RedirectResponse
      */
     public function downloadPitchFile(PitchFile $file)
@@ -36,12 +34,13 @@ class FileDownloadController extends Controller
             // Use the PitchFile model's permission-based download URL
             $signedUrl = $file->getDownloadUrl(Auth::user(), 60);
 
-            if (!$signedUrl) {
+            if (! $signedUrl) {
                 Log::error('Could not generate download URL for pitch file', [
                     'file_id' => $file->id,
                     'file_uuid' => $file->uuid,
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
+
                 return back()->with('error', 'Unable to generate download URL. Please try again.');
             }
 
@@ -51,20 +50,21 @@ class FileDownloadController extends Controller
                 'file_uuid' => $file->uuid,
                 'user_id' => Auth::id(),
                 'filename' => $file->file_name,
-                'will_receive_watermarked' => $file->shouldServeWatermarked(Auth::user())
+                'will_receive_watermarked' => $file->shouldServeWatermarked(Auth::user()),
             ]);
 
             // Redirect to the signed URL
             return redirect()->away($signedUrl);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-             Log::warning('Unauthorized attempt to download pitch file', ['file_id' => $file->id, 'file_uuid' => $file->uuid, 'user_id' => Auth::id()]);
-             abort(403, 'You are not authorized to download this file.');
+            Log::warning('Unauthorized attempt to download pitch file', ['file_id' => $file->id, 'file_uuid' => $file->uuid, 'user_id' => Auth::id()]);
+            abort(403, 'You are not authorized to download this file.');
         } catch (\Exception $e) {
             Log::error('Error generating download URL for pitch file', [
                 'file_id' => $file->id,
                 'file_uuid' => $file->uuid,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return back()->with('error', 'Unable to download file. Please try again.');
         }
     }
@@ -90,20 +90,21 @@ class FileDownloadController extends Controller
             Log::info('Project file download requested', [
                 'file_id' => $id,
                 'user_id' => Auth::id(),
-                'filename' => $file->file_name // Assuming file_name exists
+                'filename' => $file->file_name, // Assuming file_name exists
             ]);
 
             // Redirect to the signed URL
             return redirect()->away($signedUrl);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-             Log::warning('Unauthorized attempt to download project file', ['file_id' => $file->id, 'user_id' => Auth::id()]);
-             abort(403, 'You are not authorized to download this file.');
+            Log::warning('Unauthorized attempt to download project file', ['file_id' => $file->id, 'user_id' => Auth::id()]);
+            abort(403, 'You are not authorized to download this file.');
         } catch (\Exception $e) {
             Log::error('Error generating download URL for project file', [
                 'file_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return back()->with('error', 'Unable to download file. Please try again.');
         }
     }
-} 
+}

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PayoutSchedule;
 use App\Models\PayoutHoldSetting;
+use App\Models\PayoutSchedule;
 use App\Services\PayoutHoldService;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -15,7 +15,7 @@ class HoldPeriodStatsWidget extends BaseWidget
     {
         $holdService = app(PayoutHoldService::class);
         $settings = PayoutHoldSetting::current();
-        
+
         // Basic counts
         $totalScheduled = PayoutSchedule::where('status', 'scheduled')->count();
         $inHoldPeriod = PayoutSchedule::where('status', 'scheduled')
@@ -25,7 +25,7 @@ class HoldPeriodStatsWidget extends BaseWidget
             ->where('hold_release_date', '<=', now())
             ->count();
         $totalBypassed = PayoutSchedule::where('hold_bypassed', true)->count();
-        
+
         // Amount calculations
         $holdAmount = PayoutSchedule::where('status', 'scheduled')
             ->where('hold_release_date', '>', now())
@@ -55,7 +55,7 @@ class HoldPeriodStatsWidget extends BaseWidget
                 ->url('/admin/payout-schedules?tab=ready')
                 ->extraAttributes(['title' => 'Click to view ready payouts']),
 
-            Stat::make('Hold Amount', '$' . number_format($holdAmount, 2))
+            Stat::make('Hold Amount', '$'.number_format($holdAmount, 2))
                 ->description('Total amount in hold')
                 ->descriptionIcon('heroicon-o-banknotes')
                 ->color('info'),
@@ -85,6 +85,7 @@ class HoldPeriodStatsWidget extends BaseWidget
                 ->count();
             $data[] = $count;
         }
+
         return $data;
     }
 

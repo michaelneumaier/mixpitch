@@ -5,20 +5,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers;
 use App\Models\Project;
-use App\Models\User;
 use Filament\Forms;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Card;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectResource extends Resource
@@ -26,11 +19,11 @@ class ProjectResource extends Resource
     protected static ?string $model = Project::class;
 
     protected static ?string $navigationIcon = 'heroicon-m-document';
-    
+
     protected static ?string $navigationGroup = 'Content Management';
-    
+
     protected static ?int $navigationSort = 1;
-    
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Form $form): Form
@@ -45,7 +38,7 @@ class ProjectResource extends Resource
                                     ->required()
                                     ->maxLength(255)
                                     ->label('Project Name'),
-                                
+
                                 Forms\Components\Select::make('user_id')
                                     ->relationship('user', 'name')
                                     ->searchable()
@@ -61,20 +54,20 @@ class ProjectResource extends Resource
                                     ])
                                     ->required()
                                     ->label('Project Owner'),
-                                
+
                                 Forms\Components\TextInput::make('artist_name')
                                     ->maxLength(255),
-                                
+
                                 Forms\Components\TextInput::make('genre')
                                     ->maxLength(255),
-                                
+
                                 Forms\Components\Select::make('workflow_type')
                                     ->label('Workflow Type')
-                                    ->options(collect(Project::getWorkflowTypes())->mapWithKeys(fn($type) => [$type => Project::getReadableWorkflowType($type)]))
+                                    ->options(collect(Project::getWorkflowTypes())->mapWithKeys(fn ($type) => [$type => Project::getReadableWorkflowType($type)]))
                                     ->required()
                                     ->reactive()
                                     ->afterStateUpdated(fn (callable $set) => $set('target_producer_id', null)),
-                                
+
                                 Forms\Components\Select::make('status')
                                     ->options([
                                         'draft' => 'Draft',
@@ -85,12 +78,12 @@ class ProjectResource extends Resource
                                     ])
                                     ->required(),
                             ]),
-                        
+
                         Forms\Components\Textarea::make('description')
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
-                
+
                 Section::make('Project Media')
                     ->schema([
                         Forms\Components\FileUpload::make('image_path')
@@ -102,37 +95,37 @@ class ProjectResource extends Resource
                             ->imageResizeTargetWidth('1200')
                             ->imageResizeTargetHeight('675')
                             ->label('Project Cover Image'),
-                        
+
                         Forms\Components\TextInput::make('preview_track')
                             ->maxLength(255)
                             ->label('Preview Track URL')
                             ->helperText('URL to a preview audio track, if available'),
                     ]),
-                
+
                 Section::make('Collaboration Details')
                     ->schema([
                         Forms\Components\TagsInput::make('collaboration_type')
                             ->placeholder('Add collaboration types')
                             ->helperText('Enter collaboration type and press Enter')
                             ->label('Collaboration Types'),
-                        
+
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('budget')
                                     ->numeric()
                                     ->prefix('$')
                                     ->default(0),
-                                
+
                                 Forms\Components\DatePicker::make('deadline')
                                     ->label('Project Deadline'),
                             ]),
-                        
+
                         Forms\Components\Textarea::make('notes')
                             ->rows(3)
                             ->label('Collaboration Notes')
                             ->columnSpanFull(),
                     ]),
-                
+
                 Section::make('Publication & Storage')
                     ->schema([
                         Forms\Components\Grid::make(2)
@@ -141,17 +134,17 @@ class ProjectResource extends Resource
                                     ->label('Published')
                                     ->helperText('Make this project visible to the public')
                                     ->default(false),
-                                
+
                                 Forms\Components\DateTimePicker::make('completed_at')
                                     ->label('Completion Date'),
-                                
+
                                 Forms\Components\TextInput::make('total_storage_used')
                                     ->numeric()
                                     ->suffix('MB')
                                     ->disabled()
                                     ->default(0)
                                     ->label('Total Storage Used'),
-                                
+
                                 Forms\Components\TextInput::make('slug')
                                     ->maxLength(255)
                                     ->helperText('URL-friendly name (auto-generated if left empty)')
@@ -168,23 +161,24 @@ class ProjectResource extends Resource
                 Tables\Columns\ImageColumn::make('image_path')
                     ->label('Cover')
                     ->square()
-                    ->defaultImageUrl(fn ($record) => "https://ui-avatars.com/api/?name=" . urlencode($record->name) . "&color=6366f1&background=e0e7ff"),
-                
+                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->name).'&color=6366f1&background=e0e7ff'),
+
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable()
                     ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
+
                         return strlen($state) > 30 ? $state : null;
                     }),
-                
+
                 Tables\Columns\TextColumn::make('user.name')
                     ->searchable()
                     ->sortable()
                     ->label('Owner')
-                    ->formatStateUsing(fn ($state, $record) => $state . ' (' . $record->user->email . ')'),
-                
+                    ->formatStateUsing(fn ($state, $record) => $state.' ('.$record->user->email.')'),
+
                 Tables\Columns\TextColumn::make('workflow_type')
                     ->badge()
                     ->searchable()
@@ -200,7 +194,7 @@ class ProjectResource extends Resource
                         default => 'secondary',
                     })
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->searchable()
@@ -213,19 +207,19 @@ class ProjectResource extends Resource
                         default => 'secondary',
                     })
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('budget')
                     ->money('USD')
                     ->sortable()
                     ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
                     ->badge(fn ($state): bool => $state > 0),
-                
+
                 Tables\Columns\TextColumn::make('pitches_count')
                     ->counts('pitches')
                     ->label('Pitches')
                     ->badge()
                     ->color('info'),
-                
+
                 Tables\Columns\IconColumn::make('is_published')
                     ->label('Published')
                     ->boolean()
@@ -233,32 +227,42 @@ class ProjectResource extends Resource
                     ->falseIcon('heroicon-o-eye-slash')
                     ->trueColor('success')
                     ->falseColor('gray'),
-                
+
                 Tables\Columns\TextColumn::make('total_storage_used')
                     ->label('Storage')
-                    ->formatStateUsing(fn ($state): string => $state ? number_format($state / 1024 / 1024, 1) . ' MB' : '0 MB')
+                    ->formatStateUsing(fn ($state): string => $state ? number_format($state / 1024 / 1024, 1).' MB' : '0 MB')
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->since()
                     ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 Tables\Columns\TextColumn::make('deadline')
                     ->date()
                     ->sortable()
                     ->color(function ($state): string {
-                        if (!$state) return 'gray';
+                        if (! $state) {
+                            return 'gray';
+                        }
                         $daysUntil = now()->diffInDays($state, false);
+
                         return $daysUntil < 0 ? 'danger' : ($daysUntil <= 7 ? 'warning' : 'success');
                     })
                     ->formatStateUsing(function ($state): string {
-                        if (!$state) return 'No deadline';
+                        if (! $state) {
+                            return 'No deadline';
+                        }
                         $daysUntil = now()->diffInDays($state, false);
-                        if ($daysUntil < 0) return 'Overdue by ' . abs($daysUntil) . ' days';
-                        if ($daysUntil == 0) return 'Due today';
-                        return 'Due in ' . $daysUntil . ' days';
+                        if ($daysUntil < 0) {
+                            return 'Overdue by '.abs($daysUntil).' days';
+                        }
+                        if ($daysUntil == 0) {
+                            return 'Due today';
+                        }
+
+                        return 'Due in '.$daysUntil.' days';
                     })
                     ->toggleable(),
             ])
@@ -272,7 +276,7 @@ class ProjectResource extends Resource
                         'cancelled' => 'Cancelled',
                     ])
                     ->multiple(),
-                    
+
                 Tables\Filters\SelectFilter::make('workflow_type')
                     ->label('Workflow Type')
                     ->options([
@@ -286,19 +290,19 @@ class ProjectResource extends Resource
                         'client_management' => 'Client Management',
                     ])
                     ->multiple(),
-                    
+
                 Tables\Filters\Filter::make('is_published')
                     ->label('Published Projects')
                     ->query(fn (Builder $query): Builder => $query->where('is_published', true)),
-                    
+
                 Tables\Filters\Filter::make('has_budget')
                     ->label('Paid Projects')
                     ->query(fn (Builder $query): Builder => $query->where('budget', '>', 0)),
-                    
+
                 Tables\Filters\Filter::make('overdue')
                     ->label('Overdue Projects')
                     ->query(fn (Builder $query): Builder => $query->where('deadline', '<', now())->whereNotIn('status', ['completed', 'cancelled'])),
-                    
+
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
@@ -339,9 +343,10 @@ class ProjectResource extends Resource
                                     ->body('Client Management projects remain private by design and are only accessible through secure client portals.')
                                     ->warning()
                                     ->send();
+
                                 return;
                             }
-                            $record->update(['is_published' => !$record->is_published]);
+                            $record->update(['is_published' => ! $record->is_published]);
                         })
                         ->hidden(fn (Project $record): bool => $record->isClientManagement())
                         ->requiresConfirmation(),
@@ -357,8 +362,8 @@ class ProjectResource extends Resource
                         ->color('success')
                         ->action(function (Collection $records): void {
                             $clientManagementCount = $records->filter(fn ($record) => $record->isClientManagement())->count();
-                            $publishableRecords = $records->filter(fn ($record) => !$record->isClientManagement());
-                            
+                            $publishableRecords = $records->filter(fn ($record) => ! $record->isClientManagement());
+
                             if ($clientManagementCount > 0) {
                                 \Filament\Notifications\Notification::make()
                                     ->title("Skipped {$clientManagementCount} Client Management project(s)")
@@ -366,7 +371,7 @@ class ProjectResource extends Resource
                                     ->warning()
                                     ->send();
                             }
-                            
+
                             $publishableRecords->each->update(['is_published' => true]);
                         })
                         ->requiresConfirmation(),
@@ -376,8 +381,8 @@ class ProjectResource extends Resource
                         ->color('warning')
                         ->action(function (Collection $records): void {
                             $clientManagementCount = $records->filter(fn ($record) => $record->isClientManagement())->count();
-                            $unpublishableRecords = $records->filter(fn ($record) => !$record->isClientManagement());
-                            
+                            $unpublishableRecords = $records->filter(fn ($record) => ! $record->isClientManagement());
+
                             if ($clientManagementCount > 0) {
                                 \Filament\Notifications\Notification::make()
                                     ->title("Skipped {$clientManagementCount} Client Management project(s)")
@@ -385,7 +390,7 @@ class ProjectResource extends Resource
                                     ->info()
                                     ->send();
                             }
-                            
+
                             $unpublishableRecords->each->update(['is_published' => false]);
                         })
                         ->requiresConfirmation(),

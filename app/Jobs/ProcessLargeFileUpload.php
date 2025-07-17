@@ -2,16 +2,16 @@
 
 namespace App\Jobs;
 
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\FileManagementService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,12 +20,17 @@ class ProcessLargeFileUpload implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 600; // 10 minutes timeout for large files
+
     public $tries = 3; // Retry up to 3 times
 
     protected $model;
+
     protected $tempFilePath;
+
     protected $originalFilename;
+
     protected $uploader;
+
     protected $metadata;
 
     /**
@@ -50,7 +55,7 @@ class ProcessLargeFileUpload implements ShouldQueue
             set_time_limit(600);
 
             // Verify temp file still exists
-            if (!Storage::disk('local')->exists($this->tempFilePath)) {
+            if (! Storage::disk('local')->exists($this->tempFilePath)) {
                 throw new \RuntimeException("Temporary file not found: {$this->tempFilePath}");
             }
 
@@ -73,13 +78,13 @@ class ProcessLargeFileUpload implements ShouldQueue
                 $fileManagementService->uploadProjectFile($this->model, $uploadedFile, $this->uploader, $this->metadata);
                 Log::info('Large project file uploaded successfully via job', [
                     'filename' => $this->originalFilename,
-                    'project_id' => $this->model->id
+                    'project_id' => $this->model->id,
                 ]);
             } elseif ($this->model instanceof Pitch) {
                 $fileManagementService->uploadPitchFile($this->model, $uploadedFile, $this->uploader);
                 Log::info('Large pitch file uploaded successfully via job', [
                     'filename' => $this->originalFilename,
-                    'pitch_id' => $this->model->id
+                    'pitch_id' => $this->model->id,
                 ]);
             }
 
@@ -93,7 +98,7 @@ class ProcessLargeFileUpload implements ShouldQueue
                 'model_type' => get_class($this->model),
                 'model_id' => $this->model->id,
                 'error' => $e->getMessage(),
-                'temp_path' => $this->tempFilePath
+                'temp_path' => $this->tempFilePath,
             ]);
 
             // Clean up temp file on failure too
@@ -115,7 +120,7 @@ class ProcessLargeFileUpload implements ShouldQueue
             'model_type' => get_class($this->model),
             'model_id' => $this->model->id,
             'error' => $exception->getMessage(),
-            'temp_path' => $this->tempFilePath
+            'temp_path' => $this->tempFilePath,
         ]);
 
         // Clean up temp file on permanent failure
@@ -124,4 +129,4 @@ class ProcessLargeFileUpload implements ShouldQueue
             Log::info('Cleaned up temporary file after job failure', ['path' => $this->tempFilePath]);
         }
     }
-} 
+}

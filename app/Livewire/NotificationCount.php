@@ -2,24 +2,24 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class NotificationCount extends Component
 {
     public $count = 0;
-    
+
     protected $listeners = [
         'notificationRead' => '$refresh',
-        'echo:notifications,NotificationCreated' => '$refresh'
+        'echo:notifications,NotificationCreated' => '$refresh',
     ];
-    
+
     public function mount()
     {
         $this->updateCount();
     }
-    
+
     public function updateCount()
     {
         if (Auth::check()) {
@@ -30,18 +30,19 @@ class NotificationCount extends Component
             $this->count = 0;
         }
     }
-    
+
     public function getListeners()
     {
         return [
             'notificationRead' => '$refresh',
-            'echo:notifications,NotificationCreated' => '$refresh'
+            'echo:notifications,NotificationCreated' => '$refresh',
         ];
     }
-    
+
     public function render()
     {
         $this->updateCount();
+
         return view('livewire.notification-count');
     }
 }

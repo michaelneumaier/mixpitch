@@ -2,27 +2,38 @@
 
 namespace App\Livewire;
 
+use App\Models\Project;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use App\Models\Project;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Auth;
 
 class ProjectsComponent extends Component
 {
     use WithPagination;
 
     public $genres = [];
+
     public $statuses = [];
+
     public $projectTypes = [];
+
     public $search = '';
+
     public $sortBy = 'latest';
+
     public $perPage = 12;
+
     public $viewMode = 'list'; // 'card' or 'list'
+
     public $min_budget = null;
+
     public $max_budget = null;
+
     public $deadline_start = null;
+
     public $deadline_end = null;
+
     public $selected_collaboration_types = [];
 
     protected $queryString = [
@@ -72,19 +83,19 @@ class ProjectsComponent extends Component
                 $userId = Auth::id();
                 $q->whereIn('workflow_type', [
                     Project::WORKFLOW_TYPE_STANDARD,
-                    Project::WORKFLOW_TYPE_CONTEST
+                    Project::WORKFLOW_TYPE_CONTEST,
                 ])
-                ->orWhere(function ($subQ) use ($userId) {
-                    $subQ->where('workflow_type', Project::WORKFLOW_TYPE_DIRECT_HIRE);
-                    if ($userId) {
-                        $subQ->where(function ($userCheck) use ($userId) {
-                            $userCheck->where('user_id', $userId)
-                                      ->orWhere('target_producer_id', $userId);
-                        });
-                    } else {
-                        $subQ->whereRaw('1 = 0');
-                    }
-                });
+                    ->orWhere(function ($subQ) use ($userId) {
+                        $subQ->where('workflow_type', Project::WORKFLOW_TYPE_DIRECT_HIRE);
+                        if ($userId) {
+                            $subQ->where(function ($userCheck) use ($userId) {
+                                $userCheck->where('user_id', $userId)
+                                    ->orWhere('target_producer_id', $userId);
+                            });
+                        } else {
+                            $subQ->whereRaw('1 = 0');
+                        }
+                    });
                 // REMOVED: Client Management projects should NEVER appear on /projects page
                 // This is a public marketplace, not a place to manage private client projects
             })
@@ -176,7 +187,7 @@ class ProjectsComponent extends Component
         $this->deadline_end = null;
         $this->selected_collaboration_types = [];
         $this->resetPage();
-        
+
         // Dispatch an event to notify child components that filters have been cleared
         $this->dispatch('filters-cleared');
     }
@@ -254,7 +265,7 @@ class ProjectsComponent extends Component
     {
         $this->viewMode = $this->viewMode === 'card' ? 'list' : 'card';
     }
-    
+
     /**
      * Listen for the clear-parent-filters event from child components
      */

@@ -12,6 +12,7 @@ class SubscriptionCancelled extends Notification implements ShouldQueue
     use Queueable;
 
     protected $planName;
+
     protected $endsAt;
 
     /**
@@ -40,8 +41,8 @@ class SubscriptionCancelled extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Your MixPitch Subscription Has Been Cancelled')
-            ->line('We\'re sorry to see you go! Your ' . $this->planName . ' subscription has been cancelled.')
-            ->line('You\'ll continue to have access to all Pro features until ' . $this->endsAt->format('F j, Y') . '.')
+            ->line('We\'re sorry to see you go! Your '.$this->planName.' subscription has been cancelled.')
+            ->line('You\'ll continue to have access to all Pro features until '.$this->endsAt->format('F j, Y').'.')
             ->line('After that date, your account will automatically switch to our Free plan.')
             ->line('**What happens next:**')
             ->line('• Your projects and data will be preserved')
@@ -61,7 +62,7 @@ class SubscriptionCancelled extends Notification implements ShouldQueue
         return [
             'plan_name' => $this->planName,
             'ends_at' => $this->endsAt,
-            'message' => 'Subscription cancelled - access until ' . $this->endsAt->format('M j, Y')
+            'message' => 'Subscription cancelled - access until '.$this->endsAt->format('M j, Y'),
         ];
     }
 }

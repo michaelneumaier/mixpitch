@@ -2,16 +2,17 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Route;
+use Livewire\Component;
 
 class AuthDropdown extends Component
 {
     public $isOpen = false;
+
     public $tab = 'login';
+
     protected $listeners = ['outsideClick' => 'closeDropdown'];
 
     public function closeDropdown()
@@ -21,14 +22,14 @@ class AuthDropdown extends Component
 
     public $loginForm = [
         'email' => '',
-        'password' => ''
+        'password' => '',
     ];
 
     public $registerForm = [
         'name' => '',
         'email' => '',
         'password' => '',
-        'password_confirmation' => ''
+        'password_confirmation' => '',
     ];
 
     public function render()
@@ -41,6 +42,7 @@ class AuthDropdown extends Component
         $this->tab = $tabName;
         $this->reset(['loginForm', 'registerForm']);
     }
+
     public function toggleOpen($action)
     {
         if ($this->isOpen && $this->tab == $action) {
@@ -50,6 +52,7 @@ class AuthDropdown extends Component
             $this->tab = $action;
         }
     }
+
     public function hydrated()
     {
         $this->dispatch('add-dropdown-listener');
@@ -58,8 +61,10 @@ class AuthDropdown extends Component
     public function logoutForm()
     {
         Auth::logout();
+
         return redirect()->back();
     }
+
     public function submitLoginForm()
     {
         // Validate form data
@@ -68,12 +73,12 @@ class AuthDropdown extends Component
             'loginForm.password' => 'required|min:6',
         ]);
 
-
         // Attempt to authenticate the user
         if (Auth::attempt(['email' => $this->loginForm['email'], 'password' => $this->loginForm['password']])) {
             // Successful login
             $this->reset(['isOpen', 'loginForm']);
             session()->flash('message', 'Logged in successfully.');
+
             return redirect()->back();
         } else {
             // Failed login
@@ -111,6 +116,7 @@ class AuthDropdown extends Component
         // Reset state and redirect with a success message
         $this->reset(['isOpen', 'registerForm']);
         session()->flash('message', 'Registered and logged in successfully.');
+
         return redirect()->to('/');
     }
 }

@@ -13,6 +13,7 @@ class OrderDelivered extends Notification implements ShouldQueue
     use Queueable;
 
     public Order $order;
+
     public ?string $deliveryMessage;
 
     /**
@@ -42,18 +43,18 @@ class OrderDelivered extends Notification implements ShouldQueue
         $producerName = $this->order->producer->name ?? 'The producer';
         $orderUrl = route('orders.show', $this->order->id);
         $mail = (new MailMessage)
-                    ->subject("Order Delivered: #{$this->order->id} - {$this->order->servicePackage->title}")
-                    ->greeting("Hello {$notifiable->name},")
-                    ->line("{$producerName} has delivered your order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line('Please review the delivery and accept it or request revisions.');
+            ->subject("Order Delivered: #{$this->order->id} - {$this->order->servicePackage->title}")
+            ->greeting("Hello {$notifiable->name},")
+            ->line("{$producerName} has delivered your order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line('Please review the delivery and accept it or request revisions.');
 
         if ($this->deliveryMessage) {
             $mail->line("\nDelivery Message:")
-                 ->line($this->deliveryMessage);
+                ->line($this->deliveryMessage);
         }
 
         $mail->action('View Order', $orderUrl)
-             ->line('Thank you for using our application!');
+            ->line('Thank you for using our application!');
 
         return $mail;
     }
@@ -67,7 +68,7 @@ class OrderDelivered extends Notification implements ShouldQueue
     {
         $message = "Your order #{$this->order->id} has been delivered.";
         if ($this->deliveryMessage) {
-            $message .= " Delivery message included."; // Keep it concise for DB notification
+            $message .= ' Delivery message included.'; // Keep it concise for DB notification
         }
 
         return [
@@ -77,7 +78,7 @@ class OrderDelivered extends Notification implements ShouldQueue
             'producer_name' => $this->order->producer->name ?? 'N/A',
             'message' => $message,
             'action_url' => route('orders.show', $this->order->id),
-            'has_delivery_message' => !empty($this->deliveryMessage), // Useful flag
+            'has_delivery_message' => ! empty($this->deliveryMessage), // Useful flag
         ];
     }
 }

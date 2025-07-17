@@ -97,7 +97,7 @@ class PayoutController extends Controller
             'completed_payouts' => $payouts->where('status', PayoutSchedule::STATUS_COMPLETED)->count(),
             'pending_payouts' => $payouts->whereIn('status', [
                 PayoutSchedule::STATUS_SCHEDULED,
-                PayoutSchedule::STATUS_PROCESSING
+                PayoutSchedule::STATUS_PROCESSING,
             ])->count(),
             'total_gross' => $payouts->where('status', PayoutSchedule::STATUS_COMPLETED)->sum('gross_amount'),
             'total_commission' => $payouts->where('status', PayoutSchedule::STATUS_COMPLETED)->sum('commission_amount'),
@@ -118,14 +118,14 @@ class PayoutController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $filename = 'payout-history-' . now()->format('Y-m-d') . '.csv';
+        $filename = 'payout-history-'.now()->format('Y-m-d').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ];
 
-        $callback = function() use ($payouts) {
+        $callback = function () use ($payouts) {
             $file = fopen('php://output', 'w');
 
             // CSV headers
@@ -151,10 +151,10 @@ class PayoutController extends Controller
                     $payout->pitch->title ?? 'N/A',
                     ucfirst($payout->workflow_type),
                     ucfirst($payout->status),
-                    '$' . number_format($payout->gross_amount, 2),
-                    $payout->commission_rate . '%',
-                    '$' . number_format($payout->commission_amount, 2),
-                    '$' . number_format($payout->net_amount, 2),
+                    '$'.number_format($payout->gross_amount, 2),
+                    $payout->commission_rate.'%',
+                    '$'.number_format($payout->commission_amount, 2),
+                    '$'.number_format($payout->net_amount, 2),
                     $payout->hold_release_date ? $payout->hold_release_date->format('Y-m-d') : 'N/A',
                     $payout->stripe_transfer_id ?? 'N/A',
                 ]);

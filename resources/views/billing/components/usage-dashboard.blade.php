@@ -95,19 +95,19 @@
                             <i class="fas fa-hdd text-orange-600"></i>
                         </div>
                         <div>
-                            <div class="text-sm font-medium text-orange-700">Storage per Project</div>
+                            <div class="text-sm font-medium text-orange-700">Total Storage Space</div>
                             <div class="text-xs text-orange-600">
                                 {{ $user->getFileRetentionDays() }} days retention
                             </div>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-2xl font-bold text-orange-900">{{ $user->getStoragePerProjectGB() }}GB</div>
+                        <div class="text-2xl font-bold text-orange-900">{{ $user->getStorageLimitGB() }}GB</div>
                     </div>
                 </div>
                 <div class="text-xs text-orange-600 font-medium flex items-center">
                     <i class="fas fa-check-circle mr-1"></i>
-                    Per project allocation
+                    Total storage limit
                 </div>
             </div>
         </div>

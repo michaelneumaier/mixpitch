@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\S3FilepondService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Response;
-use App\Services\S3FilepondService;
 
 class S3FilepondController extends Controller
 {

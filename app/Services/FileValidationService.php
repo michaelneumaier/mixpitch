@@ -3,10 +3,8 @@
 namespace App\Services;
 
 use App\Models\FileUploadSetting;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Services\FileUploadSettingsService;
-use App\Services\FileManagementService;
+use App\Models\Project;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 class FileValidationService
 {
     protected FileUploadSettingsService $settingsService;
+
     protected FileManagementService $fileManagementService;
 
     // MIME type to file signature mappings for security validation
@@ -22,59 +21,59 @@ class FileValidationService
         // Audio formats
         'audio/mpeg' => [
             ['FF FB', 'FF F3', 'FF F2'], // MP3
-            ['49 44 33'] // ID3 tag
+            ['49 44 33'], // ID3 tag
         ],
         'audio/wav' => [
-            ['52 49 46 46'] // RIFF header
+            ['52 49 46 46'], // RIFF header
         ],
         'audio/x-wav' => [
-            ['52 49 46 46'] // RIFF header
+            ['52 49 46 46'], // RIFF header
         ],
         'audio/flac' => [
-            ['66 4C 61 43'] // fLaC
+            ['66 4C 61 43'], // fLaC
         ],
         'audio/aac' => [
-            ['FF F1', 'FF F9'] // AAC ADTS
+            ['FF F1', 'FF F9'], // AAC ADTS
         ],
         'audio/ogg' => [
-            ['4F 67 67 53'] // OggS
+            ['4F 67 67 53'], // OggS
         ],
         'audio/x-m4a' => [
             ['00 00 00 18 66 74 79 70'], // ftyp
-            ['00 00 00 20 66 74 79 70']
+            ['00 00 00 20 66 74 79 70'],
         ],
         'audio/mp4' => [
             ['00 00 00 18 66 74 79 70'], // ftyp
-            ['00 00 00 20 66 74 79 70']
+            ['00 00 00 20 66 74 79 70'],
         ],
-        
+
         // Image formats (for project images)
         'image/jpeg' => [
-            ['FF D8 FF'] // JPEG
+            ['FF D8 FF'], // JPEG
         ],
         'image/png' => [
-            ['89 50 4E 47 0D 0A 1A 0A'] // PNG
+            ['89 50 4E 47 0D 0A 1A 0A'], // PNG
         ],
         'image/gif' => [
-            ['47 49 46 38'] // GIF
+            ['47 49 46 38'], // GIF
         ],
         'image/webp' => [
-            ['52 49 46 46', '57 45 42 50'] // RIFF + WEBP
+            ['52 49 46 46', '57 45 42 50'], // RIFF + WEBP
         ],
-        
+
         // Document formats
         'application/pdf' => [
-            ['25 50 44 46'] // %PDF
+            ['25 50 44 46'], // %PDF
         ],
         'text/plain' => [
             // Text files don't have reliable signatures, validate by content
-        ]
+        ],
     ];
 
     // Dangerous file extensions that should never be allowed
     protected array $dangerousExtensions = [
         'exe', 'bat', 'cmd', 'com', 'pif', 'scr', 'vbs', 'js', 'jar',
-        'php', 'asp', 'aspx', 'jsp', 'pl', 'py', 'rb', 'sh', 'ps1'
+        'php', 'asp', 'aspx', 'jsp', 'pl', 'py', 'rb', 'sh', 'ps1',
     ];
 
     // Context-specific allowed MIME types
@@ -83,17 +82,17 @@ class FileValidationService
             'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/aac',
             'audio/ogg', 'audio/x-m4a', 'audio/mp4', 'audio/webm',
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'application/pdf', 'text/plain'
+            'application/pdf', 'text/plain',
         ],
         FileUploadSetting::CONTEXT_PITCHES => [
             'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/aac',
-            'audio/ogg', 'audio/x-m4a', 'audio/mp4', 'audio/webm'
+            'audio/ogg', 'audio/x-m4a', 'audio/mp4', 'audio/webm',
         ],
         FileUploadSetting::CONTEXT_CLIENT_PORTALS => [
             'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/aac',
             'audio/ogg', 'audio/x-m4a', 'audio/mp4', 'audio/webm',
-            'application/pdf', 'text/plain'
-        ]
+            'application/pdf', 'text/plain',
+        ],
     ];
 
     public function __construct(
@@ -110,34 +109,34 @@ class FileValidationService
     public function validateFile(UploadedFile $file, string $context, $model = null): array
     {
         $errors = [];
-        
+
         try {
             // Basic file validation
             $this->validateBasicFile($file);
-            
+
             // MIME type validation
             $this->validateMimeType($file, $context);
-            
+
             // File signature validation for security
             $this->validateFileSignature($file);
-            
+
             // Size validation
             $this->validateFileSize($file, $context);
-            
+
             // Context-specific validation
             if ($model) {
                 $this->validateContextSpecific($file, $context, $model);
             }
-            
+
             // Security validation
             $this->validateSecurity($file);
-            
+
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         } catch (\Exception $e) {
             $errors['file'] = [$e->getMessage()];
         }
-        
+
         return $errors;
     }
 
@@ -147,16 +146,16 @@ class FileValidationService
     public function validateFiles(array $files, string $context, $model = null): array
     {
         $allErrors = [];
-        
+
         foreach ($files as $index => $file) {
             if ($file instanceof UploadedFile) {
                 $errors = $this->validateFile($file, $context, $model);
-                if (!empty($errors)) {
+                if (! empty($errors)) {
                     $allErrors["file_{$index}"] = $errors;
                 }
             }
         }
-        
+
         return $allErrors;
     }
 
@@ -165,15 +164,15 @@ class FileValidationService
      */
     protected function validateBasicFile(UploadedFile $file): void
     {
-        if (!$file->isValid()) {
+        if (! $file->isValid()) {
             throw new ValidationException(validator([], []), [
-                'file' => ['The uploaded file is invalid or corrupted.']
+                'file' => ['The uploaded file is invalid or corrupted.'],
             ]);
         }
 
         if ($file->getSize() === 0) {
             throw new ValidationException(validator([], []), [
-                'file' => ['The uploaded file is empty.']
+                'file' => ['The uploaded file is empty.'],
             ]);
         }
 
@@ -181,7 +180,7 @@ class FileValidationService
         $extension = strtolower($file->getClientOriginalExtension());
         if (in_array($extension, $this->dangerousExtensions)) {
             throw new ValidationException(validator([], []), [
-                'file' => ['This file type is not allowed for security reasons.']
+                'file' => ['This file type is not allowed for security reasons.'],
             ]);
         }
     }
@@ -193,16 +192,16 @@ class FileValidationService
     {
         $mimeType = $file->getMimeType();
         $allowedTypes = $this->contextAllowedMimeTypes[$context] ?? [];
-        
+
         if (empty($allowedTypes)) {
             // If no specific types defined for context, use global audio types
             $allowedTypes = $this->contextAllowedMimeTypes[FileUploadSetting::CONTEXT_PROJECTS];
         }
-        
-        if (!in_array($mimeType, $allowedTypes)) {
+
+        if (! in_array($mimeType, $allowedTypes)) {
             $allowedTypesString = implode(', ', $allowedTypes);
             throw new ValidationException(validator([], []), [
-                'file' => ["File type '{$mimeType}' is not allowed. Allowed types: {$allowedTypesString}"]
+                'file' => ["File type '{$mimeType}' is not allowed. Allowed types: {$allowedTypesString}"],
             ]);
         }
     }
@@ -213,30 +212,31 @@ class FileValidationService
     protected function validateFileSignature(UploadedFile $file): void
     {
         $mimeType = $file->getMimeType();
-        
+
         // Skip signature validation for text files
         if ($mimeType === 'text/plain') {
             return;
         }
-        
-        if (!isset($this->fileSignatures[$mimeType])) {
+
+        if (! isset($this->fileSignatures[$mimeType])) {
             Log::warning("No file signature validation available for MIME type: {$mimeType}");
+
             return;
         }
-        
+
         $fileHandle = fopen($file->getPathname(), 'rb');
-        if (!$fileHandle) {
+        if (! $fileHandle) {
             throw new ValidationException(validator([], []), [
-                'file' => ['Unable to read file for validation.']
+                'file' => ['Unable to read file for validation.'],
             ]);
         }
-        
+
         $header = fread($fileHandle, 32); // Read first 32 bytes
         fclose($fileHandle);
-        
+
         $headerHex = strtoupper(bin2hex($header));
         $signatures = $this->fileSignatures[$mimeType];
-        
+
         $validSignature = false;
         foreach ($signatures as $signature) {
             if (is_array($signature)) {
@@ -256,10 +256,10 @@ class FileValidationService
                 }
             }
         }
-        
-        if (!$validSignature) {
+
+        if (! $validSignature) {
             throw new ValidationException(validator([], []), [
-                'file' => ['File content does not match the declared file type. This may indicate a security risk.']
+                'file' => ['File content does not match the declared file type. This may indicate a security risk.'],
             ]);
         }
     }
@@ -271,13 +271,13 @@ class FileValidationService
     {
         $fileSize = $file->getSize();
         $maxSize = $this->settingsService->getSetting('max_file_size_mb', $context) * 1024 * 1024;
-        
+
         if ($fileSize > $maxSize) {
             $maxSizeMB = round($maxSize / (1024 * 1024), 2);
             $fileSizeMB = round($fileSize / (1024 * 1024), 2);
-            
+
             throw new ValidationException(validator([], []), [
-                'file' => ["File size ({$fileSizeMB}MB) exceeds the maximum allowed size of {$maxSizeMB}MB for this context."]
+                'file' => ["File size ({$fileSizeMB}MB) exceeds the maximum allowed size of {$maxSizeMB}MB for this context."],
             ]);
         }
     }
@@ -288,22 +288,22 @@ class FileValidationService
     protected function validateContextSpecific(UploadedFile $file, string $context, $model): void
     {
         $fileSize = $file->getSize();
-        
+
         // Validate storage capacity for projects and pitches
         if ($model instanceof Project) {
-            if (!$model->hasStorageCapacity($fileSize)) {
+            if (! $model->hasStorageCapacity($fileSize)) {
                 throw new ValidationException(validator([], []), [
-                    'file' => ['Project storage limit would be exceeded by this upload.']
+                    'file' => ['Project storage limit would be exceeded by this upload.'],
                 ]);
             }
         } elseif ($model instanceof Pitch) {
-            if (!$model->hasStorageCapacity($fileSize)) {
+            if (! $model->hasStorageCapacity($fileSize)) {
                 throw new ValidationException(validator([], []), [
-                    'file' => ['Pitch storage limit would be exceeded by this upload.']
+                    'file' => ['Pitch storage limit would be exceeded by this upload.'],
                 ]);
             }
         }
-        
+
         // Additional context-specific validations can be added here
         switch ($context) {
             case FileUploadSetting::CONTEXT_PITCHES:
@@ -325,7 +325,7 @@ class FileValidationService
     {
         // Check for embedded scripts in files
         $this->scanForMaliciousContent($file);
-        
+
         // Validate file name for security
         $this->validateFileName($file);
     }
@@ -336,11 +336,11 @@ class FileValidationService
     protected function scanForMaliciousContent(UploadedFile $file): void
     {
         $mimeType = $file->getMimeType();
-        
+
         // For text-based files, scan for suspicious content
         if (strpos($mimeType, 'text/') === 0 || $mimeType === 'application/pdf') {
             $content = file_get_contents($file->getPathname());
-            
+
             // Look for suspicious patterns
             $suspiciousPatterns = [
                 '/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi',
@@ -350,13 +350,13 @@ class FileValidationService
                 '/onerror\s*=/i',
                 '/<iframe\b/i',
                 '/<object\b/i',
-                '/<embed\b/i'
+                '/<embed\b/i',
             ];
-            
+
             foreach ($suspiciousPatterns as $pattern) {
                 if (preg_match($pattern, $content)) {
                     throw new ValidationException(validator([], []), [
-                        'file' => ['File contains potentially malicious content and cannot be uploaded.']
+                        'file' => ['File contains potentially malicious content and cannot be uploaded.'],
                     ]);
                 }
             }
@@ -369,25 +369,25 @@ class FileValidationService
     protected function validateFileName(UploadedFile $file): void
     {
         $fileName = $file->getClientOriginalName();
-        
+
         // Check for path traversal attempts
         if (strpos($fileName, '..') !== false || strpos($fileName, '/') !== false || strpos($fileName, '\\') !== false) {
             throw new ValidationException(validator([], []), [
-                'file' => ['File name contains invalid characters.']
+                'file' => ['File name contains invalid characters.'],
             ]);
         }
-        
+
         // Check for null bytes
         if (strpos($fileName, "\0") !== false) {
             throw new ValidationException(validator([], []), [
-                'file' => ['File name contains invalid characters.']
+                'file' => ['File name contains invalid characters.'],
             ]);
         }
-        
+
         // Validate file name length
         if (strlen($fileName) > 255) {
             throw new ValidationException(validator([], []), [
-                'file' => ['File name is too long (maximum 255 characters).']
+                'file' => ['File name is too long (maximum 255 characters).'],
             ]);
         }
     }
@@ -401,10 +401,10 @@ class FileValidationService
         $mimeType = $file->getMimeType();
         if (strpos($mimeType, 'audio/') !== 0) {
             throw new ValidationException(validator([], []), [
-                'file' => ['Only audio files are allowed for pitch uploads.']
+                'file' => ['Only audio files are allowed for pitch uploads.'],
             ]);
         }
-        
+
         // Additional pitch-specific validations can be added here
     }
 
@@ -441,7 +441,7 @@ class FileValidationService
     {
         $mimeTypes = $this->getAllowedMimeTypes($context);
         $descriptions = [];
-        
+
         foreach ($mimeTypes as $mimeType) {
             switch ($mimeType) {
                 case 'audio/mpeg':
@@ -486,7 +486,7 @@ class FileValidationService
                     break;
             }
         }
-        
+
         return implode(', ', array_unique($descriptions));
     }
 
@@ -495,11 +495,12 @@ class FileValidationService
      */
     public function validateChunkIntegrity(string $chunkPath, string $expectedHash, string $algorithm = 'sha256'): bool
     {
-        if (!file_exists($chunkPath)) {
+        if (! file_exists($chunkPath)) {
             return false;
         }
-        
+
         $actualHash = hash_file($algorithm, $chunkPath);
+
         return hash_equals($expectedHash, $actualHash);
     }
 
@@ -518,26 +519,26 @@ class FileValidationService
     public function validateWithExistingConstraints(UploadedFile $file, string $context, $model = null): array
     {
         $errors = [];
-        
+
         try {
             // Use existing config-based validation for backward compatibility
             $this->validateAgainstConfigLimits($file, $context);
-            
+
             // Validate against existing storage tracking
             if ($model) {
                 $this->validateExistingStorageLimits($file, $model);
             }
-            
+
             // Validate using our enhanced validation
             $enhancedErrors = $this->validateFile($file, $context, $model);
             $errors = array_merge($errors, $enhancedErrors);
-            
+
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         } catch (\Exception $e) {
             $errors['file'] = [$e->getMessage()];
         }
-        
+
         return $errors;
     }
 
@@ -547,22 +548,22 @@ class FileValidationService
     protected function validateAgainstConfigLimits(UploadedFile $file, string $context): void
     {
         $fileSize = $file->getSize();
-        
+
         // Check against existing config limits for backward compatibility
-        $configKey = match($context) {
+        $configKey = match ($context) {
             FileUploadSetting::CONTEXT_PROJECTS => 'files.max_project_file_size',
             FileUploadSetting::CONTEXT_PITCHES => 'files.max_pitch_file_size',
             default => 'files.max_project_file_size'
         };
-        
+
         $maxSize = config($configKey, 200 * 1024 * 1024); // Default 200MB
-        
+
         if ($fileSize > $maxSize) {
             $maxSizeMB = round($maxSize / (1024 * 1024), 2);
             $fileSizeMB = round($fileSize / (1024 * 1024), 2);
-            
+
             throw new ValidationException(validator([], []), [
-                'file' => ["File '{$file->getClientOriginalName()}' ({$fileSizeMB}MB) exceeds the maximum allowed size of {$maxSizeMB}MB."]
+                'file' => ["File '{$file->getClientOriginalName()}' ({$fileSizeMB}MB) exceeds the maximum allowed size of {$maxSizeMB}MB."],
             ]);
         }
     }
@@ -573,19 +574,19 @@ class FileValidationService
     protected function validateExistingStorageLimits(UploadedFile $file, $model): void
     {
         $fileSize = $file->getSize();
-        
+
         if ($model instanceof Project) {
             // Use the same validation logic as FileManagementService
-            if (!$model->hasStorageCapacity($fileSize)) {
+            if (! $model->hasStorageCapacity($fileSize)) {
                 throw new ValidationException(validator([], []), [
-                    'file' => ['Project storage limit reached. Cannot upload file.']
+                    'file' => ['Project storage limit reached. Cannot upload file.'],
                 ]);
             }
         } elseif ($model instanceof Pitch) {
             // Use the same validation logic as FileManagementService
-            if (!$model->hasStorageCapacity($fileSize)) {
+            if (! $model->hasStorageCapacity($fileSize)) {
                 throw new ValidationException(validator([], []), [
-                    'file' => ['Pitch storage limit exceeded. Cannot upload file.']
+                    'file' => ['Pitch storage limit exceeded. Cannot upload file.'],
                 ]);
             }
         }
@@ -597,28 +598,28 @@ class FileValidationService
     public function getDetailedValidationErrors(UploadedFile $file, string $context, $model = null): array
     {
         $errors = [];
-        
+
         try {
             // Basic validation
             $this->validateBasicFile($file);
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         }
-        
+
         try {
             // MIME type validation with detailed error
             $this->validateMimeType($file, $context);
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         }
-        
+
         try {
             // Size validation with detailed breakdown
             $this->validateFileSizeDetailed($file, $context);
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         }
-        
+
         try {
             // Storage limit validation with detailed breakdown
             if ($model) {
@@ -627,14 +628,14 @@ class FileValidationService
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         }
-        
+
         try {
             // Security validation
             $this->validateSecurity($file);
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         }
-        
+
         return $errors;
     }
 
@@ -645,44 +646,44 @@ class FileValidationService
     {
         $fileSize = $file->getSize();
         $fileName = $file->getClientOriginalName();
-        
+
         // Check against enhanced settings
         $maxSize = $this->settingsService->getSetting('max_file_size_mb', $context) * 1024 * 1024;
-        
+
         // Also check against config limits for compatibility
-        $configKey = match($context) {
+        $configKey = match ($context) {
             FileUploadSetting::CONTEXT_PROJECTS => 'files.max_project_file_size',
             FileUploadSetting::CONTEXT_PITCHES => 'files.max_pitch_file_size',
             default => 'files.max_project_file_size'
         };
         $configMaxSize = config($configKey, 200 * 1024 * 1024);
-        
+
         // Use the more restrictive limit
         $effectiveMaxSize = min($maxSize, $configMaxSize);
-        
+
         if ($fileSize > $effectiveMaxSize) {
             $maxSizeMB = round($effectiveMaxSize / (1024 * 1024), 2);
             $fileSizeMB = round($fileSize / (1024 * 1024), 2);
-            
+
             $errorMessage = "File '{$fileName}' ({$fileSizeMB}MB) exceeds the maximum allowed size of {$maxSizeMB}MB";
-            
+
             // Add context-specific guidance
             switch ($context) {
                 case FileUploadSetting::CONTEXT_PITCHES:
-                    $errorMessage .= " for pitch uploads. Consider compressing your audio file or using a different format.";
+                    $errorMessage .= ' for pitch uploads. Consider compressing your audio file or using a different format.';
                     break;
                 case FileUploadSetting::CONTEXT_PROJECTS:
-                    $errorMessage .= " for project uploads. Large files can be uploaded in chunks automatically.";
+                    $errorMessage .= ' for project uploads. Large files can be uploaded in chunks automatically.';
                     break;
                 case FileUploadSetting::CONTEXT_CLIENT_PORTALS:
-                    $errorMessage .= " for client portal uploads. Please contact support if you need to upload larger files.";
+                    $errorMessage .= ' for client portal uploads. Please contact support if you need to upload larger files.';
                     break;
                 default:
-                    $errorMessage .= ". Please reduce the file size and try again.";
+                    $errorMessage .= '. Please reduce the file size and try again.';
             }
-            
+
             throw new ValidationException(validator([], []), [
-                'file' => [$errorMessage]
+                'file' => [$errorMessage],
             ]);
         }
     }
@@ -694,45 +695,45 @@ class FileValidationService
     {
         $fileSize = $file->getSize();
         $fileName = $file->getClientOriginalName();
-        
+
         if ($model instanceof Project) {
-            if (!$model->hasStorageCapacity($fileSize)) {
+            if (! $model->hasStorageCapacity($fileSize)) {
                 $currentUsage = $model->storage_used ?? 0;
                 $totalLimit = $model->total_storage_limit_bytes ?? config('files.default_project_storage_limit', 1024 * 1024 * 1024); // 1GB default
                 $remainingSpace = $totalLimit - $currentUsage;
-                
+
                 $currentUsageMB = round($currentUsage / (1024 * 1024), 2);
                 $totalLimitMB = round($totalLimit / (1024 * 1024), 2);
                 $remainingSpaceMB = round($remainingSpace / (1024 * 1024), 2);
                 $fileSizeMB = round($fileSize / (1024 * 1024), 2);
-                
+
                 $errorMessage = "Cannot upload '{$fileName}' ({$fileSizeMB}MB). ";
                 $errorMessage .= "Project storage: {$currentUsageMB}MB used of {$totalLimitMB}MB total. ";
                 $errorMessage .= "Available space: {$remainingSpaceMB}MB. ";
-                $errorMessage .= "Please delete some files or upgrade your storage plan.";
-                
+                $errorMessage .= 'Please delete some files or upgrade your storage plan.';
+
                 throw new ValidationException(validator([], []), [
-                    'file' => [$errorMessage]
+                    'file' => [$errorMessage],
                 ]);
             }
         } elseif ($model instanceof Pitch) {
-            if (!$model->hasStorageCapacity($fileSize)) {
+            if (! $model->hasStorageCapacity($fileSize)) {
                 $currentUsage = $model->storage_used ?? 0;
                 $totalLimit = config('files.default_pitch_storage_limit', 500 * 1024 * 1024); // 500MB default
                 $remainingSpace = $totalLimit - $currentUsage;
-                
+
                 $currentUsageMB = round($currentUsage / (1024 * 1024), 2);
                 $totalLimitMB = round($totalLimit / (1024 * 1024), 2);
                 $remainingSpaceMB = round($remainingSpace / (1024 * 1024), 2);
                 $fileSizeMB = round($fileSize / (1024 * 1024), 2);
-                
+
                 $errorMessage = "Cannot upload '{$fileName}' ({$fileSizeMB}MB). ";
                 $errorMessage .= "Pitch storage: {$currentUsageMB}MB used of {$totalLimitMB}MB total. ";
                 $errorMessage .= "Available space: {$remainingSpaceMB}MB. ";
-                $errorMessage .= "Please delete some files to make space.";
-                
+                $errorMessage .= 'Please delete some files to make space.';
+
                 throw new ValidationException(validator([], []), [
-                    'file' => [$errorMessage]
+                    'file' => [$errorMessage],
                 ]);
             }
         }
@@ -743,16 +744,16 @@ class FileValidationService
      */
     public function wouldExceedStorageLimit(UploadedFile $file, $model): bool
     {
-        if (!$model) {
+        if (! $model) {
             return false;
         }
-        
+
         $fileSize = $file->getSize();
-        
+
         if ($model instanceof Project || $model instanceof Pitch) {
-            return !$model->hasStorageCapacity($fileSize);
+            return ! $model->hasStorageCapacity($fileSize);
         }
-        
+
         return false;
     }
 
@@ -761,16 +762,16 @@ class FileValidationService
      */
     public function getStorageInfo($model): array
     {
-        if (!$model) {
+        if (! $model) {
             return [];
         }
-        
+
         $info = [];
-        
+
         if ($model instanceof Project) {
             $currentUsage = $model->storage_used ?? 0;
             $totalLimit = $model->total_storage_limit_bytes ?? config('files.default_project_storage_limit', 1024 * 1024 * 1024);
-            
+
             $info = [
                 'type' => 'project',
                 'current_usage_bytes' => $currentUsage,
@@ -779,12 +780,12 @@ class FileValidationService
                 'current_usage_mb' => round($currentUsage / (1024 * 1024), 2),
                 'total_limit_mb' => round($totalLimit / (1024 * 1024), 2),
                 'remaining_mb' => round(($totalLimit - $currentUsage) / (1024 * 1024), 2),
-                'usage_percentage' => $totalLimit > 0 ? round(($currentUsage / $totalLimit) * 100, 1) : 0
+                'usage_percentage' => $totalLimit > 0 ? round(($currentUsage / $totalLimit) * 100, 1) : 0,
             ];
         } elseif ($model instanceof Pitch) {
             $currentUsage = $model->storage_used ?? 0;
             $totalLimit = config('files.default_pitch_storage_limit', 500 * 1024 * 1024);
-            
+
             $info = [
                 'type' => 'pitch',
                 'current_usage_bytes' => $currentUsage,
@@ -793,10 +794,10 @@ class FileValidationService
                 'current_usage_mb' => round($currentUsage / (1024 * 1024), 2),
                 'total_limit_mb' => round($totalLimit / (1024 * 1024), 2),
                 'remaining_mb' => round(($totalLimit - $currentUsage) / (1024 * 1024), 2),
-                'usage_percentage' => $totalLimit > 0 ? round(($currentUsage / $totalLimit) * 100, 1) : 0
+                'usage_percentage' => $totalLimit > 0 ? round(($currentUsage / $totalLimit) * 100, 1) : 0,
             ];
         }
-        
+
         return $info;
     }
 
@@ -806,22 +807,22 @@ class FileValidationService
     public function validateForChunkedUpload(UploadedFile $file, string $context, $model = null, int $totalChunks = 1): array
     {
         $errors = [];
-        
+
         try {
             // All standard validations
             $errors = $this->validateWithExistingConstraints($file, $context, $model);
-            
+
             // Additional chunked upload specific validations
             if ($totalChunks > 1) {
                 $this->validateChunkedUploadSpecific($file, $totalChunks);
             }
-            
+
         } catch (ValidationException $e) {
             $errors = array_merge($errors, $e->errors());
         } catch (\Exception $e) {
             $errors['file'] = [$e->getMessage()];
         }
-        
+
         return $errors;
     }
 
@@ -833,19 +834,19 @@ class FileValidationService
         // Validate chunk count is reasonable
         if ($totalChunks > 10000) {
             throw new ValidationException(validator([], []), [
-                'file' => ['File has too many chunks. Please use larger chunk sizes.']
+                'file' => ['File has too many chunks. Please use larger chunk sizes.'],
             ]);
         }
-        
+
         // Validate that file size justifies chunking
         $fileSize = $file->getSize();
         $minChunkingSize = 10 * 1024 * 1024; // 10MB minimum for chunking
-        
+
         if ($totalChunks > 1 && $fileSize < $minChunkingSize) {
-            Log::info("Small file being chunked unnecessarily", [
+            Log::info('Small file being chunked unnecessarily', [
                 'file_size' => $fileSize,
                 'total_chunks' => $totalChunks,
-                'filename' => $file->getClientOriginalName()
+                'filename' => $file->getClientOriginalName(),
             ]);
         }
     }

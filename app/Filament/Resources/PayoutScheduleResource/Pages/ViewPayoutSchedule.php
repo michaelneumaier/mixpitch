@@ -16,4 +16,4 @@ class ViewPayoutSchedule extends ViewRecord
             Actions\EditAction::make(),
         ];
     }
-} 
+}

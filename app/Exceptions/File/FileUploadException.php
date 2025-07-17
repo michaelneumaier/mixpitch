@@ -1,1 +1,7 @@
-<?php namespace App\Exceptions\File; use Exception; class FileUploadException extends Exception { }
+<?php
+
+namespace App\Exceptions\File;
+
+use Exception;
+
+class FileUploadException extends Exception {}

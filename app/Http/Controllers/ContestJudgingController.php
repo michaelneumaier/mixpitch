@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Services\ContestJudgingService;
+use App\Models\Project;
 use App\Services\ContestEarlyClosureService;
+use App\Services\ContestJudgingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
@@ -15,6 +14,7 @@ use Masmerise\Toaster\Toaster;
 class ContestJudgingController extends Controller
 {
     protected $contestJudgingService;
+
     protected $contestEarlyClosureService;
 
     public function __construct(
@@ -34,7 +34,7 @@ class ContestJudgingController extends Controller
         $this->authorize('judgeContest', $project);
 
         // Ensure it's a contest project
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             abort(404, 'Not a contest project');
         }
 
@@ -62,17 +62,17 @@ class ContestJudgingController extends Controller
         $this->authorize('viewContestResults', $project);
 
         // Ensure it's a contest project
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             abort(404, 'Not a contest project');
         }
 
         // Check if results are available
-        if (!$project->isJudgingFinalized()) {
+        if (! $project->isJudgingFinalized()) {
             if (Auth::check() && Auth::user()->can('judgeContest', $project)) {
                 return redirect()->route('projects.contest.judging', $project)
                     ->with('info', 'Contest judging is not yet finalized.');
             }
-            
+
             abort(404, 'Contest results not yet available');
         }
 
@@ -99,7 +99,7 @@ class ContestJudgingController extends Controller
                 'pitch_id' => $pitch->id,
                 'user_id' => Auth::id(),
                 'placement' => $request->input('placement'),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
 
             // Authorization check
@@ -107,21 +107,21 @@ class ContestJudgingController extends Controller
 
             // Validate request
             $validated = $request->validate([
-                'placement' => 'nullable|string|in:1st,2nd,3rd,runner-up'
+                'placement' => 'nullable|string|in:1st,2nd,3rd,runner-up',
             ]);
 
             // Additional business logic validation
-            if (!$project->isContest()) {
+            if (! $project->isContest()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This project is not a contest.'
+                    'message' => 'This project is not a contest.',
                 ], 422);
             }
 
             if ($project->isJudgingFinalized()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Contest judging has been finalized and cannot be modified.'
+                    'message' => 'Contest judging has been finalized and cannot be modified.',
                 ], 422);
             }
 
@@ -129,13 +129,13 @@ class ContestJudgingController extends Controller
             $eligibleStatuses = [
                 \App\Models\Pitch::STATUS_CONTEST_ENTRY,
                 \App\Models\Pitch::STATUS_CONTEST_WINNER,
-                \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP
+                \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP,
             ];
 
-            if (!in_array($pitch->status, $eligibleStatuses)) {
+            if (! in_array($pitch->status, $eligibleStatuses)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This entry is not eligible for placement.'
+                    'message' => 'This entry is not eligible for placement.',
                 ], 422);
             }
 
@@ -150,20 +150,20 @@ class ContestJudgingController extends Controller
                     'project_id' => $project->id,
                     'pitch_id' => $pitch->id,
                     'placement' => $validated['placement'],
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
 
                 // Get updated available placements for all pitches
                 $judgingService = app(ContestJudgingService::class);
                 $availablePlacements = [];
-                
+
                 // Get all contest entries to update their available placements
                 $contestEntries = $project->getContestEntries();
                 foreach ($contestEntries as $entry) {
                     $entryPlacements = $judgingService->getAvailablePlacementsForPitch($project, $entry);
                     // We only need the placement options for the frontend
                     foreach ($entryPlacements as $value => $label) {
-                        if (!isset($availablePlacements[$value])) {
+                        if (! isset($availablePlacements[$value])) {
                             $availablePlacements[$value] = $label;
                         }
                     }
@@ -175,7 +175,7 @@ class ContestJudgingController extends Controller
                     'first_place' => null,
                     'second_place' => null,
                     'third_place' => null,
-                    'runner_ups' => []
+                    'runner_ups' => [],
                 ];
 
                 if ($contestResult) {
@@ -186,7 +186,7 @@ class ContestJudgingController extends Controller
                                 'id' => $firstPlace->id,
                                 'slug' => $firstPlace->slug,
                                 'user_name' => $firstPlace->user->name,
-                                'title' => $firstPlace->title
+                                'title' => $firstPlace->title,
                             ];
                         }
                     }
@@ -198,7 +198,7 @@ class ContestJudgingController extends Controller
                                 'id' => $secondPlace->id,
                                 'slug' => $secondPlace->slug,
                                 'user_name' => $secondPlace->user->name,
-                                'title' => $secondPlace->title
+                                'title' => $secondPlace->title,
                             ];
                         }
                     }
@@ -210,7 +210,7 @@ class ContestJudgingController extends Controller
                                 'id' => $thirdPlace->id,
                                 'slug' => $thirdPlace->slug,
                                 'user_name' => $thirdPlace->user->name,
-                                'title' => $thirdPlace->title
+                                'title' => $thirdPlace->title,
                             ];
                         }
                     }
@@ -223,7 +223,7 @@ class ContestJudgingController extends Controller
                                     'id' => $runnerUp->id,
                                     'slug' => $runnerUp->slug,
                                     'user_name' => $runnerUp->user->name,
-                                    'title' => $runnerUp->title
+                                    'title' => $runnerUp->title,
                                 ];
                             }
                         }
@@ -232,21 +232,21 @@ class ContestJudgingController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => $validated['placement'] ? 
-                        "Placement updated to: {$this->getPlacementLabel($validated['placement'])}" : 
+                    'message' => $validated['placement'] ?
+                        "Placement updated to: {$this->getPlacementLabel($validated['placement'])}" :
                         'Placement cleared successfully',
                     'placement' => $validated['placement'],
                     'placement_label' => $validated['placement'] ? $this->getPlacementLabel($validated['placement']) : null,
                     'availablePlacements' => $availablePlacements,
                     'currentWinners' => $currentWinners,
                     'pitch_id' => $pitch->id,
-                    'pitch_slug' => $pitch->slug
+                    'pitch_slug' => $pitch->slug,
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update placement. Please try again.'
+                'message' => 'Failed to update placement. Please try again.',
             ], 422);
 
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
@@ -254,37 +254,37 @@ class ContestJudgingController extends Controller
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'You are not authorized to judge this contest entry.'
+                'message' => 'You are not authorized to judge this contest entry.',
             ], 403);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::warning('Contest placement validation failed', [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid placement value provided.',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
 
         } catch (\InvalidArgumentException $e) {
             \Log::error('Contest placement business logic error', [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
 
         } catch (\Exception $e) {
@@ -292,12 +292,12 @@ class ContestJudgingController extends Controller
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An unexpected error occurred. Please try again.'
+                'message' => 'An unexpected error occurred. Please try again.',
             ], 500);
         }
     }
@@ -312,7 +312,7 @@ class ContestJudgingController extends Controller
 
         // Validate request
         $request->validate([
-            'judging_notes' => 'nullable|string|max:1000'
+            'judging_notes' => 'nullable|string|max:1000',
         ]);
 
         try {
@@ -324,18 +324,21 @@ class ContestJudgingController extends Controller
 
             if ($result) {
                 Toaster::success('Contest judging has been finalized! All participants have been notified.');
-                
+
                 return redirect()->route('projects.contest.results', $project);
             }
 
             Toaster::error('Failed to finalize contest judging.');
+
             return back();
 
         } catch (\InvalidArgumentException $e) {
             Toaster::error($e->getMessage());
+
             return back();
         } catch (\Exception $e) {
             Toaster::error('Failed to finalize judging. Please try again.');
+
             return back();
         }
     }
@@ -353,17 +356,21 @@ class ContestJudgingController extends Controller
 
             if ($result) {
                 Toaster::success('Contest judging has been reopened.');
+
                 return redirect()->route('projects.contest.judging', $project);
             }
 
             Toaster::error('Failed to reopen contest judging.');
+
             return back();
 
         } catch (\InvalidArgumentException $e) {
             Toaster::error($e->getMessage());
+
             return back();
         } catch (\Exception $e) {
             Toaster::error('Failed to reopen judging. Please try again.');
+
             return back();
         }
     }
@@ -376,19 +383,19 @@ class ContestJudgingController extends Controller
         // Authorization check
         $this->authorize('judgeContest', $project);
 
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             abort(404, 'Not a contest project');
         }
 
         // Gather analytics data
         $contestEntries = $project->getContestEntries();
         $contestResult = $project->contestResult;
-        
+
         $analytics = [
             'total_entries' => $contestEntries->count(),
             'placed_entries' => $contestResult ? $contestResult->getPlacedCount() : 0,
             'unplaced_entries' => $contestEntries->count() - ($contestResult ? $contestResult->getPlacedCount() : 0),
-            'entries_by_date' => $contestEntries->groupBy(function($entry) {
+            'entries_by_date' => $contestEntries->groupBy(function ($entry) {
                 return $entry->created_at->format('Y-m-d');
             })->map->count(),
             'contest_duration' => $project->created_at->diffInDays($project->submission_deadline),
@@ -413,7 +420,7 @@ class ContestJudgingController extends Controller
         // Authorization check
         $this->authorize('export', $project->contestResult);
 
-        if (!$project->isContest() || !$project->isJudgingFinalized()) {
+        if (! $project->isContest() || ! $project->isJudgingFinalized()) {
             abort(404, 'Contest results not available for export');
         }
 
@@ -428,22 +435,22 @@ class ContestJudgingController extends Controller
         foreach ($contestEntries as $entry) {
             $placement = $contestResult ? $contestResult->hasPlacement($entry->id) : null;
             $prize = $placement ? $this->getPrizeForPlacement($project, $placement) : 'None';
-            
+
             $csvData[] = [
                 $entry->id,
                 $entry->user->name,
                 $entry->user->email,
                 $entry->created_at->format('Y-m-d H:i:s'),
                 $placement ?: 'Not Placed',
-                $prize
+                $prize,
             ];
         }
 
         // Generate filename
-        $filename = 'contest-results-' . $project->slug . '-' . now()->format('Y-m-d') . '.csv';
+        $filename = 'contest-results-'.$project->slug.'-'.now()->format('Y-m-d').'.csv';
 
         // Create CSV response
-        $callback = function() use ($csvData) {
+        $callback = function () use ($csvData) {
             $file = fopen('php://output', 'w');
             foreach ($csvData as $row) {
                 fputcsv($file, $row);
@@ -453,7 +460,7 @@ class ContestJudgingController extends Controller
 
         return response()->stream($callback, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -466,10 +473,10 @@ class ContestJudgingController extends Controller
         $this->authorize('judgeContest', $project);
 
         // Validate this is a finalized contest
-        if (!$project->isContest() || !$project->isJudgingFinalized()) {
+        if (! $project->isContest() || ! $project->isJudgingFinalized()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Contest must be finalized before announcing results'
+                'message' => 'Contest must be finalized before announcing results',
             ], 422);
         }
 
@@ -479,24 +486,24 @@ class ContestJudgingController extends Controller
             if ($result) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Contest results have been formally announced!'
+                    'message' => 'Contest results have been formally announced!',
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to announce contest results'
+                'message' => 'Failed to announce contest results',
             ], 422);
 
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to announce results. Please try again.'
+                'message' => 'Failed to announce results. Please try again.',
             ], 500);
         }
     }
@@ -506,26 +513,26 @@ class ContestJudgingController extends Controller
      */
     private function getPrizeForPlacement(Project $project, string $placement): string
     {
-        if (!$project->hasPrizes()) {
+        if (! $project->hasPrizes()) {
             return 'No Prize';
         }
 
         $prizes = $project->contestPrizes();
-        
+
         $placementMap = [
             '1st' => '1st',
-            '2nd' => '2nd', 
+            '2nd' => '2nd',
             '3rd' => '3rd',
-            'runner-up' => 'runner_up'
+            'runner-up' => 'runner_up',
         ];
 
         $placementKey = $placementMap[$placement] ?? null;
-        if (!$placementKey) {
+        if (! $placementKey) {
             return 'No Prize';
         }
 
         $prize = $prizes->where('placement', $placementKey)->first();
-        if (!$prize) {
+        if (! $prize) {
             return 'No Prize';
         }
 
@@ -554,7 +561,7 @@ class ContestJudgingController extends Controller
 
         // Validate request
         $request->validate([
-            'reason' => 'nullable|string|max:500'
+            'reason' => 'nullable|string|max:500',
         ]);
 
         try {
@@ -566,17 +573,21 @@ class ContestJudgingController extends Controller
 
             if ($result) {
                 Toaster::success('Contest submissions have been closed early. All participants have been notified.');
+
                 return redirect()->route('projects.contest.judging', $project);
             }
 
             Toaster::error('Failed to close contest early.');
+
             return back();
 
         } catch (\InvalidArgumentException $e) {
             Toaster::error($e->getMessage());
+
             return back();
         } catch (\Exception $e) {
             Toaster::error('Failed to close contest early. Please try again.');
+
             return back();
         }
     }
@@ -597,18 +608,22 @@ class ContestJudgingController extends Controller
 
             if ($result) {
                 Toaster::success('Contest submissions have been reopened. Participants have been notified.');
+
                 return redirect()->route('projects.manage', $project);
             }
 
             Toaster::error('Failed to reopen contest submissions.');
+
             return back();
 
         } catch (\InvalidArgumentException $e) {
             Toaster::error($e->getMessage());
+
             return back();
         } catch (\Exception $e) {
             Toaster::error('Failed to reopen submissions. Please try again.');
+
             return back();
         }
     }
-} 
+}

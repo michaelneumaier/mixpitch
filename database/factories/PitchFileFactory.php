@@ -21,17 +21,17 @@ class PitchFileFactory extends Factory
      */
     public function definition(): array
     {
-        $storagePath = 'pitches/' . $this->faker->uuid() . '.mp3';
-        
+        $storagePath = 'pitches/'.$this->faker->uuid().'.mp3';
+
         return [
             'pitch_id' => Pitch::factory(),
             'user_id' => User::factory(),
-            'file_name' => $this->faker->word() . '.mp3',
-            'original_file_name' => $this->faker->word() . '.mp3',
+            'file_name' => $this->faker->word().'.mp3',
+            'original_file_name' => $this->faker->word().'.mp3',
             'mime_type' => $this->faker->mimeType(),
             'storage_path' => $storagePath,
             'file_path' => $storagePath,
             'size' => $this->faker->numberBetween(1000, 5000000),
         ];
     }
-} 
+}

@@ -8,10 +8,8 @@ use App\Models\User;
 use App\Services\PayoutHoldService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Mockery;
 use Tests\TestCase;
 
 class PayoutHoldServiceTest extends TestCase
@@ -24,7 +22,7 @@ class PayoutHoldServiceTest extends TestCase
     {
         parent::setUp();
         Cache::flush();
-        $this->service = new PayoutHoldService();
+        $this->service = new PayoutHoldService;
     }
 
     /** @test */
@@ -113,7 +111,7 @@ class PayoutHoldServiceTest extends TestCase
 
         // Should skip weekend and add 2 business days (Mon + Tue = Tuesday 10am)
         $expectedDate = Carbon::create(2024, 1, 9, 10, 0); // Tuesday 10am
-        
+
         $this->assertEquals($expectedDate, $releaseDate);
     }
 
@@ -133,7 +131,7 @@ class PayoutHoldServiceTest extends TestCase
 
         // Should include weekend (Friday + 2 days = Sunday 10am)
         $expectedDate = Carbon::create(2024, 1, 7, 10, 0); // Sunday 10am
-        
+
         $this->assertEquals($expectedDate, $releaseDate);
     }
 
@@ -181,7 +179,7 @@ class PayoutHoldServiceTest extends TestCase
         $this->service->bypassHoldPeriod($payout, 'Urgent client request', $adminUser);
 
         $payout->refresh();
-        
+
         $this->assertTrue($payout->hold_bypassed);
         $this->assertEquals('Urgent client request', $payout->bypass_reason);
         $this->assertEquals($adminUser->id, $payout->bypass_admin_id);
@@ -273,7 +271,7 @@ class PayoutHoldServiceTest extends TestCase
         $adminUser = User::factory()->create(['name' => 'Admin User', 'is_admin' => true]);
 
         $settings = PayoutHoldSetting::factory()->create();
-        
+
         Log::shouldReceive('info')->once();
 
         $newData = ['enabled' => false, 'default_days' => 5];

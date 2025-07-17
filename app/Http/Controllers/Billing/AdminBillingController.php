@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Billing;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
 use Filament\Notifications\Notification;
+use Illuminate\Http\Request;
 
 class AdminBillingController extends Controller
 {
@@ -16,7 +16,7 @@ class AdminBillingController extends Controller
     {
         try {
             // Create customer if one doesn't exist yet
-            if (!$record->stripe_id) {
+            if (! $record->stripe_id) {
                 $record->createAsStripeCustomer([
                     'name' => $record->name,
                     'email' => $record->email,
@@ -26,7 +26,7 @@ class AdminBillingController extends Controller
                         'admin_user' => auth()->user()->name,
                     ],
                 ]);
-                
+
                 Notification::make()
                     ->title('Stripe customer created')
                     ->body("Successfully created Stripe customer for {$record->name}.")
@@ -46,8 +46,8 @@ class AdminBillingController extends Controller
                 ->danger()
                 ->send();
         }
-        
+
         // Redirect back to the previous page
         return back();
     }
-} 
+}

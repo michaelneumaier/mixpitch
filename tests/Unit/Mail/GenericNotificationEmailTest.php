@@ -4,8 +4,8 @@ namespace Tests\Unit\Mail;
 
 use App\Mail\GenericNotificationEmail;
 use App\Models\Notification;
-use App\Models\User;
-use App\Models\Pitch; // Assuming Notification::getUrl might relate to Pitch
+use App\Models\Pitch;
+use App\Models\User; // Assuming Notification::getUrl might relate to Pitch
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -30,13 +30,13 @@ class GenericNotificationEmailTest extends TestCase
                 'project_name' => $pitch->project->name ?? 'Default Project Name',
                 'producer_name' => $user->name,
                 // Add other data relevant to getReadableDescription/getUrl if needed
-            ]
+            ],
         ]);
 
         // Manually get expected values (might need adjustment based on actual methods)
         $expectedDescription = $notification->getReadableDescription();
         $expectedUrl = $notification->getUrl();
-        $expectedSubject = config('app.name') . ': ' . strip_tags($expectedDescription);
+        $expectedSubject = config('app.name').': '.strip_tags($expectedDescription);
 
         $mailable = new GenericNotificationEmail(
             $user,
@@ -69,8 +69,8 @@ class GenericNotificationEmailTest extends TestCase
         $notificationData = ['info' => 'test'];
         $nonExistentNotificationId = 9999;
 
-        $expectedSubject = config('app.name') . ': You have a new notification';
-        $expectedDescription = 'You received a notification of type: ' . $notificationType . '. Please log in to view details.';
+        $expectedSubject = config('app.name').': You have a new notification';
+        $expectedDescription = 'You received a notification of type: '.$notificationType.'. Please log in to view details.';
         $expectedUrl = route('dashboard');
 
         $mailable = new GenericNotificationEmail(
@@ -101,4 +101,4 @@ class GenericNotificationEmailTest extends TestCase
 
         $this->assertEquals('emails.notifications.generic', $mailable->content()->markdown);
     }
-} 
+}

@@ -4,18 +4,17 @@ namespace App\Filament\Widgets;
 
 use App\Models\EmailAudit;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Carbon;
 
 class EmailActivityChart extends ChartWidget
 {
     protected static ?string $heading = 'Email Activity';
-    
+
     protected static ?string $pollingInterval = '60s';
-    
+
     protected static ?string $maxHeight = '300px';
-    
+
     protected static ?string $navigationGroup = 'Email Management';
-    
+
     public function getDescription(): ?string
     {
         return 'Email activity broken down by event type';
@@ -26,37 +25,37 @@ class EmailActivityChart extends ChartWidget
         // Get the last 14 days of data
         $startDate = now()->subDays(14)->startOfDay();
         $endDate = now()->endOfDay();
-        
+
         // Initialize arrays with dates
         $labels = [];
         $sentData = [];
         $bouncedData = [];
         $suppressedData = [];
         $failedData = [];
-        
+
         $current = clone $startDate;
         while ($current <= $endDate) {
             $labels[] = $current->format('M d');
-            
+
             // For each day, initialize the data points with 0
             $sentData[$current->format('Y-m-d')] = 0;
             $bouncedData[$current->format('Y-m-d')] = 0;
             $suppressedData[$current->format('Y-m-d')] = 0;
             $failedData[$current->format('Y-m-d')] = 0;
-            
+
             $current->addDay();
         }
-        
+
         // Get the email data
         $emailData = EmailAudit::whereBetween('created_at', [$startDate, $endDate])
             ->selectRaw('DATE(created_at) as date, status, COUNT(*) as count')
             ->groupBy('date', 'status')
             ->get();
-        
+
         // Populate the data arrays
         foreach ($emailData as $data) {
             $date = $data->date;
-            
+
             switch ($data->status) {
                 case 'sent':
                     $sentData[$date] = $data->count;
@@ -72,13 +71,13 @@ class EmailActivityChart extends ChartWidget
                     break;
             }
         }
-        
+
         // Convert data arrays to sequential arrays (removing keys)
         $sent = array_values($sentData);
         $bounced = array_values($bouncedData);
         $suppressed = array_values($suppressedData);
         $failed = array_values($failedData);
-        
+
         return [
             'datasets' => [
                 [
@@ -118,7 +117,7 @@ class EmailActivityChart extends ChartWidget
     {
         return 'line';
     }
-    
+
     protected function getOptions(): array
     {
         return [

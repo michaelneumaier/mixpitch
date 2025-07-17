@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('finalized_by')->nullable()->constrained('users')->onDelete('set null');
             $table->boolean('show_submissions_publicly')->default(true);
             $table->timestamps();
-            
+
             // Ensure each project can only have one contest result
             $table->unique('project_id');
         });

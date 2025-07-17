@@ -4,43 +4,43 @@ namespace App\Filament\Pages;
 
 use App\Models\EmailSuppression;
 use Filament\Actions;
+use Filament\Forms\Components\DatePicker;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Notifications\Notification;
 
 class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
 {
     use Tables\Concerns\InteractsWithTable;
-    
+
     protected static ?string $navigationIcon = 'heroicon-o-no-symbol';
-    
+
     protected static ?string $navigationGroup = 'Email Management';
-    
+
     protected static ?string $navigationLabel = 'Suppressed Emails';
-    
+
     protected static ?int $navigationSort = 2;
-    
+
     protected static string $view = 'filament.pages.email-suppression-page';
-    
+
     protected static ?string $slug = 'email-suppression';
-    
+
     protected static ?string $title = 'Suppressed Emails';
-    
+
     protected function getTableQuery(): Builder
     {
         return EmailSuppression::query()->latest();
     }
-    
+
     protected function getTableColumns(): array
     {
         return [
             Tables\Columns\TextColumn::make('email')
                 ->searchable()
                 ->sortable(),
-            
+
             Tables\Columns\TextColumn::make('type')
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
@@ -50,18 +50,18 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
                     default => 'gray',
                 })
                 ->sortable(),
-            
+
             Tables\Columns\TextColumn::make('reason')
                 ->searchable()
                 ->limit(30),
-            
+
             Tables\Columns\TextColumn::make('created_at')
                 ->label('Suppressed At')
                 ->dateTime()
                 ->sortable(),
         ];
     }
-    
+
     protected function getTableFilters(): array
     {
         return [
@@ -71,7 +71,7 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
                     'complaint' => 'Complaint',
                     'manual' => 'Manual',
                 ]),
-            
+
             Tables\Filters\Filter::make('created_at')
                 ->form([
                     DatePicker::make('created_from')
@@ -92,7 +92,7 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
                 }),
         ];
     }
-    
+
     protected function getTableActions(): array
     {
         return [
@@ -107,7 +107,7 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
             ]),
         ];
     }
-    
+
     protected function getTableBulkActions(): array
     {
         return [
@@ -123,7 +123,7 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
             ]),
         ];
     }
-    
+
     protected function getHeaderActions(): array
     {
         return [
@@ -134,7 +134,7 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
                         ->email()
                         ->required()
                         ->maxLength(255),
-                    
+
                     \Filament\Forms\Components\Select::make('type')
                         ->options([
                             'bounce' => 'Bounce',
@@ -143,13 +143,13 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
                         ])
                         ->required()
                         ->default('manual'),
-                    
+
                     \Filament\Forms\Components\TextInput::make('reason')
                         ->maxLength(255),
                 ]),
         ];
     }
-    
+
     protected function table(Table $table): Table
     {
         return $table
@@ -158,9 +158,9 @@ class EmailSuppressionPage extends Page implements Tables\Contracts\HasTable
             ->actions($this->getTableActions())
             ->bulkActions($this->getTableBulkActions());
     }
-    
+
     public static function canAccess(): bool
     {
         return auth()->check() && (auth()->user()->can('view_email_suppressions') || auth()->user()->hasRole('admin'));
     }
-} 
+}

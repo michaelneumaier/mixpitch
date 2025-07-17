@@ -2,10 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Models\PitchEvent;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -15,11 +14,15 @@ class ReputationService
      * Base reputation weights
      */
     const WEIGHT_COMPLETED_PROJECTS = 10;
+
     const WEIGHT_AVERAGE_RATING = 20;
+
     const WEIGHT_TOTAL_EARNINGS = 0.1; // 0.1 point per dollar earned
+
     const WEIGHT_CONSISTENCY = 5; // Bonus for consistent activity
+
     const WEIGHT_RESPONSE_TIME = 3; // Bonus for quick responses
-    
+
     /**
      * Cache duration for reputation calculations (1 hour)
      */
@@ -27,15 +30,11 @@ class ReputationService
 
     /**
      * Calculate the total reputation for a user
-     *
-     * @param User $user
-     * @param bool $useCache
-     * @return float
      */
     public function calculateUserReputation(User $user, bool $useCache = true): float
     {
         $cacheKey = "user_reputation_{$user->id}";
-        
+
         if ($useCache && Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
@@ -61,9 +60,6 @@ class ReputationService
 
     /**
      * Calculate base reputation before subscription multiplier
-     *
-     * @param User $user
-     * @return float
      */
     private function calculateBaseReputation(User $user): float
     {
@@ -88,9 +84,6 @@ class ReputationService
 
     /**
      * Calculate score from completed projects
-     *
-     * @param User $user
-     * @return float
      */
     private function calculateCompletedProjectsScore(User $user): float
     {
@@ -103,9 +96,6 @@ class ReputationService
 
     /**
      * Calculate score from average ratings
-     *
-     * @param User $user
-     * @return float
      */
     private function calculateAverageRatingScore(User $user): float
     {
@@ -119,27 +109,22 @@ class ReputationService
 
         // Scale rating score by number of ratings (diminishing returns)
         $ratingMultiplier = min(1.0, $ratingCount / 10); // Max multiplier at 10+ ratings
-        
+
         return $averageRating * self::WEIGHT_AVERAGE_RATING * $ratingMultiplier;
     }
 
     /**
      * Calculate score from total earnings
-     *
-     * @param User $user
-     * @return float
      */
     private function calculateEarningsScore(User $user): float
     {
         $totalEarnings = $user->getTotalEarnings();
+
         return $totalEarnings * self::WEIGHT_TOTAL_EARNINGS;
     }
 
     /**
      * Calculate consistency score based on recent activity
-     *
-     * @param User $user
-     * @return float
      */
     private function calculateConsistencyScore(User $user): float
     {
@@ -155,8 +140,8 @@ class ReputationService
                 ->whereBetween('created_at', [$monthStart, $monthEnd])
                 ->exists() ||
                 $user->pitches()
-                ->whereBetween('created_at', [$monthStart, $monthEnd])
-                ->exists();
+                    ->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->exists();
 
             if ($hasActivity) {
                 $activeMonths++;
@@ -164,14 +149,12 @@ class ReputationService
         }
 
         $consistencyRatio = $activeMonths / $monthsToCheck;
+
         return $consistencyRatio * self::WEIGHT_CONSISTENCY;
     }
 
     /**
      * Calculate response time score (placeholder for future implementation)
-     *
-     * @param User $user
-     * @return float
      */
     private function calculateResponseTimeScore(User $user): float
     {
@@ -182,9 +165,6 @@ class ReputationService
 
     /**
      * Get reputation breakdown for a user
-     *
-     * @param User $user
-     * @return array
      */
     public function getReputationBreakdown(User $user): array
     {
@@ -213,10 +193,6 @@ class ReputationService
 
     /**
      * Compare reputation between users
-     *
-     * @param User $user1
-     * @param User $user2
-     * @return array
      */
     public function compareUsers(User $user1, User $user2): array
     {
@@ -237,22 +213,19 @@ class ReputationService
                 'breakdown' => $this->getReputationBreakdown($user2),
             ],
             'difference' => $user1Reputation - $user2Reputation,
-            'percentage_difference' => $user2Reputation > 0 
-                ? (($user1Reputation - $user2Reputation) / $user2Reputation) * 100 
+            'percentage_difference' => $user2Reputation > 0
+                ? (($user1Reputation - $user2Reputation) / $user2Reputation) * 100
                 : 0,
         ];
     }
 
     /**
      * Get reputation rank for user
-     *
-     * @param User $user
-     * @return array
      */
     public function getUserRank(User $user): array
     {
         $userReputation = $this->calculateUserReputation($user);
-        
+
         // Count users with higher reputation
         $higherRanked = User::whereHas('projects') // Only users with projects
             ->get()
@@ -263,8 +236,8 @@ class ReputationService
 
         $totalRankedUsers = User::whereHas('projects')->count();
         $rank = $higherRanked + 1;
-        $percentile = $totalRankedUsers > 0 
-            ? (($totalRankedUsers - $rank + 1) / $totalRankedUsers) * 100 
+        $percentile = $totalRankedUsers > 0
+            ? (($totalRankedUsers - $rank + 1) / $totalRankedUsers) * 100
             : 0;
 
         return [
@@ -277,9 +250,6 @@ class ReputationService
 
     /**
      * Clear reputation cache for a user
-     *
-     * @param User $user
-     * @return void
      */
     public function clearUserCache(User $user): void
     {
@@ -289,17 +259,12 @@ class ReputationService
 
     /**
      * Update reputation after significant events
-     *
-     * @param User $user
-     * @param string $event
-     * @param array $context
-     * @return float
      */
     public function updateAfterEvent(User $user, string $event, array $context = []): float
     {
         // Clear cache to force recalculation
         $this->clearUserCache($user);
-        
+
         // Recalculate reputation
         $newReputation = $this->calculateUserReputation($user, false);
 
@@ -315,9 +280,6 @@ class ReputationService
 
     /**
      * Get reputation tier/badge based on score
-     *
-     * @param float $reputation
-     * @return array
      */
     public function getReputationTier(float $reputation): array
     {
@@ -337,4 +299,4 @@ class ReputationService
             return ['tier' => 'newcomer', 'badge' => '🌱', 'color' => 'text-gray-500'];
         }
     }
-} 
+}

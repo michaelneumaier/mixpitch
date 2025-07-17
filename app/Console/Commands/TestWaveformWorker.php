@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class TestWaveformWorker extends Command
 {
@@ -29,21 +28,22 @@ class TestWaveformWorker extends Command
     public function handle()
     {
         $fileUrl = $this->argument('file_url');
-        
-        if (!$fileUrl) {
+
+        if (! $fileUrl) {
             $fileUrl = $this->ask('Enter a URL to an audio file to test with (or press enter for worker status check)');
         }
-        
+
         $workerUrl = config('services.cloudflare.waveform_worker_url');
-        
+
         if (empty($workerUrl)) {
             $this->error('Cloudflare waveform worker URL is not configured in .env file');
             $this->info('Add: CLOUDFLARE_WAVEFORM_WORKER_URL=https://your-worker.workers.dev');
+
             return 1;
         }
-        
+
         $this->info("Testing worker at: {$workerUrl}");
-        
+
         if (empty($fileUrl)) {
             // Just test worker status
             $this->testWorkerStatus($workerUrl);
@@ -51,17 +51,17 @@ class TestWaveformWorker extends Command
             // Test with actual file
             $this->testFileProcessing($workerUrl, $fileUrl);
         }
-        
+
         return 0;
     }
-    
+
     /**
      * Test worker status
      */
     protected function testWorkerStatus($workerUrl)
     {
         $this->info('Testing worker status...');
-        
+
         try {
             $response = Http::timeout(10)
                 ->withHeaders([
@@ -69,66 +69,66 @@ class TestWaveformWorker extends Command
                     'Accept' => 'application/json',
                 ])
                 ->get($workerUrl);
-            
+
             $this->info("Status: {$response->status()}");
             $this->info("Response: {$response->body()}");
-            
+
             if ($response->successful()) {
                 $this->info('✅ Worker is accessible');
             } else {
                 $this->warn("⚠️  Worker responded with status {$response->status()}");
             }
-            
+
         } catch (\Exception $e) {
             $this->error("❌ Error accessing worker: {$e->getMessage()}");
         }
     }
-    
+
     /**
      * Test file processing
      */
     protected function testFileProcessing($workerUrl, $fileUrl)
     {
         $this->info("Testing file processing with: {$fileUrl}");
-        
+
         try {
             $response = Http::timeout(60)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'Authorization' => 'Bearer ' . config('services.cloudflare.worker_token', ''),
+                    'Authorization' => 'Bearer '.config('services.cloudflare.worker_token', ''),
                 ])
                 ->post($workerUrl, [
                     'file_url' => $fileUrl,
                     'peaks_count' => 100,
                 ]);
-            
+
             $this->info("Status: {$response->status()}");
-            
+
             if ($response->successful()) {
                 $data = $response->json();
-                
+
                 $this->info('✅ Waveform generated successfully!');
                 $this->table(['Property', 'Value'], [
                     ['Status', $data['status'] ?? 'unknown'],
-                    ['Duration', ($data['duration'] ?? 0) . ' seconds'],
+                    ['Duration', ($data['duration'] ?? 0).' seconds'],
                     ['Peaks Count', count($data['waveform_peaks'] ?? [])],
-                    ['Processing Time', ($data['processing_time'] ?? 'unknown') . ' ms'],
+                    ['Processing Time', ($data['processing_time'] ?? 'unknown').' ms'],
                 ]);
-                
+
                 // Show first few peaks as sample
-                if (!empty($data['waveform_peaks'])) {
+                if (! empty($data['waveform_peaks'])) {
                     $samplePeaks = array_slice($data['waveform_peaks'], 0, 5);
-                    $this->info('Sample peaks: ' . json_encode($samplePeaks));
+                    $this->info('Sample peaks: '.json_encode($samplePeaks));
                 }
-                
+
             } else {
                 $this->error("❌ Worker error (Status: {$response->status()})");
                 $this->error("Response: {$response->body()}");
             }
-            
+
         } catch (\Exception $e) {
             $this->error("❌ Error processing file: {$e->getMessage()}");
         }
     }
-} 
+}

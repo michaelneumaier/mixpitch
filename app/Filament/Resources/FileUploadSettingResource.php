@@ -6,26 +6,25 @@ use App\Filament\Resources\FileUploadSettingResource\Pages;
 use App\Models\FileUploadSetting;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Database\Eloquent\Builder;
 
 class FileUploadSettingResource extends Resource
 {
     protected static ?string $model = FileUploadSetting::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cloud-arrow-up';
-    
+
     protected static ?string $navigationGroup = 'System';
-    
+
     protected static ?string $navigationLabel = 'File Upload Settings';
-    
+
     protected static ?string $modelLabel = 'File Upload Setting';
-    
+
     protected static ?string $pluralModelLabel = 'File Upload Settings';
-    
+
     protected static ?int $navigationSort = 10;
 
     public static function form(Form $form): Form
@@ -45,7 +44,7 @@ class FileUploadSettingResource extends Resource
                             ->default(FileUploadSetting::CONTEXT_GLOBAL)
                             ->required()
                             ->helperText('The context where this setting applies. Global settings are used as defaults.'),
-                            
+
                         Forms\Components\Select::make('key')
                             ->label('Setting')
                             ->options([
@@ -67,7 +66,7 @@ class FileUploadSettingResource extends Resource
                                 }
                             })
                             ->helperText('The specific setting to configure'),
-                            
+
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('value')
@@ -94,39 +93,42 @@ class FileUploadSettingResource extends Resource
                                         if ($key && isset(FileUploadSetting::VALIDATION_RULES[$key])) {
                                             $rule = FileUploadSetting::VALIDATION_RULES[$key];
                                             $default = FileUploadSetting::DEFAULT_VALUES[$key] ?? 'N/A';
+
                                             return "Validation: {$rule} | Default: {$default}";
                                         }
+
                                         return 'Enter the setting value';
                                     }),
-                                    
+
                                 Forms\Components\Textarea::make('description')
                                     ->label('Description')
                                     ->rows(3)
                                     ->helperText('Optional description for this setting override'),
                             ]),
                     ]),
-                    
+
                 Forms\Components\Section::make('Setting Information')
                     ->schema([
                         Forms\Components\Placeholder::make('setting_info')
                             ->label('Setting Details')
                             ->content(function ($get) {
                                 $key = $get('key');
-                                if (!$key) {
+                                if (! $key) {
                                     return 'Select a setting to see details';
                                 }
-                                
+
                                 $schema = FileUploadSetting::getSettingsSchema();
-                                if (!isset($schema[$key])) {
+                                if (! isset($schema[$key])) {
                                     return 'Unknown setting';
                                 }
-                                
+
                                 $info = $schema[$key];
+
                                 return "
                                     <div class='space-y-2'>
                                         <div><strong>Description:</strong> {$info['description']}</div>
                                         <div><strong>Type:</strong> {$info['type']}</div>
-                                        <div><strong>Default Value:</strong> " . json_encode($info['default']) . "</div>
+                                        <div><strong>Default Value:</strong> ".json_encode($info['default'])."</div>
                                         <div><strong>Validation Rules:</strong> {$info['validation']}</div>
                                     </div>
                                 ";
@@ -159,7 +161,7 @@ class FileUploadSettingResource extends Resource
                         default => $state,
                     })
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('key')
                     ->label('Setting')
                     ->formatStateUsing(function (string $state): string {
@@ -171,11 +173,12 @@ class FileUploadSettingResource extends Resource
                             FileUploadSetting::ENABLE_CHUNKING => 'Enable Chunking',
                             FileUploadSetting::SESSION_TIMEOUT_HOURS => 'Session Timeout (Hours)',
                         ];
+
                         return $labels[$state] ?? $state;
                     })
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('value')
                     ->formatStateUsing(function ($state, $record): string {
                         if (is_bool($state)) {
@@ -184,11 +187,12 @@ class FileUploadSettingResource extends Resource
                         if (is_array($state)) {
                             return json_encode($state);
                         }
+
                         return (string) $state;
                     })
                     ->badge()
                     ->color('success'),
-                    
+
                 Tables\Columns\TextColumn::make('description')
                     ->limit(50)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
@@ -196,15 +200,16 @@ class FileUploadSettingResource extends Resource
                         if (strlen($state) <= 50) {
                             return null;
                         }
+
                         return $state;
                     })
                     ->placeholder('No description'),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                    
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
@@ -218,7 +223,7 @@ class FileUploadSettingResource extends Resource
                         FileUploadSetting::CONTEXT_PITCHES => 'Pitches',
                         FileUploadSetting::CONTEXT_CLIENT_PORTALS => 'Client Portals',
                     ]),
-                    
+
                 Tables\Filters\SelectFilter::make('key')
                     ->label('Setting')
                     ->options([
@@ -266,21 +271,21 @@ class FileUploadSettingResource extends Resource
                         foreach (FileUploadSetting::getValidContexts() as $context) {
                             FileUploadSetting::resetToDefaults($context);
                         }
-                        
+
                         Notification::make()
                             ->title('Settings Reset')
                             ->body('All settings have been reset to defaults.')
                             ->success()
                             ->send();
                     }),
-                    
+
                 Tables\Actions\Action::make('clear_cache')
                     ->label('Clear Cache')
                     ->icon('heroicon-o-trash')
                     ->color('gray')
                     ->action(function () {
                         FileUploadSetting::clearSettingsCache();
-                        
+
                         Notification::make()
                             ->title('Cache Cleared')
                             ->body('Settings cache has been cleared.')
@@ -300,7 +305,7 @@ class FileUploadSettingResource extends Resource
             'edit' => Pages\EditFileUploadSetting::route('/{record}/edit'),
         ];
     }
-    
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();

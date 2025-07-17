@@ -2,23 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Exceptions\Pitch\InvalidStatusTransitionException;
 use App\Exceptions\Pitch\PitchCreationException;
 use App\Exceptions\Pitch\PitchUpdateException;
-use App\Exceptions\Pitch\InvalidStatusTransitionException;
 use App\Helpers\RouteHelpers;
-use Illuminate\Support\Str;
-
-use App\Models\Project;
-use App\Models\Pitch;
-use App\Models\PitchSnapshot;
-use App\Services\PitchWorkflowService;
 use App\Http\Requests\Pitch\StorePitchRequest;
+use App\Models\Pitch;
 use App\Models\PitchEvent;
+use App\Models\PitchSnapshot;
+use App\Models\Project;
+use App\Services\PitchWorkflowService;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Masmerise\Toaster\Toaster;
 
 class PitchController extends Controller
@@ -47,7 +46,7 @@ class PitchController extends Controller
             $this->authorize('createPitch', $project);
         } catch (AuthorizationException $e) {
             return redirect()->route('projects.show', $project)
-                ->with('error', 'You cannot submit a pitch for this project. ' . $e->getMessage());
+                ->with('error', 'You cannot submit a pitch for this project. '.$e->getMessage());
         }
 
         $user = Auth::user();
@@ -84,17 +83,19 @@ class PitchController extends Controller
                 ->with('success', 'Pitch created successfully!');
         } catch (AuthorizationException $e) {
             return redirect()->route('projects.show', $project)
-                ->with('error', 'You cannot submit a pitch for this project: ' . $e->getMessage());
+                ->with('error', 'You cannot submit a pitch for this project: '.$e->getMessage());
         } catch (PitchCreationException $e) {
-            Log::error('Pitch creation failed: ' . $e->getMessage(), ['project_id' => $project->id, 'user_id' => $user->id]);
+            Log::error('Pitch creation failed: '.$e->getMessage(), ['project_id' => $project->id, 'user_id' => $user->id]);
+
             return redirect()->route('projects.show', $project)
-                ->with('error', 'Failed to create pitch: ' . $e->getMessage());
+                ->with('error', 'Failed to create pitch: '.$e->getMessage());
         } catch (\Exception $e) {
-            Log::error('Unexpected error creating pitch: ' . $e->getMessage(), [
+            Log::error('Unexpected error creating pitch: '.$e->getMessage(), [
                 'project_id' => $project->id,
                 'user_id' => $user->id,
-                'trace' => $e->getTraceAsString() // Consider limiting trace in production
+                'trace' => $e->getTraceAsString(), // Consider limiting trace in production
             ]);
+
             return redirect()->route('projects.show', $project)
                 ->with('error', 'An unexpected error occurred while creating the pitch.');
         }
@@ -107,13 +108,13 @@ class PitchController extends Controller
     {
         $pitch = Pitch::find($id);
 
-        if (!$pitch) {
+        if (! $pitch) {
             abort(404, 'Pitch not found');
         }
 
         return redirect()->route('projects.pitches.show', [
             'project' => $pitch->project,
-            'pitch' => $pitch
+            'pitch' => $pitch,
         ]);
     }
 
@@ -125,7 +126,7 @@ class PitchController extends Controller
         if ($pitch->project_id !== $project->id) {
             abort(404, 'Pitch not found for this project');
         }
-        
+
         try {
             $this->authorize('view', $pitch);
             // Eager load necessary relationships
@@ -138,20 +139,20 @@ class PitchController extends Controller
 
         // Only redirect project owners for standard workflow types
         // Allow direct access for client management and direct hire workflows
-        if ($user && $user->id === $project->user_id && 
-            !$project->isClientManagement() && !$project->isDirectHire()) {
-            
+        if ($user && $user->id === $project->user_id &&
+            ! $project->isClientManagement() && ! $project->isDirectHire()) {
+
             // Check if pitch has snapshots - if so, redirect to latest snapshot
             $latestSnapshot = $pitch->snapshots()->orderBy('created_at', 'desc')->first();
-            
+
             if ($latestSnapshot) {
                 return redirect()->route('projects.pitches.snapshots.show', [
-                    'project' => $project->slug, 
-                    'pitch' => $pitch->slug, 
-                    'snapshot' => $latestSnapshot->id
+                    'project' => $project->slug,
+                    'pitch' => $pitch->slug,
+                    'snapshot' => $latestSnapshot->id,
                 ])->with('info', 'Redirected to the latest snapshot for review.');
             }
-            
+
             // No snapshots - redirect to manage page (original behavior)
             return redirect()->route('projects.manage', $project)
                 ->with('info', 'Project owners should manage pitches from the project management page.');
@@ -178,20 +179,20 @@ class PitchController extends Controller
 
         // Only redirect project owners for standard workflow types
         // Allow direct access for client management and direct hire workflows
-        if ($user && $user->id === $pitch->project->user_id && 
-            !$pitch->project->isClientManagement() && !$pitch->project->isDirectHire()) {
-            
+        if ($user && $user->id === $pitch->project->user_id &&
+            ! $pitch->project->isClientManagement() && ! $pitch->project->isDirectHire()) {
+
             // Check if this is not already the latest snapshot
             $latestSnapshot = $pitch->snapshots()->orderBy('created_at', 'desc')->first();
-            
+
             if ($latestSnapshot && $latestSnapshot->id !== $pitchSnapshot->id) {
                 return redirect()->route('projects.pitches.snapshots.show', [
-                    'project' => $pitch->project->slug, 
-                    'pitch' => $pitch->slug, 
-                    'snapshot' => $latestSnapshot->id
+                    'project' => $pitch->project->slug,
+                    'pitch' => $pitch->slug,
+                    'snapshot' => $latestSnapshot->id,
                 ])->with('info', 'Redirected to the latest snapshot for review.');
             }
-            
+
             // If this is the latest snapshot or no snapshots exist, allow access
             // This allows project owners to view the current latest snapshot directly
         }
@@ -208,7 +209,7 @@ class PitchController extends Controller
     {
         return redirect()->route('projects.pitches.edit', [
             'project' => $pitch->project,
-            'pitch' => $pitch
+            'pitch' => $pitch,
         ]);
     }
 
@@ -220,7 +221,7 @@ class PitchController extends Controller
         if ($pitch->project_id !== $project->id) {
             abort(404, 'Pitch not found for this project');
         }
-        
+
         try {
             $this->authorize('update', $pitch);
         } catch (AuthorizationException $e) {
@@ -233,14 +234,14 @@ class PitchController extends Controller
         }
 
         // Define $currentSnapshot as null so it's always available in the view
-        $currentSnapshot = null; 
+        $currentSnapshot = null;
         // TODO: Optionally, fetch the relevant snapshot if needed, e.g.:
-        // $currentSnapshot = $pitch->snapshots()->latest()->first(); 
+        // $currentSnapshot = $pitch->snapshots()->latest()->first();
         // Or perhaps the specific one linked to the last 'revisions_requested' event.
 
         // Pass both $pitch and $currentSnapshot to the view
         // return view('pitches.edit', compact('pitch', 'currentSnapshot')); // Old view
-        
+
         // Return a view that loads the ManagePitch Livewire component
         return view('pitches.edit-livewire', compact('pitch'));
     }
@@ -257,10 +258,10 @@ class PitchController extends Controller
             if ($pitch->project_id !== $project->id) {
                 abort(404, 'Pitch not found for this project');
             }
-            
+
             $this->authorize('update', $pitch);
 
-            // TODO: Add validation logic here if needed, 
+            // TODO: Add validation logic here if needed,
             //       as UpdatePitchRequest was removed.
             // Example: $validatedData = $request->validate([...rules...]);
             $validatedData = $request->validate([
@@ -278,20 +279,22 @@ class PitchController extends Controller
                 ->with('success', 'Pitch updated successfully!');
         } catch (AuthorizationException $e) {
             return redirect()->back()
-                ->with('error', 'You are not authorized to update this pitch: ' . $e->getMessage());
+                ->with('error', 'You are not authorized to update this pitch: '.$e->getMessage());
         } catch (PitchUpdateException $e) {
-            Log::error('Pitch update failed: ' . $e->getMessage(), ['pitch_id' => $pitch->id, 'user_id' => $user->id]);
+            Log::error('Pitch update failed: '.$e->getMessage(), ['pitch_id' => $pitch->id, 'user_id' => $user->id]);
+
             return redirect()->back()
-                ->with('error', 'Failed to update pitch: ' . $e->getMessage());
+                ->with('error', 'Failed to update pitch: '.$e->getMessage());
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Handle validation errors
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Unexpected error updating pitch: ' . $e->getMessage(), [
+            Log::error('Unexpected error updating pitch: '.$e->getMessage(), [
                 'pitch_id' => $pitch->id,
                 'user_id' => $user->id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->back()
                 ->with('error', 'An unexpected error occurred while updating the pitch.');
         }
@@ -324,10 +327,10 @@ class PitchController extends Controller
 
         try {
             $this->authorize('delete', $pitch);
-            
+
             // Get FileManagementService
             $fileManagementService = app(\App\Services\FileManagementService::class);
-            
+
             Log::info('Starting pitch deletion process', [
                 'pitch_id' => $pitch->id,
                 'user_id' => $user->id,
@@ -335,7 +338,7 @@ class PitchController extends Controller
                 'snapshots_count' => $pitch->snapshots()->count(),
                 'events_count' => $pitch->events()->count(),
             ]);
-            
+
             DB::transaction(function () use ($pitch, $fileManagementService) {
                 // Step 1: Delete all pitch files (includes S3 cleanup)
                 $pitch->files()->each(function ($pitchFile) use ($fileManagementService) {
@@ -344,14 +347,14 @@ class PitchController extends Controller
                         Log::info('Pitch file deleted during pitch cleanup', [
                             'file_id' => $pitchFile->id,
                             'file_name' => $pitchFile->file_name,
-                            'pitch_id' => $pitchFile->pitch_id
+                            'pitch_id' => $pitchFile->pitch_id,
                         ]);
                     } catch (\Exception $e) {
                         Log::error('Failed to delete pitch file during pitch deletion', [
                             'file_id' => $pitchFile->id,
                             'file_name' => $pitchFile->file_name,
                             'pitch_id' => $pitchFile->pitch_id,
-                            'error' => $e->getMessage()
+                            'error' => $e->getMessage(),
                         ]);
                         // Continue with other files - don't fail entire deletion
                     }
@@ -359,9 +362,9 @@ class PitchController extends Controller
 
                 // Step 2: Soft delete the pitch (cascade will handle related records)
                 $pitch->delete();
-                
+
                 Log::info('Pitch deletion completed successfully', [
-                    'pitch_id' => $pitch->id
+                    'pitch_id' => $pitch->id,
                 ]);
             });
 
@@ -370,13 +373,14 @@ class PitchController extends Controller
                 ->with('success', 'Pitch deleted successfully.');
         } catch (AuthorizationException $e) {
             return redirect()->back()
-                ->with('error', 'You are not authorized to delete this pitch: ' . $e->getMessage());
+                ->with('error', 'You are not authorized to delete this pitch: '.$e->getMessage());
         } catch (\Exception $e) {
-            Log::error('Error deleting pitch: ' . $e->getMessage(), [
+            Log::error('Error deleting pitch: '.$e->getMessage(), [
                 'pitch_id' => $pitch->id,
                 'user_id' => $user->id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->back()
                 ->with('error', 'An unexpected error occurred while deleting the pitch.');
         }
@@ -401,7 +405,7 @@ class PitchController extends Controller
         if ($pitch->project_id !== $project->id) {
             abort(404, 'Pitch not found for this project');
         }
-        
+
         // Use RouteHelpers for URL generation
         return redirect(RouteHelpers::pitchPaymentUrl($pitch));
     }
@@ -417,15 +421,15 @@ class PitchController extends Controller
 
     /**
      * Generate and set a unique slug for a pitch
-     * 
-     * @param Pitch $pitch The pitch model to set a slug for
+     *
+     * @param  Pitch  $pitch  The pitch model to set a slug for
      * @return void
      */
     private function generateAndSetSlug(Pitch $pitch)
     {
         // Sluggable trait might handle this automatically, but ensure uniqueness if needed
         $slug = Str::slug($pitch->title); // Assuming title exists
-        $count = Pitch::where('project_id', $pitch->project_id)->where('slug', 'LIKE', $slug . '%')->count();
+        $count = Pitch::where('project_id', $pitch->project_id)->where('slug', 'LIKE', $slug.'%')->count();
         $pitch->slug = $count > 0 ? "{$slug}-{$count}" : $slug;
         $pitch->save(); // Save immediately after setting slug
     }
@@ -441,7 +445,7 @@ class PitchController extends Controller
         $user = Auth::user();
 
         // Validate input
-        if (!in_array($direction, ['forward', 'backward']) || !in_array($newStatus, Pitch::getStatuses())) {
+        if (! in_array($direction, ['forward', 'backward']) || ! in_array($newStatus, Pitch::getStatuses())) {
             return redirect()->back()->with('error', 'Invalid status change request.');
         }
 
@@ -454,7 +458,7 @@ class PitchController extends Controller
                     Pitch::STATUS_REVISIONS_REQUESTED,
                     Pitch::STATUS_DENIED,
                 ];
-                if (!in_array($pitch->status, $revertibleStatuses)) {
+                if (! in_array($pitch->status, $revertibleStatuses)) {
                     throw new InvalidStatusTransitionException(
                         $pitch->status,
                         $newStatus,
@@ -473,17 +477,17 @@ class PitchController extends Controller
             // Authorization check based on the status transition
             if ($pitch->status === Pitch::STATUS_PENDING && $newStatus === Pitch::STATUS_IN_PROGRESS) {
                 $this->authorize('approveInitial', $pitch);
-            } else if ($direction === 'backward' &&
+            } elseif ($direction === 'backward' &&
                       ($pitch->status === Pitch::STATUS_IN_PROGRESS ||
                        $pitch->status === Pitch::STATUS_PENDING_REVIEW)) {
                 // Assuming 'Remove Access' maps to some policy
-                 $this->authorize('update', $pitch); // Use a generic update or a specific policy ability
+                $this->authorize('update', $pitch); // Use a generic update or a specific policy ability
             } else {
                 // Fallback authorization (needs review based on allowed transitions)
                 if ($user->id !== $project->user_id) {
-                     throw new AuthorizationException('You are not authorized to perform this status change.');
+                    throw new AuthorizationException('You are not authorized to perform this status change.');
                 }
-                 //$this->authorize('update', $pitch); // Original fallback
+                // $this->authorize('update', $pitch); // Original fallback
             }
 
             // Validate the transition itself (using the existing logic for non-revert cases)
@@ -495,7 +499,7 @@ class PitchController extends Controller
                 $isValidTransition = $availableTransitions === $newStatus;
             }
 
-            if (!$isValidTransition) {
+            if (! $isValidTransition) {
                 throw new InvalidStatusTransitionException(
                     $pitch->status,
                     $newStatus,
@@ -522,22 +526,25 @@ class PitchController extends Controller
         } catch (AuthorizationException $e) {
             Log::warning('Unauthorized status change attempt', [
                 'user_id' => $user->id, 'pitch_id' => $pitch->id, 'project_id' => $project->id,
-                'direction' => $direction, 'new_status' => $newStatus, 'error' => $e->getMessage()
+                'direction' => $direction, 'new_status' => $newStatus, 'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()->with('error', 'You are not authorized to change this pitch status.');
         } catch (InvalidStatusTransitionException $e) {
-             Log::warning('Invalid status transition attempt', [
+            Log::warning('Invalid status transition attempt', [
                 'user_id' => $user->id, 'pitch_id' => $pitch->id, 'project_id' => $project->id,
-                'direction' => $direction, 'old_status' => $pitch->getOriginal('status'), 'new_status' => $newStatus, 'error' => $e->getMessage()
+                'direction' => $direction, 'old_status' => $pitch->getOriginal('status'), 'new_status' => $newStatus, 'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()->with('error', $e->getMessage());
         } catch (\Exception $e) {
             Log::error('Error changing pitch status via Controller', [
                 'pitch_id' => $pitch->id,
                 'direction' => $direction,
                 'new_status' => $newStatus,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()->with('error', 'An unexpected error occurred while changing the pitch status.');
         }
     }
@@ -545,9 +552,8 @@ class PitchController extends Controller
     /**
      * Handle the request to return a completed pitch to the approved status.
      *
-     * @param Request $request
-     * @param Project $project From route model binding
-     * @param Pitch $pitch From route model binding
+     * @param  Project  $project  From route model binding
+     * @param  Pitch  $pitch  From route model binding
      * @return \Illuminate\Http\RedirectResponse
      */
     public function returnToApproved(Request $request, Project $project, Pitch $pitch)
@@ -559,7 +565,7 @@ class PitchController extends Controller
             if ($pitch->project_id !== $project->id) {
                 abort(404, 'Pitch not found for this project');
             }
-            
+
             // Use policy for authorization check first
             $this->authorize('returnToApproved', $pitch);
 

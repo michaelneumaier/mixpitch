@@ -4,9 +4,6 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Database\Seeders\MigrateUserTagsSeeder;
-use Database\Seeders\TagSeeder;
-use Database\Seeders\LicenseTemplateSeeder;
 
 class DatabaseSeeder extends Seeder
 {

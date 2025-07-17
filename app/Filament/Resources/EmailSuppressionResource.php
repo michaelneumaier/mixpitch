@@ -3,29 +3,27 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EmailSuppressionResource\Pages;
-use App\Filament\Resources\EmailSuppressionResource\RelationManagers;
 use App\Models\EmailSuppression;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Notifications\Notification;
 
 class EmailSuppressionResource extends Resource
 {
     protected static ?string $model = EmailSuppression::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-no-symbol';
-    
+
     protected static ?string $navigationGroup = 'Email Management';
-    
+
     protected static ?string $navigationLabel = 'Suppressed Emails';
-    
+
     protected static ?int $navigationSort = 2;
-    
+
     protected static ?string $recordTitleAttribute = 'email';
 
     public static function form(Form $form): Form
@@ -38,7 +36,7 @@ class EmailSuppressionResource extends Resource
                             ->email()
                             ->required()
                             ->maxLength(255),
-                        
+
                         Forms\Components\Select::make('type')
                             ->options([
                                 'bounce' => 'Bounce',
@@ -46,10 +44,10 @@ class EmailSuppressionResource extends Resource
                                 'manual' => 'Manual',
                             ])
                             ->required(),
-                        
+
                         Forms\Components\TextInput::make('reason')
                             ->maxLength(255),
-                        
+
                         Forms\Components\KeyValue::make('metadata')
                             ->keyLabel('Property')
                             ->valueLabel('Value'),
@@ -65,18 +63,18 @@ class EmailSuppressionResource extends Resource
                 Tables\Columns\TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\BadgeColumn::make('type')
                     ->colors([
                         'danger' => 'bounce',
                         'warning' => 'complaint',
                         'info' => 'manual',
                     ]),
-                
+
                 Tables\Columns\TextColumn::make('reason')
                     ->searchable()
                     ->limit(30),
-                
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Suppressed At')
                     ->dateTime()
@@ -90,7 +88,7 @@ class EmailSuppressionResource extends Resource
                         'complaint' => 'Complaint',
                         'manual' => 'Manual',
                     ]),
-                
+
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
@@ -147,7 +145,7 @@ class EmailSuppressionResource extends Resource
             'edit' => Pages\EditEmailSuppression::route('/{record}/edit'),
         ];
     }
-    
+
     public static function shouldRegisterNavigation(): bool
     {
         return true;

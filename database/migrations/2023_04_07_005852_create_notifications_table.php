@@ -12,17 +12,17 @@ return new class extends Migration
      * @return void
      */
     public function up()
-{
-    Schema::create('notifications', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('user_id');
-        $table->text('message');
-        $table->boolean('read')->default(false);
-        $table->timestamps();
+    {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->text('message');
+            $table->boolean('read')->default(false);
+            $table->timestamps();
 
-        $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-    });
-}
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+        });
+    }
 
     /**
      * Reverse the migrations.

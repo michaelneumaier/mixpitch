@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\UploadSession;
 use App\Models\UploadChunk;
+use App\Models\UploadSession;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -31,18 +31,18 @@ class UploadErrorHandler
             'session_id' => $session->id,
             'chunk_index' => $chunkIndex,
             'error' => $error->getMessage(),
-            'user_id' => $session->user_id
+            'user_id' => $session->user_id,
         ]);
 
         // Find the specific chunk
         $chunk = $session->chunks()->where('chunk_index', $chunkIndex)->first();
-        
-        if (!$chunk) {
+
+        if (! $chunk) {
             return [
                 'success' => false,
                 'error' => 'Chunk not found',
                 'retry' => false,
-                'action' => 'restart_upload'
+                'action' => 'restart_upload',
             ];
         }
 
@@ -57,19 +57,20 @@ class UploadErrorHandler
                 'metadata' => array_merge($chunk->metadata ?? [], [
                     'retry_count' => $retryCount,
                     'last_error' => $error->getMessage(),
-                    'failed_at' => now()
-                ])
+                    'failed_at' => now(),
+                ]),
             ]);
 
             // Check if this failure should fail the entire session
             $failedChunks = $session->chunks()->where('status', UploadChunk::STATUS_FAILED)->count();
             if ($failedChunks > ($session->total_chunks * 0.1)) { // More than 10% failed
                 $this->failSession($session, 'Too many chunk failures');
+
                 return [
                     'success' => false,
                     'error' => 'Upload failed due to multiple chunk errors',
                     'retry' => false,
-                    'action' => 'restart_upload'
+                    'action' => 'restart_upload',
                 ];
             }
 
@@ -78,7 +79,7 @@ class UploadErrorHandler
                 'error' => 'Chunk failed after maximum retries',
                 'retry' => false,
                 'action' => 'retry_chunk',
-                'chunk_index' => $chunkIndex
+                'chunk_index' => $chunkIndex,
             ];
         }
 
@@ -88,8 +89,8 @@ class UploadErrorHandler
             'metadata' => array_merge($chunk->metadata ?? [], [
                 'retry_count' => $retryCount + 1,
                 'last_error' => $error->getMessage(),
-                'retry_at' => now()
-            ])
+                'retry_at' => now(),
+            ]),
         ]);
 
         // Calculate exponential backoff delay
@@ -102,7 +103,7 @@ class UploadErrorHandler
             'action' => 'retry_chunk',
             'chunk_index' => $chunkIndex,
             'delay' => $delay,
-            'retry_count' => $retryCount + 1
+            'retry_count' => $retryCount + 1,
         ];
     }
 
@@ -116,7 +117,7 @@ class UploadErrorHandler
             'error' => $error->getMessage(),
             'user_id' => $session->user_id,
             'uploaded_chunks' => $session->uploaded_chunks,
-            'total_chunks' => $session->total_chunks
+            'total_chunks' => $session->total_chunks,
         ]);
 
         // Check if we can retry assembly
@@ -124,13 +125,13 @@ class UploadErrorHandler
         $maxAssemblyRetries = 2;
 
         if ($assemblyRetries >= $maxAssemblyRetries) {
-            $this->failSession($session, 'Assembly failed after retries: ' . $error->getMessage());
-            
+            $this->failSession($session, 'Assembly failed after retries: '.$error->getMessage());
+
             return [
                 'success' => false,
                 'error' => 'File assembly failed permanently',
                 'retry' => false,
-                'action' => 'restart_upload'
+                'action' => 'restart_upload',
             ];
         }
 
@@ -140,8 +141,8 @@ class UploadErrorHandler
             'metadata' => array_merge($session->metadata ?? [], [
                 'assembly_retries' => $assemblyRetries + 1,
                 'last_assembly_error' => $error->getMessage(),
-                'assembly_retry_at' => now()
-            ])
+                'assembly_retry_at' => now(),
+            ]),
         ]);
 
         return [
@@ -150,7 +151,7 @@ class UploadErrorHandler
             'retry' => true,
             'action' => 'retry_assembly',
             'delay' => 5000, // 5 second delay
-            'retry_count' => $assemblyRetries + 1
+            'retry_count' => $assemblyRetries + 1,
         ];
     }
 
@@ -163,7 +164,7 @@ class UploadErrorHandler
         $fileErrors = [];
 
         foreach ($files as $index => $file) {
-            $fileName = $file['name'] ?? "File " . ($index + 1);
+            $fileName = $file['name'] ?? 'File '.($index + 1);
             $fileErrors[$fileName] = [];
 
             // Check for specific validation errors
@@ -174,14 +175,14 @@ class UploadErrorHandler
             }
 
             // Add generic errors if no specific ones found
-            if (empty($fileErrors[$fileName]) && !empty($errors)) {
+            if (empty($fileErrors[$fileName]) && ! empty($errors)) {
                 $fileErrors[$fileName] = ['File validation failed'];
             }
         }
 
         Log::info('File validation errors', [
             'file_count' => count($files),
-            'errors' => $fileErrors
+            'errors' => $fileErrors,
         ]);
 
         return [
@@ -189,7 +190,7 @@ class UploadErrorHandler
             'error' => 'File validation failed',
             'file_errors' => $fileErrors,
             'retry' => false,
-            'action' => 'fix_validation'
+            'action' => 'fix_validation',
         ];
     }
 
@@ -200,7 +201,7 @@ class UploadErrorHandler
     {
         Log::info('Cleaning up failed upload session', [
             'session_id' => $session->id,
-            'user_id' => $session->user_id
+            'user_id' => $session->user_id,
         ]);
 
         try {
@@ -212,19 +213,19 @@ class UploadErrorHandler
                 'status' => UploadSession::STATUS_FAILED,
                 'metadata' => array_merge($session->metadata ?? [], [
                     'cleaned_up_at' => now(),
-                    'cleanup_reason' => 'Failed upload cleanup'
-                ])
+                    'cleanup_reason' => 'Failed upload cleanup',
+                ]),
             ]);
 
             // Mark all chunks as failed
             $session->chunks()->update([
-                'status' => UploadChunk::STATUS_FAILED
+                'status' => UploadChunk::STATUS_FAILED,
             ]);
 
         } catch (Exception $e) {
             Log::error('Error during upload cleanup', [
                 'session_id' => $session->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -232,12 +233,12 @@ class UploadErrorHandler
     /**
      * Handle network timeout errors
      */
-    public function handleNetworkTimeout(UploadSession $session, int $chunkIndex = null): array
+    public function handleNetworkTimeout(UploadSession $session, ?int $chunkIndex = null): array
     {
         Log::warning('Network timeout detected', [
             'session_id' => $session->id,
             'chunk_index' => $chunkIndex,
-            'user_id' => $session->user_id
+            'user_id' => $session->user_id,
         ]);
 
         if ($chunkIndex !== null) {
@@ -247,22 +248,23 @@ class UploadErrorHandler
 
         // Handle session-level timeout
         $timeoutCount = $session->metadata['timeout_count'] ?? 0;
-        
+
         if ($timeoutCount >= 5) {
             $this->failSession($session, 'Multiple network timeouts');
+
             return [
                 'success' => false,
                 'error' => 'Upload failed due to network issues',
                 'retry' => false,
-                'action' => 'restart_upload'
+                'action' => 'restart_upload',
             ];
         }
 
         $session->update([
             'metadata' => array_merge($session->metadata ?? [], [
                 'timeout_count' => $timeoutCount + 1,
-                'last_timeout_at' => now()
-            ])
+                'last_timeout_at' => now(),
+            ]),
         ]);
 
         return [
@@ -270,7 +272,7 @@ class UploadErrorHandler
             'error' => 'Network timeout',
             'retry' => true,
             'action' => 'resume_upload',
-            'delay' => 3000 // 3 second delay
+            'delay' => 3000, // 3 second delay
         ];
     }
 
@@ -282,7 +284,7 @@ class UploadErrorHandler
         Log::warning('Storage limit exceeded', [
             'session_id' => $session->id,
             'user_id' => $session->user_id,
-            'limit_type' => $limitType
+            'limit_type' => $limitType,
         ]);
 
         $this->failSession($session, "Storage limit exceeded: {$limitType}");
@@ -290,7 +292,7 @@ class UploadErrorHandler
         $errorMessages = [
             'user' => 'Your storage limit has been exceeded. Please upgrade your plan or delete some files.',
             'project' => 'This project has reached its storage limit.',
-            'system' => 'System storage limit reached. Please contact support.'
+            'system' => 'System storage limit reached. Please contact support.',
         ];
 
         return [
@@ -298,7 +300,7 @@ class UploadErrorHandler
             'error' => $errorMessages[$limitType] ?? 'Storage limit exceeded',
             'retry' => false,
             'action' => 'upgrade_storage',
-            'limit_type' => $limitType
+            'limit_type' => $limitType,
         ];
     }
 
@@ -309,14 +311,14 @@ class UploadErrorHandler
     {
         Log::info('Browser compatibility issue', [
             'feature' => $feature,
-            'user_agent' => request()->header('User-Agent')
+            'user_agent' => request()->header('User-Agent'),
         ]);
 
         $fallbackMessages = [
             'filepond' => 'Your browser doesn\'t support advanced upload features. Using basic uploader.',
             'chunking' => 'Chunked uploads not supported. Files will be uploaded normally.',
             'drag_drop' => 'Drag and drop not supported. Please use the browse button.',
-            'progress' => 'Upload progress indication not available in your browser.'
+            'progress' => 'Upload progress indication not available in your browser.',
         ];
 
         return [
@@ -324,7 +326,7 @@ class UploadErrorHandler
             'error' => $fallbackMessages[$feature] ?? 'Browser compatibility issue',
             'retry' => false,
             'action' => 'use_fallback',
-            'feature' => $feature
+            'feature' => $feature,
         ];
     }
 
@@ -337,14 +339,14 @@ class UploadErrorHandler
             'status' => UploadSession::STATUS_FAILED,
             'metadata' => array_merge($session->metadata ?? [], [
                 'failure_reason' => $reason,
-                'failed_at' => now()
-            ])
+                'failed_at' => now(),
+            ]),
         ]);
 
         Log::error('Upload session failed', [
             'session_id' => $session->id,
             'user_id' => $session->user_id,
-            'reason' => $reason
+            'reason' => $reason,
         ]);
     }
 
@@ -360,9 +362,9 @@ class UploadErrorHandler
             'network_timeout' => 'Upload timed out due to network issues. Retrying...',
             'storage_limit' => 'You\'ve reached your storage limit. Please upgrade or free up space.',
             'browser_unsupported' => 'Your browser doesn\'t support this feature. Using basic upload instead.',
-            'file_too_large' => 'Your file is too large. Maximum size is ' . ($context['max_size'] ?? 'unknown'),
-            'invalid_file_type' => 'This file type is not allowed. Accepted types: ' . ($context['accepted_types'] ?? 'unknown'),
-            'upload_failed' => 'Upload failed. Please try again or contact support if the problem persists.'
+            'file_too_large' => 'Your file is too large. Maximum size is '.($context['max_size'] ?? 'unknown'),
+            'invalid_file_type' => 'This file type is not allowed. Accepted types: '.($context['accepted_types'] ?? 'unknown'),
+            'upload_failed' => 'Upload failed. Please try again or contact support if the problem persists.',
         ];
 
         return $messages[$errorType] ?? $messages['upload_failed'];

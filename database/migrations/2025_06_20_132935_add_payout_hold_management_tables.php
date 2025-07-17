@@ -24,21 +24,21 @@ return new class extends Migration
             $table->boolean('require_bypass_reason')->default(true);
             $table->boolean('log_bypasses')->default(true);
             $table->timestamps();
-            
+
             // Create an index for faster lookups
             $table->index('enabled');
         });
-        
+
         // Add bypass tracking fields to existing payout_schedules table
         Schema::table('payout_schedules', function (Blueprint $table) {
             $table->boolean('hold_bypassed')->default(false)->after('hold_release_date');
             $table->text('bypass_reason')->nullable()->after('hold_bypassed');
             $table->unsignedBigInteger('bypass_admin_id')->nullable()->after('bypass_reason');
             $table->timestamp('bypassed_at')->nullable()->after('bypass_admin_id');
-            
+
             // Add foreign key constraint for bypass admin
             $table->foreign('bypass_admin_id')->references('id')->on('users')->onDelete('set null');
-            
+
             // Add indexes for performance
             $table->index('hold_bypassed');
             $table->index('bypassed_at');
@@ -57,12 +57,12 @@ return new class extends Migration
             $table->dropIndex(['bypassed_at']);
             $table->dropColumn([
                 'hold_bypassed',
-                'bypass_reason', 
+                'bypass_reason',
                 'bypass_admin_id',
-                'bypassed_at'
+                'bypassed_at',
             ]);
         });
-        
+
         // Drop payout hold settings table
         Schema::dropIfExists('payout_hold_settings');
     }

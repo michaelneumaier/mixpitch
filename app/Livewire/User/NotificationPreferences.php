@@ -11,7 +11,9 @@ use Livewire\Component;
 class NotificationPreferences extends Component
 {
     public array $preferences = [];
+
     public array $notificationTypes = [];
+
     public array $channels = ['database', 'email'];
 
     public function mount(): void
@@ -22,11 +24,12 @@ class NotificationPreferences extends Component
     public function loadPreferences(): void
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             // Handle guest user or redirect
             Log::warning('Attempted to load notification preferences for guest user.');
             $this->notificationTypes = [];
             $this->preferences = [];
+
             return;
         }
 
@@ -38,16 +41,16 @@ class NotificationPreferences extends Component
             ->whereIn('notification_type', $types)
             ->whereIn('channel', $this->channels)
             ->get()
-            ->keyBy(fn($pref) => $pref->notification_type . '_' . $pref->channel); // Key by type_channel for easy lookup
+            ->keyBy(fn ($pref) => $pref->notification_type.'_'.$pref->channel); // Key by type_channel for easy lookup
 
         // Initialize preferences array
         $this->preferences = [];
         foreach ($this->notificationTypes as $type => $label) {
             $this->preferences[$type] = [];
             foreach ($this->channels as $channel) {
-                $key = $type . '_' . $channel;
+                $key = $type.'_'.$channel;
                 // Default to true (enabled) if no specific preference is found
-                $this->preferences[$type][$channel] = $existingPreferences->has($key) 
+                $this->preferences[$type][$channel] = $existingPreferences->has($key)
                     ? $existingPreferences[$key]->is_enabled
                     : true;
             }
@@ -66,19 +69,21 @@ class NotificationPreferences extends Component
         // Extract type and channel from the key
         $parts = explode('.', $key);
         if (count($parts) !== 2) {
-             Log::warning('Invalid preference key format during update.', ['key' => $key, 'user_id' => $user?->id]);
-             return; // Invalid key structure
+            Log::warning('Invalid preference key format during update.', ['key' => $key, 'user_id' => $user?->id]);
+
+            return; // Invalid key structure
         }
         $type = $parts[0];
         $channel = $parts[1];
 
-        if (!$user || !array_key_exists($type, $this->notificationTypes) || !in_array($channel, $this->channels)) {
+        if (! $user || ! array_key_exists($type, $this->notificationTypes) || ! in_array($channel, $this->channels)) {
             Log::warning('Invalid attempt to update notification channel preference.', [
                 'user_id' => $user?->id,
                 'type' => $type,
                 'channel' => $channel,
-                'value' => $value
+                'value' => $value,
             ]);
+
             // Optionally: Add a user-facing error message
             // $this->dispatch('toast', type: 'error', message: 'Failed to update preference.');
             return;
@@ -103,7 +108,7 @@ class NotificationPreferences extends Component
                 'type' => $type,
                 'channel' => $channel,
                 'value' => $value,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             // Optionally: Add a user-facing error message
             // $this->dispatch('toast', type: 'error', message: 'Failed to save preference. Please try again.');

@@ -12,7 +12,9 @@ class LimitReached extends Notification implements ShouldQueue
     use Queueable;
 
     protected $limitType;
+
     protected $currentCount;
+
     protected $limit;
 
     /**
@@ -42,7 +44,7 @@ class LimitReached extends Notification implements ShouldQueue
     {
         $limitTitle = $this->getLimitTitle();
         $subject = "You've reached your {$limitTitle} limit on MixPitch";
-        
+
         return (new MailMessage)
             ->subject($subject)
             ->line("You've reached your {$limitTitle} limit ({$this->currentCount}/{$this->limit}) on your current plan.")
@@ -67,7 +69,7 @@ class LimitReached extends Notification implements ShouldQueue
             'limit_type' => $this->limitType,
             'current_count' => $this->currentCount,
             'limit' => $this->limit,
-            'message' => $this->getLimitTitle() . ' limit reached'
+            'message' => $this->getLimitTitle().' limit reached',
         ];
     }
 

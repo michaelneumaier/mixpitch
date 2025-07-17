@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Notification;
-use App\Models\User;
-use App\Models\Pitch; // Example related model
+use App\Models\Pitch;
+use App\Models\User; // Example related model
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -42,15 +42,15 @@ class NotificationFactory extends Factory
             'data' => fn (array $attributes) => match ($attributes['type']) {
                 Notification::TYPE_PITCH_SUBMITTED => [
                     'project_name' => 'Test Project',
-                    'submitter_name' => 'Test Submitter'
+                    'submitter_name' => 'Test Submitter',
                 ],
                 Notification::TYPE_PITCH_STATUS_CHANGE => [
                     'status' => Pitch::STATUS_PENDING,
-                    'project_name' => 'Test Project'
+                    'project_name' => 'Test Project',
                 ],
                 Notification::TYPE_PITCH_COMMENT => [
                     'commenter_name' => 'Test Commenter',
-                    'project_name' => 'Test Project'
+                    'project_name' => 'Test Project',
                 ],
                 default => ['info' => $this->faker->sentence],
             },
@@ -96,4 +96,4 @@ class NotificationFactory extends Factory
             ];
         });
     }
-} 
+}

@@ -28,61 +28,60 @@ class GeneratePitchSlugs extends Command
     public function handle()
     {
         $forceAll = $this->option('force');
-        
+
         if ($forceAll) {
             $pitches = Pitch::all();
-            $this->info('Regenerating slugs for all ' . $pitches->count() . ' pitches...');
+            $this->info('Regenerating slugs for all '.$pitches->count().' pitches...');
         } else {
             $pitches = Pitch::whereNull('slug')->orWhere('slug', '')->get();
-            $this->info('Generating slugs for ' . $pitches->count() . ' pitches without slugs...');
+            $this->info('Generating slugs for '.$pitches->count().' pitches without slugs...');
         }
-        
+
         $bar = $this->output->createProgressBar($pitches->count());
         $bar->start();
-        
+
         $updated = 0;
-        
+
         foreach ($pitches as $pitch) {
             $this->generateSlugForPitch($pitch);
             $updated++;
             $bar->advance();
         }
-        
+
         $bar->finish();
         $this->newLine();
-        $this->info('Successfully updated slugs for ' . $updated . ' pitches.');
+        $this->info('Successfully updated slugs for '.$updated.' pitches.');
     }
-    
+
     /**
      * Generate a unique slug for a pitch
      *
-     * @param Pitch $pitch
      * @return void
      */
     private function generateSlugForPitch(Pitch $pitch)
     {
         // First try to use the title if it exists
-        if (!empty($pitch->title)) {
+        if (! empty($pitch->title)) {
             $baseSlug = Str::slug($pitch->title);
         } else {
             // Otherwise use pitch-{id} as a fallback
-            $baseSlug = 'pitch-' . $pitch->id;
+            $baseSlug = 'pitch-'.$pitch->id;
         }
-        
+
         // Find a unique slug within the same project
         $slug = $baseSlug;
         $count = 1;
-        
+
         while (
             Pitch::where('project_id', $pitch->project_id)
                 ->where('id', '!=', $pitch->id)
                 ->where('slug', $slug)
                 ->exists()
         ) {
-            $slug = $baseSlug . '-' . $count;
+            $slug = $baseSlug.'-'.$count;
             $count++;
         }
-        
+
         $pitch->slug = $slug;
         $pitch->save();
     }

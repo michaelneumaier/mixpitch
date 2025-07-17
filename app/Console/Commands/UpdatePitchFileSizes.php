@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\PitchFile;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 class UpdatePitchFileSizes extends Command
@@ -28,10 +28,10 @@ class UpdatePitchFileSizes extends Command
     public function handle()
     {
         $this->info('Updating pitch file sizes...');
-        
+
         $files = PitchFile::whereNull('size')->orWhere('size', 0)->get();
         $count = 0;
-        
+
         foreach ($files as $file) {
             try {
                 $size = Storage::disk('public')->size($file->file_path);
@@ -42,7 +42,7 @@ class UpdatePitchFileSizes extends Command
                 $this->error("Failed to update size for file ID {$file->id}: {$e->getMessage()}");
             }
         }
-        
+
         $this->info("Updated sizes for {$count} pitch files.");
     }
 }

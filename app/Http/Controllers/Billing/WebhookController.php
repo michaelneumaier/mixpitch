@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers\Billing;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
-use App\Models\User;
-use App\Models\Pitch;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderEvent;
-use App\Models\Invoice;
-use App\Services\PitchWorkflowService;
+use App\Models\Pitch;
+use App\Models\User;
 use App\Services\InvoiceService;
 use App\Services\NotificationService;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpFoundation\Response;
+use App\Services\PitchWorkflowService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
+use Symfony\Component\HttpFoundation\Response;
 
 class WebhookController extends CashierWebhookController
 {
@@ -29,6 +28,7 @@ class WebhookController extends CashierWebhookController
     {
         // We likely care more about invoice.payment_succeeded for pitch payments
         Log::info('Webhook received: charge.succeeded', ['payload_id' => $payload['id'] ?? 'N/A']);
+
         return $this->successMethod();
     }
 
@@ -40,14 +40,16 @@ class WebhookController extends CashierWebhookController
      */
     public function handleChargeFailed($payload)
     {
-         // We likely care more about invoice.payment_failed for pitch payments
+        // We likely care more about invoice.payment_failed for pitch payments
         Log::info('Webhook received: charge.failed', ['payload_id' => $payload['id'] ?? 'N/A']);
+
         return $this->successMethod();
     }
 
     /**
      * Handle invoice created event.
      * (Keep existing logic if needed for general user invoice sync)
+     *
      * @param  array  $payload
      * @return \Symfony\Component\HttpFoundation\Response
      */
@@ -60,18 +62,18 @@ class WebhookController extends CashierWebhookController
             if ($customer) {
                 $user = User::where('stripe_id', $customer)->first();
                 if ($user) {
-                     Log::info('Syncing invoices for user via invoice.created', ['user_id' => $user->id, 'stripe_customer' => $customer]);
-                     $user->createOrGetStripeCustomer(); // Syncs invoices
+                    Log::info('Syncing invoices for user via invoice.created', ['user_id' => $user->id, 'stripe_customer' => $customer]);
+                    $user->createOrGetStripeCustomer(); // Syncs invoices
                 } else {
-                     Log::warning('User not found for stripe customer via invoice.created', ['stripe_customer' => $customer]);
-                 }
+                    Log::warning('User not found for stripe customer via invoice.created', ['stripe_customer' => $customer]);
+                }
             } else {
-                 Log::warning('No customer ID found in invoice.created payload', ['invoice_id' => $payload['data']['object']['id'] ?? 'N/A']);
+                Log::warning('No customer ID found in invoice.created payload', ['invoice_id' => $payload['data']['object']['id'] ?? 'N/A']);
             }
         } catch (\Exception $e) {
-            Log::error('Error handling invoice.created webhook: ' . $e->getMessage(), [
+            Log::error('Error handling invoice.created webhook: '.$e->getMessage(), [
                 'invoice_id' => $payload['data']['object']['id'] ?? 'N/A',
-                'exception' => $e
+                'exception' => $e,
             ]);
         }
 
@@ -92,20 +94,21 @@ class WebhookController extends CashierWebhookController
         $invoiceId = $invoicePayload['id'] ?? null;
         Log::info('Webhook received: invoice.payment_succeeded', ['invoice_id' => $invoiceId]);
 
-        if (!$invoicePayload || !$invoiceId) {
-             Log::error('Invalid invoice.payment_succeeded payload received.', ['payload_id' => $payload['id'] ?? 'N/A']);
-             return $this->missingInvoiceId(); // Respond appropriately
+        if (! $invoicePayload || ! $invoiceId) {
+            Log::error('Invalid invoice.payment_succeeded payload received.', ['payload_id' => $payload['id'] ?? 'N/A']);
+
+            return $this->missingInvoiceId(); // Respond appropriately
         }
 
         try {
             // Resolve service from container
-            $pitchWorkflowService = app(PitchWorkflowService::class); 
+            $pitchWorkflowService = app(PitchWorkflowService::class);
 
             // --- Pitch Payment Logic ---
             $pitchId = $invoicePayload['metadata']['pitch_id'] ?? null;
 
             if ($pitchId) {
-                 Log::info('Processing invoice.payment_succeeded for pitch.', ['invoice_id' => $invoiceId, 'pitch_id' => $pitchId]);
+                Log::info('Processing invoice.payment_succeeded for pitch.', ['invoice_id' => $invoiceId, 'pitch_id' => $pitchId]);
                 $pitch = Pitch::find($pitchId);
 
                 if ($pitch) {
@@ -117,27 +120,26 @@ class WebhookController extends CashierWebhookController
                 } else {
                     Log::warning('Pitch not found for invoice.payment_succeeded webhook.', [
                         'invoice_id' => $invoiceId,
-                        'pitch_id' => $pitchId
+                        'pitch_id' => $pitchId,
                     ]);
                     // Decide if this is an error state - perhaps the pitch was deleted?
                 }
             } else {
-                 Log::info('No pitch_id metadata found in invoice.payment_succeeded, skipping pitch processing.', ['invoice_id' => $invoiceId]);
-                 // This might be a regular subscription invoice, etc.
+                Log::info('No pitch_id metadata found in invoice.payment_succeeded, skipping pitch processing.', ['invoice_id' => $invoiceId]);
+                // This might be a regular subscription invoice, etc.
             }
 
-             // --- Optional: Existing User Invoice Sync Logic ---
-             $this->syncUserInvoicesFromPayload($payload);
-
+            // --- Optional: Existing User Invoice Sync Logic ---
+            $this->syncUserInvoicesFromPayload($payload);
 
         } catch (\Exception $e) {
-            Log::error('Error handling invoice.payment_succeeded webhook: ' . $e->getMessage(), [
+            Log::error('Error handling invoice.payment_succeeded webhook: '.$e->getMessage(), [
                 'invoice_id' => $invoiceId,
                 'payload_id' => $payload['id'] ?? 'N/A',
-                'exception' => $e // Consider limiting exception detail in production logs
+                'exception' => $e, // Consider limiting exception detail in production logs
             ]);
-             // Don't throw error back to Stripe, return success to prevent retries
-             // Logged error needs monitoring.
+            // Don't throw error back to Stripe, return success to prevent retries
+            // Logged error needs monitoring.
         }
 
         return $this->successMethod();
@@ -151,55 +153,56 @@ class WebhookController extends CashierWebhookController
      */
     public function handleInvoicePaymentFailed($payload)
     {
-         $invoicePayload = $payload['data']['object'] ?? null;
-         $invoiceId = $invoicePayload['id'] ?? null;
-         Log::info('Webhook received: invoice.payment_failed', ['invoice_id' => $invoiceId]);
+        $invoicePayload = $payload['data']['object'] ?? null;
+        $invoiceId = $invoicePayload['id'] ?? null;
+        Log::info('Webhook received: invoice.payment_failed', ['invoice_id' => $invoiceId]);
 
-        if (!$invoicePayload || !$invoiceId) {
-             Log::error('Invalid invoice.payment_failed payload received.', ['payload_id' => $payload['id'] ?? 'N/A']);
-             return $this->missingInvoiceId();
+        if (! $invoicePayload || ! $invoiceId) {
+            Log::error('Invalid invoice.payment_failed payload received.', ['payload_id' => $payload['id'] ?? 'N/A']);
+
+            return $this->missingInvoiceId();
         }
 
         try {
-             // Resolve service from container
-             $pitchWorkflowService = app(PitchWorkflowService::class);
+            // Resolve service from container
+            $pitchWorkflowService = app(PitchWorkflowService::class);
 
-             // --- Pitch Payment Logic ---
+            // --- Pitch Payment Logic ---
             $pitchId = $invoicePayload['metadata']['pitch_id'] ?? null;
 
             if ($pitchId) {
-                 Log::info('Processing invoice.payment_failed for pitch.', ['invoice_id' => $invoiceId, 'pitch_id' => $pitchId]);
-                 $pitch = Pitch::find($pitchId);
+                Log::info('Processing invoice.payment_failed for pitch.', ['invoice_id' => $invoiceId, 'pitch_id' => $pitchId]);
+                $pitch = Pitch::find($pitchId);
 
                 if ($pitch) {
-                     // Extract failure reason if available
+                    // Extract failure reason if available
                     $failureReason = $invoicePayload['last_payment_error']['message'] ?? // Attempt 1
                                     $invoicePayload['attempt_failure_reason'] ?? // Attempt 2 (older APIs?)
                                     'Unknown failure reason from webhook.';
 
                     // Call the service to mark the pitch payment as failed
                     $pitchWorkflowService->markPitchPaymentFailed($pitch, $invoiceId, $failureReason);
-                     Log::info('Successfully marked pitch payment as failed via webhook.', ['invoice_id' => $invoiceId, 'pitch_id' => $pitchId]);
+                    Log::info('Successfully marked pitch payment as failed via webhook.', ['invoice_id' => $invoiceId, 'pitch_id' => $pitchId]);
                 } else {
-                     Log::warning('Pitch not found for invoice.payment_failed webhook.', [
+                    Log::warning('Pitch not found for invoice.payment_failed webhook.', [
                         'invoice_id' => $invoiceId,
-                        'pitch_id' => $pitchId
+                        'pitch_id' => $pitchId,
                     ]);
                 }
             } else {
-                 Log::info('No pitch_id metadata found in invoice.payment_failed, skipping pitch processing.', ['invoice_id' => $invoiceId]);
+                Log::info('No pitch_id metadata found in invoice.payment_failed, skipping pitch processing.', ['invoice_id' => $invoiceId]);
             }
 
-             // --- Optional: Existing User Invoice Sync Logic ---
-             $this->syncUserInvoicesFromPayload($payload);
+            // --- Optional: Existing User Invoice Sync Logic ---
+            $this->syncUserInvoicesFromPayload($payload);
 
         } catch (\Exception $e) {
-            Log::error('Error handling invoice.payment_failed webhook: ' . $e->getMessage(), [
-                 'invoice_id' => $invoiceId,
-                 'payload_id' => $payload['id'] ?? 'N/A',
-                 'exception' => $e
+            Log::error('Error handling invoice.payment_failed webhook: '.$e->getMessage(), [
+                'invoice_id' => $invoiceId,
+                'payload_id' => $payload['id'] ?? 'N/A',
+                'exception' => $e,
             ]);
-             // Return success to prevent retries
+            // Return success to prevent retries
         }
 
         return $this->successMethod();
@@ -208,15 +211,15 @@ class WebhookController extends CashierWebhookController
     /**
      * Handle customer subscription created event.
      */
-    public function handleCustomerSubscriptionCreated($payload) 
-    { 
-        Log::info('Webhook received: customer.subscription.created', ['payload_id' => $payload['id'] ?? 'N/A']); 
-        
+    public function handleCustomerSubscriptionCreated($payload)
+    {
+        Log::info('Webhook received: customer.subscription.created', ['payload_id' => $payload['id'] ?? 'N/A']);
+
         try {
             $subscription = $payload['data']['object'] ?? null;
             $customerId = $subscription['customer'] ?? null;
             $priceId = $subscription['items']['data'][0]['price']['id'] ?? null;
-            
+
             if ($customerId && $priceId) {
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
@@ -224,8 +227,8 @@ class WebhookController extends CashierWebhookController
                     $existingSubscription = $user->subscriptions()
                         ->where('stripe_id', $subscription['id'])
                         ->first();
-                        
-                    if (!$existingSubscription) {
+
+                    if (! $existingSubscription) {
                         $user->subscriptions()->create([
                             'name' => 'default',
                             'stripe_id' => $subscription['id'],
@@ -235,16 +238,16 @@ class WebhookController extends CashierWebhookController
                             'trial_ends_at' => $subscription['trial_end'] ? \Carbon\Carbon::createFromTimestamp($subscription['trial_end']) : null,
                             'ends_at' => null,
                         ]);
-                        
+
                         Log::info('Created subscription record from webhook', [
                             'user_id' => $user->id,
                             'subscription_id' => $subscription['id'],
-                            'price_id' => $priceId
+                            'price_id' => $priceId,
                         ]);
                     }
-                    
+
                     $this->updateUserSubscriptionStatus($user, 'active', $priceId);
-                    
+
                     // Send upgrade notification
                     $priceMapping = [
                         config('subscription.stripe_prices.pro_artist_monthly') => ['plan' => 'pro', 'tier' => 'artist'],
@@ -252,38 +255,38 @@ class WebhookController extends CashierWebhookController
                         config('subscription.stripe_prices.pro_artist_yearly') => ['plan' => 'pro', 'tier' => 'artist'],
                         config('subscription.stripe_prices.pro_engineer_yearly') => ['plan' => 'pro', 'tier' => 'engineer'],
                     ];
-                    
+
                     if (isset($priceMapping[$priceId])) {
                         $mapping = $priceMapping[$priceId];
                         $user->notify(new \App\Notifications\SubscriptionUpgraded($mapping['plan'], $mapping['tier']));
                     }
-                    
+
                     Log::info('Updated user subscription from webhook', [
                         'user_id' => $user->id,
-                        'price_id' => $priceId
+                        'price_id' => $priceId,
                     ]);
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Error handling customer.subscription.created: ' . $e->getMessage());
+            Log::error('Error handling customer.subscription.created: '.$e->getMessage());
         }
-        
-        return $this->successMethod(); 
+
+        return $this->successMethod();
     }
 
     /**
      * Handle customer subscription updated event.
      */
-    public function handleCustomerSubscriptionUpdated($payload) 
-    { 
-        Log::info('Webhook received: customer.subscription.updated', ['payload_id' => $payload['id'] ?? 'N/A']); 
-        
+    public function handleCustomerSubscriptionUpdated($payload)
+    {
+        Log::info('Webhook received: customer.subscription.updated', ['payload_id' => $payload['id'] ?? 'N/A']);
+
         try {
             $subscription = $payload['data']['object'] ?? null;
             $customerId = $subscription['customer'] ?? null;
             $priceId = $subscription['items']['data'][0]['price']['id'] ?? null;
             $status = $subscription['status'] ?? null;
-            
+
             if ($customerId && $priceId) {
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
@@ -295,87 +298,94 @@ class WebhookController extends CashierWebhookController
                     Log::info('Updated user subscription from webhook', [
                         'user_id' => $user->id,
                         'price_id' => $priceId,
-                        'status' => $status
+                        'status' => $status,
                     ]);
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Error handling customer.subscription.updated: ' . $e->getMessage());
+            Log::error('Error handling customer.subscription.updated: '.$e->getMessage());
         }
-        
-        return $this->successMethod(); 
+
+        return $this->successMethod();
     }
 
     /**
      * Handle customer subscription deleted event.
      */
-    public function handleCustomerSubscriptionDeleted($payload) 
-    { 
-        Log::info('Webhook received: customer.subscription.deleted', ['payload_id' => $payload['id'] ?? 'N/A']); 
-        
+    public function handleCustomerSubscriptionDeleted($payload)
+    {
+        Log::info('Webhook received: customer.subscription.deleted', ['payload_id' => $payload['id'] ?? 'N/A']);
+
         try {
             $subscription = $payload['data']['object'] ?? null;
             $customerId = $subscription['customer'] ?? null;
-            
+
             if ($customerId) {
                 $user = User::where('stripe_id', $customerId)->first();
                 if ($user) {
                     // Get current plan name before downgrading
-                    $currentPlan = ucfirst($user->subscription_plan) . ' ' . ucfirst($user->subscription_tier);
-                    
+                    $currentPlan = ucfirst($user->subscription_plan).' '.ucfirst($user->subscription_tier);
+
                     $this->updateUserSubscriptionStatus($user, 'canceled');
-                    
+
                     // Send cancellation notification
-                    $endsAt = isset($subscription['canceled_at']) ? 
-                        \Carbon\Carbon::createFromTimestamp($subscription['canceled_at']) : 
+                    $endsAt = isset($subscription['canceled_at']) ?
+                        \Carbon\Carbon::createFromTimestamp($subscription['canceled_at']) :
                         now();
-                    
+
                     $user->notify(new \App\Notifications\SubscriptionCancelled($currentPlan, $endsAt));
-                    
+
                     Log::info('Canceled user subscription from webhook', [
-                        'user_id' => $user->id
+                        'user_id' => $user->id,
                     ]);
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Error handling customer.subscription.deleted: ' . $e->getMessage());
+            Log::error('Error handling customer.subscription.deleted: '.$e->getMessage());
         }
-        
-        return $this->successMethod(); 
+
+        return $this->successMethod();
     }
 
-    public function handleCustomerUpdated($payload) { Log::info('Webhook received: customer.updated', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
-    public function handleCustomerDeleted($payload) { Log::info('Webhook received: customer.deleted', ['payload_id' => $payload['id'] ?? 'N/A']); return $this->successMethod(); }
+    public function handleCustomerUpdated($payload)
+    {
+        Log::info('Webhook received: customer.updated', ['payload_id' => $payload['id'] ?? 'N/A']);
+
+        return $this->successMethod();
+    }
+
+    public function handleCustomerDeleted($payload)
+    {
+        Log::info('Webhook received: customer.deleted', ['payload_id' => $payload['id'] ?? 'N/A']);
+
+        return $this->successMethod();
+    }
 
     /**
      * Handle checkout session completed event.
      * Handles payments completed via Stripe Checkout for:
      * - Client Management Pitches
      * - Service Package Orders
-     *
-     * @param  array $payload
-     * @param  InvoiceService $invoiceService
-     * @param  NotificationService $notificationService
-     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handleCheckoutSessionCompleted(
         array $payload,
         InvoiceService $invoiceService,
         NotificationService $notificationService
-    ): Response
-    {
+    ): Response {
         $session = $payload['data']['object'] ?? null;
         $sessionId = $session['id'] ?? null;
         Log::info('Webhook received: checkout.session.completed', ['session_id' => $sessionId]);
 
-        if (!$session || !$sessionId) {
+        if (! $session || ! $sessionId) {
             Log::error('Invalid checkout.session.completed payload received.', ['payload_id' => $payload['id'] ?? 'N/A']);
+
             return new Response('Invalid payload', 400);
         }
 
         // Check payment status - should be 'paid' for this event
         if ($session['payment_status'] !== 'paid') {
             Log::info('Checkout session completed but payment not marked as paid.', ['session_id' => $sessionId, 'payment_status' => $session['payment_status']]);
+
             return $this->successMethod(); // Acknowledge webhook
         }
 
@@ -392,7 +402,7 @@ class WebhookController extends CashierWebhookController
                 'session_id' => $sessionId,
                 'order_id' => $orderId,
                 'invoice_id' => $invoiceId,
-                'payment_intent_id' => $paymentIntentId
+                'payment_intent_id' => $paymentIntentId,
             ]);
 
             try {
@@ -400,14 +410,14 @@ class WebhookController extends CashierWebhookController
                     $order = Order::with('servicePackage')->find($orderId);
                     $invoice = Invoice::find($invoiceId);
 
-                    if (!$order || !$invoice) {
+                    if (! $order || ! $invoice) {
                         Log::error('Order or Invoice not found for checkout session.', [
                             'session_id' => $sessionId,
                             'order_id' => $orderId,
-                            'invoice_id' => $invoiceId
+                            'invoice_id' => $invoiceId,
                         ]);
                         // Throw exception to rollback transaction and log error
-                        throw new \Exception("Order or Invoice not found"); 
+                        throw new \Exception('Order or Invoice not found');
                     }
 
                     // Idempotency check: ensure we haven't already processed this
@@ -415,8 +425,9 @@ class WebhookController extends CashierWebhookController
                         Log::info('Order/Invoice already marked as paid, skipping duplicate processing.', [
                             'session_id' => $sessionId,
                             'order_id' => $orderId,
-                            'invoice_id' => $invoiceId
+                            'invoice_id' => $invoiceId,
                         ]);
+
                         return; // Exit transaction successfully
                     }
 
@@ -435,17 +446,17 @@ class WebhookController extends CashierWebhookController
                     $invoice->stripe_checkout_session_id = $sessionId;
                     $invoice->stripe_payment_intent_id = $paymentIntentId;
                     // Store relevant session data if needed
-                    $invoice->metadata = array_merge($invoice->metadata ?? [], ['checkout_session' => $session]); 
+                    $invoice->metadata = array_merge($invoice->metadata ?? [], ['checkout_session' => $session]);
                     $invoice->save();
-                    
+
                     // Create Order Event
                     $order->events()->create([
                         'event_type' => OrderEvent::EVENT_PAYMENT_RECEIVED,
                         'comment' => 'Payment successfully received via Stripe Checkout.',
-                        'status_to' => $order->status, 
-                        'metadata' => ['stripe_checkout_session_id' => $sessionId, 'payment_intent_id' => $paymentIntentId]
+                        'status_to' => $order->status,
+                        'metadata' => ['stripe_checkout_session_id' => $sessionId, 'payment_intent_id' => $paymentIntentId],
                     ]);
-                    
+
                     // Send notifications to client and producer
                     $notificationService->notify($order->client, new \App\Notifications\Notifications\Order\OrderPaymentConfirmed($order));
                     $notificationService->notify($order->producer, new \App\Notifications\Notifications\Order\ProducerOrderReceived($order));
@@ -454,11 +465,11 @@ class WebhookController extends CashierWebhookController
                 });
 
             } catch (\Exception $e) {
-                Log::error('Error processing checkout.session.completed for Service Order: ' . $e->getMessage(), [
+                Log::error('Error processing checkout.session.completed for Service Order: '.$e->getMessage(), [
                     'session_id' => $sessionId,
                     'order_id' => $orderId,
                     'invoice_id' => $invoiceId,
-                    'exception' => $e
+                    'exception' => $e,
                 ]);
                 // Don't throw error back to Stripe, return success to prevent retries
             }
@@ -470,39 +481,40 @@ class WebhookController extends CashierWebhookController
             Log::info('Processing checkout.session.completed for Client Pitch Payment.', [
                 'session_id' => $sessionId,
                 'pitch_id' => $pitchId,
-                'payment_intent_id' => $paymentIntentId
+                'payment_intent_id' => $paymentIntentId,
             ]);
 
             try {
-                DB::transaction(function () use ($pitchId, $sessionId, $paymentIntentId, $session, $invoiceService, $notificationService) {
+                DB::transaction(function () use ($pitchId, $sessionId, $paymentIntentId, $session) {
                     // Resolve service from container where needed
-                    $pitchWorkflowService = app(PitchWorkflowService::class); 
-                    
+                    $pitchWorkflowService = app(PitchWorkflowService::class);
+
                     $pitch = Pitch::find($pitchId);
-                    if (!$pitch) {
+                    if (! $pitch) {
                         Log::error('Pitch not found for client payment checkout session.', [
                             'session_id' => $sessionId,
-                            'pitch_id' => $pitchId
+                            'pitch_id' => $pitchId,
                         ]);
-                        throw new \Exception("Pitch not found");
+                        throw new \Exception('Pitch not found');
                     }
 
                     // Idempotency check
                     if ($pitch->payment_status === Pitch::PAYMENT_STATUS_PAID) {
-                         Log::info('Pitch already marked as paid, skipping duplicate processing.', [
+                        Log::info('Pitch already marked as paid, skipping duplicate processing.', [
                             'session_id' => $sessionId,
-                            'pitch_id' => $pitchId
+                            'pitch_id' => $pitchId,
                         ]);
+
                         return; // Exit transaction successfully
                     }
 
                     // Mark pitch as paid using workflow service (includes payout scheduling)
                     $pitchWorkflowService->markPitchAsPaid($pitch, $sessionId, $paymentIntentId);
-                     
+
                     // Call workflow service to update pitch status, create event, notify
                     // The service method should be idempotent regarding status updates
                     $pitchWorkflowService->clientApprovePitch($pitch, $pitch->project->client_email ?? 'webhook'); // Removed extra params no longer needed?
-                    
+
                     // Update or Create Invoice (using InvoiceService might be cleaner)
                     // Find existing or create new Invoice model based on pitch_id?
                     // This depends on whether an Invoice model was created *before* checkout
@@ -512,28 +524,28 @@ class WebhookController extends CashierWebhookController
                             'user_id' => $pitch->project->user_id, // Or client_user_id if applicable
                             'amount' => $pitch->payment_amount, // Assuming payment_amount is on Pitch
                             'currency' => $pitch->project->prize_currency ?? 'USD', // Adjust as needed
-                            'description' => 'Invoice for Client Pitch Payment #' . $pitch->id,
+                            'description' => 'Invoice for Client Pitch Payment #'.$pitch->id,
                             'metadata' => ['client_email' => $pitch->project->client_email],
                         ]
                     );
-                    
+
                     $invoice->status = Invoice::STATUS_PAID;
                     $invoice->paid_at = now();
                     $invoice->stripe_checkout_session_id = $sessionId;
                     $invoice->stripe_payment_intent_id = $paymentIntentId;
-                    $invoice->metadata = array_merge($invoice->metadata ?? [], ['checkout_session' => $session]); 
+                    $invoice->metadata = array_merge($invoice->metadata ?? [], ['checkout_session' => $session]);
                     $invoice->save();
-                    
+
                     Log::info('Successfully processed Client Pitch Payment via webhook.', ['pitch_id' => $pitchId, 'invoice_id' => $invoice->id]);
                 });
 
             } catch (\Exception $e) {
-                 Log::error('Error processing checkout.session.completed for Client Pitch: ' . $e->getMessage(), [
+                Log::error('Error processing checkout.session.completed for Client Pitch: '.$e->getMessage(), [
                     'session_id' => $sessionId,
                     'pitch_id' => $pitchId,
-                    'exception' => $e
+                    'exception' => $e,
                 ]);
-                 // Return success to prevent retries
+                // Return success to prevent retries
             }
         }
         // --- End Client Management Pitch Payment Processing ---
@@ -541,7 +553,7 @@ class WebhookController extends CashierWebhookController
         else {
             Log::info('Checkout session completed did not match expected metadata for Order or Client Pitch.', [
                 'session_id' => $sessionId,
-                'metadata' => $metadata
+                'metadata' => $metadata,
             ]);
         }
 
@@ -556,28 +568,28 @@ class WebhookController extends CashierWebhookController
      */
     protected function syncUserInvoicesFromPayload(array $payload): void
     {
-         try {
+        try {
             $customer = $payload['data']['object']['customer'] ?? null;
             if ($customer) {
                 $user = User::where('stripe_id', $customer)->first();
                 if ($user) {
-                     Log::info('Syncing invoices for user via webhook.', ['user_id' => $user->id, 'stripe_customer' => $customer, 'event_type' => $payload['type'] ?? 'N/A']);
-                     // Ensure customer exists locally before syncing invoices
-                     $user->createOrGetStripeCustomer();
-                     // Optionally force download invoices if needed: $user->downloadInvoices();
+                    Log::info('Syncing invoices for user via webhook.', ['user_id' => $user->id, 'stripe_customer' => $customer, 'event_type' => $payload['type'] ?? 'N/A']);
+                    // Ensure customer exists locally before syncing invoices
+                    $user->createOrGetStripeCustomer();
+                    // Optionally force download invoices if needed: $user->downloadInvoices();
                 } else {
-                     Log::warning('User not found for stripe customer via webhook sync.', ['stripe_customer' => $customer, 'event_type' => $payload['type'] ?? 'N/A']);
-                 }
+                    Log::warning('User not found for stripe customer via webhook sync.', ['stripe_customer' => $customer, 'event_type' => $payload['type'] ?? 'N/A']);
+                }
             } else {
-                 Log::warning('No customer ID found in webhook payload for user sync.', ['payload_id' => $payload['id'] ?? 'N/A', 'event_type' => $payload['type'] ?? 'N/A']);
+                Log::warning('No customer ID found in webhook payload for user sync.', ['payload_id' => $payload['id'] ?? 'N/A', 'event_type' => $payload['type'] ?? 'N/A']);
             }
         } catch (\Exception $e) {
             // Log error but don't let it prevent webhook success response
-            Log::error('Error during user invoice sync from webhook: ' . $e->getMessage(), [
+            Log::error('Error during user invoice sync from webhook: '.$e->getMessage(), [
                 'customer_id' => $customer ?? 'N/A',
                 'payload_id' => $payload['id'] ?? 'N/A',
                 'event_type' => $payload['type'] ?? 'N/A',
-                'exception' => $e
+                'exception' => $e,
             ]);
         }
     }
@@ -585,77 +597,78 @@ class WebhookController extends CashierWebhookController
     /**
      * Return a response for missing invoice ID.
      */
-     protected function missingInvoiceId(): Response
-     {
-         return new Response('Webhook Handled: Invoice ID missing in payload', 400); // Use 400 Bad Request
-     }
+    protected function missingInvoiceId(): Response
+    {
+        return new Response('Webhook Handled: Invoice ID missing in payload', 400); // Use 400 Bad Request
+    }
 
-     /**
-      * Handle calls to missing methods.
-      *
-      * @param  array  $parameters
-      * @return \Symfony\Component\HttpFoundation\Response
-      */
-     public function missingMethod($parameters = [])
-     {
-         Log::warning('Webhook type not handled.', ['parameters' => $parameters]);
-         return new Response('Webhook type not handled', 400);
-     }
+    /**
+     * Handle calls to missing methods.
+     *
+     * @param  array  $parameters
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function missingMethod($parameters = [])
+    {
+        Log::warning('Webhook type not handled.', ['parameters' => $parameters]);
 
-     /**
-      * Update the user's subscription status
-      */
-     private function updateUserSubscriptionStatus($user, $status, $priceId = null)
-     {
-         $priceMapping = [
-             config('subscription.stripe_prices.pro_artist_monthly') => [
-                 'plan' => 'pro', 
-                 'tier' => 'artist', 
-                 'billing_period' => 'monthly',
-                 'price' => config('subscription.plans.pro_artist.monthly_price'),
-             ],
-             config('subscription.stripe_prices.pro_artist_yearly') => [
-                 'plan' => 'pro', 
-                 'tier' => 'artist', 
-                 'billing_period' => 'yearly',
-                 'price' => config('subscription.plans.pro_artist.yearly_price'),
-             ],
-             config('subscription.stripe_prices.pro_engineer_monthly') => [
-                 'plan' => 'pro', 
-                 'tier' => 'engineer', 
-                 'billing_period' => 'monthly',
-                 'price' => config('subscription.plans.pro_engineer.monthly_price'),
-             ],
-             config('subscription.stripe_prices.pro_engineer_yearly') => [
-                 'plan' => 'pro', 
-                 'tier' => 'engineer', 
-                 'billing_period' => 'yearly',
-                 'price' => config('subscription.plans.pro_engineer.yearly_price'),
-             ],
-         ];
+        return new Response('Webhook type not handled', 400);
+    }
 
-         if ($priceId && isset($priceMapping[$priceId])) {
-             $mapping = $priceMapping[$priceId];
-             $user->update([
-                 'subscription_plan' => $mapping['plan'],
-                 'subscription_tier' => $mapping['tier'],
-                 'billing_period' => $mapping['billing_period'],
-                 'subscription_price' => $mapping['price'],
-                 'subscription_currency' => 'USD',
-                 'plan_started_at' => $status === 'active' ? now() : $user->plan_started_at,
-             ]);
-         } elseif ($status === 'canceled' || $status === 'inactive') {
-             // Downgrade to free plan
-             $user->update([
-                 'subscription_plan' => 'free',
-                 'subscription_tier' => 'basic',
-                 'billing_period' => 'monthly',
-                 'subscription_price' => null,
-                 'subscription_currency' => 'USD',
-                 'plan_started_at' => null,
-                 'monthly_pitch_count' => 0,
-                 'monthly_pitch_reset_date' => null,
-             ]);
-         }
-     }
+    /**
+     * Update the user's subscription status
+     */
+    private function updateUserSubscriptionStatus($user, $status, $priceId = null)
+    {
+        $priceMapping = [
+            config('subscription.stripe_prices.pro_artist_monthly') => [
+                'plan' => 'pro',
+                'tier' => 'artist',
+                'billing_period' => 'monthly',
+                'price' => config('subscription.plans.pro_artist.monthly_price'),
+            ],
+            config('subscription.stripe_prices.pro_artist_yearly') => [
+                'plan' => 'pro',
+                'tier' => 'artist',
+                'billing_period' => 'yearly',
+                'price' => config('subscription.plans.pro_artist.yearly_price'),
+            ],
+            config('subscription.stripe_prices.pro_engineer_monthly') => [
+                'plan' => 'pro',
+                'tier' => 'engineer',
+                'billing_period' => 'monthly',
+                'price' => config('subscription.plans.pro_engineer.monthly_price'),
+            ],
+            config('subscription.stripe_prices.pro_engineer_yearly') => [
+                'plan' => 'pro',
+                'tier' => 'engineer',
+                'billing_period' => 'yearly',
+                'price' => config('subscription.plans.pro_engineer.yearly_price'),
+            ],
+        ];
+
+        if ($priceId && isset($priceMapping[$priceId])) {
+            $mapping = $priceMapping[$priceId];
+            $user->update([
+                'subscription_plan' => $mapping['plan'],
+                'subscription_tier' => $mapping['tier'],
+                'billing_period' => $mapping['billing_period'],
+                'subscription_price' => $mapping['price'],
+                'subscription_currency' => 'USD',
+                'plan_started_at' => $status === 'active' ? now() : $user->plan_started_at,
+            ]);
+        } elseif ($status === 'canceled' || $status === 'inactive') {
+            // Downgrade to free plan
+            $user->update([
+                'subscription_plan' => 'free',
+                'subscription_tier' => 'basic',
+                'billing_period' => 'monthly',
+                'subscription_price' => null,
+                'subscription_currency' => 'USD',
+                'plan_started_at' => null,
+                'monthly_pitch_count' => 0,
+                'monthly_pitch_reset_date' => null,
+            ]);
+        }
+    }
 }

@@ -5,9 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
 
 class Transaction extends Model
 {
@@ -17,16 +14,22 @@ class Transaction extends Model
      * Transaction type constants
      */
     const TYPE_PAYMENT = 'payment';
+
     const TYPE_REFUND = 'refund';
+
     const TYPE_ADJUSTMENT = 'adjustment';
+
     const TYPE_BONUS = 'bonus';
 
     /**
      * Transaction status constants
      */
     const STATUS_PENDING = 'pending';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
@@ -88,16 +91,12 @@ class Transaction extends Model
     /**
      * Create a new transaction with automatic commission calculation
      *
-     * @param User $user
-     * @param Project $project
-     * @param float $amount
-     * @param array $additionalData
      * @return static
      */
     public static function createWithCommission(
-        User $user, 
-        Project $project, 
-        float $amount, 
+        User $user,
+        Project $project,
+        float $amount,
         array $additionalData = []
     ): self {
         $commissionRate = $user->getPlatformCommissionRate();
@@ -119,11 +118,6 @@ class Transaction extends Model
     /**
      * Create a transaction for a pitch completion
      *
-     * @param User $user
-     * @param Project $project
-     * @param Pitch $pitch
-     * @param float $amount
-     * @param array $additionalData
      * @return static
      */
     public static function createForPitch(
@@ -143,15 +137,13 @@ class Transaction extends Model
 
     /**
      * Recalculate commission based on current user subscription
-     *
-     * @return void
      */
     public function recalculateCommission(): void
     {
         $this->commission_rate = $this->user->getPlatformCommissionRate();
         $this->commission_amount = $this->amount * ($this->commission_rate / 100);
         $this->net_amount = $this->amount - $this->commission_amount;
-        
+
         // Update subscription context
         $this->user_subscription_plan = $this->user->subscription_plan;
         $this->user_subscription_tier = $this->user->subscription_tier;
@@ -159,9 +151,6 @@ class Transaction extends Model
 
     /**
      * Mark transaction as completed
-     *
-     * @param string|null $externalTransactionId
-     * @return void
      */
     public function markAsCompleted(?string $externalTransactionId = null): void
     {
@@ -174,9 +163,6 @@ class Transaction extends Model
 
     /**
      * Mark transaction as failed
-     *
-     * @param string|null $reason
-     * @return void
      */
     public function markAsFailed(?string $reason = null): void
     {
@@ -193,20 +179,16 @@ class Transaction extends Model
 
     /**
      * Get commission savings compared to a higher rate
-     *
-     * @param float $comparisonRate
-     * @return float
      */
     public function getCommissionSavings(float $comparisonRate): float
     {
         $wouldBeCommission = $this->amount * ($comparisonRate / 100);
+
         return $wouldBeCommission - $this->commission_amount;
     }
 
     /**
      * Check if this is a payment transaction
-     *
-     * @return bool
      */
     public function isPayment(): bool
     {
@@ -215,8 +197,6 @@ class Transaction extends Model
 
     /**
      * Check if this is a refund transaction
-     *
-     * @return bool
      */
     public function isRefund(): bool
     {
@@ -225,8 +205,6 @@ class Transaction extends Model
 
     /**
      * Check if transaction is completed
-     *
-     * @return bool
      */
     public function isCompleted(): bool
     {
@@ -235,32 +213,26 @@ class Transaction extends Model
 
     /**
      * Get formatted amount
-     *
-     * @return string
      */
     public function getFormattedAmountAttribute(): string
     {
-        return '$' . number_format($this->amount, 2);
+        return '$'.number_format($this->amount, 2);
     }
 
     /**
      * Get formatted commission amount
-     *
-     * @return string
      */
     public function getFormattedCommissionAttribute(): string
     {
-        return '$' . number_format($this->commission_amount, 2);
+        return '$'.number_format($this->commission_amount, 2);
     }
 
     /**
      * Get formatted net amount
-     *
-     * @return string
      */
     public function getFormattedNetAmountAttribute(): string
     {
-        return '$' . number_format($this->net_amount, 2);
+        return '$'.number_format($this->net_amount, 2);
     }
 
     // ========== SCOPES ==========
@@ -287,11 +259,11 @@ class Transaction extends Model
     public function scopeForPlan($query, string $plan, ?string $tier = null)
     {
         $query->where('user_subscription_plan', $plan);
-        
+
         if ($tier) {
             $query->where('user_subscription_tier', $tier);
         }
-        
+
         return $query;
     }
 

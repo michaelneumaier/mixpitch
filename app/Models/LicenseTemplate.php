@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\User;
 
 class LicenseTemplate extends Model
 {
@@ -16,18 +15,26 @@ class LicenseTemplate extends Model
      * License categories
      */
     const CATEGORY_MUSIC = 'music';
+
     const CATEGORY_SOUND_DESIGN = 'sound-design';
+
     const CATEGORY_MIXING = 'mixing';
+
     const CATEGORY_MASTERING = 'mastering';
+
     const CATEGORY_GENERAL = 'general';
 
     /**
      * Use cases for license templates
      */
     const USE_CASE_COLLABORATION = 'collaboration';
+
     const USE_CASE_SYNC = 'sync';
+
     const USE_CASE_SAMPLES = 'samples';
+
     const USE_CASE_REMIX = 'remix';
+
     const USE_CASE_COMMERCIAL = 'commercial';
 
     protected $fillable = [
@@ -146,12 +153,12 @@ class LicenseTemplate extends Model
             'modification_allowed' => true,
             'distribution_allowed' => false,
             'sublicensing_allowed' => false,
-            
+
             // Attribution & Credit
             'attribution_required' => false,
             'credit_placement' => null, // 'liner_notes', 'track_title', 'description'
             'credit_format' => null,
-            
+
             // Usage Restrictions
             'standalone_distribution_prohibited' => true,
             'sample_library_creation_prohibited' => true,
@@ -159,17 +166,17 @@ class LicenseTemplate extends Model
             'sync_licensing_allowed' => false,
             'broadcast_allowed' => false,
             'streaming_allowed' => true,
-            
+
             // Territory & Duration
             'territory' => 'worldwide',
             'duration' => 'perpetual', // 'limited', 'perpetual'
             'expiration_date' => null,
-            
+
             // Revenue Sharing
             'revenue_sharing_enabled' => false,
             'revenue_percentage' => 0,
             'minimum_payout' => 0,
-            
+
             // Platform Specific
             'platform_exclusive' => false,
             'white_label_allowed' => false,
@@ -237,7 +244,7 @@ class LicenseTemplate extends Model
     public static function createDefaultTemplatesForUser(User $user): void
     {
         $presets = self::getDefaultPresets();
-        
+
         foreach ($presets as $index => $preset) {
             self::create(array_merge($preset, [
                 'user_id' => $user->id,
@@ -282,13 +289,14 @@ class LicenseTemplate extends Model
     public static function canUserCreate(User $user): bool
     {
         $maxTemplates = $user->getMaxLicenseTemplates();
-        
+
         // Unlimited for Pro users
         if ($maxTemplates === null) {
             return true;
         }
-        
+
         $currentCount = $user->licenseTemplates()->count();
+
         return $currentCount < $maxTemplates;
     }
 
@@ -301,7 +309,7 @@ class LicenseTemplate extends Model
     {
         // Remove default status from other templates
         $this->user->licenseTemplates()->update(['is_default' => false]);
-        
+
         // Set this as default
         $this->update(['is_default' => true]);
     }
@@ -314,7 +322,7 @@ class LicenseTemplate extends Model
         $stats = $this->usage_stats ?? ['times_used' => 0];
         $stats['times_used'] = ($stats['times_used'] ?? 0) + 1;
         $stats['last_used'] = now()->toISOString();
-        
+
         $this->update(['usage_stats' => $stats]);
     }
 
@@ -332,6 +340,7 @@ class LicenseTemplate extends Model
     public function getCategoryNameAttribute(): string
     {
         $categories = self::getCategories();
+
         return $categories[$this->category] ?? 'Unknown';
     }
 
@@ -341,6 +350,7 @@ class LicenseTemplate extends Model
     public function getUseCaseNameAttribute(): string
     {
         $useCases = self::getUseCases();
+
         return $useCases[$this->use_case] ?? 'General';
     }
 
@@ -367,10 +377,10 @@ class LicenseTemplate extends Model
     {
         // Increment fork count
         $this->increment('fork_count');
-        
+
         return self::create(array_merge([
             'user_id' => $user->id,
-            'name' => $this->name . ' (Fork)',
+            'name' => $this->name.' (Fork)',
             'content' => $this->content,
             'description' => $this->description,
             'category' => $this->category,
@@ -492,10 +502,10 @@ class LicenseTemplate extends Model
     /**
      * Generate license content with project context
      */
-    public function generateLicenseContent(Project $project = null): string
+    public function generateLicenseContent(?Project $project = null): string
     {
         $content = $this->content;
-        
+
         if ($project) {
             // Replace placeholders with project-specific information
             $replacements = [
@@ -504,10 +514,10 @@ class LicenseTemplate extends Model
                 '[DATE]' => now()->format('F j, Y'),
                 '[PROJECT_TYPE]' => $project->project_type,
             ];
-            
+
             $content = str_replace(array_keys($replacements), array_values($replacements), $content);
         }
-        
+
         return $content;
     }
 
@@ -575,8 +585,8 @@ class LicenseTemplate extends Model
     public function scopeMarketplace($query)
     {
         return $query->where('is_public', true)
-                     ->where('approval_status', 'approved')
-                     ->where('is_active', true);
+            ->where('approval_status', 'approved')
+            ->where('is_active', true);
     }
 
     /**
@@ -626,9 +636,9 @@ class LicenseTemplate extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('name', 'LIKE', "%{$search}%")
-              ->orWhere('marketplace_title', 'LIKE', "%{$search}%")
-              ->orWhere('description', 'LIKE', "%{$search}%")
-              ->orWhere('marketplace_description', 'LIKE', "%{$search}%");
+                ->orWhere('marketplace_title', 'LIKE', "%{$search}%")
+                ->orWhere('description', 'LIKE', "%{$search}%")
+                ->orWhere('marketplace_description', 'LIKE', "%{$search}%");
         });
     }
 }

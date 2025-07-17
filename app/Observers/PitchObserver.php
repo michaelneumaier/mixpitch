@@ -3,7 +3,6 @@
 namespace App\Observers;
 
 use App\Models\Pitch;
-use App\Observers\ContestResultObserver;
 use Illuminate\Support\Facades\Log;
 
 class PitchObserver
@@ -31,9 +30,9 @@ class PitchObserver
             Log::info('Pitch status changed, syncing project status', [
                 'pitch_id' => $pitch->id,
                 'old_status' => $pitch->getOriginal('status'),
-                'new_status' => $pitch->status
+                'new_status' => $pitch->status,
             ]);
-            
+
             $this->syncProjectStatus($pitch);
         }
     }
@@ -55,7 +54,7 @@ class PitchObserver
     {
         // When a pitch is deleted, update the project status
         $this->syncProjectStatus($pitch);
-        
+
         // Additional cleanup for contest results (as backup to deleting event)
         ContestResultObserver::cleanupDeletedPitch($pitch->id);
     }
@@ -76,11 +75,11 @@ class PitchObserver
     {
         // When a pitch is force deleted, update the project status
         $this->syncProjectStatus($pitch);
-        
+
         // Ensure contest cleanup happens even on force delete
         ContestResultObserver::cleanupDeletedPitch($pitch->id);
     }
-    
+
     /**
      * Handle contest-specific cleanup when a pitch is being deleted
      */
@@ -92,24 +91,24 @@ class PitchObserver
                 'pitch_id' => $pitch->id,
                 'project_id' => $pitch->project_id,
                 'status' => $pitch->status,
-                'rank' => $pitch->rank
+                'rank' => $pitch->rank,
             ]);
-            
+
             // The actual cleanup will happen in the deleted/forceDeleted events
             // This is just for logging and any pre-deletion validation
-            
+
             // Check if this pitch is in a finalized contest
             if ($pitch->project && $pitch->project->isContest() && $pitch->project->isJudgingFinalized()) {
                 Log::warning('PitchObserver: Deleting pitch from finalized contest', [
                     'pitch_id' => $pitch->id,
                     'project_id' => $pitch->project_id,
                     'rank' => $pitch->rank,
-                    'finalized_at' => $pitch->project->judging_finalized_at
+                    'finalized_at' => $pitch->project->judging_finalized_at,
                 ]);
             }
         }
     }
-    
+
     /**
      * Synchronize the project status with its pitches using ProjectManagementService
      */
@@ -118,11 +117,11 @@ class PitchObserver
         try {
             // Get the project associated with this pitch
             $project = $pitch->project;
-            
+
             if ($project) {
                 // Use ProjectManagementService to handle status updates
                 $projectManagementService = app(\App\Services\Project\ProjectManagementService::class);
-                
+
                 // For client management projects, if a pitch is completed, complete the project
                 if ($project->isClientManagement() && $pitch->status === \App\Models\Pitch::STATUS_COMPLETED) {
                     $projectManagementService->completeProject($project);
@@ -131,7 +130,7 @@ class PitchObserver
                         'triggered_by_pitch_id' => $pitch->id,
                     ]);
                 }
-                
+
                 // For standard projects, let the PitchCompletionService handle project completion
                 // For other status changes, we don't need to sync project status automatically
                 // as the services handle this appropriately
@@ -140,7 +139,7 @@ class PitchObserver
             Log::error('Failed to sync project status after pitch change', [
                 'pitch_id' => $pitch->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }

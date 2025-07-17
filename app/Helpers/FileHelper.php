@@ -7,8 +7,8 @@ class FileHelper
     /**
      * Format bytes to human readable format
      *
-     * @param int $bytes
-     * @param int $precision
+     * @param  int  $bytes
+     * @param  int  $precision
      * @return string
      */
     public static function formatFileSize($bytes, $precision = 2)
@@ -23,6 +23,6 @@ class FileHelper
         $pow = min($pow, count($units) - 1);
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
-} 
+}

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->float('timestamp')->comment('Timestamp in seconds where the comment is placed on the audio file');
             $table->boolean('resolved')->default(false)->comment('Whether the comment has been addressed/resolved');
             $table->timestamps();
-            
+
             // Index for faster queries
             $table->index(['pitch_file_id', 'timestamp']);
         });

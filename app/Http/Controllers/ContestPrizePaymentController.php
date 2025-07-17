@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
 use App\Models\ContestPrize;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\InvoiceService;
 use App\Services\PayoutProcessingService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
-use App\Models\User;
 
 class ContestPrizePaymentController extends Controller
 {
     protected InvoiceService $invoiceService;
+
     protected PayoutProcessingService $payoutService;
 
     public function __construct(InvoiceService $invoiceService, PayoutProcessingService $payoutService)
@@ -35,11 +35,11 @@ class ContestPrizePaymentController extends Controller
         $this->authorize('manageProject', $project);
 
         // Validate this is a finalized contest with prizes
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             abort(404, 'Not a contest project');
         }
 
-        if (!$project->isJudgingFinalized()) {
+        if (! $project->isJudgingFinalized()) {
             abort(403, 'Contest judging must be finalized before processing prize payments');
         }
 
@@ -70,16 +70,16 @@ class ContestPrizePaymentController extends Controller
         $setupIntent = null;
 
         // Create setup intent for new payment methods (only if we have valid winners to pay)
-        if (!$prizesPaid && !empty($winners)) {
+        if (! $prizesPaid && ! empty($winners)) {
             // Ensure user has a Stripe customer ID
-            if (!$user->stripe_id) {
+            if (! $user->stripe_id) {
                 $user->createAsStripeCustomer();
             }
-            
+
             // Now get payment methods after ensuring Stripe customer exists
             $paymentMethods = $user->paymentMethods();
             $defaultPaymentMethod = $user->defaultPaymentMethod();
-            
+
             // Create setup intent for adding new payment methods
             $setupIntent = $user->createSetupIntent();
         } elseif ($user->stripe_id) {
@@ -118,7 +118,7 @@ class ContestPrizePaymentController extends Controller
         ]);
 
         // Validate contest state
-        if (!$project->isContest() || !$project->isJudgingFinalized()) {
+        if (! $project->isContest() || ! $project->isJudgingFinalized()) {
             return redirect()->back()
                 ->withErrors(['error' => 'Contest must be finalized before processing payments']);
         }
@@ -158,8 +158,8 @@ class ContestPrizePaymentController extends Controller
                     $paymentMethodId
                 );
 
-                if (!$paymentResult['success']) {
-                    throw new \Exception('Payment processing failed: ' . ($paymentResult['error'] ?? 'Unknown error'));
+                if (! $paymentResult['success']) {
+                    throw new \Exception('Payment processing failed: '.($paymentResult['error'] ?? 'Unknown error'));
                 }
 
                 // Schedule payouts for all winners
@@ -191,12 +191,12 @@ class ContestPrizePaymentController extends Controller
                 ]);
 
                 $holdService = app(\App\Services\PayoutHoldService::class);
-            $holdInfo = $holdService->getHoldPeriodInfo('contest');
-            $successMessage = 'Contest prizes have been paid successfully! Payouts will be processed after ' . $holdInfo['description'] . '.';
-                
+                $holdInfo = $holdService->getHoldPeriodInfo('contest');
+                $successMessage = 'Contest prizes have been paid successfully! Payouts will be processed after '.$holdInfo['description'].'.';
+
                 // Add note about partial payment if some winners were invalid
-                if (!empty($invalidWinners)) {
-                    $successMessage .= ' Note: Some winners still need to set up their Stripe Connect accounts: ' . implode(', ', $invalidWinners);
+                if (! empty($invalidWinners)) {
+                    $successMessage .= ' Note: Some winners still need to set up their Stripe Connect accounts: '.implode(', ', $invalidWinners);
                 }
 
                 return redirect()->route('contest.prizes.receipt', $project)
@@ -211,7 +211,7 @@ class ContestPrizePaymentController extends Controller
             ]);
 
             return redirect()->back()
-                ->withErrors(['error' => 'Payment processing failed: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Payment processing failed: '.$e->getMessage()]);
         }
     }
 
@@ -224,7 +224,7 @@ class ContestPrizePaymentController extends Controller
         $this->authorize('manageProject', $project);
 
         // Validate contest state
-        if (!$project->isContest() || !$project->isJudgingFinalized()) {
+        if (! $project->isContest() || ! $project->isJudgingFinalized()) {
             abort(403, 'Contest must be finalized to view receipt');
         }
 
@@ -233,7 +233,7 @@ class ContestPrizePaymentController extends Controller
 
         // Get the invoice if prizes were paid
         $invoice = null;
-        if (!empty($winners)) {
+        if (! empty($winners)) {
             $firstWinner = $winners[0];
             if ($firstWinner['pitch']->final_invoice_id) {
                 $invoice = $this->invoiceService->getInvoice($firstWinner['pitch']->final_invoice_id);
@@ -254,7 +254,7 @@ class ContestPrizePaymentController extends Controller
     protected function getContestWinners(Project $project): array
     {
         $contestResult = $project->contestResult;
-        if (!$contestResult) {
+        if (! $contestResult) {
             return [];
         }
 
@@ -322,7 +322,7 @@ class ContestPrizePaymentController extends Controller
                 $validWinners[] = $winner;
             } else {
                 $invalidWinners[] = $user->name ?? $user->email;
-                
+
                 // Send notification to winner about setting up Stripe Connect
                 $this->notifyWinnerToSetupStripeConnect($user, $winner['prize']);
             }
@@ -347,7 +347,7 @@ class ContestPrizePaymentController extends Controller
             'prize_placement' => $prize->placement,
             'prize_amount' => $prize->cash_amount,
         ]);
-        
+
         // TODO: Send email notification to winner
         // Mail::to($winner)->send(new StripeConnectSetupRequired($prize));
     }
@@ -368,7 +368,7 @@ class ContestPrizePaymentController extends Controller
         ]);
 
         // Validate contest state
-        if (!$project->isContest() || !$project->isJudgingFinalized()) {
+        if (! $project->isContest() || ! $project->isJudgingFinalized()) {
             return redirect()->back()
                 ->withErrors(['error' => 'Contest must be finalized before processing payments']);
         }
@@ -384,7 +384,7 @@ class ContestPrizePaymentController extends Controller
             }
         }
 
-        if (!$targetWinner) {
+        if (! $targetWinner) {
             return redirect()->back()
                 ->withErrors(['error' => 'Prize not found or invalid.']);
         }
@@ -396,7 +396,7 @@ class ContestPrizePaymentController extends Controller
         }
 
         // Validate the winner has a valid Stripe Connect account
-        if (!$targetWinner['user']->stripe_account_id || !$targetWinner['user']->hasValidStripeConnectAccount()) {
+        if (! $targetWinner['user']->stripe_account_id || ! $targetWinner['user']->hasValidStripeConnectAccount()) {
             return redirect()->back()
                 ->withErrors(['error' => "Cannot process payment: {$targetWinner['user']->name} needs to complete their Stripe Connect account setup."]);
         }
@@ -419,8 +419,8 @@ class ContestPrizePaymentController extends Controller
                     $paymentMethodId
                 );
 
-                if (!$paymentResult['success']) {
-                    throw new \Exception('Payment processing failed: ' . ($paymentResult['error'] ?? 'Unknown error'));
+                if (! $paymentResult['success']) {
+                    throw new \Exception('Payment processing failed: '.($paymentResult['error'] ?? 'Unknown error'));
                 }
 
                 // Schedule payout for this winner
@@ -447,9 +447,9 @@ class ContestPrizePaymentController extends Controller
                     'placement' => $targetWinner['prize']->placement,
                 ]);
 
-                $successMessage = "Prize payment of $" . number_format($prizeAmount, 2) . " for " . 
-                                $targetWinner['prize']->getPlacementDisplayName() . " place has been processed successfully! " .
-                                "{$targetWinner['user']->name} will receive their payout after " . app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('contest')['description'] . ".";
+                $successMessage = 'Prize payment of $'.number_format($prizeAmount, 2).' for '.
+                                $targetWinner['prize']->getPlacementDisplayName().' place has been processed successfully! '.
+                                "{$targetWinner['user']->name} will receive their payout after ".app(\App\Services\PayoutHoldService::class)->getHoldPeriodInfo('contest')['description'].'.';
 
                 return redirect()->route('contest.prizes.overview', $project)
                     ->with('success', $successMessage);
@@ -464,11 +464,11 @@ class ContestPrizePaymentController extends Controller
             ]);
 
             return redirect()->back()
-                ->withErrors(['error' => 'Payment processing failed: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Payment processing failed: '.$e->getMessage()]);
         }
     }
 
     /**
      * Process contest prize payments (bulk - keeping for backward compatibility)
      */
-} 
+}

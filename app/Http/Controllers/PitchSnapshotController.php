@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Project;
 use App\Models\Pitch;
 use App\Models\PitchSnapshot;
+use App\Models\Project;
 use App\Services\PitchWorkflowService;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PitchSnapshotController extends Controller
 {
@@ -38,24 +37,26 @@ class PitchSnapshotController extends Controller
 
         try {
             $this->authorize('approveSubmission', $pitch);
-            
+
             $this->pitchWorkflowService->approveSubmittedPitch($pitch, $snapshot->id, Auth::user());
-            
+
             // Redirect back to the manage project page
             return redirect()->route('projects.manage', $project)
                 ->with('success', 'Pitch has been approved successfully!');
-                
+
         } catch (AuthorizationException $e) {
             Log::warning('Authorization failed in PitchSnapshotController@approve', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
+
             return redirect()->back()->with('error', 'You are not authorized to approve this pitch.');
         } catch (\Exception $e) {
-            Log::error('Error approving pitch snapshot: ' . $e->getMessage(), [
+            Log::error('Error approving pitch snapshot: '.$e->getMessage(), [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'snapshot_id' => $snapshot->id,
                 'user_id' => Auth::id(),
-                'exception' => $e
+                'exception' => $e,
             ]);
+
             return redirect()->back()->with('error', 'Failed to approve pitch: An unexpected error occurred.');
         }
     }
@@ -68,7 +69,7 @@ class PitchSnapshotController extends Controller
         // Verify relationships
         if ($pitch->project_id !== $project->id || $snapshot->pitch_id !== $pitch->id) {
             Log::warning('Model relationship mismatch in PitchSnapshotController@deny', [
-                'project_id' => $project->id, 'pitch_id' => $pitch->id, 'snapshot_id' => $snapshot->id
+                'project_id' => $project->id, 'pitch_id' => $pitch->id, 'snapshot_id' => $snapshot->id,
             ]);
             abort(404, 'Resource relationship mismatch.');
         }
@@ -82,40 +83,43 @@ class PitchSnapshotController extends Controller
                 'route' => optional($request->route())->getName(), // Use optional() for safety
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
-                'snapshot_id' => $snapshot->id
+                'snapshot_id' => $snapshot->id,
             ]);
-            
+
             $this->authorize('denySubmission', $pitch);
-            
+
             $validated = $request->validate([
-                'reason' => 'required|string|min:10'
+                'reason' => 'required|string|min:10',
             ]);
-            
+
             $this->pitchWorkflowService->denySubmittedPitch(
-                $pitch, 
-                $snapshot->id, 
-                Auth::user(), 
+                $pitch,
+                $snapshot->id,
+                Auth::user(),
                 $validated['reason']
             );
-            
+
             // Redirect back to the manage project page
             return redirect()->route('projects.manage', $project)
                 ->with('success', 'Pitch has been denied.');
-                
+
         } catch (AuthorizationException $e) {
             Log::warning('Authorization failed in PitchSnapshotController@deny', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
+
             return redirect()->back()->with('error', 'You are not authorized to deny this pitch.');
         } catch (\Illuminate\Validation\ValidationException $e) {
-             Log::warning('Validation failed in PitchSnapshotController@deny', ['errors' => $e->errors(), 'request_data' => $request->all()]);
-             return redirect()->back()->withErrors($e->errors())->withInput();
+            Log::warning('Validation failed in PitchSnapshotController@deny', ['errors' => $e->errors(), 'request_data' => $request->all()]);
+
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Error denying pitch snapshot: ' . $e->getMessage(), [
+            Log::error('Error denying pitch snapshot: '.$e->getMessage(), [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'snapshot_id' => $snapshot->id,
                 'user_id' => Auth::id(),
-                'exception' => $e
+                'exception' => $e,
             ]);
+
             return redirect()->back()->with('error', 'Failed to deny pitch: An unexpected error occurred.');
         }
     }
@@ -127,8 +131,8 @@ class PitchSnapshotController extends Controller
     {
         // Verify relationships
         if ($pitch->project_id !== $project->id || $snapshot->pitch_id !== $pitch->id) {
-             Log::warning('Model relationship mismatch in PitchSnapshotController@requestChanges', [
-                'project_id' => $project->id, 'pitch_id' => $pitch->id, 'snapshot_id' => $snapshot->id
+            Log::warning('Model relationship mismatch in PitchSnapshotController@requestChanges', [
+                'project_id' => $project->id, 'pitch_id' => $pitch->id, 'snapshot_id' => $snapshot->id,
             ]);
             abort(404, 'Resource relationship mismatch.');
         }
@@ -142,41 +146,44 @@ class PitchSnapshotController extends Controller
                 'route' => optional($request->route())->getName(), // Use optional() for safety
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
-                'snapshot_id' => $snapshot->id
+                'snapshot_id' => $snapshot->id,
             ]);
-            
+
             $this->authorize('requestRevisions', $pitch);
-            
+
             $validated = $request->validate([
-                'reason' => 'required|string|min:10'
+                'reason' => 'required|string|min:10',
             ]);
-            
+
             $this->pitchWorkflowService->requestPitchRevisions(
-                $pitch, 
-                $snapshot->id, 
-                Auth::user(), 
+                $pitch,
+                $snapshot->id,
+                Auth::user(),
                 $validated['reason']
             );
-            
+
             // Redirect back to the manage project page
             return redirect()->route('projects.manage', $project)
                 ->with('success', 'Revisions have been requested.');
 
         } catch (AuthorizationException $e) {
-             Log::warning('Authorization failed in PitchSnapshotController@requestChanges', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
+            Log::warning('Authorization failed in PitchSnapshotController@requestChanges', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
+
             return redirect()->back()->with('error', 'You are not authorized to request revisions for this pitch.');
         } catch (\Illuminate\Validation\ValidationException $e) {
-             Log::warning('Validation failed in PitchSnapshotController@requestChanges', ['errors' => $e->errors(), 'request_data' => $request->all()]);
-             return redirect()->back()->withErrors($e->errors())->withInput();
+            Log::warning('Validation failed in PitchSnapshotController@requestChanges', ['errors' => $e->errors(), 'request_data' => $request->all()]);
+
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Error requesting revisions for pitch snapshot: ' . $e->getMessage(), [
+            Log::error('Error requesting revisions for pitch snapshot: '.$e->getMessage(), [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'snapshot_id' => $snapshot->id,
                 'user_id' => Auth::id(),
-                'exception' => $e
+                'exception' => $e,
             ]);
+
             return redirect()->back()->with('error', 'Failed to request revisions: An unexpected error occurred.');
         }
     }
-} 
+}

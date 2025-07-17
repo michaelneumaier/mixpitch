@@ -6,13 +6,13 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use App\Models\User;
 
 class SubscriptionUpgraded extends Notification implements ShouldQueue
 {
     use Queueable;
 
     protected $plan;
+
     protected $tier;
 
     /**
@@ -39,15 +39,15 @@ class SubscriptionUpgraded extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $planName = ucfirst($this->plan) . ' ' . ucfirst($this->tier);
-        
+        $planName = ucfirst($this->plan).' '.ucfirst($this->tier);
+
         return (new MailMessage)
-            ->subject('Welcome to MixPitch ' . $planName . '! 🎉')
-            ->line('Congratulations! Your subscription has been upgraded to ' . $planName . '.')
+            ->subject('Welcome to MixPitch '.$planName.'! 🎉')
+            ->line('Congratulations! Your subscription has been upgraded to '.$planName.'.')
             ->line('You now have access to all the powerful features that will help take your music collaboration to the next level.')
             ->line('**Your new benefits include:**')
             ->line('• Unlimited projects and pitches')
-            ->line('• 500MB storage per project')
+            ->line('• 10GB total storage space')
             ->line('• Priority support')
             ->line($this->tier === 'artist' ? '• Custom portfolio layouts' : '• Advanced analytics')
             ->action('Explore Your New Features', route('dashboard'))
@@ -64,7 +64,7 @@ class SubscriptionUpgraded extends Notification implements ShouldQueue
         return [
             'plan' => $this->plan,
             'tier' => $this->tier,
-            'message' => 'Upgraded to ' . ucfirst($this->plan) . ' ' . ucfirst($this->tier)
+            'message' => 'Upgraded to '.ucfirst($this->plan).' '.ucfirst($this->tier),
         ];
     }
 }

@@ -2,13 +2,11 @@
 
 namespace App\Filament\Plugins\Billing\Pages;
 
-use App\Filament\Plugins\Billing\Widgets\RevenueOverviewWidget;
 use App\Filament\Plugins\Billing\Widgets\RecentTransactionsWidget;
-use App\Filament\Plugins\Billing\Widgets\UserBillingStatusWidget;
+use App\Filament\Plugins\Billing\Widgets\RevenueOverviewWidget;
 use App\Filament\Plugins\Billing\Widgets\TopCustomersWidget;
+use App\Filament\Plugins\Billing\Widgets\UserBillingStatusWidget;
 use Filament\Pages\Page;
-use Filament\Support\Exceptions\Halt;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 
 class BillingDashboard extends Page
@@ -26,7 +24,7 @@ class BillingDashboard extends Page
     protected static ?int $navigationSort = 10;
 
     protected static ?string $navigationGroup = 'Administration';
-    
+
     /**
      * Only show this page to users with billing administration permissions
      */
@@ -34,7 +32,7 @@ class BillingDashboard extends Page
     {
         return Auth::user()->can('manage_billing') || Auth::user()->hasRole('admin');
     }
-    
+
     // Define the widgets that will be shown
     protected function getHeaderWidgets(): array
     {
@@ -58,4 +56,4 @@ class BillingDashboard extends Page
             'Billing Administration' => '#',
         ];
     }
-} 
+}

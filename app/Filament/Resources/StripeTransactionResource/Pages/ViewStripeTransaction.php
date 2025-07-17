@@ -16,4 +16,4 @@ class ViewStripeTransaction extends ViewRecord
             Actions\EditAction::make(),
         ];
     }
-} 
+}

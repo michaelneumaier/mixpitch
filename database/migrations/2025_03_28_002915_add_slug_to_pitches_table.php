@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -13,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         // Check if the slug column already exists
-        if (!Schema::hasColumn('pitches', 'slug')) {
+        if (! Schema::hasColumn('pitches', 'slug')) {
             Schema::table('pitches', function (Blueprint $table) {
                 $table->string('slug')->nullable()->after('id');
             });
         }
-        
+
         // Add the unique constraint - Laravel will handle checking if it exists
         // We'll use a try-catch to handle cases where the index might already exist
         try {
@@ -45,7 +44,7 @@ return new class extends Migration
             } catch (\Exception $e) {
                 // Index might not exist, which is fine
             }
-            
+
             // Only drop the column if it exists
             if (Schema::hasColumn('pitches', 'slug')) {
                 $table->dropColumn('slug');

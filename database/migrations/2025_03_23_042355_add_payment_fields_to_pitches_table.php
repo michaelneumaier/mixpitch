@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -30,7 +30,7 @@ return new class extends Migration
             'payment_status',
             'final_invoice_id',
             'payment_amount',
-            'payment_completed_at'
+            'payment_completed_at',
         ];
         $connection = Schema::getConnection()->getName();
 

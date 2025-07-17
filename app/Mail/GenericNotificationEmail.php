@@ -17,12 +17,17 @@ class GenericNotificationEmail extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public User $user;
+
     public string $notificationType;
+
     public array $notificationData;
+
     public ?int $originalNotificationId;
 
     public string $subjectLine = 'You have a new notification';
+
     public string $description = 'You have received a new notification.';
+
     public ?string $actionUrl = null;
 
     /**
@@ -67,9 +72,9 @@ class GenericNotificationEmail extends Mailable implements ShouldQueue
             Log::warning('Could not find original notification for email generation.', ['original_id' => $this->originalNotificationId]);
             $this->generateFallbackContent();
         }
-        
+
         // Ensure action URL is absolute
-        if ($this->actionUrl && !filter_var($this->actionUrl, FILTER_VALIDATE_URL)) {
+        if ($this->actionUrl && ! filter_var($this->actionUrl, FILTER_VALIDATE_URL)) {
             try {
                 $this->actionUrl = url($this->actionUrl);
             } catch (\Exception $e) {
@@ -85,7 +90,7 @@ class GenericNotificationEmail extends Mailable implements ShouldQueue
     protected function generateFallbackContent(): void
     {
         $this->subjectLine = 'You have a new notification';
-        $this->description = 'You received a notification of type: ' . $this->notificationType . '. Please log in to view details.';
+        $this->description = 'You received a notification of type: '.$this->notificationType.'. Please log in to view details.';
         $this->actionUrl = route('dashboard'); // Default action URL
     }
 
@@ -95,7 +100,7 @@ class GenericNotificationEmail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: config('app.name') . ': ' . $this->subjectLine,
+            subject: config('app.name').': '.$this->subjectLine,
         );
     }
 
@@ -107,7 +112,7 @@ class GenericNotificationEmail extends Mailable implements ShouldQueue
         return new Content(
             markdown: 'emails.notifications.generic', // Use the specified markdown view
             with: [
-                'greeting' => 'Hello ' . $this->user->name . ',',
+                'greeting' => 'Hello '.$this->user->name.',',
                 'description' => $this->description,
                 'actionText' => 'View Details', // Text for the button
                 'actionUrl' => $this->actionUrl, // URL for the button

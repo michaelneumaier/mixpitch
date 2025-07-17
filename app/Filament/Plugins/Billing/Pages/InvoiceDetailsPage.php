@@ -4,8 +4,6 @@ namespace App\Filament\Plugins\Billing\Pages;
 
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Contracts\View\View;
-use App\Filament\Plugins\Billing\Pages\BillingDashboard;
 
 class InvoiceDetailsPage extends Page
 {
@@ -21,9 +19,13 @@ class InvoiceDetailsPage extends Page
     protected static bool $shouldRegisterNavigation = false;
 
     public string $invoice;
+
     public $invoiceData = null;
+
     public $stripeInvoice = null;
+
     public $customer = null;
+
     public $paymentMethod = null;
 
     public function mount(string $invoice): void
@@ -35,35 +37,36 @@ class InvoiceDetailsPage extends Page
     public function loadInvoice(): void
     {
         $user = Auth::user();
-        
+
         try {
             // Retrieve the invoice from Cashier
             $this->invoiceData = $user->findInvoice($this->invoice);
-            
-            if (!$this->invoiceData) {
+
+            if (! $this->invoiceData) {
                 $this->redirect(BillingDashboard::getUrl());
+
                 return;
             }
-            
+
             // Fetch the raw invoice data from Stripe for accurate totals
             $stripe = new \Stripe\StripeClient(config('cashier.secret'));
             $this->stripeInvoice = $stripe->invoices->retrieve($this->invoice, [
-                'expand' => ['lines.data', 'payment_intent', 'charge', 'customer']
+                'expand' => ['lines.data', 'payment_intent', 'charge', 'customer'],
             ]);
-            
+
             // Get the customer information
             if ($this->stripeInvoice->customer) {
                 $this->customer = $stripe->customers->retrieve($this->stripeInvoice->customer);
             }
-            
+
             // If invoice is paid, get payment method information
             if ($this->stripeInvoice->paid && $this->stripeInvoice->payment_intent) {
-                $paymentIntentId = is_string($this->stripeInvoice->payment_intent) 
-                    ? $this->stripeInvoice->payment_intent 
+                $paymentIntentId = is_string($this->stripeInvoice->payment_intent)
+                    ? $this->stripeInvoice->payment_intent
                     : $this->stripeInvoice->payment_intent->id;
-                    
+
                 $paymentIntent = $stripe->paymentIntents->retrieve($paymentIntentId);
-                
+
                 if (isset($paymentIntent->payment_method)) {
                     $this->paymentMethod = $stripe->paymentMethods->retrieve($paymentIntent->payment_method);
                 }
@@ -80,4 +83,4 @@ class InvoiceDetailsPage extends Page
             'Invoice Details' => '#',
         ];
     }
-} 
+}

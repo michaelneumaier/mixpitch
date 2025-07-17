@@ -4,32 +4,27 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PayoutScheduleResource\Pages;
 use App\Filament\Resources\PayoutScheduleResource\RelationManagers;
-use App\Filament\Resources\UserResource;
 use App\Models\PayoutSchedule;
-use App\Models\User;
-use App\Models\Project;
-use App\Services\PayoutProcessingService;
 use App\Services\PayoutHoldService;
+use App\Services\PayoutProcessingService;
 use App\Services\StripeConnectService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkAction;
-use Filament\Notifications\Notification;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class PayoutScheduleResource extends Resource
 {
     protected static ?string $model = PayoutSchedule::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
-    
+
     protected static ?string $navigationGroup = 'Financial';
 
     protected static ?int $navigationSort = 1;
@@ -229,10 +224,10 @@ class PayoutScheduleResource extends Resource
                     ->sortable()
                     ->searchable()
                     ->url(function (PayoutSchedule $record): ?string {
-                        if (!$record->producer) {
+                        if (! $record->producer) {
                             return null;
                         }
-                        
+
                         try {
                             return UserResource::getUrl('view', ['record' => $record->producer]);
                         } catch (\Exception $e) {
@@ -291,15 +286,13 @@ class PayoutScheduleResource extends Resource
                     ->label('Release Date')
                     ->dateTime('M j, Y g:i A')
                     ->sortable()
-                    ->color(fn (PayoutSchedule $record): string => 
-                        $record->hold_release_date->isPast() && $record->status === 'scheduled' ? 'success' : 'gray'
+                    ->color(fn (PayoutSchedule $record): string => $record->hold_release_date->isPast() && $record->status === 'scheduled' ? 'success' : 'gray'
                     ),
 
                 Tables\Columns\IconColumn::make('ready_for_release')
                     ->label('Ready')
                     ->boolean()
-                    ->state(fn (PayoutSchedule $record): bool => 
-                        $record->status === 'scheduled' && $record->hold_release_date->isPast()
+                    ->state(fn (PayoutSchedule $record): bool => $record->status === 'scheduled' && $record->hold_release_date->isPast()
                     )
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-clock')
@@ -313,9 +306,8 @@ class PayoutScheduleResource extends Resource
                     ->falseIcon('heroicon-o-shield-check')
                     ->trueColor('warning')
                     ->falseColor('success')
-                    ->tooltip(fn (PayoutSchedule $record): ?string => 
-                        $record->hold_bypassed 
-                            ? "Bypassed by admin: {$record->bypass_reason}" 
+                    ->tooltip(fn (PayoutSchedule $record): ?string => $record->hold_bypassed
+                            ? "Bypassed by admin: {$record->bypass_reason}"
                             : 'Normal hold period processing'
                     )
                     ->toggleable(),
@@ -357,24 +349,21 @@ class PayoutScheduleResource extends Resource
 
                 Tables\Filters\Filter::make('ready_for_release')
                     ->label('Ready for Release')
-                    ->query(fn (Builder $query): Builder => 
-                        $query->where('status', 'scheduled')
-                              ->where('hold_release_date', '<=', now())
+                    ->query(fn (Builder $query): Builder => $query->where('status', 'scheduled')
+                        ->where('hold_release_date', '<=', now())
                     )
                     ->toggle(),
 
                 Tables\Filters\Filter::make('hold_period')
                     ->label('In Hold Period')
-                    ->query(fn (Builder $query): Builder => 
-                        $query->where('status', 'scheduled')
-                              ->where('hold_release_date', '>', now())
+                    ->query(fn (Builder $query): Builder => $query->where('status', 'scheduled')
+                        ->where('hold_release_date', '>', now())
                     )
                     ->toggle(),
 
                 Tables\Filters\Filter::make('bypassed_holds')
                     ->label('Bypassed Holds')
-                    ->query(fn (Builder $query): Builder => 
-                        $query->where('hold_bypassed', true)
+                    ->query(fn (Builder $query): Builder => $query->where('hold_bypassed', true)
                     )
                     ->toggle(),
 
@@ -441,7 +430,7 @@ class PayoutScheduleResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                
+
                 Action::make('bypass_hold')
                     ->label('Bypass Hold Period')
                     ->icon('heroicon-o-shield-exclamation')
@@ -458,21 +447,22 @@ class PayoutScheduleResource extends Resource
                     ])
                     ->visible(function (PayoutSchedule $record): bool {
                         $holdService = app(PayoutHoldService::class);
-                        return $record->status === 'scheduled' 
-                            && !$record->hold_bypassed 
+
+                        return $record->status === 'scheduled'
+                            && ! $record->hold_bypassed
                             && $holdService->canBypassHold();
                     })
                     ->action(function (PayoutSchedule $record, array $data): void {
                         try {
                             $holdService = app(PayoutHoldService::class);
                             $holdService->bypassHoldPeriod($record, $data['reason']);
-                            
+
                             Notification::make()
                                 ->title('Hold Period Bypassed')
                                 ->success()
                                 ->body("Hold period bypassed for payout {$record->id}. Reason: {$data['reason']}")
                                 ->send();
-                                
+
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->title('Bypass Failed')
@@ -489,20 +479,19 @@ class PayoutScheduleResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Process Payout Immediately')
                     ->modalDescription('This will process the payout right now.')
-                    ->visible(fn (PayoutSchedule $record): bool => 
-                        $record->status === 'scheduled' && $record->hold_release_date->isPast()
+                    ->visible(fn (PayoutSchedule $record): bool => $record->status === 'scheduled' && $record->hold_release_date->isPast()
                     )
                     ->action(function (PayoutSchedule $record): void {
                         try {
                             $payoutService = app(PayoutProcessingService::class);
                             $payoutService->processSinglePayout($record);
-                            
+
                             Notification::make()
                                 ->title('Payout Processed Successfully')
                                 ->success()
                                 ->body("Payout of {$record->formatted_net_amount} processed for {$record->producer->name}")
                                 ->send();
-                                
+
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->title('Payout Processing Failed')
@@ -528,13 +517,13 @@ class PayoutScheduleResource extends Resource
                         try {
                             $payoutService = app(PayoutProcessingService::class);
                             $payoutService->cancelPayout($record, $data['reason']);
-                            
+
                             Notification::make()
                                 ->title('Payout Cancelled')
                                 ->success()
                                 ->body("Payout cancelled: {$data['reason']}")
                                 ->send();
-                                
+
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->title('Cancellation Failed')
@@ -548,13 +537,12 @@ class PayoutScheduleResource extends Resource
                     ->label('View in Stripe')
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->color('info')
-                    ->url(fn (PayoutSchedule $record): ?string => 
-                        $record->stripe_transfer_id 
+                    ->url(fn (PayoutSchedule $record): ?string => $record->stripe_transfer_id
                             ? "https://dashboard.stripe.com/transfers/{$record->stripe_transfer_id}"
                             : null
                     )
                     ->openUrlInNewTab()
-                    ->visible(fn (PayoutSchedule $record): bool => !empty($record->stripe_transfer_id)),
+                    ->visible(fn (PayoutSchedule $record): bool => ! empty($record->stripe_transfer_id)),
 
                 Action::make('check_stripe_status')
                     ->label('Check Status')
@@ -564,21 +552,21 @@ class PayoutScheduleResource extends Resource
                         try {
                             $stripeService = app(StripeConnectService::class);
                             $producer = $record->producer;
-                            
+
                             $status = $stripeService->getDetailedAccountStatus($producer);
-                            
+
                             $statusMessage = "Account Status: {$status['status_display']}\n";
-                            $statusMessage .= "Can Receive Payouts: " . ($status['can_receive_payouts'] ? 'Yes' : 'No') . "\n";
-                            if (!empty($status['next_steps'])) {
-                                $statusMessage .= "Next Steps:\n" . implode("\n", $status['next_steps']);
+                            $statusMessage .= 'Can Receive Payouts: '.($status['can_receive_payouts'] ? 'Yes' : 'No')."\n";
+                            if (! empty($status['next_steps'])) {
+                                $statusMessage .= "Next Steps:\n".implode("\n", $status['next_steps']);
                             }
-                            
+
                             Notification::make()
                                 ->title('Stripe Connect Status')
                                 ->info()
                                 ->body($statusMessage)
                                 ->send();
-                                
+
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->title('Status Check Failed')
@@ -601,36 +589,36 @@ class PayoutScheduleResource extends Resource
                             $processed = 0;
                             $failed = 0;
                             $errors = [];
-                            
+
                             $payoutService = app(PayoutProcessingService::class);
-                            
+
                             foreach ($records as $record) {
                                 if ($record->status !== 'scheduled') {
                                     continue;
                                 }
-                                
+
                                 try {
                                     // Bypass hold period
                                     $record->update(['hold_release_date' => now()]);
-                                    
+
                                     // Process payout
                                     $payoutService->processSinglePayout($record);
                                     $processed++;
-                                    
+
                                 } catch (\Exception $e) {
                                     $failed++;
-                                    $errors[] = "Payout {$record->id}: " . $e->getMessage();
+                                    $errors[] = "Payout {$record->id}: ".$e->getMessage();
                                 }
                             }
-                            
+
                             $message = "Processed: {$processed}, Failed: {$failed}";
-                            if (!empty($errors)) {
-                                $message .= "\n\nErrors:\n" . implode("\n", array_slice($errors, 0, 5));
+                            if (! empty($errors)) {
+                                $message .= "\n\nErrors:\n".implode("\n", array_slice($errors, 0, 5));
                                 if (count($errors) > 5) {
-                                    $message .= "\n... and " . (count($errors) - 5) . " more errors";
+                                    $message .= "\n... and ".(count($errors) - 5).' more errors';
                                 }
                             }
-                            
+
                             Notification::make()
                                 ->title('Bulk Processing Complete')
                                 ->body($message)
@@ -652,24 +640,25 @@ class PayoutScheduleResource extends Resource
                         ->action(function (Collection $records, array $data): void {
                             $cancelled = 0;
                             $skipped = 0;
-                            
+
                             $payoutService = app(PayoutProcessingService::class);
-                            
+
                             foreach ($records as $record) {
-                                if (!in_array($record->status, ['scheduled', 'processing'])) {
+                                if (! in_array($record->status, ['scheduled', 'processing'])) {
                                     $skipped++;
+
                                     continue;
                                 }
-                                
+
                                 try {
                                     $payoutService->cancelPayout($record, $data['reason']);
                                     $cancelled++;
                                 } catch (\Exception $e) {
                                     // Log error but continue
-                                    \Log::error("Failed to cancel payout {$record->id}: " . $e->getMessage());
+                                    \Log::error("Failed to cancel payout {$record->id}: ".$e->getMessage());
                                 }
                             }
-                            
+
                             Notification::make()
                                 ->title('Bulk Cancellation Complete')
                                 ->success()
@@ -722,7 +711,7 @@ class PayoutScheduleResource extends Resource
         $ready = static::getModel()::where('status', 'scheduled')
             ->where('hold_release_date', '<=', now())
             ->count();
-            
+
         return $ready > 0 ? (string) $ready : null;
     }
 
@@ -730,4 +719,4 @@ class PayoutScheduleResource extends Resource
     {
         return static::getNavigationBadge() ? 'success' : null;
     }
-} 
+}

@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RefundRequest;
 use App\Models\Pitch;
+use App\Models\RefundRequest;
 use App\Services\RefundRequestService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class RefundRequestController extends Controller
 {
@@ -87,7 +87,7 @@ class RefundRequestController extends Controller
         // Check if pitch is eligible for refund
         $eligibility = $this->refundService->checkRefundEligibility($pitch);
 
-        if (!$eligibility['eligible']) {
+        if (! $eligibility['eligible']) {
             abort(403, $eligibility['reason']);
         }
 
@@ -126,7 +126,7 @@ class RefundRequestController extends Controller
 
         } catch (\InvalidArgumentException $e) {
             throw ValidationException::withMessages([
-                'general' => [$e->getMessage()]
+                'general' => [$e->getMessage()],
             ]);
         }
     }

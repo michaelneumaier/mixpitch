@@ -29,8 +29,9 @@ class NotificationCreatedListener implements ShouldQueue // Implement ShouldQueu
         $notification = $event->notification;
         $user = $notification->user;
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('NotificationCreatedListener: User not found for notification.', ['notification_id' => $notification->id]);
+
             return;
         }
 
@@ -45,17 +46,17 @@ class NotificationCreatedListener implements ShouldQueue // Implement ShouldQueu
 
         if ($emailEnabled) {
             Log::info('Dispatching SendNotificationEmailJob for user and notification type.', [
-                'user_id' => $user->id, 
-                'notification_id' => $notification->id, 
-                'notification_type' => $notification->type
+                'user_id' => $user->id,
+                'notification_id' => $notification->id,
+                'notification_type' => $notification->type,
             ]);
             // Dispatch the job to send the email
             SendNotificationEmailJob::dispatch($user, $notification->type, $notification->data, $notification->id);
         } else {
-             Log::info('Skipping email notification due to user preference.', [
-                'user_id' => $user->id, 
-                'notification_id' => $notification->id, 
-                'notification_type' => $notification->type
+            Log::info('Skipping email notification due to user preference.', [
+                'user_id' => $user->id,
+                'notification_id' => $notification->id,
+                'notification_type' => $notification->type,
             ]);
         }
     }

@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Livewire\Profile;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
 use App\Livewire\Profile\ClientActivitySummary;
-use Livewire\Livewire;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Tests\TestCase;
 
 class ClientActivitySummaryTest extends TestCase
 {
@@ -29,13 +29,13 @@ class ClientActivitySummaryTest extends TestCase
     public function component_shows_correct_stats_and_recent_projects()
     {
         $client = User::factory()->create(['role' => User::ROLE_CLIENT]);
-        
+
         // Create projects with different statuses
         Project::factory()->count(2)->create(['user_id' => $client->id, 'status' => Project::STATUS_OPEN, 'is_published' => true]);
         Project::factory()->create(['user_id' => $client->id, 'status' => Project::STATUS_IN_PROGRESS, 'is_published' => true]); // Hired
         Project::factory()->create(['user_id' => $client->id, 'status' => Project::STATUS_COMPLETED, 'completed_at' => now(), 'is_published' => true]); // Hired & Completed
         Project::factory()->create(['user_id' => $client->id, 'status' => Project::STATUS_UNPUBLISHED, 'is_published' => false]);
-        
+
         // Create an older project that shouldn't appear in recent (limit 5)
         Project::factory()->create(['user_id' => $client->id, 'status' => Project::STATUS_OPEN, 'created_at' => now()->subYear(), 'is_published' => true]);
 
@@ -52,7 +52,7 @@ class ClientActivitySummaryTest extends TestCase
     public function component_shows_correct_completed_projects()
     {
         $client = User::factory()->create(['role' => User::ROLE_CLIENT]);
-        
+
         // Create completed projects
         $completedProject1 = Project::factory()->create(['user_id' => $client->id, 'status' => Project::STATUS_COMPLETED, 'completed_at' => now()->subDay(), 'is_published' => true]);
         $completedProject2 = Project::factory()->create(['user_id' => $client->id, 'status' => Project::STATUS_COMPLETED, 'completed_at' => now(), 'is_published' => true]);
@@ -65,7 +65,7 @@ class ClientActivitySummaryTest extends TestCase
             ->assertSet('hiredProjectsCount', 2) // 2 completed projects
             ->assertSeeHtml($completedProject1->name)
             ->assertSeeHtml($completedProject2->name);
-            
+
         // Check that completed projects were loaded correctly
         $this->assertCount(2, $component->get('completedProjects'));
     }

@@ -7,8 +7,6 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PitchesRelationManager extends RelationManager
 {
@@ -21,7 +19,7 @@ class PitchesRelationManager extends RelationManager
                 Forms\Components\TextInput::make('title')
                     ->required()
                     ->maxLength(255),
-                    
+
                 Forms\Components\Select::make('status')
                     ->options([
                         'open' => 'Open',
@@ -36,14 +34,14 @@ class PitchesRelationManager extends RelationManager
                         'closed' => 'Closed',
                     ])
                     ->required(),
-                    
+
                 Forms\Components\Textarea::make('description')
                     ->rows(3)
                     ->columnSpanFull(),
-                    
+
                 Forms\Components\DatePicker::make('deadline')
                     ->label('Pitch Deadline'),
-                    
+
                 Forms\Components\TextInput::make('budget')
                     ->numeric()
                     ->prefix('$'),
@@ -59,11 +57,11 @@ class PitchesRelationManager extends RelationManager
                     ->searchable()
                     ->limit(30)
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Created By')
                     ->searchable(),
-                    
+
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -79,11 +77,11 @@ class PitchesRelationManager extends RelationManager
                         'closed' => 'gray',
                         default => 'secondary',
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('deadline')
                     ->date()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -118,4 +116,4 @@ class PitchesRelationManager extends RelationManager
                 ]),
             ]);
     }
-} 
+}

@@ -3,25 +3,24 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\StripeTransactionResource\Pages;
-use App\Filament\Resources\UserResource;
-use App\Models\StripeTransaction;
 use App\Models\PayoutSchedule;
+use App\Models\StripeTransaction;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
-use Filament\Notifications\Notification;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Carbon\Carbon;
 
 class StripeTransactionResource extends Resource
 {
     protected static ?string $model = StripeTransaction::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
-    
+
     protected static ?string $navigationGroup = 'Financial';
 
     protected static ?int $navigationSort = 2;
@@ -226,10 +225,10 @@ class StripeTransactionResource extends Resource
                     ->sortable()
                     ->searchable()
                     ->url(function (StripeTransaction $record): ?string {
-                        if (!$record->user) {
+                        if (! $record->user) {
                             return null;
                         }
-                        
+
                         try {
                             return UserResource::getUrl('view', ['record' => $record->user]);
                         } catch (\Exception $e) {
@@ -353,8 +352,7 @@ class StripeTransactionResource extends Resource
                     ->label('View in Stripe')
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->color('info')
-                    ->url(fn (StripeTransaction $record): string => 
-                        $record->getStripeUrl()
+                    ->url(fn (StripeTransaction $record): string => $record->getStripeUrl()
                     )
                     ->openUrlInNewTab(),
 
@@ -362,9 +360,8 @@ class StripeTransactionResource extends Resource
                     ->label('Create Payout')
                     ->icon('heroicon-o-banknotes')
                     ->color('success')
-                    ->visible(fn (StripeTransaction $record): bool => 
-                        $record->type === 'payment_intent' && 
-                        $record->status === 'succeeded' && 
+                    ->visible(fn (StripeTransaction $record): bool => $record->type === 'payment_intent' &&
+                        $record->status === 'succeeded' &&
                         $record->payout_schedule_id === null
                     )
                     ->form([
@@ -382,6 +379,7 @@ class StripeTransactionResource extends Resource
                             ->label('Hold Release Date')
                             ->default(function () {
                                 $holdService = app(\App\Services\PayoutHoldService::class);
+
                                 return $holdService->calculateHoldReleaseDate('standard');
                             })
                             ->required(),
@@ -413,7 +411,7 @@ class StripeTransactionResource extends Resource
                             Notification::make()
                                 ->title('Payout Schedule Created')
                                 ->success()
-                                ->body("Payout of $" . number_format($netAmount, 2) . " scheduled for release on " . Carbon::parse($data['hold_release_date'])->format('M j, Y'))
+                                ->body('Payout of $'.number_format($netAmount, 2).' scheduled for release on '.Carbon::parse($data['hold_release_date'])->format('M j, Y'))
                                 ->send();
 
                         } catch (\Exception $e) {
@@ -433,7 +431,7 @@ class StripeTransactionResource extends Resource
                         try {
                             // Here you would implement the logic to sync the transaction from Stripe
                             // This would update the local record with the latest data from Stripe
-                            
+
                             Notification::make()
                                 ->title('Transaction Synced')
                                 ->success()
@@ -472,8 +470,6 @@ class StripeTransactionResource extends Resource
         ];
     }
 
-
-
     public static function getGlobalSearchEloquentQuery(): Builder
     {
         return parent::getGlobalSearchEloquentQuery()->with(['user', 'project', 'pitch']);
@@ -487,6 +483,7 @@ class StripeTransactionResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $failed = static::getModel()::where('status', 'failed')->count();
+
         return $failed > 0 ? (string) $failed : null;
     }
 
@@ -494,4 +491,4 @@ class StripeTransactionResource extends Resource
     {
         return static::getNavigationBadge() ? 'danger' : null;
     }
-} 
+}

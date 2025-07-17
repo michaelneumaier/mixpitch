@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\PayoutSchedule;
 use App\Models\User;
-use App\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 
 class PayoutNotificationService
@@ -23,8 +22,9 @@ class PayoutNotificationService
     public function notifyPayoutScheduled(PayoutSchedule $payout): ?Notification
     {
         $user = User::find($payout->producer_user_id);
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for payout notification', ['payout_id' => $payout->id]);
+
             return null;
         }
 
@@ -56,8 +56,9 @@ class PayoutNotificationService
             Log::error('Failed to create payout scheduled notification', [
                 'payout_id' => $payout->id,
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -68,8 +69,9 @@ class PayoutNotificationService
     public function notifyPayoutCompleted(PayoutSchedule $payout): ?Notification
     {
         $user = User::find($payout->producer_user_id);
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for payout completion notification', ['payout_id' => $payout->id]);
+
             return null;
         }
 
@@ -102,8 +104,9 @@ class PayoutNotificationService
             Log::error('Failed to create payout completed notification', [
                 'payout_id' => $payout->id,
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -114,8 +117,9 @@ class PayoutNotificationService
     public function notifyPayoutFailed(PayoutSchedule $payout): ?Notification
     {
         $user = User::find($payout->producer_user_id);
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for payout failure notification', ['payout_id' => $payout->id]);
+
             return null;
         }
 
@@ -146,8 +150,9 @@ class PayoutNotificationService
             Log::error('Failed to create payout failed notification', [
                 'payout_id' => $payout->id,
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -158,8 +163,9 @@ class PayoutNotificationService
     public function notifyPayoutCancelled(PayoutSchedule $payout, string $reason = ''): ?Notification
     {
         $user = User::find($payout->producer_user_id);
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for payout cancellation notification', ['payout_id' => $payout->id]);
+
             return null;
         }
 
@@ -190,8 +196,9 @@ class PayoutNotificationService
             Log::error('Failed to create payout cancelled notification', [
                 'payout_id' => $payout->id,
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -217,8 +224,8 @@ class PayoutNotificationService
             default:
                 Log::info('No notification sent for payout status', [
                     'payout_id' => $payout->id,
-                    'status' => $payout->status
+                    'status' => $payout->status,
                 ]);
         }
     }
-} 
+}

@@ -1,1 +1,7 @@
-<?php namespace App\Exceptions\Pitch; use Exception; class UnauthorizedActionException extends Exception { }
+<?php
+
+namespace App\Exceptions\Pitch;
+
+use Exception;
+
+class UnauthorizedActionException extends Exception {}

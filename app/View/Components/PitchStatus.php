@@ -2,15 +2,17 @@
 
 namespace App\View\Components;
 
+use App\Models\Pitch;
 use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
-use App\Models\Pitch;
 
 class PitchStatus extends Component
 {
     public $status;
+
     public $bgColor;
+
     public $textColor;
 
     /**

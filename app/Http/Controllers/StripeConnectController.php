@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Services\StripeConnectService;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class StripeConnectController extends Controller
 {
@@ -45,14 +45,14 @@ class StripeConnectController extends Controller
         if ($result['success']) {
             Log::info('Stripe Connect onboarding started', [
                 'user_id' => $user->id,
-                'onboarding_url' => $result['url']
+                'onboarding_url' => $result['url'],
             ]);
 
             return redirect($result['url']);
         }
 
         return redirect()->route('stripe.connect.setup')
-            ->withErrors(['error' => 'Failed to start onboarding: ' . $result['error']]);
+            ->withErrors(['error' => 'Failed to start onboarding: '.$result['error']]);
     }
 
     /**
@@ -64,7 +64,7 @@ class StripeConnectController extends Controller
 
         Log::info('Stripe Connect onboarding return', [
             'user_id' => $user->id,
-            'stripe_account_id' => $user->stripe_account_id
+            'stripe_account_id' => $user->stripe_account_id,
         ]);
 
         // Check account status
@@ -90,7 +90,7 @@ class StripeConnectController extends Controller
         $user = Auth::user();
 
         Log::info('Stripe Connect onboarding refresh', [
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         // Create a new onboarding link
@@ -101,7 +101,7 @@ class StripeConnectController extends Controller
         }
 
         return redirect()->route('stripe.connect.setup')
-            ->withErrors(['error' => 'Failed to refresh onboarding: ' . $result['error']]);
+            ->withErrors(['error' => 'Failed to refresh onboarding: '.$result['error']]);
     }
 
     /**
@@ -111,7 +111,7 @@ class StripeConnectController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->stripe_account_id) {
+        if (! $user->stripe_account_id) {
             return redirect()->route('stripe.connect.setup')
                 ->withErrors(['error' => 'You need to set up your Stripe Connect account first.']);
         }
@@ -121,14 +121,14 @@ class StripeConnectController extends Controller
         if ($result['success']) {
             Log::info('Stripe Connect dashboard access', [
                 'user_id' => $user->id,
-                'dashboard_url' => $result['url']
+                'dashboard_url' => $result['url'],
             ]);
 
             return redirect($result['url']);
         }
 
         return redirect()->route('stripe.connect.setup')
-            ->withErrors(['error' => 'Failed to access dashboard: ' . $result['error']]);
+            ->withErrors(['error' => 'Failed to access dashboard: '.$result['error']]);
     }
 
     /**
@@ -159,4 +159,4 @@ class StripeConnectController extends Controller
             'account_status' => $this->stripeConnectService->getDetailedAccountStatus($user),
         ]);
     }
-} 
+}

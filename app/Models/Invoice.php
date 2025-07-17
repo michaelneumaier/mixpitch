@@ -14,10 +14,15 @@ class Invoice extends Model
 
     // Status Constants
     const STATUS_PENDING = 'pending';
+
     const STATUS_PAID = 'paid';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_VOID = 'void';
+
     const STATUS_REFUNDED = 'refunded';
+
     const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
 
     /**
@@ -91,7 +96,7 @@ class Invoice extends Model
     public static function generateInvoiceNumber(): string
     {
         // Generate a unique invoice number, e.g., INV-YYYYMMDD-XXXXXX
-        return 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+        return 'INV-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
     }
 
     public function getReadableStatusAttribute(): string

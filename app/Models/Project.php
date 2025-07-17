@@ -4,20 +4,14 @@ namespace App\Models;
 
 use Cviebrock\EloquentSluggable\Sluggable;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
-use App\Models\PitchFile;
-
-use Illuminate\Support\Facades\Storage;
-use Sebdesign\SM\StateMachine\StateMachine;
-use Sebdesign\SM\StateMachine\StateMachineInterface;
-use Illuminate\Support\Number;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use App\Models\UserMonthlyLimit;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Number;
+use Illuminate\Support\Str;
 
 class Project extends Model
 {
@@ -26,20 +20,29 @@ class Project extends Model
 
     // Constants for project statuses
     const STATUS_UNPUBLISHED = 'unpublished';
+
     const STATUS_OPEN = 'open';
+
     const STATUS_IN_PROGRESS = 'in_progress';
+
     const STATUS_COMPLETED = 'completed';
 
     // Workflow Types
     const WORKFLOW_TYPE_STANDARD = 'standard';
+
     const WORKFLOW_TYPE_CONTEST = 'contest';
+
     const WORKFLOW_TYPE_DIRECT_HIRE = 'direct_hire';
+
     const WORKFLOW_TYPE_CLIENT_MANAGEMENT = 'client_management';
 
     // Visibility Levels
     const VISIBILITY_PUBLIC = 'public';
+
     const VISIBILITY_UNLISTED = 'unlisted';
+
     const VISIBILITY_PRIVATE = 'private';
+
     const VISIBILITY_INVITE_ONLY = 'invite_only';
 
     // Default Currency
@@ -49,7 +52,7 @@ class Project extends Model
      * The maximum storage allowed per project in bytes (1GB)
      */
     const MAX_STORAGE_BYTES = 1073741824; // 1GB in bytes
-    
+
     /**
      * The maximum file size allowed per upload in bytes (200MB)
      */
@@ -166,7 +169,7 @@ class Project extends Model
     protected $attributes = [
         'workflow_type' => self::WORKFLOW_TYPE_STANDARD,
         'status' => self::STATUS_UNPUBLISHED,
-        'is_published' => false
+        'is_published' => false,
     ];
 
     public function getRouteKeyName()
@@ -191,7 +194,7 @@ class Project extends Model
 
     /**
      * Publish the project
-     * 
+     *
      * @return void
      */
     public function publish()
@@ -205,22 +208,23 @@ class Project extends Model
             // Explicitly keep is_published as false for Client Management
             $this->is_published = false;
             $this->save();
+
             return;
         }
-        
+
         $this->is_published = true;
-        
+
         // Only change status if it's not already completed
         if ($this->status === self::STATUS_UNPUBLISHED) {
             $this->status = self::STATUS_OPEN;
         }
-        
+
         $this->save();
     }
-    
+
     /**
      * Unpublish the project
-     * 
+     *
      * @return void
      */
     public function unpublish()
@@ -231,16 +235,17 @@ class Project extends Model
             $this->is_published = false;
             // Don't change status for Client Management - let workflow handle it
             $this->save();
+
             return;
         }
-        
+
         $this->is_published = false;
-        
+
         // If the project is not completed, set status to unpublished
         if ($this->status !== self::STATUS_COMPLETED) {
             $this->status = self::STATUS_UNPUBLISHED;
         }
-        
+
         $this->save();
     }
 
@@ -257,6 +262,7 @@ class Project extends Model
     {
         return $this->hasOne(ProjectFile::class, 'id', 'preview_track');
     }
+
     public function previewTrackPath()
     {
         if ($this->hasPreviewTrack()) {
@@ -275,8 +281,9 @@ class Project extends Model
             } catch (Exception $e) {
                 Log::error('Error getting signed preview track path', [
                     'track_id' => $this->preview_track,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
+
                 return null;
             }
         } else {
@@ -311,15 +318,11 @@ class Project extends Model
 
     /**
      * Check if the project is open and accepting new pitches.
-     *
-     * @return bool
      */
     public function isOpenForPitches(): bool
     {
         return $this->status === self::STATUS_OPEN;
     }
-
-
 
     // ========== LICENSE RELATIONSHIPS ==========
 
@@ -378,7 +381,7 @@ class Project extends Model
      */
     public function getEffectiveLicenseTerms(): array
     {
-        if (!empty($this->custom_license_terms)) {
+        if (! empty($this->custom_license_terms)) {
             return $this->custom_license_terms;
         }
 
@@ -407,10 +410,10 @@ class Project extends Model
      */
     private function generateBasicLicenseContent(): string
     {
-        return "License Agreement for Project: {$this->name}\n\n" .
-               "Project Owner: {$this->user->name}\n" .
-               "Date: " . now()->format('F j, Y') . "\n\n" .
-               "This license governs the use of work created for this project.\n" .
+        return "License Agreement for Project: {$this->name}\n\n".
+               "Project Owner: {$this->user->name}\n".
+               'Date: '.now()->format('F j, Y')."\n\n".
+               "This license governs the use of work created for this project.\n".
                "Terms are subject to the project owner's requirements and applicable law.";
     }
 
@@ -469,8 +472,8 @@ class Project extends Model
     public function hasUserSignedLicense(User $user): bool
     {
         return $this->activeLicenseSignatures()
-                    ->where('user_id', $user->id)
-                    ->exists();
+            ->where('user_id', $user->id)
+            ->exists();
     }
 
     /**
@@ -478,7 +481,7 @@ class Project extends Model
      */
     public function getLicenseStatusColorClass(): string
     {
-        return match($this->license_status) {
+        return match ($this->license_status) {
             'active' => 'text-green-600 bg-green-100',
             'pending' => 'text-yellow-600 bg-yellow-100',
             'expired' => 'text-red-600 bg-red-100',
@@ -492,7 +495,7 @@ class Project extends Model
      */
     public function getLicenseStatusLabel(): string
     {
-        return match($this->license_status) {
+        return match ($this->license_status) {
             'active' => 'Active',
             'pending' => 'Pending Signature',
             'expired' => 'Expired',
@@ -526,8 +529,8 @@ class Project extends Model
     {
         return [
             'slug' => [
-                'source' => 'name'
-            ]
+                'source' => 'name',
+            ],
         ];
     }
 
@@ -538,10 +541,10 @@ class Project extends Model
      */
     public function getImageUrlAttribute()
     {
-        if (!$this->image_path) {
+        if (! $this->image_path) {
             return null;
         }
-        
+
         try {
             // Check if the storage driver supports temporaryUrl
             if (method_exists(Storage::disk('s3'), 'temporaryUrl')) {
@@ -557,83 +560,86 @@ class Project extends Model
             Log::error('Error getting signed project image URL', [
                 'project_id' => $this->id,
                 'image_path' => $this->image_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     /**
      * Check if the project has available storage capacity
-     * 
-     * @param int $additionalBytes Additional bytes to check if they would fit
+     *
+     * @param  int  $additionalBytes  Additional bytes to check if they would fit
      * @return bool
      */
     public function hasStorageCapacity($additionalBytes = 0)
     {
         // Use the project owner's subscription storage limit
         $storageLimit = $this->getStorageLimit();
-        
+
         return ($this->total_storage_used + $additionalBytes) <= $storageLimit;
     }
-    
+
     /**
      * Get the storage limit for this project based on owner's subscription
-     * 
+     *
      * @return int Storage limit in bytes
      */
     public function getStorageLimit(): int
     {
         // Check if user relationship is loaded, if not load it
-        if (!$this->relationLoaded('user')) {
+        if (! $this->relationLoaded('user')) {
             $this->load('user');
         }
-        
+
         if ($this->user) {
             return $this->user->getProjectStorageLimit();
         }
-        
+
         // Fallback to default if no user or user has no subscription limits
         return self::MAX_STORAGE_BYTES;
     }
-    
+
     /**
      * Get remaining storage capacity in bytes
-     * 
+     *
      * @return int
      */
     public function getRemainingStorageBytes()
     {
         $storageLimit = $this->getStorageLimit();
         $remaining = $storageLimit - $this->total_storage_used;
+
         return max(0, $remaining);
     }
-    
+
     /**
      * Get the percentage of storage used
-     * 
+     *
      * @return float
      */
     public function getStorageUsedPercentage()
     {
         $storageLimit = $this->getStorageLimit();
+
         return round(($this->total_storage_used / $storageLimit) * 100, 2);
     }
-    
+
     /**
      * Check if a file size is within the allowed limit
-     * 
-     * @param int $fileSize File size in bytes
+     *
+     * @param  int  $fileSize  File size in bytes
      * @return bool
      */
     public static function isFileSizeAllowed($fileSize)
     {
         return $fileSize <= self::MAX_FILE_SIZE_BYTES;
     }
-    
+
     /**
      * Get user-friendly message about storage limits
-     * 
+     *
      * @return string
      */
     public function getStorageLimitMessage()
@@ -641,7 +647,7 @@ class Project extends Model
         $used = Number::fileSize($this->total_storage_used, precision: 2);
         $total = Number::fileSize($this->getStorageLimit(), precision: 2);
         $remaining = Number::fileSize($this->getRemainingStorageBytes(), precision: 2);
-        
+
         return "Using $used of $total ($remaining available)";
     }
 
@@ -659,7 +665,7 @@ class Project extends Model
     public function decrementStorageUsed(int $bytes): bool
     {
         return $this->update([
-            'total_storage_used' => DB::raw("GREATEST(0, total_storage_used - $bytes)")
+            'total_storage_used' => DB::raw("GREATEST(0, total_storage_used - $bytes)"),
         ]);
     }
 
@@ -677,7 +683,7 @@ class Project extends Model
     public function getPitchFilesStorageUsed(): int
     {
         return $this->pitches()->with('files')->get()
-            ->flatMap(fn($pitch) => $pitch->files)
+            ->flatMap(fn ($pitch) => $pitch->files)
             ->sum('size') ?? 0;
     }
 
@@ -689,7 +695,7 @@ class Project extends Model
         if ($this->isClientManagement()) {
             return $this->getProjectFilesStorageUsed() + $this->getPitchFilesStorageUsed();
         }
-        
+
         // For other project types, use the existing total_storage_used
         return $this->total_storage_used ?? 0;
     }
@@ -699,11 +705,11 @@ class Project extends Model
      */
     public function getStorageBreakdown(): array
     {
-        if (!$this->isClientManagement()) {
+        if (! $this->isClientManagement()) {
             return [
                 'total' => $this->total_storage_used ?? 0,
                 'project_files' => 0,
-                'pitch_files' => 0
+                'pitch_files' => 0,
             ];
         }
 
@@ -713,16 +719,12 @@ class Project extends Model
         return [
             'total' => $projectFiles + $pitchFiles,
             'project_files' => $projectFiles,
-            'pitch_files' => $pitchFiles
+            'pitch_files' => $pitchFiles,
         ];
     }
 
     /**
      * Scope a query to apply filters and sorting.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param array $filters
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeFilterAndSort(Builder $query, array $filters): Builder
     {
@@ -741,19 +743,19 @@ class Project extends Model
 
         $query->when($filters['search'] ?? null, function ($q, $search) {
             $q->where(function ($sq) use ($search) {
-                $sq->where('name', 'like', '%' . $search . '%')
-                   ->orWhere('description', 'like', '%' . $search . '%');
+                $sq->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('description', 'like', '%'.$search.'%');
             });
         });
 
         $minBudget = $filters['min_budget'] ?? null;
         $maxBudget = $filters['max_budget'] ?? null;
         $query->when($minBudget && $maxBudget, function ($q) use ($minBudget, $maxBudget) {
-            $q->whereBetween('budget', [(int)$minBudget, (int)$maxBudget]);
-        })->when($minBudget && !$maxBudget, function ($q) use ($minBudget) {
-            $q->where('budget', '>=', (int)$minBudget);
-        })->when(!$minBudget && $maxBudget, function ($q) use ($maxBudget) {
-            $q->where('budget', '<=', (int)$maxBudget);
+            $q->whereBetween('budget', [(int) $minBudget, (int) $maxBudget]);
+        })->when($minBudget && ! $maxBudget, function ($q) use ($minBudget) {
+            $q->where('budget', '>=', (int) $minBudget);
+        })->when(! $minBudget && $maxBudget, function ($q) use ($maxBudget) {
+            $q->where('budget', '<=', (int) $maxBudget);
         });
 
         $deadlineStart = $filters['deadline_start'] ?? null;
@@ -765,22 +767,22 @@ class Project extends Model
 
         $query->when($start && $end, function ($q) use ($start, $end) {
             $q->whereBetween('deadline', [$start, $end]);
-        })->when($start && !$end, function ($q) use ($start) {
+        })->when($start && ! $end, function ($q) use ($start) {
             $q->where('deadline', '>=', $start); // where() should handle Carbon comparison
-        })->when(!$start && $end, function ($q) use ($end) {
+        })->when(! $start && $end, function ($q) use ($end) {
             $q->where('deadline', '<=', $end); // where() should handle Carbon comparison
         });
 
         // Collaboration Type Filtering (JSON array)
         $query->when($filters['selected_collaboration_types'] ?? null, function ($q, $types) {
             // Ensure $types is an array
-            if (!is_array($types) || empty($types)) {
+            if (! is_array($types) || empty($types)) {
                 return;
             }
-            
+
             // Check if we're using SQLite
             $isSqlite = DB::connection()->getDriverName() === 'sqlite';
-            
+
             if ($isSqlite) {
                 // SQLite-compatible alternative approach
                 // This is a fallback that works in SQLite but might be less efficient
@@ -788,7 +790,7 @@ class Project extends Model
                     foreach ($types as $type) {
                         // Use LIKE for SQLite as a simple workaround
                         // This is less precise but allows filtering to work
-                        $subQuery->orWhere('collaboration_type', 'LIKE', '%"' . $type . '"%');
+                        $subQuery->orWhere('collaboration_type', 'LIKE', '%"'.$type.'"%');
                     }
                 });
             } else {
@@ -834,8 +836,6 @@ class Project extends Model
 
     /**
      * Check if the project type is Standard.
-     *
-     * @return bool
      */
     public function isStandard(): bool
     {
@@ -844,8 +844,6 @@ class Project extends Model
 
     /**
      * Check if the project type is Contest.
-     *
-     * @return bool
      */
     public function isContest(): bool
     {
@@ -854,8 +852,6 @@ class Project extends Model
 
     /**
      * Check if the project type is Direct Hire.
-     *
-     * @return bool
      */
     public function isDirectHire(): bool
     {
@@ -864,8 +860,6 @@ class Project extends Model
 
     /**
      * Check if the project type is Client Management.
-     *
-     * @return bool
      */
     public function isClientManagement(): bool
     {
@@ -907,7 +901,7 @@ class Project extends Model
         $otherTotal = (float) $this->contestPrizes()
             ->where('prize_type', ContestPrize::TYPE_OTHER)
             ->sum('prize_value_estimate');
-            
+
         return $cashTotal + $otherTotal;
     }
 
@@ -945,7 +939,7 @@ class Project extends Model
     public function getPrizeTypeCounts(): array
     {
         $prizes = $this->contestPrizes()->get();
-        
+
         return [
             'total' => $prizes->count(),
             'cash' => $prizes->where('prize_type', ContestPrize::TYPE_CASH)->count(),
@@ -979,7 +973,7 @@ class Project extends Model
                 'estimated_value' => $prize->getEstimatedValue(),
                 'emoji' => $prize->getPlacementEmoji(),
                 'title' => $prize->prize_title,
-                'description' => $prize->prize_description
+                'description' => $prize->prize_description,
             ];
         }
 
@@ -991,7 +985,7 @@ class Project extends Model
      */
     public function isJudgingFinalized(): bool
     {
-        return !is_null($this->judging_finalized_at);
+        return ! is_null($this->judging_finalized_at);
     }
 
     /**
@@ -999,9 +993,9 @@ class Project extends Model
      */
     public function canFinalizeJudging(): bool
     {
-        return $this->isContest() && 
-               $this->isSubmissionPeriodClosed() && 
-               !$this->isJudgingFinalized();
+        return $this->isContest() &&
+               $this->isSubmissionPeriodClosed() &&
+               ! $this->isJudgingFinalized();
     }
 
     /**
@@ -1009,7 +1003,7 @@ class Project extends Model
      */
     public function isSubmissionPeriodClosed(): bool
     {
-        if (!$this->isContest()) {
+        if (! $this->isContest()) {
             return false;
         }
 
@@ -1027,7 +1021,7 @@ class Project extends Model
      */
     public function wasClosedEarly(): bool
     {
-        return !is_null($this->submissions_closed_early_at);
+        return ! is_null($this->submissions_closed_early_at);
     }
 
     /**
@@ -1035,10 +1029,10 @@ class Project extends Model
      */
     public function canCloseEarly(): bool
     {
-        return $this->isContest() && 
-               $this->is_published && 
-               !$this->isSubmissionPeriodClosed() && 
-               !$this->isJudgingFinalized() &&
+        return $this->isContest() &&
+               $this->is_published &&
+               ! $this->isSubmissionPeriodClosed() &&
+               ! $this->isJudgingFinalized() &&
                $this->getContestEntries()->isNotEmpty();
     }
 
@@ -1072,7 +1066,7 @@ class Project extends Model
                 Pitch::STATUS_CONTEST_ENTRY,
                 Pitch::STATUS_CONTEST_WINNER,
                 Pitch::STATUS_CONTEST_RUNNER_UP,
-                Pitch::STATUS_CONTEST_NOT_SELECTED
+                Pitch::STATUS_CONTEST_NOT_SELECTED,
             ])
             ->with(['user', 'currentSnapshot'])
             ->orderBy('created_at', 'asc')
@@ -1081,8 +1075,6 @@ class Project extends Model
 
     /**
      * Get an array of all project types.
-     *
-     * @return array
      */
     public static function getWorkflowTypes(): array
     {
@@ -1096,8 +1088,6 @@ class Project extends Model
 
     /**
      * Get human-readable project type name.
-     *
-     * @return string
      */
     public function getReadableWorkflowTypeAttribute(): string
     {
@@ -1107,15 +1097,12 @@ class Project extends Model
             self::WORKFLOW_TYPE_DIRECT_HIRE => 'Direct Hire',
             self::WORKFLOW_TYPE_CLIENT_MANAGEMENT => 'Client Management',
         ];
-        
+
         return $types[$this->workflow_type] ?? 'Unknown Type';
     }
 
     /**
      * Get human-readable workflow type name for a given workflow type.
-     *
-     * @param string $workflowType
-     * @return string
      */
     public static function getReadableWorkflowType(string $workflowType): string
     {
@@ -1125,14 +1112,12 @@ class Project extends Model
             self::WORKFLOW_TYPE_DIRECT_HIRE => 'Direct Hire',
             self::WORKFLOW_TYPE_CLIENT_MANAGEMENT => 'Client Management',
         ];
-        
+
         return $types[$workflowType] ?? 'Unknown Type';
     }
 
     /**
      * Get the CSS color class for the current status
-     * 
-     * @return string
      */
     public function getStatusColorClass(): string
     {
@@ -1154,8 +1139,6 @@ class Project extends Model
 
     /**
      * Check if the project is private
-     *
-     * @return bool
      */
     public function isPrivate(): bool
     {
@@ -1164,18 +1147,14 @@ class Project extends Model
 
     /**
      * Check if the project is public
-     *
-     * @return bool
      */
     public function isPublic(): bool
     {
-        return $this->visibility_level === self::VISIBILITY_PUBLIC && !$this->is_private;
+        return $this->visibility_level === self::VISIBILITY_PUBLIC && ! $this->is_private;
     }
 
     /**
      * Check if the project is unlisted
-     *
-     * @return bool
      */
     public function isUnlisted(): bool
     {
@@ -1184,8 +1163,6 @@ class Project extends Model
 
     /**
      * Check if the project is invite-only
-     *
-     * @return bool
      */
     public function isInviteOnly(): bool
     {
@@ -1194,15 +1171,11 @@ class Project extends Model
 
     /**
      * Make the project private
-     *
-     * @param User $user
-     * @param array $settings
-     * @return bool
      */
     public function makePrivate(User $user, array $settings = []): bool
     {
         // Check if user can create private projects
-        if (!$this->canUserCreatePrivateProject($user)) {
+        if (! $this->canUserCreatePrivateProject($user)) {
             return false;
         }
 
@@ -1227,8 +1200,6 @@ class Project extends Model
 
     /**
      * Make the project public
-     *
-     * @return void
      */
     public function makePublic(): void
     {
@@ -1244,25 +1215,21 @@ class Project extends Model
 
     /**
      * Set visibility level
-     *
-     * @param string $level
-     * @param User $user
-     * @return bool
      */
     public function setVisibilityLevel(string $level, User $user): bool
     {
-        if (!in_array($level, [
+        if (! in_array($level, [
             self::VISIBILITY_PUBLIC,
             self::VISIBILITY_UNLISTED,
             self::VISIBILITY_PRIVATE,
-            self::VISIBILITY_INVITE_ONLY
+            self::VISIBILITY_INVITE_ONLY,
         ])) {
             return false;
         }
 
         // For private/invite-only, check subscription limits
         if (in_array($level, [self::VISIBILITY_PRIVATE, self::VISIBILITY_INVITE_ONLY])) {
-            if (!$this->canUserCreatePrivateProject($user)) {
+            if (! $this->canUserCreatePrivateProject($user)) {
                 return false;
             }
 
@@ -1290,9 +1257,6 @@ class Project extends Model
 
     /**
      * Check if user can create/modify private projects
-     *
-     * @param User $user
-     * @return bool
      */
     private function canUserCreatePrivateProject(User $user): bool
     {
@@ -1302,7 +1266,7 @@ class Project extends Model
         }
 
         $monthlyLimit = $user->getMaxPrivateProjectsMonthly();
-        
+
         // Unlimited for Pro Engineer
         if ($monthlyLimit === null) {
             return true;
@@ -1325,26 +1289,21 @@ class Project extends Model
 
     /**
      * Increment user's private project count for the month
-     *
-     * @param User $user
-     * @return void
      */
     private function incrementUserPrivateProjectCount(User $user): void
     {
         $currentMonth = now()->format('Y-m');
-        
+
         $monthlyLimit = UserMonthlyLimit::updateOrCreate(
             ['user_id' => $user->id, 'month_year' => $currentMonth],
             ['last_reset_at' => now()]
         );
-        
+
         $monthlyLimit->increment('private_projects_created');
     }
 
     /**
      * Generate a secure access code for private projects
-     *
-     * @return string
      */
     private function generateAccessCode(): string
     {
@@ -1353,10 +1312,6 @@ class Project extends Model
 
     /**
      * Check if user can view this project
-     *
-     * @param User|null $user
-     * @param string|null $accessCode
-     * @return bool
      */
     public function canUserView(?User $user = null, ?string $accessCode = null): bool
     {
@@ -1392,16 +1347,14 @@ class Project extends Model
 
     /**
      * Get privacy status label
-     *
-     * @return string
      */
     public function getPrivacyStatusLabel(): string
     {
         if ($this->isPrivate()) {
             return 'Private';
         }
-        
-        return match($this->visibility_level) {
+
+        return match ($this->visibility_level) {
             self::VISIBILITY_PUBLIC => 'Public',
             self::VISIBILITY_UNLISTED => 'Unlisted',
             self::VISIBILITY_INVITE_ONLY => 'Invite Only',
@@ -1411,16 +1364,14 @@ class Project extends Model
 
     /**
      * Get privacy icon class
-     *
-     * @return string
      */
     public function getPrivacyIconClass(): string
     {
         if ($this->isPrivate()) {
             return 'fas fa-lock text-red-500';
         }
-        
-        return match($this->visibility_level) {
+
+        return match ($this->visibility_level) {
             self::VISIBILITY_PUBLIC => 'fas fa-globe text-green-500',
             self::VISIBILITY_UNLISTED => 'fas fa-eye-slash text-yellow-500',
             self::VISIBILITY_INVITE_ONLY => 'fas fa-user-friends text-blue-500',
@@ -1436,7 +1387,7 @@ class Project extends Model
     public function scopePublic($query)
     {
         return $query->where('visibility_level', self::VISIBILITY_PUBLIC)
-                    ->where('is_private', false);
+            ->where('is_private', false);
     }
 
     /**
@@ -1452,18 +1403,18 @@ class Project extends Model
      */
     public function scopeViewableBy($query, ?User $user = null)
     {
-        if (!$user) {
+        if (! $user) {
             // Anonymous users can only see public projects
             return $query->public();
         }
 
         return $query->where(function ($q) use ($user) {
             $q->where('user_id', $user->id) // Own projects
-              ->orWhere(function ($subQuery) {
-                  $subQuery->where('visibility_level', self::VISIBILITY_PUBLIC)
-                          ->where('is_private', false);
-              })
-              ->orWhere('visibility_level', self::VISIBILITY_UNLISTED); // Unlisted are viewable with link
+                ->orWhere(function ($subQuery) {
+                    $subQuery->where('visibility_level', self::VISIBILITY_PUBLIC)
+                        ->where('is_private', false);
+                })
+                ->orWhere('visibility_level', self::VISIBILITY_UNLISTED); // Unlisted are viewable with link
         });
     }
 
@@ -1474,7 +1425,7 @@ class Project extends Model
     {
         return $query->whereIn('visibility_level', [
             self::VISIBILITY_PUBLIC,
-            self::VISIBILITY_UNLISTED
+            self::VISIBILITY_UNLISTED,
         ])->where('is_private', false);
     }
 
@@ -1492,17 +1443,14 @@ class Project extends Model
     public function scopeUserPrivateCurrentMonth($query, User $user)
     {
         $currentMonth = now()->format('Y-m');
-        
+
         return $query->where('user_id', $user->id)
-                    ->where('is_private', true)
-                    ->where('privacy_month_year', $currentMonth);
+            ->where('is_private', true)
+            ->where('privacy_month_year', $currentMonth);
     }
 
     /**
      * Static method to get available visibility levels for a user
-     *
-     * @param User $user
-     * @return array
      */
     public static function getAvailableVisibilityLevels(User $user): array
     {
@@ -1523,14 +1471,11 @@ class Project extends Model
 
     /**
      * Get user's remaining private project quota for current month
-     *
-     * @param User $user
-     * @return int|null
      */
     public static function getRemainingPrivateQuota(User $user): ?int
     {
         $monthlyLimit = $user->getMaxPrivateProjectsMonthly();
-        
+
         if ($monthlyLimit === null) {
             return null; // Unlimited
         }
@@ -1548,18 +1493,14 @@ class Project extends Model
 
     /**
      * Check if this project has been posted to Reddit
-     *
-     * @return bool
      */
     public function hasBeenPostedToReddit(): bool
     {
-        return !is_null($this->reddit_post_id);
+        return ! is_null($this->reddit_post_id);
     }
 
     /**
      * Get the Reddit post URL
-     *
-     * @return string|null
      */
     public function getRedditUrl(): ?string
     {
@@ -1571,7 +1512,7 @@ class Project extends Model
      */
     public function getContestPaymentStatus(): array
     {
-        if (!$this->isContest() || !$this->isJudgingFinalized()) {
+        if (! $this->isContest() || ! $this->isJudgingFinalized()) {
             return [
                 'has_cash_prizes' => false,
                 'total_prize_amount' => 0,
@@ -1579,7 +1520,7 @@ class Project extends Model
                 'prizes_paid' => 0,
                 'prizes_pending' => 0,
                 'winners_with_status' => [],
-                'summary' => 'Contest not finalized'
+                'summary' => 'Contest not finalized',
             ];
         }
 
@@ -1596,7 +1537,7 @@ class Project extends Model
                 'prizes_paid' => 0,
                 'prizes_pending' => 0,
                 'winners_with_status' => [],
-                'summary' => 'No cash prizes to pay'
+                'summary' => 'No cash prizes to pay',
             ];
         }
 
@@ -1608,11 +1549,11 @@ class Project extends Model
 
         foreach ($cashPrizes as $prize) {
             $winnerPitch = $contestResult ? $contestResult->getWinnerForPlacement($prize->placement) : null;
-            
+
             if ($winnerPitch) {
                 $isPaid = $winnerPitch->payment_status === 'paid';
                 $user = $winnerPitch->user;
-                
+
                 $winnersWithStatus[] = [
                     'prize' => $prize,
                     'pitch' => $winnerPitch,
@@ -1620,7 +1561,7 @@ class Project extends Model
                     'is_paid' => $isPaid,
                     'payment_date' => $winnerPitch->payment_completed_at,
                     'stripe_ready' => $user->stripe_account_id && $user->hasValidStripeConnectAccount(),
-                    'payment_amount' => $prize->cash_amount
+                    'payment_amount' => $prize->cash_amount,
                 ];
 
                 if ($isPaid) {
@@ -1643,7 +1584,7 @@ class Project extends Model
             $summary = 'All prizes paid';
         } elseif ($prizesPaid > 0) {
             $paymentStatus = 'partially_paid';
-            $summary = "{$prizesPaid} of " . count($winnersWithStatus) . " prizes paid";
+            $summary = "{$prizesPaid} of ".count($winnersWithStatus).' prizes paid';
         } else {
             $paymentStatus = 'none_paid';
             $summary = 'No prizes paid yet';
@@ -1656,7 +1597,7 @@ class Project extends Model
             'prizes_paid' => $prizesPaid,
             'prizes_pending' => $prizesPending,
             'winners_with_status' => $winnersWithStatus,
-            'summary' => $summary
+            'summary' => $summary,
         ];
     }
 }

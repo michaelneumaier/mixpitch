@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Order;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class OrderPolicy
 {
@@ -47,7 +46,7 @@ class OrderPolicy
     public function update(User $user, Order $order): bool
     {
         // General updates might be restricted, use specific action policies
-        return false; 
+        return false;
     }
 
     /**
@@ -102,7 +101,7 @@ class OrderPolicy
         }
 
         // Only the producer can deliver, and only when in progress or revisions requested
-        return $user->id === $order->producer_user_id && 
+        return $user->id === $order->producer_user_id &&
                in_array($order->status, [Order::STATUS_IN_PROGRESS, Order::STATUS_REVISIONS_REQUESTED]);
     }
 
@@ -117,7 +116,7 @@ class OrderPolicy
         }
 
         // Only the client can accept delivery, and only when it's ready for review
-        return $user->id === $order->client_user_id && 
+        return $user->id === $order->client_user_id &&
                $order->status === Order::STATUS_READY_FOR_REVIEW;
     }
 
@@ -161,7 +160,7 @@ class OrderPolicy
         }
 
         // Cannot post if completed or cancelled
-        return !in_array($order->status, [Order::STATUS_COMPLETED, Order::STATUS_CANCELLED]);
+        return ! in_array($order->status, [Order::STATUS_COMPLETED, Order::STATUS_CANCELLED]);
     }
 
     /**
@@ -186,6 +185,7 @@ class OrderPolicy
 
         // Check if revisions are available based on package limits
         $revisionsAllowed = $order->servicePackage->revisions_included ?? 0;
+
         return $order->revision_count < $revisionsAllowed;
     }
 

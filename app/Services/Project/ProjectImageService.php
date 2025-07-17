@@ -2,11 +2,11 @@
 
 namespace App\Services\Project;
 
+use App\Exceptions\File\FileUploadException;
 use App\Models\Project;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use App\Exceptions\File\FileUploadException;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectImageService
 {
@@ -15,10 +15,10 @@ class ProjectImageService
      */
     const ALLOWED_MIME_TYPES = [
         'image/jpeg',
-        'image/jpg', 
+        'image/jpg',
         'image/png',
         'image/gif',
-        'image/webp'
+        'image/webp',
     ];
 
     /**
@@ -30,15 +30,16 @@ class ProjectImageService
      * Image dimensions for optimization
      */
     const MAX_WIDTH = 1200;
+
     const MAX_HEIGHT = 800;
+
     const QUALITY = 85;
 
     /**
      * Upload a new project image
      *
-     * @param Project $project
-     * @param UploadedFile $image
      * @return string The path of the uploaded image
+     *
      * @throws FileUploadException
      */
     public function uploadProjectImage(Project $project, UploadedFile $image): string
@@ -61,7 +62,7 @@ class ProjectImageService
                 'project_id' => $project->id,
                 'path' => $path,
                 'original_name' => $image->getClientOriginalName(),
-                'size' => $image->getSize()
+                'size' => $image->getSize(),
             ]);
 
             return $path;
@@ -71,20 +72,18 @@ class ProjectImageService
                 'project_id' => $project->id,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'line' => $e->getLine(),
             ]);
 
-            throw new FileUploadException('Failed to upload project image: ' . $e->getMessage(), 0, $e);
+            throw new FileUploadException('Failed to upload project image: '.$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Update existing project image
      *
-     * @param Project $project
-     * @param UploadedFile $newImage
-     * @param bool $deleteOld
      * @return string The path of the new image
+     *
      * @throws FileUploadException
      */
     public function updateProjectImage(Project $project, UploadedFile $newImage, bool $deleteOld = true): string
@@ -103,7 +102,7 @@ class ProjectImageService
             Log::info('Project image updated successfully', [
                 'project_id' => $project->id,
                 'old_path' => $oldImagePath,
-                'new_path' => $newPath
+                'new_path' => $newPath,
             ]);
 
             return $newPath;
@@ -112,22 +111,19 @@ class ProjectImageService
             Log::error('Error updating project image', [
                 'project_id' => $project->id,
                 'old_path' => $oldImagePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
-            throw new FileUploadException('Failed to update project image: ' . $e->getMessage(), 0, $e);
+            throw new FileUploadException('Failed to update project image: '.$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Delete project image
-     *
-     * @param Project $project
-     * @return bool
      */
     public function deleteProjectImage(Project $project): bool
     {
-        if (!$project->image_path) {
+        if (! $project->image_path) {
             return true; // Nothing to delete
         }
 
@@ -144,7 +140,7 @@ class ProjectImageService
             Log::info('Project image deleted successfully', [
                 'project_id' => $project->id,
                 'path' => $imagePath,
-                'storage_deleted' => $deleted
+                'storage_deleted' => $deleted,
             ]);
 
             return true;
@@ -153,7 +149,7 @@ class ProjectImageService
             Log::error('Error deleting project image', [
                 'project_id' => $project->id,
                 'path' => $imagePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return false;
@@ -163,13 +159,12 @@ class ProjectImageService
     /**
      * Validate uploaded image file
      *
-     * @param UploadedFile $image
      * @throws FileUploadException
      */
     public function validateImageFile(UploadedFile $image): void
     {
         // Check if file was uploaded successfully
-        if (!$image->isValid()) {
+        if (! $image->isValid()) {
             throw new FileUploadException('File upload failed. Please try again.');
         }
 
@@ -180,15 +175,15 @@ class ProjectImageService
         }
 
         // Check MIME type
-        if (!in_array($image->getMimeType(), self::ALLOWED_MIME_TYPES)) {
+        if (! in_array($image->getMimeType(), self::ALLOWED_MIME_TYPES)) {
             throw new FileUploadException('Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.');
         }
 
         // Get file content for validation
         $filePath = $this->getValidFilePath($image);
-        
+
         $imageInfo = getimagesize($filePath);
-        if (!$imageInfo) {
+        if (! $imageInfo) {
             throw new FileUploadException('Invalid image file. Please upload a valid image.');
         }
 
@@ -206,109 +201,101 @@ class ProjectImageService
     /**
      * Get a valid file path for the uploaded file, handling Livewire S3 temporary files
      *
-     * @param UploadedFile $image
-     * @return string
      * @throws FileUploadException
      */
     private function getValidFilePath(UploadedFile $image): string
     {
         // Try standard file paths first
         $filePath = $image->getRealPath();
-        
+
         if ($filePath && file_exists($filePath)) {
             return $filePath;
         }
-        
+
         // Try path() method
         $filePath = $image->path();
         if ($filePath && file_exists($filePath)) {
             return $filePath;
         }
-        
+
         // Try getPathname() method
         $filePath = $image->getPathname();
         if ($filePath && file_exists($filePath)) {
             return $filePath;
         }
-        
+
         // If file is stored in S3 (Livewire temporary files), download it to a local temp file
         try {
             $fileContent = $image->get();
             $tempPath = tempnam(sys_get_temp_dir(), 'livewire_image_');
             file_put_contents($tempPath, $fileContent);
-            
+
             if (file_exists($tempPath) && filesize($tempPath) > 0) {
                 return $tempPath;
             }
         } catch (\Exception $e) {
             Log::error('Error accessing Livewire temporary file', [
                 'error' => $e->getMessage(),
-                'file_path' => $image->getPathname()
+                'file_path' => $image->getPathname(),
             ]);
         }
-        
+
         throw new FileUploadException('Unable to access uploaded file. Please try again.');
     }
 
     /**
      * Generate unique filename for image
-     *
-     * @param UploadedFile $image
-     * @param Project $project
-     * @return string
      */
     private function generateImageFilename(UploadedFile $image, Project $project): string
     {
         $extension = $image->getClientOriginalExtension() ?: 'jpg';
         $timestamp = time();
         $random = substr(md5(uniqid()), 0, 8);
-        
+
         return "project_{$project->id}_{$timestamp}_{$random}.{$extension}";
     }
 
     /**
      * Process and store the image with optimization
      *
-     * @param UploadedFile $image
-     * @param string $filename
      * @return string The storage path
      */
     private function processAndStoreImage(UploadedFile $image, string $filename): string
     {
         // Get the correct file path for Livewire temporary files
         $filePath = $this->getValidFilePath($image);
-        
+
         // Get image info
         $imageInfo = getimagesize($filePath);
         [$originalWidth, $originalHeight, $imageType] = $imageInfo;
-        
+
         // Create image resource from uploaded file
         $sourceImage = $this->createImageFromFile($filePath, $imageType);
-        
-        if (!$sourceImage) {
+
+        if (! $sourceImage) {
             throw new FileUploadException('Unable to process image file.');
         }
-        
+
         // Calculate new dimensions while maintaining aspect ratio
         $newWidth = $originalWidth;
         $newHeight = $originalHeight;
-        
+
         if ($originalWidth > self::MAX_WIDTH || $originalHeight > self::MAX_HEIGHT) {
             $ratio = min(self::MAX_WIDTH / $originalWidth, self::MAX_HEIGHT / $originalHeight);
             $newWidth = intval($originalWidth * $ratio);
             $newHeight = intval($originalHeight * $ratio);
         }
-        
+
         // Create new image with optimized dimensions
         $optimizedImage = imagecreatetruecolor($newWidth, $newHeight);
-        
+
         // Preserve transparency for PNG and GIF
         if ($imageType == IMAGETYPE_PNG || $imageType == IMAGETYPE_GIF) {
             imagecolortransparent($optimizedImage, imagecolorallocatealpha($optimizedImage, 0, 0, 0, 127));
             imagealphablending($optimizedImage, false);
             imagesavealpha($optimizedImage, true);
         }
-        
+
         // Resize the image
         imagecopyresampled(
             $optimizedImage, $sourceImage,
@@ -316,35 +303,33 @@ class ProjectImageService
             $newWidth, $newHeight,
             $originalWidth, $originalHeight
         );
-        
+
         // Save to temporary file
         $tempPath = tempnam(sys_get_temp_dir(), 'project_image_');
         imagejpeg($optimizedImage, $tempPath, self::QUALITY);
-        
+
         // Clean up memory
         imagedestroy($sourceImage);
         imagedestroy($optimizedImage);
-        
+
         // Store to S3
-        $path = 'project_images/' . $filename;
+        $path = 'project_images/'.$filename;
         Storage::disk('s3')->put($path, file_get_contents($tempPath));
-        
+
         // Clean up temp files
         unlink($tempPath);
-        
+
         // Clean up the Livewire temp file if we created it
         if (strpos($filePath, sys_get_temp_dir()) === 0 && strpos($filePath, 'livewire_image_') !== false) {
             unlink($filePath);
         }
-        
+
         return $path;
     }
-    
+
     /**
      * Create image resource from file based on type
      *
-     * @param string $filePath
-     * @param int $imageType
      * @return resource|false
      */
     private function createImageFromFile(string $filePath, int $imageType)
@@ -365,9 +350,6 @@ class ProjectImageService
 
     /**
      * Delete image file from storage
-     *
-     * @param string $path
-     * @return bool
      */
     private function deleteImageFile(string $path): bool
     {
@@ -375,26 +357,24 @@ class ProjectImageService
             if (Storage::disk('s3')->exists($path)) {
                 return Storage::disk('s3')->delete($path);
             }
+
             return true; // File doesn't exist, consider it deleted
         } catch (\Exception $e) {
             Log::error('Error deleting image file from storage', [
                 'path' => $path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
 
     /**
      * Get optimized image URL with caching
-     *
-     * @param Project $project
-     * @param int $expirationHours
-     * @return string|null
      */
     public function getImageUrl(Project $project, int $expirationHours = 2): ?string
     {
-        if (!$project->image_path) {
+        if (! $project->image_path) {
             return null;
         }
 
@@ -407,9 +387,10 @@ class ProjectImageService
             Log::error('Error generating image URL', [
                 'project_id' => $project->id,
                 'path' => $project->image_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
-} 
+}

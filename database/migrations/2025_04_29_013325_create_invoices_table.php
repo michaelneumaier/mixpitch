@@ -1,9 +1,9 @@
 <?php
 
+use App\Models\Invoice;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Models\Invoice;
 
 return new class extends Migration
 {
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->string('pdf_url')->nullable(); // Link to Stripe hosted PDF
             $table->json('metadata')->nullable(); // Store extra info
-            
+
             $table->timestamps();
         });
     }

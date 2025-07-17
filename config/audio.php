@@ -1,7 +1,7 @@
 <?php
 
 return [
-    
+
     /*
     |--------------------------------------------------------------------------
     | Audio Processing Configuration
@@ -13,7 +13,7 @@ return [
     */
 
     'supported_formats' => [
-        'mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'
+        'mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac',
     ],
 
     'target_format' => 'mp3',
@@ -32,7 +32,7 @@ return [
 
     'watermarking' => [
         'enabled' => true,
-        
+
         // Workflow types that require watermarking
         'workflows' => [
             'standard' => true,
@@ -40,7 +40,7 @@ return [
             'direct_hire' => false,
             'client_management' => false,
         ],
-        
+
         // Default watermark settings
         'default_settings' => [
             'type' => 'periodic_tone',
@@ -49,7 +49,7 @@ return [
             'duration' => 0.8,        // 800ms - duration of each watermark burst
             'interval' => 20,         // Every 20 seconds
         ],
-        
+
         // Advanced watermark settings for different noise types
         'noise_types' => [
             'sine' => [
@@ -134,4 +134,4 @@ return [
         'max_file_size' => 100 * 1024 * 1024, // 100MB
     ],
 
-]; 
+];

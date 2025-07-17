@@ -13,31 +13,31 @@ return new class extends Migration
     {
         Schema::create('visibility_boosts', function (Blueprint $table) {
             $table->id();
-            
+
             // User and target relationships
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('project_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('pitch_id')->nullable()->constrained()->onDelete('cascade');
-            
+
             // Boost details
             $table->enum('boost_type', ['project', 'pitch', 'profile'])->default('project');
             $table->timestamp('started_at');
             $table->timestamp('expires_at');
             $table->enum('status', ['active', 'expired', 'cancelled'])->default('active');
-            
+
             // Boost effectiveness tracking
             $table->integer('views_before')->default(0); // Views before boost
             $table->integer('views_during')->default(0); // Views gained during boost
             $table->decimal('ranking_multiplier', 3, 2)->default(2.0); // Ranking boost multiplier
-            
+
             // Monthly tracking for limits
             $table->string('month_year', 7); // Format: '2024-12'
-            
+
             // Metadata
             $table->json('metadata')->nullable(); // Additional boost configuration
-            
+
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['user_id', 'status']);
             $table->index(['user_id', 'month_year']);

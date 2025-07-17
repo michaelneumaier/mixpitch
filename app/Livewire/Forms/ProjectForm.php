@@ -2,16 +2,13 @@
 
 namespace App\Livewire\Forms;
 
-use Livewire\Attributes\Rule;
-use Livewire\Form;
-use Livewire\WithFileUploads;
 use App\Models\Project;
 use App\Models\ProjectType;
 use Illuminate\Validation\Rule as ValidationRule;
+use Livewire\Form;
 
 class ProjectForm extends Form
 {
-
     public $name;
 
     public $artistName;
@@ -45,14 +42,16 @@ class ProjectForm extends Form
     public $notes;
 
     public $submissionDeadline;
+
     public $judgingDeadline;
+
     public $prizeAmount;
 
     public function rules()
     {
         // Get active project type slugs for validation
         $activeProjectTypeSlugs = ProjectType::getActive()->pluck('slug')->toArray();
-        
+
         $rules = [
             'name' => 'required|string|min:5|max:80',
             'artistName' => 'nullable|string|max:30',
@@ -78,7 +77,7 @@ class ProjectForm extends Form
     /**
      * Format budget for database storage
      * Ensures budget is properly cast to a numeric value
-     * 
+     *
      * @return int|float
      */
     public function getFormattedBudget()
@@ -86,16 +85,16 @@ class ProjectForm extends Form
         if ($this->budgetType === 'free') {
             return 0;
         }
-        
+
         if (empty($this->budget)) {
             return 0;
         }
-        
+
         // Strip currency symbols and formatting
         $stripped = preg_replace('/[^\d.]/', '', $this->budget);
-        
+
         // Convert to float if numeric
-        return is_numeric($stripped) ? (float)$stripped : 0;
+        return is_numeric($stripped) ? (float) $stripped : 0;
     }
 
     public function setProject(Project $project)
@@ -103,7 +102,7 @@ class ProjectForm extends Form
         $this->project = $project;
         $this->name = $project->name;
         $this->artistName = $project->artist_name;
-        
+
         // Use the new ProjectType relationship if available, fallback to legacy field
         if ($project->projectType) {
             $this->projectType = $project->projectType->slug;
@@ -111,7 +110,7 @@ class ProjectForm extends Form
             // Fallback to legacy project_type field if no relationship exists
             $this->projectType = $project->project_type ?? 'single';
         }
-        
+
         $this->description = $project->description;
         $this->genre = $project->genre;
         $this->collaborationTypeMixing = in_array('Mixing', $project->collaboration_type ?? []);

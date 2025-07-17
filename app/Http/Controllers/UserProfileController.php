@@ -2,23 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\Tag;
-use App\Models\PortfolioItem;
-use App\Models\ServicePackage;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 
 class UserProfileController extends Controller
 {
     /**
      * Display the user's public profile
      *
-     * @param string $username
+     * @param  string  $username
      * @return \Illuminate\View\View
      */
     public function show($username)
@@ -111,7 +107,6 @@ class UserProfileController extends Controller
     /**
      * Update the user's profile
      *
-     * @param Request $request
      * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request)
@@ -119,7 +114,7 @@ class UserProfileController extends Controller
         $user = auth()->user();
 
         // Username validation rules vary depending on whether username is already locked
-        $usernameRules = 'required|alpha_dash|min:3|max:30|unique:users,username,' . $user->id;
+        $usernameRules = 'required|alpha_dash|min:3|max:30|unique:users,username,'.$user->id;
 
         $validated = $request->validate([
             'username' => $usernameRules,
@@ -151,49 +146,49 @@ class UserProfileController extends Controller
             }
 
             // Format website URL if provided
-            if (!empty($validated['website'])) {
+            if (! empty($validated['website'])) {
                 // Add http:// prefix if not present
-                if (!preg_match("~^(?:f|ht)tps?://~i", $validated['website'])) {
-                    $validated['website'] = "https://" . $validated['website'];
+                if (! preg_match('~^(?:f|ht)tps?://~i', $validated['website'])) {
+                    $validated['website'] = 'https://'.$validated['website'];
                 }
             }
 
             // Format social media links
-            if (!empty($validated['social_links'])) {
+            if (! empty($validated['social_links'])) {
                 $socialLinks = [];
 
                 // Twitter
-                if (!empty($validated['social_links']['twitter'])) {
+                if (! empty($validated['social_links']['twitter'])) {
                     $username = $this->extractUsername($validated['social_links']['twitter'], 'twitter');
                     $socialLinks['twitter'] = $username;
                 }
 
                 // Instagram
-                if (!empty($validated['social_links']['instagram'])) {
+                if (! empty($validated['social_links']['instagram'])) {
                     $username = $this->extractUsername($validated['social_links']['instagram'], 'instagram');
                     $socialLinks['instagram'] = $username;
                 }
 
                 // Facebook
-                if (!empty($validated['social_links']['facebook'])) {
+                if (! empty($validated['social_links']['facebook'])) {
                     $username = $this->extractUsername($validated['social_links']['facebook'], 'facebook');
                     $socialLinks['facebook'] = $username;
                 }
 
                 // SoundCloud
-                if (!empty($validated['social_links']['soundcloud'])) {
+                if (! empty($validated['social_links']['soundcloud'])) {
                     $username = $this->extractUsername($validated['social_links']['soundcloud'], 'soundcloud');
                     $socialLinks['soundcloud'] = $username;
                 }
 
                 // Spotify
-                if (!empty($validated['social_links']['spotify'])) {
+                if (! empty($validated['social_links']['spotify'])) {
                     $username = $this->extractUsername($validated['social_links']['spotify'], 'spotify');
                     $socialLinks['spotify'] = $username;
                 }
 
                 // YouTube
-                if (!empty($validated['social_links']['youtube'])) {
+                if (! empty($validated['social_links']['youtube'])) {
                     $username = $this->extractUsername($validated['social_links']['youtube'], 'youtube');
                     $socialLinks['youtube'] = $username;
                 }
@@ -203,7 +198,7 @@ class UserProfileController extends Controller
 
             // If user has set a username for the first time, lock it after saving
             $lockUsername = false;
-            if (!$user->username_locked && !empty($validated['username'])) {
+            if (! $user->username_locked && ! empty($validated['username'])) {
                 $lockUsername = true;
             }
 
@@ -211,7 +206,7 @@ class UserProfileController extends Controller
             $skillIds = isset($validated['skills']) ? array_filter($validated['skills']) : [];
             $equipmentIds = isset($validated['equipment']) ? array_filter($validated['equipment']) : [];
             $specialtyIds = isset($validated['specialties']) ? array_filter($validated['specialties']) : [];
-            
+
             // Merge all tag IDs for syncing
             $allTagIds = array_merge(
                 array_map('intval', $skillIds),
@@ -225,12 +220,12 @@ class UserProfileController extends Controller
             unset($validated['specialties']);
 
             // Check if the profile can be considered complete
-            $profileComplete = !empty($validated['username']) &&
-                !empty($validated['bio']) &&
+            $profileComplete = ! empty($validated['username']) &&
+                ! empty($validated['bio']) &&
                 (
-                    !empty($skillIds) ||
-                    !empty($equipmentIds) ||
-                    !empty($specialtyIds)
+                    ! empty($skillIds) ||
+                    ! empty($equipmentIds) ||
+                    ! empty($specialtyIds)
                 );
 
             // Update the user profile
@@ -245,16 +240,16 @@ class UserProfileController extends Controller
             $user->profile_completed = $profileComplete;
 
             $user->save();
-            
+
             // Sync the tags using the polymorphic relationship
             $user->tags()->sync($allTagIds);
 
-            return redirect()->back()->with('success', 'Profile updated successfully.' . ($lockUsername ? ' Your username has been locked and cannot be changed in the future.' : ''));
+            return redirect()->back()->with('success', 'Profile updated successfully.'.($lockUsername ? ' Your username has been locked and cannot be changed in the future.' : ''));
         } catch (\Exception $e) {
             \Log::error('Error updating user profile', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->back()->with('error', 'There was a problem updating your profile. Please try again.');
@@ -264,8 +259,8 @@ class UserProfileController extends Controller
     /**
      * Extract username from social media URL or handle
      *
-     * @param string $input
-     * @param string $platform
+     * @param  string  $input
+     * @param  string  $platform
      * @return string
      */
     private function extractUsername($input, $platform)
@@ -277,7 +272,7 @@ class UserProfileController extends Controller
         if (filter_var($input, FILTER_VALIDATE_URL)) {
             $parsedUrl = parse_url($input);
 
-            if (!isset($parsedUrl['host'])) {
+            if (! isset($parsedUrl['host'])) {
                 return $input;
             }
 
@@ -290,13 +285,14 @@ class UserProfileController extends Controller
                 case 'instagram':
                 case 'facebook':
                 case 'soundcloud':
-                    return !empty($pathParts[0]) ? $pathParts[0] : $input;
+                    return ! empty($pathParts[0]) ? $pathParts[0] : $input;
 
                 case 'spotify':
                     // For Spotify, we want the ID after /artist/
                     if (count($pathParts) >= 2 && $pathParts[0] === 'artist') {
                         return $pathParts[1];
                     }
+
                     return $input;
 
                 case 'youtube':
@@ -304,6 +300,7 @@ class UserProfileController extends Controller
                     if (count($pathParts) >= 2 && ($pathParts[0] === 'c' || $pathParts[0] === 'channel' || $pathParts[0] === 'user')) {
                         return $pathParts[1];
                     }
+
                     return $input;
 
                 default:

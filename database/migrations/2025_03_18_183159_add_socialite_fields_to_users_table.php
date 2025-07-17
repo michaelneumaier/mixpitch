@@ -29,7 +29,7 @@ return new class extends Migration
                 'provider',
                 'provider_id',
                 'provider_token',
-                'provider_refresh_token'
+                'provider_refresh_token',
             ]);
         });
     }

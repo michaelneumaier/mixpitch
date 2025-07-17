@@ -5,11 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class VisibilityBoost extends Model
 {
@@ -19,14 +14,18 @@ class VisibilityBoost extends Model
      * Boost type constants
      */
     const TYPE_PROJECT = 'project';
+
     const TYPE_PITCH = 'pitch';
+
     const TYPE_PROFILE = 'profile';
 
     /**
      * Status constants
      */
     const STATUS_ACTIVE = 'active';
+
     const STATUS_EXPIRED = 'expired';
+
     const STATUS_CANCELLED = 'cancelled';
 
     /**
@@ -87,10 +86,6 @@ class VisibilityBoost extends Model
     /**
      * Create a boost for a project
      *
-     * @param User $user
-     * @param Project $project
-     * @param int $durationHours
-     * @param array $additionalData
      * @return static|null
      */
     public static function createForProject(
@@ -100,7 +95,7 @@ class VisibilityBoost extends Model
         array $additionalData = []
     ): ?self {
         // Check if user can create boost
-        if (!self::canUserCreateBoost($user)) {
+        if (! self::canUserCreateBoost($user)) {
             return null;
         }
 
@@ -123,10 +118,6 @@ class VisibilityBoost extends Model
     /**
      * Create a boost for a pitch
      *
-     * @param User $user
-     * @param Pitch $pitch
-     * @param int $durationHours
-     * @param array $additionalData
      * @return static|null
      */
     public static function createForPitch(
@@ -135,7 +126,7 @@ class VisibilityBoost extends Model
         int $durationHours = self::DEFAULT_DURATION_HOURS,
         array $additionalData = []
     ): ?self {
-        if (!self::canUserCreateBoost($user)) {
+        if (! self::canUserCreateBoost($user)) {
             return null;
         }
 
@@ -150,15 +141,13 @@ class VisibilityBoost extends Model
         ], $additionalData));
 
         self::incrementMonthlyUsage($user);
+
         return $boost;
     }
 
     /**
      * Create a profile boost
      *
-     * @param User $user
-     * @param int $durationHours
-     * @param array $additionalData
      * @return static|null
      */
     public static function createForProfile(
@@ -166,7 +155,7 @@ class VisibilityBoost extends Model
         int $durationHours = self::DEFAULT_DURATION_HOURS,
         array $additionalData = []
     ): ?self {
-        if (!self::canUserCreateBoost($user)) {
+        if (! self::canUserCreateBoost($user)) {
             return null;
         }
 
@@ -180,6 +169,7 @@ class VisibilityBoost extends Model
         ], $additionalData));
 
         self::incrementMonthlyUsage($user);
+
         return $boost;
     }
 
@@ -187,14 +177,11 @@ class VisibilityBoost extends Model
 
     /**
      * Check if user can create a new boost this month
-     *
-     * @param User $user
-     * @return bool
      */
     public static function canUserCreateBoost(User $user): bool
     {
         $monthlyLimit = $user->getMonthlyVisibilityBoosts();
-        
+
         if ($monthlyLimit === 0) {
             return false; // Free users can't create boosts
         }
@@ -209,9 +196,6 @@ class VisibilityBoost extends Model
 
     /**
      * Get remaining boosts for user this month
-     *
-     * @param User $user
-     * @return int
      */
     public static function getRemainingBoosts(User $user): int
     {
@@ -226,19 +210,16 @@ class VisibilityBoost extends Model
 
     /**
      * Increment monthly usage tracking
-     *
-     * @param User $user
-     * @return void
      */
     private static function incrementMonthlyUsage(User $user): void
     {
         $currentMonth = now()->format('Y-m');
-        
+
         $monthlyLimit = UserMonthlyLimit::updateOrCreate(
             ['user_id' => $user->id, 'month_year' => $currentMonth],
             ['last_reset_at' => now()]
         );
-        
+
         $monthlyLimit->increment('visibility_boosts_used');
     }
 
@@ -246,8 +227,6 @@ class VisibilityBoost extends Model
 
     /**
      * Check if boost is currently active
-     *
-     * @return bool
      */
     public function isActive(): bool
     {
@@ -256,8 +235,6 @@ class VisibilityBoost extends Model
 
     /**
      * Check if boost has expired
-     *
-     * @return bool
      */
     public function hasExpired(): bool
     {
@@ -266,8 +243,6 @@ class VisibilityBoost extends Model
 
     /**
      * Cancel the boost
-     *
-     * @return void
      */
     public function cancel(): void
     {
@@ -276,8 +251,6 @@ class VisibilityBoost extends Model
 
     /**
      * Mark boost as expired
-     *
-     * @return void
      */
     public function markAsExpired(): void
     {
@@ -286,8 +259,6 @@ class VisibilityBoost extends Model
 
     /**
      * Get time remaining in human readable format
-     *
-     * @return string
      */
     public function getTimeRemainingAttribute(): string
     {
@@ -300,8 +271,6 @@ class VisibilityBoost extends Model
 
     /**
      * Get boost effectiveness percentage
-     *
-     * @return float
      */
     public function getEffectivenessPercentage(): float
     {
@@ -314,9 +283,6 @@ class VisibilityBoost extends Model
 
     /**
      * Update view tracking
-     *
-     * @param int $newViews
-     * @return void
      */
     public function updateViewsDuring(int $newViews): void
     {
@@ -330,7 +296,7 @@ class VisibilityBoost extends Model
      */
     public function getTarget()
     {
-        return match($this->boost_type) {
+        return match ($this->boost_type) {
             self::TYPE_PROJECT => $this->project,
             self::TYPE_PITCH => $this->pitch,
             self::TYPE_PROFILE => $this->user,
@@ -346,7 +312,7 @@ class VisibilityBoost extends Model
     public function scopeActive($query)
     {
         return $query->where('status', self::STATUS_ACTIVE)
-                    ->where('expires_at', '>', now());
+            ->where('expires_at', '>', now());
     }
 
     /**
@@ -356,7 +322,7 @@ class VisibilityBoost extends Model
     {
         return $query->where(function ($q) {
             $q->where('status', self::STATUS_EXPIRED)
-              ->orWhere('expires_at', '<=', now());
+                ->orWhere('expires_at', '<=', now());
         });
     }
 

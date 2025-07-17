@@ -4,9 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
-use App\Models\Pitch;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 /**
@@ -15,7 +12,7 @@ use Illuminate\Support\Str;
 class Notification extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
      *
@@ -29,7 +26,7 @@ class Notification extends Model
         'data',
         'read_at',
     ];
-    
+
     /**
      * The attributes that should be cast.
      *
@@ -39,61 +36,97 @@ class Notification extends Model
         'data' => 'array',
         'read_at' => 'datetime',
     ];
-    
+
     /**
      * Notification types
      */
     const TYPE_PITCH_SUBMITTED = 'pitch_submitted';
+
     const TYPE_PITCH_STATUS_CHANGE = 'pitch_status_change';
+
     const TYPE_PITCH_COMMENT = 'pitch_comment';
+
     const TYPE_PITCH_FILE_COMMENT = 'pitch_file_comment';
+
     const TYPE_SNAPSHOT_APPROVED = 'snapshot_approved';
+
     const TYPE_SNAPSHOT_DENIED = 'snapshot_denied';
+
     const TYPE_SNAPSHOT_REVISIONS_REQUESTED = 'snapshot_revisions_requested';
+
     const TYPE_PITCH_COMPLETED = 'pitch_completed';
+
     const TYPE_PITCH_EDITED = 'pitch_edited';
+
     const TYPE_FILE_UPLOADED = 'file_uploaded';
+
     const TYPE_PITCH_REVISION = 'pitch_revision';
+
     const TYPE_PITCH_CANCELLED = 'pitch_cancelled';
+
     const TYPE_PAYMENT_PROCESSED = 'payment_processed';
+
     const TYPE_PAYMENT_FAILED = 'payment_failed';
+
     const TYPE_PITCH_APPROVED = 'pitch_approved';
+
     const TYPE_PITCH_SUBMISSION_APPROVED = 'pitch_submission_approved';
+
     const TYPE_PITCH_SUBMISSION_DENIED = 'pitch_submission_denied';
+
     const TYPE_PITCH_SUBMISSION_CANCELLED = 'pitch_submission_cancelled';
+
     const TYPE_PITCH_READY_FOR_REVIEW = 'pitch_ready_for_review';
+
     const TYPE_PITCH_CLOSED = 'pitch_closed';
+
     const TYPE_PROJECT_UPDATE = 'project_update';
+
     const TYPE_CONTEST_WINNER_SELECTED = 'contest_winner_selected';
+
     const TYPE_CONTEST_RUNNER_UP_SELECTED = 'contest_runner_up_selected';
+
     const TYPE_CONTEST_ENTRY_NOT_SELECTED = 'contest_entry_not_selected';
+
     const TYPE_CONTEST_ENTRY_SUBMITTED = 'contest_entry_submitted';
 
     // Phase 3: Added Types for No-Prize/Owner Notifications
     const TYPE_CONTEST_WINNER_SELECTED_NO_PRIZE = 'contest_winner_selected_no_prize';
+
     const TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION = 'contest_winner_selected_owner_notification';
+
     const TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE = 'contest_winner_selected_owner_notification_no_prize';
 
     // Phase 4: Direct Hire Types
     const TYPE_DIRECT_HIRE_ASSIGNMENT = 'direct_hire_assignment';
+
     const TYPE_DIRECT_HIRE_OFFER = 'direct_hire_offer'; // Placeholder for explicit flow
+
     const TYPE_DIRECT_HIRE_ACCEPTED = 'direct_hire_accepted'; // Placeholder for explicit flow
+
     const TYPE_DIRECT_HIRE_REJECTED = 'direct_hire_rejected'; // Placeholder for explicit flow
-    
+
     // Phase 7: Added Denial Type
     const TYPE_INITIAL_PITCH_DENIED = 'initial_pitch_denied';
-    
+
     // Client Management Notification Types
     const TYPE_CLIENT_COMMENT_ADDED = 'client_comment_added';
+
     const TYPE_CLIENT_APPROVED_PITCH = 'client_approved_pitch';
+
     const TYPE_CLIENT_REQUESTED_REVISIONS = 'client_requested_revisions';
+
     const TYPE_CLIENT_APPROVED_AND_COMPLETED = 'client_approved_and_completed';
-    
+
     // Payout Notification Types
     const TYPE_CONTEST_PAYOUT_SCHEDULED = 'contest_payout_scheduled';
+
     const TYPE_PAYOUT_SCHEDULED = 'payout_scheduled';
+
     const TYPE_PAYOUT_COMPLETED = 'payout_completed';
+
     const TYPE_PAYOUT_FAILED = 'payout_failed';
+
     const TYPE_PAYOUT_CANCELLED = 'payout_cancelled';
 
     /**
@@ -144,13 +177,13 @@ class Notification extends Model
 
             // Phase 7 Added Label
             self::TYPE_INITIAL_PITCH_DENIED => 'Initial Pitch Application Denied',
-            
+
             // Client Management Labels
             self::TYPE_CLIENT_COMMENT_ADDED => 'Client Added a Comment',
             self::TYPE_CLIENT_APPROVED_PITCH => 'Client Approved Your Submission',
             self::TYPE_CLIENT_REQUESTED_REVISIONS => 'Client Requested Revisions',
             self::TYPE_CLIENT_APPROVED_AND_COMPLETED => 'Client Approved & Project Completed',
-            
+
             // Payout Labels
             self::TYPE_CONTEST_PAYOUT_SCHEDULED => 'Contest Prize Payout Scheduled',
             self::TYPE_PAYOUT_SCHEDULED => 'Payout Scheduled',
@@ -164,7 +197,7 @@ class Notification extends Model
 
         return $labels;
     }
-    
+
     /**
      * Get the related model
      */
@@ -172,7 +205,7 @@ class Notification extends Model
     {
         return $this->morphTo();
     }
-    
+
     /**
      * Get the user for the notification
      */
@@ -180,7 +213,7 @@ class Notification extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
+
     /**
      * Mark the notification as read
      */
@@ -188,10 +221,10 @@ class Notification extends Model
     {
         $this->read_at = now();
         $this->save();
-        
+
         return $this;
     }
-    
+
     /**
      * Check if the notification is read
      */
@@ -199,7 +232,7 @@ class Notification extends Model
     {
         return $this->read_at !== null;
     }
-    
+
     /**
      * Scope a query to only include unread notifications
      */
@@ -207,14 +240,14 @@ class Notification extends Model
     {
         return $query->whereNull('read_at');
     }
-    
+
     /**
      * Get the URL for this notification
      */
     public function getUrl()
     {
         $data = $this->data ?? [];
-        
+
         // Handle Contest notifications FIRST (before pitch routing)
         if (in_array($this->type, [
             self::TYPE_CONTEST_WINNER_SELECTED,
@@ -233,10 +266,11 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate contest results URL for notification.', [
                         'notification_id' => $this->id,
                         'project_id' => $data['project_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
+
             // Fallback to dashboard if contest routing fails
             return route('dashboard');
         }
@@ -257,10 +291,11 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate contest judging URL for notification.', [
                         'notification_id' => $this->id,
                         'project_id' => $data['project_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
+
             // Fallback to dashboard if contest routing fails
             return route('dashboard');
         }
@@ -278,10 +313,11 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate project URL for contest entry notification.', [
                         'notification_id' => $this->id,
                         'project_id' => $data['project_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
+
             // Fallback to dashboard if contest routing fails
             return route('dashboard');
         }
@@ -302,18 +338,18 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate specific payout URL for notification.', [
                         'notification_id' => $this->id,
                         'payout_id' => $data['payout_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
-            
+
             // Otherwise route to general payouts page
             try {
                 return route('payouts.index');
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::warning('Could not generate payouts index URL for notification.', [
                     'notification_id' => $this->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -334,10 +370,11 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate project management URL for direct hire notification.', [
                         'notification_id' => $this->id,
                         'project_id' => $data['project_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
+
             // Fallback to projects index
             return route('projects.index');
         }
@@ -358,10 +395,11 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate project URL for direct hire offer notification.', [
                         'notification_id' => $this->id,
                         'project_id' => $data['project_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
+
             // Fallback to projects index
             return route('projects.index');
         }
@@ -384,10 +422,11 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate client project management URL for notification.', [
                         'notification_id' => $this->id,
                         'project_id' => $data['project_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
+
             // Fallback to projects index
             return route('projects.index');
         }
@@ -405,65 +444,67 @@ class Notification extends Model
                     \Illuminate\Support\Facades\Log::warning('Could not generate project URL for project update notification.', [
                         'notification_id' => $this->id,
                         'project_id' => $data['project_id'] ?? null,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
+
             // Fallback to projects index
             return route('projects.index');
         }
-        
+
         if ($this->related_type === 'App\\Models\\Pitch') {
             // Find pitch with project eagerly loaded
             $pitch = Pitch::with('project')->find($this->related_id);
-            
+
             if ($pitch && $pitch->project) {
                 // Ensure the pitch has a slug
                 if (empty($pitch->slug)) {
                     $this->generateSlugForPitch($pitch);
                 }
-                
+
                 // Ensure the project has a slug
                 if (empty($pitch->project->slug)) {
                     // Project should always have a slug, but just in case
-                    $pitch->project->slug = Str::slug($pitch->project->name ?? 'project') . '-' . $pitch->project->id;
+                    $pitch->project->slug = Str::slug($pitch->project->name ?? 'project').'-'.$pitch->project->id;
                     $pitch->project->save();
                 }
-                
+
                 // Now we can safely check both slugs are present
                 if ($pitch->slug && $pitch->project->slug) {
                     // For comments, include the comment anchor
                     if ($this->type === self::TYPE_PITCH_COMMENT && isset($data['comment_id'])) {
-                        return route('projects.pitches.show', ['project' => $pitch->project, 'pitch' => $pitch]) . '#comment-' . $data['comment_id'];
+                        return route('projects.pitches.show', ['project' => $pitch->project, 'pitch' => $pitch]).'#comment-'.$data['comment_id'];
                     }
-                    
+
                     // For all other pitch-related notifications, go to the pitch page
                     return route('projects.pitches.show', ['project' => $pitch->project, 'pitch' => $pitch]);
                 }
             }
-            
+
             // Log the issue if pitch, project, or slugs are missing
             \Illuminate\Support\Facades\Log::warning('Could not generate URL for pitch notification due to missing data.', [
                 'notification_id' => $this->id,
                 'pitch_id' => $this->related_id,
-                'pitch_found' => !is_null($pitch),
-                'project_found' => $pitch ? !is_null($pitch->project) : false,
+                'pitch_found' => ! is_null($pitch),
+                'project_found' => $pitch ? ! is_null($pitch->project) : false,
                 'pitch_slug' => $pitch ? $pitch->slug : null,
                 'project_slug' => $pitch && $pitch->project ? $pitch->project->slug : null,
             ]);
+
             // Fallback to dashboard
             return route('dashboard');
         }
-        
+
         // For pitch file comment notifications (ensure pitch file exists)
         if ($this->related_type === 'App\\Models\\PitchFile' && $this->type === self::TYPE_PITCH_FILE_COMMENT) {
             $pitchFile = \App\Models\PitchFile::find($this->related_id);
             if ($pitchFile) {
                 // For comment/reply notifications, include the comment anchor for direct navigation
                 if (isset($data['comment_id'])) {
-                    return route('pitch-files.show', $pitchFile) . '#comment-' . $data['comment_id'];
+                    return route('pitch-files.show', $pitchFile).'#comment-'.$data['comment_id'];
                 }
-                
+
                 // Without specific comment ID, just go to the file page
                 return route('pitch-files.show', $pitchFile);
             } else {
@@ -471,27 +512,28 @@ class Notification extends Model
                     'notification_id' => $this->id,
                     'pitch_file_id' => $this->related_id,
                 ]);
+
                 // Fallback to dashboard
-                 return route('dashboard');
+                return route('dashboard');
             }
         }
-        
+
         // Default to dashboard if we can't determine a specific URL
         return route('dashboard');
     }
-    
+
     /**
      * Generate a slug for a pitch if it doesn't have one
      */
     private function generateSlugForPitch($pitch)
     {
-        $baseSlug = !empty($pitch->title) 
+        $baseSlug = ! empty($pitch->title)
             ? Str::slug($pitch->title)
-            : 'pitch-' . $pitch->id;
-        
+            : 'pitch-'.$pitch->id;
+
         $slug = $baseSlug;
         $count = 1;
-        
+
         // Find a unique slug by checking for existing values
         while (
             Pitch::where('project_id', $pitch->project_id)
@@ -499,85 +541,92 @@ class Notification extends Model
                 ->where('slug', $slug)
                 ->exists()
         ) {
-            $slug = $baseSlug . '-' . $count;
+            $slug = $baseSlug.'-'.$count;
             $count++;
         }
-        
+
         $pitch->slug = $slug;
         $pitch->save();
-        
+
         \Illuminate\Support\Facades\Log::info('Generated slug for pitch in notification URL generation', [
             'notification_id' => $this->id,
             'pitch_id' => $pitch->id,
-            'slug' => $slug
+            'slug' => $slug,
         ]);
-        
+
         return $pitch;
     }
-    
+
     /**
      * Get a readable description of the notification
      */
     public function getReadableDescription()
     {
         $data = $this->data ?? [];
-        $projectName = isset($data['project_name']) ? (' "' . Str::limit($data['project_name'], 30) . '"') : '';
+        $projectName = isset($data['project_name']) ? (' "'.Str::limit($data['project_name'], 30).'"') : '';
 
         switch ($this->type) {
             case self::TYPE_PITCH_SUBMITTED:
                 $submitterName = $data['submitter_name'] ?? 'A producer';
-                return $submitterName . ' submitted a pitch for project' . $projectName;
+
+                return $submitterName.' submitted a pitch for project'.$projectName;
             case self::TYPE_PITCH_STATUS_CHANGE:
-                 $statusText = $data['status'] ?? 'updated';
-                 // Add context for cancellation if present
-                 $actionText = ($data['action'] ?? '') === 'canceled' ? ' cancelled their pitch for' : ' status updated to "' . $statusText . '" for project';
-                 return 'Pitch' . $actionText . $projectName;
+                $statusText = $data['status'] ?? 'updated';
+                // Add context for cancellation if present
+                $actionText = ($data['action'] ?? '') === 'canceled' ? ' cancelled their pitch for' : ' status updated to "'.$statusText.'" for project';
+
+                return 'Pitch'.$actionText.$projectName;
             case self::TYPE_PITCH_COMMENT:
                 $commenterName = $data['commenter_name'] ?? 'Someone';
-                return $commenterName . ' commented on your pitch for project' . $projectName;
+
+                return $commenterName.' commented on your pitch for project'.$projectName;
             case self::TYPE_PITCH_FILE_COMMENT:
                 $commenterName = $data['commenter_name'] ?? 'Someone';
                 $fileName = $data['file_name'] ?? 'your audio file'; // Use data or fallback
                 // Add logic for replies vs new comments if needed later, based on data
                 if (isset($data['replying_to_your_comment']) && $data['replying_to_your_comment']) {
-                    return $commenterName . ' replied to your comment on ' . $fileName;
-                } else if (isset($data['nested_reply_to_your_thread']) && $data['nested_reply_to_your_thread']) {
-                    return $commenterName . ' replied in a thread you started on ' . $fileName;
-                } else if (isset($data['is_reply']) && $data['is_reply']) {
-                     return $commenterName . ' replied to a comment on ' . $fileName;
+                    return $commenterName.' replied to your comment on '.$fileName;
+                } elseif (isset($data['nested_reply_to_your_thread']) && $data['nested_reply_to_your_thread']) {
+                    return $commenterName.' replied in a thread you started on '.$fileName;
+                } elseif (isset($data['is_reply']) && $data['is_reply']) {
+                    return $commenterName.' replied to a comment on '.$fileName;
                 } else {
-                    return $commenterName . ' commented on ' . $fileName;
+                    return $commenterName.' commented on '.$fileName;
                 }
             case self::TYPE_SNAPSHOT_APPROVED:
-                return 'Your snapshot for pitch on project' . $projectName . ' was approved.';
+                return 'Your snapshot for pitch on project'.$projectName.' was approved.';
             case self::TYPE_SNAPSHOT_DENIED:
-                return 'Your snapshot for pitch on project' . $projectName . ' was denied.';
+                return 'Your snapshot for pitch on project'.$projectName.' was denied.';
             case self::TYPE_SNAPSHOT_REVISIONS_REQUESTED:
-                return 'Revisions requested for your snapshot on project' . $projectName . '.';
+                return 'Revisions requested for your snapshot on project'.$projectName.'.';
             case self::TYPE_PITCH_COMPLETED:
-                return 'Your pitch for project' . $projectName . ' was marked as completed.';
+                return 'Your pitch for project'.$projectName.' was marked as completed.';
             case self::TYPE_PITCH_EDITED:
                 $editorName = $data['editor_name'] ?? 'The producer';
-                return $editorName . ' edited their pitch for project' . $projectName;
+
+                return $editorName.' edited their pitch for project'.$projectName;
             case self::TYPE_FILE_UPLOADED:
-                 $uploaderName = $data['uploader_name'] ?? 'Someone';
-                 $fileName = $data['file_name'] ?? 'a file';
-                 return $uploaderName . ' uploaded ' . $fileName . ' to a pitch on project' . $projectName;
+                $uploaderName = $data['uploader_name'] ?? 'Someone';
+                $fileName = $data['file_name'] ?? 'a file';
+
+                return $uploaderName.' uploaded '.$fileName.' to a pitch on project'.$projectName;
             case self::TYPE_PITCH_CANCELLED:
-                 $cancellerName = $data['canceller_name'] ?? ($data['creator_name'] ?? 'The producer');
-                 return $cancellerName . ' cancelled their pitch for project' . $projectName;
+                $cancellerName = $data['canceller_name'] ?? ($data['creator_name'] ?? 'The producer');
+
+                return $cancellerName.' cancelled their pitch for project'.$projectName;
             case self::TYPE_PAYMENT_PROCESSED:
-                 return 'Payment processed for your pitch on project' . $projectName;
+                return 'Payment processed for your pitch on project'.$projectName;
             case self::TYPE_PAYMENT_FAILED:
-                 return 'Payment failed for pitch on project' . $projectName;
+                return 'Payment failed for pitch on project'.$projectName;
             case self::TYPE_PITCH_APPROVED:
-                 return 'Your pitch for project' . $projectName . ' was approved.';
+                return 'Your pitch for project'.$projectName.' was approved.';
             case self::TYPE_PITCH_SUBMISSION_APPROVED:
-                 return 'A pitch submission was approved';
+                return 'A pitch submission was approved';
             case self::TYPE_PITCH_SUBMISSION_DENIED:
-                 $reason = $data['reason'] ?? '';
-                 $reasonText = !empty($reason) ? ': "' . $reason . '"' : '';
-                 return 'A pitch submission was denied' . $reasonText;
+                $reason = $data['reason'] ?? '';
+                $reasonText = ! empty($reason) ? ': "'.$reason.'"' : '';
+
+                return 'A pitch submission was denied'.$reasonText;
             case self::TYPE_PITCH_SUBMISSION_CANCELLED:
                 return 'A pitch submission was cancelled';
             case self::TYPE_PITCH_READY_FOR_REVIEW:
@@ -586,91 +635,113 @@ class Notification extends Model
                 return 'A pitch has been closed';
             case self::TYPE_PROJECT_UPDATE:
                 $updateDescription = $data['update_description'] ?? 'Project has been updated';
-                return $updateDescription . ' for project' . $projectName;
+
+                return $updateDescription.' for project'.$projectName;
             case self::TYPE_PITCH_REVISION:
                 $revisorName = $data['revisor_name'] ?? 'Someone';
-                return $revisorName . ' submitted a revision for their pitch on project' . $projectName;
+
+                return $revisorName.' submitted a revision for their pitch on project'.$projectName;
             case self::TYPE_CONTEST_WINNER_SELECTED:
                 $contestName = $data['contest_name'] ?? $projectName;
-                $prizeMoney = isset($data['prize_money']) ? ' ($' . number_format($data['prize_money']) . ' prize)' : '';
-                return 'Congratulations! You won the contest' . $contestName . $prizeMoney;
+                $prizeMoney = isset($data['prize_money']) ? ' ($'.number_format($data['prize_money']).' prize)' : '';
+
+                return 'Congratulations! You won the contest'.$contestName.$prizeMoney;
             case self::TYPE_CONTEST_RUNNER_UP_SELECTED:
                 $contestName = $data['contest_name'] ?? $projectName;
-                $prizeMoney = isset($data['prize_money']) ? ' ($' . number_format($data['prize_money']) . ' prize)' : '';
-                return 'You were selected as runner-up in the contest' . $contestName . $prizeMoney;
+                $prizeMoney = isset($data['prize_money']) ? ' ($'.number_format($data['prize_money']).' prize)' : '';
+
+                return 'You were selected as runner-up in the contest'.$contestName.$prizeMoney;
             case self::TYPE_CONTEST_ENTRY_NOT_SELECTED:
                 $contestName = $data['contest_name'] ?? $projectName;
-                return 'Your entry was not selected for the contest' . $contestName;
+
+                return 'Your entry was not selected for the contest'.$contestName;
             case self::TYPE_CONTEST_ENTRY_SUBMITTED:
                 $contestName = $data['contest_name'] ?? $projectName;
-                return 'Your contest entry was submitted for' . $contestName;
+
+                return 'Your contest entry was submitted for'.$contestName;
             case self::TYPE_CONTEST_WINNER_SELECTED_NO_PRIZE:
                 $contestName = $data['contest_name'] ?? $projectName;
-                return 'Congratulations! You won the contest' . $contestName;
+
+                return 'Congratulations! You won the contest'.$contestName;
             case self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION:
                 $winnerName = $data['winner_name'] ?? 'A participant';
                 $contestName = $data['contest_name'] ?? $projectName;
-                $prizeMoney = isset($data['prize_money']) ? ' ($' . number_format($data['prize_money']) . ' prize)' : '';
-                return $winnerName . ' won your contest' . $contestName . $prizeMoney;
+                $prizeMoney = isset($data['prize_money']) ? ' ($'.number_format($data['prize_money']).' prize)' : '';
+
+                return $winnerName.' won your contest'.$contestName.$prizeMoney;
             case self::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE:
                 $winnerName = $data['winner_name'] ?? 'A participant';
                 $contestName = $data['contest_name'] ?? $projectName;
-                return $winnerName . ' won your contest' . $contestName;
+
+                return $winnerName.' won your contest'.$contestName;
             case self::TYPE_DIRECT_HIRE_ASSIGNMENT:
                 $assignerName = $data['assigner_name'] ?? 'Someone';
-                return $assignerName . ' assigned you a direct hire project' . $projectName;
+
+                return $assignerName.' assigned you a direct hire project'.$projectName;
             case self::TYPE_DIRECT_HIRE_OFFER:
-                $offerAmount = isset($data['offer_amount']) ? ' ($' . number_format($data['offer_amount']) . ')' : '';
-                return 'You received a direct hire offer for project' . $projectName . $offerAmount;
+                $offerAmount = isset($data['offer_amount']) ? ' ($'.number_format($data['offer_amount']).')' : '';
+
+                return 'You received a direct hire offer for project'.$projectName.$offerAmount;
             case self::TYPE_DIRECT_HIRE_ACCEPTED:
                 $accepterName = $data['accepter_name'] ?? 'The producer';
-                return $accepterName . ' accepted your direct hire offer for project' . $projectName;
+
+                return $accepterName.' accepted your direct hire offer for project'.$projectName;
             case self::TYPE_DIRECT_HIRE_REJECTED:
                 $rejecterName = $data['rejecter_name'] ?? 'The producer';
-                return $rejecterName . ' declined your direct hire offer for project' . $projectName;
+
+                return $rejecterName.' declined your direct hire offer for project'.$projectName;
             case self::TYPE_INITIAL_PITCH_DENIED:
                 $reason = $data['reason'] ?? '';
-                $reasonText = !empty($reason) ? ': "' . Str::limit($reason, 100) . '"' : '';
-                return 'Your initial pitch application for project' . $projectName . ' was denied' . $reasonText;
+                $reasonText = ! empty($reason) ? ': "'.Str::limit($reason, 100).'"' : '';
+
+                return 'Your initial pitch application for project'.$projectName.' was denied'.$reasonText;
             case self::TYPE_CLIENT_COMMENT_ADDED:
                 $clientName = $data['client_name'] ?? 'The client';
-                return $clientName . ' added a comment on your project' . $projectName;
+
+                return $clientName.' added a comment on your project'.$projectName;
             case self::TYPE_CLIENT_APPROVED_PITCH:
                 $clientName = $data['client_name'] ?? 'The client';
-                return $clientName . ' approved your submission for project' . $projectName;
+
+                return $clientName.' approved your submission for project'.$projectName;
             case self::TYPE_CLIENT_REQUESTED_REVISIONS:
                 $clientName = $data['client_name'] ?? 'The client';
-                $revisionNotes = isset($data['revision_notes']) && !empty($data['revision_notes']) ? ': "' . Str::limit($data['revision_notes'], 100) . '"' : '';
-                return $clientName . ' requested revisions for project' . $projectName . $revisionNotes;
+                $revisionNotes = isset($data['revision_notes']) && ! empty($data['revision_notes']) ? ': "'.Str::limit($data['revision_notes'], 100).'"' : '';
+
+                return $clientName.' requested revisions for project'.$projectName.$revisionNotes;
             case self::TYPE_CLIENT_APPROVED_AND_COMPLETED:
                 $clientName = $data['client_name'] ?? 'The client';
                 $hasPayment = $data['has_payment'] ?? false;
                 $paymentAmount = $data['payment_amount'] ?? 0;
                 if ($hasPayment && $paymentAmount > 0) {
-                    return $clientName . ' approved and paid for project' . $projectName . '. Your payout of $' . number_format($paymentAmount, 2) . ' is being processed.';
+                    return $clientName.' approved and paid for project'.$projectName.'. Your payout of $'.number_format($paymentAmount, 2).' is being processed.';
                 } else {
-                    return $clientName . ' approved project' . $projectName . ' and it\'s now complete!';
+                    return $clientName.' approved project'.$projectName.' and it\'s now complete!';
                 }
             case self::TYPE_CONTEST_PAYOUT_SCHEDULED:
-                $payoutAmount = isset($data['net_amount']) ? '$' . number_format($data['net_amount']) . ' ' : (isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '');
-                $payoutDate = isset($data['hold_release_date']) ? ' on ' . date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on ' . date('M j, Y', strtotime($data['payout_date'])) : '');
-                return 'Your contest prize payout of ' . $payoutAmount . 'has been scheduled' . $payoutDate;
+                $payoutAmount = isset($data['net_amount']) ? '$'.number_format($data['net_amount']).' ' : (isset($data['payout_amount']) ? '$'.number_format($data['payout_amount']).' ' : '');
+                $payoutDate = isset($data['hold_release_date']) ? ' on '.date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on '.date('M j, Y', strtotime($data['payout_date'])) : '');
+
+                return 'Your contest prize payout of '.$payoutAmount.'has been scheduled'.$payoutDate;
             case self::TYPE_PAYOUT_SCHEDULED:
-                $payoutAmount = isset($data['net_amount']) ? '$' . number_format($data['net_amount']) . ' ' : (isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '');
-                $payoutDate = isset($data['hold_release_date']) ? ' on ' . date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on ' . date('M j, Y', strtotime($data['payout_date'])) : '');
-                return 'Your payout of ' . $payoutAmount . 'has been scheduled' . $payoutDate;
+                $payoutAmount = isset($data['net_amount']) ? '$'.number_format($data['net_amount']).' ' : (isset($data['payout_amount']) ? '$'.number_format($data['payout_amount']).' ' : '');
+                $payoutDate = isset($data['hold_release_date']) ? ' on '.date('M j, Y', strtotime($data['hold_release_date'])) : (isset($data['payout_date']) ? ' on '.date('M j, Y', strtotime($data['payout_date'])) : '');
+
+                return 'Your payout of '.$payoutAmount.'has been scheduled'.$payoutDate;
             case self::TYPE_PAYOUT_COMPLETED:
-                $payoutAmount = isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '';
-                $payoutMethod = isset($data['payout_method']) ? ' via ' . $data['payout_method'] : '';
-                return 'Your payout of ' . $payoutAmount . 'has been completed' . $payoutMethod;
+                $payoutAmount = isset($data['payout_amount']) ? '$'.number_format($data['payout_amount']).' ' : '';
+                $payoutMethod = isset($data['payout_method']) ? ' via '.$data['payout_method'] : '';
+
+                return 'Your payout of '.$payoutAmount.'has been completed'.$payoutMethod;
             case self::TYPE_PAYOUT_FAILED:
-                $payoutAmount = isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '';
-                $failureReason = isset($data['failure_reason']) ? ': ' . $data['failure_reason'] : '';
-                return 'Your payout of ' . $payoutAmount . 'failed' . $failureReason . '. Please update your payment information.';
+                $payoutAmount = isset($data['payout_amount']) ? '$'.number_format($data['payout_amount']).' ' : '';
+                $failureReason = isset($data['failure_reason']) ? ': '.$data['failure_reason'] : '';
+
+                return 'Your payout of '.$payoutAmount.'failed'.$failureReason.'. Please update your payment information.';
             case self::TYPE_PAYOUT_CANCELLED:
-                $payoutAmount = isset($data['payout_amount']) ? '$' . number_format($data['payout_amount']) . ' ' : '';
-                $cancellationReason = isset($data['cancellation_reason']) ? ': ' . $data['cancellation_reason'] : '';
-                return 'Your payout of ' . $payoutAmount . 'was cancelled' . $cancellationReason;
+                $payoutAmount = isset($data['payout_amount']) ? '$'.number_format($data['payout_amount']).' ' : '';
+                $cancellationReason = isset($data['cancellation_reason']) ? ': '.$data['cancellation_reason'] : '';
+
+                return 'Your payout of '.$payoutAmount.'was cancelled'.$cancellationReason;
             default:
                 return 'New notification';
         }

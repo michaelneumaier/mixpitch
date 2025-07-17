@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('projects', function (Blueprint $table) {
-            if (!Schema::hasColumn('projects', 'total_storage_limit_bytes')) {
+            if (! Schema::hasColumn('projects', 'total_storage_limit_bytes')) {
                 $table->unsignedBigInteger('total_storage_limit_bytes')->default(100 * 1024 * 1024); // Default 100MB
             }
         });
 
         Schema::table('pitches', function (Blueprint $table) {
-            if (!Schema::hasColumn('pitches', 'total_storage_limit_bytes')) {
+            if (! Schema::hasColumn('pitches', 'total_storage_limit_bytes')) {
                 $table->unsignedBigInteger('total_storage_limit_bytes')->default(50 * 1024 * 1024); // Default 50MB
             }
         });

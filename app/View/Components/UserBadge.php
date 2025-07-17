@@ -2,17 +2,19 @@
 
 namespace App\View\Components;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
-use App\Models\User;
 
 class UserBadge extends Component
 {
     public User $user;
+
     public ?string $badge;
+
     public string $planName;
-    
+
     /**
      * Create a new component instance.
      */
@@ -20,8 +22,8 @@ class UserBadge extends Component
     {
         $this->user = $user;
         $this->badge = $user->getUserBadge();
-        $this->planName = ucfirst($user->subscription_plan) . 
-                         ($user->subscription_tier !== 'basic' ? ' ' . ucfirst($user->subscription_tier) : '');
+        $this->planName = ucfirst($user->subscription_plan).
+                         ($user->subscription_tier !== 'basic' ? ' '.ucfirst($user->subscription_tier) : '');
     }
 
     /**

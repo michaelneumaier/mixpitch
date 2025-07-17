@@ -2,16 +2,16 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Pages\Page;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 
 class Settings extends Page implements Forms\Contracts\HasForms
 {
@@ -131,10 +131,10 @@ class Settings extends Page implements Forms\Contracts\HasForms
     {
         // Process and save settings (would typically save to DB or settings file)
         // For demo purposes we're just displaying a success notification
-        
+
         Notification::make()
             ->title('Settings saved successfully')
             ->success()
             ->send();
     }
-} 
+}

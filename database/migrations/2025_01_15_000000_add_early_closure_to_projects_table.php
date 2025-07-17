@@ -16,7 +16,7 @@ return new class extends Migration
             $table->timestamp('submissions_closed_early_at')->nullable();
             $table->foreignId('submissions_closed_early_by')->nullable()->constrained('users')->onDelete('set null');
             $table->text('early_closure_reason')->nullable();
-            
+
             // Index for performance (only on the new column since workflow_type doesn't exist yet)
             $table->index('submissions_closed_early_at');
         });
@@ -33,4 +33,4 @@ return new class extends Migration
             $table->dropColumn(['submissions_closed_early_at', 'submissions_closed_early_by', 'early_closure_reason']);
         });
     }
-}; 
+};

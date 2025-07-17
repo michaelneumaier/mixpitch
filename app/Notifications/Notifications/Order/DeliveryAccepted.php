@@ -41,13 +41,13 @@ class DeliveryAccepted extends Notification implements ShouldQueue
         $clientName = $this->order->client->name ?? 'The Client';
 
         return (new MailMessage)
-                    ->subject('Delivery Accepted: Order #' . $this->order->id . ' Completed!')
-                    ->greeting('Hello ' . ($notifiable->name ?? 'Producer') . ',')
-                    ->line("Good news! {$clientName} has accepted the delivery for Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line('The order is now marked as completed.')
-                    ->line('Payment release will be processed according to the platform schedule. (Placeholder - Payout logic TBD)')
-                    ->action('View Completed Order', $orderUrl)
-                    ->line('Thank you for your work!');
+            ->subject('Delivery Accepted: Order #'.$this->order->id.' Completed!')
+            ->greeting('Hello '.($notifiable->name ?? 'Producer').',')
+            ->line("Good news! {$clientName} has accepted the delivery for Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line('The order is now marked as completed.')
+            ->line('Payment release will be processed according to the platform schedule. (Placeholder - Payout logic TBD)')
+            ->action('View Completed Order', $orderUrl)
+            ->line('Thank you for your work!');
     }
 
     /**
@@ -61,7 +61,7 @@ class DeliveryAccepted extends Notification implements ShouldQueue
             'order_id' => $this->order->id,
             'order_title' => $this->order->servicePackage->title ?? 'N/A',
             'client_name' => $this->order->client->name ?? 'N/A',
-            'message' => 'Delivery accepted and order #' . $this->order->id . ' completed.',
+            'message' => 'Delivery accepted and order #'.$this->order->id.' completed.',
             'url' => route('orders.show', $this->order),
         ];
     }

@@ -13,8 +13,11 @@ class OrderFile extends Model
 
     // File Type Constants
     const TYPE_REQUIREMENT = 'requirement';
+
     const TYPE_DELIVERY = 'delivery';
+
     const TYPE_REFERENCE = 'reference';
+
     const TYPE_GENERAL = 'general';
 
     /**
@@ -58,9 +61,10 @@ class OrderFile extends Model
 
     public function getUrlAttribute(): ?string
     {
-        if (!$this->file_path) {
+        if (! $this->file_path) {
             return null;
         }
+
         return Storage::disk($this->disk)->url($this->file_path);
     }
 
@@ -69,7 +73,8 @@ class OrderFile extends Model
         $bytes = $this->size ?? 0;
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $i = floor(log($bytes, 1024));
-        return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
+
+        return round($bytes / pow(1024, $i), 2).' '.$units[$i];
     }
 
     // Static Helpers

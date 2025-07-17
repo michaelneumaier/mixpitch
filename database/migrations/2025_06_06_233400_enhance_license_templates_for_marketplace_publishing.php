@@ -19,11 +19,11 @@ return new class extends Migration
             $table->timestamp('submitted_for_approval_at')->nullable()->after('submission_notes');
             $table->text('rejection_reason')->nullable()->after('submitted_for_approval_at');
             $table->boolean('marketplace_featured')->default(false)->after('rejection_reason');
-            
+
             // Analytics fields
             $table->unsignedInteger('view_count')->default(0)->after('marketplace_featured');
             $table->unsignedInteger('fork_count')->default(0)->after('view_count');
-            
+
             // Indexes for performance
             $table->index(['is_public', 'marketplace_featured']);
             $table->index(['view_count']);
@@ -42,16 +42,16 @@ return new class extends Migration
             $table->dropIndex(['view_count']);
             $table->dropIndex(['fork_count']);
             $table->dropIndex(['submitted_for_approval_at']);
-            
+
             $table->dropColumn([
                 'marketplace_title',
-                'marketplace_description', 
+                'marketplace_description',
                 'submission_notes',
                 'submitted_for_approval_at',
                 'rejection_reason',
                 'marketplace_featured',
                 'view_count',
-                'fork_count'
+                'fork_count',
             ]);
         });
     }

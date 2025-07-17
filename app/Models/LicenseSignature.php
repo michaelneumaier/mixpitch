@@ -95,9 +95,9 @@ class LicenseSignature extends Model
      */
     public function isValid(): bool
     {
-        return $this->status === 'active' && 
-               !empty($this->agreement_hash) && 
-               (!empty($this->signature_text) || !empty($this->signature_data));
+        return $this->status === 'active' &&
+               ! empty($this->agreement_hash) &&
+               (! empty($this->signature_text) || ! empty($this->signature_data));
     }
 
     /**
@@ -130,10 +130,10 @@ class LicenseSignature extends Model
      */
     public function getDisplaySignature(): string
     {
-        if ($this->signature_method === 'canvas' && !empty($this->signature_data)) {
+        if ($this->signature_method === 'canvas' && ! empty($this->signature_data)) {
             return 'Digital Signature';
         }
-        
+
         return $this->signature_text ?? 'Electronic Signature';
     }
 
@@ -156,8 +156,8 @@ class LicenseSignature extends Model
      * Create signature from project and user
      */
     public static function createFromProject(
-        Project $project, 
-        User $user, 
+        Project $project,
+        User $user,
         array $signatureData
     ): self {
         return self::create([
@@ -173,4 +173,4 @@ class LicenseSignature extends Model
             'metadata' => $signatureData['metadata'] ?? [],
         ]);
     }
-} 
+}

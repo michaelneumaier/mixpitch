@@ -20,7 +20,7 @@ class PitchFileComment extends Model
         'parent_id',
         'comment',
         'timestamp',
-        'resolved'
+        'resolved',
     ];
 
     /**
@@ -40,7 +40,7 @@ class PitchFileComment extends Model
      */
     protected $appends = [
         'formatted_timestamp',
-        'has_replies'
+        'has_replies',
     ];
 
     /**
@@ -93,16 +93,16 @@ class PitchFileComment extends Model
     public function getAllReplies()
     {
         $allReplies = collect();
-        
+
         // Add direct replies
         $directReplies = $this->replies;
         $allReplies = $allReplies->merge($directReplies);
-        
+
         // Add nested replies
         foreach ($directReplies as $reply) {
             $allReplies = $allReplies->merge($reply->getAllReplies());
         }
-        
+
         return $allReplies;
     }
 
@@ -125,7 +125,7 @@ class PitchFileComment extends Model
     {
         $minutes = floor($this->timestamp / 60);
         $seconds = $this->timestamp % 60;
-        
+
         return sprintf('%02d:%02d', $minutes, $seconds);
     }
 }

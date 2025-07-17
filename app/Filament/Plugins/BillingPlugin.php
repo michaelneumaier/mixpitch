@@ -41,4 +41,4 @@ class BillingPlugin implements Plugin
     {
         return app(static::class);
     }
-} 
+}

@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::table('projects', function (Blueprint $table) {
             // Add the foreign key column after the existing project_type column
             $table->foreignId('project_type_id')->nullable()->after('project_type');
-            
+
             // Add the foreign key constraint
             $table->foreign('project_type_id')->references('id')->on('project_types')->onDelete('set null');
-            
+
             // Add index for performance
             $table->index('project_type_id');
         });
@@ -31,10 +31,10 @@ return new class extends Migration
         Schema::table('projects', function (Blueprint $table) {
             // Drop foreign key constraint first
             $table->dropForeign(['project_type_id']);
-            
+
             // Drop the index
             $table->dropIndex(['project_type_id']);
-            
+
             // Drop the column
             $table->dropColumn('project_type_id');
         });

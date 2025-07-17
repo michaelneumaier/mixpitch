@@ -2,35 +2,40 @@
 
 namespace App\Livewire;
 
-use App\Services\FileManagementService;
 use App\Models\FileUploadSetting;
+use App\Services\FileManagementService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Masmerise\Toaster\Toaster;
-use Illuminate\Support\Facades\Gate;
 
 class UppyFileUploader extends Component
 {
     public Model $model;
+
     public bool $allowMultiple = true;
+
     public string $uploadContext = FileUploadSetting::CONTEXT_GLOBAL;
+
     public array $acceptedFileTypes = ['audio/*', 'application/pdf', 'image/*', 'application/zip'];
+
     public int $maxFiles = 1000;
-    
+
     // Dynamic settings loaded from FileUploadSetting
     protected array $uploadSettings = [];
-    
+
     // Uppy specific properties
     public array $uploadedFiles = [];
-    
+
     protected ?FileManagementService $fileManagementService = null;
 
     protected function getFileManagementService(): FileManagementService
     {
-        if (!$this->fileManagementService) {
+        if (! $this->fileManagementService) {
             $this->fileManagementService = app(FileManagementService::class);
         }
+
         return $this->fileManagementService;
     }
 
@@ -38,22 +43,22 @@ class UppyFileUploader extends Component
     {
         $this->model = $model;
         $this->fileManagementService = app(FileManagementService::class);
-        
+
         // Determine upload context based on model type
         $this->uploadContext = $this->determineUploadContext($model);
-        
+
         // Load upload settings for this context
         $this->loadUploadSettings();
-        
+
         // Apply configuration overrides
         $this->applyConfiguration($config);
-        
+
         Log::info('UppyFileUploader initialized', [
             'model_type' => get_class($model),
             'model_id' => $model->id,
             'context' => $this->uploadContext,
             'allow_multiple' => $this->allowMultiple,
-            'settings' => $this->uploadSettings
+            'settings' => $this->uploadSettings,
         ]);
     }
 
@@ -70,36 +75,36 @@ class UppyFileUploader extends Component
             foreach ($uploadData as $fileData) {
                 $this->processS3UploadedFile($fileData);
             }
-            
+
             $this->dispatch('filesUploaded', [
                 'count' => count($uploadData),
                 'model_type' => get_class($this->model),
-                'model_id' => $this->model->id
+                'model_id' => $this->model->id,
             ]);
-            
+
             // Show success notification
             $fileCount = count($uploadData);
-            $message = $fileCount === 1 
-                ? 'File uploaded successfully!' 
+            $message = $fileCount === 1
+                ? 'File uploaded successfully!'
                 : "{$fileCount} files uploaded successfully!";
             Toaster::success($message);
-            
+
             // Dispatch event to reset the uploader immediately
             $this->dispatch('resetUploader');
-            
+
             // Clear uploaded files after processing
             $this->uploadedFiles = [];
-            
+
         } catch (\Exception $e) {
             Log::error('Uppy upload processing failed', [
                 'error' => $e->getMessage(),
                 'upload_data' => $uploadData,
                 'model_type' => get_class($this->model),
-                'model_id' => $this->model->id
+                'model_id' => $this->model->id,
             ]);
-            
+
             $this->dispatch('fileUploadError', [
-                'message' => 'Upload processing failed: ' . $e->getMessage()
+                'message' => 'Upload processing failed: '.$e->getMessage(),
             ]);
         }
     }
@@ -113,7 +118,7 @@ class UppyFileUploader extends Component
             Log::info('Processing S3 uploaded file', [
                 'file_data' => $fileData,
                 'model_type' => get_class($this->model),
-                'model_id' => $this->model->id
+                'model_id' => $this->model->id,
             ]);
 
             // Extract file information from Uppy response
@@ -122,16 +127,16 @@ class UppyFileUploader extends Component
             $size = $fileData['size'] ?? 0;
             $type = $fileData['type'] ?? 'application/octet-stream';
 
-            if (!$s3Key) {
+            if (! $s3Key) {
                 throw new \Exception('No S3 key provided in upload data');
             }
 
             // Check authorization before creating file records
             if ($this->model instanceof \App\Models\Project) {
-                if (!Gate::allows('uploadFile', $this->model)) {
+                if (! Gate::allows('uploadFile', $this->model)) {
                     throw new \Exception('You are not authorized to upload files to this project. Project may be completed or you may not have permission.');
                 }
-                
+
                 $fileRecord = $this->getFileManagementService()->createProjectFileFromS3(
                     $this->model,
                     $s3Key,
@@ -141,10 +146,10 @@ class UppyFileUploader extends Component
                     auth()->user()
                 );
             } elseif ($this->model instanceof \App\Models\Pitch) {
-                if (!Gate::allows('uploadFile', $this->model)) {
+                if (! Gate::allows('uploadFile', $this->model)) {
                     throw new \Exception('You are not authorized to upload files to this pitch. Pitch may be in a terminal state or you may not have permission.');
                 }
-                
+
                 $fileRecord = $this->getFileManagementService()->createPitchFileFromS3(
                     $this->model,
                     $s3Key,
@@ -156,21 +161,21 @@ class UppyFileUploader extends Component
             } else {
                 throw new \Exception('Unsupported model type for file upload');
             }
-            
+
             Log::info('S3 uploaded file processed successfully', [
                 'file_record_id' => $fileRecord->id,
                 'filename' => $filename,
                 's3_key' => $s3Key,
                 'model_type' => get_class($this->model),
-                'model_id' => $this->model->id
+                'model_id' => $this->model->id,
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to process S3 uploaded file', [
                 'error' => $e->getMessage(),
                 'file_data' => $fileData,
                 'model_type' => get_class($this->model),
-                'model_id' => $this->model->id
+                'model_id' => $this->model->id,
             ]);
             throw $e;
         }
@@ -186,7 +191,7 @@ class UppyFileUploader extends Component
         $maxConcurrent = $this->uploadSettings[FileUploadSetting::MAX_CONCURRENT_UPLOADS] ?? 3;
         $maxRetries = $this->uploadSettings[FileUploadSetting::MAX_RETRY_ATTEMPTS] ?? 3;
         $enableChunking = $this->uploadSettings[FileUploadSetting::ENABLE_CHUNKING] ?? true;
-        
+
         return [
             'allowMultiple' => $this->allowMultiple,
             'maxFileSize' => $maxFileSize * 1024 * 1024, // Convert MB to bytes
@@ -197,25 +202,25 @@ class UppyFileUploader extends Component
             'modelType' => get_class($this->model),
             's3Endpoint' => '/s3/multipart',
             'csrfToken' => csrf_token(),
-            
+
             // Uppy-specific configuration
             'restrictions' => [
                 'maxFileSize' => $maxFileSize * 1024 * 1024,
                 'maxNumberOfFiles' => $this->allowMultiple ? $this->maxFiles : 1,
-                'allowedFileTypes' => $this->acceptedFileTypes
+                'allowedFileTypes' => $this->acceptedFileTypes,
             ],
-            
+
             // Chunking configuration
             'chunking' => [
                 'enabled' => $enableChunking,
                 'chunkSize' => $chunkSize * 1024 * 1024, // Convert MB to bytes
                 'limit' => $maxConcurrent,
-                'retryDelays' => array_fill(0, $maxRetries, 1000) // 1 second delays
+                'retryDelays' => array_fill(0, $maxRetries, 1000), // 1 second delays
             ],
-            
+
             // Settings metadata
             'settings' => $this->uploadSettings,
-            'settingsContext' => $this->uploadContext
+            'settingsContext' => $this->uploadContext,
         ];
     }
 
@@ -226,18 +231,18 @@ class UppyFileUploader extends Component
     {
         try {
             $this->uploadSettings = FileUploadSetting::getSettings($this->uploadContext);
-            
+
             Log::info('Upload settings loaded', [
                 'context' => $this->uploadContext,
-                'settings' => $this->uploadSettings
+                'settings' => $this->uploadSettings,
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to load upload settings, using defaults', [
                 'context' => $this->uploadContext,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             // Fallback to default values
             $this->uploadSettings = FileUploadSetting::DEFAULT_VALUES;
         }
@@ -262,7 +267,7 @@ class UppyFileUploader extends Component
         } elseif ($model instanceof \App\Models\Pitch) {
             return FileUploadSetting::CONTEXT_PITCHES;
         }
-        
+
         return FileUploadSetting::CONTEXT_GLOBAL;
     }
 
@@ -275,23 +280,23 @@ class UppyFileUploader extends Component
             $this->allowMultiple = (bool) $config['allowMultiple'];
             $this->maxFiles = $this->allowMultiple ? 10 : 1;
         }
-        
+
         if (isset($config['maxFiles'])) {
             $this->maxFiles = (int) $config['maxFiles'];
         }
-        
+
         if (isset($config['acceptedFileTypes'])) {
             $this->acceptedFileTypes = $config['acceptedFileTypes'];
         }
-        
+
         // Allow overriding upload settings
         if (isset($config['uploadSettings']) && is_array($config['uploadSettings'])) {
             $this->uploadSettings = array_merge($this->uploadSettings, $config['uploadSettings']);
         }
-        
+
         Log::info('Configuration applied', [
             'config' => $config,
-            'final_settings' => $this->uploadSettings
+            'final_settings' => $this->uploadSettings,
         ]);
     }
 
@@ -301,13 +306,13 @@ class UppyFileUploader extends Component
     public function formatFileSize(int $bytes): string
     {
         if ($bytes >= 1024 * 1024 * 1024) {
-            return round($bytes / (1024 * 1024 * 1024), 1) . 'GB';
+            return round($bytes / (1024 * 1024 * 1024), 1).'GB';
         } elseif ($bytes >= 1024 * 1024) {
-            return round($bytes / (1024 * 1024), 1) . 'MB';
+            return round($bytes / (1024 * 1024), 1).'MB';
         } elseif ($bytes >= 1024) {
-            return round($bytes / 1024, 1) . 'KB';
+            return round($bytes / 1024, 1).'KB';
         } else {
-            return $bytes . 'B';
+            return $bytes.'B';
         }
     }
 

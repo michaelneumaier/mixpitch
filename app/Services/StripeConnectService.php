@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
-use Stripe\StripeClient;
-use Stripe\Exception\ApiErrorException;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Stripe\Exception\ApiErrorException;
+use Stripe\StripeClient;
 
 class StripeConnectService
 {
@@ -36,7 +36,7 @@ class StripeConnectService
                     'user_id' => $user->id,
                     'created_via' => 'mixpitch_platform',
                     'user_name' => $user->name,
-                ]
+                ],
             ]);
 
             // Update user with Stripe account ID
@@ -75,9 +75,9 @@ class StripeConnectService
     {
         try {
             // Create account if it doesn't exist
-            if (!$user->stripe_account_id) {
+            if (! $user->stripe_account_id) {
                 $result = $this->createExpressAccount($user);
-                if (!$result['success']) {
+                if (! $result['success']) {
                     return $result;
                 }
             }
@@ -113,15 +113,15 @@ class StripeConnectService
      */
     public function isAccountReadyForPayouts(User $user): bool
     {
-        if (!$user->stripe_account_id) {
+        if (! $user->stripe_account_id) {
             return false;
         }
 
         try {
             $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
-            
-            return $account->charges_enabled && 
-                   $account->payouts_enabled && 
+
+            return $account->charges_enabled &&
+                   $account->payouts_enabled &&
                    $account->details_submitted;
 
         } catch (ApiErrorException $e) {
@@ -140,7 +140,7 @@ class StripeConnectService
      */
     public function getDetailedAccountStatus(User $user): array
     {
-        if (!$user->stripe_account_id) {
+        if (! $user->stripe_account_id) {
             return [
                 'status' => 'not_created',
                 'status_display' => 'Account Not Created',
@@ -157,11 +157,11 @@ class StripeConnectService
 
         try {
             $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
-            
+
             $status = $this->determineDetailedAccountStatus($account);
             $requirements = $this->parseRequirements($account->requirements);
             $nextSteps = $this->generateNextSteps($account, $requirements);
-            
+
             return [
                 'status' => $status['key'],
                 'status_display' => $status['display'],
@@ -215,7 +215,7 @@ class StripeConnectService
         }
 
         // Check if details haven't been submitted
-        if (!$account->details_submitted) {
+        if (! $account->details_submitted) {
             return [
                 'key' => 'incomplete',
                 'display' => 'Setup Incomplete',
@@ -224,7 +224,7 @@ class StripeConnectService
         }
 
         // Check for pending verification
-        if (!empty($account->requirements->pending_verification)) {
+        if (! empty($account->requirements->pending_verification)) {
             return [
                 'key' => 'pending_verification',
                 'display' => 'Verification Pending',
@@ -233,7 +233,7 @@ class StripeConnectService
         }
 
         // Check for past due requirements
-        if (!empty($account->requirements->past_due)) {
+        if (! empty($account->requirements->past_due)) {
             return [
                 'key' => 'past_due',
                 'display' => 'Action Required',
@@ -242,7 +242,7 @@ class StripeConnectService
         }
 
         // Check for currently due requirements
-        if (!empty($account->requirements->currently_due)) {
+        if (! empty($account->requirements->currently_due)) {
             return [
                 'key' => 'action_required',
                 'display' => 'Information Required',
@@ -251,7 +251,7 @@ class StripeConnectService
         }
 
         // Check capabilities
-        if (!$account->charges_enabled || !$account->payouts_enabled) {
+        if (! $account->charges_enabled || ! $account->payouts_enabled) {
             return [
                 'key' => 'restricted',
                 'display' => 'Account Restricted',
@@ -400,7 +400,8 @@ class StripeConnectService
 
         // Handle person-specific requirements (e.g., person_abc123.verification.document)
         if (preg_match('/^person_[a-zA-Z0-9]+\.(.+)$/', $requirement, $matches)) {
-            $baseRequirement = 'individual.' . $matches[1];
+            $baseRequirement = 'individual.'.$matches[1];
+
             return $requirementMap[$baseRequirement] ?? 'Additional person information';
         }
 
@@ -415,57 +416,64 @@ class StripeConnectService
         $steps = [];
 
         // If account is not submitted, primary step is to complete onboarding
-        if (!$account->details_submitted) {
+        if (! $account->details_submitted) {
             $steps[] = 'Complete your account setup by clicking "Set Up Stripe Account" below.';
+
             return $steps;
         }
 
         // Handle past due requirements
-        if (!empty($requirements['past_due'])) {
+        if (! empty($requirements['past_due'])) {
             $steps[] = 'Urgent: Provide the following past due information immediately to restore your account:';
             foreach ($requirements['past_due'] as $req) {
                 $steps[] = "• $req";
             }
+
             return $steps;
         }
 
         // Handle currently due requirements
-        if (!empty($requirements['currently_due'])) {
-            $deadline = $account->requirements->current_deadline ? 
-                Carbon::createFromTimestamp($account->requirements->current_deadline)->format('M j, Y') : 
+        if (! empty($requirements['currently_due'])) {
+            $deadline = $account->requirements->current_deadline ?
+                Carbon::createFromTimestamp($account->requirements->current_deadline)->format('M j, Y') :
                 'soon';
-            
+
             $steps[] = "Provide the following information by $deadline:";
             foreach ($requirements['currently_due'] as $req) {
                 $steps[] = "• $req";
             }
+
             return $steps;
         }
 
         // Handle pending verification
-        if (!empty($requirements['pending_verification'])) {
+        if (! empty($requirements['pending_verification'])) {
             $steps[] = 'Stripe is currently verifying your information. No action is required.';
             $steps[] = 'Verification typically takes 1-7 business days.';
+
             return $steps;
         }
 
         // Handle errors
-        if (!empty($requirements['errors'])) {
+        if (! empty($requirements['errors'])) {
             $steps[] = 'Please correct the following issues:';
             foreach ($requirements['errors'] as $error) {
                 $steps[] = "• {$error['requirement']}: {$error['reason']}";
             }
+
             return $steps;
         }
 
         // Account restrictions
-        if (!$account->charges_enabled || !$account->payouts_enabled) {
+        if (! $account->charges_enabled || ! $account->payouts_enabled) {
             $steps[] = 'Your account has restrictions. Please contact Stripe support for assistance.';
+
             return $steps;
         }
 
         // Account is active
         $steps[] = 'Your account is fully set up and ready to receive payouts!';
+
         return $steps;
     }
 
@@ -474,19 +482,19 @@ class StripeConnectService
      */
     private function getVerificationStatus($account): string
     {
-        if (!$account->details_submitted) {
+        if (! $account->details_submitted) {
             return 'not_started';
         }
 
-        if (!empty($account->requirements->past_due)) {
+        if (! empty($account->requirements->past_due)) {
             return 'past_due';
         }
 
-        if (!empty($account->requirements->currently_due)) {
+        if (! empty($account->requirements->currently_due)) {
             return 'action_required';
         }
 
-        if (!empty($account->requirements->pending_verification)) {
+        if (! empty($account->requirements->pending_verification)) {
             return 'pending';
         }
 
@@ -502,7 +510,7 @@ class StripeConnectService
      */
     public function processTransfer(User $recipient, float $amount, array $metadata = []): array
     {
-        if (!$this->isAccountReadyForPayouts($recipient)) {
+        if (! $this->isAccountReadyForPayouts($recipient)) {
             return [
                 'success' => false,
                 'error' => 'Recipient account is not ready for payouts',
@@ -555,7 +563,7 @@ class StripeConnectService
     /**
      * Reverse a transfer (for refunds)
      */
-    public function reverseTransfer(string $transferId, float $amount = null, array $metadata = []): array
+    public function reverseTransfer(string $transferId, ?float $amount = null, array $metadata = []): array
     {
         try {
             $reverseParams = [
@@ -630,7 +638,7 @@ class StripeConnectService
      */
     public function createLoginLink(User $user): array
     {
-        if (!$user->stripe_account_id) {
+        if (! $user->stripe_account_id) {
             return [
                 'success' => false,
                 'error' => 'No Stripe account found for user',
@@ -658,4 +666,4 @@ class StripeConnectService
             ];
         }
     }
-} 
+}

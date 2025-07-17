@@ -44,4 +44,4 @@ class PitchFactory extends Factory
             }
         });
     }
-} 
+}

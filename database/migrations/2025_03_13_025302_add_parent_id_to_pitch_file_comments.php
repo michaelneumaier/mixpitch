@@ -26,7 +26,7 @@ return new class extends Migration
             // NOTE: SQLite does not support dropping foreign keys.
             // We only drop the column.
             if (Schema::hasColumn('pitch_file_comments', 'parent_id')) {
-                 $table->dropColumn('parent_id');
+                $table->dropColumn('parent_id');
             }
         });
     }

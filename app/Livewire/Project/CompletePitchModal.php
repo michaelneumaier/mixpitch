@@ -14,19 +14,28 @@ use Masmerise\Toaster\Toaster;
 class CompletePitchModal extends Component
 {
     public $showModal = false;
+
     public $pitch = null;
+
     public $pitchId = null;
+
     public $pitchTitle = '';
+
     public $projectTitle = '';
+
     public $hasOtherApprovedPitches = false;
+
     public $otherApprovedPitchesCount = 0;
+
     public $projectBudget = 0;
+
     public $feedback = '';
+
     public $rating = null;
 
     protected $listeners = [
         'openCompletePitchModal' => 'openModal',
-        'pitchStatusUpdated' => 'handlePitchUpdated'
+        'pitchStatusUpdated' => 'handlePitchUpdated',
     ];
 
     protected $rules = [
@@ -48,14 +57,14 @@ class CompletePitchModal extends Component
         $this->hasOtherApprovedPitches = $data['hasOtherApprovedPitches'];
         $this->otherApprovedPitchesCount = $data['otherApprovedPitchesCount'];
         $this->projectBudget = $data['projectBudget'];
-        
+
         // Load the pitch model
         $this->pitch = Pitch::findOrFail($this->pitchId);
-        
+
         // Reset form data
         $this->feedback = '';
         $this->rating = null;
-        
+
         $this->showModal = true;
     }
 
@@ -88,25 +97,25 @@ class CompletePitchModal extends Component
             if ($completedPitch->payment_status === Pitch::PAYMENT_STATUS_PENDING) {
                 return redirect()->route('projects.pitches.payment.overview', [
                     'project' => $completedPitch->project,
-                    'pitch' => $completedPitch
+                    'pitch' => $completedPitch,
                 ]);
             }
 
             // For all other cases, refresh the current page to update all components
             return redirect()->route('projects.manage', $completedPitch->project);
 
-        } catch (AuthorizationException | UnauthorizedActionException $e) {
+        } catch (AuthorizationException|UnauthorizedActionException $e) {
             Log::warning('Unauthorized pitch completion attempt', [
-                'pitch_id' => $this->pitchId, 
-                'user_id' => auth()->id(), 
-                'error' => $e->getMessage()
+                'pitch_id' => $this->pitchId,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
             ]);
             $this->closeModal();
             Toaster::error('You are not authorized to complete this pitch.');
         } catch (CompletionValidationException $e) {
             Log::warning('Pitch completion validation failed', [
-                'pitch_id' => $this->pitchId, 
-                'error' => $e->getMessage()
+                'pitch_id' => $this->pitchId,
+                'error' => $e->getMessage(),
             ]);
             $this->closeModal();
             Toaster::error($e->getMessage());
@@ -117,7 +126,7 @@ class CompletePitchModal extends Component
             Log::error('Error completing pitch', [
                 'pitch_id' => $this->pitchId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             $this->closeModal();
             Toaster::error('An unexpected error occurred while completing the pitch.');
@@ -136,4 +145,4 @@ class CompletePitchModal extends Component
     {
         return view('livewire.project.complete-pitch-modal');
     }
-} 
+}

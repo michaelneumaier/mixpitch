@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\SubscriptionLimit;
+use Illuminate\Database\Seeder;
 
 class CompleteSubscriptionLimitsSeeder extends Seeder
 {
@@ -39,7 +38,7 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'priority_support' => false,
                 'custom_portfolio' => false,
             ],
-            
+
             // Pro Artist Plan
             [
                 'plan_name' => 'pro',
@@ -65,7 +64,7 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'priority_support' => true,
                 'custom_portfolio' => true,
             ],
-            
+
             // Pro Engineer Plan
             [
                 'plan_name' => 'pro',
@@ -90,14 +89,14 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'user_badge' => '🔶',
                 'priority_support' => true,
                 'custom_portfolio' => true,
-            ]
+            ],
         ];
 
         foreach ($plans as $plan) {
             SubscriptionLimit::updateOrCreate(
                 [
-                    'plan_name' => $plan['plan_name'], 
-                    'plan_tier' => $plan['plan_tier']
+                    'plan_name' => $plan['plan_name'],
+                    'plan_tier' => $plan['plan_tier'],
                 ],
                 $plan
             );

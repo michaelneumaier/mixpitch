@@ -2,13 +2,13 @@
 
 namespace App\Mail;
 
+use App\Models\LicenseSignature;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\LicenseSignature;
 
 class LicenseAgreementReminder extends Mailable implements ShouldQueue
 {
@@ -30,7 +30,7 @@ class LicenseAgreementReminder extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Reminder: License Agreement Pending - ' . $this->signature->project->name,
+            subject: 'Reminder: License Agreement Pending - '.$this->signature->project->name,
         );
     }
 
@@ -61,4 +61,4 @@ class LicenseAgreementReminder extends Mailable implements ShouldQueue
     {
         return [];
     }
-} 
+}

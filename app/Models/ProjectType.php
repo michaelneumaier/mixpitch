@@ -11,17 +11,17 @@ class ProjectType extends Model
 
     protected $fillable = [
         'name',
-        'slug', 
+        'slug',
         'description',
         'icon',
         'color',
         'is_active',
-        'sort_order'
+        'sort_order',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'sort_order' => 'integer'
+        'sort_order' => 'integer',
     ];
 
     /**
@@ -46,7 +46,7 @@ class ProjectType extends Model
     public function getColorClasses(): array
     {
         $color = $this->color ?: 'blue';
-        
+
         return [
             'bg' => "bg-{$color}-500",
             'hover_bg' => "hover:bg-{$color}-600",
@@ -64,9 +64,9 @@ class ProjectType extends Model
     public static function getActive()
     {
         return static::where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->orderBy('name')
-                    ->get();
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     /**

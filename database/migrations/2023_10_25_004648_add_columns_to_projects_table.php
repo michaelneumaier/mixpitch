@@ -39,7 +39,7 @@ class AddColumnsToProjectsTable extends Migration
             'budget',
             'deadline',
             'preview_track',
-            'notes'
+            'notes',
         ];
 
         foreach ($columns as $column) {

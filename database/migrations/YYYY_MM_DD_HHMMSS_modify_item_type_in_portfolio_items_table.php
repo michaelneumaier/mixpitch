@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -20,32 +20,32 @@ return new class extends Migration
         Schema::table('portfolio_items', function (Blueprint $table) {
             $table->string('item_type')->default('audio')->comment('Type: audio, youtube')->change();
         });
-        
+
         // Drop columns one by one for SQLite compatibility
         if (Schema::hasColumn('portfolio_items', 'external_url')) {
-             Schema::table('portfolio_items', function (Blueprint $table) {
+            Schema::table('portfolio_items', function (Blueprint $table) {
                 $table->dropColumn('external_url');
             });
         }
         if (Schema::hasColumn('portfolio_items', 'linked_project_id')) {
-             // Handle foreign key constraint removal based on database type
-             if (DB::getDriverName() !== 'sqlite') {
-                 // MySQL/PostgreSQL: Drop foreign key constraint first
-                 Schema::table('portfolio_items', function (Blueprint $table) {
-                     $table->dropForeign(['linked_project_id']);
-                 });
-             }
-             // SQLite: Can drop column directly (foreign keys are handled differently)
-             
-             // Then drop the column
-             Schema::table('portfolio_items', function (Blueprint $table) {
-                 $table->dropColumn('linked_project_id');
-             });
+            // Handle foreign key constraint removal based on database type
+            if (DB::getDriverName() !== 'sqlite') {
+                // MySQL/PostgreSQL: Drop foreign key constraint first
+                Schema::table('portfolio_items', function (Blueprint $table) {
+                    $table->dropForeign(['linked_project_id']);
+                });
+            }
+            // SQLite: Can drop column directly (foreign keys are handled differently)
+
+            // Then drop the column
+            Schema::table('portfolio_items', function (Blueprint $table) {
+                $table->dropColumn('linked_project_id');
+            });
         }
         if (Schema::hasColumn('portfolio_items', 'type')) {
-             Schema::table('portfolio_items', function (Blueprint $table) {
+            Schema::table('portfolio_items', function (Blueprint $table) {
                 // Drop the mistakenly added 'type' column
-                 $table->dropColumn('type');
+                $table->dropColumn('type');
             });
         }
     }
@@ -63,25 +63,25 @@ return new class extends Migration
 
         // Revert column type change
         Schema::table('portfolio_items', function (Blueprint $table) {
-             $table->string('item_type')->comment('Original enum attempt')->change(); // Simple string revert
+            $table->string('item_type')->comment('Original enum attempt')->change(); // Simple string revert
         });
 
         // Re-add dropped columns one by one
-        if (!Schema::hasColumn('portfolio_items', 'external_url')) {
+        if (! Schema::hasColumn('portfolio_items', 'external_url')) {
             Schema::table('portfolio_items', function (Blueprint $table) {
-                 $table->string('external_url')->nullable();
-             });
+                $table->string('external_url')->nullable();
+            });
         }
-        if (!Schema::hasColumn('portfolio_items', 'linked_project_id')) {
-             Schema::table('portfolio_items', function (Blueprint $table) {
-                 $table->foreignId('linked_project_id')->nullable()->constrained('projects')->onDelete('set null');
-             });
+        if (! Schema::hasColumn('portfolio_items', 'linked_project_id')) {
+            Schema::table('portfolio_items', function (Blueprint $table) {
+                $table->foreignId('linked_project_id')->nullable()->constrained('projects')->onDelete('set null');
+            });
         }
-         if (!Schema::hasColumn('portfolio_items', 'type')) {
+        if (! Schema::hasColumn('portfolio_items', 'type')) {
             Schema::table('portfolio_items', function (Blueprint $table) {
                 // Re-add the mistaken 'type' column
-                 $table->string('type')->nullable(); 
-             });
+                $table->string('type')->nullable();
+            });
         }
     }
-}; 
+};

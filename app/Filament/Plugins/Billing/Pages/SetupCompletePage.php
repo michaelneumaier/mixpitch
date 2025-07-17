@@ -19,4 +19,4 @@ class SetupCompletePage extends Page
     protected static ?int $navigationSort = 81;
 
     protected static ?string $navigationGroup = 'Account';
-} 
+}

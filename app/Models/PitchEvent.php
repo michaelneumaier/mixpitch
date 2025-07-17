@@ -4,9 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Pitch;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PitchEvent extends Model
 {
@@ -21,7 +18,7 @@ class PitchEvent extends Model
         'snapshot_id',
         'created_by', // User ID who triggered the event
         'metadata', // For extra context like client email, feedback, etc.
-        'rating' // <-- Add rating
+        'rating', // <-- Add rating
     ];
 
     /**
@@ -42,24 +39,24 @@ class PitchEvent extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
-    
+
     /**
      * Get the snapshot associated with this event
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function snapshot()
     {
         return $this->belongsTo(PitchSnapshot::class, 'snapshot_id');
     }
-    
+
     /**
      * Create a status change event for a pitch
-     * 
-     * @param Pitch $pitch The pitch that had its status changed
-     * @param User $user The user who changed the status
-     * @param string $oldStatus The previous status
-     * @param string $newStatus The new status
+     *
+     * @param  Pitch  $pitch  The pitch that had its status changed
+     * @param  User  $user  The user who changed the status
+     * @param  string  $oldStatus  The previous status
+     * @param  string  $newStatus  The new status
      * @return PitchEvent
      */
     public static function createStatusChangeEvent(Pitch $pitch, User $user, string $oldStatus, string $newStatus)
@@ -69,7 +66,7 @@ class PitchEvent extends Model
             'event_type' => 'status_change',
             'status' => $newStatus,
             'comment' => "Status changed from '{$oldStatus}' to '{$newStatus}'",
-            'created_by' => $user->id
+            'created_by' => $user->id,
         ]);
     }
 }

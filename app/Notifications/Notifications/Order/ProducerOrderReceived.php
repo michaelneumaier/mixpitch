@@ -16,8 +16,6 @@ class ProducerOrderReceived extends Notification implements ShouldQueue
 
     /**
      * Create a new notification instance.
-     *
-     * @param Order $order
      */
     public function __construct(Order $order)
     {
@@ -27,7 +25,7 @@ class ProducerOrderReceived extends Notification implements ShouldQueue
     /**
      * Get the notification's delivery channels.
      *
-     * @param mixed $notifiable
+     * @param  mixed  $notifiable
      * @return array
      */
     public function via($notifiable)
@@ -38,7 +36,7 @@ class ProducerOrderReceived extends Notification implements ShouldQueue
     /**
      * Get the mail representation of the notification.
      *
-     * @param mixed $notifiable
+     * @param  mixed  $notifiable
      * @return \Illuminate\Notifications\Messages\MailMessage
      */
     public function toMail($notifiable)
@@ -47,13 +45,13 @@ class ProducerOrderReceived extends Notification implements ShouldQueue
         $client = $this->order->client;
 
         return (new MailMessage)
-            ->subject('New Order Received #' . $this->order->id)
-            ->greeting('Hello ' . $notifiable->name . '!')
+            ->subject('New Order Received #'.$this->order->id)
+            ->greeting('Hello '.$notifiable->name.'!')
             ->line('You have received a new order for your service package.')
-            ->line('Order #: ' . $this->order->id)
-            ->line('Service: ' . $servicePackage->title)
-            ->line('Client: ' . $client->name)
-            ->line('Amount: ' . $this->order->price . ' ' . $this->order->currency)
+            ->line('Order #: '.$this->order->id)
+            ->line('Service: '.$servicePackage->title)
+            ->line('Client: '.$client->name)
+            ->line('Amount: '.$this->order->price.' '.$this->order->currency)
             ->action('View Order', route('orders.show', $this->order))
             ->line('The client will submit their requirements soon. You will be notified when they do.');
     }
@@ -61,7 +59,7 @@ class ProducerOrderReceived extends Notification implements ShouldQueue
     /**
      * Get the array representation of the notification.
      *
-     * @param mixed $notifiable
+     * @param  mixed  $notifiable
      * @return array
      */
     public function toArray($notifiable)
@@ -69,7 +67,7 @@ class ProducerOrderReceived extends Notification implements ShouldQueue
         return [
             'order_id' => $this->order->id,
             'title' => 'New Order Received',
-            'message' => 'You have received a new order #' . $this->order->id . ' for your service package.',
+            'message' => 'You have received a new order #'.$this->order->id.' for your service package.',
             'link' => route('orders.show', $this->order),
         ];
     }

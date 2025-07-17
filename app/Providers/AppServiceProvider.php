@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
+use App\Services\NotificationService;
+use App\Services\PitchWorkflowService;
+use App\View\Components\DateTimeFixed;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
-use Illuminate\Support\Facades\Blade;
-use App\Services\PitchWorkflowService;
-use App\Services\NotificationService;
-use App\View\Components\DateTimeFixed;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PitchWorkflowService::class, function ($app) {
             // Manually resolve NotificationService first (which should also be auto-resolvable)
             $notificationService = $app->make(NotificationService::class);
+
             return new PitchWorkflowService($notificationService);
         });
     }

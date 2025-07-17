@@ -2,11 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Tag;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -37,28 +35,30 @@ class MigrateUserTagsSeeder extends Seeder
                     if (isset($user->{$column})) {
                         // Use the casted array directly (assuming it's cast in the User model)
                         $items = $user->{$column};
-                        
+
                         // Ensure items is an array (double-check)
                         if (is_array($items)) {
                             foreach ($items as $itemName) {
                                 // Clean up the item name
                                 $itemName = trim($itemName);
-                                if (empty($itemName)) continue;
+                                if (empty($itemName)) {
+                                    continue;
+                                }
 
                                 // Find or create the tag
                                 try {
                                     $tag = Tag::firstOrCreate(
                                         [
                                             'slug' => Str::slug($itemName),
-                                            'type' => $type
+                                            'type' => $type,
                                         ],
                                         [
-                                            'name' => $itemName
+                                            'name' => $itemName,
                                         ]
                                     );
                                     $tagsToSync[] = $tag->id;
                                 } catch (\Exception $e) {
-                                    Log::error("Error creating/finding tag '{$itemName}' (Type: {$type}) for User ID {$user->id}: " . $e->getMessage());
+                                    Log::error("Error creating/finding tag '{$itemName}' (Type: {$type}) for User ID {$user->id}: ".$e->getMessage());
                                 }
                             }
                         }
@@ -66,12 +66,12 @@ class MigrateUserTagsSeeder extends Seeder
                 }
 
                 // Sync the collected tags for the user
-                if (!empty($tagsToSync)) {
+                if (! empty($tagsToSync)) {
                     try {
                         $user->tags()->syncWithoutDetaching($tagsToSync); // Use syncWithoutDetaching if running multiple times
-                        $this->command->info("Synced " . count($tagsToSync) . " tags for User ID {$user->id}");
+                        $this->command->info('Synced '.count($tagsToSync)." tags for User ID {$user->id}");
                     } catch (\Exception $e) {
-                        Log::error("Error syncing tags for User ID {$user->id}: " . $e->getMessage());
+                        Log::error("Error syncing tags for User ID {$user->id}: ".$e->getMessage());
                     }
                 }
             }

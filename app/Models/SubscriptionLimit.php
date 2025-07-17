@@ -31,7 +31,7 @@ class SubscriptionLimit extends Model
         'has_judge_access',
         'support_sla_hours',
         'support_channels',
-        'user_badge'
+        'user_badge',
     ];
 
     protected $casts = [

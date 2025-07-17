@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\ContestResult;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class ContestResultPolicy
 {
@@ -23,7 +22,7 @@ class ContestResultPolicy
     public function view(User $user, ContestResult $contestResult): bool
     {
         $project = $contestResult->project;
-        
+
         // Contest runner can always view results
         if ($user->id === $project->user_id) {
             return true;
@@ -32,10 +31,10 @@ class ContestResultPolicy
         // Contest participants can view results if judging is finalized
         if ($contestResult->isFinalized()) {
             $hasEntry = $project->pitches()
-                               ->where('user_id', $user->id)
-                               ->where('status', 'like', '%contest%')
-                               ->exists();
-            
+                ->where('user_id', $user->id)
+                ->where('status', 'like', '%contest%')
+                ->exists();
+
             if ($hasEntry) {
                 return true;
             }
@@ -65,8 +64,8 @@ class ContestResultPolicy
     public function update(User $user, ContestResult $contestResult): bool
     {
         // Only the contest runner can update results, and only if not finalized
-        return $user->id === $contestResult->project->user_id && 
-               !$contestResult->isFinalized();
+        return $user->id === $contestResult->project->user_id &&
+               ! $contestResult->isFinalized();
     }
 
     /**
@@ -75,8 +74,8 @@ class ContestResultPolicy
     public function delete(User $user, ContestResult $contestResult): bool
     {
         // Only the contest runner can delete results, and only if not finalized
-        return $user->id === $contestResult->project->user_id && 
-               !$contestResult->isFinalized();
+        return $user->id === $contestResult->project->user_id &&
+               ! $contestResult->isFinalized();
     }
 
     /**
@@ -104,8 +103,8 @@ class ContestResultPolicy
     public function finalize(User $user, ContestResult $contestResult): bool
     {
         // Only the contest runner can finalize results
-        return $user->id === $contestResult->project->user_id && 
-               !$contestResult->isFinalized() &&
+        return $user->id === $contestResult->project->user_id &&
+               ! $contestResult->isFinalized() &&
                $contestResult->project->canFinalizeJudging();
     }
 
@@ -116,7 +115,7 @@ class ContestResultPolicy
     {
         // Only the contest runner can reopen results, and only if finalized
         // This might be restricted to admins in the future
-        return $user->id === $contestResult->project->user_id && 
+        return $user->id === $contestResult->project->user_id &&
                $contestResult->isFinalized();
     }
 
@@ -126,8 +125,8 @@ class ContestResultPolicy
     public function modifyPlacements(User $user, ContestResult $contestResult): bool
     {
         // Only the contest runner can modify placements, and only if not finalized
-        return $user->id === $contestResult->project->user_id && 
-               !$contestResult->isFinalized();
+        return $user->id === $contestResult->project->user_id &&
+               ! $contestResult->isFinalized();
     }
 
     /**
@@ -152,10 +151,10 @@ class ContestResultPolicy
         // Participants can export if results are public and finalized
         if ($contestResult->isFinalized() && $contestResult->project->show_submissions_publicly) {
             $hasEntry = $contestResult->project->pitches()
-                                     ->where('user_id', $user->id)
-                                     ->where('status', 'like', '%contest%')
-                                     ->exists();
-            
+                ->where('user_id', $user->id)
+                ->where('status', 'like', '%contest%')
+                ->exists();
+
             return $hasEntry;
         }
 

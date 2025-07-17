@@ -1,8 +1,9 @@
 <?php
+
 namespace App\Http\Requests\Project;
 
-use Illuminate\Foundation\Http\FormRequest;
-use App\Models\Project; // If needed for policy
+use App\Models\Project;
+use Illuminate\Foundation\Http\FormRequest; // If needed for policy
 use Illuminate\Validation\Rule;
 
 class StoreProjectRequest extends FormRequest
@@ -52,4 +53,4 @@ class StoreProjectRequest extends FormRequest
             'client_name' => 'nullable|string|max:255',
         ];
     }
-} 
+}

@@ -19,13 +19,13 @@ class ContestResult extends Model
         'runner_up_pitch_ids',
         'finalized_at',
         'finalized_by',
-        'show_submissions_publicly'
+        'show_submissions_publicly',
     ];
 
     protected $casts = [
         'runner_up_pitch_ids' => 'array',
         'finalized_at' => 'datetime',
-        'show_submissions_publicly' => 'boolean'
+        'show_submissions_publicly' => 'boolean',
     ];
 
     /**
@@ -76,7 +76,7 @@ class ContestResult extends Model
         if (empty($this->runner_up_pitch_ids)) {
             return collect();
         }
-        
+
         return Pitch::whereIn('id', $this->runner_up_pitch_ids)
             ->with('user')
             ->get();
@@ -87,10 +87,19 @@ class ContestResult extends Model
      */
     public function hasPlacement(int $pitchId): ?string
     {
-        if ($this->first_place_pitch_id === $pitchId) return '1st';
-        if ($this->second_place_pitch_id === $pitchId) return '2nd';
-        if ($this->third_place_pitch_id === $pitchId) return '3rd';
-        if (in_array($pitchId, $this->runner_up_pitch_ids ?? [])) return 'runner-up';
+        if ($this->first_place_pitch_id === $pitchId) {
+            return '1st';
+        }
+        if ($this->second_place_pitch_id === $pitchId) {
+            return '2nd';
+        }
+        if ($this->third_place_pitch_id === $pitchId) {
+            return '3rd';
+        }
+        if (in_array($pitchId, $this->runner_up_pitch_ids ?? [])) {
+            return 'runner-up';
+        }
+
         return null;
     }
 
@@ -99,7 +108,7 @@ class ContestResult extends Model
      */
     public function isFinalized(): bool
     {
-        return !is_null($this->finalized_at);
+        return ! is_null($this->finalized_at);
     }
 
     /**
@@ -111,7 +120,7 @@ class ContestResult extends Model
             $this->first_place_pitch_id,
             $this->second_place_pitch_id,
             $this->third_place_pitch_id,
-            ...($this->runner_up_pitch_ids ?? [])
+            ...($this->runner_up_pitch_ids ?? []),
         ]);
     }
 
@@ -120,10 +129,10 @@ class ContestResult extends Model
      */
     public function hasWinners(): bool
     {
-        return $this->first_place_pitch_id || 
-               $this->second_place_pitch_id || 
-               $this->third_place_pitch_id || 
-               !empty($this->runner_up_pitch_ids);
+        return $this->first_place_pitch_id ||
+               $this->second_place_pitch_id ||
+               $this->third_place_pitch_id ||
+               ! empty($this->runner_up_pitch_ids);
     }
 
     /**
@@ -141,6 +150,7 @@ class ContestResult extends Model
             case 'runner_up':
                 // For runner-ups, return the first one (or could be modified to return all)
                 $runnerUps = $this->runnerUps();
+
                 return $runnerUps->first();
             default:
                 return null;
@@ -153,12 +163,19 @@ class ContestResult extends Model
     public function getPlacedCount(): int
     {
         $count = 0;
-        if ($this->first_place_pitch_id) $count++;
-        if ($this->second_place_pitch_id) $count++;
-        if ($this->third_place_pitch_id) $count++;
-        if (!empty($this->runner_up_pitch_ids)) {
+        if ($this->first_place_pitch_id) {
+            $count++;
+        }
+        if ($this->second_place_pitch_id) {
+            $count++;
+        }
+        if ($this->third_place_pitch_id) {
+            $count++;
+        }
+        if (! empty($this->runner_up_pitch_ids)) {
             $count += count($this->runner_up_pitch_ids);
         }
+
         return $count;
     }
 
@@ -168,40 +185,40 @@ class ContestResult extends Model
     public function removePitchFromAllPlacements(int $pitchId): bool
     {
         $wasRemoved = false;
-        
+
         // Check and remove from first place
         if ($this->first_place_pitch_id === $pitchId) {
             $this->first_place_pitch_id = null;
             $wasRemoved = true;
         }
-        
+
         // Check and remove from second place
         if ($this->second_place_pitch_id === $pitchId) {
             $this->second_place_pitch_id = null;
             $wasRemoved = true;
         }
-        
+
         // Check and remove from third place
         if ($this->third_place_pitch_id === $pitchId) {
             $this->third_place_pitch_id = null;
             $wasRemoved = true;
         }
-        
+
         // Check and remove from runner-ups
         $runnerUpIds = $this->runner_up_pitch_ids ?? [];
         if (in_array($pitchId, $runnerUpIds)) {
-            $this->runner_up_pitch_ids = array_values(array_filter($runnerUpIds, function($id) use ($pitchId) {
+            $this->runner_up_pitch_ids = array_values(array_filter($runnerUpIds, function ($id) use ($pitchId) {
                 return $id !== $pitchId;
             }));
-            
+
             // Set to null if array is empty
             if (empty($this->runner_up_pitch_ids)) {
                 $this->runner_up_pitch_ids = null;
             }
-            
+
             $wasRemoved = true;
         }
-        
+
         return $wasRemoved;
     }
 
@@ -211,20 +228,20 @@ class ContestResult extends Model
     public function removeFromRunnerUps(int $pitchId): bool
     {
         $runnerUpIds = $this->runner_up_pitch_ids ?? [];
-        
-        if (!in_array($pitchId, $runnerUpIds)) {
+
+        if (! in_array($pitchId, $runnerUpIds)) {
             return false;
         }
-        
-        $this->runner_up_pitch_ids = array_values(array_filter($runnerUpIds, function($id) use ($pitchId) {
+
+        $this->runner_up_pitch_ids = array_values(array_filter($runnerUpIds, function ($id) use ($pitchId) {
             return $id !== $pitchId;
         }));
-        
+
         // Set to null if array is empty
         if (empty($this->runner_up_pitch_ids)) {
             $this->runner_up_pitch_ids = null;
         }
-        
+
         return true;
     }
 
@@ -234,31 +251,31 @@ class ContestResult extends Model
     public function hasOrphanedPitches(): array
     {
         $orphaned = [];
-        
+
         // Check individual placements
-        if ($this->first_place_pitch_id && !Pitch::find($this->first_place_pitch_id)) {
+        if ($this->first_place_pitch_id && ! Pitch::find($this->first_place_pitch_id)) {
             $orphaned['first_place'] = $this->first_place_pitch_id;
         }
-        
-        if ($this->second_place_pitch_id && !Pitch::find($this->second_place_pitch_id)) {
+
+        if ($this->second_place_pitch_id && ! Pitch::find($this->second_place_pitch_id)) {
             $orphaned['second_place'] = $this->second_place_pitch_id;
         }
-        
-        if ($this->third_place_pitch_id && !Pitch::find($this->third_place_pitch_id)) {
+
+        if ($this->third_place_pitch_id && ! Pitch::find($this->third_place_pitch_id)) {
             $orphaned['third_place'] = $this->third_place_pitch_id;
         }
-        
+
         // Check runner-ups
         $runnerUpIds = $this->runner_up_pitch_ids ?? [];
-        if (!empty($runnerUpIds)) {
+        if (! empty($runnerUpIds)) {
             $validIds = Pitch::whereIn('id', $runnerUpIds)->pluck('id')->toArray();
             $orphanedRunnerUps = array_diff($runnerUpIds, $validIds);
-            
-            if (!empty($orphanedRunnerUps)) {
+
+            if (! empty($orphanedRunnerUps)) {
                 $orphaned['runner_ups'] = $orphanedRunnerUps;
             }
         }
-        
+
         return $orphaned;
     }
 
@@ -269,38 +286,38 @@ class ContestResult extends Model
     {
         $orphaned = $this->hasOrphanedPitches();
         $cleaned = [];
-        
+
         if (empty($orphaned)) {
             return $cleaned;
         }
-        
+
         // Clean first place
         if (isset($orphaned['first_place'])) {
             $cleaned['first_place'] = $this->first_place_pitch_id;
             $this->first_place_pitch_id = null;
         }
-        
+
         // Clean second place
         if (isset($orphaned['second_place'])) {
             $cleaned['second_place'] = $this->second_place_pitch_id;
             $this->second_place_pitch_id = null;
         }
-        
+
         // Clean third place
         if (isset($orphaned['third_place'])) {
             $cleaned['third_place'] = $this->third_place_pitch_id;
             $this->third_place_pitch_id = null;
         }
-        
+
         // Clean runner-ups
         if (isset($orphaned['runner_ups'])) {
             $runnerUpIds = $this->runner_up_pitch_ids ?? [];
             $validIds = Pitch::whereIn('id', $runnerUpIds)->pluck('id')->toArray();
-            
+
             $cleaned['runner_ups'] = $orphaned['runner_ups'];
             $this->runner_up_pitch_ids = empty($validIds) ? null : array_values($validIds);
         }
-        
+
         return $cleaned;
     }
 
@@ -312,21 +329,21 @@ class ContestResult extends Model
         $placedPitchIds = $this->getPlacedPitchIds();
         $totalEntries = $this->project ? $this->project->getContestEntries()->count() : 0;
         $orphaned = $this->hasOrphanedPitches();
-        
+
         return [
             'total_entries' => $totalEntries,
             'placed_entries' => count($placedPitchIds),
             'unplaced_entries' => max(0, $totalEntries - count($placedPitchIds)),
             'is_finalized' => $this->isFinalized(),
             'has_winners' => $this->hasWinners(),
-            'has_orphaned_references' => !empty($orphaned),
+            'has_orphaned_references' => ! empty($orphaned),
             'orphaned_references' => $orphaned,
             'placements' => [
                 'first_place' => $this->first_place_pitch_id,
                 'second_place' => $this->second_place_pitch_id,
                 'third_place' => $this->third_place_pitch_id,
-                'runner_ups' => $this->runner_up_pitch_ids ?? []
-            ]
+                'runner_ups' => $this->runner_up_pitch_ids ?? [],
+            ],
         ];
     }
 }

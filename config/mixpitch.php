@@ -23,4 +23,4 @@ return [
     |
     */
     // 'example_setting' => env('EXAMPLE_SETTING', 'default_value'),
-]; 
+];

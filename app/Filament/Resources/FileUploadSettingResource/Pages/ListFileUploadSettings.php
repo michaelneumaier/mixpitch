@@ -5,8 +5,8 @@ namespace App\Filament\Resources\FileUploadSettingResource\Pages;
 use App\Filament\Resources\FileUploadSettingResource;
 use App\Models\FileUploadSetting;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ListRecords;
 
 class ListFileUploadSettings extends ListRecords
 {
@@ -16,7 +16,7 @@ class ListFileUploadSettings extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            
+
             Actions\Action::make('view_current_settings')
                 ->label('View Current Settings')
                 ->icon('heroicon-o-eye')
@@ -25,7 +25,7 @@ class ListFileUploadSettings extends ListRecords
                 ->modalContent(function () {
                     $contexts = FileUploadSetting::getValidContexts();
                     $content = '<div class="space-y-6">';
-                    
+
                     foreach ($contexts as $context) {
                         $settings = FileUploadSetting::getSettings($context);
                         $contextLabel = match ($context) {
@@ -35,11 +35,11 @@ class ListFileUploadSettings extends ListRecords
                             FileUploadSetting::CONTEXT_CLIENT_PORTALS => 'Client Portals',
                             default => $context,
                         };
-                        
+
                         $content .= "<div class='border rounded-lg p-4'>";
                         $content .= "<h3 class='font-semibold text-lg mb-3'>{$contextLabel}</h3>";
                         $content .= "<div class='grid grid-cols-2 gap-4'>";
-                        
+
                         foreach ($settings as $key => $value) {
                             $label = match ($key) {
                                 FileUploadSetting::MAX_FILE_SIZE_MB => 'Max File Size (MB)',
@@ -50,19 +50,20 @@ class ListFileUploadSettings extends ListRecords
                                 FileUploadSetting::SESSION_TIMEOUT_HOURS => 'Session Timeout (Hours)',
                                 default => $key,
                             };
-                            
+
                             $displayValue = is_bool($value) ? ($value ? 'Yes' : 'No') : $value;
                             $content .= "<div><strong>{$label}:</strong> {$displayValue}</div>";
                         }
-                        
-                        $content .= "</div></div>";
+
+                        $content .= '</div></div>';
                     }
-                    
+
                     $content .= '</div>';
+
                     return view('filament.modal-content', ['content' => $content]);
                 })
                 ->modalWidth('4xl'),
-                
+
             Actions\Action::make('seed_defaults')
                 ->label('Seed Default Settings')
                 ->icon('heroicon-o-plus-circle')
@@ -73,14 +74,14 @@ class ListFileUploadSettings extends ListRecords
                 ->action(function () {
                     $created = 0;
                     $contexts = FileUploadSetting::getValidContexts();
-                    
+
                     foreach ($contexts as $context) {
                         foreach (FileUploadSetting::DEFAULT_VALUES as $key => $value) {
                             $existing = FileUploadSetting::where('context', $context)
                                 ->where('key', $key)
                                 ->first();
-                                
-                            if (!$existing) {
+
+                            if (! $existing) {
                                 FileUploadSetting::create([
                                     'context' => $context,
                                     'key' => $key,
@@ -91,7 +92,7 @@ class ListFileUploadSettings extends ListRecords
                             }
                         }
                     }
-                    
+
                     if ($created > 0) {
                         Notification::make()
                             ->title('Default Settings Created')
@@ -108,7 +109,7 @@ class ListFileUploadSettings extends ListRecords
                 }),
         ];
     }
-    
+
     protected function getHeaderWidgets(): array
     {
         return [

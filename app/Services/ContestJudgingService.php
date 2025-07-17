@@ -2,13 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Project;
-use App\Models\Pitch;
 use App\Models\ContestResult;
+use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use App\Services\NotificationService;
 
 class ContestJudgingService
 {
@@ -29,11 +27,11 @@ class ContestJudgingService
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'placement' => $placement,
-                'current_pitch_rank' => $pitch->rank
+                'current_pitch_rank' => $pitch->rank,
             ]);
 
             // Validate that this is a contest project
-            if (!$project->isContest()) {
+            if (! $project->isContest()) {
                 throw new \InvalidArgumentException('Project must be a contest to set placements');
             }
 
@@ -43,39 +41,39 @@ class ContestJudgingService
             }
 
             // Validate placement value
-            if ($placement && !in_array($placement, [Pitch::RANK_FIRST, Pitch::RANK_SECOND, Pitch::RANK_THIRD, Pitch::RANK_RUNNER_UP])) {
-                throw new \InvalidArgumentException('Invalid placement value: ' . $placement);
+            if ($placement && ! in_array($placement, [Pitch::RANK_FIRST, Pitch::RANK_SECOND, Pitch::RANK_THIRD, Pitch::RANK_RUNNER_UP])) {
+                throw new \InvalidArgumentException('Invalid placement value: '.$placement);
             }
 
             // Validate pitch status
             $eligibleStatuses = [Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP];
-            if (!in_array($pitch->status, $eligibleStatuses)) {
-                throw new \InvalidArgumentException('Pitch is not eligible for contest placement. Current status: ' . $pitch->status);
+            if (! in_array($pitch->status, $eligibleStatuses)) {
+                throw new \InvalidArgumentException('Pitch is not eligible for contest placement. Current status: '.$pitch->status);
             }
 
             $result = DB::transaction(function () use ($project, $pitch, $placement) {
                 // Get or create contest result
                 $contestResult = $project->contestResult()->firstOrCreate([
-                    'project_id' => $project->id
+                    'project_id' => $project->id,
                 ], [
-                    'show_submissions_publicly' => true
+                    'show_submissions_publicly' => true,
                 ]);
 
                 \Log::info('Contest result retrieved/created', [
                     'contest_result_id' => $contestResult->id,
-                    'project_id' => $project->id
+                    'project_id' => $project->id,
                 ]);
 
                 // If removing placement, clear it
-                if (!$placement) {
+                if (! $placement) {
                     $this->clearPlacement($contestResult, $pitch);
                     $pitch->update(['rank' => null]);
-                    
+
                     \Log::info('Placement cleared', [
                         'project_id' => $project->id,
-                        'pitch_id' => $pitch->id
+                        'pitch_id' => $pitch->id,
                     ]);
-                    
+
                     return true;
                 }
 
@@ -93,7 +91,7 @@ class ContestJudgingService
                 \Log::info('Placement set successfully', [
                     'project_id' => $project->id,
                     'pitch_id' => $pitch->id,
-                    'placement' => $placement
+                    'placement' => $placement,
                 ]);
 
                 return true;
@@ -106,19 +104,18 @@ class ContestJudgingService
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'placement' => $placement,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
-
         } catch (\Exception $e) {
             \Log::error('ContestJudgingService unexpected error', [
                 'project_id' => $project->id,
                 'pitch_id' => $pitch->id,
                 'placement' => $placement,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            throw new \InvalidArgumentException('Failed to set placement: ' . $e->getMessage());
+            throw new \InvalidArgumentException('Failed to set placement: '.$e->getMessage());
         }
     }
 
@@ -143,7 +140,7 @@ class ContestJudgingService
         // Clear from runner-ups
         $runnerUps = $contestResult->runner_up_pitch_ids ?? [];
         if (in_array($pitchId, $runnerUps)) {
-            $runnerUps = array_values(array_filter($runnerUps, fn($id) => $id !== $pitchId));
+            $runnerUps = array_values(array_filter($runnerUps, fn ($id) => $id !== $pitchId));
             $contestResult->update(['runner_up_pitch_ids' => $runnerUps]);
         }
     }
@@ -159,7 +156,7 @@ class ContestJudgingService
         $this->clearPlacement($contestResult, $pitch);
 
         // Clear any existing pitch from this placement and set the new one
-        $field = match($placement) {
+        $field = match ($placement) {
             Pitch::RANK_FIRST => 'first_place_pitch_id',
             Pitch::RANK_SECOND => 'second_place_pitch_id',
             Pitch::RANK_THIRD => 'third_place_pitch_id',
@@ -188,7 +185,7 @@ class ContestJudgingService
 
         // Add to runner-ups if not already there
         $runnerUps = $contestResult->runner_up_pitch_ids ?? [];
-        if (!in_array($pitchId, $runnerUps)) {
+        if (! in_array($pitchId, $runnerUps)) {
             $runnerUps[] = $pitchId;
             $contestResult->update(['runner_up_pitch_ids' => $runnerUps]);
         }
@@ -202,29 +199,29 @@ class ContestJudgingService
         $contestResult = $project->contestResult;
         $placements = [
             '' => 'No Placement',
-            Pitch::RANK_RUNNER_UP => 'Runner-up'
+            Pitch::RANK_RUNNER_UP => 'Runner-up',
         ];
 
-        if (!$contestResult) {
+        if (! $contestResult) {
             // All placements available if no contest result exists yet
             $placements[Pitch::RANK_FIRST] = '1st Place';
             $placements[Pitch::RANK_SECOND] = '2nd Place';
             $placements[Pitch::RANK_THIRD] = '3rd Place';
         } else {
             // Check which exclusive placements are available
-            if (!$contestResult->first_place_pitch_id || $contestResult->first_place_pitch_id === $pitch->id) {
+            if (! $contestResult->first_place_pitch_id || $contestResult->first_place_pitch_id === $pitch->id) {
                 $placements[Pitch::RANK_FIRST] = '1st Place';
             } else {
                 $placements[Pitch::RANK_FIRST] = '1st Place (Already Chosen)';
             }
 
-            if (!$contestResult->second_place_pitch_id || $contestResult->second_place_pitch_id === $pitch->id) {
+            if (! $contestResult->second_place_pitch_id || $contestResult->second_place_pitch_id === $pitch->id) {
                 $placements[Pitch::RANK_SECOND] = '2nd Place';
             } else {
                 $placements[Pitch::RANK_SECOND] = '2nd Place (Already Chosen)';
             }
 
-            if (!$contestResult->third_place_pitch_id || $contestResult->third_place_pitch_id === $pitch->id) {
+            if (! $contestResult->third_place_pitch_id || $contestResult->third_place_pitch_id === $pitch->id) {
                 $placements[Pitch::RANK_THIRD] = '3rd Place';
             } else {
                 $placements[Pitch::RANK_THIRD] = '3rd Place (Already Chosen)';
@@ -242,25 +239,25 @@ class ContestJudgingService
         $contestResult = $project->contestResult;
         $placements = [
             '' => 'No Placement',
-            Pitch::RANK_RUNNER_UP => 'Runner-up'
+            Pitch::RANK_RUNNER_UP => 'Runner-up',
         ];
 
-        if (!$contestResult) {
+        if (! $contestResult) {
             // All placements available if no contest result exists yet
             $placements[Pitch::RANK_FIRST] = '1st Place';
             $placements[Pitch::RANK_SECOND] = '2nd Place';
             $placements[Pitch::RANK_THIRD] = '3rd Place';
         } else {
             // Only include placements that are truly available
-            if (!$contestResult->first_place_pitch_id || $contestResult->first_place_pitch_id === $pitch->id) {
+            if (! $contestResult->first_place_pitch_id || $contestResult->first_place_pitch_id === $pitch->id) {
                 $placements[Pitch::RANK_FIRST] = '1st Place';
             }
 
-            if (!$contestResult->second_place_pitch_id || $contestResult->second_place_pitch_id === $pitch->id) {
+            if (! $contestResult->second_place_pitch_id || $contestResult->second_place_pitch_id === $pitch->id) {
                 $placements[Pitch::RANK_SECOND] = '2nd Place';
             }
 
-            if (!$contestResult->third_place_pitch_id || $contestResult->third_place_pitch_id === $pitch->id) {
+            if (! $contestResult->third_place_pitch_id || $contestResult->third_place_pitch_id === $pitch->id) {
                 $placements[Pitch::RANK_THIRD] = '3rd Place';
             }
         }
@@ -274,12 +271,12 @@ class ContestJudgingService
     public function finalizeJudging(Project $project, User $judge, ?string $notes = null): bool
     {
         // Validate that this is a contest project
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             throw new \InvalidArgumentException('Project must be a contest to finalize judging');
         }
 
         // Validate that judging can be finalized
-        if (!$project->canFinalizeJudging()) {
+        if (! $project->canFinalizeJudging()) {
             throw new \InvalidArgumentException('Contest judging cannot be finalized yet');
         }
 
@@ -288,17 +285,17 @@ class ContestJudgingService
             $project->update([
                 'judging_finalized_at' => now(),
                 'judging_notes' => $notes,
-                'status' => Project::STATUS_COMPLETED
+                'status' => Project::STATUS_COMPLETED,
             ]);
 
             // Update contest result
             $project->load('contestResult'); // Refresh the relationship
             $contestResult = $project->contestResult;
-            
+
             if ($contestResult) {
                 $contestResult->update([
                     'finalized_at' => now(),
-                    'finalized_by' => $judge->id
+                    'finalized_by' => $judge->id,
                 ]);
 
                 // Update pitch statuses and send notifications
@@ -319,15 +316,15 @@ class ContestJudgingService
 
         foreach ($allEntries as $pitch) {
             $placement = $contestResult->hasPlacement($pitch->id);
-            
+
             if ($placement) {
                 // Update winners and runner-ups
                 if ($placement === '1st') {
                     $pitch->update([
                         'status' => Pitch::STATUS_CONTEST_WINNER,
-                        'placement_finalized_at' => now()
+                        'placement_finalized_at' => now(),
                     ]);
-                    
+
                     // Use appropriate notification method based on prize
                     $hasPrize = $project->prize_amount > 0;
                     if ($hasPrize) {
@@ -338,9 +335,9 @@ class ContestJudgingService
                 } elseif ($placement === '2nd') {
                     $pitch->update([
                         'status' => Pitch::STATUS_CONTEST_WINNER,
-                        'placement_finalized_at' => now()
+                        'placement_finalized_at' => now(),
                     ]);
-                    
+
                     // Use appropriate notification method based on prize
                     $hasPrize = $project->prize_amount > 0;
                     if ($hasPrize) {
@@ -351,9 +348,9 @@ class ContestJudgingService
                 } elseif ($placement === '3rd') {
                     $pitch->update([
                         'status' => Pitch::STATUS_CONTEST_WINNER,
-                        'placement_finalized_at' => now()
+                        'placement_finalized_at' => now(),
                     ]);
-                    
+
                     // Use appropriate notification method based on prize
                     $hasPrize = $project->prize_amount > 0;
                     if ($hasPrize) {
@@ -364,9 +361,9 @@ class ContestJudgingService
                 } elseif ($placement === 'runner-up') {
                     $pitch->update([
                         'status' => Pitch::STATUS_CONTEST_RUNNER_UP,
-                        'placement_finalized_at' => now()
+                        'placement_finalized_at' => now(),
                     ]);
-                    
+
                     // Note: This method might not exist yet, but we'll create it or use existing one
                     // For now, we'll use the not selected notification as a fallback
                     $this->notificationService->notifyContestEntryNotSelected($pitch);
@@ -375,7 +372,7 @@ class ContestJudgingService
                 // Update non-selected entries
                 $pitch->update([
                     'status' => Pitch::STATUS_CONTEST_NOT_SELECTED,
-                    'placement_finalized_at' => now()
+                    'placement_finalized_at' => now(),
                 ]);
                 $this->notificationService->notifyContestEntryNotSelected($pitch);
             }
@@ -395,26 +392,26 @@ class ContestJudgingService
      */
     public function reopenJudging(Project $project, User $admin): bool
     {
-        if (!$this->canReopenJudging($project, $admin)) {
+        if (! $this->canReopenJudging($project, $admin)) {
             throw new \InvalidArgumentException('Cannot reopen judging for this contest');
         }
 
         return DB::transaction(function () use ($project) {
             // Determine appropriate status to revert to
             $revertStatus = $project->is_published ? Project::STATUS_OPEN : Project::STATUS_UNPUBLISHED;
-            
+
             // Clear finalization timestamps and revert project status
             $project->update([
                 'judging_finalized_at' => null,
                 'judging_notes' => null,
-                'status' => $revertStatus
+                'status' => $revertStatus,
             ]);
 
             $contestResult = $project->contestResult;
             if ($contestResult) {
                 $contestResult->update([
                     'finalized_at' => null,
-                    'finalized_by' => null
+                    'finalized_by' => null,
                 ]);
 
                 // Revert all contest entries back to contest_entry status
@@ -422,11 +419,11 @@ class ContestJudgingService
                     ->whereIn('status', [
                         Pitch::STATUS_CONTEST_WINNER,
                         Pitch::STATUS_CONTEST_RUNNER_UP,
-                        Pitch::STATUS_CONTEST_NOT_SELECTED
+                        Pitch::STATUS_CONTEST_NOT_SELECTED,
                     ])
                     ->update([
                         'status' => Pitch::STATUS_CONTEST_ENTRY,
-                        'placement_finalized_at' => null
+                        'placement_finalized_at' => null,
                     ]);
             }
 
@@ -440,12 +437,12 @@ class ContestJudgingService
     public function announceResults(Project $project, User $announcer): bool
     {
         // Validate that this is a contest project
-        if (!$project->isContest()) {
+        if (! $project->isContest()) {
             throw new \InvalidArgumentException('Project must be a contest to announce results');
         }
 
         // Validate that judging has been finalized
-        if (!$project->isJudgingFinalized()) {
+        if (! $project->isJudgingFinalized()) {
             throw new \InvalidArgumentException('Contest judging must be finalized before announcing results');
         }
 
@@ -458,7 +455,7 @@ class ContestJudgingService
             // Update project with announcement timestamp
             $project->update([
                 'results_announced_at' => now(),
-                'results_announced_by' => $announcer->id
+                'results_announced_by' => $announcer->id,
             ]);
 
             // Send final announcement notifications to all participants
@@ -474,7 +471,7 @@ class ContestJudgingService
     protected function sendAnnouncementNotifications(Project $project): void
     {
         $allEntries = $project->getContestEntries();
-        
+
         foreach ($allEntries as $pitch) {
             try {
                 // Send announcement notification based on status
@@ -493,7 +490,7 @@ class ContestJudgingService
                 // Log error but don't stop the process
                 \Log::error('Failed to send announcement notification', [
                     'pitch_id' => $pitch->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -504,7 +501,7 @@ class ContestJudgingService
         } catch (\Exception $e) {
             \Log::error('Failed to send organizer announcement notification', [
                 'project_id' => $project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -514,6 +511,6 @@ class ContestJudgingService
      */
     public function areResultsAnnounced(Project $project): bool
     {
-        return !is_null($project->results_announced_at);
+        return ! is_null($project->results_announced_at);
     }
-} 
+}

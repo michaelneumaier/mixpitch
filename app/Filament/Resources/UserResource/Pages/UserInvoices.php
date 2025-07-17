@@ -3,34 +3,34 @@
 namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
-use Filament\Resources\Pages\Page;
 use App\Models\User;
-use Laravel\Cashier\Cashier;
 use Carbon\Carbon;
+use Filament\Resources\Pages\Page;
+use Laravel\Cashier\Cashier;
 
 class UserInvoices extends Page
 {
     protected static string $resource = UserResource::class;
 
     protected static string $view = 'filament.resources.user-resource.pages.user-invoices';
-    
+
     public User $record;
-    
+
     public function getInvoices()
     {
-        if (!$this->record->stripe_id) {
+        if (! $this->record->stripe_id) {
             return [];
         }
-        
+
         try {
             $stripe = Cashier::stripe();
             $invoices = $stripe->invoices->all([
                 'customer' => $this->record->stripe_id,
                 'limit' => 100,
             ]);
-            
+
             $formattedInvoices = [];
-            
+
             foreach ($invoices->data as $invoice) {
                 $formattedInvoices[] = [
                     'id' => $invoice->id,
@@ -43,13 +43,13 @@ class UserInvoices extends Page
                     'pdf' => $invoice->invoice_pdf,
                 ];
             }
-            
+
             return $formattedInvoices;
         } catch (\Exception $e) {
             return [];
         }
     }
-    
+
     public function getStatusColor($status)
     {
         return match ($status) {
@@ -60,11 +60,11 @@ class UserInvoices extends Page
             default => 'info',
         };
     }
-    
+
     public function getViewData(): array
     {
         return [
             'invoices' => $this->getInvoices(),
         ];
     }
-} 
+}

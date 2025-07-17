@@ -36,6 +36,7 @@ class VerifyOAuthUsers extends Command
 
         if ($unverifiedOAuthUsers->isEmpty()) {
             $this->info('No unverified OAuth users found.');
+
             return Command::SUCCESS;
         }
 
@@ -58,11 +59,13 @@ class VerifyOAuthUsers extends Command
 
         if ($dryRun) {
             $this->warn('DRY RUN: No changes were made. Remove --dry-run to actually verify these users.');
+
             return Command::SUCCESS;
         }
 
-        if (!$this->confirm('Do you want to verify all these OAuth users?')) {
+        if (! $this->confirm('Do you want to verify all these OAuth users?')) {
             $this->info('Operation cancelled.');
+
             return Command::SUCCESS;
         }
 
@@ -81,4 +84,4 @@ class VerifyOAuthUsers extends Command
 
         return Command::SUCCESS;
     }
-} 
+}

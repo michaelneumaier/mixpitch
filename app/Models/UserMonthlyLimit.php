@@ -5,8 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
-use Carbon\Carbon;
 
 class UserMonthlyLimit extends Model
 {
@@ -44,14 +42,12 @@ class UserMonthlyLimit extends Model
     /**
      * Get or create monthly limit record for user
      *
-     * @param User $user
-     * @param string|null $monthYear
      * @return static
      */
     public static function getOrCreateForUser(User $user, ?string $monthYear = null): self
     {
         $monthYear = $monthYear ?? now()->format('Y-m');
-        
+
         return self::updateOrCreate(
             ['user_id' => $user->id, 'month_year' => $monthYear],
             ['last_reset_at' => now()]
@@ -67,19 +63,19 @@ class UserMonthlyLimit extends Model
     {
         $lastMonth = now()->subMonth()->format('Y-m');
         $currentMonth = now()->format('Y-m');
-        
+
         // Archive last month's data by updating month_year
         // and reset counters for users who had usage
         $users = User::whereHas('monthlyLimits', function ($query) use ($lastMonth) {
             $query->where('month_year', $lastMonth);
         })->get();
-        
+
         $resetCount = 0;
         foreach ($users as $user) {
             self::getOrCreateForUser($user, $currentMonth);
             $resetCount++;
         }
-        
+
         return $resetCount;
     }
 
@@ -87,8 +83,6 @@ class UserMonthlyLimit extends Model
 
     /**
      * Increment visibility boost usage
-     *
-     * @return void
      */
     public function incrementVisibilityBoosts(): void
     {
@@ -97,23 +91,21 @@ class UserMonthlyLimit extends Model
 
     /**
      * Check if user can use more visibility boosts
-     *
-     * @return bool
      */
     public function canUseVisibilityBoost(): bool
     {
         $limit = $this->user->getMonthlyVisibilityBoosts();
+
         return $limit === 0 ? false : $this->visibility_boosts_used < $limit;
     }
 
     /**
      * Get remaining visibility boosts
-     *
-     * @return int
      */
     public function getRemainingVisibilityBoosts(): int
     {
         $limit = $this->user->getMonthlyVisibilityBoosts();
+
         return max(0, $limit - $this->visibility_boosts_used);
     }
 
@@ -121,8 +113,6 @@ class UserMonthlyLimit extends Model
 
     /**
      * Increment private projects created
-     *
-     * @return void
      */
     public function incrementPrivateProjects(): void
     {
@@ -131,37 +121,33 @@ class UserMonthlyLimit extends Model
 
     /**
      * Check if user can create more private projects
-     *
-     * @return bool
      */
     public function canCreatePrivateProject(): bool
     {
         $limit = $this->user->getMaxPrivateProjectsMonthly();
-        
+
         if ($limit === null) {
             return true; // Unlimited
         }
-        
+
         if ($limit === 0) {
             return false; // Not allowed
         }
-        
+
         return $this->private_projects_created < $limit;
     }
 
     /**
      * Get remaining private projects
-     *
-     * @return int|null
      */
     public function getRemainingPrivateProjects(): ?int
     {
         $limit = $this->user->getMaxPrivateProjectsMonthly();
-        
+
         if ($limit === null) {
             return null; // Unlimited
         }
-        
+
         return max(0, $limit - $this->private_projects_created);
     }
 
@@ -169,8 +155,6 @@ class UserMonthlyLimit extends Model
 
     /**
      * Increment license templates created
-     *
-     * @return void
      */
     public function incrementLicenseTemplates(): void
     {
@@ -179,20 +163,19 @@ class UserMonthlyLimit extends Model
 
     /**
      * Check if user can create more license templates
-     *
-     * @return bool
      */
     public function canCreateLicenseTemplate(): bool
     {
         $limit = $this->user->getMaxLicenseTemplates();
-        
+
         if ($limit === null) {
             return true; // Unlimited
         }
-        
+
         // Note: License templates are usually lifetime limits, not monthly
         // But we track monthly creation for analytics
         $totalTemplates = $this->user->licenseTemplates()->count();
+
         return $totalTemplates < $limit;
     }
 
@@ -200,10 +183,6 @@ class UserMonthlyLimit extends Model
 
     /**
      * Add to additional usage tracking
-     *
-     * @param string $feature
-     * @param int $amount
-     * @return void
      */
     public function incrementAdditionalUsage(string $feature, int $amount = 1): void
     {
@@ -214,9 +193,6 @@ class UserMonthlyLimit extends Model
 
     /**
      * Get usage for a specific feature
-     *
-     * @param string $feature
-     * @return int
      */
     public function getAdditionalUsage(string $feature): int
     {
@@ -225,8 +201,6 @@ class UserMonthlyLimit extends Model
 
     /**
      * Reset monthly counters
-     *
-     * @return void
      */
     public function resetCounters(): void
     {
@@ -241,13 +215,11 @@ class UserMonthlyLimit extends Model
 
     /**
      * Get usage summary
-     *
-     * @return array
      */
     public function getUsageSummary(): array
     {
         $user = $this->user;
-        
+
         return [
             'month_year' => $this->month_year,
             'visibility_boosts' => [
@@ -294,9 +266,9 @@ class UserMonthlyLimit extends Model
     {
         return $query->where(function ($q) {
             $q->where('visibility_boosts_used', '>', 0)
-              ->orWhere('private_projects_created', '>', 0)
-              ->orWhere('license_templates_created', '>', 0)
-              ->orWhereNotNull('additional_usage');
+                ->orWhere('private_projects_created', '>', 0)
+                ->orWhere('license_templates_created', '>', 0)
+                ->orWhereNotNull('additional_usage');
         });
     }
 }

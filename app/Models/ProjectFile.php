@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Exception;
 use Illuminate\Support\Facades\Storage;
 
 class ProjectFile extends Model
@@ -13,8 +13,8 @@ class ProjectFile extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'project_id', 
-        'file_path', 
+        'project_id',
+        'file_path',
         'storage_path',
         'file_name',
         'original_file_name',
@@ -22,12 +22,12 @@ class ProjectFile extends Model
         'user_id',
         'size',
         'is_preview_track',
-        'metadata'
+        'metadata',
     ];
 
-    function formatBytes($bytes, $precision = 2)
+    public function formatBytes($bytes, $precision = 2)
     {
-        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
@@ -35,7 +35,7 @@ class ProjectFile extends Model
 
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
 
     public function getFormattedSizeAttribute()
@@ -70,15 +70,16 @@ class ProjectFile extends Model
                 now()->addMinutes(30),
                 [
                     'ResponseContentType' => 'audio/mpeg',
-                    'ResponseCacheControl' => 'no-cache'
+                    'ResponseCacheControl' => 'no-cache',
                 ]
             );
         } catch (Exception $e) {
             \Log::error('Error generating signed S3 URL for file', [
                 'file_path' => $this->file_path,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return null;
         }
     }
@@ -87,7 +88,7 @@ class ProjectFile extends Model
      * Get a signed URL for downloading the file
      * This uses a longer expiration time and appropriate headers for downloading
      *
-     * @param int $expirationMinutes Minutes until URL expires (default: 60)
+     * @param  int  $expirationMinutes  Minutes until URL expires (default: 60)
      * @return string|null
      */
     public function getSignedUrlAttribute($expirationMinutes = 60)
@@ -97,14 +98,15 @@ class ProjectFile extends Model
                 $this->file_path,
                 now()->addMinutes($expirationMinutes),
                 [
-                    'ResponseContentDisposition' => 'attachment; filename="' . $this->getFileNameAttribute() . '"'
+                    'ResponseContentDisposition' => 'attachment; filename="'.$this->getFileNameAttribute().'"',
                 ]
             );
         } catch (Exception $e) {
             \Log::error('Error generating signed download URL for file', [
                 'file_path' => $this->file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -114,7 +116,7 @@ class ProjectFile extends Model
      * This is a method implementation of the getSignedUrlAttribute accessor
      * that allows passing a custom expiration time
      *
-     * @param int $expirationMinutes Minutes until URL expires
+     * @param  int  $expirationMinutes  Minutes until URL expires
      * @return string|null
      */
     public function signedUrl($expirationMinutes = 60)
@@ -124,14 +126,15 @@ class ProjectFile extends Model
                 $this->file_path,
                 now()->addMinutes($expirationMinutes),
                 [
-                    'ResponseContentDisposition' => 'attachment; filename="' . $this->getFileNameAttribute() . '"'
+                    'ResponseContentDisposition' => 'attachment; filename="'.$this->getFileNameAttribute().'"',
                 ]
             );
         } catch (Exception $e) {
             \Log::error('Error generating signed download URL for file', [
                 'file_path' => $this->file_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->bigInteger('total_storage_used')->default(0)->after('subscription_currency');
             $table->decimal('storage_limit_override_gb', 10, 2)->nullable()->after('total_storage_used');
-            
+
             // Add index for performance
             $table->index('total_storage_used');
         });

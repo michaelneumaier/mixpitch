@@ -36,7 +36,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('notifications');
-        
+
         // Recreate the original structure if needed to roll back
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();

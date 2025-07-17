@@ -25,28 +25,28 @@ class PublicServicePackageController extends Controller
         $query = ServicePackage::published()->with('user');
 
         // Apply search filter
-        if (!empty($validated['q'])) {
-            $searchTerm = '%' . $validated['q'] . '%';
-            $query->where(function($q) use ($searchTerm) {
+        if (! empty($validated['q'])) {
+            $searchTerm = '%'.$validated['q'].'%';
+            $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'like', $searchTerm)
-                  ->orWhere('description', 'like', $searchTerm)
-                  ->orWhereHas('user', function($userQuery) use ($searchTerm) {
-                      $userQuery->where('name', 'like', $searchTerm);
-                  });
-                  // Add category search later if needed
+                    ->orWhere('description', 'like', $searchTerm)
+                    ->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                        $userQuery->where('name', 'like', $searchTerm);
+                    });
+                // Add category search later if needed
             });
         }
 
         // Apply price filters
-        if (!empty($validated['price_min'])) {
+        if (! empty($validated['price_min'])) {
             $query->where('price', '>=', $validated['price_min']);
         }
-        if (!empty($validated['price_max'])) {
+        if (! empty($validated['price_max'])) {
             $query->where('price', '<=', $validated['price_max']);
         }
 
         // Apply delivery time filter
-        if (!empty($validated['delivery_time_max'])) {
+        if (! empty($validated['delivery_time_max'])) {
             $query->where('estimated_delivery_days', '<=', $validated['delivery_time_max']);
         }
 
@@ -63,28 +63,28 @@ class PublicServicePackageController extends Controller
 
         return view('public.services.index', [
             'packages' => $packages,
-            'filters' => $validated // Pass filters back to the view
+            'filters' => $validated, // Pass filters back to the view
         ]);
     }
 
     /**
      * Display the specified service package.
      *
-     * @param ServicePackage $package The service package resolved by route model binding (using slug).
+     * @param  ServicePackage  $package  The service package resolved by route model binding (using slug).
      * @return \Illuminate\View\View
      */
     public function show(ServicePackage $package)
     {
         // Ensure the package is published before showing
-        if (!$package->is_published) {
+        if (! $package->is_published) {
             abort(404);
         }
-        
+
         // Eager load the producer/user relationship
         $package->load('user');
-        
+
         // Optionally load related data like order count or ratings if needed later
-        
+
         return view('public.services.show', compact('package'));
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class CleanupTemporaryAudioFiles extends Command
 {
@@ -35,13 +35,13 @@ class CleanupTemporaryAudioFiles extends Command
         $days = (int) $this->option('days');
         $pathPrefix = $this->option('path');
 
-        $this->info("Cleaning up temporary audio files from S3...");
+        $this->info('Cleaning up temporary audio files from S3...');
         $this->info("Path prefix: {$pathPrefix}");
         $this->info("Older than: {$days} days");
-        $this->info("Dry run: " . ($dryRun ? 'Yes' : 'No'));
+        $this->info('Dry run: '.($dryRun ? 'Yes' : 'No'));
 
         if ($dryRun) {
-            $this->warn("This is a dry run - no files will be deleted");
+            $this->warn('This is a dry run - no files will be deleted');
         }
 
         $this->newLine();
@@ -49,13 +49,14 @@ class CleanupTemporaryAudioFiles extends Command
         try {
             // Get all files in the temporary directory
             $files = Storage::disk('s3')->files($pathPrefix);
-            
+
             if (empty($files)) {
                 $this->info("No files found in {$pathPrefix}");
+
                 return 0;
             }
 
-            $this->info("Found " . count($files) . " files to examine");
+            $this->info('Found '.count($files).' files to examine');
 
             $cutoffDate = Carbon::now()->subDays($days);
             $deletedCount = 0;
@@ -79,38 +80,39 @@ class CleanupTemporaryAudioFiles extends Command
                         $keptCount++;
                     }
                 } catch (\Exception $e) {
-                    $this->error("Failed to process {$file}: " . $e->getMessage());
+                    $this->error("Failed to process {$file}: ".$e->getMessage());
                     $failedCount++;
                 }
             });
 
             $this->newLine(2);
-            $this->info("Cleanup summary:");
-            $this->info("Files " . ($dryRun ? 'would be deleted' : 'deleted') . ": {$deletedCount}");
+            $this->info('Cleanup summary:');
+            $this->info('Files '.($dryRun ? 'would be deleted' : 'deleted').": {$deletedCount}");
             $this->info("Files kept (too recent): {$keptCount}");
             if ($failedCount > 0) {
                 $this->error("Files failed to process: {$failedCount}");
             }
 
-            if (!$dryRun) {
+            if (! $dryRun) {
                 Log::info('Manual temporary file cleanup completed', [
                     'deleted' => $deletedCount,
                     'kept' => $keptCount,
                     'failed' => $failedCount,
                     'days_threshold' => $days,
-                    'path_prefix' => $pathPrefix
+                    'path_prefix' => $pathPrefix,
                 ]);
             }
 
             return 0;
 
         } catch (\Exception $e) {
-            $this->error("Error during cleanup: " . $e->getMessage());
+            $this->error('Error during cleanup: '.$e->getMessage());
             Log::error('Manual temporary file cleanup failed', [
                 'error' => $e->getMessage(),
-                'path_prefix' => $pathPrefix
+                'path_prefix' => $pathPrefix,
             ]);
+
             return 1;
         }
     }
-} 
+}

@@ -12,11 +12,11 @@ return new class extends Migration
      * @return void
      */
     public function up()
-{
-    Schema::table('users', function (Blueprint $table) {
-        $table->string('role')->default('user')->after('email');
-    });
-}
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('role')->default('user')->after('email');
+        });
+    }
 
     /**
      * Reverse the migrations.
@@ -24,9 +24,9 @@ return new class extends Migration
      * @return void
      */
     public function down()
-{
-    Schema::table('users', function (Blueprint $table) {
-        $table->dropColumn('role');
-    });
-}
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('role');
+        });
+    }
 };

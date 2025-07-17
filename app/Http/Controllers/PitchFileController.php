@@ -4,22 +4,18 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Pitch;
-use App\Models\PitchFile;
-use App\Models\FileUploadSetting;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use App\Jobs\GenerateAudioWaveform;
-use App\Services\FileManagementService;
-use Illuminate\Support\Facades\Log;
+use App\Exceptions\File\FileDeletionException;
 use App\Exceptions\File\FileUploadException;
 use App\Exceptions\File\StorageLimitException;
-use App\Exceptions\File\FileDeletionException;
-use App\Exceptions\Pitch\UnauthorizedActionException;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Helpers\RouteHelpers;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Models\FileUploadSetting;
+use App\Models\Pitch;
+use App\Models\PitchFile;
+use App\Services\FileManagementService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PitchFileController extends Controller
 {
@@ -58,13 +54,15 @@ class PitchFileController extends Controller
             return redirect(RouteHelpers::pitchUrl($pitch))->with('success', 'File deleted successfully.');
         } catch (FileDeletionException $e) {
             Log::warning('Failed to delete pitch file via Controller', ['file_id' => $file->id, 'error' => $e->getMessage()]);
+
             return redirect(RouteHelpers::pitchUrl($pitch))->with('error', $e->getMessage());
         } catch (\Exception $e) {
             Log::error('Unexpected error deleting pitch file via Controller', [
                 'error' => $e->getMessage(),
                 'file_id' => $file->id,
-                'pitch_id' => $pitch->id
+                'pitch_id' => $pitch->id,
             ]);
+
             return redirect(RouteHelpers::pitchUrl($pitch))->with('error', 'An unexpected error occurred while deleting the file.');
         }
     }
@@ -72,12 +70,12 @@ class PitchFileController extends Controller
     /**
      * Handle a single file upload via AJAX
      */
-    public function uploadSingle(Request $request, Pitch $pitch = null)
+    public function uploadSingle(Request $request, ?Pitch $pitch = null)
     {
         // Get pitch context settings for validation
         $settings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_PITCHES);
         $maxFileSizeKB = $settings[FileUploadSetting::MAX_FILE_SIZE_MB] * 1024; // Convert MB to KB for Laravel validation
-        
+
         // Get pitch from route parameter or request body
         if ($pitch) {
             // Pitch passed as route parameter
@@ -103,6 +101,7 @@ class PitchFileController extends Controller
             $pitchFile = $this->fileManagementService->uploadPitchFile($targetPitch, $file, $user);
 
             $targetPitch->refresh();
+
             return response()->json([
                 'success' => true,
                 'message' => 'File uploaded successfully',
@@ -114,30 +113,33 @@ class PitchFileController extends Controller
                 'storage_used_formatted' => Pitch::formatBytes($targetPitch->total_storage_used),
                 'storage_percentage' => $targetPitch->getStorageUsedPercentage(),
                 'storage_remaining_formatted' => Pitch::formatBytes($targetPitch->getRemainingStorageBytes()),
-                'storage_limit_message' => $targetPitch->getStorageLimitMessage()
+                'storage_limit_message' => $targetPitch->getStorageLimitMessage(),
             ]);
 
-        } catch (FileUploadException | StorageLimitException $e) {
+        } catch (FileUploadException|StorageLimitException $e) {
             Log::warning('Pitch file upload failed (validation)', ['pitch_id' => $targetPitch->id, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             Log::warning('Unauthorized attempt to upload pitch file via Controller', ['pitch_id' => $targetPitch->id, 'user_id' => $user->id]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'You are not authorized to upload files to this pitch.'
+                'message' => 'You are not authorized to upload files to this pitch.',
             ], 403);
         } catch (\Exception $e) {
             Log::error('Error uploading single pitch file via AJAX Controller', [
                 'error' => $e->getMessage(),
                 'pitch_id' => $targetPitch->id,
-                'file_name' => $file->getClientOriginalName()
+                'file_name' => $file->getClientOriginalName(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'An unexpected error occurred during upload. Please try again.'
+                'message' => 'An unexpected error occurred during upload. Please try again.',
             ], 500);
         }
     }
@@ -158,7 +160,7 @@ class PitchFileController extends Controller
                 'file_id' => $file->id,
                 'file_uuid' => $file->uuid,
                 'user_id' => Auth::id(),
-                'filename' => $file->file_name
+                'filename' => $file->file_name,
             ]);
 
             // Redirect to the signed URL
@@ -167,8 +169,9 @@ class PitchFileController extends Controller
             Log::error('Error generating download URL for pitch file', [
                 'file_id' => $file->id,
                 'file_uuid' => $file->uuid,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()->with('error', 'Unable to download file. Please try again.');
         }
     }

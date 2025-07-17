@@ -21,13 +21,13 @@ class ProjectFileFactory extends Factory
      */
     public function definition(): array
     {
-        $storagePath = 'projects/' . $this->faker->uuid() . '.pdf';
-        
+        $storagePath = 'projects/'.$this->faker->uuid().'.pdf';
+
         return [
             'project_id' => Project::factory(),
             'user_id' => User::factory(),
-            'file_name' => $this->faker->word() . '.pdf',
-            'original_file_name' => $this->faker->word() . '.pdf',
+            'file_name' => $this->faker->word().'.pdf',
+            'original_file_name' => $this->faker->word().'.pdf',
             'mime_type' => $this->faker->mimeType(),
             'storage_path' => $storagePath,
             'file_path' => $storagePath,
@@ -35,4 +35,4 @@ class ProjectFileFactory extends Factory
             'is_preview_track' => false,
         ];
     }
-} 
+}

@@ -9,7 +9,7 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewProjectFile extends ViewRecord
 {
     protected static string $resource = ProjectFileResource::class;
-    
+
     protected function getHeaderActions(): array
     {
         return [
@@ -22,4 +22,4 @@ class ViewProjectFile extends ViewRecord
                 ->label('Download File'),
         ];
     }
-} 
+}

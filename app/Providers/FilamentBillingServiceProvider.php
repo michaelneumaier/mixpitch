@@ -8,13 +8,10 @@ use App\Filament\Plugins\Billing\Pages\SetupCompletePage;
 use App\Filament\Plugins\Billing\Widgets\InvoiceListWidget;
 use App\Filament\Plugins\Billing\Widgets\OneTimePaymentWidget;
 use App\Filament\Plugins\Billing\Widgets\PaymentMethodWidget;
-use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Asset;
-use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentIcon;
-use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -40,21 +37,21 @@ class FilamentBillingServiceProvider extends ServiceProvider
         Livewire::component('billing-dashboard', BillingDashboard::class);
         Livewire::component('invoice-details-page', InvoiceDetailsPage::class);
         Livewire::component('setup-complete-page', SetupCompletePage::class);
-        
+
         // Publish views
         $this->publishes([
-            __DIR__ . '/../../resources/views/filament' => resource_path('views/filament'),
+            __DIR__.'/../../resources/views/filament' => resource_path('views/filament'),
         ], 'filament-billing-views');
-        
+
         // Load views
-        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'filament-billing');
-        
+        $this->loadViewsFrom(__DIR__.'/../../resources/views', 'filament-billing');
+
         // Register assets
         FilamentAsset::register([
             // Load Stripe.js as a Filament asset
             Js::make('stripe-js', 'https://js.stripe.com/v3/'),
         ]);
-        
+
         // Register custom icons
         FilamentIcon::register([
             'billing' => 'heroicon-o-credit-card',
@@ -62,4 +59,4 @@ class FilamentBillingServiceProvider extends ServiceProvider
             'payment' => 'heroicon-o-banknotes',
         ]);
     }
-} 
+}

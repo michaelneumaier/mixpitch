@@ -27,7 +27,7 @@ class Tag extends Model
     // {
     //     return $this->morphedByMany(Project::class, 'taggable');
     // }
-    
+
     /**
      * Automatically create slug from name when saving.
      */

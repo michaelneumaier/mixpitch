@@ -26,4 +26,4 @@ return new class extends Migration
             $table->dropIndex('projects_workflow_early_closure_index');
         });
     }
-}; 
+};

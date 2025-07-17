@@ -5,7 +5,6 @@ namespace Tests\Unit;
 use App\Models\PayoutHoldSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use PHPUnit\Framework\TestCase;
 use Tests\TestCase as BaseTestCase;
 
 class PayoutHoldSettingTest extends BaseTestCase
@@ -73,7 +72,7 @@ class PayoutHoldSettingTest extends BaseTestCase
     public function it_clears_cache_when_settings_are_updated()
     {
         $settings = PayoutHoldSetting::factory()->create();
-        
+
         // Load into cache
         PayoutHoldSetting::current();
         $this->assertTrue(Cache::has('payout_hold_settings'));
@@ -87,7 +86,7 @@ class PayoutHoldSettingTest extends BaseTestCase
     public function it_clears_cache_when_settings_are_deleted()
     {
         $settings = PayoutHoldSetting::factory()->create();
-        
+
         // Load into cache
         PayoutHoldSetting::current();
         $this->assertTrue(Cache::has('payout_hold_settings'));

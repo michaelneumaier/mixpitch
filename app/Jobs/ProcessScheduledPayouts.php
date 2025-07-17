@@ -49,11 +49,11 @@ class ProcessScheduledPayouts implements ShouldQueue
             Log::info('Scheduled payout processing completed', [
                 'processed' => $results['processed'],
                 'failed' => $results['failed'],
-                'error_count' => count($results['errors'])
+                'error_count' => count($results['errors']),
             ]);
 
             // Log individual errors if any
-            if (!empty($results['errors'])) {
+            if (! empty($results['errors'])) {
                 foreach ($results['errors'] as $error) {
                     Log::error('Payout processing error', $error);
                 }
@@ -64,14 +64,14 @@ class ProcessScheduledPayouts implements ShouldQueue
                 // TODO: Implement admin notification for failed payouts
                 Log::warning('Some payouts failed processing', [
                     'failed_count' => $results['failed'],
-                    'errors' => $results['errors']
+                    'errors' => $results['errors'],
                 ]);
             }
 
         } catch (\Exception $e) {
             Log::error('Scheduled payout processing job failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             // Re-throw to mark job as failed
@@ -86,7 +86,7 @@ class ProcessScheduledPayouts implements ShouldQueue
     {
         Log::error('ProcessScheduledPayouts job failed permanently', [
             'error' => $exception->getMessage(),
-            'trace' => $exception->getTraceAsString()
+            'trace' => $exception->getTraceAsString(),
         ]);
 
         // TODO: Send critical alert to admin team

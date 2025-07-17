@@ -17,4 +17,4 @@ class EditStripeTransaction extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
-} 
+}

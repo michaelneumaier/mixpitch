@@ -23,7 +23,7 @@ class PitchSnapshotFactory extends Factory
     public function definition(): array
     {
         // Default state requires associated Pitch, Project, and User
-        // These should ideally be provided when calling the factory, 
+        // These should ideally be provided when calling the factory,
         // e.g., PitchSnapshot::factory()->for($pitch)->create();
         $pitch = Pitch::factory()->create(); // Create a default pitch if none provided
 
@@ -37,10 +37,10 @@ class PitchSnapshotFactory extends Factory
                 'comment' => $this->faker->sentence,
                 'file_ids' => [], // Add empty file_ids array
                 'files' => [
-                    ['name' => $this->faker->word . '.mp3', 'path' => 'dummy/path1.mp3', 'size' => $this->faker->numberBetween(100000, 5000000)],
-                    ['name' => $this->faker->word . '.wav', 'path' => 'dummy/path2.wav', 'size' => $this->faker->numberBetween(5000000, 20000000)],
-                ]
+                    ['name' => $this->faker->word.'.mp3', 'path' => 'dummy/path1.mp3', 'size' => $this->faker->numberBetween(100000, 5000000)],
+                    ['name' => $this->faker->word.'.wav', 'path' => 'dummy/path2.wav', 'size' => $this->faker->numberBetween(5000000, 20000000)],
+                ],
             ],
         ];
     }
-} 
+}

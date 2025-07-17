@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectTypeResource\Pages;
-use App\Filament\Resources\ProjectTypeResource\RelationManagers;
 use App\Models\ProjectType;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 
 class ProjectTypeResource extends Resource
@@ -19,9 +16,9 @@ class ProjectTypeResource extends Resource
     protected static ?string $model = ProjectType::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
-    
+
     protected static ?string $navigationGroup = 'Content Management';
-    
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
@@ -40,19 +37,19 @@ class ProjectTypeResource extends Resource
                                 }
                                 $set('slug', Str::slug($state));
                             }),
-                            
+
                         Forms\Components\TextInput::make('slug')
                             ->required()
                             ->maxLength(50)
                             ->unique(ProjectType::class, 'slug', ignoreRecord: true)
                             ->rules(['alpha_dash'])
                             ->helperText('Used in URLs and forms. Only letters, numbers, dashes and underscores allowed.'),
-                            
+
                         Forms\Components\Textarea::make('description')
                             ->maxLength(255)
                             ->rows(3)
                             ->columnSpanFull(),
-                            
+
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('icon')
@@ -60,11 +57,11 @@ class ProjectTypeResource extends Resource
                                     ->placeholder('fas fa-music')
                                     ->helperText('FontAwesome icon class (e.g., fas fa-music)')
                                     ->maxLength(100),
-                                    
+
                                 Forms\Components\Select::make('color')
                                     ->options([
                                         'blue' => 'Blue',
-                                        'purple' => 'Purple', 
+                                        'purple' => 'Purple',
                                         'pink' => 'Pink',
                                         'green' => 'Green',
                                         'orange' => 'Orange',
@@ -78,13 +75,13 @@ class ProjectTypeResource extends Resource
                                     ->required()
                                     ->helperText('Color theme for this project type'),
                             ]),
-                            
+
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\Toggle::make('is_active')
                                     ->default(true)
                                     ->helperText('Inactive project types will not appear in forms'),
-                                    
+
                                 Forms\Components\TextInput::make('sort_order')
                                     ->numeric()
                                     ->default(0)
@@ -103,16 +100,17 @@ class ProjectTypeResource extends Resource
                     ->sortable()
                     ->formatStateUsing(function ($record) {
                         $colors = $record->getColorClasses();
+
                         return view('filament.project-type-name', compact('record', 'colors'));
                     })
                     ->html(),
-                    
+
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable()
                     ->sortable()
                     ->fontFamily('mono')
                     ->color('gray'),
-                    
+
                 Tables\Columns\TextColumn::make('description')
                     ->limit(50)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
@@ -120,38 +118,39 @@ class ProjectTypeResource extends Resource
                         if (strlen($state) <= 50) {
                             return null;
                         }
+
                         return $state;
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('icon')
                     ->label('Icon')
                     ->formatStateUsing(fn ($state) => $state ? "<i class=\"{$state}\"></i> {$state}" : '—')
                     ->html(),
-                    
+
                 Tables\Columns\TextColumn::make('color')
                     ->formatStateUsing(function ($state) {
                         return "<span class=\"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{$state}-100 text-{$state}-800\">{$state}</span>";
                     })
                     ->html(),
-                    
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('sort_order')
                     ->numeric()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('projects_count')
                     ->counts('projects')
                     ->label('Projects')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                    
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()

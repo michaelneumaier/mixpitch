@@ -89,12 +89,12 @@ class StripeTransaction extends Model
     // Accessors
     public function getFormattedAmountAttribute(): string
     {
-        return '$' . number_format($this->amount, 2);
+        return '$'.number_format($this->amount, 2);
     }
 
     public function getFormattedFeeAmountAttribute(): string
     {
-        return '$' . number_format($this->fee_amount ?? 0, 2);
+        return '$'.number_format($this->fee_amount ?? 0, 2);
     }
 
     public function getNetAmountAttribute(): float
@@ -104,7 +104,7 @@ class StripeTransaction extends Model
 
     public function getFormattedNetAmountAttribute(): string
     {
-        return '$' . number_format($this->getNetAmountAttribute(), 2);
+        return '$'.number_format($this->getNetAmountAttribute(), 2);
     }
 
     // Status checks
@@ -148,7 +148,7 @@ class StripeTransaction extends Model
     public function getStripeUrl(): string
     {
         $baseUrl = 'https://dashboard.stripe.com';
-        
+
         return match ($this->type) {
             'payment_intent' => "{$baseUrl}/payments/{$this->stripe_transaction_id}",
             'transfer' => "{$baseUrl}/transfers/{$this->stripe_transaction_id}",
@@ -185,4 +185,4 @@ class StripeTransaction extends Model
             default => 'gray',
         };
     }
-} 
+}

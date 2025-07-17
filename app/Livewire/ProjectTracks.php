@@ -2,16 +2,18 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Project;
+use Livewire\Component;
 
 class ProjectTracks extends Component
 {
     public $project;
-    public $files;
-    public $audioIndex;
-    public $showTracks = false;
 
+    public $files;
+
+    public $audioIndex;
+
+    public $showTracks = false;
 
     public function mount(Project $project)
     {
@@ -23,6 +25,7 @@ class ProjectTracks extends Component
     public function incrementAudioIndex()
     {
         $this->audioIndex++;
+
         return $this->audioIndex;
     }
 

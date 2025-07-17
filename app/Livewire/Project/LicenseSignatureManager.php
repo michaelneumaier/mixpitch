@@ -2,12 +2,9 @@
 
 namespace App\Livewire\Project;
 
-use Livewire\Component;
-use App\Models\Project;
 use App\Models\LicenseSignature;
-use App\Models\User;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Project;
+use Livewire\Component;
 
 class LicenseSignatureManager extends Component
 {
@@ -59,14 +56,15 @@ class LicenseSignatureManager extends Component
         $this->authorize('update', $this->project);
 
         $signature = LicenseSignature::findOrFail($signatureId);
-        
+
         if ($signature->project_id !== $this->project->id) {
             session()->flash('error', 'Invalid signature.');
+
             return;
         }
 
         $userName = $signature->user ? $signature->user->name : 'Unknown User';
-        
+
         // Instead of deleting, set status to revoked for audit purposes
         $signature->update([
             'status' => 'revoked',
@@ -82,4 +80,4 @@ class LicenseSignatureManager extends Component
     {
         return view('livewire.project.license-signature-manager');
     }
-} 
+}

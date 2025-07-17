@@ -2,23 +2,18 @@
 
 namespace Tests\Unit\Http\Controllers;
 
-use Tests\TestCase;
+use App\Http\Controllers\ClientPortalController;
+use App\Models\Pitch;
 use App\Models\Project;
 use App\Models\User;
-use App\Models\Pitch;
-use App\Models\ProjectFile;
-use App\Services\PitchWorkflowService;
-use App\Services\NotificationService;
 use App\Services\FileManagementService;
-use App\Http\Controllers\ClientPortalController;
+use App\Services\NotificationService;
+use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
 use Mockery;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Laravel\Cashier\Checkout;
+use Tests\TestCase;
 
 class ClientPortalControllerTest extends TestCase
 {
@@ -36,10 +31,10 @@ class ClientPortalControllerTest extends TestCase
         // Arrange
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
-        
+
         // Act
         $controller = new ClientPortalController($mockWorkflowService, $mockNotificationService);
-        
+
         // Assert
         $this->assertInstanceOf(ClientPortalController::class, $controller);
     }
@@ -55,7 +50,7 @@ class ClientPortalControllerTest extends TestCase
             'user_id' => $realProducer->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $realProducer->id,
@@ -65,14 +60,14 @@ class ClientPortalControllerTest extends TestCase
         ]);
 
         $controller = $this->app->make(ClientPortalController::class);
-        $request = new Request();
+        $request = new Request;
 
         // Act
         $response = $controller->approvePitch($project, $request);
 
         // Assert
         $this->assertInstanceOf(RedirectResponse::class, $response);
-        
+
         // Verify pitch state hasn't changed yet (payment pending)
         $pitch->refresh();
         $this->assertEquals(Pitch::PAYMENT_STATUS_PENDING, $pitch->payment_status);
@@ -85,18 +80,18 @@ class ClientPortalControllerTest extends TestCase
         // Arrange
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
-        
+
         // Mock the notification service method that gets called by project observer
         $mockNotificationService->shouldReceive('notifyClientProjectInvite')
             ->andReturn(true);
-        
+
         $user = User::factory()->create();
         $project = Project::factory()->create([
             'user_id' => $user->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
-            'client_email' => 'client@example.com'
+            'client_email' => 'client@example.com',
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $user->id,
@@ -108,7 +103,7 @@ class ClientPortalControllerTest extends TestCase
             ->andReturn($pitch);
 
         $controller = new ClientPortalController($mockWorkflowService, $mockNotificationService);
-        $request = new Request();
+        $request = new Request;
 
         // Act
         $response = $controller->approvePitch($project, $request);
@@ -123,18 +118,18 @@ class ClientPortalControllerTest extends TestCase
         // Arrange
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
-        
+
         // Mock the notification service method that gets called by project observer
         $mockNotificationService->shouldReceive('notifyClientProjectInvite')
             ->andReturn(true);
-        
+
         $user = User::factory()->create();
         $project = Project::factory()->create([
             'user_id' => $user->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
-            'client_email' => 'client@example.com'
+            'client_email' => 'client@example.com',
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $user->id,
@@ -142,7 +137,7 @@ class ClientPortalControllerTest extends TestCase
         ]);
 
         $feedback = 'Please adjust the tempo and add more bass';
-        
+
         $mockWorkflowService->shouldReceive('clientRequestRevisions')
             ->andReturn($pitch);
 
@@ -162,21 +157,21 @@ class ClientPortalControllerTest extends TestCase
         // Arrange
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
-        
+
         // Mock the notification service methods
         $mockNotificationService->shouldReceive('notifyClientProjectInvite')
             ->andReturn(true);
         $mockNotificationService->shouldReceive('notifyProducerClientCommented')
             ->once()
             ->with(Mockery::type(Pitch::class), 'This is looking great! Can we make a small adjustment?');
-        
+
         $user = User::factory()->create();
         $project = Project::factory()->create([
             'user_id' => $user->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
-            'client_email' => 'client@example.com'
+            'client_email' => 'client@example.com',
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $user->id,
@@ -192,11 +187,11 @@ class ClientPortalControllerTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(\Illuminate\Http\RedirectResponse::class, $response);
-        
+
         // Verify comment was stored (check that a client comment exists)
         $this->assertDatabaseHas('pitch_events', [
             'event_type' => 'client_comment',
-            'comment' => $comment
+            'comment' => $comment,
         ]);
     }
 
@@ -207,16 +202,16 @@ class ClientPortalControllerTest extends TestCase
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
         $mockFileService = $this->mock(FileManagementService::class);
-        
+
         $controller = new ClientPortalController($mockWorkflowService, $mockNotificationService);
-        
+
         // Assert
         $this->assertTrue(method_exists($controller, 'uploadFile'));
-        
+
         // Check method signature
         $reflection = new \ReflectionMethod($controller, 'uploadFile');
         $parameters = $reflection->getParameters();
-        
+
         $this->assertCount(3, $parameters);
         $this->assertEquals('project', $parameters[0]->getName());
         $this->assertEquals('request', $parameters[1]->getName());
@@ -229,16 +224,16 @@ class ClientPortalControllerTest extends TestCase
         // Arrange
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
-        
+
         $controller = new ClientPortalController($mockWorkflowService, $mockNotificationService);
-        
+
         // Assert
         $this->assertTrue(method_exists($controller, 'deleteProjectFile'));
-        
+
         // Check method signature
         $reflection = new \ReflectionMethod($controller, 'deleteProjectFile');
         $parameters = $reflection->getParameters();
-        
+
         $this->assertCount(3, $parameters);
         $this->assertEquals('project', $parameters[0]->getName());
         $this->assertEquals('projectFile', $parameters[1]->getName());
@@ -251,18 +246,18 @@ class ClientPortalControllerTest extends TestCase
         // Arrange
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
-        
+
         $controller = new ClientPortalController($mockWorkflowService, $mockNotificationService);
-        
+
         // Assert
         $this->assertTrue(method_exists($controller, 'show'));
-        
+
         // Check method signature
         $reflection = new \ReflectionMethod($controller, 'show');
         $parameters = $reflection->getParameters();
-        
+
         $this->assertCount(2, $parameters);
         $this->assertEquals('project', $parameters[0]->getName());
         $this->assertEquals('request', $parameters[1]->getName());
     }
-} 
+}

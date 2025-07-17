@@ -17,4 +17,4 @@ class EditPayoutSchedule extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
-} 
+}

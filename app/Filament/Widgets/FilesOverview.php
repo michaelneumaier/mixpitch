@@ -2,23 +2,23 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\ProjectFile;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
-use App\Models\ProjectFile;
 use Illuminate\Support\Str;
 
 class FilesOverview extends BaseWidget
 {
     protected int|string|array $columnSpan = 'full';
-    
+
     protected static ?int $sort = 15;
-    
+
     protected function getTableHeading(): string
     {
         return 'Recent Project Files';
     }
-    
+
     public function table(Table $table): Table
     {
         return $table
@@ -33,12 +33,12 @@ class FilesOverview extends BaseWidget
                     ->label('File Name')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('project.name')
                     ->label('Project')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('type')
                     ->label('Type')
                     ->badge()
@@ -52,11 +52,11 @@ class FilesOverview extends BaseWidget
                         'artwork' => 'pink',
                         default => 'gray',
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('formatted_size')
                     ->label('Size')
                     ->sortable(query: fn ($query, $direction) => $query->orderBy('size', $direction)),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Uploaded')
                     ->dateTime()

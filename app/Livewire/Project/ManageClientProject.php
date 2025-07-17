@@ -2,13 +2,12 @@
 
 namespace App\Livewire\Project;
 
-use App\Models\Project;
-use App\Models\Pitch;
-use App\Services\FileManagementService;
-use App\Services\PitchWorkflowService;
-use App\Services\NotificationService;
 use App\Exceptions\File\FileDeletionException;
-use App\Exceptions\UnauthorizedActionException;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Services\FileManagementService;
+use App\Services\NotificationService;
+use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -20,32 +19,41 @@ class ManageClientProject extends Component
     use AuthorizesRequests;
 
     public Project $project;
+
     public Pitch $pitch;
-    
+
     // Storage tracking
     public $storageUsedPercentage = 0;
+
     public $storageLimitMessage = '';
+
     public $storageRemaining = 0;
-    
+
     // File management
     public $showDeleteModal = false;
+
     public $fileIdToDelete = null;
-    
+
     // Client file management
     public $showDeleteClientFileModal = false;
+
     public $clientFileIdToDelete = null;
+
     public $clientFileNameToDelete = '';
-    
+
     // Project management
     public $showProjectDeleteModal = false;
-    
+
     // Workflow management
     public $responseToFeedback = '';
+
     public $statusFeedbackMessage = null;
+
     public $canResubmit = false; // Track if files have changed since last submission
-    
+
     // Communication features
     public $newComment = '';
+
     public $showCommunicationTimeline = true;
 
     protected $listeners = [
@@ -61,7 +69,7 @@ class ManageClientProject extends Component
     public function mount(Project $project)
     {
         // Verify this is a client management project
-        if (!$project->isClientManagement()) {
+        if (! $project->isClientManagement()) {
             abort(404, 'This page is only available for client management projects.');
         }
 
@@ -73,7 +81,7 @@ class ManageClientProject extends Component
         }
 
         $this->project = $project;
-        
+
         // Load the associated pitch (should be exactly one for client management)
         $this->pitch = $project->pitches()
             ->where('user_id', $project->user_id)
@@ -99,7 +107,7 @@ class ManageClientProject extends Component
         // Use user-based storage instead of pitch-based storage
         $user = $this->pitch->user;
         $userStorageService = app(\App\Services\UserStorageService::class);
-        
+
         $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
         $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
         $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
@@ -173,6 +181,7 @@ class ManageClientProject extends Component
         // Validation: Can only recall from READY_FOR_REVIEW status
         if ($this->pitch->status !== \App\Models\Pitch::STATUS_READY_FOR_REVIEW) {
             Toaster::error('Can only recall submissions that are ready for review.');
+
             return;
         }
 
@@ -193,13 +202,13 @@ class ManageClientProject extends Component
 
             $this->pitch->refresh();
             $this->checkResubmissionEligibility();
-            
+
             Toaster::success('Submission recalled successfully. You can now make changes and resubmit.');
-            
+
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error recalling submission', [
                 'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to recall submission. Please try again.');
         }
@@ -215,7 +224,7 @@ class ManageClientProject extends Component
 
         try {
             $pitchWorkflowService->submitPitchForReview($this->pitch, Auth::user(), $this->responseToFeedback);
-            
+
             Toaster::success('Pitch submitted for client review successfully.');
             $this->responseToFeedback = '';
             $this->pitch->refresh();
@@ -223,9 +232,9 @@ class ManageClientProject extends Component
 
         } catch (\Exception $e) {
             Log::warning('Pitch submission failed', [
-                'pitch_id' => $this->pitch->id, 
-                'user_id' => Auth::id(), 
-                'error' => $e->getMessage()
+                'pitch_id' => $this->pitch->id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
             ]);
             Toaster::error($e->getMessage());
         }
@@ -237,7 +246,7 @@ class ManageClientProject extends Component
     public function downloadFile($fileId, FileManagementService $fileManagementService)
     {
         $file = $this->pitch->files()->findOrFail($fileId);
-        
+
         try {
             $this->authorize('download', $file);
             $downloadUrl = $fileManagementService->getTemporaryDownloadUrl($file);
@@ -253,7 +262,7 @@ class ManageClientProject extends Component
     public function downloadClientFile($fileId, FileManagementService $fileManagementService)
     {
         $file = $this->project->files()->findOrFail($fileId);
-        
+
         try {
             $this->authorize('download', $file);
             $downloadUrl = $fileManagementService->getTemporaryDownloadUrl($file);
@@ -269,7 +278,7 @@ class ManageClientProject extends Component
     public function confirmDeleteFile($fileId)
     {
         $file = $this->pitch->files()->findOrFail($fileId);
-        
+
         try {
             $this->authorize('deleteFile', $file);
             $this->fileIdToDelete = $fileId;
@@ -293,20 +302,20 @@ class ManageClientProject extends Component
      */
     public function deleteFile(FileManagementService $fileManagementService)
     {
-        if (!$this->fileIdToDelete) {
+        if (! $this->fileIdToDelete) {
             return;
         }
 
         $file = $this->pitch->files()->findOrFail($this->fileIdToDelete);
-        
+
         try {
             $this->authorize('deleteFile', $file);
             $fileManagementService->deletePitchFile($file, Auth::user());
-            
+
             Toaster::success("File '{$file->file_name}' deleted successfully.");
             $this->updateStorageInfo();
             $this->cancelDeleteFile();
-            
+
         } catch (FileDeletionException $e) {
             Toaster::error($e->getMessage());
         } catch (\Exception $e) {
@@ -322,7 +331,7 @@ class ManageClientProject extends Component
     {
         try {
             $this->authorize('update', $this->project);
-            
+
             // Generate new signed URL
             $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                 'client.portal.view',
@@ -332,13 +341,13 @@ class ManageClientProject extends Component
 
             // Resend notification
             $notificationService->notifyClientProjectInvite($this->project, $signedUrl);
-            
+
             Toaster::success('Client invite resent successfully.');
-            
+
         } catch (\Exception $e) {
             Log::error('Error resending client invite', [
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to resend client invite.');
         }
@@ -351,7 +360,7 @@ class ManageClientProject extends Component
     {
         try {
             $this->authorize('update', $this->project);
-            
+
             // Generate signed URL (same as what gets sent to clients)
             $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                 'client.portal.view',
@@ -364,16 +373,16 @@ class ManageClientProject extends Component
                 'project_id' => $this->project->id,
                 'portal_url' => $signedUrl,
                 'expires_at' => now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7))->toDateTimeString(),
-                'accessed_by' => auth()->user()->name . ' (Project Owner)'
+                'accessed_by' => auth()->user()->name.' (Project Owner)',
             ]);
 
             // Redirect to the client portal
             return redirect($signedUrl);
-            
+
         } catch (\Exception $e) {
             Log::error('Error generating client portal preview', [
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to generate client portal preview.');
         }
@@ -406,16 +415,16 @@ class ManageClientProject extends Component
         try {
             $projectTitle = $this->project->title;
             $this->project->delete(); // This will cascade delete pitches and files via observer
-            
+
             Toaster::success("Project '{$projectTitle}' deleted successfully.");
-            
+
             // Redirect to projects list
             return redirect()->route('projects.index');
-            
+
         } catch (\Exception $e) {
             Log::error('Error deleting project', [
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to delete project. Please try again.');
         }
@@ -427,22 +436,22 @@ class ManageClientProject extends Component
     public function getConversationItemsProperty()
     {
         $items = collect();
-        
+
         // Get all relevant events for client management communication
         $events = $this->pitch->events()
             ->whereIn('event_type', [
-                'client_comment', 
-                'producer_comment', 
-                'status_change', 
-                'client_approved', 
+                'client_comment',
+                'producer_comment',
+                'status_change',
+                'client_approved',
                 'client_revisions_requested',
                 'submission_recalled',
-                'file_uploaded'
+                'file_uploaded',
             ])
             ->with('user')
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         foreach ($events as $event) {
             $items->push([
                 'type' => $this->getEventDisplayType($event),
@@ -451,10 +460,10 @@ class ManageClientProject extends Component
                 'user' => $event->user,
                 'metadata' => $event->metadata,
                 'event_type' => $event->event_type,
-                'event' => $event
+                'event' => $event,
             ]);
         }
-        
+
         return $items;
     }
 
@@ -464,7 +473,7 @@ class ManageClientProject extends Component
     public function addProducerComment()
     {
         $this->validate(['newComment' => 'required|string|max:2000']);
-        
+
         try {
             \Illuminate\Support\Facades\DB::transaction(function () {
                 // Create producer comment event
@@ -475,28 +484,28 @@ class ManageClientProject extends Component
                     'created_by' => auth()->id(),
                     'metadata' => [
                         'visible_to_client' => true,
-                        'comment_type' => 'producer_update'
-                    ]
+                        'comment_type' => 'producer_update',
+                    ],
                 ]);
-                
+
                 // Notify client if project has client email
                 if ($this->project->client_email) {
                     app(NotificationService::class)->notifyClientProducerCommented(
-                        $this->pitch, 
+                        $this->pitch,
                         $this->newComment
                     );
                 }
             });
-            
+
             $this->newComment = '';
             $this->pitch->refresh();
-            
+
             Toaster::success('Message sent to client successfully.');
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to add producer comment', [
                 'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to send message. Please try again.');
         }
@@ -507,7 +516,7 @@ class ManageClientProject extends Component
      */
     protected function getEventDisplayType($event): string
     {
-        return match($event->event_type) {
+        return match ($event->event_type) {
             'client_comment' => 'client_message',
             'producer_comment' => 'producer_message',
             'client_approved' => 'approval',
@@ -524,12 +533,12 @@ class ManageClientProject extends Component
      */
     protected function getEventDisplayContent($event): string
     {
-        if (!empty($event->comment)) {
+        if (! empty($event->comment)) {
             return $event->comment;
         }
 
         // Generate default content based on event type
-        return match($event->event_type) {
+        return match ($event->event_type) {
             'client_approved' => 'Client approved the submission',
             'submission_recalled' => 'Producer recalled submission to make changes',
             'file_uploaded' => 'Files were uploaded',
@@ -543,7 +552,7 @@ class ManageClientProject extends Component
      */
     public function getEventBorderColor($item): string
     {
-        return match($item['type']) {
+        return match ($item['type']) {
             'client_message' => 'border-l-blue-400',
             'producer_message' => 'border-l-purple-400',
             'approval' => 'border-l-green-400',
@@ -560,7 +569,7 @@ class ManageClientProject extends Component
      */
     public function getEventBgColor($item): string
     {
-        return match($item['type']) {
+        return match ($item['type']) {
             'client_message' => 'bg-blue-500',
             'producer_message' => 'bg-purple-500',
             'approval' => 'bg-green-500',
@@ -577,7 +586,7 @@ class ManageClientProject extends Component
      */
     public function getEventIcon($item): string
     {
-        return match($item['type']) {
+        return match ($item['type']) {
             'client_message' => 'fas fa-comment',
             'producer_message' => 'fas fa-reply',
             'approval' => 'fas fa-check',
@@ -594,7 +603,7 @@ class ManageClientProject extends Component
      */
     public function getEventTitle($item): string
     {
-        return match($item['type']) {
+        return match ($item['type']) {
             'client_message' => 'Client Message',
             'producer_message' => 'Your Message',
             'approval' => 'Client Approval',
@@ -611,7 +620,7 @@ class ManageClientProject extends Component
      */
     public function getStatusColor($status): string
     {
-        return match($status) {
+        return match ($status) {
             \App\Models\Pitch::STATUS_IN_PROGRESS => 'bg-blue-500',
             \App\Models\Pitch::STATUS_READY_FOR_REVIEW => 'bg-purple-500',
             \App\Models\Pitch::STATUS_REVISIONS_REQUESTED => 'bg-amber-500',
@@ -627,7 +636,7 @@ class ManageClientProject extends Component
      */
     public function getStatusIcon($status): string
     {
-        return match($status) {
+        return match ($status) {
             \App\Models\Pitch::STATUS_IN_PROGRESS => 'fas fa-cog',
             \App\Models\Pitch::STATUS_READY_FOR_REVIEW => 'fas fa-eye',
             \App\Models\Pitch::STATUS_REVISIONS_REQUESTED => 'fas fa-edit',
@@ -644,12 +653,12 @@ class ManageClientProject extends Component
     public function formatFileSize($bytes, $precision = 2)
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, $precision) . ' ' . $units[$i];
+
+        return round($bytes, $precision).' '.$units[$i];
     }
 
     /**
@@ -681,26 +690,26 @@ class ManageClientProject extends Component
      */
     public function deleteClientFile(FileManagementService $fileService)
     {
-        if (!$this->clientFileIdToDelete) {
+        if (! $this->clientFileIdToDelete) {
             return;
         }
 
         try {
             $file = $this->project->files()->findOrFail($this->clientFileIdToDelete);
             $this->authorize('delete', $file);
-            
+
             $fileName = $file->file_name;
             $fileService->deleteProjectFile($file);
             $this->updateStorageInfo();
-            
+
             Toaster::success("Client file '{$fileName}' deleted successfully.");
             $this->cancelDeleteClientFile();
-            
+
         } catch (\Exception $e) {
             Log::error('Client file deletion failed', [
                 'file_id' => $this->clientFileIdToDelete,
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Unable to delete file.');
         }
@@ -714,17 +723,17 @@ class ManageClientProject extends Component
         try {
             $file = $this->project->files()->findOrFail($fileId);
             $this->authorize('delete', $file);
-            
+
             // Show confirmation modal
             $this->clientFileIdToDelete = $fileId;
             $this->clientFileNameToDelete = $file->file_name;
             $this->showDeleteClientFileModal = true;
-            
+
         } catch (\Exception $e) {
             Log::error('Client file deletion confirmation failed', [
                 'file_id' => $fileId,
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Unable to delete file.');
         }
@@ -739,4 +748,4 @@ class ManageClientProject extends Component
         $this->clientFileIdToDelete = null;
         $this->clientFileNameToDelete = '';
     }
-} 
+}

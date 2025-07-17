@@ -6,9 +6,9 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 class AudioPlayer extends Component
-
 {
     public $audioUrl;
+
     public $identifier;
 
     public $isPreviewTrack;
@@ -51,13 +51,13 @@ class AudioPlayer extends Component
         $this->dispatch('clear-track');
     }
 
-
     public function render()
     {
-        if (!$this->audioPlayerInitialized) {
-            $this->dispatch('audio-player-rendered-' . $this->identifier);
+        if (! $this->audioPlayerInitialized) {
+            $this->dispatch('audio-player-rendered-'.$this->identifier);
         }
         $this->audioPlayerInitialized = true;
+
         return view('livewire.project.component.audio-player');
     }
 }

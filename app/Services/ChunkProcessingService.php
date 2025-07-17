@@ -2,20 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\UploadSession;
-use App\Models\UploadChunk;
-use App\Models\ProjectFile;
+use App\Exceptions\FileUploadException;
+use App\Models\Pitch;
 use App\Models\PitchFile;
 use App\Models\Project;
-use App\Models\Pitch;
-use App\Models\User;
+use App\Models\ProjectFile;
+use App\Models\UploadChunk;
+use App\Models\UploadSession;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use App\Exceptions\FileUploadException;
-use App\Services\FileSecurityService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ChunkProcessingService
 {
@@ -29,11 +26,12 @@ class ChunkProcessingService
     /**
      * Store an individual chunk to secure temporary storage with security validation
      *
-     * @param UploadedFile $chunk The uploaded chunk file
-     * @param string $uploadId The upload session ID
-     * @param int $chunkIndex The index of this chunk (0-based)
-     * @param string|null $expectedHash Optional hash for integrity verification
+     * @param  UploadedFile  $chunk  The uploaded chunk file
+     * @param  string  $uploadId  The upload session ID
+     * @param  int  $chunkIndex  The index of this chunk (0-based)
+     * @param  string|null  $expectedHash  Optional hash for integrity verification
      * @return string The storage path of the stored chunk
+     *
      * @throws FileUploadException
      */
     public function storeChunk(UploadedFile $chunk, string $uploadId, int $chunkIndex, ?string $expectedHash = null): string
@@ -41,7 +39,7 @@ class ChunkProcessingService
         try {
             // Find the upload session
             $uploadSession = UploadSession::find($uploadId);
-            if (!$uploadSession) {
+            if (! $uploadSession) {
                 throw new FileUploadException("Upload session not found: {$uploadId}");
             }
 
@@ -56,10 +54,11 @@ class ChunkProcessingService
                 ->first();
 
             if ($existingChunk && $existingChunk->status === UploadChunk::STATUS_VERIFIED) {
-                Log::info("Chunk already exists and is verified", [
+                Log::info('Chunk already exists and is verified', [
                     'upload_session_id' => $uploadId,
-                    'chunk_index' => $chunkIndex
+                    'chunk_index' => $chunkIndex,
                 ]);
+
                 return $existingChunk->storage_path;
             }
 
@@ -70,61 +69,62 @@ class ChunkProcessingService
             $fullPath = Storage::disk('local')->path($storagePath);
             $actualHash = $this->securityService->generateSecureHash($fullPath);
 
-            if (!$actualHash) {
-                throw new FileUploadException("Failed to generate hash for stored chunk");
+            if (! $actualHash) {
+                throw new FileUploadException('Failed to generate hash for stored chunk');
             }
 
             // Create or update chunk record
             $chunkRecord = UploadChunk::updateOrCreate(
                 [
                     'upload_session_id' => $uploadId,
-                    'chunk_index' => $chunkIndex
+                    'chunk_index' => $chunkIndex,
                 ],
                 [
                     'chunk_hash' => $actualHash,
                     'storage_path' => $storagePath,
                     'size' => $chunk->getSize(),
-                    'status' => $expectedHash ? UploadChunk::STATUS_VERIFIED : UploadChunk::STATUS_UPLOADED
+                    'status' => $expectedHash ? UploadChunk::STATUS_VERIFIED : UploadChunk::STATUS_UPLOADED,
                 ]
             );
 
             // Update upload session progress
             $uploadSession->incrementUploadedChunks();
 
-            Log::info("Secure chunk stored successfully", [
+            Log::info('Secure chunk stored successfully', [
                 'upload_session_id' => $uploadId,
                 'chunk_index' => $chunkIndex,
                 'size' => $chunk->getSize(),
-                'hash' => $actualHash
+                'hash' => $actualHash,
             ]);
 
             return $storagePath;
 
         } catch (\Exception $e) {
-            Log::error("Failed to store secure chunk", [
+            Log::error('Failed to store secure chunk', [
                 'upload_session_id' => $uploadId,
                 'chunk_index' => $chunkIndex,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            throw new FileUploadException("Failed to store chunk {$chunkIndex}: " . $e->getMessage(), 0, $e);
+            throw new FileUploadException("Failed to store chunk {$chunkIndex}: ".$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Validate chunk integrity using secure hash verification
      *
-     * @param string $chunkPath The storage path of the chunk
-     * @param string $expectedHash The expected hash of the chunk
+     * @param  string  $chunkPath  The storage path of the chunk
+     * @param  string  $expectedHash  The expected hash of the chunk
      * @return bool True if integrity is valid, false otherwise
      */
     public function validateChunkIntegrity(string $chunkPath, string $expectedHash): bool
     {
         try {
             // Check if chunk file exists
-            if (!Storage::disk('local')->exists($chunkPath)) {
-                Log::warning("Chunk file not found for integrity validation", [
-                    'chunk_path' => $chunkPath
+            if (! Storage::disk('local')->exists($chunkPath)) {
+                Log::warning('Chunk file not found for integrity validation', [
+                    'chunk_path' => $chunkPath,
                 ]);
+
                 return false;
             }
 
@@ -132,21 +132,22 @@ class ChunkProcessingService
             $fullPath = Storage::disk('local')->path($chunkPath);
             $isValid = $this->securityService->validateHashIntegrity($fullPath, $expectedHash);
 
-            if (!$isValid) {
-                Log::warning("Chunk integrity validation failed", [
+            if (! $isValid) {
+                Log::warning('Chunk integrity validation failed', [
                     'chunk_path' => $chunkPath,
-                    'expected_hash' => $expectedHash
+                    'expected_hash' => $expectedHash,
                 ]);
             }
 
             return $isValid;
 
         } catch (\Exception $e) {
-            Log::error("Exception during chunk integrity validation", [
+            Log::error('Exception during chunk integrity validation', [
                 'chunk_path' => $chunkPath,
                 'expected_hash' => $expectedHash,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -154,13 +155,13 @@ class ChunkProcessingService
     /**
      * Clean up chunks for a specific upload session using secure deletion
      *
-     * @param string $uploadId The upload session ID
+     * @param  string  $uploadId  The upload session ID
      * @return bool True if cleanup was successful, false otherwise
      */
     public function cleanupChunks(string $uploadId): bool
     {
         try {
-            Log::info("Starting secure chunk cleanup", ['upload_session_id' => $uploadId]);
+            Log::info('Starting secure chunk cleanup', ['upload_session_id' => $uploadId]);
 
             // Get all chunks for this upload session
             $chunks = UploadChunk::where('upload_session_id', $uploadId)->get();
@@ -170,15 +171,15 @@ class ChunkProcessingService
             foreach ($chunks as $chunk) {
                 try {
                     $chunk->delete();
-                    Log::debug("Deleted chunk record", [
+                    Log::debug('Deleted chunk record', [
                         'chunk_id' => $chunk->id,
-                        'storage_path' => $chunk->storage_path
+                        'storage_path' => $chunk->storage_path,
                     ]);
                 } catch (\Exception $e) {
-                    Log::error("Failed to delete chunk record", [
+                    Log::error('Failed to delete chunk record', [
                         'chunk_id' => $chunk->id,
                         'upload_session_id' => $uploadId,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                     $cleanupSuccess = false;
                 }
@@ -186,7 +187,7 @@ class ChunkProcessingService
 
             // Use secure cleanup for chunk files
             $secureCleanupSuccess = $this->securityService->cleanupSecureChunks($uploadId);
-            if (!$secureCleanupSuccess) {
+            if (! $secureCleanupSuccess) {
                 $cleanupSuccess = false;
             }
 
@@ -195,34 +196,35 @@ class ChunkProcessingService
                 $oldChunksDir = "chunks/{$uploadId}";
                 if (Storage::disk('local')->exists($oldChunksDir)) {
                     Storage::disk('local')->deleteDirectory($oldChunksDir);
-                    Log::debug("Deleted old-style chunks directory", ['directory' => $oldChunksDir]);
+                    Log::debug('Deleted old-style chunks directory', ['directory' => $oldChunksDir]);
                 }
             } catch (\Exception $e) {
-                Log::warning("Failed to delete old-style chunks directory", [
+                Log::warning('Failed to delete old-style chunks directory', [
                     'upload_session_id' => $uploadId,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Don't mark as failure for backward compatibility cleanup
             }
 
             if ($cleanupSuccess) {
-                Log::info("Secure chunk cleanup completed successfully", [
+                Log::info('Secure chunk cleanup completed successfully', [
                     'upload_session_id' => $uploadId,
-                    'chunks_cleaned' => $chunks->count()
+                    'chunks_cleaned' => $chunks->count(),
                 ]);
             } else {
-                Log::warning("Secure chunk cleanup completed with some errors", [
-                    'upload_session_id' => $uploadId
+                Log::warning('Secure chunk cleanup completed with some errors', [
+                    'upload_session_id' => $uploadId,
                 ]);
             }
 
             return $cleanupSuccess;
 
         } catch (\Exception $e) {
-            Log::error("Exception during secure chunk cleanup", [
+            Log::error('Exception during secure chunk cleanup', [
                 'upload_session_id' => $uploadId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -230,9 +232,10 @@ class ChunkProcessingService
     /**
      * Assemble chunks into final file using streaming for memory efficiency
      *
-     * @param string $uploadId The upload session ID
-     * @param array $chunkHashes Optional array of expected chunk hashes for verification
+     * @param  string  $uploadId  The upload session ID
+     * @param  array  $chunkHashes  Optional array of expected chunk hashes for verification
      * @return UploadedFile The assembled file as an UploadedFile instance
+     *
      * @throws FileUploadException
      */
     public function assembleChunks(string $uploadId, array $chunkHashes = []): UploadedFile
@@ -240,18 +243,18 @@ class ChunkProcessingService
         try {
             // Find the upload session
             $uploadSession = UploadSession::find($uploadId);
-            if (!$uploadSession) {
+            if (! $uploadSession) {
                 throw new FileUploadException("Upload session not found: {$uploadId}");
             }
 
             // Transition session to assembling status
-            if (!$uploadSession->transitionTo(UploadSession::STATUS_ASSEMBLING)) {
-                throw new FileUploadException("Cannot transition upload session to assembling status");
+            if (! $uploadSession->transitionTo(UploadSession::STATUS_ASSEMBLING)) {
+                throw new FileUploadException('Cannot transition upload session to assembling status');
             }
 
-            Log::info("Starting file assembly", [
+            Log::info('Starting file assembly', [
                 'upload_session_id' => $uploadId,
-                'total_chunks' => $uploadSession->total_chunks
+                'total_chunks' => $uploadSession->total_chunks,
             ]);
 
             // Get all chunks ordered by index
@@ -267,22 +270,22 @@ class ChunkProcessingService
             }
 
             // Validate chunk integrity if hashes provided
-            if (!empty($chunkHashes)) {
+            if (! empty($chunkHashes)) {
                 foreach ($chunks as $chunk) {
                     $expectedHash = $chunkHashes[$chunk->chunk_index] ?? null;
-                    if ($expectedHash && !$this->validateChunkIntegrity($chunk->storage_path, $expectedHash)) {
+                    if ($expectedHash && ! $this->validateChunkIntegrity($chunk->storage_path, $expectedHash)) {
                         throw new FileUploadException("Chunk integrity validation failed for chunk {$chunk->chunk_index}");
                     }
                 }
             }
 
             // Create temporary file for assembly
-            $tempFileName = 'assembled_' . $uploadId . '_' . time();
+            $tempFileName = 'assembled_'.$uploadId.'_'.time();
             $tempPath = storage_path("app/temp/{$tempFileName}");
-            
+
             // Ensure temp directory exists
             $tempDir = dirname($tempPath);
-            if (!is_dir($tempDir)) {
+            if (! is_dir($tempDir)) {
                 mkdir($tempDir, 0755, true);
             }
 
@@ -301,75 +304,75 @@ class ChunkProcessingService
                 true  // Test mode - don't validate upload
             );
 
-            Log::info("File assembly completed successfully", [
+            Log::info('File assembly completed successfully', [
                 'upload_session_id' => $uploadId,
                 'assembled_file_size' => filesize($tempPath),
-                'original_filename' => $uploadSession->original_filename
+                'original_filename' => $uploadSession->original_filename,
             ]);
 
             return $assembledFile;
 
         } catch (\Exception $e) {
-            Log::error("Failed to assemble chunks", [
+            Log::error('Failed to assemble chunks', [
                 'upload_session_id' => $uploadId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             // Mark session as failed
             if (isset($uploadSession)) {
-                $uploadSession->markAsFailed("Assembly failed: " . $e->getMessage());
+                $uploadSession->markAsFailed('Assembly failed: '.$e->getMessage());
             }
 
-            throw new FileUploadException("Failed to assemble file: " . $e->getMessage(), 0, $e);
+            throw new FileUploadException('Failed to assemble file: '.$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Stream chunks together to create the final file efficiently
      *
-     * @param \Illuminate\Database\Eloquent\Collection $chunks
-     * @param string $outputPath
+     * @param  \Illuminate\Database\Eloquent\Collection  $chunks
+     *
      * @throws FileUploadException
      */
     private function streamAssembleChunks($chunks, string $outputPath): void
     {
         $outputHandle = fopen($outputPath, 'wb');
-        if (!$outputHandle) {
+        if (! $outputHandle) {
             throw new FileUploadException("Cannot create output file: {$outputPath}");
         }
 
         try {
             foreach ($chunks as $chunk) {
-                if (!Storage::disk('local')->exists($chunk->storage_path)) {
+                if (! Storage::disk('local')->exists($chunk->storage_path)) {
                     throw new FileUploadException("Chunk file not found: {$chunk->storage_path}");
                 }
 
                 $chunkPath = Storage::disk('local')->path($chunk->storage_path);
                 $chunkHandle = fopen($chunkPath, 'rb');
-                
-                if (!$chunkHandle) {
+
+                if (! $chunkHandle) {
                     throw new FileUploadException("Cannot read chunk file: {$chunkPath}");
                 }
 
                 try {
                     // Stream chunk data to output file in 8KB blocks
-                    while (!feof($chunkHandle)) {
+                    while (! feof($chunkHandle)) {
                         $data = fread($chunkHandle, 8192);
                         if ($data === false) {
-                            throw new FileUploadException("Error reading chunk data");
+                            throw new FileUploadException('Error reading chunk data');
                         }
-                        
+
                         if (fwrite($outputHandle, $data) === false) {
-                            throw new FileUploadException("Error writing to assembled file");
+                            throw new FileUploadException('Error writing to assembled file');
                         }
                     }
                 } finally {
                     fclose($chunkHandle);
                 }
 
-                Log::debug("Assembled chunk", [
+                Log::debug('Assembled chunk', [
                     'chunk_index' => $chunk->chunk_index,
-                    'chunk_size' => $chunk->size
+                    'chunk_size' => $chunk->size,
                 ]);
             }
         } finally {
@@ -380,15 +383,16 @@ class ChunkProcessingService
     /**
      * Verify the integrity of the assembled file
      *
-     * @param string $filePath Path to the assembled file
-     * @param UploadSession $uploadSession The upload session
+     * @param  string  $filePath  Path to the assembled file
+     * @param  UploadSession  $uploadSession  The upload session
+     *
      * @throws FileUploadException
      */
     private function verifyAssembledFile(string $filePath, UploadSession $uploadSession): void
     {
         // Check file exists
-        if (!file_exists($filePath)) {
-            throw new FileUploadException("Assembled file not found");
+        if (! file_exists($filePath)) {
+            throw new FileUploadException('Assembled file not found');
         }
 
         // Verify file size matches expected total
@@ -401,8 +405,8 @@ class ChunkProcessingService
 
         // Calculate hash of assembled file for integrity verification
         $assembledHash = hash_file('sha256', $filePath);
-        if (!$assembledHash) {
-            throw new FileUploadException("Failed to calculate hash of assembled file");
+        if (! $assembledHash) {
+            throw new FileUploadException('Failed to calculate hash of assembled file');
         }
 
         // Store hash in session metadata for future reference
@@ -412,27 +416,28 @@ class ChunkProcessingService
         $uploadSession->metadata = $metadata;
         $uploadSession->save();
 
-        Log::info("Assembled file integrity verified", [
+        Log::info('Assembled file integrity verified', [
             'upload_session_id' => $uploadSession->id,
             'file_size' => $actualSize,
-            'file_hash' => $assembledHash
+            'file_hash' => $assembledHash,
         ]);
     }
 
     /**
      * Finalize upload by creating ProjectFile or PitchFile record and integrating with FileManagementService
      *
-     * @param UploadSession $session The upload session
+     * @param  UploadSession  $session  The upload session
      * @return ProjectFile|PitchFile The created file record
+     *
      * @throws FileUploadException
      */
     public function finalizeUpload(UploadSession $session): ProjectFile|PitchFile
     {
         try {
-            Log::info("Starting upload finalization", [
+            Log::info('Starting upload finalization', [
                 'upload_session_id' => $session->id,
                 'model_type' => $session->model_type,
-                'model_id' => $session->model_id
+                'model_id' => $session->model_id,
             ]);
 
             // Assemble the chunks into final file
@@ -448,7 +453,7 @@ class ChunkProcessingService
                 // Create appropriate file record based on model type
                 if ($session->model_type === Project::class) {
                     $project = Project::find($session->model_id);
-                    if (!$project) {
+                    if (! $project) {
                         throw new FileUploadException("Project not found: {$session->model_id}");
                     }
 
@@ -461,7 +466,7 @@ class ChunkProcessingService
 
                 } elseif ($session->model_type === Pitch::class) {
                     $pitch = Pitch::find($session->model_id);
-                    if (!$pitch) {
+                    if (! $pitch) {
                         throw new FileUploadException("Pitch not found: {$session->model_id}");
                     }
 
@@ -476,8 +481,8 @@ class ChunkProcessingService
                 }
 
                 // Mark session as completed
-                if (!$session->transitionTo(UploadSession::STATUS_COMPLETED)) {
-                    throw new FileUploadException("Failed to mark upload session as completed");
+                if (! $session->transitionTo(UploadSession::STATUS_COMPLETED)) {
+                    throw new FileUploadException('Failed to mark upload session as completed');
                 }
 
                 // Update session metadata with final file info
@@ -488,26 +493,25 @@ class ChunkProcessingService
                 $session->metadata = $metadata;
                 $session->save();
 
-                Log::info("Upload finalization completed successfully", [
+                Log::info('Upload finalization completed successfully', [
                     'upload_session_id' => $session->id,
                     'file_record_id' => $fileRecord->id,
-                    'file_record_type' => get_class($fileRecord)
+                    'file_record_type' => get_class($fileRecord),
                 ]);
 
                 return $fileRecord;
             });
 
         } catch (\Exception $e) {
-            Log::error("Failed to finalize upload", [
+            Log::error('Failed to finalize upload', [
                 'upload_session_id' => $session->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             // Mark session as failed and perform rollback
             $this->rollbackFailedUpload($session, $e->getMessage());
 
-            throw new FileUploadException("Failed to finalize upload: " . $e->getMessage(), 0, $e);
-
+            throw new FileUploadException('Failed to finalize upload: '.$e->getMessage(), 0, $e);
         } finally {
             // Clean up temporary assembled file
             if (isset($assembledFile)) {
@@ -515,11 +519,11 @@ class ChunkProcessingService
                 if ($tempPath && file_exists($tempPath)) {
                     try {
                         unlink($tempPath);
-                        Log::debug("Cleaned up temporary assembled file", ['temp_path' => $tempPath]);
+                        Log::debug('Cleaned up temporary assembled file', ['temp_path' => $tempPath]);
                     } catch (\Exception $e) {
-                        Log::warning("Failed to clean up temporary assembled file", [
+                        Log::warning('Failed to clean up temporary assembled file', [
                             'temp_path' => $tempPath,
-                            'error' => $e->getMessage()
+                            'error' => $e->getMessage(),
                         ]);
                     }
                 }
@@ -533,15 +537,15 @@ class ChunkProcessingService
     /**
      * Rollback a failed upload by cleaning up resources and marking session as failed
      *
-     * @param UploadSession $session The upload session
-     * @param string $errorMessage The error message
+     * @param  UploadSession  $session  The upload session
+     * @param  string  $errorMessage  The error message
      */
     private function rollbackFailedUpload(UploadSession $session, string $errorMessage): void
     {
         try {
-            Log::info("Starting upload rollback", [
+            Log::info('Starting upload rollback', [
                 'upload_session_id' => $session->id,
-                'error' => $errorMessage
+                'error' => $errorMessage,
             ]);
 
             // Mark session as failed
@@ -550,15 +554,15 @@ class ChunkProcessingService
             // Clean up any partially created file records would be handled by the database transaction rollback
             // The FileManagementService handles its own cleanup in case of exceptions
 
-            Log::info("Upload rollback completed", [
-                'upload_session_id' => $session->id
+            Log::info('Upload rollback completed', [
+                'upload_session_id' => $session->id,
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Failed to rollback upload", [
+            Log::error('Failed to rollback upload', [
                 'upload_session_id' => $session->id,
                 'rollback_error' => $e->getMessage(),
-                'original_error' => $errorMessage
+                'original_error' => $errorMessage,
             ]);
         }
     }
@@ -566,13 +570,13 @@ class ChunkProcessingService
     /**
      * Get upload progress information
      *
-     * @param string $uploadId The upload session ID
+     * @param  string  $uploadId  The upload session ID
      * @return array Progress information
      */
     public function getUploadProgress(string $uploadId): array
     {
         $session = UploadSession::find($uploadId);
-        if (!$session) {
+        if (! $session) {
             return ['error' => 'Upload session not found'];
         }
 
@@ -591,7 +595,7 @@ class ChunkProcessingService
             'original_filename' => $session->original_filename,
             'is_complete' => $session->isComplete(),
             'is_expired' => $session->isExpired(),
-            'metadata' => $session->metadata
+            'metadata' => $session->metadata,
         ];
     }
 }

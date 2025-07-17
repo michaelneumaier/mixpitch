@@ -2,21 +2,22 @@
 
 namespace App\Services;
 
+use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Order;
 use App\Models\OrderEvent;
+use App\Models\OrderFile;
 use App\Models\User;
+use App\Notifications\Orders\NewOrderMessage;
+use App\Notifications\Orders\OrderCancelled;
+use App\Notifications\Orders\OrderCompleted;
+use App\Notifications\Orders\OrderDelivered;
+use App\Notifications\Orders\OrderRequirementsSubmitted;
+use App\Notifications\Orders\RevisionRequested;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Exceptions\InvalidStatusTransitionException;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Notification;
-use App\Notifications\Orders\OrderRequirementsSubmitted;
-use App\Notifications\Orders\OrderDelivered;
-use App\Notifications\Orders\RevisionRequested;
-use App\Notifications\Orders\OrderCompleted;
-use App\Notifications\Orders\OrderCancelled;
-use App\Notifications\Orders\NewOrderMessage;
-use App\Models\OrderFile;
+
 // use App\Services\NotificationService; // Uncomment when notifications are implemented
 
 class OrderWorkflowService
@@ -31,10 +32,6 @@ class OrderWorkflowService
     /**
      * Handles the client submitting requirements for an order.
      *
-     * @param Order $order
-     * @param User $client
-     * @param string $requirementsText
-     * @return Order
      * @throws AuthorizationException|InvalidStatusTransitionException
      */
     public function submitRequirements(Order $order, User $client, string $requirementsText): Order
@@ -70,7 +67,7 @@ class OrderWorkflowService
                 'status_from' => $fromStatus,
                 'status_to' => $toStatus,
                 // Optionally store requirements in metadata too, though it's redundant
-                // 'metadata' => ['requirements' => $requirementsText] 
+                // 'metadata' => ['requirements' => $requirementsText]
             ]);
 
             // Trigger notification to producer
@@ -85,7 +82,7 @@ class OrderWorkflowService
                 Log::error('Failed to send OrderRequirementsSubmitted notification', [
                     'order_id' => $order->id,
                     'producer_id' => $order->producer_user_id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Do not rollback transaction for notification failure
             }
@@ -99,11 +96,9 @@ class OrderWorkflowService
     /**
      * Handles the producer delivering the order.
      *
-     * @param Order $order
-     * @param User $producer
-     * @param array $filesData Array of file metadata [['path' => ..., 'name' => ..., 'mime' => ..., 'size' => ...]]
-     * @param string|null $message Optional delivery message
-     * @return Order
+     * @param  array  $filesData  Array of file metadata [['path' => ..., 'name' => ..., 'mime' => ..., 'size' => ...]]
+     * @param  string|null  $message  Optional delivery message
+     *
      * @throws AuthorizationException|InvalidStatusTransitionException
      */
     public function deliverOrder(Order $order, User $producer, array $filesData, ?string $message = null): Order
@@ -115,14 +110,14 @@ class OrderWorkflowService
 
         // Validation: Ensure the order is in the correct status
         $allowedStatuses = [Order::STATUS_IN_PROGRESS, Order::STATUS_REVISIONS_REQUESTED];
-        if (!in_array($order->status, $allowedStatuses)) {
+        if (! in_array($order->status, $allowedStatuses)) {
             throw new InvalidStatusTransitionException(
                 $order->status,
                 Order::STATUS_READY_FOR_REVIEW,
                 'Order can only be delivered when it is in progress or revisions are requested.'
             );
         }
-        
+
         // Basic validation for files data
         if (empty($filesData)) {
             throw new \InvalidArgumentException('At least one delivery file is required.');
@@ -140,7 +135,7 @@ class OrderWorkflowService
             // Create Delivery Event
             $eventComment = 'Producer delivered the order.';
             if ($message) {
-                $eventComment .= "\n\nDelivery Message:\n" . $message;
+                $eventComment .= "\n\nDelivery Message:\n".$message;
             }
             $orderEvent = $order->events()->create([
                 'user_id' => $producer->id,
@@ -171,7 +166,7 @@ class OrderWorkflowService
                 Log::error('Failed to send OrderDelivered notification', [
                     'order_id' => $order->id,
                     'client_id' => $order->client_user_id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Do not rollback transaction for notification failure
             }
@@ -185,10 +180,6 @@ class OrderWorkflowService
     /**
      * Handles the client requesting revisions for an order.
      *
-     * @param Order $order
-     * @param User $client
-     * @param string $feedback
-     * @return Order
      * @throws AuthorizationException|InvalidStatusTransitionException|\LogicException
      */
     public function requestRevision(Order $order, User $client, string $feedback): Order
@@ -211,9 +202,9 @@ class OrderWorkflowService
         if ($order->revision_count >= $order->servicePackage->revisions_included) {
             throw new \LogicException('No more revisions allowed for this order.'); // Use LogicException as it's a business rule violation
         }
-        
+
         if (empty(trim($feedback))) {
-             throw new \InvalidArgumentException('Revision feedback cannot be empty.');
+            throw new \InvalidArgumentException('Revision feedback cannot be empty.');
         }
 
         return DB::transaction(function () use ($order, $client, $feedback) {
@@ -224,33 +215,33 @@ class OrderWorkflowService
             $order->status = $toStatus;
             $order->revision_count += 1;
             // Clear delivered_at? Maybe not necessary, status indicates it needs rework.
-            // $order->delivered_at = null; 
+            // $order->delivered_at = null;
             $order->save();
 
             // Create Revision Request Event
             $order->events()->create([
                 'user_id' => $client->id,
                 'event_type' => OrderEvent::EVENT_REVISIONS_REQUESTED,
-                'comment' => "Client requested revisions.\n\nFeedback:\n" . $feedback,
+                'comment' => "Client requested revisions.\n\nFeedback:\n".$feedback,
                 'status_from' => $fromStatus,
                 'status_to' => $toStatus,
-                'metadata' => ['feedback' => $feedback] // Store feedback structurally too
+                'metadata' => ['feedback' => $feedback], // Store feedback structurally too
             ]);
 
             // Trigger notification to producer
             try {
                 if ($order->producer) {
-                     Notification::send($order->producer, new RevisionRequested($order, $feedback));
+                    Notification::send($order->producer, new RevisionRequested($order, $feedback));
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to send RevisionRequested notification', [
                     'order_id' => $order->id,
                     'producer_id' => $order->producer_user_id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Re-throw the exception to ensure the transaction rolls back
                 // and the controller handles the failure properly.
-                throw $e; 
+                throw $e;
             }
 
             Log::info('Order revision requested.', ['order_id' => $order->id, 'client_id' => $client->id]);
@@ -262,9 +253,6 @@ class OrderWorkflowService
     /**
      * Handles the client accepting the final delivery.
      *
-     * @param Order $order
-     * @param User $client
-     * @return Order
      * @throws AuthorizationException|InvalidStatusTransitionException
      */
     public function acceptDelivery(Order $order, User $client): Order
@@ -304,21 +292,21 @@ class OrderWorkflowService
 
             // Trigger notification to producer
             try {
-                 if ($order->producer) {
+                if ($order->producer) {
                     Notification::send($order->producer, new OrderCompleted($order));
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to send OrderCompleted notification', [
                     'order_id' => $order->id,
                     'producer_id' => $order->producer_user_id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Do not rollback transaction for notification failure
             }
-            
+
             // TODO: Trigger payout process for the producer
             // PayoutService::schedulePayoutForOrder($order);
-            
+
             // TODO: Trigger notification to Admin/Finance?
             // $this->notificationService->notifyAdminOrderCompleted($order);
 
@@ -331,10 +319,9 @@ class OrderWorkflowService
     /**
      * Handles the cancellation of an order by either client or producer.
      *
-     * @param Order $order
-     * @param User $canceller The user initiating the cancellation.
-     * @param string $reason Cancellation reason provided by the user.
-     * @return Order
+     * @param  User  $canceller  The user initiating the cancellation.
+     * @param  string  $reason  Cancellation reason provided by the user.
+     *
      * @throws AuthorizationException|InvalidStatusTransitionException
      */
     public function cancelOrder(Order $order, User $canceller, string $reason): Order
@@ -353,9 +340,9 @@ class OrderWorkflowService
                 'Order cannot be cancelled once it is completed or already cancelled.'
             );
         }
-        
+
         if (empty(trim($reason))) {
-             throw new \InvalidArgumentException('A reason for cancellation is required.');
+            throw new \InvalidArgumentException('A reason for cancellation is required.');
         }
 
         return DB::transaction(function () use ($order, $canceller, $reason) {
@@ -368,7 +355,7 @@ class OrderWorkflowService
             $order->cancelled_at = now(); // Mark cancellation time
             if ($wasPendingPayment) {
                 // If cancelled before payment, mark payment as failed/cancelled too
-                 $order->payment_status = Order::PAYMENT_STATUS_CANCELLED;
+                $order->payment_status = Order::PAYMENT_STATUS_CANCELLED;
             }
             $order->save();
 
@@ -380,7 +367,7 @@ class OrderWorkflowService
                 'comment' => "{$cancellerRole} cancelled the order.\n\nReason: {$reason}",
                 'status_from' => $fromStatus,
                 'status_to' => $toStatus,
-                'metadata' => ['reason' => $reason]
+                'metadata' => ['reason' => $reason],
             ]);
 
             // Trigger notification to the other party
@@ -390,18 +377,18 @@ class OrderWorkflowService
                     Notification::send($recipient, new OrderCancelled($order, $canceller, $reason));
                 }
             } catch (\Exception $e) {
-                 Log::error('Failed to send OrderCancelled notification', [
+                Log::error('Failed to send OrderCancelled notification', [
                     'order_id' => $order->id,
                     'canceller_id' => $canceller->id,
                     'recipient_id' => $recipient->id ?? null,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Do not rollback transaction for notification failure
             }
-            
+
             // TODO: If applicable, initiate refund process or notify admin
             // if ($order->payment_status === Order::PAYMENT_STATUS_PAID) {
-                 // RefundService::processRefundForCancelledOrder($order) or notifyAdmin
+            // RefundService::processRefundForCancelledOrder($order) or notifyAdmin
             // }
 
             Log::info('Order cancelled.', ['order_id' => $order->id, 'canceller_id' => $canceller->id, 'role' => $cancellerRole]);
@@ -413,10 +400,10 @@ class OrderWorkflowService
     /**
      * Posts a message to the order's activity log.
      *
-     * @param Order $order
-     * @param User $sender The user sending the message.
-     * @param string $messageContent The message content.
+     * @param  User  $sender  The user sending the message.
+     * @param  string  $messageContent  The message content.
      * @return OrderEvent The created event.
+     *
      * @throws AuthorizationException If the user is not the client or producer.
      * @throws \InvalidArgumentException If the message is empty.
      * @throws InvalidStatusTransitionException If order is completed or cancelled.
@@ -454,23 +441,23 @@ class OrderWorkflowService
             'comment' => $messageContent, // Store raw message here
             // No status change for messages
             'status_from' => null,
-            'status_to' => null, 
-             // Optionally add metadata like sender role if needed elsewhere
-             // 'metadata' => ['sender_role' => $senderRole]
+            'status_to' => null,
+            // Optionally add metadata like sender role if needed elsewhere
+            // 'metadata' => ['sender_role' => $senderRole]
         ]);
 
         // Trigger notification to the other party about the new message
-         try {
-             $recipient = ($sender->id === $order->client_user_id) ? $order->producer : $order->client;
-             if ($recipient) {
-                 Notification::send($recipient, new NewOrderMessage($order, $sender, $messageContent));
+        try {
+            $recipient = ($sender->id === $order->client_user_id) ? $order->producer : $order->client;
+            if ($recipient) {
+                Notification::send($recipient, new NewOrderMessage($order, $sender, $messageContent));
             }
         } catch (\Exception $e) {
-             Log::error('Failed to send NewOrderMessage notification', [
+            Log::error('Failed to send NewOrderMessage notification', [
                 'order_id' => $order->id,
                 'sender_id' => $sender->id,
                 'recipient_id' => $recipient->id ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             // Do not fail operation for notification error
         }
@@ -481,5 +468,5 @@ class OrderWorkflowService
     }
 
     // Methods for order state transitions will be added here...
-    
-} 
+
+}

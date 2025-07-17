@@ -43,13 +43,13 @@ class OrderRequirementsSubmitted extends Notification implements ShouldQueue
         $clientName = $this->order->client->name ?? 'The Client';
 
         return (new MailMessage)
-                    ->subject('Order Requirements Submitted: Order #' . $this->order->id)
-                    ->greeting('Hello ' . ($notifiable->name ?? 'Producer') . ',')
-                    ->line("The client, {$clientName}, has submitted the requirements for Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
-                    ->line('You can now review the requirements and begin working on the order.')
-                    ->line(new HtmlString("<strong>Submitted Requirements:</strong><br><pre style=\"white-space: pre-wrap; background-color: #f8f9fa; padding: 10px; border-radius: 4px;\">" . e($this->order->requirements_submitted) . "</pre>"))
-                    ->action('View Order', $orderUrl)
-                    ->line('Thank you for using our platform!');
+            ->subject('Order Requirements Submitted: Order #'.$this->order->id)
+            ->greeting('Hello '.($notifiable->name ?? 'Producer').',')
+            ->line("The client, {$clientName}, has submitted the requirements for Order #{$this->order->id} ('{$this->order->servicePackage->title}').")
+            ->line('You can now review the requirements and begin working on the order.')
+            ->line(new HtmlString('<strong>Submitted Requirements:</strong><br><pre style="white-space: pre-wrap; background-color: #f8f9fa; padding: 10px; border-radius: 4px;">'.e($this->order->requirements_submitted).'</pre>'))
+            ->action('View Order', $orderUrl)
+            ->line('Thank you for using our platform!');
     }
 
     /**
@@ -63,7 +63,7 @@ class OrderRequirementsSubmitted extends Notification implements ShouldQueue
             'order_id' => $this->order->id,
             'order_title' => $this->order->servicePackage->title ?? 'N/A',
             'client_name' => $this->order->client->name ?? 'N/A',
-            'message' => 'Requirements submitted for Order #' . $this->order->id,
+            'message' => 'Requirements submitted for Order #'.$this->order->id,
             'url' => route('orders.show', $this->order),
         ];
     }

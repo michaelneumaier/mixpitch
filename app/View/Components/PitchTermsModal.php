@@ -17,7 +17,6 @@ class PitchTermsModal extends Component
     /**
      * Create a new component instance.
      *
-     * @param \App\Models\Project $project
      * @return void
      */
     public function __construct(Project $project)

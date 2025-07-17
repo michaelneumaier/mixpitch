@@ -1,12 +1,11 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use App\Models\Pitch;
 use App\Models\User;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -16,33 +15,33 @@ return new class extends Migration
     public function up(): void
     {
         // Check if the slug column exists
-        if (!Schema::hasColumn('pitches', 'slug')) {
+        if (! Schema::hasColumn('pitches', 'slug')) {
             return;
         }
-        
+
         // Get all existing pitches that don't have a slug yet, including potentially soft-deleted ones during migration
         $pitches = Pitch::withTrashed()->whereNull('slug')->with('user')->get();
-        
+
         foreach ($pitches as $pitch) {
             // Skip if user doesn't exist
-            if (!$pitch->user) {
+            if (! $pitch->user) {
                 continue;
             }
-            
+
             // Generate a base slug from the username
-            $username = $pitch->user->username ?? 'user-' . $pitch->user_id;
+            $username = $pitch->user->username ?? 'user-'.$pitch->user_id;
             $baseSlug = Str::slug($username);
-            
+
             // Check if the slug already exists for the same project
             $existingCount = DB::table('pitches')
                 ->where('project_id', $pitch->project_id)
                 ->where('slug', $baseSlug)
                 ->where('id', '!=', $pitch->id)
                 ->count();
-            
+
             // If slug already exists, make it unique by adding a counter
-            $finalSlug = $existingCount > 0 ? $baseSlug . '-' . ($existingCount + 1) : $baseSlug;
-            
+            $finalSlug = $existingCount > 0 ? $baseSlug.'-'.($existingCount + 1) : $baseSlug;
+
             // Update the pitch
             DB::table('pitches')
                 ->where('id', $pitch->id)

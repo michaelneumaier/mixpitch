@@ -2,20 +2,19 @@
 
 namespace App\Services;
 
-use App\Models\RefundRequest;
 use App\Models\PayoutSchedule;
 use App\Models\Pitch;
+use App\Models\RefundRequest;
 use App\Models\User;
-use App\Models\Project;
-use App\Services\StripeConnectService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class RefundRequestService
 {
     protected PayoutProcessingService $payoutService;
+
     protected NotificationService $notificationService;
+
     protected StripeConnectService $stripeConnectService;
 
     public function __construct(
@@ -31,21 +30,15 @@ class RefundRequestService
     /**
      * Create a refund request from a client
      * Only allowed within 3 days of payment completion
-     *
-     * @param Pitch $pitch
-     * @param string $clientEmail
-     * @param string $reason
-     * @param array $additionalData
-     * @return RefundRequest
      */
     public function createRefundRequest(
-        Pitch $pitch, 
-        string $clientEmail, 
-        string $reason, 
+        Pitch $pitch,
+        string $clientEmail,
+        string $reason,
         array $additionalData = []
     ): RefundRequest {
         // Validate timing - must be within 3 days of payment
-        if (!$pitch->payment_completed_at) {
+        if (! $pitch->payment_completed_at) {
             throw new \InvalidArgumentException('Cannot request refund for unpaid pitch');
         }
 
@@ -66,7 +59,7 @@ class RefundRequestService
         Log::info('Creating refund request', [
             'pitch_id' => $pitch->id,
             'client_email' => $clientEmail,
-            'days_since_payment' => $daysSincePayment
+            'days_since_payment' => $daysSincePayment,
         ]);
 
         return DB::transaction(function () use ($pitch, $clientEmail, $reason, $additionalData) {
@@ -93,13 +86,13 @@ class RefundRequestService
                     'project_name' => $pitch->project->name,
                     'pitch_title' => $pitch->title,
                     'payment_completed_at' => $pitch->payment_completed_at->toISOString(),
-                    'days_since_payment' => $pitch->payment_completed_at->diffInDays(now())
-                ], $additionalData)
+                    'days_since_payment' => $pitch->payment_completed_at->diffInDays(now()),
+                ], $additionalData),
             ]);
 
             Log::info('Refund request created', [
                 'refund_request_id' => $refundRequest->id,
-                'response_deadline' => $responseDeadline->toISOString()
+                'response_deadline' => $responseDeadline->toISOString(),
             ]);
 
             // Send notifications
@@ -112,16 +105,11 @@ class RefundRequestService
 
     /**
      * Producer approves the refund request
-     *
-     * @param RefundRequest $refundRequest
-     * @param User $producer
-     * @param string|null $notes
-     * @return RefundRequest
      */
     public function approveRefund(RefundRequest $refundRequest, User $producer, ?string $notes = null): RefundRequest
     {
         if ($refundRequest->status !== RefundRequest::STATUS_REQUESTED) {
-            throw new \InvalidArgumentException('Refund request cannot be approved in current status: ' . $refundRequest->status);
+            throw new \InvalidArgumentException('Refund request cannot be approved in current status: '.$refundRequest->status);
         }
 
         if ($refundRequest->producer_user_id !== $producer->id) {
@@ -130,7 +118,7 @@ class RefundRequestService
 
         Log::info('Producer approving refund request', [
             'refund_request_id' => $refundRequest->id,
-            'producer_id' => $producer->id
+            'producer_id' => $producer->id,
         ]);
 
         return DB::transaction(function () use ($refundRequest, $producer, $notes) {
@@ -142,8 +130,8 @@ class RefundRequestService
                 'producer_notes' => $notes,
                 'metadata' => array_merge($refundRequest->metadata ?? [], [
                     'approved_at' => now()->toISOString(),
-                    'producer_notes' => $notes
-                ])
+                    'producer_notes' => $notes,
+                ]),
             ]);
 
             // Handle payout cancellation or reversal
@@ -154,8 +142,8 @@ class RefundRequestService
                 if (in_array($payoutSchedule->status, [PayoutSchedule::STATUS_SCHEDULED, PayoutSchedule::STATUS_PROCESSING])) {
                     // Cancel payout if not yet processed
                     $this->payoutService->cancelPayout(
-                        $payoutSchedule, 
-                        "Refund approved by producer"
+                        $payoutSchedule,
+                        'Refund approved by producer'
                     );
                 } elseif ($payoutSchedule->status === PayoutSchedule::STATUS_COMPLETED && $payoutSchedule->stripe_transfer_id) {
                     // Reverse the completed transfer
@@ -179,30 +167,30 @@ class RefundRequestService
                                 'reversed_for_refund' => true,
                                 'refund_request_id' => $refundRequest->id,
                                 'reversal_id' => $transferReversalResult['reversal_id'],
-                            ])
+                            ]),
                         ]);
 
                         Log::info('Stripe transfer reversed for refund', [
                             'payout_schedule_id' => $payoutSchedule->id,
                             'reversal_id' => $transferReversalResult['reversal_id'],
-                            'refund_request_id' => $refundRequest->id
+                            'refund_request_id' => $refundRequest->id,
                         ]);
                     } else {
                         Log::error('Failed to reverse Stripe transfer for refund', [
                             'payout_schedule_id' => $payoutSchedule->id,
                             'transfer_id' => $payoutSchedule->stripe_transfer_id,
                             'error' => $transferReversalResult['error'],
-                            'refund_request_id' => $refundRequest->id
+                            'refund_request_id' => $refundRequest->id,
                         ]);
 
-                        throw new \Exception('Failed to reverse producer payout: ' . $transferReversalResult['error']);
+                        throw new \Exception('Failed to reverse producer payout: '.$transferReversalResult['error']);
                     }
                 }
             }
 
             // Process the client refund (this would integrate with existing invoice refund logic)
             // TODO: Integrate with existing InvoiceService refund processing
-            $stripeRefundId = 're_processed_' . uniqid(); // Placeholder for actual refund processing
+            $stripeRefundId = 're_processed_'.uniqid(); // Placeholder for actual refund processing
 
             // Update refund request as processed
             $refundRequest->update([
@@ -214,32 +202,27 @@ class RefundRequestService
                     'transfer_reversed' => $transferReversalResult !== null,
                     'reversal_id' => $transferReversalResult['reversal_id'] ?? null,
                     'stripe_refund_id' => $stripeRefundId,
-                ])
+                ]),
             ]);
 
             Log::info('Refund request approved and processed', [
-                'refund_request_id' => $refundRequest->id
+                'refund_request_id' => $refundRequest->id,
             ]);
 
             // Send notifications
             $this->notificationService->notifyClientRefundApproved($refundRequest->client_email, $refundRequest);
-            
+
             return $refundRequest;
         });
     }
 
     /**
      * Producer denies the refund request
-     *
-     * @param RefundRequest $refundRequest
-     * @param User $producer
-     * @param string $reason
-     * @return RefundRequest
      */
     public function denyRefund(RefundRequest $refundRequest, User $producer, string $reason): RefundRequest
     {
         if ($refundRequest->status !== RefundRequest::STATUS_REQUESTED) {
-            throw new \InvalidArgumentException('Refund request cannot be denied in current status: ' . $refundRequest->status);
+            throw new \InvalidArgumentException('Refund request cannot be denied in current status: '.$refundRequest->status);
         }
 
         if ($refundRequest->producer_user_id !== $producer->id) {
@@ -249,7 +232,7 @@ class RefundRequestService
         Log::info('Producer denying refund request', [
             'refund_request_id' => $refundRequest->id,
             'producer_id' => $producer->id,
-            'reason' => $reason
+            'reason' => $reason,
         ]);
 
         return DB::transaction(function () use ($refundRequest, $producer, $reason) {
@@ -260,17 +243,17 @@ class RefundRequestService
                 'denial_reason' => $reason,
                 'metadata' => array_merge($refundRequest->metadata ?? [], [
                     'denied_at' => now()->toISOString(),
-                    'denial_reason' => $reason
-                ])
+                    'denial_reason' => $reason,
+                ]),
             ]);
 
             Log::info('Refund request denied', [
-                'refund_request_id' => $refundRequest->id
+                'refund_request_id' => $refundRequest->id,
             ]);
 
             // Send notifications
             $this->notificationService->notifyClientRefundDenied($refundRequest->client_email, $refundRequest);
-            
+
             // Escalate to platform mediation
             $this->escalateToMediation($refundRequest);
 
@@ -288,7 +271,7 @@ class RefundRequestService
     {
         $results = [
             'expired' => 0,
-            'escalated' => 0
+            'escalated' => 0,
         ];
 
         $expiredRequests = RefundRequest::where('status', RefundRequest::STATUS_REQUESTED)
@@ -306,7 +289,7 @@ class RefundRequestService
             } catch (\Exception $e) {
                 Log::error('Failed to process expired refund request', [
                     'refund_request_id' => $request->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -316,9 +299,6 @@ class RefundRequestService
 
     /**
      * Handle a single expired refund request
-     *
-     * @param RefundRequest $refundRequest
-     * @return void
      */
     protected function handleExpiredRequest(RefundRequest $refundRequest): void
     {
@@ -328,12 +308,12 @@ class RefundRequestService
                 'expired_at' => now(),
                 'metadata' => array_merge($refundRequest->metadata ?? [], [
                     'expired_at' => now()->toISOString(),
-                    'expiration_reason' => 'Producer did not respond within 2 days'
-                ])
+                    'expiration_reason' => 'Producer did not respond within 2 days',
+                ]),
             ]);
 
             Log::info('Refund request expired', [
-                'refund_request_id' => $refundRequest->id
+                'refund_request_id' => $refundRequest->id,
             ]);
 
             // Escalate to platform mediation
@@ -347,15 +327,12 @@ class RefundRequestService
 
     /**
      * Escalate refund request to platform mediation
-     *
-     * @param RefundRequest $refundRequest
-     * @return void
      */
     protected function escalateToMediation(RefundRequest $refundRequest): void
     {
         Log::info('Escalating refund request to mediation', [
             'refund_request_id' => $refundRequest->id,
-            'current_status' => $refundRequest->status
+            'current_status' => $refundRequest->status,
         ]);
 
         // Update metadata to indicate mediation
@@ -363,8 +340,8 @@ class RefundRequestService
             'metadata' => array_merge($refundRequest->metadata ?? [], [
                 'escalated_to_mediation' => true,
                 'escalated_at' => now()->toISOString(),
-                'mediation_required' => true
-            ])
+                'mediation_required' => true,
+            ]),
         ]);
 
         // Send notification to admin team
@@ -374,26 +351,22 @@ class RefundRequestService
     /**
      * Admin resolves a refund request through mediation
      *
-     * @param RefundRequest $refundRequest
-     * @param User $admin
-     * @param string $decision 'approve' or 'deny'
-     * @param string $reasoning
-     * @return RefundRequest
+     * @param  string  $decision  'approve' or 'deny'
      */
     public function adminResolveRefund(
-        RefundRequest $refundRequest, 
-        User $admin, 
-        string $decision, 
+        RefundRequest $refundRequest,
+        User $admin,
+        string $decision,
         string $reasoning
     ): RefundRequest {
-        if (!in_array($decision, ['approve', 'deny'])) {
+        if (! in_array($decision, ['approve', 'deny'])) {
             throw new \InvalidArgumentException('Decision must be either "approve" or "deny"');
         }
 
         Log::info('Admin resolving refund request', [
             'refund_request_id' => $refundRequest->id,
             'admin_id' => $admin->id,
-            'decision' => $decision
+            'decision' => $decision,
         ]);
 
         return DB::transaction(function () use ($refundRequest, $admin, $decision, $reasoning) {
@@ -407,17 +380,17 @@ class RefundRequestService
                         'admin_resolved' => true,
                         'admin_decision' => 'approve',
                         'admin_reasoning' => $reasoning,
-                        'resolved_at' => now()->toISOString()
-                    ])
+                        'resolved_at' => now()->toISOString(),
+                    ]),
                 ]);
 
                 // Cancel payout if still scheduled
-                if ($refundRequest->payoutSchedule && 
+                if ($refundRequest->payoutSchedule &&
                     in_array($refundRequest->payoutSchedule->status, [PayoutSchedule::STATUS_SCHEDULED, PayoutSchedule::STATUS_PROCESSING])) {
-                    
+
                     $this->payoutService->cancelPayout(
-                        $refundRequest->payoutSchedule, 
-                        "Refund approved by admin mediation"
+                        $refundRequest->payoutSchedule,
+                        'Refund approved by admin mediation'
                     );
                 }
 
@@ -425,7 +398,7 @@ class RefundRequestService
                 $refundRequest->update([
                     'status' => RefundRequest::STATUS_PROCESSED,
                     'processed_at' => now(),
-                    'stripe_refund_id' => 're_admin_' . uniqid()
+                    'stripe_refund_id' => 're_admin_'.uniqid(),
                 ]);
 
                 // Send approval notifications
@@ -443,8 +416,8 @@ class RefundRequestService
                         'admin_resolved' => true,
                         'admin_decision' => 'deny',
                         'admin_reasoning' => $reasoning,
-                        'resolved_at' => now()->toISOString()
-                    ])
+                        'resolved_at' => now()->toISOString(),
+                    ]),
                 ]);
 
                 // Send denial notifications
@@ -454,7 +427,7 @@ class RefundRequestService
 
             Log::info('Admin refund resolution completed', [
                 'refund_request_id' => $refundRequest->id,
-                'decision' => $decision
+                'decision' => $decision,
             ]);
 
             return $refundRequest;
@@ -463,9 +436,6 @@ class RefundRequestService
 
     /**
      * Get refund request statistics for admin dashboard
-     *
-     * @param array $filters
-     * @return array
      */
     public function getRefundStatistics(array $filters = []): array
     {
@@ -497,7 +467,7 @@ class RefundRequestService
                 ->count(),
             'requiring_mediation' => RefundRequest::whereIn('status', [RefundRequest::STATUS_DENIED, RefundRequest::STATUS_EXPIRED])
                 ->whereJsonContains('metadata->mediation_required', true)
-                ->count()
+                ->count(),
         ];
 
         return $stats;
@@ -506,8 +476,6 @@ class RefundRequestService
     /**
      * Get producer's refund request history
      *
-     * @param User $producer
-     * @param int $limit
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getProducerRefundHistory(User $producer, int $limit = 20)
@@ -521,13 +489,12 @@ class RefundRequestService
     /**
      * Check if a pitch is eligible for refund request
      *
-     * @param Pitch $pitch
      * @return array ['eligible' => bool, 'reason' => string|null]
      */
     public function checkRefundEligibility(Pitch $pitch): array
     {
         // Must be paid
-        if (!$pitch->payment_completed_at) {
+        if (! $pitch->payment_completed_at) {
             return ['eligible' => false, 'reason' => 'Pitch has not been paid'];
         }
 
@@ -548,4 +515,4 @@ class RefundRequestService
 
         return ['eligible' => true, 'reason' => null];
     }
-} 
+}

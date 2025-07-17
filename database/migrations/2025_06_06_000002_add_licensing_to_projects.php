@@ -16,17 +16,17 @@ return new class extends Migration
             $table->foreignId('license_template_id')->nullable()->constrained()->onDelete('set null');
             $table->json('custom_license_terms')->nullable(); // Project-specific overrides
             $table->text('license_notes')->nullable();
-            
+
             // License status and workflow
             $table->enum('license_status', ['pending', 'active', 'expired', 'revoked'])->default('pending');
             $table->timestamp('license_signed_at')->nullable();
             $table->string('license_signature_ip', 45)->nullable(); // IPv6 compatible
             $table->boolean('requires_license_agreement')->default(true);
-            
+
             // License metadata
             $table->string('license_jurisdiction', 10)->default('US'); // US, EU, UK, etc.
             $table->text('license_content_hash')->nullable(); // For integrity verification
-            
+
             // Indexes for performance
             $table->index(['license_status']);
             $table->index(['license_template_id', 'license_status']);
@@ -41,9 +41,9 @@ return new class extends Migration
         Schema::table('projects', function (Blueprint $table) {
             $table->dropIndex(['license_status']);
             $table->dropIndex(['license_template_id', 'license_status']);
-            
+
             $table->dropForeign(['license_template_id']);
-            
+
             $table->dropColumn([
                 'license_template_id',
                 'custom_license_terms',
@@ -57,4 +57,4 @@ return new class extends Migration
             ]);
         });
     }
-}; 
+};

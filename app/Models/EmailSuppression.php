@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmailSuppression extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
      *
@@ -18,23 +18,20 @@ class EmailSuppression extends Model
         'email',
         'reason',
         'type',
-        'metadata'
+        'metadata',
     ];
-    
+
     /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
      */
     protected $casts = [
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
-    
+
     /**
      * Check if an email is suppressed
-     *
-     * @param string $email
-     * @return bool
      */
     public static function isEmailSuppressed(string $email): bool
     {

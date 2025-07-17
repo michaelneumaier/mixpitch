@@ -2,39 +2,52 @@
 
 namespace App\Livewire;
 
-use App\Models\User;
 use App\Models\Tag;
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use Masmerise\Toaster\Toaster;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Masmerise\Toaster\Toaster;
 
 class UserProfileEditOld extends Component
 {
     use WithFileUploads;
 
     public $name;
+
     public $email;
+
     public $username;
+
     public $headline;
+
     public $bio;
+
     public $location;
+
     public $website;
+
     public $tipjar_link;
+
     public $skills = [];
+
     public $equipment = [];
+
     public $specialties = [];
 
     public Collection $allTags;
 
     public $social_links = [];
+
     public $username_locked = false;
+
     public $profile_completed = false;
+
     public $profile_completion_percentage = 0;
+
     public $profilePhoto;
 
     protected $temporaryUploadDirectory = 'livewire-tmp';
@@ -56,7 +69,7 @@ class UserProfileEditOld extends Component
         $userId = auth()->id();
         $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username';
         if ($this->username_locked) {
-            $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username,' . $userId;
+            $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username,'.$userId;
         }
 
         return [
@@ -104,8 +117,9 @@ class UserProfileEditOld extends Component
         $user = User::find(auth()->id());
 
         // If no user is found, log error and bail
-        if (!$user) {
+        if (! $user) {
             Log::error('UserProfileEdit mount() - No authenticated user found');
+
             return redirect()->route('login');
         }
 
@@ -113,7 +127,7 @@ class UserProfileEditOld extends Component
         Log::info('UserProfileEdit mount() - User authentication:', [
             'auth_id' => auth()->id(),
             'user_id' => $user->id,
-            'username' => $user->username
+            'username' => $user->username,
         ]);
 
         $this->name = $user->name;
@@ -131,7 +145,7 @@ class UserProfileEditOld extends Component
         // DEBUG: Log the current user ID
         Log::info('UserProfileEdit - mount() for user:', [
             'user_id' => $user->id,
-            'username' => $user->username
+            'username' => $user->username,
         ]);
 
         // Load all available tags, grouped by type
@@ -141,7 +155,7 @@ class UserProfileEditOld extends Component
         // DEBUG: Log the raw user->tags relationship
         Log::info('UserProfileEdit - Raw user tags relationship:', [
             'count' => $user->tags()->count(),
-            'raw_tags' => $user->tags()->get()->toArray()
+            'raw_tags' => $user->tags()->get()->toArray(),
         ]);
 
         // Load user's current tags and set the ID arrays
@@ -152,7 +166,7 @@ class UserProfileEditOld extends Component
             'userTags' => $userTags->toArray(),
             'skill_count' => $userTags->get('skill', collect())->count(),
             'equipment_count' => $userTags->get('equipment', collect())->count(),
-            'specialty_count' => $userTags->get('specialty', collect())->count()
+            'specialty_count' => $userTags->get('specialty', collect())->count(),
         ]);
 
         // Convert IDs to strings to ensure proper JSON encoding
@@ -172,7 +186,7 @@ class UserProfileEditOld extends Component
         Log::info('UserProfileEdit - Final tag arrays for view:', [
             'skills' => $this->skills,
             'equipment' => $this->equipment,
-            'specialties' => $this->specialties
+            'specialties' => $this->specialties,
         ]);
 
         $this->calculateProfileCompletion();
@@ -186,14 +200,14 @@ class UserProfileEditOld extends Component
 
         $completedRequired = 0;
         foreach ($requiredFields as $field) {
-            if (!empty($this->$field)) {
+            if (! empty($this->$field)) {
                 $completedRequired++;
             }
         }
 
         $completedOptional = 0;
         foreach ($optionalFields as $field) {
-            if (!empty($this->$field)) {
+            if (! empty($this->$field)) {
                 $completedOptional++;
             }
         }
@@ -260,7 +274,7 @@ class UserProfileEditOld extends Component
             'equipment' => $this->equipment,
             'equipment_type' => gettype($this->equipment),
             'specialties' => $this->specialties,
-            'specialties_type' => gettype($this->specialties)
+            'specialties_type' => gettype($this->specialties),
         ]);
 
         $userData = [
@@ -273,15 +287,15 @@ class UserProfileEditOld extends Component
             'website' => $this->website,
             'tipjar_link' => $this->tipjar_link,
             'social_links' => array_filter($this->social_links ?? []),
-            'username_locked' => $user->username_locked || !empty($this->username),
+            'username_locked' => $user->username_locked || ! empty($this->username),
         ];
 
-        if (!empty($userData['website']) && !preg_match("~^(?:f|ht)tps?://~i", $userData['website'])) {
-            $userData['website'] = "https://" . $userData['website'];
+        if (! empty($userData['website']) && ! preg_match('~^(?:f|ht)tps?://~i', $userData['website'])) {
+            $userData['website'] = 'https://'.$userData['website'];
         }
 
-        if (!empty($userData['tipjar_link']) && !preg_match("~^(?:f|ht)tps?://~i", $userData['tipjar_link'])) {
-            $userData['tipjar_link'] = "https://" . $userData['tipjar_link'];
+        if (! empty($userData['tipjar_link']) && ! preg_match('~^(?:f|ht)tps?://~i', $userData['tipjar_link'])) {
+            $userData['tipjar_link'] = 'https://'.$userData['tipjar_link'];
         }
 
         $this->calculateProfileCompletion();
@@ -297,7 +311,7 @@ class UserProfileEditOld extends Component
                 $user->fill($userData);
                 $user->save();
 
-                // Ensure all tag arrays are properly initialized 
+                // Ensure all tag arrays are properly initialized
                 $skills = is_array($this->skills) ? $this->skills : [];
                 $equipment = is_array($this->equipment) ? $this->equipment : [];
                 $specialties = is_array($this->specialties) ? $this->specialties : [];
@@ -306,7 +320,7 @@ class UserProfileEditOld extends Component
                 Log::info('UserProfileEdit save() - Pre-conversion tag values:', [
                     'skills' => $skills,
                     'equipment' => $equipment,
-                    'specialties' => $specialties
+                    'specialties' => $specialties,
                 ]);
 
                 // Make sure we have integer values for database operations
@@ -319,7 +333,7 @@ class UserProfileEditOld extends Component
                 // Log the merged tag IDs being synced
                 Log::info('UserProfileEdit save() - Syncing tags:', [
                     'allTagIds' => $allTagIds,
-                    'count' => count($allTagIds)
+                    'count' => count($allTagIds),
                 ]);
 
                 // Log before and after counts for comparison
@@ -329,11 +343,11 @@ class UserProfileEditOld extends Component
                 // DEBUG: Verify user ID and relationship query
                 Log::info('UserProfileEdit save() - About to sync tags with user:', [
                     'user_id' => $user->id,
-                    'relationship_sql' => $user->tags()->toSql()
+                    'relationship_sql' => $user->tags()->toSql(),
                 ]);
 
                 // Sync tags with the user
-                if (!empty($allTagIds)) {
+                if (! empty($allTagIds)) {
                     $user->tags()->sync($allTagIds);
                     Log::info('UserProfileEdit save() - Tags synced successfully');
 
@@ -344,7 +358,7 @@ class UserProfileEditOld extends Component
                         'beforeCount' => $beforeCount,
                         'afterCount' => $afterCount,
                         'beforeTags' => $beforeTags,
-                        'afterTags' => $afterTags
+                        'afterTags' => $afterTags,
                     ]);
                 } else {
                     Log::warning('UserProfileEdit save() - No tag IDs to sync!');
@@ -352,7 +366,7 @@ class UserProfileEditOld extends Component
 
                 Toaster::success('Profile updated successfully!');
             } catch (\Exception $e) {
-                Log::error('Error updating user profile: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                Log::error('Error updating user profile: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
                 Toaster::error('An error occurred while updating your profile. Please try again.');
                 throw $e;
             }
@@ -372,7 +386,7 @@ class UserProfileEditOld extends Component
             'allTags' => $this->allTags,
             'skills' => $this->skills,
             'equipment' => $this->equipment,
-            'specialties' => $this->specialties
+            'specialties' => $this->specialties,
         ]);
     }
 
@@ -387,7 +401,7 @@ class UserProfileEditOld extends Component
                 'skills_type' => gettype($this->skills),
                 'equipment_type' => gettype($this->equipment),
                 'specialties_type' => gettype($this->specialties),
-            ]
+            ],
         ]);
 
         // Output to toaster for UI visibility
@@ -397,7 +411,7 @@ class UserProfileEditOld extends Component
     // Debug method to test tag selection
     public function selectTags()
     {
-        // Force-set specific tag IDs 
+        // Force-set specific tag IDs
         $this->skills = ['1']; // Mixing
         $this->equipment = ['2']; // Ableton
         $this->specialties = ['3']; // Rock
@@ -405,7 +419,7 @@ class UserProfileEditOld extends Component
         Log::info('UserProfileEdit - Force set tag IDs:', [
             'skills' => $this->skills,
             'equipment' => $this->equipment,
-            'specialties' => $this->specialties
+            'specialties' => $this->specialties,
         ]);
 
         Toaster::info('Tags have been force-selected. Check the dropdowns now.');

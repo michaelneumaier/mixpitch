@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\LicenseSignature;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class LicenseSignatureController extends Controller
 {
@@ -65,4 +64,4 @@ class LicenseSignatureController extends Controller
         return redirect()->route('projects.show', $signature->project)
             ->with('success', 'License agreement signed successfully! You can now participate in this project.');
     }
-} 
+}

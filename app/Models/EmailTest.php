@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmailTest extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
      *
@@ -23,7 +23,7 @@ class EmailTest extends Model
         'result',
         'sent_at',
     ];
-    
+
     /**
      * The attributes that should be cast.
      *
@@ -34,7 +34,7 @@ class EmailTest extends Model
         'result' => 'array',
         'sent_at' => 'datetime',
     ];
-    
+
     /**
      * Get the audit records associated with this test.
      */
@@ -42,7 +42,7 @@ class EmailTest extends Model
     {
         return $this->hasMany(EmailAudit::class, 'message_id', 'id');
     }
-    
+
     /**
      * Get the email events associated with this test.
      */

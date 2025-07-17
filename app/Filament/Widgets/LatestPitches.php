@@ -2,23 +2,23 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\PitchResource;
+use App\Models\Pitch;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
-use App\Models\Pitch;
-use App\Filament\Resources\PitchResource;
 
 class LatestPitches extends BaseWidget
 {
     protected int|string|array $columnSpan = 'full';
-    
+
     protected static ?int $sort = 16;
-    
+
     protected function getTableHeading(): string
     {
         return 'Latest Pitches';
     }
-    
+
     public function table(Table $table): Table
     {
         return $table
@@ -30,17 +30,17 @@ class LatestPitches extends BaseWidget
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                    
+
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Submitted By')
                     ->sortable()
                     ->searchable(),
-                    
+
                 Tables\Columns\TextColumn::make('project.name')
                     ->label('Project')
                     ->sortable()
                     ->searchable(),
-                    
+
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -50,7 +50,7 @@ class LatestPitches extends BaseWidget
                         'rejected' => 'danger',
                         default => 'warning',
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()

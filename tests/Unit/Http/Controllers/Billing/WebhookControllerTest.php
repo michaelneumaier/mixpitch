@@ -2,17 +2,17 @@
 
 namespace Tests\Unit\Http\Controllers\Billing;
 
-use Tests\TestCase;
+use App\Http\Controllers\Billing\WebhookController;
+use App\Models\Pitch;
 use App\Models\Project;
 use App\Models\User;
-use App\Models\Pitch;
-use App\Services\PitchWorkflowService;
 use App\Services\InvoiceService;
 use App\Services\NotificationService;
-use App\Http\Controllers\Billing\WebhookController;
+use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Symfony\Component\HttpFoundation\Response;
+use Tests\TestCase;
 
 class WebhookControllerTest extends TestCase
 {
@@ -27,7 +27,7 @@ class WebhookControllerTest extends TestCase
     protected function create_checkout_session_payload(int $pitchId, string $sessionId, string $paymentStatus = 'paid', int $amountTotal = 10000, string $currency = 'usd'): array
     {
         return [
-            'id' => 'evt_test_' . uniqid(),
+            'id' => 'evt_test_'.uniqid(),
             'object' => 'event',
             'type' => 'checkout.session.completed',
             'data' => [
@@ -42,8 +42,8 @@ class WebhookControllerTest extends TestCase
                         'type' => 'client_pitch_payment',
                     ],
                     // Add other necessary fields if your controller uses them
-                ]
-            ]
+                ],
+            ],
         ];
     }
 
@@ -69,13 +69,13 @@ class WebhookControllerTest extends TestCase
         $mockWorkflowService = $this->mock(PitchWorkflowService::class);
         $mockInvoiceService = $this->mock(InvoiceService::class);
         $mockNotificationService = $this->mock(NotificationService::class);
-        
+
         // Bind the mock to the container so the controller uses it
         $this->app->instance(PitchWorkflowService::class, $mockWorkflowService);
-        
+
         $controller = $this->app->make(WebhookController::class);
 
-        $sessionId = 'cs_test_' . uniqid();
+        $sessionId = 'cs_test_'.uniqid();
         $payload = $this->create_checkout_session_payload($pitch->id, $sessionId, 'paid', 10000);
 
         // Expectations - the workflow service should be called
@@ -91,7 +91,7 @@ class WebhookControllerTest extends TestCase
         // Assert
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals(200, $response->getStatusCode());
-        
+
         // The mock expectations verify that the correct business logic was executed
         // Database state changes are better tested in Feature tests due to transaction complexity
     }
@@ -110,7 +110,7 @@ class WebhookControllerTest extends TestCase
             'project_id' => $project->id,
             'user_id' => $producer->id,
             'payment_amount' => 100.00,
-            'status' => Pitch::STATUS_APPROVED, 
+            'status' => Pitch::STATUS_APPROVED,
             'payment_status' => Pitch::PAYMENT_STATUS_PAID,
             'payment_completed_at' => now(),
         ]);
@@ -119,7 +119,7 @@ class WebhookControllerTest extends TestCase
         $mockNotificationService = $this->mock(NotificationService::class);
         $controller = $this->app->make(WebhookController::class);
 
-        $sessionId = 'cs_test_' . uniqid();
+        $sessionId = 'cs_test_'.uniqid();
         $payload = $this->create_checkout_session_payload($pitch->id, $sessionId, 'paid');
 
         // Act - Corrected parameter order
@@ -148,7 +148,7 @@ class WebhookControllerTest extends TestCase
         $controller = $this->app->make(WebhookController::class);
 
         // Create payload with different metadata type
-        $sessionId = 'cs_test_' . uniqid();
+        $sessionId = 'cs_test_'.uniqid();
         $payload = $this->create_checkout_session_payload($pitch->id, $sessionId, 'paid');
         $payload['data']['object']['metadata']['type'] = 'subscription_payment'; // Different type
 
@@ -174,7 +174,7 @@ class WebhookControllerTest extends TestCase
         $controller = $this->app->make(WebhookController::class);
 
         // Create payload with 'unpaid' status
-        $sessionId = 'cs_test_' . uniqid();
+        $sessionId = 'cs_test_'.uniqid();
         $payload = $this->create_checkout_session_payload($pitch->id, $sessionId, 'unpaid');
 
         // Act - Corrected parameter order
@@ -184,4 +184,4 @@ class WebhookControllerTest extends TestCase
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals(200, $response->getStatusCode());
     }
-} 
+}

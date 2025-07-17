@@ -13,9 +13,9 @@ class SetDefaultTimezoneSeeder extends Seeder
     public function run(): void
     {
         $count = User::whereNull('timezone')->update([
-            'timezone' => 'America/New_York'
+            'timezone' => 'America/New_York',
         ]);
 
         $this->command->info("Updated timezone for {$count} existing users.");
     }
-} 
+}

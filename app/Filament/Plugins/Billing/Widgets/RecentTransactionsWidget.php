@@ -3,39 +3,39 @@
 namespace App\Filament\Plugins\Billing\Widgets;
 
 use App\Models\User;
-use Filament\Widgets\Widget;
-use Laravel\Cashier\Cashier;
 use Carbon\Carbon;
+use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Cashier\Cashier;
 
 class RecentTransactionsWidget extends Widget
 {
     protected static ?int $sort = 3;
-    
+
     protected static string $view = 'filament.widgets.billing.recent-transactions-widget';
-    
-    protected int | string | array $columnSpan = 'full';
-    
+
+    protected int|string|array $columnSpan = 'full';
+
     public function getTransactions(): array
     {
         return Cache::remember('recent_transactions', 60, function () {
             $stripe = Cashier::stripe();
-            
+
             // Fetch charges
             $charges = $stripe->charges->all([
                 'limit' => 100,
             ]);
-            
+
             $transactions = [];
-            
+
             foreach ($charges->data as $charge) {
                 // Try to get user information
                 $customerName = 'Unknown';
                 $customerEmail = '';
-                
+
                 if (isset($charge->customer)) {
                     $user = User::where('stripe_id', $charge->customer)->first();
-                    
+
                     if ($user) {
                         $customerName = $user->name;
                         $customerEmail = $user->email;
@@ -49,22 +49,22 @@ class RecentTransactionsWidget extends Widget
                         }
                     }
                 }
-                
+
                 // Format payment method
                 $paymentMethod = 'Unknown';
                 if (isset($charge->payment_method_details)) {
                     if (isset($charge->payment_method_details->card)) {
                         $card = $charge->payment_method_details->card;
-                        $paymentMethod = ucfirst($card->brand) . ' •••• ' . $card->last4;
+                        $paymentMethod = ucfirst($card->brand).' •••• '.$card->last4;
                     } elseif (isset($charge->payment_method_details->type)) {
                         $paymentMethod = ucfirst($charge->payment_method_details->type);
                     }
                 }
-                
+
                 $transactions[] = [
                     'id' => $charge->id,
                     'date' => Carbon::createFromTimestamp($charge->created)->format('Y-m-d H:i:s'),
-                    'customer' => $customerName . ($customerEmail ? " ($customerEmail)" : ''),
+                    'customer' => $customerName.($customerEmail ? " ($customerEmail)" : ''),
                     'description' => $charge->description ?? 'No description',
                     'amount' => $charge->amount / 100, // Convert from cents to dollars
                     'status' => $charge->status,
@@ -73,16 +73,16 @@ class RecentTransactionsWidget extends Widget
                     'receipt_url' => $charge->receipt_url ?? null,
                 ];
             }
-            
+
             // Sort by date descending
             usort($transactions, function ($a, $b) {
                 return strtotime($b['date']) - strtotime($a['date']);
             });
-            
+
             return $transactions;
         });
     }
-    
+
     public function getStatusColor(string $status): string
     {
         return match ($status) {
@@ -92,4 +92,4 @@ class RecentTransactionsWidget extends Widget
             default => 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/20',
         };
     }
-} 
+}

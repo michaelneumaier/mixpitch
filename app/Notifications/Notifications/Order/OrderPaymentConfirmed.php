@@ -16,8 +16,6 @@ class OrderPaymentConfirmed extends Notification implements ShouldQueue
 
     /**
      * Create a new notification instance.
-     *
-     * @param Order $order
      */
     public function __construct(Order $order)
     {
@@ -27,7 +25,7 @@ class OrderPaymentConfirmed extends Notification implements ShouldQueue
     /**
      * Get the notification's delivery channels.
      *
-     * @param mixed $notifiable
+     * @param  mixed  $notifiable
      * @return array
      */
     public function via($notifiable)
@@ -38,7 +36,7 @@ class OrderPaymentConfirmed extends Notification implements ShouldQueue
     /**
      * Get the mail representation of the notification.
      *
-     * @param mixed $notifiable
+     * @param  mixed  $notifiable
      * @return \Illuminate\Notifications\Messages\MailMessage
      */
     public function toMail($notifiable)
@@ -47,12 +45,12 @@ class OrderPaymentConfirmed extends Notification implements ShouldQueue
         $producer = $this->order->producer;
 
         return (new MailMessage)
-            ->subject('Payment Confirmed for Order #' . $this->order->id)
-            ->greeting('Hello ' . $notifiable->name . '!')
-            ->line('Your payment for order #' . $this->order->id . ' has been confirmed.')
-            ->line('Service: ' . $servicePackage->title)
-            ->line('Producer: ' . $producer->name)
-            ->line('Amount: ' . $this->order->price . ' ' . $this->order->currency)
+            ->subject('Payment Confirmed for Order #'.$this->order->id)
+            ->greeting('Hello '.$notifiable->name.'!')
+            ->line('Your payment for order #'.$this->order->id.' has been confirmed.')
+            ->line('Service: '.$servicePackage->title)
+            ->line('Producer: '.$producer->name)
+            ->line('Amount: '.$this->order->price.' '.$this->order->currency)
             ->action('View Order', route('orders.show', $this->order))
             ->line('Thank you for using MixPitch!');
     }
@@ -60,7 +58,7 @@ class OrderPaymentConfirmed extends Notification implements ShouldQueue
     /**
      * Get the array representation of the notification.
      *
-     * @param mixed $notifiable
+     * @param  mixed  $notifiable
      * @return array
      */
     public function toArray($notifiable)
@@ -68,7 +66,7 @@ class OrderPaymentConfirmed extends Notification implements ShouldQueue
         return [
             'order_id' => $this->order->id,
             'title' => 'Payment Confirmed',
-            'message' => 'Your payment for order #' . $this->order->id . ' has been confirmed.',
+            'message' => 'Your payment for order #'.$this->order->id.' has been confirmed.',
             'link' => route('orders.show', $this->order),
         ];
     }

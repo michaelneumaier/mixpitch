@@ -6,26 +6,24 @@ use App\Filament\Resources\PitchResource\Pages;
 use App\Filament\Resources\PitchResource\RelationManagers;
 use App\Models\Pitch;
 use Filament\Forms;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Model;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
 
 class PitchResource extends Resource
 {
     protected static ?string $model = Pitch::class;
 
     protected static ?string $navigationIcon = 'heroicon-m-document-text';
-    
+
     protected static ?string $navigationGroup = 'Content Management';
-    
+
     protected static ?int $navigationSort = 2;
-    
+
     protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Form $form): Form
@@ -37,20 +35,20 @@ class PitchResource extends Resource
                         Forms\Components\TextInput::make('title')
                             ->required()
                             ->maxLength(255),
-                            
+
                         Forms\Components\Select::make('project_id')
                             ->relationship('project', 'name')
                             ->searchable()
                             ->preload()
                             ->required(),
-                            
+
                         Forms\Components\Select::make('user_id')
                             ->relationship('user', 'name')
                             ->searchable()
                             ->preload()
                             ->required()
                             ->label('Created By'),
-                            
+
                         Forms\Components\Select::make('status')
                             ->options([
                                 'open' => 'Open',
@@ -65,12 +63,12 @@ class PitchResource extends Resource
                                 'closed' => 'Closed',
                             ])
                             ->required(),
-                            
+
                         Forms\Components\Textarea::make('description')
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
-                    
+
                 Section::make('Pitch Settings')
                     ->schema([
                         Forms\Components\Grid::make(2)
@@ -80,15 +78,15 @@ class PitchResource extends Resource
                                     ->default(25)
                                     ->label('Maximum Files Allowed')
                                     ->helperText('Maximum number of files that can be uploaded to this pitch'),
-                                    
+
                                 Forms\Components\DateTimePicker::make('completion_date')
                                     ->label('Completion Date'),
-                                    
+
                                 Forms\Components\Toggle::make('is_inactive')
                                     ->label('Inactive')
                                     ->helperText('When a pitch is inactive, no new files can be uploaded')
                                     ->default(false),
-                                    
+
                                 Forms\Components\TextInput::make('total_storage_used')
                                     ->numeric()
                                     ->suffix('MB')
@@ -96,7 +94,7 @@ class PitchResource extends Resource
                                     ->disabled()
                                     ->label('Total Storage Used'),
                             ]),
-                            
+
                         Forms\Components\Textarea::make('completion_feedback')
                             ->label('Completion Feedback')
                             ->helperText('Feedback provided when marking this pitch as completed')
@@ -114,18 +112,18 @@ class PitchResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(30),
-                    
+
                 Tables\Columns\TextColumn::make('project.name')
                     ->searchable()
                     ->sortable()
                     ->limit(20)
                     ->label('Project'),
-                    
+
                 Tables\Columns\TextColumn::make('user.name')
                     ->searchable()
                     ->sortable()
                     ->label('Creator'),
-                    
+
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -141,15 +139,15 @@ class PitchResource extends Resource
                         'closed' => 'gray',
                         default => 'secondary',
                     }),
-                    
+
                 Tables\Columns\IconColumn::make('is_inactive')
                     ->boolean()
                     ->label('Inactive'),
-                    
+
                 Tables\Columns\TextColumn::make('completion_date')
                     ->dateTime()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -169,11 +167,11 @@ class PitchResource extends Resource
                         'inactive' => 'Inactive',
                         'closed' => 'Closed',
                     ]),
-                    
+
                 Tables\Filters\Filter::make('inactive')
                     ->query(fn (Builder $query): Builder => $query->where('is_inactive', true))
                     ->toggle(),
-                    
+
                 Tables\Filters\Filter::make('completed')
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('completion_date'))
                     ->toggle(),
@@ -218,7 +216,7 @@ class PitchResource extends Resource
             'edit' => Pages\EditPitch::route('/{record}/edit'),
         ];
     }
-    
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['title', 'description', 'status'];

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pitches', function (Blueprint $table) {
-            if (!Schema::hasColumn('pitches', 'closed_at')) {
+            if (! Schema::hasColumn('pitches', 'closed_at')) {
                 $table->timestamp('closed_at')->nullable();
             }
         });
@@ -29,4 +29,4 @@ return new class extends Migration
             }
         });
     }
-}; 
+};

@@ -2,23 +2,22 @@
 
 namespace App\Filament\Widgets;
 
-use Filament\Widgets\ChartWidget;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Filament\Widgets\ChartWidget;
 
 class UserActivity extends ChartWidget
 {
     protected static ?string $heading = 'Monthly Activity';
-    
+
     protected static ?string $maxHeight = '300px';
-    
+
     protected static ?int $sort = 18;
-    
+
     public ?string $filter = 'users';
-    
+
     protected function getFilters(): ?array
     {
         return [
@@ -33,14 +32,14 @@ class UserActivity extends ChartWidget
         $months = collect(range(0, 11))->map(function ($i) {
             return Carbon::now()->subMonths($i)->format('M');
         })->reverse()->toArray();
-        
+
         $data = match ($this->filter) {
             'users' => $this->getUserData(),
             'projects' => $this->getProjectData(),
             'pitches' => $this->getPitchData(),
             default => $this->getUserData(),
         };
-        
+
         return [
             'datasets' => [
                 [
@@ -65,52 +64,52 @@ class UserActivity extends ChartWidget
             'labels' => $months,
         ];
     }
-    
+
     protected function getUserData(): array
     {
         $counts = [];
-        
+
         for ($i = 11; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $startOfMonth = $date->copy()->startOfMonth();
             $endOfMonth = $date->copy()->endOfMonth();
-            
+
             $count = User::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
             $counts[] = $count;
         }
-        
+
         return $counts;
     }
-    
+
     protected function getProjectData(): array
     {
         $counts = [];
-        
+
         for ($i = 11; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $startOfMonth = $date->copy()->startOfMonth();
             $endOfMonth = $date->copy()->endOfMonth();
-            
+
             $count = Project::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
             $counts[] = $count;
         }
-        
+
         return $counts;
     }
-    
+
     protected function getPitchData(): array
     {
         $counts = [];
-        
+
         for ($i = 11; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $startOfMonth = $date->copy()->startOfMonth();
             $endOfMonth = $date->copy()->endOfMonth();
-            
+
             $count = Pitch::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
             $counts[] = $count;
         }
-        
+
         return $counts;
     }
 

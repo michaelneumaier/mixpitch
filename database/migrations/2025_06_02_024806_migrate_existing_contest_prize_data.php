@@ -1,11 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 use App\Models\Project;
-use App\Models\ContestPrize;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -30,7 +27,7 @@ return new class extends Migration
                 ->where('placement', '1st')
                 ->first();
 
-            if (!$existingPrize) {
+            if (! $existingPrize) {
                 // Create a 1st place cash prize from existing prize_amount
                 DB::table('contest_prizes')->insert([
                     'project_id' => $project->id,
@@ -67,7 +64,7 @@ return new class extends Migration
             ->whereNull('deadline')
             ->whereNotNull('submission_deadline')
             ->update([
-                'deadline' => DB::raw('submission_deadline')
+                'deadline' => DB::raw('submission_deadline'),
             ]);
     }
 
@@ -89,7 +86,7 @@ return new class extends Migration
             })
             ->delete();
 
-        // Note: We don't reverse the budget/deadline updates as they might have been 
+        // Note: We don't reverse the budget/deadline updates as they might have been
         // manually modified after the migration
     }
 };

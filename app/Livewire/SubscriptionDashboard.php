@@ -2,19 +2,16 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Models\User;
-use App\Models\UserMonthlyLimit;
 use App\Models\VisibilityBoost;
-use App\Models\LicenseTemplate;
-use App\Models\Transaction;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class SubscriptionDashboard extends Component
 {
     public $user;
+
     public $showFullDetails = false;
-    
+
     public function mount()
     {
         $this->user = Auth::user();
@@ -22,13 +19,14 @@ class SubscriptionDashboard extends Component
 
     public function toggleDetails()
     {
-        $this->showFullDetails = !$this->showFullDetails;
+        $this->showFullDetails = ! $this->showFullDetails;
     }
 
     public function createVisibilityBoost($type = 'profile', $duration = 72)
     {
-        if (!$this->user->canCreateVisibilityBoost()) {
+        if (! $this->user->canCreateVisibilityBoost()) {
             $this->addError('boost', 'You cannot create more visibility boosts this month.');
+
             return;
         }
 
@@ -47,7 +45,7 @@ class SubscriptionDashboard extends Component
             VisibilityBoost::incrementMonthlyUsage($this->user);
 
             session()->flash('success', "Visibility boost activated! Your {$type} will have increased visibility for {$duration} hours.");
-            
+
         } catch (\Exception $e) {
             $this->addError('boost', 'Failed to create visibility boost. Please try again.');
         }
@@ -63,7 +61,7 @@ class SubscriptionDashboard extends Component
     {
         $limits = $this->user->getSubscriptionLimits();
         $monthlyLimits = $this->user->currentMonthLimits();
-        
+
         return [
             'limits' => $limits,
             'monthly_limits' => $monthlyLimits,
@@ -105,8 +103,9 @@ class SubscriptionDashboard extends Component
     {
         $planName = ucfirst($this->user->subscription_plan);
         if ($this->user->subscription_tier !== 'basic') {
-            $planName .= ' ' . ucfirst($this->user->subscription_tier);
+            $planName .= ' '.ucfirst($this->user->subscription_tier);
         }
+
         return $planName;
     }
 

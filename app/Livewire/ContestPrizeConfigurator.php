@@ -2,50 +2,50 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\ContestPrize;
 use App\Models\Project;
-use Illuminate\Validation\Rule;
+use Livewire\Component;
 
 class ContestPrizeConfigurator extends Component
 {
     public $project;
+
     public $projectId;
-    
+
     // Prize configuration arrays
     public $prizes = [
         '1st' => [
-            'type' => 'none', 
-            'cash_amount' => null, 
-            'currency' => 'USD', 
-            'title' => '', 
-            'description' => '', 
-            'value_estimate' => null
+            'type' => 'none',
+            'cash_amount' => null,
+            'currency' => 'USD',
+            'title' => '',
+            'description' => '',
+            'value_estimate' => null,
         ],
         '2nd' => [
-            'type' => 'none', 
-            'cash_amount' => null, 
-            'currency' => 'USD', 
-            'title' => '', 
-            'description' => '', 
-            'value_estimate' => null
+            'type' => 'none',
+            'cash_amount' => null,
+            'currency' => 'USD',
+            'title' => '',
+            'description' => '',
+            'value_estimate' => null,
         ],
         '3rd' => [
-            'type' => 'none', 
-            'cash_amount' => null, 
-            'currency' => 'USD', 
-            'title' => '', 
-            'description' => '', 
-            'value_estimate' => null
+            'type' => 'none',
+            'cash_amount' => null,
+            'currency' => 'USD',
+            'title' => '',
+            'description' => '',
+            'value_estimate' => null,
         ],
         'runner_up' => [
-            'type' => 'none', 
-            'cash_amount' => null, 
-            'currency' => 'USD', 
-            'title' => '', 
-            'description' => '', 
-            'value_estimate' => null
-        ]
+            'type' => 'none',
+            'cash_amount' => null,
+            'currency' => 'USD',
+            'title' => '',
+            'description' => '',
+            'value_estimate' => null,
+        ],
     ];
 
     public $availableCurrencies = [
@@ -53,7 +53,7 @@ class ContestPrizeConfigurator extends Component
         'EUR' => 'EUR (€)',
         'GBP' => 'GBP (£)',
         'CAD' => 'CAD (C$)',
-        'AUD' => 'AUD (A$)'
+        'AUD' => 'AUD (A$)',
     ];
 
     protected $rules = [
@@ -62,7 +62,7 @@ class ContestPrizeConfigurator extends Component
         'prizes.*.currency' => 'required|string|max:3',
         'prizes.*.title' => 'nullable|string|max:255',
         'prizes.*.description' => 'nullable|string|max:1000',
-        'prizes.*.value_estimate' => 'nullable|numeric|min:0|max:999999.99'
+        'prizes.*.value_estimate' => 'nullable|numeric|min:0|max:999999.99',
     ];
 
     protected $messages = [
@@ -71,7 +71,7 @@ class ContestPrizeConfigurator extends Component
         'prizes.*.title.required' => 'Prize title is required for other prizes',
         'prizes.*.title.max' => 'Prize title cannot exceed 255 characters',
         'prizes.*.description.max' => 'Prize description cannot exceed 1000 characters',
-        'prizes.*.value_estimate.max' => 'Estimated value cannot exceed $999,999.99'
+        'prizes.*.value_estimate.max' => 'Estimated value cannot exceed $999,999.99',
     ];
 
     public function mount($project = null, $projectId = null)
@@ -94,10 +94,12 @@ class ContestPrizeConfigurator extends Component
 
     public function loadExistingPrizes()
     {
-        if (!$this->project) return;
+        if (! $this->project) {
+            return;
+        }
 
         $existingPrizes = $this->project->contestPrizes;
-        
+
         foreach ($existingPrizes as $prize) {
             if (isset($this->prizes[$prize->placement])) {
                 $this->prizes[$prize->placement] = [
@@ -106,7 +108,7 @@ class ContestPrizeConfigurator extends Component
                     'currency' => $prize->currency ?? 'USD',
                     'title' => $prize->prize_title ?? '',
                     'description' => $prize->prize_description ?? '',
-                    'value_estimate' => $prize->prize_value_estimate
+                    'value_estimate' => $prize->prize_value_estimate,
                 ];
             }
         }
@@ -139,14 +141,14 @@ class ContestPrizeConfigurator extends Component
         $this->dispatch('prizesUpdated', [
             'totalCashPrizes' => $this->getTotalCashPrizes(),
             'prizeCounts' => $this->getPrizeCounts(),
-            'prizeSummary' => $this->getPrizeSummary()
+            'prizeSummary' => $this->getPrizeSummary(),
         ]);
     }
 
     public function validatePrizes()
     {
         $rules = $this->rules;
-        
+
         // Add conditional validation for required fields
         foreach ($this->prizes as $placement => $prize) {
             if ($prize['type'] === 'cash') {
@@ -162,9 +164,9 @@ class ContestPrizeConfigurator extends Component
     public function savePrizes()
     {
         $this->validatePrizes();
-        
+
         // If no project exists (creation mode), store data temporarily and emit to parent
-        if (!$this->project) {
+        if (! $this->project) {
             try {
                 // Store prize data in session for later use
                 $prizeData = [];
@@ -173,22 +175,23 @@ class ContestPrizeConfigurator extends Component
                         $prizeData[$placement] = $prize;
                     }
                 }
-                
+
                 session(['contest_prize_data' => $prizeData]);
-                
+
                 // Emit updated data to parent for display in summary
                 $this->dispatch('prizesUpdated', [
                     'totalCashPrizes' => $this->getTotalCashPrizes(),
                     'prizeCounts' => $this->getPrizeCounts(),
-                    'prizeSummary' => $this->getPrizeSummary()
+                    'prizeSummary' => $this->getPrizeSummary(),
                 ]);
-                
+
                 session()->flash('success', 'Contest prizes configured successfully! They will be saved when you create the project.');
                 $this->dispatch('prizesSaved');
-                
+
             } catch (\Exception $e) {
-                session()->flash('error', 'Error configuring prizes: ' . $e->getMessage());
+                session()->flash('error', 'Error configuring prizes: '.$e->getMessage());
             }
+
             return;
         }
 
@@ -203,16 +206,16 @@ class ContestPrizeConfigurator extends Component
                     $data = [
                         'project_id' => $this->project->id,
                         'placement' => $placement,
-                        'prize_type' => $prizeData['type']
+                        'prize_type' => $prizeData['type'],
                     ];
 
                     if ($prizeData['type'] === 'cash') {
-                        $data['cash_amount'] = !empty($prizeData['cash_amount']) ? $prizeData['cash_amount'] : null;
+                        $data['cash_amount'] = ! empty($prizeData['cash_amount']) ? $prizeData['cash_amount'] : null;
                         $data['currency'] = $prizeData['currency'];
                     } elseif ($prizeData['type'] === 'other') {
                         $data['prize_title'] = $prizeData['title'];
                         $data['prize_description'] = $prizeData['description'];
-                        $data['prize_value_estimate'] = !empty($prizeData['value_estimate']) ? $prizeData['value_estimate'] : null;
+                        $data['prize_value_estimate'] = ! empty($prizeData['value_estimate']) ? $prizeData['value_estimate'] : null;
                     }
 
                     ContestPrize::create($data);
@@ -221,14 +224,14 @@ class ContestPrizeConfigurator extends Component
 
             // Update project budget with total cash prizes
             $this->project->update([
-                'budget' => $this->getTotalCashPrizes()
+                'budget' => $this->getTotalCashPrizes(),
             ]);
 
             session()->flash('success', 'Contest prizes saved successfully!');
             $this->dispatch('prizesSaved');
-            
+
         } catch (\Exception $e) {
-            session()->flash('error', 'Error saving prizes: ' . $e->getMessage());
+            session()->flash('error', 'Error saving prizes: '.$e->getMessage());
         }
     }
 
@@ -238,40 +241,41 @@ class ContestPrizeConfigurator extends Component
     public static function saveStoredPrizesToProject(Project $project)
     {
         $prizeData = session('contest_prize_data', []);
-        
+
         if (empty($prizeData)) {
             return false;
         }
-        
+
         try {
             foreach ($prizeData as $placement => $prize) {
                 $data = [
                     'project_id' => $project->id,
                     'placement' => $placement,
-                    'prize_type' => $prize['type']
+                    'prize_type' => $prize['type'],
                 ];
 
                 if ($prize['type'] === 'cash') {
-                    $data['cash_amount'] = !empty($prize['cash_amount']) ? $prize['cash_amount'] : null;
+                    $data['cash_amount'] = ! empty($prize['cash_amount']) ? $prize['cash_amount'] : null;
                     $data['currency'] = $prize['currency'];
                 } elseif ($prize['type'] === 'other') {
                     $data['prize_title'] = $prize['title'];
                     $data['prize_description'] = $prize['description'];
-                    $data['prize_value_estimate'] = !empty($prize['value_estimate']) ? $prize['value_estimate'] : null;
+                    $data['prize_value_estimate'] = ! empty($prize['value_estimate']) ? $prize['value_estimate'] : null;
                 }
 
                 ContestPrize::create($data);
             }
-            
+
             // Clear the session data
             session()->forget('contest_prize_data');
-            
+
             return true;
         } catch (\Exception $e) {
-            \Log::error('Error saving stored prizes to project: ' . $e->getMessage(), [
+            \Log::error('Error saving stored prizes to project: '.$e->getMessage(), [
                 'project_id' => $project->id,
-                'prize_data' => $prizeData
+                'prize_data' => $prizeData,
             ]);
+
             return false;
         }
     }
@@ -282,7 +286,7 @@ class ContestPrizeConfigurator extends Component
     public function loadStoredPrizes()
     {
         $storedPrizes = session('contest_prize_data', []);
-        
+
         foreach ($storedPrizes as $placement => $prizeData) {
             if (isset($this->prizes[$placement])) {
                 $this->prizes[$placement] = [
@@ -291,16 +295,16 @@ class ContestPrizeConfigurator extends Component
                     'currency' => $prizeData['currency'] ?? 'USD',
                     'title' => $prizeData['title'] ?? '',
                     'description' => $prizeData['description'] ?? '',
-                    'value_estimate' => $prizeData['value_estimate'] ?? null
+                    'value_estimate' => $prizeData['value_estimate'] ?? null,
                 ];
             }
         }
-        
+
         // Emit updated data to parent
         $this->dispatch('prizesUpdated', [
             'totalCashPrizes' => $this->getTotalCashPrizes(),
             'prizeCounts' => $this->getPrizeCounts(),
-            'prizeSummary' => $this->getPrizeSummary()
+            'prizeSummary' => $this->getPrizeSummary(),
         ]);
     }
 
@@ -308,10 +312,11 @@ class ContestPrizeConfigurator extends Component
     {
         $total = 0;
         foreach ($this->prizes as $prize) {
-            if ($prize['type'] === 'cash' && !empty($prize['cash_amount']) && is_numeric($prize['cash_amount'])) {
+            if ($prize['type'] === 'cash' && ! empty($prize['cash_amount']) && is_numeric($prize['cash_amount'])) {
                 $total += (float) $prize['cash_amount'];
             }
         }
+
         return $total;
     }
 
@@ -319,10 +324,11 @@ class ContestPrizeConfigurator extends Component
     {
         $total = $this->getTotalCashPrizes();
         foreach ($this->prizes as $prize) {
-            if ($prize['type'] === 'other' && !empty($prize['value_estimate']) && is_numeric($prize['value_estimate'])) {
+            if ($prize['type'] === 'other' && ! empty($prize['value_estimate']) && is_numeric($prize['value_estimate'])) {
                 $total += (float) $prize['value_estimate'];
             }
         }
+
         return $total;
     }
 
@@ -339,6 +345,7 @@ class ContestPrizeConfigurator extends Component
                 }
             }
         }
+
         return $counts;
     }
 
@@ -346,7 +353,7 @@ class ContestPrizeConfigurator extends Component
     {
         $summary = [];
         $order = ['1st', '2nd', '3rd', 'runner_up'];
-        
+
         foreach ($order as $placement) {
             $prize = $this->prizes[$placement];
             if ($prize['type'] !== 'none') {
@@ -355,15 +362,15 @@ class ContestPrizeConfigurator extends Component
                     'placement_key' => $placement,
                     'type' => $prize['type'],
                     'display_value' => $this->getPrizeDisplayValue($placement, $prize),
-                    'cash_value' => $prize['type'] === 'cash' && is_numeric($prize['cash_amount'] ?? 0) ? (float)($prize['cash_amount'] ?? 0) : 0,
-                    'estimated_value' => $prize['type'] === 'other' && is_numeric($prize['value_estimate'] ?? 0) ? (float)($prize['value_estimate'] ?? 0) : (is_numeric($prize['cash_amount'] ?? 0) ? (float)($prize['cash_amount'] ?? 0) : 0),
+                    'cash_value' => $prize['type'] === 'cash' && is_numeric($prize['cash_amount'] ?? 0) ? (float) ($prize['cash_amount'] ?? 0) : 0,
+                    'estimated_value' => $prize['type'] === 'other' && is_numeric($prize['value_estimate'] ?? 0) ? (float) ($prize['value_estimate'] ?? 0) : (is_numeric($prize['cash_amount'] ?? 0) ? (float) ($prize['cash_amount'] ?? 0) : 0),
                     'emoji' => $this->getPlacementEmoji($placement),
                     'title' => $prize['title'] ?? '',
-                    'description' => $prize['description'] ?? ''
+                    'description' => $prize['description'] ?? '',
                 ];
             }
         }
-        
+
         return $summary;
     }
 
@@ -371,7 +378,7 @@ class ContestPrizeConfigurator extends Component
     {
         if ($prize['type'] === 'cash' && $prize['cash_amount']) {
             $currency = $prize['currency'] ?? 'USD';
-            $symbol = match($currency) {
+            $symbol = match ($currency) {
                 'USD' => '$',
                 'EUR' => '€',
                 'GBP' => '£',
@@ -379,17 +386,18 @@ class ContestPrizeConfigurator extends Component
                 'AUD' => 'A$',
                 default => '$'
             };
-            return $symbol . number_format((float)$prize['cash_amount'], 2);
+
+            return $symbol.number_format((float) $prize['cash_amount'], 2);
         } elseif ($prize['type'] === 'other' && $prize['title']) {
             return $prize['title'];
         }
-        
+
         return 'Prize';
     }
 
     public function getPlacementDisplayName($placement): string
     {
-        return match($placement) {
+        return match ($placement) {
             '1st' => '1st Place',
             '2nd' => '2nd Place',
             '3rd' => '3rd Place',
@@ -400,7 +408,7 @@ class ContestPrizeConfigurator extends Component
 
     public function getPlacementEmoji($placement): string
     {
-        return match($placement) {
+        return match ($placement) {
             '1st' => '🥇',
             '2nd' => '🥈',
             '3rd' => '🥉',
@@ -425,17 +433,17 @@ class ContestPrizeConfigurator extends Component
         // Reset all prizes to default
         foreach (['1st', '2nd', '3rd', 'runner_up'] as $placement) {
             $this->prizes[$placement] = [
-                'type' => 'none', 
-                'cash_amount' => null, 
-                'currency' => 'USD', 
-                'title' => '', 
-                'description' => '', 
-                'value_estimate' => null
+                'type' => 'none',
+                'cash_amount' => null,
+                'currency' => 'USD',
+                'title' => '',
+                'description' => '',
+                'value_estimate' => null,
             ];
         }
 
         // If in creation mode, clear session data
-        if (!$this->project) {
+        if (! $this->project) {
             session()->forget('contest_prize_data');
         }
 
@@ -443,7 +451,7 @@ class ContestPrizeConfigurator extends Component
         $this->dispatch('prizesUpdated', [
             'totalCashPrizes' => $this->getTotalCashPrizes(),
             'prizeCounts' => $this->getPrizeCounts(),
-            'prizeSummary' => $this->getPrizeSummary()
+            'prizeSummary' => $this->getPrizeSummary(),
         ]);
 
         session()->flash('success', 'Prizes reset to default state.');

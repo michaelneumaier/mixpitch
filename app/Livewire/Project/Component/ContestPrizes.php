@@ -3,8 +3,8 @@
 namespace App\Livewire\Project\Component;
 
 use App\Models\Project;
-use Livewire\Component;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Livewire\Component;
 
 class ContestPrizes extends Component
 {
@@ -15,9 +15,9 @@ class ContestPrizes extends Component
     public function mount(Project $project)
     {
         $this->project = $project;
-        
+
         // Ensure this component only renders for contest workflow projects
-        if (!$this->project->isContest()) {
+        if (! $this->project->isContest()) {
             abort(404);
         }
     }
@@ -26,4 +26,4 @@ class ContestPrizes extends Component
     {
         return view('livewire.project.component.contest-prizes');
     }
-} 
+}

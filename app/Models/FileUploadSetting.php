@@ -17,25 +17,33 @@ class FileUploadSetting extends Model
         'key',
         'value',
         'context',
-        'description'
+        'description',
     ];
 
     protected $casts = [
-        'value' => 'json'
+        'value' => 'json',
     ];
 
     // Setting keys
     const MAX_FILE_SIZE_MB = 'max_file_size_mb';
+
     const CHUNK_SIZE_MB = 'chunk_size_mb';
+
     const MAX_CONCURRENT_UPLOADS = 'max_concurrent_uploads';
+
     const MAX_RETRY_ATTEMPTS = 'max_retry_attempts';
+
     const ENABLE_CHUNKING = 'enable_chunking';
+
     const SESSION_TIMEOUT_HOURS = 'session_timeout_hours';
 
     // Context types
     const CONTEXT_GLOBAL = 'global';
+
     const CONTEXT_PROJECTS = 'projects';
+
     const CONTEXT_PITCHES = 'pitches';
+
     const CONTEXT_CLIENT_PORTALS = 'client_portals';
 
     // Default values
@@ -45,7 +53,7 @@ class FileUploadSetting extends Model
         self::MAX_CONCURRENT_UPLOADS => 3,
         self::MAX_RETRY_ATTEMPTS => 3,
         self::ENABLE_CHUNKING => true,
-        self::SESSION_TIMEOUT_HOURS => 24
+        self::SESSION_TIMEOUT_HOURS => 24,
     ];
 
     // Validation rules for each setting
@@ -55,7 +63,7 @@ class FileUploadSetting extends Model
         self::MAX_CONCURRENT_UPLOADS => 'integer|min:1|max:10',
         self::MAX_RETRY_ATTEMPTS => 'integer|min:1|max:5',
         self::ENABLE_CHUNKING => 'boolean',
-        self::SESSION_TIMEOUT_HOURS => 'integer|min:1|max:168'
+        self::SESSION_TIMEOUT_HOURS => 'integer|min:1|max:168',
     ];
 
     /**
@@ -64,19 +72,19 @@ class FileUploadSetting extends Model
     public static function getSettings(string $context = self::CONTEXT_GLOBAL): array
     {
         $cacheKey = "file_upload_settings_{$context}";
-        
+
         return Cache::remember($cacheKey, 3600, function () use ($context) {
             $settings = [];
-            
+
             // Get context-specific settings
             $contextSettings = self::where('context', $context)->pluck('value', 'key')->toArray();
-            
+
             // Get global settings as fallback
             $globalSettings = [];
             if ($context !== self::CONTEXT_GLOBAL) {
                 $globalSettings = self::where('context', self::CONTEXT_GLOBAL)->pluck('value', 'key')->toArray();
             }
-            
+
             // Merge with defaults, prioritizing context > global > defaults
             foreach (self::DEFAULT_VALUES as $key => $defaultValue) {
                 if (isset($contextSettings[$key])) {
@@ -87,7 +95,7 @@ class FileUploadSetting extends Model
                     $settings[$key] = $defaultValue;
                 }
             }
-            
+
             return $settings;
         });
     }
@@ -98,6 +106,7 @@ class FileUploadSetting extends Model
     public static function getSetting(string $key, string $context = self::CONTEXT_GLOBAL)
     {
         $settings = self::getSettings($context);
+
         return $settings[$key] ?? self::DEFAULT_VALUES[$key] ?? null;
     }
 
@@ -122,23 +131,24 @@ class FileUploadSetting extends Model
 
             // Clear cache
             self::clearSettingsCache($context);
-            
-            Log::info("File upload settings updated", [
+
+            Log::info('File upload settings updated', [
                 'context' => $context,
-                'settings' => array_keys($settings)
+                'settings' => array_keys($settings),
             ]);
 
             return true;
-            
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Re-throw validation exceptions so tests can catch them
             throw $e;
         } catch (\Exception $e) {
-            Log::error("Failed to update file upload settings", [
+            Log::error('Failed to update file upload settings', [
                 'context' => $context,
                 'settings' => $settings,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -156,7 +166,7 @@ class FileUploadSetting extends Model
      */
     public static function validateSetting(string $key, $value): void
     {
-        if (!isset(self::VALIDATION_RULES[$key])) {
+        if (! isset(self::VALIDATION_RULES[$key])) {
             throw new \InvalidArgumentException("Unknown setting key: {$key}");
         }
 
@@ -187,7 +197,7 @@ class FileUploadSetting extends Model
             self::CONTEXT_GLOBAL,
             self::CONTEXT_PROJECTS,
             self::CONTEXT_PITCHES,
-            self::CONTEXT_CLIENT_PORTALS
+            self::CONTEXT_CLIENT_PORTALS,
         ];
     }
 
@@ -222,15 +232,17 @@ class FileUploadSetting extends Model
         try {
             self::where('context', $context)->delete();
             self::clearSettingsCache($context);
-            
-            Log::info("File upload settings reset to defaults", ['context' => $context]);
+
+            Log::info('File upload settings reset to defaults', ['context' => $context]);
+
             return true;
-            
+
         } catch (\Exception $e) {
-            Log::error("Failed to reset file upload settings", [
+            Log::error('Failed to reset file upload settings', [
                 'context' => $context,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -245,38 +257,38 @@ class FileUploadSetting extends Model
                 'description' => 'Maximum file size in megabytes',
                 'validation' => self::VALIDATION_RULES[self::MAX_FILE_SIZE_MB],
                 'default' => self::DEFAULT_VALUES[self::MAX_FILE_SIZE_MB],
-                'type' => 'integer'
+                'type' => 'integer',
             ],
             self::CHUNK_SIZE_MB => [
                 'description' => 'Chunk size for file uploads in megabytes',
                 'validation' => self::VALIDATION_RULES[self::CHUNK_SIZE_MB],
                 'default' => self::DEFAULT_VALUES[self::CHUNK_SIZE_MB],
-                'type' => 'integer'
+                'type' => 'integer',
             ],
             self::MAX_CONCURRENT_UPLOADS => [
                 'description' => 'Maximum number of concurrent uploads',
                 'validation' => self::VALIDATION_RULES[self::MAX_CONCURRENT_UPLOADS],
                 'default' => self::DEFAULT_VALUES[self::MAX_CONCURRENT_UPLOADS],
-                'type' => 'integer'
+                'type' => 'integer',
             ],
             self::MAX_RETRY_ATTEMPTS => [
                 'description' => 'Maximum retry attempts for failed uploads',
                 'validation' => self::VALIDATION_RULES[self::MAX_RETRY_ATTEMPTS],
                 'default' => self::DEFAULT_VALUES[self::MAX_RETRY_ATTEMPTS],
-                'type' => 'integer'
+                'type' => 'integer',
             ],
             self::ENABLE_CHUNKING => [
                 'description' => 'Enable chunked uploads for large files',
                 'validation' => self::VALIDATION_RULES[self::ENABLE_CHUNKING],
                 'default' => self::DEFAULT_VALUES[self::ENABLE_CHUNKING],
-                'type' => 'boolean'
+                'type' => 'boolean',
             ],
             self::SESSION_TIMEOUT_HOURS => [
                 'description' => 'Upload session timeout in hours',
                 'validation' => self::VALIDATION_RULES[self::SESSION_TIMEOUT_HOURS],
                 'default' => self::DEFAULT_VALUES[self::SESSION_TIMEOUT_HOURS],
-                'type' => 'integer'
-            ]
+                'type' => 'integer',
+            ],
         ];
     }
 
@@ -286,26 +298,26 @@ class FileUploadSetting extends Model
     public static function getContextValidationRules(string $context): array
     {
         $baseRules = self::VALIDATION_RULES;
-        
+
         // Context-specific validation adjustments
         switch ($context) {
             case self::CONTEXT_PROJECTS:
                 // Projects might need larger file sizes for full tracks
                 $baseRules[self::MAX_FILE_SIZE_MB] = 'integer|min:1|max:2048';
                 break;
-                
+
             case self::CONTEXT_PITCHES:
                 // Pitches typically have smaller file size limits
                 $baseRules[self::MAX_FILE_SIZE_MB] = 'integer|min:1|max:1024';
                 break;
-                
+
             case self::CONTEXT_CLIENT_PORTALS:
                 // Client portals might have more restrictive limits
                 $baseRules[self::MAX_FILE_SIZE_MB] = 'integer|min:1|max:500';
                 $baseRules[self::MAX_CONCURRENT_UPLOADS] = 'integer|min:1|max:5';
                 break;
         }
-        
+
         return $baseRules;
     }
 
@@ -315,25 +327,25 @@ class FileUploadSetting extends Model
     public static function getContextDefaults(string $context): array
     {
         $defaults = self::DEFAULT_VALUES;
-        
+
         // Context-specific default adjustments
         switch ($context) {
             case self::CONTEXT_PROJECTS:
                 $defaults[self::MAX_FILE_SIZE_MB] = 1000; // 1GB for full tracks
                 $defaults[self::CHUNK_SIZE_MB] = 10; // Larger chunks for big files
                 break;
-                
+
             case self::CONTEXT_PITCHES:
                 $defaults[self::MAX_FILE_SIZE_MB] = 200; // 200MB for pitch demos
                 $defaults[self::CHUNK_SIZE_MB] = 5; // Standard chunk size
                 break;
-                
+
             case self::CONTEXT_CLIENT_PORTALS:
                 $defaults[self::MAX_FILE_SIZE_MB] = 100; // 100MB for client uploads
                 $defaults[self::MAX_CONCURRENT_UPLOADS] = 2; // Fewer concurrent uploads
                 break;
         }
-        
+
         return $defaults;
     }
 

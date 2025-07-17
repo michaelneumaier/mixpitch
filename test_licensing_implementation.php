@@ -7,12 +7,12 @@
 
 require_once 'vendor/autoload.php';
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\LicenseTemplate;
 use App\Models\LicenseSignature;
+use App\Models\LicenseTemplate;
+use App\Models\Project;
 use App\Models\SubscriptionLimit;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class LicensingImplementationTest extends TestCase
@@ -22,14 +22,14 @@ class LicensingImplementationTest extends TestCase
     public function test_complete_licensing_system()
     {
         echo "🧪 Testing Complete Licensing System Implementation\n";
-        echo "=" . str_repeat("=", 50) . "\n\n";
+        echo '='.str_repeat('=', 50)."\n\n";
 
         // Test 1: Enhanced License Template Model
         echo "1️⃣ Testing Enhanced License Template Model\n";
-        
+
         $user = User::factory()->create([
             'name' => 'Test Artist',
-            'email' => 'artist@test.com'
+            'email' => 'artist@test.com',
         ]);
 
         // Create enhanced license template
@@ -58,11 +58,11 @@ class LicensingImplementationTest extends TestCase
         echo "     - Name: {$template->name}\n";
         echo "     - Category: {$template->category_name}\n";
         echo "     - Use Case: {$template->use_case_name}\n";
-        echo "     - Industry Tags: " . implode(', ', $template->industry_tags) . "\n";
+        echo '     - Industry Tags: '.implode(', ', $template->industry_tags)."\n";
 
         // Test template methods
         echo "  ✅ Testing template methods:\n";
-        echo "     - Is Approved: " . ($template->isApproved() ? 'Yes' : 'No') . "\n";
+        echo '     - Is Approved: '.($template->isApproved() ? 'Yes' : 'No')."\n";
         echo "     - Usage Count: {$template->getUsageCount()}\n";
 
         // Test 2: Project with License Integration
@@ -90,26 +90,26 @@ class LicensingImplementationTest extends TestCase
         echo "  ✅ Project with license created\n";
         echo "     - Project: {$project->name}\n";
         echo "     - License Template: {$project->licenseTemplate->name}\n";
-        echo "     - Requires Agreement: " . ($project->requiresLicenseAgreement() ? 'Yes' : 'No') . "\n";
+        echo '     - Requires Agreement: '.($project->requiresLicenseAgreement() ? 'Yes' : 'No')."\n";
         echo "     - License Status: {$project->getLicenseStatusLabel()}\n";
 
         // Test license content generation
         $licenseContent = $project->getLicenseContent();
         echo "  ✅ Generated license content (excerpt):\n";
-        echo "     " . substr($licenseContent, 0, 100) . "...\n";
+        echo '     '.substr($licenseContent, 0, 100)."...\n";
 
         // Test effective license terms
         $terms = $project->getEffectiveLicenseTerms();
         echo "  ✅ Effective license terms:\n";
-        echo "     - Commercial Use: " . ($terms['commercial_use'] ? 'Allowed' : 'Not Allowed') . "\n";
-        echo "     - Sync Licensing: " . ($terms['sync_licensing_allowed'] ? 'Allowed' : 'Not Allowed') . "\n";
+        echo '     - Commercial Use: '.($terms['commercial_use'] ? 'Allowed' : 'Not Allowed')."\n";
+        echo '     - Sync Licensing: '.($terms['sync_licensing_allowed'] ? 'Allowed' : 'Not Allowed')."\n";
 
         // Test 3: License Signature System
         echo "\n3️⃣ Testing License Signature System\n";
 
         $collaborator = User::factory()->create([
             'name' => 'Test Collaborator',
-            'email' => 'collaborator@test.com'
+            'email' => 'collaborator@test.com',
         ]);
 
         // Create license signature
@@ -123,7 +123,7 @@ class LicensingImplementationTest extends TestCase
         echo "     - Signer: {$signature->user->name}\n";
         echo "     - Method: {$signature->signature_method}\n";
         echo "     - Status: {$signature->status}\n";
-        echo "     - Valid: " . ($signature->isValid() ? 'Yes' : 'No') . "\n";
+        echo '     - Valid: '.($signature->isValid() ? 'Yes' : 'No')."\n";
 
         // Test signature verification
         $signature->verify($user);
@@ -150,14 +150,14 @@ class LicensingImplementationTest extends TestCase
         echo "  ✅ User set to Free tier (3 template limit)\n";
 
         $canCreate = LicenseTemplate::canUserCreate($user);
-        echo "     - Can create templates: " . ($canCreate ? 'Yes' : 'No') . "\n";
+        echo '     - Can create templates: '.($canCreate ? 'Yes' : 'No')."\n";
         echo "     - Current template count: {$user->licenseTemplates()->count()}\n";
 
         // Upgrade to Pro
         $user->update(['subscription_limit_id' => $proLimit->id]);
         $canCreatePro = LicenseTemplate::canUserCreate($user);
         echo "  ✅ User upgraded to Pro (unlimited templates)\n";
-        echo "     - Can create templates: " . ($canCreatePro ? 'Yes' : 'No') . "\n";
+        echo '     - Can create templates: '.($canCreatePro ? 'Yes' : 'No')."\n";
 
         // Test 5: Template Forking
         echo "\n5️⃣ Testing Template Forking\n";
@@ -176,7 +176,7 @@ class LicensingImplementationTest extends TestCase
         echo "  ✅ Template forked successfully\n";
         echo "     - Original: {$template->name}\n";
         echo "     - Fork: {$forkedTemplate->name}\n";
-        echo "     - Is Fork: " . ($forkedTemplate->isFork() ? 'Yes' : 'No') . "\n";
+        echo '     - Is Fork: '.($forkedTemplate->isFork() ? 'Yes' : 'No')."\n";
         echo "     - Parent ID: {$forkedTemplate->parent_template_id}\n";
 
         // Test 6: Advanced License Features
@@ -192,8 +192,8 @@ class LicensingImplementationTest extends TestCase
         // Test project license methods
         $hasUserSigned = $project->hasUserSignedLicense($collaborator);
         echo "  ✅ Project license methods:\n";
-        echo "     - Has collaborator signed: " . ($hasUserSigned ? 'Yes' : 'No') . "\n";
-        echo "     - License is pending: " . ($project->isLicensePending() ? 'Yes' : 'No') . "\n";
+        echo '     - Has collaborator signed: '.($hasUserSigned ? 'Yes' : 'No')."\n";
+        echo '     - License is pending: '.($project->isLicensePending() ? 'Yes' : 'No')."\n";
 
         // Test marketplace templates
         $marketplaceTemplates = LicenseTemplate::marketplace()->count();
@@ -212,17 +212,17 @@ class LicensingImplementationTest extends TestCase
 
         echo "  ✅ CreateProject component data:\n";
         echo "     - Selected Template ID: {$projectData['selectedLicenseTemplateId']}\n";
-        echo "     - Requires Agreement: " . ($projectData['requiresLicenseAgreement'] ? 'Yes' : 'No') . "\n";
-        echo "     - Has Notes: " . (!empty($projectData['licenseNotes']) ? 'Yes' : 'No') . "\n";
+        echo '     - Requires Agreement: '.($projectData['requiresLicenseAgreement'] ? 'Yes' : 'No')."\n";
+        echo '     - Has Notes: '.(! empty($projectData['licenseNotes']) ? 'Yes' : 'No')."\n";
 
         // Test standard terms structure
         $standardTerms = LicenseTemplate::getStandardTermsStructure();
-        echo "  ✅ Standard terms structure includes " . count($standardTerms) . " term categories\n";
+        echo '  ✅ Standard terms structure includes '.count($standardTerms)." term categories\n";
 
         // Summary
-        echo "\n" . str_repeat("=", 60) . "\n";
+        echo "\n".str_repeat('=', 60)."\n";
         echo "🎉 LICENSING SYSTEM IMPLEMENTATION TEST COMPLETE\n";
-        echo str_repeat("=", 60) . "\n\n";
+        echo str_repeat('=', 60)."\n\n";
 
         echo "✅ Database Schema:\n";
         echo "   - Enhanced license_templates table\n";
@@ -230,7 +230,7 @@ class LicensingImplementationTest extends TestCase
         echo "   - Created license_signatures table\n\n";
 
         echo "✅ Model Enhancements:\n";
-        echo "   - LicenseTemplate: " . count(get_class_methods(LicenseTemplate::class)) . " methods\n";
+        echo '   - LicenseTemplate: '.count(get_class_methods(LicenseTemplate::class))." methods\n";
         echo "   - Project: License relationships and methods added\n";
         echo "   - LicenseSignature: Complete signature tracking\n\n";
 
@@ -250,7 +250,7 @@ class LicensingImplementationTest extends TestCase
 }
 
 // Run the test
-$test = new LicensingImplementationTest();
+$test = new LicensingImplementationTest;
 $test->setUp();
 $test->test_complete_licensing_system();
 
@@ -259,4 +259,4 @@ echo "1. Update CreateProject Blade template to include license selector\n";
 echo "2. Create license management UI components\n";
 echo "3. Add license signature workflow\n";
 echo "4. Implement license marketplace\n";
-echo "5. Add license analytics and reporting\n"; 
+echo "5. Add license analytics and reporting\n";

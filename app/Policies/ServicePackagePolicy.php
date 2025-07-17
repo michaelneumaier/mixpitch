@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\ServicePackage;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class ServicePackagePolicy
 {
@@ -14,7 +13,7 @@ class ServicePackagePolicy
     public function viewAny(User $user): bool
     {
         // Any authenticated user can view the list (controller will filter to own packages)
-        return true; 
+        return true;
     }
 
     /**

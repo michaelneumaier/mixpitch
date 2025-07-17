@@ -2,18 +2,21 @@
 
 namespace App\Livewire\Pitch\Snapshot;
 
-use Livewire\Component;
 use App\Models\Pitch;
-use App\Models\Project;
 use App\Models\PitchSnapshot;
+use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Component;
 
 class ShowSnapshot extends Component
 {
     public Project $project;
+
     public Pitch $pitch;
+
     public PitchSnapshot $pitchSnapshot;
+
     public $snapshotData;
 
     public function mount(Project $project, Pitch $pitch, PitchSnapshot $snapshot)
@@ -41,38 +44,40 @@ class ShowSnapshot extends Component
     public function render()
     {
         $conversationThread = $this->getConversationThread();
+
         return view('livewire.pitch.snapshot.show-snapshot', [
-            'conversationThread' => $conversationThread
+            'conversationThread' => $conversationThread,
         ]);
     }
 
     /**
      * Get the conversation thread for feedback and responses.
      * This builds a focused view of feedback and responses for the current snapshot.
-     * 
+     *
      * @return array
      */
     protected function getConversationThread()
     {
         $conversationThread = [];
-        
+
         // Safety checks
-        if (!isset($this->pitch) || !isset($this->pitchSnapshot) || !isset($this->snapshotData)) {
+        if (! isset($this->pitch) || ! isset($this->pitchSnapshot) || ! isset($this->snapshotData)) {
             Log::error('Missing data for conversation thread', [
                 'has_pitch' => isset($this->pitch),
                 'has_snapshot' => isset($this->pitchSnapshot),
-                'has_snapshot_data' => isset($this->snapshotData)
+                'has_snapshot_data' => isset($this->snapshotData),
             ]);
+
             return $conversationThread;
         }
-        
+
         $pitch = $this->pitch;
         $pitchSnapshot = $this->pitchSnapshot;
 
         // STEP 1: Add response to feedback (if this snapshot is responding to previous feedback)
         if (
             isset($pitchSnapshot->snapshot_data['response_to_feedback']) &&
-            !empty($pitchSnapshot->snapshot_data['response_to_feedback'])
+            ! empty($pitchSnapshot->snapshot_data['response_to_feedback'])
         ) {
             $response = $pitchSnapshot->snapshot_data['response_to_feedback'];
             $responseDate = $pitchSnapshot->created_at;
@@ -86,7 +91,7 @@ class ShowSnapshot extends Component
                 'user' => $responseUser,
                 'snapshot_id' => $pitchSnapshot->id,
                 'status' => $pitchSnapshot->status, // Status of the snapshot that contained the response
-                'previous_snapshot_id' => $pitchSnapshot->snapshot_data['previous_snapshot_id'] ?? null
+                'previous_snapshot_id' => $pitchSnapshot->snapshot_data['previous_snapshot_id'] ?? null,
             ];
         }
 
@@ -100,7 +105,7 @@ class ShowSnapshot extends Component
                 'user' => $currentFeedback['user'],
                 'snapshot_id' => $pitchSnapshot->id, // Refers to the snapshot receiving the feedback
                 'status' => $pitchSnapshot->status, // Current status of the snapshot (might have changed)
-                'feedback_type' => $currentFeedback['feedback_type'] // Use the type from the helper
+                'feedback_type' => $currentFeedback['feedback_type'], // Use the type from the helper
             ];
         }
 
@@ -109,7 +114,7 @@ class ShowSnapshot extends Component
             'snapshot_id' => $pitchSnapshot->id,
             'status' => $pitchSnapshot->status,
             'snapshot_data' => $pitchSnapshot->snapshot_data,
-            'conversation_thread' => $conversationThread
+            'conversation_thread' => $conversationThread,
         ]);
 
         // Sort conversation thread by date
@@ -117,6 +122,7 @@ class ShowSnapshot extends Component
             // Ensure dates are Carbon instances for comparison
             $dateA = $a['date'] instanceof \Carbon\Carbon ? $a['date'] : \Carbon\Carbon::parse($a['date']);
             $dateB = $b['date'] instanceof \Carbon\Carbon ? $b['date'] : \Carbon\Carbon::parse($b['date']);
+
             return $dateA <=> $dateB;
         });
 
@@ -129,14 +135,15 @@ class ShowSnapshot extends Component
     protected function getCurrentSnapshotFeedback()
     {
         // Safety checks
-        if (!isset($this->pitch) || !isset($this->pitchSnapshot)) {
+        if (! isset($this->pitch) || ! isset($this->pitchSnapshot)) {
             Log::warning('Missing data for snapshot feedback', [
                 'has_pitch' => isset($this->pitch),
-                'has_snapshot' => isset($this->pitchSnapshot)
+                'has_snapshot' => isset($this->pitchSnapshot),
             ]);
+
             return null;
         }
-        
+
         $pitchSnapshot = $this->pitchSnapshot;
 
         // Query for the specific event associated with this snapshot receiving feedback.
@@ -145,22 +152,22 @@ class ShowSnapshot extends Component
             ->where('snapshot_id', $pitchSnapshot->id)
             ->where(function ($query) {
                 $query->where('event_type', 'revision_request') // Specific type for revisions
-                      ->orWhere(function($q) { // Handle denial (stored as status_change)
-                          $q->where('event_type', 'status_change')
+                    ->orWhere(function ($q) { // Handle denial (stored as status_change)
+                        $q->where('event_type', 'status_change')
                             ->where('comment', 'LIKE', 'Pitch submission denied%');
-                      });
+                    });
             })
             ->orderBy('created_at', 'desc') // Get the most recent relevant event for this snapshot
             ->first();
 
         if ($feedbackEvent) {
             Log::debug('[ShowSnapshot] Found relevant feedback event.', [
-                'event_id' => $feedbackEvent->id, 
+                'event_id' => $feedbackEvent->id,
                 'event_type' => $feedbackEvent->event_type,
-                'event_comment' => $feedbackEvent->comment, 
-                'event_metadata' => $feedbackEvent->metadata
+                'event_comment' => $feedbackEvent->comment,
+                'event_metadata' => $feedbackEvent->metadata,
             ]);
-            
+
             $message = '';
             $feedbackType = 'unknown';
 
@@ -168,7 +175,7 @@ class ShowSnapshot extends Component
             if ($feedbackEvent->event_type === 'revision_request') {
                 $feedbackType = 'revision';
                 // Prioritize metadata for revisions if available
-                if (isset($feedbackEvent->metadata['feedback']) && !empty($feedbackEvent->metadata['feedback'])) {
+                if (isset($feedbackEvent->metadata['feedback']) && ! empty($feedbackEvent->metadata['feedback'])) {
                     $message = $feedbackEvent->metadata['feedback'];
                     Log::debug('[ShowSnapshot] Revision feedback extracted from metadata.', ['message' => $message]);
                 } else {
@@ -182,31 +189,32 @@ class ShowSnapshot extends Component
                 $feedbackType = 'denial';
                 // Parse reason from comment
                 $message = preg_replace('/^Pitch submission denied\.\s*(Reason:\s*)?/i', '', $feedbackEvent->comment);
-                 Log::debug('[ShowSnapshot] Denial reason parsed from comment.', ['event_id' => $feedbackEvent->id, 'parsed_message' => $message]);
+                Log::debug('[ShowSnapshot] Denial reason parsed from comment.', ['event_id' => $feedbackEvent->id, 'parsed_message' => $message]);
             }
 
             // Trim potential whitespace from parsing
             $message = trim($message);
 
             // Only return if a message was actually extracted
-            if (!empty($message)) {
-                 Log::debug('[ShowSnapshot] Final feedback message extracted.', ['message' => $message, 'type' => $feedbackType]);
-                 return [
+            if (! empty($message)) {
+                Log::debug('[ShowSnapshot] Final feedback message extracted.', ['message' => $message, 'type' => $feedbackType]);
+
+                return [
                     'message' => $message,
                     'date' => $feedbackEvent->created_at,
                     'user' => $feedbackEvent->creator ?? \App\Models\User::find($feedbackEvent->created_by),
-                    'feedback_type' => $feedbackType
+                    'feedback_type' => $feedbackType,
                 ];
             } else {
                 Log::warning('[ShowSnapshot] Feedback event found but message parsing/extraction failed.', [
                     'event_id' => $feedbackEvent->id,
                     'event_type' => $feedbackEvent->event_type,
                     'comment' => $feedbackEvent->comment,
-                    'metadata' => $feedbackEvent->metadata
+                    'metadata' => $feedbackEvent->metadata,
                 ]);
             }
         } else {
-             Log::debug('[ShowSnapshot] No relevant feedback event found for snapshot.', ['snapshot_id' => $pitchSnapshot->id]);
+            Log::debug('[ShowSnapshot] No relevant feedback event found for snapshot.', ['snapshot_id' => $pitchSnapshot->id]);
         }
 
         return null;

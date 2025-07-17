@@ -3,42 +3,42 @@
 namespace App\Filament\Pages;
 
 use App\Models\EmailEvent;
+use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
 
 class EmailAuditPage extends Page implements Tables\Contracts\HasTable
 {
     use Tables\Concerns\InteractsWithTable;
-    
+
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
-    
+
     protected static ?string $navigationGroup = 'Email Management';
-    
+
     protected static ?string $navigationLabel = 'Email Audit Log';
-    
+
     protected static ?int $navigationSort = 1;
-    
+
     protected static string $view = 'filament.pages.email-audit-page';
-    
+
     protected static ?string $slug = 'email-audit';
-    
+
     protected static ?string $title = 'Email Audit Log';
-    
+
     protected function getTableQuery(): Builder
     {
         return EmailEvent::query()->latest();
     }
-    
+
     protected function getTableColumns(): array
     {
         return [
             Tables\Columns\TextColumn::make('email')
                 ->searchable()
                 ->sortable(),
-            
+
             Tables\Columns\TextColumn::make('event_type')
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
@@ -51,18 +51,18 @@ class EmailAuditPage extends Page implements Tables\Contracts\HasTable
                     default => 'gray',
                 })
                 ->sortable(),
-            
+
             Tables\Columns\TextColumn::make('email_type')
                 ->searchable()
                 ->sortable(),
-            
+
             Tables\Columns\TextColumn::make('created_at')
                 ->label('Event Time')
                 ->dateTime()
                 ->sortable(),
         ];
     }
-    
+
     protected function getTableFilters(): array
     {
         return [
@@ -77,7 +77,7 @@ class EmailAuditPage extends Page implements Tables\Contracts\HasTable
                     'complained' => 'Complained',
                     'rejected' => 'Rejected',
                 ]),
-            
+
             Tables\Filters\Filter::make('created_at')
                 ->form([
                     DatePicker::make('created_from')
@@ -98,19 +98,19 @@ class EmailAuditPage extends Page implements Tables\Contracts\HasTable
                 }),
         ];
     }
-    
+
     protected function getTableActions(): array
     {
         return [
             Tables\Actions\ViewAction::make(),
         ];
     }
-    
+
     protected function getTableBulkActions(): array
     {
         return [];
     }
-    
+
     protected function table(Table $table): Table
     {
         return $table
@@ -119,9 +119,9 @@ class EmailAuditPage extends Page implements Tables\Contracts\HasTable
             ->actions($this->getTableActions())
             ->bulkActions($this->getTableBulkActions());
     }
-    
+
     public static function canAccess(): bool
     {
         return auth()->check() && (auth()->user()->can('view_email_audit') || auth()->user()->hasRole('admin'));
     }
-} 
+}

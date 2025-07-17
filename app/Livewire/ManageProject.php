@@ -2,48 +2,55 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Models\Project;
-use App\Models\ProjectFile;
-// use App\Http\Controllers\ProjectController; // Remove direct controller usage
-use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Storage;
-use Masmerise\Toaster\Toaster; // Ensure the Facade is imported if needed
-use Illuminate\Support\Facades\Auth; // Add Auth facade
-
-// Added for refactoring
-use App\Services\Project\ProjectManagementService;
-use App\Services\FileManagementService; // <-- Import FileManagementService
-use App\Services\Project\ProjectImageService; // <-- Import ProjectImageService
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Log;
-use App\Livewire\Forms\ProjectForm;
-use App\Exceptions\File\FileUploadException;
-use App\Exceptions\File\StorageLimitException;
 use App\Exceptions\File\FileDeletionException;
-use App\Services\NotificationService;
+use App\Exceptions\File\FileUploadException;
 use App\Jobs\PostProjectToReddit;
+// use App\Http\Controllers\ProjectController; // Remove direct controller usage
+use App\Livewire\Forms\ProjectForm;
+use App\Models\Project;
+use App\Models\ProjectFile; // Ensure the Facade is imported if needed
+use App\Services\FileManagementService; // Add Auth facade
+// Added for refactoring
+use App\Services\NotificationService;
+use App\Services\Project\ProjectImageService; // <-- Import FileManagementService
+use App\Services\Project\ProjectManagementService; // <-- Import ProjectImageService
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Masmerise\Toaster\Toaster;
 
 class ManageProject extends Component
 {
     use WithFileUploads;
+
     public Project $project;
+
     public ProjectForm $form;
+
     public bool $autoAllowAccess;
 
     public $hasPreviewTrack = false;
+
     public $audioUrl;
 
     // Storage tracking
     public $storageUsedPercentage = 0;
+
     public $storageLimitMessage = '';
+
     public $storageRemaining = 0;
 
     public bool $showDeleteModal = false;
+
     public $fileToDelete = null;
+
     public bool $isDeleting = false;
+
     public $showDeleteConfirmation = false;
 
     // Project deletion properties
@@ -51,19 +58,24 @@ class ManageProject extends Component
 
     // Project image management properties
     public bool $showImageUploadModal = false;
+
     public $newProjectImage;
+
     public $uploadingImage = false;
+
     public $imagePreviewUrl = null;
 
     // Reddit posting state
     public bool $isPostingToReddit = false;
+
     public $redditPostingStartedAt = null;
 
     // Browser timezone for datetime-local conversion
     public $browserTimezone;
-    
+
     // Contest deadline properties (for editing contest projects)
     public $submission_deadline = null;
+
     public $judging_deadline = null;
 
     // Add listener for the new file uploader component
@@ -79,7 +91,7 @@ class ManageProject extends Component
         if ($project->isClientManagement()) {
             return redirect()->route('projects.manage-client', $project);
         }
-        
+
         try {
             $this->authorize('update', $project);
         } catch (AuthorizationException $e) {
@@ -108,19 +120,19 @@ class ManageProject extends Component
 
         // Initialize timezone service for datetime conversions
         $timezoneService = app(\App\Services\TimezoneService::class);
-        
+
         // Handle standard project deadline - parse raw database value as UTC
         if ($this->project->deadline && $this->project->deadline instanceof \Carbon\Carbon) {
             $rawDeadline = $this->project->getRawOriginal('deadline');
             $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
             $this->form->deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
-            
+
             \Log::info('ManageProject: CORRECT standard project deadline', [
                 'project_id' => $this->project->id,
                 'raw_database' => $rawDeadline,
                 'parsed_as_utc' => $utcTime->format('Y-m-d H:i:s T'),
                 'deadline_converted' => $this->form->deadline,
-                'user_timezone' => auth()->user()->getTimezone()
+                'user_timezone' => auth()->user()->getTimezone(),
             ]);
         } elseif (is_string($this->project->deadline)) {
             // If the model has a string, assume it's correctly formatted and ensure the form has it
@@ -129,16 +141,16 @@ class ManageProject extends Component
         } else {
             $this->form->deadline = null; // Default to null if model deadline isn't set or Carbon
         }
-        
+
         // Handle contest deadlines if this is a contest project
         if ($this->project->isContest()) {
             \Log::info('ManageProject: Converting contest deadlines for editing', [
                 'project_id' => $this->project->id,
                 'submission_deadline_utc' => $this->project->submission_deadline,
                 'judging_deadline_utc' => $this->project->judging_deadline,
-                'user_timezone' => auth()->user()->getTimezone()
+                'user_timezone' => auth()->user()->getTimezone(),
             ]);
-            
+
             // Convert UTC times to user's timezone for datetime-local inputs - parse raw as UTC
             if ($this->project->submission_deadline) {
                 $rawSubmissionDeadline = $this->project->getRawOriginal('submission_deadline');
@@ -147,7 +159,7 @@ class ManageProject extends Component
             } else {
                 $this->submission_deadline = null;
             }
-            
+
             if ($this->project->judging_deadline) {
                 $rawJudgingDeadline = $this->project->getRawOriginal('judging_deadline');
                 $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
@@ -155,12 +167,12 @@ class ManageProject extends Component
             } else {
                 $this->judging_deadline = null;
             }
-            
+
             \Log::info('ManageProject: CORRECT contest deadlines', [
                 'submission_raw' => $this->project->getRawOriginal('submission_deadline'),
                 'judging_raw' => $this->project->getRawOriginal('judging_deadline'),
                 'submission_deadline_converted' => $this->submission_deadline,
-                'judging_deadline_converted' => $this->judging_deadline
+                'judging_deadline_converted' => $this->judging_deadline,
             ]);
         }
 
@@ -172,17 +184,17 @@ class ManageProject extends Component
 
         // Preview track logic
         $this->checkPreviewTrackStatus();
-        
+
         // Use try-catch to prevent potential hangs from storage methods
         try {
-        $this->updateStorageInfo();
+            $this->updateStorageInfo();
         } catch (\Exception $e) {
             // Log error but don't fail the component initialization
             Log::error('Error updating storage info in ManageProject mount', [
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             // Set default values to prevent UI issues
             $this->storageUsedPercentage = 0;
             $this->storageLimitMessage = '100% available';
@@ -196,7 +208,9 @@ class ManageProject extends Component
      */
     private function mapCollaborationTypesToForm(?array $types): void
     {
-        if (empty($types)) return;
+        if (empty($types)) {
+            return;
+        }
         // Assuming ProjectForm has these boolean properties
         $this->form->collaborationTypeMixing = in_array('Mixing', $types);
         $this->form->collaborationTypeMastering = in_array('Mastering', $types);
@@ -213,24 +227,24 @@ class ManageProject extends Component
         // Use user-based storage instead of project-based storage
         $user = $this->project->user;
         $userStorageService = app(\App\Services\UserStorageService::class);
-        
+
         // Use caching for expensive calculations
         $cacheKey = "user_{$user->id}_storage_info";
         $cacheTTL = 120; // Cache for 2 minutes
-        
+
         $storageInfo = cache()->remember($cacheKey, $cacheTTL, function () use ($user, $userStorageService) {
             return [
                 'percentage' => $userStorageService->getUserStoragePercentage($user),
                 'message' => $userStorageService->getStorageLimitMessage($user),
-                'remaining' => $userStorageService->getUserStorageRemaining($user)
+                'remaining' => $userStorageService->getUserStorageRemaining($user),
             ];
         });
-        
+
         $this->storageUsedPercentage = $storageInfo['percentage'];
         $this->storageLimitMessage = $storageInfo['message'];
         $this->storageRemaining = $storageInfo['remaining'];
     }
-    
+
     /**
      * Clear the storage info cache when files change
      */
@@ -248,7 +262,7 @@ class ManageProject extends Component
     {
         $this->project->refresh(); // Refresh the project model
         $this->clearStorageCache(); // Clear cache before updating
-        
+
         // Use try-catch to prevent potential hangs from storage methods
         try {
             $this->updateStorageInfo(); // Update storage display
@@ -256,9 +270,9 @@ class ManageProject extends Component
             // Log error but don't fail
             Log::error('Error updating storage info in refreshProjectData', [
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             // Set default values
             $this->storageUsedPercentage = 0;
             $this->storageLimitMessage = '100% available';
@@ -271,18 +285,18 @@ class ManageProject extends Component
      */
     public function publish(): void
     {
-        Log::debug('[ManageProject] Publish: Start - Project ID: ' . $this->project->id . ', Status: ' . $this->project->status . ', Auth User: ' . (auth()->check() ? auth()->id() : 'None'));
+        Log::debug('[ManageProject] Publish: Start - Project ID: '.$this->project->id.', Status: '.$this->project->status.', Auth User: '.(auth()->check() ? auth()->id() : 'None'));
 
         $this->authorize('publish', $this->project);
         Log::debug('[ManageProject] Publish: Authorized');
 
         // Use the model's publish method instead of directly setting properties
         $this->project->publish();
-        Log::debug('[ManageProject] Publish: After save - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
+        Log::debug('[ManageProject] Publish: After save - Status: '.$this->project->status.', is_published: '.($this->project->is_published ? 'true' : 'false'));
 
         // Refresh the project to ensure we have the latest data
         $this->project->refresh();
-        Log::debug('[ManageProject] Publish: After refresh - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
+        Log::debug('[ManageProject] Publish: After refresh - Status: '.$this->project->status.', is_published: '.($this->project->is_published ? 'true' : 'false'));
 
         Toaster::success('Project published successfully.');
         $this->dispatch('project-updated');
@@ -295,18 +309,18 @@ class ManageProject extends Component
      */
     public function unpublish(): void
     {
-        Log::debug('[ManageProject] Unpublish: Start - Project ID: ' . $this->project->id . ', Status: ' . $this->project->status . ', Auth User: ' . (auth()->check() ? auth()->id() : 'None'));
+        Log::debug('[ManageProject] Unpublish: Start - Project ID: '.$this->project->id.', Status: '.$this->project->status.', Auth User: '.(auth()->check() ? auth()->id() : 'None'));
 
         $this->authorize('unpublish', $this->project);
         Log::debug('[ManageProject] Unpublish: Authorized');
 
         // Use the model's unpublish method instead of directly setting properties
         $this->project->unpublish();
-        Log::debug('[ManageProject] Unpublish: After save - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
+        Log::debug('[ManageProject] Unpublish: After save - Status: '.$this->project->status.', is_published: '.($this->project->is_published ? 'true' : 'false'));
 
         // Refresh the project to ensure we have the latest data
         $this->project->refresh();
-        Log::debug('[ManageProject] Unpublish: After refresh - Status: ' . $this->project->status . ', is_published: ' . ($this->project->is_published ? 'true' : 'false'));
+        Log::debug('[ManageProject] Unpublish: After refresh - Status: '.$this->project->status.', is_published: '.($this->project->is_published ? 'true' : 'false'));
 
         Toaster::success('Project unpublished successfully.');
         $this->dispatch('project-updated');
@@ -334,10 +348,10 @@ class ManageProject extends Component
             } else {
                 // If it's not, set the new preview track
                 $fileManagementService->setProjectPreviewTrack($this->project, $file);
-                
+
                 // Refresh project data
                 $this->project->refresh();
-                
+
                 // Directly use Project model's method
                 if ($this->project->hasPreviewTrack()) {
                     $this->hasPreviewTrack = true;
@@ -348,17 +362,17 @@ class ManageProject extends Component
                 } else {
                     Log::warning('Preview track set but hasPreviewTrack() returned false', [
                         'project_id' => $this->project->id,
-                        'file_id' => $file->id
+                        'file_id' => $file->id,
                     ]);
                     Toaster::error('Could not set preview track. Please try again.');
                 }
             }
-            
+
         } catch (AuthorizationException $e) {
             Toaster::error('You are not authorized to change the preview track.');
         } catch (\Exception $e) {
             Log::error('Error toggling project preview track via Livewire', ['project_id' => $this->project->id, 'file_id' => $file->id, 'error' => $e->getMessage()]);
-            Toaster::error('Could not update preview track: ' . $e->getMessage());
+            Toaster::error('Could not update preview track: '.$e->getMessage());
         }
     }
 
@@ -368,7 +382,7 @@ class ManageProject extends Component
     public function clearPreviewTrack(FileManagementService $fileManagementService)
     {
         try {
-             // Authorization check
+            // Authorization check
             $this->authorize('update', $this->project);
 
             $fileManagementService->clearProjectPreviewTrack($this->project);
@@ -382,8 +396,8 @@ class ManageProject extends Component
         } catch (AuthorizationException $e) {
             Toaster::error('You are not authorized to clear the preview track.');
         } catch (\Exception $e) {
-             Log::error('Error clearing project preview track via Livewire', ['project_id' => $this->project->id, 'error' => $e->getMessage()]);
-            Toaster::error('Could not clear preview track: ' . $e->getMessage());
+            Log::error('Error clearing project preview track via Livewire', ['project_id' => $this->project->id, 'error' => $e->getMessage()]);
+            Toaster::error('Could not clear preview track: '.$e->getMessage());
         }
     }
 
@@ -395,7 +409,7 @@ class ManageProject extends Component
         $this->showDeleteModal = true;
         $this->fileToDelete = $fileId;
     }
-    
+
     /**
      * Cancel file deletion
      */
@@ -404,93 +418,92 @@ class ManageProject extends Component
         $this->showDeleteModal = false;
         $this->fileToDelete = null;
     }
-    
+
     /**
      * Get the file management service
-     * 
-     * @return FileManagementService
      */
     protected function getFileService(): FileManagementService
     {
         return app(FileManagementService::class);
     }
-    
+
     /**
      * Delete a persisted Project File.
      */
     public function deleteFile($fileId = null)
     {
         $this->isDeleting = true;
-        
+
         $idToDelete = $fileId ?? $this->fileToDelete;
-        
+
         Log::debug('Starting file deletion process', [
             'file_id' => $idToDelete,
             'is_file_id_null' => is_null($fileId),
-            'is_file_to_delete_null' => is_null($this->fileToDelete)
+            'is_file_to_delete_null' => is_null($this->fileToDelete),
         ]);
-        
-        if (!$idToDelete) {
+
+        if (! $idToDelete) {
             $this->isDeleting = false;
             Toaster::error('No file selected for deletion.');
+
             return;
         }
-        
+
         try {
             $projectFile = ProjectFile::findOrFail($idToDelete);
             Log::debug('Found file to delete', [
                 'file_id' => $projectFile->id,
-                'file_name' => $projectFile->file_name
+                'file_name' => $projectFile->file_name,
             ]);
-            
+
             // Authorization: Use Policy
             $this->authorize('delete', $projectFile);
             Log::debug('Authorization passed');
-            
+
             // Get service via protected method
             $fileManager = $this->getFileService();
             Log::debug('File service resolved');
-            
+
             // Store the file size for logging
             $fileSize = $projectFile->size;
             Log::debug('File to be deleted size', ['size' => $fileSize]);
-            
+
             // Delete the file
             $fileManager->deleteProjectFile($projectFile);
             Log::debug('File deleted successfully');
-            
+
             // Important: Refresh the project model first to get the latest data
             $this->project->refresh();
             Log::debug('Project model refreshed', [
                 'user_total_storage_used' => $this->project->user->total_storage_used,
             ]);
-            
+
             // Clear the storage cache
             $this->clearStorageCache();
             Log::debug('Storage cache cleared');
-            
+
             // Force a direct recalculation of storage info without caching
             $user = $this->project->user;
             $userStorageService = app(\App\Services\UserStorageService::class);
             $forcedStorageInfo = [
                 'percentage' => $userStorageService->getUserStoragePercentage($user),
                 'message' => $userStorageService->getStorageLimitMessage($user),
-                'remaining' => $userStorageService->getUserStorageRemaining($user)
+                'remaining' => $userStorageService->getUserStorageRemaining($user),
             ];
-            
+
             Log::debug('Forced storage recalculation', $forcedStorageInfo);
-            
+
             // Manually set the properties with the forced values
             $this->storageUsedPercentage = $forcedStorageInfo['percentage'];
             $this->storageLimitMessage = $forcedStorageInfo['message'];
             $this->storageRemaining = $forcedStorageInfo['remaining'];
-            
+
             // Update the info through normal method too
             $this->updateStorageInfo();
-            
+
             Toaster::success("File '{$projectFile->file_name}' deleted successfully.");
             $this->dispatch('file-deleted'); // Notify UI to refresh file list
-            
+
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('File not found for deletion', ['file_id' => $idToDelete]);
             Toaster::error('File not found.');
@@ -502,11 +515,11 @@ class ManageProject extends Component
             Toaster::error($e->getMessage());
         } catch (\Exception $e) {
             Log::error('Error deleting project file via Livewire', [
-                'file_id' => $idToDelete, 
+                'file_id' => $idToDelete,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            Toaster::error('An unexpected error occurred while deleting the file: ' . $e->getMessage());
+            Toaster::error('An unexpected error occurred while deleting the file: '.$e->getMessage());
         } finally {
             $this->showDeleteModal = false;
             $this->fileToDelete = null;
@@ -521,7 +534,7 @@ class ManageProject extends Component
     {
         try {
             $projectFile = ProjectFile::findOrFail($fileId);
-            
+
             // Authorization: Use Policy
             $this->authorize('download', $projectFile);
 
@@ -542,7 +555,7 @@ class ManageProject extends Component
             Toaster::error('You are not authorized to download this file.');
         } catch (\Exception $e) {
             Log::error('Error getting project file download URL via Livewire', ['file_id' => $fileId, 'error' => $e->getMessage()]);
-            Toaster::error('Could not generate download link: ' . $e->getMessage());
+            Toaster::error('Could not generate download link: '.$e->getMessage());
         }
     }
 
@@ -552,13 +565,15 @@ class ManageProject extends Component
     public function resendClientInvite(NotificationService $notificationService)
     {
         // Authorization: Ensure user is the project owner and it's a client mgmt project
-        if (auth()->id() !== $this->project->user_id || !$this->project->isClientManagement()) {
+        if (auth()->id() !== $this->project->user_id || ! $this->project->isClientManagement()) {
             Toaster::error('Unauthorized action.');
+
             return;
         }
 
         if (empty($this->project->client_email)) {
             Toaster::error('Client email is not set for this project.');
+
             return;
         }
 
@@ -574,7 +589,7 @@ class ManageProject extends Component
             \Illuminate\Support\Facades\Log::info('Client invite URL generated for resend (Livewire)', [
                 'project_id' => $this->project->id,
                 'client_email' => $this->project->client_email,
-                'signed_url' => $signedUrl
+                'signed_url' => $signedUrl,
             ]);
 
             // Trigger notification
@@ -586,7 +601,7 @@ class ManageProject extends Component
         } catch (\Exception $e) {
             Log::error('Failed to resend client invite', [
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to resend invitation. Please try again later.');
         }
@@ -605,55 +620,55 @@ class ManageProject extends Component
         // Eager load relationships to avoid N+1 queries
         // Load the entire relationship graph needed for the view in one query
         $this->project->load([
-            'pitches.user', 
+            'pitches.user',
             'pitches.snapshots',
-            'files'
+            'files',
         ]);
-        
+
         // Pre-calculate expensive operations
-        $approvedPitches = $this->project->pitches->filter(function($pitch) {
+        $approvedPitches = $this->project->pitches->filter(function ($pitch) {
             return in_array($pitch->status, [
-                \App\Models\Pitch::STATUS_APPROVED, 
-                \App\Models\Pitch::STATUS_COMPLETED
+                \App\Models\Pitch::STATUS_APPROVED,
+                \App\Models\Pitch::STATUS_COMPLETED,
             ]);
-        })->sortByDesc(function($pitch) {
+        })->sortByDesc(function ($pitch) {
             return $pitch->status === \App\Models\Pitch::STATUS_COMPLETED ? 1 : 0;
         });
-        
+
         // Use the loaded relationship instead of new queries
         $hasCompletedPitch = $this->project->pitches->contains('status', \App\Models\Pitch::STATUS_COMPLETED);
-        
+
         // Count from the collection instead of running a separate query
         $approvedPitchesCount = $this->project->pitches->where('status', \App\Models\Pitch::STATUS_APPROVED)->count();
         $hasMultipleApprovedPitches = $approvedPitchesCount > 1;
-        
+
         // Set new property for any newly uploaded files
         $newlyUploadedFileIds = session('newly_uploaded_file_ids', []);
-        
+
         return view('livewire.project.page.manage-project', [
             'approvedPitches' => $approvedPitches,
             'hasCompletedPitch' => $hasCompletedPitch,
-            'hasMultipleApprovedPitches' => $hasMultipleApprovedPitches, 
+            'hasMultipleApprovedPitches' => $hasMultipleApprovedPitches,
             'approvedPitchesCount' => $approvedPitchesCount,
-            'newlyUploadedFileIds' => $newlyUploadedFileIds
+            'newlyUploadedFileIds' => $newlyUploadedFileIds,
         ]);
     }
-    
+
     /**
      * Helper methods below are now optimized to use the already loaded relationships
      * keeping them for backward compatibility
      */
-    
+
     // Method to get approved/completed pitches using the loaded relationship
     private function getApprovedAndCompletedPitches()
     {
         // Use the already loaded relationship
-        return $this->project->pitches->filter(function($pitch) {
+        return $this->project->pitches->filter(function ($pitch) {
             return in_array($pitch->status, [
-                \App\Models\Pitch::STATUS_APPROVED, 
-                \App\Models\Pitch::STATUS_COMPLETED
+                \App\Models\Pitch::STATUS_APPROVED,
+                \App\Models\Pitch::STATUS_COMPLETED,
             ]);
-        })->sortByDesc(function($pitch) {
+        })->sortByDesc(function ($pitch) {
             return $pitch->status === \App\Models\Pitch::STATUS_COMPLETED ? 1 : 0;
         });
     }
@@ -676,35 +691,45 @@ class ManageProject extends Component
     public function updateProjectDetails(ProjectManagementService $projectService)
     {
         Log::debug('ManageProject: Entered updateProjectDetails', ['project_id' => $this->project->id]);
-        
+
         $this->authorize('update', $this->project);
-        
+
         // Log the form state before validation
         Log::debug('ManageProject: Before validate()', ['form_state' => json_decode(json_encode($this->form), true)]);
-        
+
         $validatedData = $this->form->validate();
-        
+
         // Add contest deadline validation if this is a contest project
         if ($this->project->isContest()) {
             $contestValidation = $this->validate([
                 'submission_deadline' => 'nullable|date|after:now',
                 'judging_deadline' => 'nullable|date|after:submission_deadline',
             ]);
-            
+
             // Merge contest deadline validation with form validation
             $validatedData = array_merge($validatedData, $contestValidation);
         }
-        
+
         // Log the validated data
         Log::debug('ManageProject: After validate()', ['validated_data' => $validatedData]);
 
         // Transform collaboration types and format data for service
         $collaborationTypes = [];
-        if ($this->form->collaborationTypeMixing) $collaborationTypes[] = 'Mixing';
-        if ($this->form->collaborationTypeMastering) $collaborationTypes[] = 'Mastering';
-        if ($this->form->collaborationTypeProduction) $collaborationTypes[] = 'Production';
-        if ($this->form->collaborationTypeSongwriting) $collaborationTypes[] = 'Songwriting';
-        if ($this->form->collaborationTypeVocalTuning) $collaborationTypes[] = 'Vocal Tuning';
+        if ($this->form->collaborationTypeMixing) {
+            $collaborationTypes[] = 'Mixing';
+        }
+        if ($this->form->collaborationTypeMastering) {
+            $collaborationTypes[] = 'Mastering';
+        }
+        if ($this->form->collaborationTypeProduction) {
+            $collaborationTypes[] = 'Production';
+        }
+        if ($this->form->collaborationTypeSongwriting) {
+            $collaborationTypes[] = 'Songwriting';
+        }
+        if ($this->form->collaborationTypeVocalTuning) {
+            $collaborationTypes[] = 'Vocal Tuning';
+        }
 
         // Remove collaboration type booleans and add the array
         $validatedData['collaboration_type'] = $collaborationTypes;
@@ -715,17 +740,17 @@ class ManageProject extends Component
             $validatedData['collaborationTypeSongwriting'],
             $validatedData['collaborationTypeVocalTuning']
         );
-        
+
         // Handle budget based on budgetType
         if (isset($validatedData['budgetType'])) {
             // If budget type is 'paid', use the value from form->budget
             // Otherwise set it to 0 for 'free'
-            $validatedData['budget'] = ($validatedData['budgetType'] === 'paid') ? 
-                (int)$this->form->budget : 0;
+            $validatedData['budget'] = ($validatedData['budgetType'] === 'paid') ?
+                (int) $this->form->budget : 0;
             unset($validatedData['budgetType']);
         } else {
             // If budgetType isn't set, we still need to ensure budget is included
-            $validatedData['budget'] = (int)$this->form->budget;
+            $validatedData['budget'] = (int) $this->form->budget;
         }
 
         // Set proper project_type from the form
@@ -736,27 +761,27 @@ class ManageProject extends Component
         // Extract image if present
         $imageFile = $validatedData['projectImage'] ?? null;
         unset($validatedData['projectImage']);
-        
+
         // Convert deadline to UTC if provided
         if (isset($validatedData['deadline']) && $validatedData['deadline']) {
             $validatedData['deadline'] = $this->convertDateTimeToUtc($validatedData['deadline']);
         }
-        
+
         // Convert contest deadline fields to UTC if provided
         if (isset($validatedData['submission_deadline']) && $validatedData['submission_deadline']) {
             $validatedData['submission_deadline'] = $this->convertDateTimeToUtc($validatedData['submission_deadline']);
         }
-        
+
         if (isset($validatedData['judging_deadline']) && $validatedData['judging_deadline']) {
             $validatedData['judging_deadline'] = $this->convertDateTimeToUtc($validatedData['judging_deadline']);
         }
-        
+
         Log::debug('ManageProject: Before calling service->updateProject', [
             'project_id' => $this->project->id,
             'validated_data' => $validatedData,
             'budget' => $validatedData['budget'] ?? null,
             'project_type' => $validatedData['project_type'] ?? null,
-            'form_projectType' => $this->form->projectType
+            'form_projectType' => $this->form->projectType,
         ]);
 
         try {
@@ -769,21 +794,21 @@ class ManageProject extends Component
             Log::debug('ManageProject: After calling service->updateProject', [
                 'project_id' => $this->project->id,
                 'updated_project_type' => $project->project_type,
-                'updated_budget' => $project->budget
+                'updated_budget' => $project->budget,
             ]);
-            
+
             // Update the component's project reference with the updated model
             $this->project = $project;
-           
+
             Toaster::success('Project details updated successfully!');
-            
+
             // Optional: redirect or refresh component
             // return redirect()->route('projects.manage', $project);
-            
+
             $this->dispatch('project-details-updated'); // Event for JS handling
         } catch (\Exception $e) {
             Log::error('Error in ManageProject::updateProjectDetails', ['error' => $e->getMessage(), 'project_id' => $this->project->id]);
-            Toaster::error('Error updating project: ' . $e->getMessage());
+            Toaster::error('Error updating project: '.$e->getMessage());
         }
     }
 
@@ -793,21 +818,21 @@ class ManageProject extends Component
      */
     public function forceImageUpdate()
     {
-        if (!app()->environment('testing')) {
+        if (! app()->environment('testing')) {
             throw new \Exception('This method can only be used in the testing environment.');
         }
 
-        if (!$this->form->projectImage) {
+        if (! $this->form->projectImage) {
             throw new \Exception('No project image has been uploaded to update.');
         }
 
         $imageFile = $this->form->projectImage;
-        
+
         // Generate a unique filename for the test
         $timestamp = time();
         $randomStr = substr(md5(rand()), 0, 10);
         $filename = "test_forced_{$timestamp}_{$randomStr}.jpg";
-        
+
         // Force a new image path to ensure it's different
         $uniqueImagePath = $imageFile->storeAs(
             'project_images',
@@ -831,8 +856,8 @@ class ManageProject extends Component
     /**
      * Format bytes to human readable format
      *
-     * @param int $bytes
-     * @param int $precision
+     * @param  int  $bytes
+     * @param  int  $precision
      * @return string
      */
     public function formatFileSize($bytes, $precision = 2)
@@ -847,7 +872,7 @@ class ManageProject extends Component
         $pow = min($pow, count($units) - 1);
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
 
     /**
@@ -856,7 +881,7 @@ class ManageProject extends Component
     private function checkPreviewTrackStatus()
     {
         $this->hasPreviewTrack = $this->project->hasPreviewTrack();
-        
+
         if ($this->hasPreviewTrack) {
             $previewFile = $this->project->files()->where('id', $this->project->preview_track)->first();
             if ($previewFile) {
@@ -892,16 +917,16 @@ class ManageProject extends Component
         try {
             $projectTitle = $this->project->title;
             $this->project->delete(); // This will cascade delete pitches and files via observer
-            
+
             Toaster::success("Project '{$projectTitle}' deleted successfully.");
-            
+
             // Redirect to projects list
             return redirect()->route('projects.index');
-            
+
         } catch (\Exception $e) {
             Log::error('Error deleting project', [
                 'project_id' => $this->project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to delete project. Please try again.');
         }
@@ -937,7 +962,7 @@ class ManageProject extends Component
             try {
                 // Validate file on frontend
                 $this->validate([
-                    'newProjectImage' => 'image|mimes:jpeg,jpg,png,gif,webp|max:5120' // 5MB max
+                    'newProjectImage' => 'image|mimes:jpeg,jpg,png,gif,webp|max:5120', // 5MB max
                 ]);
 
                 // Generate preview URL
@@ -955,19 +980,20 @@ class ManageProject extends Component
      */
     public function uploadProjectImage(ProjectImageService $imageService)
     {
-        if (!$this->newProjectImage) {
+        if (! $this->newProjectImage) {
             Toaster::error('Please select an image to upload.');
+
             return;
         }
 
         try {
             $this->authorize('update', $this->project);
-            
+
             $this->uploadingImage = true;
 
             // Validate image file
             $this->validate([
-                'newProjectImage' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:5120' // 5MB max
+                'newProjectImage' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:5120', // 5MB max
             ]);
 
             // Use the ProjectImageService to handle upload
@@ -999,7 +1025,7 @@ class ManageProject extends Component
             Log::error('Error uploading project image in ManageProject', [
                 'project_id' => $this->project->id,
                 'error' => $e->getMessage(),
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
             Toaster::error('An error occurred while uploading the image. Please try again.');
         } finally {
@@ -1021,9 +1047,9 @@ class ManageProject extends Component
             if ($success) {
                 // Refresh project to remove image reference
                 $this->project->refresh();
-                
+
                 Toaster::success('Project image removed successfully!');
-                
+
                 // Dispatch event for any listening components
                 $this->dispatch('project-image-updated');
             } else {
@@ -1036,7 +1062,7 @@ class ManageProject extends Component
             Log::error('Error removing project image in ManageProject', [
                 'project_id' => $this->project->id,
                 'error' => $e->getMessage(),
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
             Toaster::error('An error occurred while removing the image. Please try again.');
         }
@@ -1053,22 +1079,26 @@ class ManageProject extends Component
             // Prevent multiple simultaneous submissions
             if ($this->isPostingToReddit) {
                 Toaster::warning('Reddit posting is already in progress. Please wait...');
+
                 return;
             }
 
             // Validate project requirements
-            if (!$this->project->is_published) {
+            if (! $this->project->is_published) {
                 Toaster::error('Project must be published before posting to Reddit.');
+
                 return;
             }
 
             if (empty($this->project->title) || empty($this->project->description)) {
                 Toaster::error('Project must have a title and description to post to Reddit.');
+
                 return;
             }
 
             if ($this->project->hasBeenPostedToReddit()) {
                 Toaster::warning('This project has already been posted to Reddit.');
+
                 return;
             }
 
@@ -1080,6 +1110,7 @@ class ManageProject extends Component
 
             if ($recentPosts >= 3) {
                 Toaster::error('You can only post 3 projects per hour to Reddit. Please try again later.');
+
                 return;
             }
 
@@ -1110,7 +1141,7 @@ class ManageProject extends Component
             Log::error('Error posting project to Reddit', [
                 'project_id' => $this->project->id,
                 'error' => $e->getMessage(),
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
             Toaster::error('An error occurred while posting to Reddit. Please try again.');
         }
@@ -1128,11 +1159,12 @@ class ManageProject extends Component
         if ($this->project->hasBeenPostedToReddit()) {
             $this->isPostingToReddit = false;
             $this->redditPostingStartedAt = null;
-            
+
             Toaster::success('Successfully posted to r/MixPitch! You can now view your post on Reddit.');
-            
+
             // Stop polling
             $this->dispatch('stop-reddit-polling');
+
             return;
         }
 
@@ -1140,9 +1172,9 @@ class ManageProject extends Component
         if ($this->redditPostingStartedAt && now()->diffInMinutes($this->redditPostingStartedAt) > 5) {
             $this->isPostingToReddit = false;
             $this->redditPostingStartedAt = null;
-            
+
             Toaster::warning('Reddit posting is taking longer than expected. Please check back in a few minutes or try again.');
-            
+
             // Stop polling
             $this->dispatch('stop-reddit-polling');
         }
@@ -1156,7 +1188,7 @@ class ManageProject extends Component
         $this->isPostingToReddit = false;
         $this->redditPostingStartedAt = null;
     }
-    
+
     /**
      * Convert datetime-local input to UTC for database storage
      * This method treats datetime-local inputs as being in the user's timezone
@@ -1164,7 +1196,7 @@ class ManageProject extends Component
     private function convertDateTimeToUtc(string $dateTime): Carbon
     {
         $userTimezone = auth()->user()->getTimezone();
-        
+
         Log::debug('ManageProject convertDateTimeToUtc called', [
             'input' => $dateTime,
             'user_timezone' => $userTimezone,
@@ -1178,26 +1210,27 @@ class ManageProject extends Component
             if (substr_count($formattedDateTime, ':') === 1) {
                 $formattedDateTime .= ':00'; // Add seconds
             }
-            
+
             // Create Carbon instance in user's timezone and convert to UTC
             $result = Carbon::createFromFormat('Y-m-d H:i:s', $formattedDateTime, $userTimezone)->utc();
-            
+
             Log::debug('ManageProject: Datetime-local conversion', [
                 'input' => $dateTime,
                 'formatted' => $formattedDateTime,
                 'user_timezone' => $userTimezone,
-                'output_utc' => $result->toDateTimeString()
+                'output_utc' => $result->toDateTimeString(),
             ]);
-            
+
             return $result;
         }
-        
+
         // Fallback: assume it's already in UTC or parse as-is
         $result = Carbon::parse($dateTime)->utc();
         Log::debug('ManageProject: Fallback conversion', [
             'input' => $dateTime,
-            'output' => $result->toDateTimeString()
+            'output' => $result->toDateTimeString(),
         ]);
+
         return $result;
     }
 

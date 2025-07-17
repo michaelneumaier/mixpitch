@@ -1,23 +1,21 @@
 <?php
+
 namespace App\Services;
 
-use App\Models\Project;
-use App\Models\Pitch;
-use App\Models\ProjectFile;
-use App\Models\PitchFile;
-use App\Models\User;
-use App\Models\FileUploadSetting;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Aws\S3\S3Client;
-use Illuminate\Support\Str;
+use App\Exceptions\File\FileDeletionException;
 use App\Exceptions\File\FileUploadException;
 use App\Exceptions\File\StorageLimitException;
-use App\Exceptions\File\FileDeletionException;
-use App\Exceptions\File\UnauthorizedActionException;
-use App\Services\UserStorageService;
+use App\Models\FileUploadSetting;
+use App\Models\Pitch;
+use App\Models\PitchFile;
+use App\Models\Project;
+use App\Models\ProjectFile;
+use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class FileManagementService
 {
@@ -32,18 +30,16 @@ class FileManagementService
      * Upload a file for a Project.
      * Authorization should be checked before calling this method.
      *
-     * @param Project $project
-     * @param UploadedFile $file
-     * @param User|null $uploader // Made nullable to support client uploads without accounts
-     * @param array $metadata // Optional metadata for client uploads
-     * @return ProjectFile
+     * @param  User|null  $uploader  // Made nullable to support client uploads without accounts
+     * @param  array  $metadata  // Optional metadata for client uploads
+     *
      * @throws FileUploadException|StorageLimitException
      */
     public function uploadProjectFile(Project $project, UploadedFile $file, ?User $uploader = null, array $metadata = []): ProjectFile
     {
         // Increase execution time for large file uploads
         set_time_limit(300); // 5 minutes for large file uploads
-        
+
         // Authorization is assumed to be handled by the caller (e.g., Policy check or signed URL validation)
 
         $fileName = $file->getClientOriginalName();
@@ -51,24 +47,24 @@ class FileManagementService
 
         // Validate file size using project context settings
         $maxFileSizeMB = FileUploadSetting::getSetting(
-            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::MAX_FILE_SIZE_MB,
             FileUploadSetting::CONTEXT_PROJECTS
         );
         $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
-        
+
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
 
         // Check user storage capacity instead of project capacity
         $user = $uploader ?? $project->user;
-        if (!$this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
+        if (! $this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
             $used = $this->userStorageService->getUserStorageUsed($user);
             $limit = $this->userStorageService->getUserStorageLimit($user);
             throw new StorageLimitException(
-                "Upload would exceed your storage limit. " .
-                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
-                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+                'Upload would exceed your storage limit. '.
+                'Used: '.number_format($used / (1024 ** 3), 2).'GB, '.
+                'Limit: '.number_format($limit / (1024 ** 3), 2).'GB'
             );
         }
 
@@ -76,16 +72,16 @@ class FileManagementService
             return DB::transaction(function () use ($project, $file, $fileName, $fileSize, $uploader, $metadata) {
                 // Store the file securely
                 $path = Storage::disk('s3')->putFileAs(
-                    'projects/' . $project->id,
+                    'projects/'.$project->id,
                     $file,
                     $fileName
                 );
 
                 $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
                 Log::info('Project file uploaded to S3', array_merge([
-                    'filename' => $fileName, 
-                    'path' => $path, 
-                    'project_id' => $project->id
+                    'filename' => $fileName,
+                    'path' => $path,
+                    'project_id' => $project->id,
                 ], $uploaderInfo, $metadata));
 
                 $projectFile = $project->files()->create([
@@ -96,7 +92,7 @@ class FileManagementService
                     'size' => $fileSize,
                     'user_id' => $uploader?->id, // Track uploader (null for client uploads)
                     'mime_type' => $file->getMimeType(),
-                    'metadata' => !empty($metadata) ? json_encode($metadata) : null, // Store client upload metadata
+                    'metadata' => ! empty($metadata) ? json_encode($metadata) : null, // Store client upload metadata
                 ]);
 
                 // Atomically update user storage usage instead of project storage
@@ -108,11 +104,11 @@ class FileManagementService
         } catch (\Exception $e) {
             $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
             Log::error('Error uploading project file', array_merge([
-                'project_id' => $project->id, 
-                'filename' => $fileName, 
-                'error' => $e->getMessage()
+                'project_id' => $project->id,
+                'filename' => $fileName,
+                'error' => $e->getMessage(),
             ], $uploaderInfo));
-            
+
             if (isset($path) && Storage::disk('s3')->exists($path)) {
                 Storage::disk('s3')->delete($path);
                 Log::info('Cleaned up orphaned S3 file after upload failure', ['path' => $path]);
@@ -125,17 +121,15 @@ class FileManagementService
      * Upload a file for a Pitch.
      * Authorization and status validation should be checked before calling this method.
      *
-     * @param Pitch $pitch
-     * @param UploadedFile $file
-     * @param User $uploader // Keep uploader to associate file record
-     * @return PitchFile
+     * @param  User  $uploader  // Keep uploader to associate file record
+     *
      * @throws FileUploadException|StorageLimitException
      */
     public function uploadPitchFile(Pitch $pitch, UploadedFile $file, User $uploader): PitchFile
     {
         // Increase execution time for large file uploads
         set_time_limit(300); // 5 minutes for large file uploads
-        
+
         // Authorization and status validation are assumed to be handled by the caller
 
         $fileName = $file->getClientOriginalName();
@@ -143,23 +137,23 @@ class FileManagementService
 
         // Validate file size using pitch context settings
         $maxFileSizeMB = FileUploadSetting::getSetting(
-            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::MAX_FILE_SIZE_MB,
             FileUploadSetting::CONTEXT_PITCHES
         );
         $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
-        
+
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
 
         // Check user storage capacity instead of pitch capacity
-        if (!$this->userStorageService->hasUserStorageCapacity($uploader, $fileSize)) {
+        if (! $this->userStorageService->hasUserStorageCapacity($uploader, $fileSize)) {
             $used = $this->userStorageService->getUserStorageUsed($uploader);
             $limit = $this->userStorageService->getUserStorageLimit($uploader);
             throw new StorageLimitException(
-                "Upload would exceed your storage limit. " .
-                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
-                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+                'Upload would exceed your storage limit. '.
+                'Used: '.number_format($used / (1024 ** 3), 2).'GB, '.
+                'Limit: '.number_format($limit / (1024 ** 3), 2).'GB'
             );
         }
 
@@ -167,7 +161,7 @@ class FileManagementService
             return DB::transaction(function () use ($pitch, $file, $fileName, $fileSize, $uploader) {
                 // Store the file securely
                 $path = Storage::disk('s3')->putFileAs(
-                    'pitches/' . $pitch->id,
+                    'pitches/'.$pitch->id,
                     $file,
                     $fileName
                 );
@@ -208,8 +202,6 @@ class FileManagementService
      * Delete a Project file.
      * Authorization should be checked before calling this method.
      *
-     * @param ProjectFile $projectFile
-     * @return bool
      * @throws FileDeletionException
      */
     public function deleteProjectFile(ProjectFile $projectFile): bool
@@ -226,7 +218,7 @@ class FileManagementService
                 // Delete DB record first
                 $deleted = $projectFile->delete();
 
-                if (!$deleted) {
+                if (! $deleted) {
                     throw new FileDeletionException('Failed to delete file record from database.');
                 }
 
@@ -239,7 +231,7 @@ class FileManagementService
                             'project_id' => $project->id,
                             'user_id' => $project->user->id,
                             'file_size' => $fileSize,
-                            'error' => $storageEx->getMessage()
+                            'error' => $storageEx->getMessage(),
                         ]);
                         // Don't fail the whole operation for storage tracking issues
                     }
@@ -247,12 +239,12 @@ class FileManagementService
 
                 // Delete file from S3 (don't fail if S3 delete fails, file record is already gone)
                 try {
-                   if (Storage::disk('s3')->exists($filePath)) {
-                       Storage::disk('s3')->delete($filePath);
-                       Log::info('Project file deleted from S3', ['path' => $filePath, 'project_id' => $project?->id]);
-                   } else {
-                       Log::warning('Project file not found on S3 during deletion', ['path' => $filePath, 'project_id' => $project?->id]);
-                   }
+                    if (Storage::disk('s3')->exists($filePath)) {
+                        Storage::disk('s3')->delete($filePath);
+                        Log::info('Project file deleted from S3', ['path' => $filePath, 'project_id' => $project?->id]);
+                    } else {
+                        Log::warning('Project file not found on S3 during deletion', ['path' => $filePath, 'project_id' => $project?->id]);
+                    }
                 } catch (\Exception $storageEx) {
                     Log::error('Failed to delete project file from S3, but DB record removed', ['path' => $filePath, 'error' => $storageEx->getMessage()]);
                     // Don't fail the whole operation for S3 cleanup issues
@@ -262,7 +254,7 @@ class FileManagementService
             });
         } catch (\Exception $e) {
             Log::error('Error deleting project file', ['file_id' => $projectFile->id, 'error' => $e->getMessage()]);
-            throw new FileDeletionException('Failed to delete project file: ' . $e->getMessage(), 0, $e);
+            throw new FileDeletionException('Failed to delete project file: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -270,8 +262,6 @@ class FileManagementService
      * Delete a Pitch file.
      * Authorization and status validation should be checked before calling this method.
      *
-     * @param PitchFile $pitchFile
-     * @return bool
      * @throws FileDeletionException
      */
     public function deletePitchFile(PitchFile $pitchFile): bool
@@ -282,7 +272,7 @@ class FileManagementService
         $filePath = $pitchFile->storage_path ?: $pitchFile->file_path;
 
         try {
-             DB::transaction(function () use ($pitchFile, $pitch, $filePath) {
+            DB::transaction(function () use ($pitchFile, $pitch, $filePath) {
                 $fileSize = $pitchFile->size;
 
                 $deleted = $pitchFile->delete();
@@ -297,29 +287,29 @@ class FileManagementService
                             Storage::disk('s3')->delete($filePath);
                             Log::info('Pitch file deleted from S3', ['path' => $filePath, 'pitch_id' => $pitch->id]);
                         } else {
-                           Log::warning('Pitch file not found on S3 during deletion', ['path' => $filePath, 'pitch_id' => $pitch->id]);
+                            Log::warning('Pitch file not found on S3 during deletion', ['path' => $filePath, 'pitch_id' => $pitch->id]);
                         }
                     } catch (\Exception $storageEx) {
-                         Log::error('Failed to delete pitch file from S3, but DB record removed', ['path' => $filePath, 'error' => $storageEx->getMessage()]);
+                        Log::error('Failed to delete pitch file from S3, but DB record removed', ['path' => $filePath, 'error' => $storageEx->getMessage()]);
                     }
                 } else {
-                     throw new FileDeletionException('Failed to delete file record from database.');
+                    throw new FileDeletionException('Failed to delete file record from database.');
                 }
             });
+
             return true;
         } catch (\Exception $e) {
             Log::error('Error deleting pitch file', ['file_id' => $pitchFile->id, 'error' => $e->getMessage()]);
-            throw new FileDeletionException('Failed to delete pitch file: ' . $e->getMessage(), 0, $e);
+            throw new FileDeletionException('Failed to delete pitch file: '.$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Generate a temporary download or streaming URL for a file.
      *
-     * @param ProjectFile|PitchFile $fileModel
-     * @param int $minutes Expiration time in minutes
-     * @param bool $forceDownload If true, sets headers to force download; if false, allows streaming/inline display.
-     * @return string
+     * @param  ProjectFile|PitchFile  $fileModel
+     * @param  int  $minutes  Expiration time in minutes
+     * @param  bool  $forceDownload  If true, sets headers to force download; if false, allows streaming/inline display.
      */
     public function getTemporaryDownloadUrl($fileModel, int $minutes = 15, bool $forceDownload = true): string
     {
@@ -330,14 +320,14 @@ class FileManagementService
 
         try {
             if (empty($filePath)) {
-                 Log::error('Attempted to generate download URL for file with empty path.', ['file_model_id' => $fileModel->id, 'model_type' => get_class($fileModel)]);
-                 throw new \InvalidArgumentException('File path is missing.');
+                Log::error('Attempted to generate download URL for file with empty path.', ['file_model_id' => $fileModel->id, 'model_type' => get_class($fileModel)]);
+                throw new \InvalidArgumentException('File path is missing.');
             }
-            
+
             $options = [];
             if ($forceDownload) {
                 $options = [
-                    'ResponseContentDisposition' => 'attachment; filename="' . addslashes($fileName) . '"'
+                    'ResponseContentDisposition' => 'attachment; filename="'.addslashes($fileName).'"',
                 ];
             }
 
@@ -347,13 +337,13 @@ class FileManagementService
                 $options
             );
         } catch (\Exception $e) {
-             Log::error('Failed to generate temporary download URL.', [
-                 'file_model_id' => $fileModel->id,
-                 'model_type' => get_class($fileModel),
-                 'file_path' => $filePath,
-                 'error' => $e->getMessage()
-             ]);
-             throw new \RuntimeException('Could not generate download URL.', 0, $e);
+            Log::error('Failed to generate temporary download URL.', [
+                'file_model_id' => $fileModel->id,
+                'model_type' => get_class($fileModel),
+                'file_path' => $filePath,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException('Could not generate download URL.', 0, $e);
         }
     }
 
@@ -361,9 +351,6 @@ class FileManagementService
      * Set the preview track for a project.
      * Authorization should be checked before calling this method.
      *
-     * @param Project $project
-     * @param ProjectFile $file
-     * @return void
      * @throws \InvalidArgumentException
      */
     public function setProjectPreviewTrack(Project $project, ProjectFile $file): void
@@ -371,7 +358,7 @@ class FileManagementService
         // Authorization is assumed to be handled by the caller
 
         if ($file->project_id !== $project->id) {
-             throw new \InvalidArgumentException('File does not belong to the specified project.');
+            throw new \InvalidArgumentException('File does not belong to the specified project.');
         }
 
         $project->preview_track = $file->id;
@@ -381,13 +368,10 @@ class FileManagementService
     /**
      * Clear the preview track for a project.
      * Authorization should be checked before calling this method.
-     *
-     * @param Project $project
-     * @return void
      */
     public function clearProjectPreviewTrack(Project $project): void
     {
-         // Authorization is assumed to be handled by the caller
+        // Authorization is assumed to be handled by the caller
 
         $project->preview_track = null;
         $project->save();
@@ -397,14 +381,6 @@ class FileManagementService
      * Create a ProjectFile record for a file that was uploaded directly to S3.
      * Authorization should be checked before calling this method.
      *
-     * @param Project $project
-     * @param string $s3Key
-     * @param string $fileName
-     * @param int $fileSize
-     * @param string $mimeType
-     * @param User|null $uploader
-     * @param array $metadata
-     * @return ProjectFile
      * @throws FileUploadException|StorageLimitException
      */
     public function createProjectFileFromS3(Project $project, string $s3Key, string $fileName, int $fileSize, string $mimeType, ?User $uploader = null, array $metadata = []): ProjectFile
@@ -413,29 +389,29 @@ class FileManagementService
 
         // Validate file size using project context settings
         $maxFileSizeMB = FileUploadSetting::getSetting(
-            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::MAX_FILE_SIZE_MB,
             FileUploadSetting::CONTEXT_PROJECTS
         );
         $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
-        
+
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
 
         // Check user storage capacity instead of project capacity
         $user = $uploader ?? $project->user;
-        if (!$this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
+        if (! $this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
             $used = $this->userStorageService->getUserStorageUsed($user);
             $limit = $this->userStorageService->getUserStorageLimit($user);
             throw new StorageLimitException(
-                "Upload would exceed your storage limit. " .
-                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
-                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+                'Upload would exceed your storage limit. '.
+                'Used: '.number_format($used / (1024 ** 3), 2).'GB, '.
+                'Limit: '.number_format($limit / (1024 ** 3), 2).'GB'
             );
         }
 
         // Verify the file actually exists in S3
-        if (!Storage::disk('s3')->exists($s3Key)) {
+        if (! Storage::disk('s3')->exists($s3Key)) {
             throw new FileUploadException("File '{$fileName}' not found in S3 storage.");
         }
 
@@ -446,7 +422,7 @@ class FileManagementService
                     'filename' => $fileName,
                     's3_key' => $s3Key,
                     'project_id' => $project->id,
-                    'file_size' => $fileSize
+                    'file_size' => $fileSize,
                 ], $uploaderInfo, $metadata));
 
                 $projectFile = $project->files()->create([
@@ -457,7 +433,7 @@ class FileManagementService
                     'size' => $fileSize,
                     'user_id' => $uploader?->id,
                     'mime_type' => $mimeType,
-                    'metadata' => !empty($metadata) ? json_encode($metadata) : null,
+                    'metadata' => ! empty($metadata) ? json_encode($metadata) : null,
                 ]);
 
                 // Atomically update user storage usage instead of project storage
@@ -472,9 +448,9 @@ class FileManagementService
                 'project_id' => $project->id,
                 'filename' => $fileName,
                 's3_key' => $s3Key,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], $uploaderInfo));
-            
+
             throw new FileUploadException("Failed to create file record for '{$fileName}'.", 0, $e);
         }
     }
@@ -483,14 +459,6 @@ class FileManagementService
      * Create a PitchFile record for a file that was uploaded directly to S3.
      * Authorization should be checked before calling this method.
      *
-     * @param Pitch $pitch
-     * @param string $s3Key
-     * @param string $fileName
-     * @param int $fileSize
-     * @param string $mimeType
-     * @param User|null $uploader
-     * @param array $metadata
-     * @return PitchFile
      * @throws FileUploadException|StorageLimitException
      */
     public function createPitchFileFromS3(Pitch $pitch, string $s3Key, string $fileName, int $fileSize, string $mimeType, ?User $uploader = null, array $metadata = []): PitchFile
@@ -499,29 +467,29 @@ class FileManagementService
 
         // Validate file size using pitch context settings
         $maxFileSizeMB = FileUploadSetting::getSetting(
-            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::MAX_FILE_SIZE_MB,
             FileUploadSetting::CONTEXT_PITCHES
         );
         $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
-        
+
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
 
         // Check user storage capacity instead of pitch capacity
         $user = $uploader ?? $pitch->user;
-        if (!$this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
+        if (! $this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
             $used = $this->userStorageService->getUserStorageUsed($user);
             $limit = $this->userStorageService->getUserStorageLimit($user);
             throw new StorageLimitException(
-                "Upload would exceed your storage limit. " .
-                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
-                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+                'Upload would exceed your storage limit. '.
+                'Used: '.number_format($used / (1024 ** 3), 2).'GB, '.
+                'Limit: '.number_format($limit / (1024 ** 3), 2).'GB'
             );
         }
 
         // Verify the file actually exists in S3
-        if (!Storage::disk('s3')->exists($s3Key)) {
+        if (! Storage::disk('s3')->exists($s3Key)) {
             throw new FileUploadException("File '{$fileName}' not found in S3 storage.");
         }
 
@@ -532,7 +500,7 @@ class FileManagementService
                     'filename' => $fileName,
                     's3_key' => $s3Key,
                     'pitch_id' => $pitch->id,
-                    'file_size' => $fileSize
+                    'file_size' => $fileSize,
                 ], $uploaderInfo, $metadata));
 
                 $pitchFile = $pitch->files()->create([
@@ -543,7 +511,7 @@ class FileManagementService
                     'size' => $fileSize,
                     'user_id' => $uploader?->id,
                     'mime_type' => $mimeType,
-                    'metadata' => !empty($metadata) ? json_encode($metadata) : null,
+                    'metadata' => ! empty($metadata) ? json_encode($metadata) : null,
                 ]);
 
                 // Atomically update user storage usage instead of pitch storage
@@ -563,9 +531,9 @@ class FileManagementService
                 'pitch_id' => $pitch->id,
                 'filename' => $fileName,
                 's3_key' => $s3Key,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], $uploaderInfo));
-            
+
             throw new FileUploadException("Failed to create file record for '{$fileName}'.", 0, $e);
         }
     }
@@ -574,42 +542,43 @@ class FileManagementService
      * Generate a presigned URL for direct upload to S3/R2
      * Authorization should be checked before calling this method.
      *
-     * @param string $context The upload context (projects, pitches, client_portals)
-     * @param string $fileName Original file name
-     * @param string $mimeType File MIME type
-     * @param int $fileSize File size in bytes
-     * @param array $metadata Additional metadata (model_type, model_id, etc.)
-     * @param User|null $uploader The user who will upload (null for client uploads)
+     * @param  string  $context  The upload context (projects, pitches, client_portals)
+     * @param  string  $fileName  Original file name
+     * @param  string  $mimeType  File MIME type
+     * @param  int  $fileSize  File size in bytes
+     * @param  array  $metadata  Additional metadata (model_type, model_id, etc.)
+     * @param  User|null  $uploader  The user who will upload (null for client uploads)
      * @return array Contains presigned_url, s3_key, expires_at
+     *
      * @throws FileUploadException|StorageLimitException
      */
     public function generatePresignedUploadUrl(string $context, string $fileName, string $mimeType, int $fileSize, array $metadata = [], ?User $uploader = null): array
     {
         // Validate context
-        if (!FileUploadSetting::validateContext($context)) {
+        if (! FileUploadSetting::validateContext($context)) {
             throw new FileUploadException("Invalid upload context: {$context}");
         }
 
         // Validate file size using context settings
         $maxFileSizeMB = FileUploadSetting::getSetting(
-            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            FileUploadSetting::MAX_FILE_SIZE_MB,
             $context
         );
         $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
-        
+
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
 
         // For authenticated uploads, check storage capacity
         if ($uploader) {
-            if (!$this->userStorageService->hasUserStorageCapacity($uploader, $fileSize)) {
+            if (! $this->userStorageService->hasUserStorageCapacity($uploader, $fileSize)) {
                 $used = $this->userStorageService->getUserStorageUsed($uploader);
                 $limit = $this->userStorageService->getUserStorageLimit($uploader);
                 throw new StorageLimitException(
-                    "Upload would exceed your storage limit. " .
-                    "Used: " . number_format($used / (1024**3), 2) . "GB, " .
-                    "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+                    'Upload would exceed your storage limit. '.
+                    'Used: '.number_format($used / (1024 ** 3), 2).'GB, '.
+                    'Limit: '.number_format($limit / (1024 ** 3), 2).'GB'
                 );
             }
         }
@@ -617,18 +586,18 @@ class FileManagementService
         try {
             // Generate unique S3 key
             $s3Key = $this->generateS3Key($context, $fileName, $metadata);
-            
+
             // Check if we're in testing mode (using fake storage)
             $diskConfig = Storage::disk('s3')->getConfig();
-            if (app()->environment('testing') && (!isset($diskConfig['driver']) || $diskConfig['driver'] !== 's3')) {
+            if (app()->environment('testing') && (! isset($diskConfig['driver']) || $diskConfig['driver'] !== 's3')) {
                 // Return a mock presigned URL for testing
-                $presignedUrl = 'https://test-bucket.s3.amazonaws.com/' . $s3Key . '?presigned=true';
+                $presignedUrl = 'https://test-bucket.s3.amazonaws.com/'.$s3Key.'?presigned=true';
                 $expiresAt = now()->addMinutes(15);
             } else {
                 // Get S3 client from Laravel's Storage facade
                 $s3Client = Storage::disk('s3')->getAdapter()->getClient();
                 $bucket = config('filesystems.disks.s3.bucket');
-                
+
                 // Generate presigned URL for PUT operation
                 $cmd = $s3Client->getCommand('PutObject', [
                     'Bucket' => $bucket,
@@ -650,7 +619,7 @@ class FileManagementService
                 'file_size' => $fileSize,
                 'uploader_id' => $uploader?->id,
                 'expires_at' => $expiresAt->toISOString(),
-                'metadata' => $metadata
+                'metadata' => $metadata,
             ]);
 
             return [
@@ -661,7 +630,7 @@ class FileManagementService
                 'headers' => [
                     'Content-Type' => $mimeType,
                     'Content-Length' => $fileSize,
-                ]
+                ],
             ];
 
         } catch (\Exception $e) {
@@ -669,35 +638,30 @@ class FileManagementService
                 'context' => $context,
                 'filename' => $fileName,
                 'error' => $e->getMessage(),
-                'uploader_id' => $uploader?->id
+                'uploader_id' => $uploader?->id,
             ]);
-            
+
             throw new FileUploadException("Failed to generate upload URL for '{$fileName}'.", 0, $e);
         }
     }
 
     /**
      * Generate S3 key based on context and metadata
-     *
-     * @param string $context
-     * @param string $fileName
-     * @param array $metadata
-     * @return string
      */
     protected function generateS3Key(string $context, string $fileName, array $metadata = []): string
     {
         $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
         $uniqueId = Str::ulid();
-        
+
         // Generate folder based on context and metadata
-        $folder = match($context) {
+        $folder = match ($context) {
             FileUploadSetting::CONTEXT_PROJECTS => $this->generateProjectFolder($metadata),
             FileUploadSetting::CONTEXT_PITCHES => $this->generatePitchFolder($metadata),
             FileUploadSetting::CONTEXT_CLIENT_PORTALS => $this->generateClientPortalFolder($metadata),
             default => 'uploads/'
         };
 
-        return $folder . $uniqueId . '.' . $fileExtension;
+        return $folder.$uniqueId.'.'.$fileExtension;
     }
 
     /**
@@ -708,6 +672,7 @@ class FileManagementService
         if (isset($metadata['project_id'])) {
             return "projects/{$metadata['project_id']}/";
         }
+
         return 'projects/';
     }
 
@@ -719,6 +684,7 @@ class FileManagementService
         if (isset($metadata['pitch_id'])) {
             return "pitches/{$metadata['pitch_id']}/";
         }
+
         return 'pitches/';
     }
 
@@ -730,6 +696,7 @@ class FileManagementService
         if (isset($metadata['project_id'])) {
             return "client-uploads/{$metadata['project_id']}/";
         }
+
         return 'client-uploads/';
     }
-} 
+}
