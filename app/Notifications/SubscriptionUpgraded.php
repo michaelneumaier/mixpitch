@@ -47,7 +47,7 @@ class SubscriptionUpgraded extends Notification implements ShouldQueue
             ->line('You now have access to all the powerful features that will help take your music collaboration to the next level.')
             ->line('**Your new benefits include:**')
             ->line('• Unlimited projects and pitches')
-            ->line('• 10GB total storage space')
+            ->line('• ' . ($this->tier === 'artist' ? '50GB' : '200GB') . ' total storage space')
             ->line('• Priority support')
             ->line($this->tier === 'artist' ? '• Custom portfolio layouts' : '• Advanced analytics')
             ->action('Explore Your New Features', route('dashboard'))

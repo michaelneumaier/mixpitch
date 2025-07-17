@@ -72,7 +72,7 @@ return [
             'features' => [
                 'Unlimited Projects',
                 'Unlimited Active Pitches',
-                '100GB Total Storage Space',
+                '200GB Total Storage Space',
                 'Priority Support (24h SLA)',
                 'Unlimited License Templates',
                 '6% Commission Rate',
