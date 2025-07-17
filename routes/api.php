@@ -36,4 +36,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/upload-settings/{context?}', [\App\Http\Controllers\Api\UploadSettingsController::class, 'getSettings']);
     Route::post('/upload-settings/for-model', [\App\Http\Controllers\Api\UploadSettingsController::class, 'getSettingsForModel']);
     Route::post('/upload-settings/test', [\App\Http\Controllers\Api\UploadSettingsController::class, 'testSettings']);
+
+    // Presigned URL upload routes
+    Route::post('/presigned-upload/generate', [\App\Http\Controllers\Api\PresignedUploadController::class, 'generatePresignedUrl'])
+        ->middleware('upload.validate:auto');
+    Route::post('/presigned-upload/complete', [\App\Http\Controllers\Api\PresignedUploadController::class, 'completeUpload']);
 });

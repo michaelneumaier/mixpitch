@@ -60,13 +60,13 @@ class ManageContestPitch extends Component
 
     public function updateStorageInfo()
     {
-        // Use contest-specific storage limit
-        $storageLimit = self::CONTEST_STORAGE_LIMIT;
-        $storageUsed = $this->pitch->total_storage_used;
+        // Use user-based storage instead of contest-specific limit
+        $user = $this->pitch->user;
+        $userStorageService = app(\App\Services\UserStorageService::class);
         
-        $this->storageUsedPercentage = round(($storageUsed / $storageLimit) * 100, 2);
-        $this->storageRemaining = $storageLimit - $storageUsed;
-        $this->storageLimitMessage = $this->formatFileSize($storageUsed) . ' of ' . $this->formatFileSize($storageLimit);
+        $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
+        $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
+        $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
     }
 
     public function formatFileSize($bytes)
@@ -101,8 +101,7 @@ class ManageContestPitch extends Component
             // Delete the file using FileManagementService
             app(FileManagementService::class)->deletePitchFile($file);
             
-            // Update storage tracking
-            $this->pitch->decrementStorageUsed($fileSize);
+            // Update storage tracking (handled automatically by FileManagementService)
             $this->updateStorageInfo();
             
             Toaster::success("File '{$fileName}' deleted successfully.");

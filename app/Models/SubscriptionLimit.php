@@ -20,7 +20,6 @@ class SubscriptionLimit extends Model
         'custom_portfolio',
         // Enhanced features
         'storage_per_project_gb',
-        'file_retention_days',
         'platform_commission_rate',
         'max_license_templates',
         'monthly_visibility_boosts',
@@ -44,7 +43,6 @@ class SubscriptionLimit extends Model
         'custom_portfolio' => 'boolean',
         // Enhanced features casts
         'storage_per_project_gb' => 'decimal:2',
-        'file_retention_days' => 'integer',
         'platform_commission_rate' => 'decimal:2',
         'max_license_templates' => 'integer',
         'monthly_visibility_boosts' => 'integer',

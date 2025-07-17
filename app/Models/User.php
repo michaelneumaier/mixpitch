@@ -98,6 +98,8 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'billing_period',
         'subscription_price',
         'subscription_currency',
+        'total_storage_used',
+        'storage_limit_override_gb',
         'plan_started_at',
         'monthly_pitch_count',
         'monthly_pitch_reset_date',
@@ -800,6 +802,68 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         return (int) ($capacityGB * 1024 * 1024 * 1024); // Convert GB to bytes
     }
 
+    // ========== USER-BASED STORAGE METHODS ==========
+
+    /**
+     * Get user's total storage limit in GB (with override support)
+     */
+    public function getStorageLimitGB(): float
+    {
+        if ($this->storage_limit_override_gb) {
+            return (float) $this->storage_limit_override_gb;
+        }
+        
+        return $this->getSubscriptionLimits()->total_user_storage_gb;
+    }
+
+    /**
+     * Get user's total storage limit in bytes
+     */
+    public function getStorageLimit(): int
+    {
+        return (int) ($this->getStorageLimitGB() * 1024 * 1024 * 1024);
+    }
+
+    /**
+     * Get user's storage usage percentage
+     */
+    public function getStorageUsedPercentage(): float
+    {
+        return app(\App\Services\UserStorageService::class)->getUserStoragePercentage($this);
+    }
+
+    /**
+     * Get formatted storage message
+     */
+    public function getStorageLimitMessage(): string
+    {
+        return app(\App\Services\UserStorageService::class)->getStorageLimitMessage($this);
+    }
+
+    /**
+     * Check if user has storage capacity
+     */
+    public function hasStorageCapacity(int $additionalBytes): bool
+    {
+        return app(\App\Services\UserStorageService::class)->hasUserStorageCapacity($this, $additionalBytes);
+    }
+
+    /**
+     * Get remaining storage in bytes
+     */
+    public function getRemainingStorageBytes(): int
+    {
+        return app(\App\Services\UserStorageService::class)->getUserStorageRemaining($this);
+    }
+
+    /**
+     * Get user's current storage usage in bytes
+     */
+    public function getTotalStorageUsed(): int
+    {
+        return app(\App\Services\UserStorageService::class)->getUserStorageUsed($this);
+    }
+
     /**
      * Get platform commission rate for this user
      *
@@ -855,16 +919,6 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         return $limits ? $limits->analytics_level : 'basic';
     }
 
-    /**
-     * Get file retention days for this user
-     *
-     * @return int
-     */
-    public function getFileRetentionDays(): int
-    {
-        $limits = $this->getSubscriptionLimits();
-        return $limits ? $limits->file_retention_days : 30;
-    }
 
     /**
      * Get monthly visibility boosts available

@@ -11,6 +11,6 @@
     </div>
     <div class="mt-2 text-xs text-gray-500">
         <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-        Maximum file size: 200MB. Total storage limit: 1GB.
+        Storage is calculated across all your projects and pitches.
     </div>
 </div> 

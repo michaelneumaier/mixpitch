@@ -450,10 +450,13 @@ class ManagePitch extends Component
      */
     protected function updateStorageInfo()
     {
-        $this->pitch->refresh(); // Ensure we have the latest storage usage
-        $this->storageUsedPercentage = $this->pitch->getStorageUsedPercentage();
-        $this->storageLimitMessage = $this->pitch->getStorageLimitMessage();
-        $this->storageRemaining = $this->pitch->getRemainingStorageBytes();
+        // Use user-based storage instead of pitch-based storage
+        $user = $this->pitch->user;
+        $userStorageService = app(\App\Services\UserStorageService::class);
+        
+        $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
+        $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
+        $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
     }
 
     /**

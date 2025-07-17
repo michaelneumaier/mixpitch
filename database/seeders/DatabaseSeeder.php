@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             ProjectTypeSeeder::class,  // Seed project types first
+            SubscriptionLimitsSeeder::class, // Seed subscription limits for storage system
             MigrateUserTagsSeeder::class,
             TagSeeder::class,
             LicenseTemplateSeeder::class, // Seed license templates

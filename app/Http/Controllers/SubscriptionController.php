@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SubscriptionLimit;
 use App\Models\Pitch;
+use App\Services\UserStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +27,16 @@ class SubscriptionController extends Controller
             'monthly_pitches_used' => $user->getMonthlyPitchCount(),
         ];
         
-        return view('subscription.index', compact('user', 'limits', 'usage'));
+        // Add storage information
+        $userStorageService = app(UserStorageService::class);
+        $storage = [
+            'used_gb' => round($userStorageService->getUserStorageUsed($user) / (1024**3), 2),
+            'total_gb' => round($userStorageService->getUserStorageLimit($user) / (1024**3), 1),
+            'percentage' => round($userStorageService->getUserStoragePercentage($user), 1),
+            'remaining_gb' => round($userStorageService->getUserStorageRemaining($user) / (1024**3), 2),
+        ];
+        
+        return view('subscription.index', compact('user', 'limits', 'usage', 'storage'));
     }
     
     /**

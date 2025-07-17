@@ -54,6 +54,8 @@ MixPitch is a collaborative music platform connecting musicians with audio profe
 
 ### Key Architectural Patterns
 
+**Development Environment utilizes SQLite; Prodution utilizes MySQL**: Always use php artisan for creating migration files
+
 **Service Layer Architecture**: Business logic is centralized in service classes rather than controllers or models:
 - `FileManagementService`: Handles all file operations, validation, and storage
 - `ProjectManagementService`: Project lifecycle and business rules

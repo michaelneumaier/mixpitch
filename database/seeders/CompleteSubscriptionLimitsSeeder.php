@@ -23,7 +23,6 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 100, // Legacy field (keeping for compatibility)
                 'storage_per_project_gb' => 1.0,
-                'file_retention_days' => 30,
                 'platform_commission_rate' => 10.0,
                 'max_license_templates' => 3,
                 'monthly_visibility_boosts' => 0,
@@ -49,7 +48,6 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 5120, // Legacy field (5GB in MB)
                 'storage_per_project_gb' => 5.0,
-                'file_retention_days' => 180,
                 'platform_commission_rate' => 8.0,
                 'max_license_templates' => null, // unlimited custom templates
                 'monthly_visibility_boosts' => 4,
@@ -75,7 +73,6 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 10240, // Legacy field (10GB in MB)
                 'storage_per_project_gb' => 10.0,
-                'file_retention_days' => 365,
                 'platform_commission_rate' => 6.0,
                 'max_license_templates' => null, // unlimited custom templates (same as Pro Artist)
                 'monthly_visibility_boosts' => 1,

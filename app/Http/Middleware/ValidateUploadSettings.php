@@ -62,6 +62,11 @@ class ValidateUploadSettings
                 $this->validateTotalSize($request->input('total_size'), $settings, $context);
             }
 
+            // Validate file size for presigned URL requests
+            if ($request->has('file_size') && !$request->hasFile('file')) {
+                $this->validateTotalSize($request->input('file_size'), $settings, $context);
+            }
+
             // Add settings to request for use in controllers
             $request->merge(['_upload_settings' => $settings, '_upload_context' => $context]);
 
@@ -95,7 +100,9 @@ class ValidateUploadSettings
         return $request->hasFile('file') || 
                $request->hasFile('chunk') || 
                $request->has('total_size') ||
-               str_contains($request->path(), 'upload');
+               $request->has('file_size') || // For presigned URL requests
+               str_contains($request->path(), 'upload') ||
+               str_contains($request->path(), 'presigned');
     }
 
     /**
@@ -103,6 +110,11 @@ class ValidateUploadSettings
      */
     private function determineContextFromRequest(Request $request): string
     {
+        // Check for explicit context parameter (used by presigned URL endpoints)
+        if ($request->has('context')) {
+            return $request->input('context');
+        }
+
         // Check for explicit model_type parameter
         if ($request->has('model_type')) {
             return match($request->input('model_type')) {
@@ -134,6 +146,10 @@ class ValidateUploadSettings
 
         if (str_contains($path, 'client-portal')) {
             return FileUploadSetting::CONTEXT_CLIENT_PORTALS;
+        }
+
+        if (str_contains($path, 'presigned')) {
+            return FileUploadSetting::CONTEXT_GLOBAL; // Default for presigned, will be overridden by context param
         }
 
         return FileUploadSetting::CONTEXT_GLOBAL;

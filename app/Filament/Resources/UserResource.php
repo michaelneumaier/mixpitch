@@ -197,6 +197,38 @@ class UserResource extends Resource
                                     ->label('Monthly Reset Date'),
                             ]),
                     ]),
+
+                Forms\Components\Section::make('Storage Management')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Placeholder::make('current_storage_usage')
+                                    ->label('Current Storage Usage')
+                                    ->content(fn ($record) => $record ? 
+                                        number_format($record->getTotalStorageUsed() / (1024**3), 2) . ' GB' : 
+                                        'N/A'),
+
+                                Forms\Components\Placeholder::make('storage_limit')
+                                    ->label('Storage Limit (from subscription)')
+                                    ->content(fn ($record) => $record ? 
+                                        number_format($record->getStorageLimitGB(), 1) . ' GB' : 
+                                        'N/A'),
+
+                                Forms\Components\TextInput::make('storage_limit_override_gb')
+                                    ->label('Storage Limit Override (GB)')
+                                    ->helperText('Leave empty to use subscription default')
+                                    ->numeric()
+                                    ->step(0.1)
+                                    ->minValue(0)
+                                    ->maxValue(1000),
+
+                                Forms\Components\Placeholder::make('storage_percentage')
+                                    ->label('Storage Usage')
+                                    ->content(fn ($record) => $record ? 
+                                        number_format($record->getStorageUsedPercentage(), 1) . '%' : 
+                                        'N/A'),
+                            ]),
+                    ]),
             ]);
     }
 
@@ -260,6 +292,16 @@ class UserResource extends Resource
                         'engineer' => 'warning',
                         default => 'gray',
                     })
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('total_storage_used')
+                    ->label('Storage Used')
+                    ->formatStateUsing(fn ($state) => number_format(($state ?? 0) / (1024**3), 2) . ' GB')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('storage_limit_override_gb')
+                    ->label('Storage Override')
+                    ->formatStateUsing(fn ($state) => $state ? $state . ' GB' : '-')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('created_at')

@@ -210,15 +210,19 @@ class ManageProject extends Component
      */
     protected function updateStorageInfo()
     {
+        // Use user-based storage instead of project-based storage
+        $user = $this->project->user;
+        $userStorageService = app(\App\Services\UserStorageService::class);
+        
         // Use caching for expensive calculations
-        $cacheKey = "project_{$this->project->id}_storage_info";
+        $cacheKey = "user_{$user->id}_storage_info";
         $cacheTTL = 120; // Cache for 2 minutes
         
-        $storageInfo = cache()->remember($cacheKey, $cacheTTL, function () {
+        $storageInfo = cache()->remember($cacheKey, $cacheTTL, function () use ($user, $userStorageService) {
             return [
-                'percentage' => $this->project->getStorageUsedPercentage(),
-                'message' => $this->project->getStorageLimitMessage(),
-                'remaining' => $this->project->getRemainingStorageBytes()
+                'percentage' => $userStorageService->getUserStoragePercentage($user),
+                'message' => $userStorageService->getStorageLimitMessage($user),
+                'remaining' => $userStorageService->getUserStorageRemaining($user)
             ];
         });
         
@@ -232,7 +236,8 @@ class ManageProject extends Component
      */
     protected function clearStorageCache()
     {
-        $cacheKey = "project_{$this->project->id}_storage_info";
+        $user = $this->project->user;
+        $cacheKey = "user_{$user->id}_storage_info";
         cache()->forget($cacheKey);
     }
 
@@ -457,8 +462,7 @@ class ManageProject extends Component
             // Important: Refresh the project model first to get the latest data
             $this->project->refresh();
             Log::debug('Project model refreshed', [
-                'total_storage_used' => $this->project->total_storage_used,
-                'storage_used_percentage' => $this->project->getStorageUsedPercentage()
+                'user_total_storage_used' => $this->project->user->total_storage_used,
             ]);
             
             // Clear the storage cache
@@ -466,10 +470,12 @@ class ManageProject extends Component
             Log::debug('Storage cache cleared');
             
             // Force a direct recalculation of storage info without caching
+            $user = $this->project->user;
+            $userStorageService = app(\App\Services\UserStorageService::class);
             $forcedStorageInfo = [
-                'percentage' => $this->project->getStorageUsedPercentage(),
-                'message' => $this->project->getStorageLimitMessage(),
-                'remaining' => $this->project->getRemainingStorageBytes()
+                'percentage' => $userStorageService->getUserStoragePercentage($user),
+                'message' => $userStorageService->getStorageLimitMessage($user),
+                'remaining' => $userStorageService->getUserStorageRemaining($user)
             ];
             
             Log::debug('Forced storage recalculation', $forcedStorageInfo);

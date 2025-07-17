@@ -58,7 +58,6 @@ return [
                 '8% Commission Rate',
                 '4 Visibility Boosts/month',
                 '2 Private Projects/month',
-                '180-day File Retention',
                 'Track-level Analytics',
                 '24h Early Challenge Access',
             ],
@@ -81,7 +80,6 @@ return [
                 '1 Visibility Boost/month',
                 'Unlimited Private Projects',
                 'Client Portal Access',
-                '365-day File Retention',
                 'Client & Earnings Analytics',
                 '24h Early Challenge Access + Judge',
                 'Email & Chat Support',
@@ -122,10 +120,6 @@ return [
     |
     */
     'features' => [
-        'file_retention' => [
-            'cleanup_frequency' => 'daily',
-            'notification_days_before' => 7,
-        ],
         'visibility_boosts' => [
             'duration_hours' => 72,
             'ranking_multiplier' => 2.0,

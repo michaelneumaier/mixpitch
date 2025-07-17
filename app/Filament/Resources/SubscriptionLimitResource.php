@@ -86,15 +86,17 @@ class SubscriptionLimitResource extends Resource
                             ->default(1.0)
                             ->required()
                             ->helperText('Current storage limit in GB'),
-                            
-                        Forms\Components\TextInput::make('file_retention_days')
-                            ->label('File Retention (Days)')
+
+                        Forms\Components\TextInput::make('total_user_storage_gb')
+                            ->label('Total User Storage (GB)')
                             ->numeric()
-                            ->default(30)
+                            ->step(0.1)
+                            ->default(10.0)
                             ->required()
-                            ->helperText('Days files are kept after project closure'),
+                            ->helperText('Total storage limit across all user projects and pitches'),
+                            
                     ])
-                    ->columns(3),
+                    ->columns(2),
                     
                 Forms\Components\Section::make('Business Features')
                     ->schema([
@@ -243,7 +245,12 @@ class SubscriptionLimitResource extends Resource
                     ->formatStateUsing(fn ($state) => $state ?? '∞'),
                     
                 Tables\Columns\TextColumn::make('storage_per_project_gb')
-                    ->label('Storage')
+                    ->label('Per Project')
+                    ->formatStateUsing(fn ($state) => $state . ' GB')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('total_user_storage_gb')
+                    ->label('Total User Storage')
                     ->formatStateUsing(fn ($state) => $state . ' GB')
                     ->sortable(),
                     
@@ -289,11 +296,6 @@ class SubscriptionLimitResource extends Resource
                     ->label('Judge')
                     ->boolean()
                     ->alignCenter()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                    
-                Tables\Columns\TextColumn::make('file_retention_days')
-                    ->label('Retention')
-                    ->formatStateUsing(fn ($state) => $state . ' days')
                     ->toggleable(isToggledHiddenByDefault: true),
                     
                 Tables\Columns\TextColumn::make('created_at')

@@ -552,7 +552,7 @@
                         </div>
                         <div class="mt-3 flex items-center text-xs text-blue-700">
                             <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                            Maximum file size: 200MB. Total storage limit: 1GB.
+                            Maximum file size: 200MB. Storage based on your subscription plan.
                         </div>
                     </div>
 

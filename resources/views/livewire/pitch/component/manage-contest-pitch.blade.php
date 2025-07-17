@@ -121,7 +121,7 @@
                         </li>
                         <li class="flex items-start">
                             <i class="fas fa-upload mr-2 text-blue-600 mt-0.5 text-xs"></i>
-                            Storage limit: 100MB - Maximum file size: 200MB
+                            Storage based on your subscription plan - Maximum file size: 200MB
                         </li>
                     </ul>
                 </div>
@@ -186,7 +186,7 @@
                 </div>
                 <div class="mt-2 flex items-center text-xs text-blue-600">
                     <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                    Contest limit: 100MB total storage. Maximum file size: 200MB.
+                    Storage based on your subscription plan. Maximum file size: 200MB.
                 </div>
             </div>
 

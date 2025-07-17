@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\ServicePackage;
 use Illuminate\Database\Eloquent\Collection;
 use App\Models\User;
+use App\Services\UserStorageService;
 
 class DashboardController extends Controller
 {
@@ -57,24 +58,25 @@ class DashboardController extends Controller
 
         // Calculate usage for the current user
         $limits = $user->getSubscriptionLimits();
-        if ($limits) {
-            $subscriptionData['limits'] = $limits;
-            
-            // Project counts using new methods
-            $totalProjects = $user->projects->count();
-            $activeProjects = $user->getActiveProjectsCount();
-            $completedProjects = $user->getCompletedProjectsCount();
-            
-            // Pitch counts (excluding client management)
-            $activePitches = $user->getActivePitchesCount();
+        $subscriptionData['limits'] = $limits;
+        
+        // Project counts using new methods
+        $totalProjects = $user->projects->count();
+        $activeProjects = $user->getActiveProjectsCount();
+        $completedProjects = $user->getCompletedProjectsCount();
+        
+        // Pitch counts (excluding client management)
+        $activePitches = $user->getActivePitchesCount();
 
-            $subscriptionData['usage'] = [
-                'total_projects' => $totalProjects,
-                'active_projects' => $activeProjects,
-                'completed_projects' => $completedProjects,
-                'active_pitches_count' => $activePitches,
-                'monthly_pitches_used' => $user->getMonthlyPitchCount(),
-            ];
+        $subscriptionData['usage'] = [
+            'total_projects' => $totalProjects,
+            'active_projects' => $activeProjects,
+            'completed_projects' => $completedProjects,
+            'active_pitches_count' => $activePitches,
+            'monthly_pitches_used' => $user->getMonthlyPitchCount(),
+        ];
+
+        if ($limits) {
             
             // Generate alerts based on usage (now using active projects)
             if ($limits->max_projects_owned && $activeProjects >= $limits->max_projects_owned) {
@@ -178,6 +180,15 @@ class DashboardController extends Controller
             ->get();
         $workItems = $this->mergeWithTypeKeys($workItems, $managedServices);
 
+        // --- Storage Information ---
+        $userStorageService = app(UserStorageService::class);
+        $storageInfo = [
+            'percentage' => round($userStorageService->getUserStoragePercentage($user), 1),
+            'used_gb' => round($userStorageService->getUserStorageUsed($user) / (1024**3), 2),
+            'total_gb' => round($userStorageService->getUserStorageLimit($user) / (1024**3), 1),
+            'remaining_gb' => round($userStorageService->getUserStorageRemaining($user) / (1024**3), 2),
+        ];
+
         // Sort all collected work items by last update time
         $sortedWorkItems = $workItems->sortByDesc('updated_at');
 
@@ -185,7 +196,8 @@ class DashboardController extends Controller
         return view('dashboard', [
             'workItems' => $sortedWorkItems,
             'subscription' => $subscriptionData,
-            'producerData' => $producerData
+            'producerData' => $producerData,
+            'storage_info' => $storageInfo
         ]);
     }
     

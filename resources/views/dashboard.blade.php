@@ -84,14 +84,14 @@
                             </div>
 
                             <!-- Usage Stats -->
-                            @if($subscription['limits'])
+                            @if(isset($subscription['usage']))
                                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm min-w-0">
                                 <!-- Projects -->
                                      <div class="flex items-center bg-blue-50/80 px-2.5 py-1.5 rounded-lg border border-blue-100 flex-shrink-0">
                                          <i class="fas fa-folder text-blue-500 mr-1.5 text-xs"></i>
                                          <span class="text-blue-700 font-medium">Projects:</span>
-                                         <span class="font-semibold ml-1 {{ $subscription['limits']->max_projects_owned && $subscription['usage']['active_projects'] >= $subscription['limits']->max_projects_owned ? 'text-red-600' : 'text-blue-900' }}">
-                                        {{ $subscription['usage']['active_projects'] }}{{ $subscription['limits']->max_projects_owned ? '/' . $subscription['limits']->max_projects_owned : '' }}
+                                         <span class="font-semibold ml-1 {{ isset($subscription['limits']) && $subscription['limits']->max_projects_owned && $subscription['usage']['active_projects'] >= $subscription['limits']->max_projects_owned ? 'text-red-600' : 'text-blue-900' }}">
+                                        {{ $subscription['usage']['active_projects'] }}{{ isset($subscription['limits']) && $subscription['limits']->max_projects_owned ? '/' . $subscription['limits']->max_projects_owned : '' }}
                                     </span>
                                     @if($subscription['usage']['completed_projects'] > 0)
                                         <span class="text-xs text-gray-500 ml-1">(+{{ $subscription['usage']['completed_projects'] }} completed)</span>
@@ -102,13 +102,13 @@
                                      <div class="flex items-center bg-green-50/80 px-2.5 py-1.5 rounded-lg border border-green-100 flex-shrink-0">
                                          <i class="fas fa-paper-plane text-green-500 mr-1.5 text-xs"></i>
                                          <span class="text-green-700 font-medium">Pitches:</span>
-                                         <span class="font-semibold ml-1 {{ $subscription['limits']->max_active_pitches && $subscription['usage']['active_pitches_count'] >= $subscription['limits']->max_active_pitches ? 'text-red-600' : 'text-green-900' }}">
-                                        {{ $subscription['usage']['active_pitches_count'] }}{{ $subscription['limits']->max_active_pitches ? '/' . $subscription['limits']->max_active_pitches : '' }}
+                                         <span class="font-semibold ml-1 {{ isset($subscription['limits']) && $subscription['limits']->max_active_pitches && $subscription['usage']['active_pitches_count'] >= $subscription['limits']->max_active_pitches ? 'text-red-600' : 'text-green-900' }}">
+                                        {{ $subscription['usage']['active_pitches_count'] }}{{ isset($subscription['limits']) && $subscription['limits']->max_active_pitches ? '/' . $subscription['limits']->max_active_pitches : '' }}
                                     </span>
                                 </div>
 
                                 <!-- Monthly Pitches (Pro Engineer only) -->
-                                @if($subscription['limits']->max_monthly_pitches)
+                                @if(isset($subscription['limits']) && $subscription['limits']->max_monthly_pitches)
                                      <div class="flex items-center bg-purple-50/80 px-2.5 py-1.5 rounded-lg border border-purple-100 flex-shrink-0">
                                          <i class="fas fa-calendar text-purple-500 mr-1.5 text-xs"></i>
                                          <span class="text-purple-700 font-medium">Monthly:</span>
@@ -117,6 +117,22 @@
                                     </span>
                                 </div>
                                 @endif
+
+                                <!-- Storage Usage -->
+                                <div class="flex items-center bg-orange-50/80 px-2.5 py-1.5 rounded-lg border border-orange-100 flex-shrink-0">
+                                    <i class="fas fa-hdd text-orange-500 mr-1.5 text-xs"></i>
+                                    <span class="text-orange-700 font-medium">Storage:</span>
+                                    <span class="font-semibold ml-1 text-orange-900">
+                                        @if(isset($storage_info))
+                                            {{ $storage_info['percentage'] }}%
+                                        @else
+                                            --
+                                        @endif
+                                    </span>
+                                    @if(isset($storage_info['remaining_gb']))
+                                        <span class="text-xs text-gray-500 ml-1">({{ $storage_info['remaining_gb'] }}GB left)</span>
+                                    @endif
+                                </div>
                             </div>
                             @endif
                         </div>

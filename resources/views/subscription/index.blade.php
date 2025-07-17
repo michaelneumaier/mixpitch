@@ -264,8 +264,13 @@
                                     <span class="text-sm font-medium text-gray-700">Storage</span>
                                     <i class="fas fa-hdd text-orange-500"></i>
                                 </div>
-                                <div class="text-2xl font-bold text-gray-900">{{ $user->getStoragePerProjectGB() }}GB</div>
-                                <div class="text-sm text-gray-600">per project</div>
+                                <div class="text-2xl font-bold text-gray-900">{{ $storage['used_gb'] }}GB</div>
+                                <div class="text-sm text-gray-600">/ {{ $storage['total_gb'] }}GB total</div>
+                                <div class="mt-2">
+                                    <div class="bg-gray-200 rounded-full h-2">
+                                        <div class="bg-orange-500 h-2 rounded-full" style="width: {{ $storage['percentage'] }}%"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -290,7 +295,7 @@
                                     </div>
                                     <div class="flex items-center">
                                         <i class="fas fa-check text-green-500 mr-3"></i>
-                                        <span class="text-gray-700">{{ $user->getStoragePerProjectGB() }}GB Storage per Project</span>
+                                        <span class="text-gray-700">{{ $storage['total_gb'] }}GB Total Storage</span>
                                     </div>
                                     <div class="flex items-center">
                                         <i class="fas fa-check text-green-500 mr-3"></i>
@@ -481,7 +486,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
-                                <span class="text-sm text-gray-700">5GB Storage per Project</span>
+                                <span class="text-sm text-gray-700">50GB Total Storage</span>
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
@@ -546,7 +551,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
-                                <span class="text-sm text-gray-700">10GB Storage per Project</span>
+                                <span class="text-sm text-gray-700">200GB Total Storage</span>
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>

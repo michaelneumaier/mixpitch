@@ -92,11 +92,11 @@
                         </li>
                         <li class="flex items-center">
                             <i class="fas fa-check text-green-500 mr-3"></i>
-                            <span class="text-gray-700">1GB Storage per Project</span>
+                            <span class="text-gray-700">10GB Total Storage</span>
                         </li>
                         <li class="flex items-center">
                             <i class="fas fa-check text-green-500 mr-3"></i>
-                            <span class="text-gray-700">30 Days File Retention</span>
+                            <span class="text-gray-700">Unlimited File Retention</span>
                         </li>
                         <li class="flex items-center">
                             <i class="fas fa-check text-green-500 mr-3"></i>
@@ -184,7 +184,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-blue-500 mt-1 mr-3"></i>
-                                <span class="text-gray-700">5GB Storage per Project</span>
+                                <span class="text-gray-700">50GB Total Storage</span>
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-blue-500 mt-1 mr-3"></i>
@@ -204,7 +204,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-blue-500 mt-1 mr-3"></i>
-                                <span class="text-gray-700">180-day File Retention</span>
+                                <span class="text-gray-700">Unlimited File Retention</span>
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-blue-500 mt-1 mr-3"></i>
@@ -288,7 +288,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-orange-500 mt-1 mr-3"></i>
-                                <span class="text-gray-700">10GB Storage per Project</span>
+                                <span class="text-gray-700">200GB Total Storage</span>
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-orange-500 mt-1 mr-3"></i>
@@ -312,7 +312,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-orange-500 mt-1 mr-3"></i>
-                                <span class="text-gray-700">365-day File Retention</span>
+                                <span class="text-gray-700">Unlimited File Retention</span>
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-check text-orange-500 mt-1 mr-3"></i>
@@ -390,16 +390,10 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-center font-medium">Unlimited</td>
                             </tr>
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Storage per Project</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">1GB</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-center font-medium">5GB</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-center font-medium">10GB</td>
-                            </tr>
-                            <tr class="bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">File Retention</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">30 days</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-center font-medium">180 days</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-center font-medium">365 days</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Total Storage</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">10GB</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-center font-medium">50GB</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-center font-medium">200GB</td>
                             </tr>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Commission Rate</td>

@@ -11,13 +11,23 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Aws\S3\S3Client;
+use Illuminate\Support\Str;
 use App\Exceptions\File\FileUploadException;
 use App\Exceptions\File\StorageLimitException;
 use App\Exceptions\File\FileDeletionException;
 use App\Exceptions\File\UnauthorizedActionException;
+use App\Services\UserStorageService;
 
 class FileManagementService
 {
+    protected UserStorageService $userStorageService;
+
+    public function __construct(UserStorageService $userStorageService)
+    {
+        $this->userStorageService = $userStorageService;
+    }
+
     /**
      * Upload a file for a Project.
      * Authorization should be checked before calling this method.
@@ -49,8 +59,17 @@ class FileManagementService
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
-        if (!$project->hasStorageCapacity($fileSize)) { // Assume this instance method exists in Project model
-            throw new StorageLimitException('Project storage limit reached. Cannot upload file.');
+
+        // Check user storage capacity instead of project capacity
+        $user = $uploader ?? $project->user;
+        if (!$this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
+            $used = $this->userStorageService->getUserStorageUsed($user);
+            $limit = $this->userStorageService->getUserStorageLimit($user);
+            throw new StorageLimitException(
+                "Upload would exceed your storage limit. " .
+                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
+                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+            );
         }
 
         try {
@@ -80,8 +99,9 @@ class FileManagementService
                     'metadata' => !empty($metadata) ? json_encode($metadata) : null, // Store client upload metadata
                 ]);
 
-                // Atomically update project storage usage
-                $project->incrementStorageUsed($fileSize); // Assume this method exists
+                // Atomically update user storage usage instead of project storage
+                $user = $uploader ?? $project->user;
+                $this->userStorageService->incrementUserStorage($user, $fileSize);
 
                 return $projectFile;
             });
@@ -131,8 +151,16 @@ class FileManagementService
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
-        if (!$pitch->hasStorageCapacity($fileSize)) { // Assume instance method in Pitch model
-            throw new StorageLimitException('Pitch storage limit exceeded. Cannot upload file.');
+
+        // Check user storage capacity instead of pitch capacity
+        if (!$this->userStorageService->hasUserStorageCapacity($uploader, $fileSize)) {
+            $used = $this->userStorageService->getUserStorageUsed($uploader);
+            $limit = $this->userStorageService->getUserStorageLimit($uploader);
+            throw new StorageLimitException(
+                "Upload would exceed your storage limit. " .
+                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
+                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+            );
         }
 
         try {
@@ -156,8 +184,8 @@ class FileManagementService
                     'mime_type' => $file->getMimeType(),
                 ]);
 
-                // Update pitch storage usage
-                $pitch->incrementStorageUsed($fileSize); // Assume this method exists
+                // Update user storage usage instead of pitch storage
+                $this->userStorageService->incrementUserStorage($uploader, $fileSize);
 
                 // If file upload triggers waveform generation
                 if (str_starts_with($pitchFile->mime_type, 'audio/')) {
@@ -202,13 +230,14 @@ class FileManagementService
                     throw new FileDeletionException('Failed to delete file record from database.');
                 }
 
-                // Decrement storage used - only if file size is valid
+                // Decrement user storage used - only if file size is valid
                 if ($fileSize > 0 && $project) {
                     try {
-                        $project->decrementStorageUsed($fileSize);
+                        $this->userStorageService->decrementUserStorage($project->user, $fileSize);
                     } catch (\Exception $storageEx) {
-                        Log::warning('Failed to decrement storage usage during file deletion', [
+                        Log::warning('Failed to decrement user storage usage during file deletion', [
                             'project_id' => $project->id,
+                            'user_id' => $project->user->id,
                             'file_size' => $fileSize,
                             'error' => $storageEx->getMessage()
                         ]);
@@ -259,8 +288,8 @@ class FileManagementService
                 $deleted = $pitchFile->delete();
 
                 if ($deleted) {
-                    // Decrement storage used
-                    $pitch->decrementStorageUsed($fileSize); // Assume this method exists
+                    // Decrement user storage used instead of pitch storage
+                    $this->userStorageService->decrementUserStorage($pitch->user, $fileSize);
 
                     // Delete file from S3
                     try {
@@ -392,8 +421,17 @@ class FileManagementService
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
-        if (!$project->hasStorageCapacity($fileSize)) {
-            throw new StorageLimitException('Project storage limit reached. Cannot upload file.');
+
+        // Check user storage capacity instead of project capacity
+        $user = $uploader ?? $project->user;
+        if (!$this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
+            $used = $this->userStorageService->getUserStorageUsed($user);
+            $limit = $this->userStorageService->getUserStorageLimit($user);
+            throw new StorageLimitException(
+                "Upload would exceed your storage limit. " .
+                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
+                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+            );
         }
 
         // Verify the file actually exists in S3
@@ -422,8 +460,9 @@ class FileManagementService
                     'metadata' => !empty($metadata) ? json_encode($metadata) : null,
                 ]);
 
-                // Atomically update project storage usage
-                $project->incrementStorageUsed($fileSize);
+                // Atomically update user storage usage instead of project storage
+                $user = $uploader ?? $project->user;
+                $this->userStorageService->incrementUserStorage($user, $fileSize);
 
                 return $projectFile;
             });
@@ -468,8 +507,17 @@ class FileManagementService
         if ($fileSize > $maxFileSize) {
             throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
         }
-        if (!$pitch->hasStorageCapacity($fileSize)) {
-            throw new StorageLimitException('Pitch storage limit reached. Cannot upload file.');
+
+        // Check user storage capacity instead of pitch capacity
+        $user = $uploader ?? $pitch->user;
+        if (!$this->userStorageService->hasUserStorageCapacity($user, $fileSize)) {
+            $used = $this->userStorageService->getUserStorageUsed($user);
+            $limit = $this->userStorageService->getUserStorageLimit($user);
+            throw new StorageLimitException(
+                "Upload would exceed your storage limit. " .
+                "Used: " . number_format($used / (1024**3), 2) . "GB, " .
+                "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+            );
         }
 
         // Verify the file actually exists in S3
@@ -498,8 +546,9 @@ class FileManagementService
                     'metadata' => !empty($metadata) ? json_encode($metadata) : null,
                 ]);
 
-                // Atomically update pitch storage usage
-                $pitch->incrementStorageUsed($fileSize);
+                // Atomically update user storage usage instead of pitch storage
+                $user = $uploader ?? $pitch->user;
+                $this->userStorageService->incrementUserStorage($user, $fileSize);
 
                 // If file upload triggers waveform generation
                 if (str_starts_with($pitchFile->mime_type, 'audio/')) {
@@ -519,5 +568,168 @@ class FileManagementService
             
             throw new FileUploadException("Failed to create file record for '{$fileName}'.", 0, $e);
         }
+    }
+
+    /**
+     * Generate a presigned URL for direct upload to S3/R2
+     * Authorization should be checked before calling this method.
+     *
+     * @param string $context The upload context (projects, pitches, client_portals)
+     * @param string $fileName Original file name
+     * @param string $mimeType File MIME type
+     * @param int $fileSize File size in bytes
+     * @param array $metadata Additional metadata (model_type, model_id, etc.)
+     * @param User|null $uploader The user who will upload (null for client uploads)
+     * @return array Contains presigned_url, s3_key, expires_at
+     * @throws FileUploadException|StorageLimitException
+     */
+    public function generatePresignedUploadUrl(string $context, string $fileName, string $mimeType, int $fileSize, array $metadata = [], ?User $uploader = null): array
+    {
+        // Validate context
+        if (!FileUploadSetting::validateContext($context)) {
+            throw new FileUploadException("Invalid upload context: {$context}");
+        }
+
+        // Validate file size using context settings
+        $maxFileSizeMB = FileUploadSetting::getSetting(
+            FileUploadSetting::MAX_FILE_SIZE_MB, 
+            $context
+        );
+        $maxFileSize = $maxFileSizeMB * 1024 * 1024; // Convert MB to bytes
+        
+        if ($fileSize > $maxFileSize) {
+            throw new FileUploadException("File '{$fileName}' ({$fileSize} bytes) exceeds the maximum allowed size of {$maxFileSizeMB}MB ({$maxFileSize} bytes).");
+        }
+
+        // For authenticated uploads, check storage capacity
+        if ($uploader) {
+            if (!$this->userStorageService->hasUserStorageCapacity($uploader, $fileSize)) {
+                $used = $this->userStorageService->getUserStorageUsed($uploader);
+                $limit = $this->userStorageService->getUserStorageLimit($uploader);
+                throw new StorageLimitException(
+                    "Upload would exceed your storage limit. " .
+                    "Used: " . number_format($used / (1024**3), 2) . "GB, " .
+                    "Limit: " . number_format($limit / (1024**3), 2) . "GB"
+                );
+            }
+        }
+
+        try {
+            // Generate unique S3 key
+            $s3Key = $this->generateS3Key($context, $fileName, $metadata);
+            
+            // Check if we're in testing mode (using fake storage)
+            $diskConfig = Storage::disk('s3')->getConfig();
+            if (app()->environment('testing') && (!isset($diskConfig['driver']) || $diskConfig['driver'] !== 's3')) {
+                // Return a mock presigned URL for testing
+                $presignedUrl = 'https://test-bucket.s3.amazonaws.com/' . $s3Key . '?presigned=true';
+                $expiresAt = now()->addMinutes(15);
+            } else {
+                // Get S3 client from Laravel's Storage facade
+                $s3Client = Storage::disk('s3')->getAdapter()->getClient();
+                $bucket = config('filesystems.disks.s3.bucket');
+                
+                // Generate presigned URL for PUT operation
+                $cmd = $s3Client->getCommand('PutObject', [
+                    'Bucket' => $bucket,
+                    'Key' => $s3Key,
+                    'ContentType' => $mimeType,
+                    'ContentLength' => $fileSize,
+                ]);
+
+                // Set expiration (15 minutes by default)
+                $expiresAt = now()->addMinutes(15);
+                $request = $s3Client->createPresignedRequest($cmd, $expiresAt);
+                $presignedUrl = (string) $request->getUri();
+            }
+
+            Log::info('Generated presigned upload URL', [
+                's3_key' => $s3Key,
+                'context' => $context,
+                'filename' => $fileName,
+                'file_size' => $fileSize,
+                'uploader_id' => $uploader?->id,
+                'expires_at' => $expiresAt->toISOString(),
+                'metadata' => $metadata
+            ]);
+
+            return [
+                'presigned_url' => $presignedUrl,
+                's3_key' => $s3Key,
+                'expires_at' => $expiresAt->toISOString(),
+                'upload_method' => 'PUT',
+                'headers' => [
+                    'Content-Type' => $mimeType,
+                    'Content-Length' => $fileSize,
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to generate presigned upload URL', [
+                'context' => $context,
+                'filename' => $fileName,
+                'error' => $e->getMessage(),
+                'uploader_id' => $uploader?->id
+            ]);
+            
+            throw new FileUploadException("Failed to generate upload URL for '{$fileName}'.", 0, $e);
+        }
+    }
+
+    /**
+     * Generate S3 key based on context and metadata
+     *
+     * @param string $context
+     * @param string $fileName
+     * @param array $metadata
+     * @return string
+     */
+    protected function generateS3Key(string $context, string $fileName, array $metadata = []): string
+    {
+        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+        $uniqueId = Str::ulid();
+        
+        // Generate folder based on context and metadata
+        $folder = match($context) {
+            FileUploadSetting::CONTEXT_PROJECTS => $this->generateProjectFolder($metadata),
+            FileUploadSetting::CONTEXT_PITCHES => $this->generatePitchFolder($metadata),
+            FileUploadSetting::CONTEXT_CLIENT_PORTALS => $this->generateClientPortalFolder($metadata),
+            default => 'uploads/'
+        };
+
+        return $folder . $uniqueId . '.' . $fileExtension;
+    }
+
+    /**
+     * Generate folder path for project uploads
+     */
+    protected function generateProjectFolder(array $metadata): string
+    {
+        if (isset($metadata['project_id'])) {
+            return "projects/{$metadata['project_id']}/";
+        }
+        return 'projects/';
+    }
+
+    /**
+     * Generate folder path for pitch uploads
+     */
+    protected function generatePitchFolder(array $metadata): string
+    {
+        if (isset($metadata['pitch_id'])) {
+            return "pitches/{$metadata['pitch_id']}/";
+        }
+        return 'pitches/';
+    }
+
+    /**
+     * Generate folder path for client portal uploads
+     */
+    protected function generateClientPortalFolder(array $metadata): string
+    {
+        if (isset($metadata['project_id'])) {
+            return "client-uploads/{$metadata['project_id']}/";
+        }
+        return 'client-uploads/';
     }
 } 

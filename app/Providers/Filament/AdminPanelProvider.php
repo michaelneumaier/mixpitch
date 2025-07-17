@@ -41,6 +41,7 @@ use App\Filament\Resources\MarketplaceTemplateResource;
 use App\Filament\Resources\PayoutScheduleResource;
 use App\Filament\Resources\StripeTransactionResource;
 use App\Filament\Resources\FileUploadSettingResource;
+use App\Filament\Resources\SubscriptionLimitResource;
 use App\Filament\Pages\EmailAuditPage;
 use App\Filament\Pages\EmailSuppressionPage;
 use App\Filament\Pages\PayoutHoldSettings;
@@ -116,6 +117,10 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Financial')
                     ->icon('heroicon-o-banknotes')
                     ->collapsible(),
+                'Subscriptions' => \Filament\Navigation\NavigationGroup::make()
+                    ->label('Subscriptions')
+                    ->icon('heroicon-o-credit-card')
+                    ->collapsible(),
                 'System' => \Filament\Navigation\NavigationGroup::make()
                     ->label('System')
                     ->icon('heroicon-o-cog-6-tooth')
@@ -134,6 +139,7 @@ class AdminPanelProvider extends PanelProvider
                 EmailTestResource::class,
                 MarketplaceTemplateResource::class,
                 FileUploadSettingResource::class,
+                SubscriptionLimitResource::class,
             ])
             ->pages([
                 Dashboard::class,

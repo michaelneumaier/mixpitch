@@ -959,6 +959,14 @@ Route::get('/client-portal/project/{project:id}/file/{pitchFile:id}', [ClientPor
 Route::post('/client-portal/project/{project:id}/upload', [ClientPortalController::class, 'uploadFile'])
     ->name('client.portal.upload_file');
 
+// Client presigned URL upload routes
+Route::post('/client-portal/presigned-upload/generate', [\App\Http\Controllers\Api\PresignedUploadController::class, 'generatePresignedUrl'])
+    ->name('client.portal.presigned.generate')
+    ->middleware(['signed', 'upload.validate:auto']);
+Route::post('/client-portal/presigned-upload/complete', [\App\Http\Controllers\Api\PresignedUploadController::class, 'completeUpload'])
+    ->name('client.portal.presigned.complete')
+    ->middleware('signed');
+
 // Client Project File Download route (needs signed middleware) - NEW
 Route::get('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'downloadProjectFile'])
     ->name('client.portal.download_project_file')
