@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\ProjectFile;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class ProjectFilePolicy
 {
@@ -55,7 +54,14 @@ class ProjectFilePolicy
     public function uploadFile(User $user, \App\Models\Project $project): bool
     {
         // Only the project owner can upload project files
-        return $user->id === $project->user_id;
+        if ($user->id !== $project->user_id) {
+            return false;
+        }
+
+        // Block uploads for completed projects
+        return ! in_array($project->status, [
+            \App\Models\Project::STATUS_COMPLETED,
+        ]);
     }
 
     /**

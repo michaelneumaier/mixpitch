@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Masmerise\Toaster\Toaster;
+use Illuminate\Support\Facades\Gate;
 
 class UppyFileUploader extends Component
 {
@@ -125,9 +126,12 @@ class UppyFileUploader extends Component
                 throw new \Exception('No S3 key provided in upload data');
             }
 
-            // Use the file management service to create a database record
-            // Since the file is already in S3, we'll create a record directly
+            // Check authorization before creating file records
             if ($this->model instanceof \App\Models\Project) {
+                if (!Gate::allows('uploadFile', $this->model)) {
+                    throw new \Exception('You are not authorized to upload files to this project. Project may be completed or you may not have permission.');
+                }
+                
                 $fileRecord = $this->getFileManagementService()->createProjectFileFromS3(
                     $this->model,
                     $s3Key,
@@ -137,6 +141,10 @@ class UppyFileUploader extends Component
                     auth()->user()
                 );
             } elseif ($this->model instanceof \App\Models\Pitch) {
+                if (!Gate::allows('uploadFile', $this->model)) {
+                    throw new \Exception('You are not authorized to upload files to this pitch. Pitch may be in a terminal state or you may not have permission.');
+                }
+                
                 $fileRecord = $this->getFileManagementService()->createPitchFileFromS3(
                     $this->model,
                     $s3Key,

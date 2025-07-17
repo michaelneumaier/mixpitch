@@ -191,7 +191,14 @@ class ProjectPolicy
     public function uploadFile(User $user, Project $project): bool
     {
         // Only the project owner can upload files to their project
-        return $user->id === $project->user_id;
+        if ($user->id !== $project->user_id) {
+            return false;
+        }
+        
+        // Block uploads for completed projects
+        return ! in_array($project->status, [
+            Project::STATUS_COMPLETED,
+        ]);
     }
 
     /**

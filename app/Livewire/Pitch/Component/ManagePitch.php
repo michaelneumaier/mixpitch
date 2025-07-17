@@ -30,6 +30,7 @@ use App\Models\Project;
 use App\Helpers\RouteHelpers;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Gate;
 
 class ManagePitch extends Component
 {
@@ -561,5 +562,13 @@ class ManagePitch extends Component
             'pitch_id' => $this->pitch->id, 
             'user_id' => Auth::id()
         ]);
+    }
+
+    /**
+     * Check if the current user can upload files to this pitch.
+     */
+    public function getCanUploadFilesProperty(): bool
+    {
+        return Gate::allows('uploadFile', $this->pitch);
     }
 }

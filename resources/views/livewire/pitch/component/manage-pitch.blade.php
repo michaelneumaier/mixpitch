@@ -576,7 +576,18 @@
                             </div>
                         </div>
                         <div class="p-4">
-                            <livewire:uppy-file-uploader :model="$pitch" wire:key="'enhanced-pitch-uploader-' . $pitch->id" />
+                            @if($this->canUploadFiles)
+                                <livewire:uppy-file-uploader :model="$pitch" wire:key="'enhanced-pitch-uploader-' . $pitch->id" />
+                            @else
+                                <div class="text-center py-8">
+                                    <p class="text-gray-500 mb-2">File uploads are not available for this pitch.</p>
+                                    @if(in_array($pitch->status, ['completed', 'closed', 'denied', 'contest_winner', 'contest_runner_up', 'contest_not_selected']))
+                                        <p class="text-sm text-gray-400">Pitch is in a final state - no additional files can be uploaded.</p>
+                                    @elseif($pitch->isAcceptedCompletedAndPaid())
+                                        <p class="text-sm text-gray-400">Pitch is completed and paid - no additional files can be uploaded.</p>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </div>
 

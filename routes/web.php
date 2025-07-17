@@ -23,7 +23,8 @@ use App\Http\Controllers\UserController;
 
 // Custom S3 multipart upload route (override package route)
 Route::post('/s3/multipart', [CustomUppyS3MultipartController::class, 'createMultipartUpload'])
-    ->name('s3.multipart.create.custom');
+    ->name('s3.multipart.create.custom')
+    ->middleware('auth');
 use App\Http\Controllers\PitchSnapshotController;
 use App\Http\Controllers\PitchStatusController;
 use App\Livewire\User\ManagePortfolioItems;

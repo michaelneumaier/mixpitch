@@ -24,6 +24,7 @@ use App\Exceptions\File\FileDeletionException;
 use App\Services\NotificationService;
 use App\Jobs\PostProjectToReddit;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 class ManageProject extends Component
 {
@@ -583,6 +584,14 @@ class ManageProject extends Component
             ]);
             Toaster::error('Failed to resend invitation. Please try again later.');
         }
+    }
+
+    /**
+     * Check if the current user can upload files to this project.
+     */
+    public function getCanUploadFilesProperty(): bool
+    {
+        return Gate::allows('uploadFile', $this->project);
     }
 
     public function render()

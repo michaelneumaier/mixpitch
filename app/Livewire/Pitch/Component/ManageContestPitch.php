@@ -251,6 +251,14 @@ class ManageContestPitch extends Component
         $this->updateStorageInfo();
     }
 
+    /**
+     * Check if the current user can upload files to this contest pitch.
+     */
+    public function getCanUploadFilesProperty(): bool
+    {
+        return Gate::allows('uploadFile', $this->pitch);
+    }
+
     public function render()
     {
         // Always recalculate storage info to ensure fresh values

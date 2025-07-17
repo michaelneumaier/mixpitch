@@ -332,8 +332,17 @@
                                                 </div>
                                             </div>
                                             <div class="p-4">
-                                                <livewire:uppy-file-uploader :model="$project"
-                                                    wire:key="enhanced-project-uploader-{{ $project->id }}" />
+                                                @if($this->canUploadFiles)
+                                                    <livewire:uppy-file-uploader :model="$project"
+                                                        wire:key="enhanced-project-uploader-{{ $project->id }}" />
+                                                @else
+                                                    <div class="text-center py-8">
+                                                        <p class="text-gray-500 mb-2">File uploads are not available for this project.</p>
+                                                        @if($project->status === App\Models\Project::STATUS_COMPLETED)
+                                                            <p class="text-sm text-gray-400">Project is completed - no additional files can be uploaded.</p>
+                                                        @endif
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>

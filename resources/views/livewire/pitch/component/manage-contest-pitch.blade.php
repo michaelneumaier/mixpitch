@@ -205,7 +205,18 @@
                         </div>
                     </div>
                     <div class="p-4">
-                        <livewire:uppy-file-uploader :model="$pitch" wire:key="'enhanced-contest-uploader-' . $pitch->id" />
+                        @if($this->canUploadFiles)
+                            <livewire:uppy-file-uploader :model="$pitch" wire:key="'enhanced-contest-uploader-' . $pitch->id" />
+                        @else
+                            <div class="text-center py-8">
+                                <p class="text-gray-500 mb-2">File uploads are not available for this contest entry.</p>
+                                @if($project->isSubmissionPeriodClosed())
+                                    <p class="text-sm text-gray-400">Contest submission period has ended.</p>
+                                @elseif(in_array($pitch->status, ['contest_winner', 'contest_runner_up', 'contest_not_selected']))
+                                    <p class="text-sm text-gray-400">Contest has been finalized - no additional files can be uploaded.</p>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                 </div>
             @else

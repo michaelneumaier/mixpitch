@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\FileUploadSetting;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Gate;
+use App\Models\Project;
+use App\Models\Pitch;
 
 class ValidateUploadSettings
 {
@@ -35,6 +38,9 @@ class ValidateUploadSettings
                     'valid_contexts' => FileUploadSetting::getValidContexts()
                 ], 400);
             }
+
+            // Check authorization before validating file sizes
+            $this->validateAuthorization($request, $context);
 
             // Get settings for the context
             $settings = FileUploadSetting::getSettings($context);
@@ -175,6 +181,67 @@ class ValidateUploadSettings
                 "Total upload size ({$this->formatBytes($totalSize)}) exceeds maximum allowed size for {$context} context ({$settings[FileUploadSetting::MAX_FILE_SIZE_MB]}MB)"
             );
         }
+    }
+
+    /**
+     * Validate authorization for uploads
+     */
+    private function validateAuthorization(Request $request, string $context): void
+    {
+        // Skip authorization for non-authenticated requests (client portals use signed URLs)
+        if (!$request->user()) {
+            return;
+        }
+
+        if ($context === FileUploadSetting::CONTEXT_PROJECTS) {
+            $project = $this->extractProjectFromRequest($request);
+            if ($project && !Gate::forUser($request->user())->allows('uploadFile', $project)) {
+                throw new \Exception('Upload not allowed for this project. Project may be completed or you may not have permission.');
+            }
+        }
+
+        if ($context === FileUploadSetting::CONTEXT_PITCHES) {
+            $pitch = $this->extractPitchFromRequest($request);
+            if ($pitch && !Gate::forUser($request->user())->allows('uploadFile', $pitch)) {
+                throw new \Exception('Upload not allowed for this pitch. Pitch may be in a terminal state or you may not have permission.');
+            }
+        }
+    }
+
+    /**
+     * Extract project from request
+     */
+    private function extractProjectFromRequest(Request $request): ?Project
+    {
+        // Try route parameter first
+        if ($request->route('project')) {
+            return $request->route('project');
+        }
+
+        // Try request parameter
+        if ($request->has('project_id')) {
+            return Project::find($request->input('project_id'));
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract pitch from request
+     */
+    private function extractPitchFromRequest(Request $request): ?Pitch
+    {
+        // Try route parameter first
+        if ($request->route('pitch')) {
+            return $request->route('pitch');
+        }
+
+        // Try request parameter
+        if ($request->has('pitch_id')) {
+            return Pitch::find($request->input('pitch_id'));
+        }
+
+        return null;
     }
 
     /**
