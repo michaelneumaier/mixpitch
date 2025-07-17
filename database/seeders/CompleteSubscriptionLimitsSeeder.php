@@ -23,6 +23,7 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 100, // Legacy field (keeping for compatibility)
                 'storage_per_project_gb' => 1.0,
+                'total_user_storage_gb' => 10.0,
                 'platform_commission_rate' => 10.0,
                 'max_license_templates' => 3,
                 'monthly_visibility_boosts' => 0,
@@ -48,6 +49,7 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 5120, // Legacy field (5GB in MB)
                 'storage_per_project_gb' => 5.0,
+                'total_user_storage_gb' => 50.0,
                 'platform_commission_rate' => 8.0,
                 'max_license_templates' => null, // unlimited custom templates
                 'monthly_visibility_boosts' => 4,
@@ -73,6 +75,7 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'max_monthly_pitches' => null,
                 'storage_per_project_mb' => 10240, // Legacy field (10GB in MB)
                 'storage_per_project_gb' => 10.0,
+                'total_user_storage_gb' => 200.0,
                 'platform_commission_rate' => 6.0,
                 'max_license_templates' => null, // unlimited custom templates (same as Pro Artist)
                 'monthly_visibility_boosts' => 1,
@@ -102,8 +105,8 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
 
         $this->command->info('✅ Subscription limits seeded successfully!');
         $this->command->info('📊 Plans created:');
-        $this->command->info('   • Free (Basic) - 1GB storage, 10% commission');
-        $this->command->info('   • Pro Artist - 5GB storage, 8% commission, 4 boosts/mo');
-        $this->command->info('   • Pro Engineer - 10GB storage, 6% commission, client portal');
+        $this->command->info('   • Free (Basic) - 10GB total storage, 10% commission');
+        $this->command->info('   • Pro Artist - 50GB total storage, 8% commission, 4 boosts/mo');
+        $this->command->info('   • Pro Engineer - 200GB total storage, 6% commission, client portal');
     }
 }
