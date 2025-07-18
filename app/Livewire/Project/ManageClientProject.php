@@ -361,30 +361,25 @@ class ManageClientProject extends Component
         try {
             $this->authorize('update', $this->project);
 
-            // Generate signed URL (same as what gets sent to clients)
-            $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                'client.portal.view',
-                now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7)),
-                ['project' => $this->project->id]
-            );
+            // Use the dedicated preview route for project owners
+            $previewUrl = route('client.portal.preview', ['project' => $this->project->id]);
 
-            // Log the URL for development
-            Log::info('🔗 CLIENT PORTAL PREVIEW', [
+            // Log the preview access
+            Log::info('🔍 CLIENT PORTAL PREVIEW REQUESTED', [
                 'project_id' => $this->project->id,
-                'portal_url' => $signedUrl,
-                'expires_at' => now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7))->toDateTimeString(),
-                'accessed_by' => auth()->user()->name.' (Project Owner)',
+                'preview_url' => $previewUrl,
+                'requested_by' => auth()->user()->name.' (Project Owner)',
             ]);
 
-            // Redirect to the client portal
-            return redirect($signedUrl);
+            // Redirect to the preview route
+            return redirect($previewUrl);
 
         } catch (\Exception $e) {
-            Log::error('Error generating client portal preview', [
+            Log::error('Error accessing client portal preview', [
                 'project_id' => $this->project->id,
                 'error' => $e->getMessage(),
             ]);
-            Toaster::error('Failed to generate client portal preview.');
+            Toaster::error('Failed to access client portal preview.');
         }
     }
 

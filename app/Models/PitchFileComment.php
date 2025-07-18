@@ -21,6 +21,8 @@ class PitchFileComment extends Model
         'comment',
         'timestamp',
         'resolved',
+        'client_email',
+        'is_client_comment',
     ];
 
     /**
@@ -31,6 +33,7 @@ class PitchFileComment extends Model
     protected $casts = [
         'timestamp' => 'float',
         'resolved' => 'boolean',
+        'is_client_comment' => 'boolean',
     ];
 
     /**
@@ -127,5 +130,29 @@ class PitchFileComment extends Model
         $seconds = $this->timestamp % 60;
 
         return sprintf('%02d:%02d', $minutes, $seconds);
+    }
+
+    /**
+     * Check if this is a client comment.
+     *
+     * @return bool
+     */
+    public function isClientComment()
+    {
+        return $this->is_client_comment ?? false;
+    }
+
+    /**
+     * Get the author name (client email or user name).
+     *
+     * @return string
+     */
+    public function getAuthorName()
+    {
+        if ($this->isClientComment()) {
+            return $this->client_email;
+        }
+
+        return $this->user?->name ?? 'Unknown';
     }
 }

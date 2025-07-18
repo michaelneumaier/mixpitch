@@ -1,19 +1,40 @@
 {{-- blade-formatter-disable --}}
 <!-- Enhanced Glass Morphism Audio Player Container -->
-<div class="waveform-player-container relative">
+<div id="pitch-player-{{ $file->id }}" class="waveform-player-container relative"
+    x-data="{ 
+        playerState: { 
+            isPlaying: false,
+            isReady: false,
+            currentTime: '00:00',
+            totalDuration: '00:00'
+        },
+        instanceId: '{{ $file->id }}',
+        wavesurfer: null,
+        currentPosition: 0,
+        getCurrentPosition() {
+            console.log('getCurrentPosition called, currentPosition:', this.currentPosition);
+            return this.currentPosition || 0;
+        },
+        setCurrentPosition(time) {
+            console.log('setCurrentPosition called with:', time);
+            this.currentPosition = time;
+            console.log('currentPosition after setting:', this.currentPosition);
+        }
+    }">
     <!-- Background Effects for Audio Theme -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+    <div class="absolute inset-0 pointer-events-none rounded-2xl">
         <div class="absolute top-4 left-4 w-16 h-16 bg-purple-400/20 rounded-full blur-xl"></div>
         <div class="absolute bottom-4 right-4 w-12 h-12 bg-indigo-400/20 rounded-full blur-lg"></div>
         <div class="absolute top-1/2 left-1/3 w-8 h-8 bg-pink-400/15 rounded-full blur-lg"></div>
     </div>
 
     <!-- Main Glass Morphism Container -->
-    <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+    <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl">
         <!-- Gradient Overlay -->
         <div class="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-indigo-600/5 to-purple-600/5"></div>
         
         <!-- Enhanced File Header with Glass Morphism -->
+        @if(!($isInCard ?? false))
         <div class="relative z-10 bg-gradient-to-r from-purple-50/90 to-indigo-50/90 backdrop-blur-sm border-b border-purple-200/50">
             <div class="px-6 py-5">
                 <div class="flex flex-row justify-between items-start md:items-center gap-4">
@@ -46,55 +67,48 @@
                         </div>
                     </div>
                     
-                    @if($isInCard ?? false)
-                        {{-- Minimal buttons for card view --}}
-                    @else
-                        {{-- Enhanced controls for dedicated view --}}
-                        <div class="flex space-x-3 items-center">
-                            <!-- Download Button -->
-                            <!-- <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
-                               class="inline-flex items-center px-3 sm:px-2 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                <i class="fas fa-download md:px-2"></i>
-                                <span class="hidden md:inline px-2">Download</span>
-                            </a> -->
-                            
-                            @if(auth()->check() && auth()->user()->can('delete', $file))
-                                <!-- Delete Button -->
-                                <button wire:click="$dispatch('open-delete-modal', { fileId: {{ $file->id }} })" 
-                                        class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                    <i class="fas fa-trash-alt mr-2"></i> Delete
-                                </button>
-                            @endif
-                            
-
-                        </div>
-                    @endif
+                    {{-- Enhanced controls for dedicated view --}}
+                    <div class="flex space-x-3 items-center">
+                        <!-- Download Button -->
+                        <!-- <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
+                           class="inline-flex items-center px-3 sm:px-2 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                            <i class="fas fa-download md:px-2"></i>
+                            <span class="hidden md:inline px-2">Download</span>
+                        </a> -->
+                        
+                        @if(auth()->check() && auth()->user()->can('delete', $file))
+                            <!-- Delete Button -->
+                            <button wire:click="$dispatch('open-delete-modal', { fileId: {{ $file->id }} })" 
+                                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                <i class="fas fa-trash-alt mr-2"></i> Delete
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Enhanced Audio Content Container -->
-        <div class="relative z-10 p-4 lg:p-6 flex flex-row items-start gap-6">
+        <div class="relative z-10 {{ ($isInCard ?? false) ? 'p-3' : 'p-4 lg:p-6' }} flex flex-row items-start {{ ($isInCard ?? false) ? 'gap-4' : 'gap-6' }}">
                          <!-- Play Controls Container -->
              <div class="flex flex-col items-center min-w-[80px] h-32 relative" wire:ignore>
                                 <!-- Enhanced Play/Pause Button - Centered to waveform -->
-                                <button id="playPauseBtn" 
-                                        x-data="{ isPlaying: false }"
-                                        x-on:click="isPlaying = !isPlaying; $dispatch('toggle-playback', { playing: isPlaying })"
-                                        x-on:playback-state-changed.window="isPlaying = $event.detail.playing"
+                                <button :id="'playPauseBtn-' + instanceId" 
+                                        @click="playerState.isPlaying = !playerState.isPlaying; $dispatch('toggle-playback-' + instanceId, { playing: playerState.isPlaying })"
                                         class="group absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center">
                                     
                                     <!-- Animated Background Effect -->
                                     <div class="absolute inset-0 bg-white/20 rounded-2xl transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                                     
                                     <!-- Play icon (shown when paused) -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="!isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="!playerState.isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
 
                                     <!-- Pause icon (shown when playing) -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="playerState.isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </button>
@@ -102,9 +116,9 @@
                                 <!-- Enhanced Time Display - Bottom aligned -->
                                 <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-center">
                                     <div class="flex items-center justify-center space-x-1 text-sm font-medium font-mono">
-                                        <div id="currentTime" class="text-purple-700 w-12 text-center">00:00</div>
+                                        <div class="text-purple-700 w-10 text-center" x-text="playerState.currentTime">00:00</div>
                                         <div class="text-gray-400">/</div>
-                                        <div id="totalDuration" class="text-gray-600 w-12 text-center">00:00</div>
+                                        <div class="text-gray-600 w-10 text-center" x-text="playerState.totalDuration">00:00</div>
                                     </div>
                                 </div>
                             </div>
@@ -125,10 +139,10 @@
                     <!-- Enhanced Waveform Visualization -->
                     <div class="relative">
                         <!-- Floating Add Comment Button (follows playhead) -->
-                        <div id="floating-comment-btn" 
+                        <div :id="'floating-comment-btn-' + instanceId" 
                              class="absolute -top-6 left-0 transform -translate-x-1/2 opacity-0 transition-all duration-200 z-20 pointer-events-auto">
                             <button type="button" 
-                                    @click="$wire.toggleCommentForm(wavesurfer ? wavesurfer.getCurrentTime() : 0)"
+                                    @click="$wire.toggleCommentForm(getCurrentPosition())"
                                     class="group w-7 h-7 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 flex items-center justify-center"
                                     title="Add comment at current position">
                                 <i class="fas fa-plus text-xs group-hover:scale-110 transition-transform"></i>
@@ -142,7 +156,7 @@
                             </div>
                         </div>
                         
-                        <div id="waveform" class="h-32 rounded-xl overflow-hidden bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/50 shadow-inner" wire:ignore>
+                        <div :id="'waveform-' + instanceId" class="h-32 rounded-xl overflow-hidden bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/50 shadow-inner" wire:ignore>
                             <!-- Waveform will be rendered here -->
                         </div>
 
@@ -156,14 +170,14 @@
                             $tooltipClass = $position < 15 ? 'left-0 transform-none' : ($position > 85 ? 'left-auto right-0 transform-none' : 'left-0 transform -translate-x-1/2');
                             @endphp
                             <div class="absolute h-full w-1 z-10 cursor-pointer pointer-events-auto group"
-                                style="left: {{ $position }}%; background: linear-gradient(to bottom, #7c3aed, #4f46e5);"
+                                style="left: {{ $position }}%; background: {{ $comment->resolved ? 'linear-gradient(to bottom, #22c55e, #10b981)' : 'linear-gradient(to bottom, #7c3aed, #4f46e5)' }};"
                                 x-data="{ showTooltip: false }" 
                                 @mouseenter="showTooltip = true"
                                 @mouseleave="showTooltip = false"
-                                @click="$dispatch('comment-marker-clicked', { timestamp: {{ $comment->timestamp }} })">
+                                @click="$dispatch('comment-marker-clicked-' + instanceId, { timestamp: {{ $comment->timestamp }} })">
                                 
                                 <!-- Enhanced Comment Marker -->
-                                <div class="h-4 w-4 rounded-full -ml-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200">
+                                <div class="h-4 w-4 rounded-full -ml-1.5 {{ $comment->resolved ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600' }} border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200">
                                     <div class="absolute inset-0 rounded-full bg-white/30 animate-pulse"></div>
                                 </div>
 
@@ -173,11 +187,23 @@
                                     @click.stop>
                                     <!-- Tooltip Header -->
                                     <div class="flex items-center mb-2">
-                                        <img src="{{ $comment->user->profile_photo_url }}"
-                                            alt="{{ $comment->user->name }}" 
-                                            class="h-6 w-6 rounded-full border-2 border-purple-200 mr-2">
+                                        @if($comment->user)
+                                            <img src="{{ $comment->user->profile_photo_url }}"
+                                                alt="{{ $comment->user->name }}" 
+                                                class="h-6 w-6 rounded-full border-2 border-purple-200 mr-2">
+                                        @else
+                                            <div class="h-6 w-6 rounded-full border-2 border-blue-200 mr-2 bg-blue-500 flex items-center justify-center">
+                                                <i class="fas fa-user text-white text-xs"></i>
+                                            </div>
+                                        @endif
                                         <div class="flex-1">
-                                            <div class="text-sm font-semibold text-gray-900">{{ $comment->user->name }}</div>
+                                            <div class="text-sm font-semibold text-gray-900">
+                                                @if($comment->user)
+                                                    {{ $comment->user->name }}
+                                                @else
+                                                    {{ $comment->client_email ?? 'Client' }}
+                                                @endif
+                                            </div>
                                             <div class="text-xs text-purple-600 font-medium">{{ $comment->formattedTimestamp }}</div>
                                         </div>
                                         @if($comment->resolved)
@@ -198,25 +224,25 @@
                     </div>
 
                     <!-- Enhanced Timeline -->
-                    <!-- <div id="waveform-timeline" class="h-8 mt-4 relative bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-lg" wire:ignore>
-                    </div> -->
+                    <div :id="'waveform-timeline-' + instanceId" class="h-8 {{ ($isInCard ?? false) ? 'mt-2' : 'mt-4' }} hidden relative bg-gradient-to-r from-purple-50/80 to-indigo-50/80 backdrop-blur-sm border border-purple-200/50 rounded-lg" wire:ignore>
+                    </div>
 
 
 
                     <!-- Enhanced Add Comment Form -->
                     <div x-data="{ show: @entangle('showAddCommentForm') }" x-show="show" x-cloak
-                         class="mt-6 relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+                         class="{{ ($isInCard ?? false) ? 'mt-3' : 'mt-6' }} relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
                         <!-- Gradient Overlay -->
                         <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-blue-600/5"></div>
                         
-                        <div class="relative z-10 p-6">
+                        <div class="relative z-10 {{ ($isInCard ?? false) ? 'p-3' : 'p-6' }}">
                             <!-- Form Header -->
                             <div class="flex items-center mb-4">
-                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mr-3 shadow-lg">
-                                    <i class="fas fa-comment-plus text-white"></i>
+                                <div class="flex items-center justify-center {{ ($isInCard ?? false) ? 'w-8 h-8' : 'w-10 h-10' }} bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mr-3 shadow-lg">
+                                    <i class="fas fa-comment-plus text-white {{ ($isInCard ?? false) ? 'text-sm' : '' }}"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-bold text-gray-900">Add New Comment</h3>
+                                    <h3 class="{{ ($isInCard ?? false) ? 'text-base' : 'text-lg' }} font-bold text-gray-900">Add New Comment</h3>
                                     <p class="text-sm text-blue-600 font-medium flex items-center">
                                         <i class="fas fa-clock mr-1"></i>
                                         At {{ sprintf("%02d:%02d", floor($commentTimestamp / 60), $commentTimestamp % 60) }}
@@ -252,8 +278,51 @@
     </div>
 
     <!-- Simplified Comments Section - No separate header card -->
-    <div class="comments-section mt-8">
-        <!-- Simple Discussion Header -->
+    <div class="comments-section {{ ($isInCard ?? false) ? 'mt-4' : 'mt-8' }}">
+        <!-- Compact Discussion Header -->
+        @if($isInCard ?? false)
+        {{-- Ultra-compact header for card view --}}
+        <div class="mb-3">
+            <div class="flex items-center justify-between bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg px-3 py-2">
+                <div class="flex items-center space-x-3 text-sm">
+                    @php
+                        $pendingCount = $comments->where('resolved', false)->count();
+                    @endphp
+                    
+                    <span class="font-semibold text-gray-700">
+                        {{ count($comments) }} {{ count($comments) === 1 ? 'Comment' : 'Comments' }}
+                    </span>
+                    
+                    @if($resolvedCount > 0)
+                    <span class="text-green-700">
+                        <i class="fas fa-check-circle mr-1"></i>{{ $resolvedCount }} Resolved
+                    </span>
+                    @endif
+                    
+                    @if($pendingCount > 0)
+                    <span class="text-amber-700">
+                        <i class="fas fa-clock mr-1"></i>{{ $pendingCount }} Pending
+                    </span>
+                    @endif
+
+                    @if($clientMode && $resolvedCount > 0)
+                    <button wire:click="toggleShowResolved" 
+                            class="text-xs {{ $showResolved ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-600 border-gray-300' }} px-2 py-1 rounded border transition-colors hover:shadow-sm">
+                        {{ $showResolved ? 'Hide resolved' : 'Show resolved' }}
+                    </button>
+                    @endif
+                </div>
+                
+                <!-- Add Comment Button -->
+                <button type="button" 
+                        @click="$wire.toggleCommentForm(getCurrentPosition())"
+                        class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                    <i class="fas fa-plus mr-1"></i>Add Comment
+                </button>
+            </div>
+        </div>
+        @else
+        {{-- Full header for standalone view --}}
         <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
@@ -274,7 +343,6 @@
                 <!-- Comment Stats & Actions -->
                 <div class="flex items-center space-x-4">
                     @php
-                        $resolvedCount = $comments->where('resolved', true)->count();
                         $pendingCount = $comments->where('resolved', false)->count();
                     @endphp
                     
@@ -292,49 +360,68 @@
                     
                     <!-- Add Comment Button -->
                     <button type="button" 
-                            @click="$wire.toggleCommentForm(wavesurfer ? wavesurfer.getCurrentTime() : 0)"
+                            @click="$wire.toggleCommentForm(getCurrentPosition())"
                             class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
                         <i class="fas fa-comment-plus mr-2"></i>Add Comment
                     </button>
                 </div>
             </div>
         </div>
+        @endif
 
         @if(count($comments) > 0)
-        <div class="space-y-6">
+        <div class="{{ ($isInCard ?? false) ? 'space-y-3' : 'space-y-6' }}">
             @foreach($comments as $comment)
             <!-- Enhanced Individual Comment Card -->
             <div id="comment-{{ $comment->id }}"
                  class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg overflow-hidden {{ $comment->resolved ? 'ring-2 ring-green-200/50' : '' }}">
-                <!-- Comment Status Indicator -->
-                @if($comment->resolved)
-                <div class="absolute top-4 right-4 z-20">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <i class="fas fa-check-circle mr-1"></i>Resolved
-                    </span>
-                </div>
-                @endif
-
                 <!-- Gradient Overlay -->
                 <div class="absolute inset-0 bg-gradient-to-r {{ $comment->resolved ? 'from-green-600/5 to-emerald-600/5' : 'from-purple-600/5 to-indigo-600/5' }}"></div>
                 
-                <div class="relative z-10 p-6">
-                    <div class="flex items-start space-x-4">
+                <div class="relative z-10 {{ ($isInCard ?? false) ? 'p-3' : 'p-6' }}">
+                    <div class="flex items-start {{ ($isInCard ?? false) ? 'space-x-3' : 'space-x-4' }}">
                         <!-- Enhanced User Avatar -->
                         <div class="flex-shrink-0">
                             <div class="relative">
-                                <img src="{{ $comment->user->profile_photo_url }}" 
-                                     alt="{{ $comment->user->name }}"
-                                     class="h-12 w-12 rounded-xl border-2 {{ $comment->resolved ? 'border-green-200' : 'border-purple-200' }} shadow-lg">
-                                <div class="absolute -bottom-1 -right-1 w-4 h-4 {{ $comment->resolved ? 'bg-green-500' : 'bg-purple-500' }} rounded-full border-2 border-white"></div>
+                                @if($comment->is_client_comment)
+                                    <!-- Client avatar -->
+                                    <div class="{{ ($isInCard ?? false) ? 'h-10 w-10' : 'h-12 w-12' }} rounded-xl border-2 {{ $comment->resolved ? 'border-green-200' : 'border-blue-200' }} shadow-lg bg-blue-500 flex items-center justify-center">
+                                        <i class="fas fa-user text-white {{ ($isInCard ?? false) ? 'text-sm' : 'text-lg' }}"></i>
+                                    </div>
+                                @elseif($comment->user)
+                                    <img src="{{ $comment->user->profile_photo_url }}" 
+                                         alt="{{ $comment->user->name }}"
+                                         class="{{ ($isInCard ?? false) ? 'h-10 w-10' : 'h-12 w-12' }} rounded-xl border-2 {{ $comment->resolved ? 'border-green-200' : 'border-purple-200' }} shadow-lg">
+                                @else
+                                    <!-- Fallback avatar -->
+                                    <div class="{{ ($isInCard ?? false) ? 'h-10 w-10' : 'h-12 w-12' }} rounded-xl border-2 {{ $comment->resolved ? 'border-green-200' : 'border-gray-200' }} shadow-lg bg-gray-500 flex items-center justify-center">
+                                        <i class="fas fa-user text-white {{ ($isInCard ?? false) ? 'text-sm' : 'text-lg' }}"></i>
+                                    </div>
+                                @endif
+                                <div class="absolute -bottom-1 -right-1 w-4 h-4 {{ $comment->resolved ? 'bg-green-500' : ($comment->is_client_comment ? 'bg-blue-500' : ($comment->user ? 'bg-purple-500' : 'bg-gray-500')) }} rounded-full border-2 border-white"></div>
                             </div>
                         </div>
 
                         <div class="flex-grow">
                             <!-- Comment Header -->
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h4 class="font-semibold text-gray-900 text-lg">{{ $comment->user->name }}</h4>
+                            <div class="flex justify-between items-start {{ ($isInCard ?? false) ? 'mb-2' : 'mb-3' }}">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="{{ ($isInCard ?? false) ? 'font-semibold text-gray-900 text-sm' : 'font-semibold text-gray-900 text-lg' }}">
+                                            @if($comment->is_client_comment)
+                                                {{ $clientMode ? 'You' : ($comment->client_email ?? 'Client') }}
+                                            @elseif($comment->user)
+                                                {{ $comment->user->name }}
+                                            @else
+                                                {{ $comment->client_email ?? 'Client' }}
+                                            @endif
+                                        </h4>
+                                        @if($comment->resolved)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i>Resolved
+                                        </span>
+                                        @endif
+                                    </div>
                                     <div class="flex items-center text-sm text-gray-600 mt-1">
                                         <i class="fas fa-clock text-purple-500 mr-1"></i>
                                         <span>{{ $comment->created_at->diffForHumans() }}</span>
@@ -349,15 +436,30 @@
                                 </div>
 
                                 <!-- Action Buttons -->
+                                @if(!$clientMode || $this->getCommentPermissions()['can_reply'])
                                 <div class="flex items-center space-x-2">
                                     <!-- Reply Button -->
+                                    @if($this->getCommentPermissions()['can_reply'])
                                     <button type="button" 
                                             @click="$wire.toggleReplyForm({{ $comment->id }})"
                                             class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
                                         <i class="fas fa-reply mr-1"></i>Reply
                                     </button>
+                                    @endif
 
-                                    @if(Auth::id() === $comment->user_id || Auth::id() === $file->pitch->user_id)
+                                    @php
+                                        $canResolve = false;
+                                        if ($clientMode) {
+                                            // Client can resolve their own comments OR producer comments
+                                            $canResolve = ($comment->is_client_comment && $comment->client_email === $clientEmail) 
+                                                       || ($comment->user_id === $file->pitch->user_id);
+                                        } else {
+                                            // Regular user can resolve if they own comment or pitch
+                                            $canResolve = Auth::id() === $comment->user_id || Auth::id() === $file->pitch->user_id;
+                                        }
+                                    @endphp
+                                    
+                                    @if($canResolve && $this->getCommentPermissions()['can_resolve'])
                                     <!-- Resolve Toggle Button -->
                                     <button type="button" 
                                             @click="$wire.toggleResolveComment({{ $comment->id }})"
@@ -365,28 +467,37 @@
                                         <i class="fas {{ $comment->resolved ? 'fa-undo' : 'fa-check' }} mr-1"></i>
                                         {{ $comment->resolved ? 'Unresolve' : 'Resolve' }}
                                     </button>
+                                    @endif
 
                                     <!-- Delete Button -->
+                                    @if($this->getCommentPermissions()['can_delete'])
                                     <button type="button" 
                                             @click="$wire.confirmDelete({{ $comment->id }})"
                                             class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
                                         <i class="fas fa-trash-alt mr-1"></i>Delete
                                     </button>
                                     @endif
+                                    @endif
                                 </div>
+                                
                             </div>
 
                             <!-- Comment Content -->
-                            <div class="bg-gradient-to-r {{ $comment->resolved ? 'from-green-50/80 to-emerald-50/80 border-green-200/50' : 'from-purple-50/80 to-indigo-50/80 border-purple-200/50' }} backdrop-blur-sm border rounded-xl p-4 mb-4">
+                            <div class="bg-gradient-to-r {{ $comment->resolved ? 'from-green-50/80 to-emerald-50/80 border-green-200/50' : 'from-purple-50/80 to-indigo-50/80 border-purple-200/50' }} backdrop-blur-sm border rounded-xl {{ ($isInCard ?? false) ? 'p-2 mb-2' : 'p-4 mb-4' }}">
                                 <p class="text-gray-800 whitespace-pre-line leading-relaxed">{{ $comment->comment }}</p>
                             </div>
 
                             <!-- Reply Form -->
                             @if($showReplyForm && $replyToCommentId === $comment->id)
-                            <div class="mt-4 bg-gradient-to-r from-blue-50/80 to-purple-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
+                            <div class="{{ ($isInCard ?? false) ? 'mt-3' : 'mt-4' }} bg-gradient-to-r from-blue-50/80 to-purple-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl {{ ($isInCard ?? false) ? 'p-3' : 'p-4' }}">
                                 <h5 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
                                     <i class="fas fa-reply text-blue-600 mr-2"></i>
-                                    Reply to {{ $comment->user->name }}
+                                    Reply to 
+                                    @if($comment->user)
+                                        {{ $comment->user->name }}
+                                    @else
+                                        {{ $comment->client_email ?? 'Client' }}
+                                    @endif
                                 </h5>
                                 <textarea wire:model="replyText" 
                                           placeholder="Write your reply here..."
@@ -409,19 +520,31 @@
 
                             <!-- Enhanced Replies Section -->
                             @if($comment->has_replies)
-                            <div class="mt-6 space-y-4 pl-6 border-l-2 border-purple-200/50">
+                            <div class="{{ ($isInCard ?? false) ? 'mt-3 space-y-2 pl-4' : 'mt-6 space-y-4 pl-6' }} border-l-2 border-purple-200/50">
                                 @foreach($comment->replies as $reply)
-                                <div id="comment-{{ $reply->id }}" class="relative bg-gradient-to-r from-white/90 to-purple-50/90 backdrop-blur-sm border border-purple-200/50 rounded-xl p-4 shadow-sm">
+                                <div id="comment-{{ $reply->id }}" class="relative bg-gradient-to-r from-white/90 to-purple-50/90 backdrop-blur-sm border border-purple-200/50 rounded-xl {{ ($isInCard ?? false) ? 'p-3' : 'p-4' }} shadow-sm">
                                     <div class="flex items-start space-x-3">
                                         <div class="flex-shrink-0">
-                                            <img src="{{ $reply->user->profile_photo_url }}" 
-                                                 alt="{{ $reply->user->name }}"
-                                                 class="h-8 w-8 rounded-lg border-2 border-purple-200 shadow-sm">
+                                            @if($reply->user)
+                                                <img src="{{ $reply->user->profile_photo_url }}" 
+                                                     alt="{{ $reply->user->name }}"
+                                                     class="h-8 w-8 rounded-lg border-2 border-purple-200 shadow-sm">
+                                            @else
+                                                <div class="h-8 w-8 rounded-lg border-2 border-blue-200 shadow-sm bg-blue-500 flex items-center justify-center">
+                                                    <i class="fas fa-user text-white text-xs"></i>
+                                                </div>
+                                            @endif
                                         </div>
                                         <div class="flex-grow">
                                             <div class="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h6 class="font-medium text-gray-900 text-sm">{{ $reply->user->name }}</h6>
+                                                    <h6 class="font-medium text-gray-900 text-sm">
+                                                        @if($reply->user)
+                                                            {{ $reply->user->name }}
+                                                        @else
+                                                            {{ $reply->client_email ?? 'Client' }}
+                                                        @endif
+                                                    </h6>
                                                     <p class="text-xs text-gray-600">{{ $reply->created_at->diffForHumans() }}</p>
                                                 </div>
                                                 <div class="flex items-center space-x-1">
@@ -478,20 +601,20 @@
         <!-- Enhanced Empty State -->
         <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-indigo-600/5 to-purple-600/5"></div>
-            <div class="relative z-10 text-center py-12 px-6">
+            <div class="relative z-10 text-center {{ ($isInCard ?? false) ? 'py-6 px-4' : 'py-12 px-6' }}">
                 <!-- Empty State Icon -->
-                <div class="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mx-auto mb-6 shadow-lg">
-                    <i class="fas fa-comments text-white text-2xl"></i>
+                <div class="flex items-center justify-center {{ ($isInCard ?? false) ? 'w-16 h-16' : 'w-20 h-20' }} bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mx-auto {{ ($isInCard ?? false) ? 'mb-4' : 'mb-6' }} shadow-lg">
+                    <i class="fas fa-comments text-white {{ ($isInCard ?? false) ? 'text-xl' : 'text-2xl' }}"></i>
                 </div>
                 
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">Start the Conversation</h3>
-                <p class="text-gray-600 mb-6 max-w-md mx-auto">
+                <h3 class="{{ ($isInCard ?? false) ? 'text-lg' : 'text-2xl' }} font-bold text-gray-900 mb-2">Start the Conversation</h3>
+                <p class="text-gray-600 {{ ($isInCard ?? false) ? 'mb-4' : 'mb-6' }} max-w-md mx-auto">
                     No comments yet. Be the first to share your thoughts about this audio file and help improve the creative process.
                 </p>
                 
                 <!-- Call to Action Button -->
                 <button type="button" 
-                        @click="$wire.toggleCommentForm(wavesurfer ? wavesurfer.getCurrentTime() : 0)"
+                        @click="$wire.toggleCommentForm(getCurrentPosition())"
                         class="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-comment-plus mr-3 group-hover:scale-110 transition-transform"></i>
                     Add Your First Comment
@@ -568,97 +691,112 @@
 
 @push('scripts')
 <script>
-    let wavesurfer;
-    let readyFired = false;
-    let persistedDuration = 0;
-    let audioLoaded = false;
-    let audioLoadPromise = null; // Add this to track the loading promise
-    let lastPlayedPosition = 0; // Track the last played position
+    console.log('PitchFilePlayer script starting for file {{ $file->id }}');
+    
+    function initializePitchFilePlayer_{{ $file->id }}() {
+        console.log('Initializing PitchFilePlayer for file {{ $file->id }}');
+        
+        // Scoped variables for this instance - store globally to prevent scope issues
+        const globalKey = 'pitchPlayer_{{ $file->id }}';
+        if (!window[globalKey]) {
+            window[globalKey] = {
+                wavesurfer: null,
+                readyFired: false,
+                persistedDuration: 0,
+                audioLoaded: false,
+                audioLoadPromise: null,
+                lastPlayedPosition: 0,
+                initialized: false
+            };
+        }
+        const playerState = window[globalKey];
+        
+        // Check if already initialized to prevent duplicate initialization
+        if (playerState.initialized) {
+            console.log('PitchFilePlayer {{ $file->id }} already initialized, skipping');
+            return;
+        }
+        
+        // Mark as initialized immediately
+        playerState.initialized = true;
+        
+        // Check if Alpine.js is available
+        if (typeof Alpine === 'undefined') {
+            console.error('Alpine.js not available for PitchFilePlayer {{ $file->id }}');
+            return;
+        }
+        
+        // Get a unique ID for this instance
+        const fileId = '{{ $file->id }}';
+        const container = document.getElementById('pitch-player-' + fileId);
 
-    // Helper function to format time
-    function formatTime(seconds) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = Math.floor(seconds % 60);
-        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
-
-    // We need to ensure we initialize audio properly, avoiding duplicate loads
-    const initializeAudio = (audioUrl) => {
-        // If we've already started loading the audio, return the existing promise
-        if (audioLoadPromise) {
-            console.log('Audio loading already in progress, reusing promise');
-            return audioLoadPromise;
+        if (!container) {
+            console.error('Container not found for PitchFilePlayer {{ $file->id }}');
+            return;
         }
 
-        // If already loaded, just resolve immediately
-        if (audioLoaded) {
-            console.log('Audio already loaded, resolving immediately');
-            return Promise.resolve();
+        // Find the Alpine component
+        const alpineComponent = Alpine.$data(container);
+        const instanceId = alpineComponent?.instanceId || fileId;
+        
+        // Debug Alpine component access
+        console.log(`Alpine component found for instance ${instanceId}:`, alpineComponent);
+        console.log(`Initial currentPosition for instance ${instanceId}:`, alpineComponent?.currentPosition);
+        
+        // Ensure currentPosition is properly initialized
+        if (alpineComponent && alpineComponent.currentPosition === undefined) {
+            alpineComponent.setCurrentPosition(0);
+            console.log(`Initialized currentPosition to 0 for instance ${instanceId}`);
         }
-
-        console.log('Starting new audio load');
-
-        // Create the loading promise
-        audioLoadPromise = new Promise((resolve) => {
-            // Set flag before loading to prevent race conditions
-            audioLoaded = true;
-
-            // Create an audio element we can control (this alone might trigger a preload)
-            const audio = new Audio();
-            audio.preload = 'none'; // Try to prevent auto-loading
-            wavesurfer.options.media = audio;
-
-            // Set up the ready handler first
-            wavesurfer.once('ready', () => {
-                console.log('WaveSurfer ready event fired from audio load');
-                persistedDuration = wavesurfer.getDuration();
-                document.getElementById('totalDuration').textContent = formatTime(persistedDuration);
-
-                // Update comment markers with the actual duration
-                updateCommentMarkers(persistedDuration);
-
-                // Mark our promise as resolved - this is a custom property
-                audioLoadPromise.isResolved = true;
-
-                resolve();
-            });
-
-            // Then load the URL
-            console.log('Calling WaveSurfer load with URL');
-            wavesurfer.load(audioUrl);
-        });
-
-        return audioLoadPromise;
-    };
-
-    // Helper function to update comment markers when duration changes
-    const updateCommentMarkers = (duration) => {
-        console.log('updateCommentMarkers called with duration:', duration);
-
-        // Check for valid duration
-        if (!duration || isNaN(duration) || duration <= 0) {
-            console.warn('Invalid duration value:', duration);
-            duration = 1; // Fallback to prevent division by zero
-        }
-
-        // Update the Livewire component's duration property using the instance ID finder method
-        const livewireComponent = Livewire.find('{{ $_instance->getId() }}');
-        if (livewireComponent) {
-            livewireComponent.set('duration', duration);
-        } else {
-            console.error("Could not find Livewire component instance to update duration.");
-        }
-
-        // Force a refresh to update the comment markers (may need adjustment based on how comments load)
-        // If comments are part of the main component render cycle, setting duration might be enough.
-        // If they need explicit refresh, dispatching an event might be better.
-        Livewire.dispatch('refresh'); // Consider if this is the best approach or if a targeted event is better
-        console.log('Comment markers update triggered with duration:', duration);
-    };
-
-    document.addEventListener('livewire:initialized', () => {
-        console.log('Initializing WaveSurfer component');
         const livewireComponentId = '{{ $_instance->getId() }}'; // Get the Livewire component ID
+        
+        // Use local references for easier access
+        let wavesurfer = playerState.wavesurfer;
+        let readyFired = playerState.readyFired;
+        let persistedDuration = playerState.persistedDuration;
+        let audioLoaded = playerState.audioLoaded;
+        let audioLoadPromise = playerState.audioLoadPromise;
+        let lastPlayedPosition = playerState.lastPlayedPosition;
+
+        // Initialize WaveSurfer with unique element IDs
+        const waveformId = `waveform-${instanceId}`;
+        const floatingBtnId = `floating-comment-btn-${instanceId}`;
+        const timelineId = `waveform-timeline-${instanceId}`;
+
+        console.log(`Initializing WaveSurfer component for instance ${instanceId}`);
+
+        // Helper function to format time
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        // Helper function to update comment markers when duration changes
+        const updateCommentMarkers = (duration) => {
+            console.log(`updateCommentMarkers called for instance ${instanceId} with duration:`, duration);
+
+            // Check for valid duration
+            if (!duration || isNaN(duration) || duration <= 0) {
+                console.warn('Invalid duration value:', duration);
+                duration = 1; // Fallback to prevent division by zero
+            }
+
+            // Update the Livewire component's duration property
+            const livewireComponent = Livewire.find(livewireComponentId);
+            if (livewireComponent) {
+                livewireComponent.set('duration', duration);
+            } else {
+                console.error("Could not find Livewire component instance to update duration.");
+            }
+
+            // Force a refresh to update the comment markers
+            Livewire.dispatch('refresh');
+            console.log(`Comment markers update triggered for instance ${instanceId} with duration:`, duration);
+        };
+
+        // This will be defined after WaveSurfer is created
+        let initializeAudio;
 
         // Debounce function to limit UI updates or other operations
         function debounce(func, wait) {
@@ -687,29 +825,130 @@
         // Track current timestamp in a variable without sending to server
         let currentPlayerTime = 0;
 
-        // Initialize WaveSurfer
-        wavesurfer = WaveSurfer.create({
-            container: '#waveform',
-            waveColor: 'rgba(168, 85, 247, 0.6)',
-            progressColor: 'rgba(139, 92, 246, 0.8)',
-            cursorColor: 'rgba(99, 102, 241, 0.9)',
-            barWidth: 2,
-            barRadius: 1,
-            responsive: true,
-            height: 128,
-            normalize: true,
-            backend: 'WebAudio',
-            mediaControls: false
-        });
+        // Initialize WaveSurfer with error handling (only if not already created)
+        if (!wavesurfer) {
+            try {
+                const container = document.getElementById(waveformId);
+                if (!container) {
+                    console.error(`Container element not found: ${waveformId}`);
+                    return;
+                }
+                
+                wavesurfer = WaveSurfer.create({
+                    container: `#${waveformId}`,
+                    waveColor: 'rgba(168, 85, 247, 0.6)',
+                    progressColor: 'rgba(139, 92, 246, 0.8)',
+                    cursorColor: 'rgba(99, 102, 241, 0.9)',
+                    barWidth: 2,
+                    barRadius: 1,
+                    responsive: true,
+                    height: 128,
+                    normalize: true,
+                    backend: 'WebAudio',
+                    mediaControls: false
+                });
+                
+                if (!wavesurfer) {
+                    console.error(`Failed to create WaveSurfer instance for ${instanceId}`);
+                    return;
+                }
+                
+                // Store in global state AND update local variable
+                playerState.wavesurfer = wavesurfer;
+                
+                console.log(`WaveSurfer successfully created for instance ${instanceId}:`, wavesurfer);
+            } catch (error) {
+                console.error(`Error creating WaveSurfer for instance ${instanceId}:`, error);
+                return;
+            }
+        } else {
+            // Update local variable to point to existing wavesurfer
+            wavesurfer = playerState.wavesurfer;
+            console.log(`WaveSurfer already exists for instance ${instanceId}, reusing:`, wavesurfer);
+        }
+
+        // Now define initializeAudio with access to the created wavesurfer
+        initializeAudio = (audioUrl) => {
+            // Check if wavesurfer is available
+            if (!wavesurfer) {
+                console.error(`Cannot initialize audio for instance ${instanceId}: wavesurfer not available`);
+                return Promise.reject(new Error('WaveSurfer not initialized'));
+            }
+
+            // If we've already started loading the audio, return the existing promise
+            if (playerState.audioLoadPromise) {
+                console.log(`Audio loading already in progress for instance ${instanceId}, reusing promise`);
+                return playerState.audioLoadPromise;
+            }
+
+            // If already loaded, just resolve immediately
+            if (playerState.audioLoaded) {
+                console.log(`Audio already loaded for instance ${instanceId}, resolving immediately`);
+                return Promise.resolve();
+            }
+
+            console.log(`Starting new audio load for instance ${instanceId}`);
+
+            // Create the loading promise
+            playerState.audioLoadPromise = new Promise((resolve) => {
+                // Set flag before loading to prevent race conditions
+                playerState.audioLoaded = true;
+
+                // Create an audio element we can control (this alone might trigger a preload)
+                const audio = new Audio();
+                audio.preload = 'none'; // Try to prevent auto-loading
+                
+                console.log(`About to set wavesurfer.options.media for instance ${instanceId}. wavesurfer:`, wavesurfer);
+                wavesurfer.options.media = audio;
+
+                // Set up the ready handler first
+                wavesurfer.once('ready', () => {
+                    console.log(`WaveSurfer ready event fired from audio load for instance ${instanceId}`);
+                    playerState.persistedDuration = wavesurfer.getDuration();
+                    
+                    // Update Alpine state
+                    if (alpineComponent) {
+                        alpineComponent.playerState.totalDuration = formatTime(playerState.persistedDuration);
+                    }
+
+                    // Update comment markers with the actual duration
+                    updateCommentMarkers(playerState.persistedDuration);
+
+                    // Mark our promise as resolved - this is a custom property
+                    playerState.audioLoadPromise.isResolved = true;
+
+                    resolve();
+                });
+
+                // Then load the URL
+                console.log(`Calling WaveSurfer load with URL for instance ${instanceId}`);
+                wavesurfer.load(audioUrl);
+            });
+
+            return playerState.audioLoadPromise;
+        };
+
+        // Store wavesurfer instance in Alpine component for button access
+        if (alpineComponent) {
+            alpineComponent.wavesurfer = wavesurfer;
+        }
 
         // Initialize button position early
         setTimeout(() => {
             updateFloatingButtonPosition();
         }, 100);
 
-        // Load audio file
-        const audioUrl = @js($file->getStreamingUrl(Auth::user()));
-        console.log('Loading audio URL:', audioUrl);
+        // Load audio file  
+        const audioUrl = @js($file->getStreamingUrl($clientMode ? null : Auth::user()));
+        console.log('PitchFilePlayer Debug Info:', {
+            instanceId: instanceId,
+            clientMode: @js($clientMode ?? false),
+            audioUrl: audioUrl,
+            fileId: '{{ $file->id }}',
+            waveformId: waveformId,
+            containerExists: !!document.getElementById(waveformId),
+            waveSurferAvailable: typeof WaveSurfer !== 'undefined'
+        });
 
         // Check if we have pre-generated waveform data
         const hasPreGeneratedPeaks = @js($file->waveform_processed && $file->waveform_peaks);
@@ -757,16 +996,20 @@
 
                  // Mark waveform as "ready-like" state for the visualization
                  setTimeout(() => {
-                     document.getElementById('waveform').classList.add('loaded');
-                     document.getElementById('totalDuration').textContent = formatTime(displayDuration);
+                     document.getElementById(waveformId).classList.add('loaded');
+                     
+                     // Update Alpine state
+                     if (alpineComponent) {
+                         alpineComponent.playerState.totalDuration = formatTime(displayDuration);
+                         alpineComponent.playerState.isReady = true;
+                         alpineComponent.playerState.isPlaying = false;
+                         // Initialize currentPosition to 0
+                         alpineComponent.setCurrentPosition(0);
+                         console.log(`Pre-generated peaks loaded - currentPosition for instance ${instanceId}:`, alpineComponent.currentPosition);
+                     }
 
                      // Update comment markers with the duration
                      updateCommentMarkers(displayDuration);
-
-                     // Set initial state (paused) - important for peak-only load
-                     window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                         detail: { playing: false }
-                     }));
                  }, 100);
              } else {
                 console.log('Peaks format is not as expected, falling back to normal loading');
@@ -779,19 +1022,19 @@
              initializeAudio(audioUrl); // Call initializeAudio here
         }
 
-        // Listen for the Alpine.js play/pause toggle event
-        window.addEventListener('toggle-playback', (event) => {
-            console.log('Toggle playback event received:', event.detail.playing);
+        // Listen for the Alpine.js play/pause toggle event - instance-specific
+        window.addEventListener(`toggle-playback-${instanceId}`, (event) => {
+            console.log(`Toggle playback event received for instance ${instanceId}:`, event.detail.playing);
 
             try {
                 if (event.detail.playing) {
                     // Check if audio is already loaded (only relevant if peaks were pre-gen)
                     if (hasPreGeneratedPeaks && !audioLoaded) {
-                        console.log('First play - loading audio');
+                        console.log(`First play for instance ${instanceId} - loading audio`);
 
                         // Initialize audio and then play
-                        initializeAudio(audioUrl).then(() => { // Pass audioUrl
-                            console.log('Audio loaded, starting playback');
+                        initializeAudio(audioUrl).then(() => {
+                            console.log(`Audio loaded for instance ${instanceId}, starting playback`);
                             setTimeout(() => {
                                 wavesurfer.play();
                                 // Ensure the time display is updated after playback starts
@@ -805,42 +1048,42 @@
                     // Audio might be in process of loading even if audioLoaded flag is true
                     // Or if peaks weren't pre-generated, initializeAudio might have been called earlier
                     if (audioLoadPromise && !audioLoadPromise.isResolved) {
-                        console.log('Audio still loading, waiting to play');
+                        console.log(`Audio still loading for instance ${instanceId}, waiting to play`);
                         audioLoadPromise.then(() => {
-                            console.log('Now playing after audio load completed');
+                            console.log(`Now playing after audio load completed for instance ${instanceId}`);
                             wavesurfer.play();
                         });
                         return;
                     }
 
                     // Normal play when audio is already loaded or load wasn't needed initially
-                    console.log('Playing with already loaded audio or pre-generated peaks');
+                    console.log(`Playing with already loaded audio or pre-generated peaks for instance ${instanceId}`);
                     const playPromise = wavesurfer.play();
 
                     // Modern browsers return a promise from audio.play()
                     if (playPromise !== undefined) {
                         playPromise
                             .then(() => {
-                                console.log('Playback started successfully');
+                                console.log(`Playback started successfully for instance ${instanceId}`);
                             })
                             .catch(error => {
-                                console.error('Playback failed:', error);
+                                console.error(`Playback failed for instance ${instanceId}:`, error);
                                 // If playback fails, update UI to reflect paused state
-                                window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                                    detail: { playing: false }
-                                }));
+                                if (alpineComponent) {
+                                    alpineComponent.playerState.isPlaying = false;
+                                }
                             });
                     }
                 } else {
                     wavesurfer.pause();
-                    console.log('Playback paused');
+                    console.log(`Playback paused for instance ${instanceId}`);
                 }
             } catch (e) {
-                console.error('Error toggling playback:', e);
+                console.error(`Error toggling playback for instance ${instanceId}:`, e);
                 // If there's an error, ensure UI reflects paused state
-                window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                    detail: { playing: false }
-                }));
+                if (alpineComponent) {
+                    alpineComponent.playerState.isPlaying = false;
+                }
             }
         });
 
@@ -853,12 +1096,23 @@
         });
 
         wavesurfer.on('ready', () => {
-            console.log('WaveSurfer ready event fired');
+            console.log(`WaveSurfer ready event fired for instance ${instanceId}`);
 
             // Get actual duration or fallback to estimated duration if needed
             persistedDuration = wavesurfer.getDuration() || persistedDuration; // Use WS duration if available
-            document.getElementById('totalDuration').textContent = formatTime(persistedDuration);
-            document.getElementById('waveform').classList.add('loaded');
+            
+            // Update Alpine state
+            if (alpineComponent) {
+                alpineComponent.playerState.totalDuration = formatTime(persistedDuration);
+                alpineComponent.playerState.isReady = true;
+                // Initialize currentPosition to 0 if not already set
+                if (alpineComponent.currentPosition === undefined) {
+                    alpineComponent.setCurrentPosition(0);
+                }
+                console.log(`WaveSurfer ready - currentPosition for instance ${instanceId}:`, alpineComponent.currentPosition);
+            }
+            
+            document.getElementById(waveformId).classList.add('loaded');
 
             // Initialize floating button position
             updateFloatingButtonPosition();
@@ -868,11 +1122,12 @@
                 readyFired = true;
 
                 // Set initial state (paused) if not already set by peak load
-                 if (!hasPreGeneratedPeaks) {
-                     window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                         detail: { playing: false }
-                     }));
-                 }
+                if (!hasPreGeneratedPeaks) {
+                    // Update Alpine state
+                    if (alpineComponent) {
+                        alpineComponent.playerState.isPlaying = false;
+                    }
+                }
 
                 // Update comment markers with the actual duration
                 updateCommentMarkers(persistedDuration);
@@ -889,8 +1144,8 @@
         let buttonUpdateAnimationId = null;
         
         const updateFloatingButtonPosition = () => {
-            const floatingBtn = document.getElementById('floating-comment-btn');
-            const waveformContainer = document.getElementById('waveform');
+            const floatingBtn = document.getElementById(floatingBtnId);
+            const waveformContainer = document.getElementById(waveformId);
             
             if (floatingBtn && waveformContainer && wavesurfer) {
                 let buttonPosition = 0; // Start at true 0%
@@ -920,7 +1175,7 @@
                         // Use the exact cursor position without artificial limits
                         buttonPosition = percentage;
                         
-                        console.log('Button position update (cursor-sync):', {
+                        console.log(`Button position update (cursor-sync) for instance ${instanceId}:`, {
                             cursorLeft: leftStyle,
                             buttonPosition: buttonPosition.toFixed(2),
                             isPlaying: wavesurfer.isPlaying()
@@ -934,7 +1189,7 @@
                         // Use exact percentage without artificial limits
                         buttonPosition = (currentTime / duration) * 100;
                         
-                        console.log('Button position update (time-based):', {
+                        console.log(`Button position update (time-based) for instance ${instanceId}:`, {
                             currentTime,
                             duration,
                             buttonPosition: buttonPosition.toFixed(2),
@@ -996,10 +1251,14 @@
             }
 
             // Ensure duration is available, fallback if necessary
-             const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
+            const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
 
-            document.getElementById('currentTime').textContent = formatTime(currentTime);
-            document.getElementById('totalDuration').textContent = formatTime(duration);
+            // Update Alpine state instead of direct DOM manipulation
+            if (alpineComponent) {
+                alpineComponent.playerState.currentTime = formatTime(currentTime);
+                alpineComponent.playerState.totalDuration = formatTime(duration);
+                alpineComponent.setCurrentPosition(currentTime); // Use setter method
+            }
             
             // Update floating button position if not playing (when playing, it's handled by animation frame)
             if (!wavesurfer || !wavesurfer.isPlaying()) {
@@ -1008,22 +1267,19 @@
         };
 
         wavesurfer.on('play', () => {
-            console.log('WaveSurfer play event');
+            console.log(`WaveSurfer play event for instance ${instanceId}`);
 
             // Start smooth button position updates
             startButtonPositionUpdates();
 
-            // Notify Alpine.js about the state change
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: true }
-            }));
-
-            // Notify Livewire
-            // dispatchLivewireEvent('playbackStarted'); // Decide if needed
+            // Update Alpine state
+            if (alpineComponent) {
+                alpineComponent.playerState.isPlaying = true;
+            }
         });
 
         wavesurfer.on('pause', () => {
-            console.log('WaveSurfer pause event');
+            console.log(`WaveSurfer pause event for instance ${instanceId}`);
 
             // Stop smooth button position updates
             stopButtonPositionUpdates();
@@ -1032,23 +1288,20 @@
             const pausePosition = wavesurfer.getCurrentTime();
             if (pausePosition !== undefined && pausePosition >= 0) { // Check >= 0
                  lastPlayedPosition = pausePosition;
-                 console.log('Storing pause position:', lastPlayedPosition);
+                 console.log(`Storing pause position for instance ${instanceId}:`, lastPlayedPosition);
              }
 
             // Make sure current time doesn't reset when pausing
             updateTimeDisplay();
 
-            // Notify Alpine.js about the state change
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: false }
-            }));
-
-            // Notify Livewire
-            // dispatchLivewireEvent('playbackPaused'); // Decide if needed
+            // Update Alpine state
+            if (alpineComponent) {
+                alpineComponent.playerState.isPlaying = false;
+            }
         });
 
         wavesurfer.on('finish', () => {
-            console.log('WaveSurfer finish event');
+            console.log(`WaveSurfer finish event for instance ${instanceId}`);
 
             // Stop smooth button position updates
             stopButtonPositionUpdates();
@@ -1057,18 +1310,22 @@
              lastPlayedPosition = persistedDuration || 0;
              updateTimeDisplay(); // Show end time
 
-            // Notify Alpine.js about the state change
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: false }
-            }));
-
-            // Notify Livewire
-            // dispatchLivewireEvent('playbackFinished'); // Decide if needed
+            // Update Alpine state
+            if (alpineComponent) {
+                alpineComponent.playerState.isPlaying = false;
+            }
         });
 
         // Update button position when user seeks (drags playhead)
         wavesurfer.on('seek', () => {
             console.log('WaveSurfer seek event');
+            
+            // Update current position in Alpine component
+            const seekTime = wavesurfer.getCurrentTime();
+            if (alpineComponent && seekTime !== undefined) {
+                alpineComponent.setCurrentPosition(seekTime);
+                console.log(`Updated currentPosition from seek for instance ${instanceId}:`, seekTime);
+            }
             
             // Update button position immediately when seeking
             updateFloatingButtonPosition();
@@ -1080,15 +1337,38 @@
         // Also listen for interaction events as backup
         wavesurfer.on('interaction', () => {
             console.log('WaveSurfer interaction event');
+            
+            // Update current position in Alpine component
+            const interactionTime = wavesurfer.getCurrentTime();
+            if (alpineComponent && interactionTime !== undefined) {
+                alpineComponent.setCurrentPosition(interactionTime);
+                console.log(`Updated currentPosition from interaction for instance ${instanceId}:`, interactionTime);
+            }
+            
             updateFloatingButtonPosition();
             updateTimeDisplay();
         });
 
         // Add click listener to waveform as additional backup
-        const waveformClickTarget = document.getElementById('waveform');
+        const waveformClickTarget = document.getElementById(waveformId);
         if (waveformClickTarget) {
-            waveformClickTarget.addEventListener('click', () => {
-                console.log('Waveform click event');
+            waveformClickTarget.addEventListener('click', (event) => {
+                console.log(`Waveform click event for instance ${instanceId}`);
+                
+                // Always calculate position based on click, regardless of audio load state
+                const duration = persistedDuration || (wavesurfer && wavesurfer.getDuration()) || 0;
+                if (duration > 0) {
+                    const rect = waveformClickTarget.getBoundingClientRect();
+                    const clickX = event.clientX - rect.left;
+                    const clickPercent = Math.max(0, Math.min(clickX / rect.width, 1));
+                    const clickTime = clickPercent * duration;
+                    
+                    if (alpineComponent) {
+                        alpineComponent.setCurrentPosition(clickTime);
+                        console.log(`Updated currentPosition based on click for instance ${instanceId}:`, clickTime);
+                    }
+                }
+                
                 // Small delay to ensure WaveSurfer has processed the click
                 setTimeout(() => {
                     updateFloatingButtonPosition();
@@ -1103,179 +1383,191 @@
             currentPlayerTime = currentTime; // Store locally without sending to server
              if (currentTime !== undefined && currentTime >= 0) {
                  lastPlayedPosition = currentTime; // Update the last position
+                 // Update Alpine component's current position
+                 if (alpineComponent) {
+                     alpineComponent.setCurrentPosition(currentTime);
+                 }
              }
 
             // Update the time display
             updateTimeDisplay();
         });
 
-        // Comment marker click handler
-        window.addEventListener('comment-marker-clicked', event => {
-            console.log('Comment marker clicked at timestamp:', event.detail.timestamp);
+        // Comment marker click handler - instance-specific
+        window.addEventListener(`comment-marker-clicked-${instanceId}`, event => {
+            console.log(`Comment marker clicked at timestamp for instance ${instanceId}:`, event.detail.timestamp);
             const timestamp = event.detail.timestamp;
             const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
 
             if (duration <= 0) {
-                 console.warn("Cannot seek, duration unknown or zero.");
+                 console.warn(`Cannot seek for instance ${instanceId}, duration unknown or zero.`);
                  return;
              }
 
             // Handle seeking for pre-generated peaks when audio isn't loaded yet
             if (hasPreGeneratedPeaks && !audioLoaded) {
                 // Load audio first, then seek when ready
-                console.log('Loading audio before seeking from comment marker');
+                console.log(`Loading audio before seeking from comment marker for instance ${instanceId}`);
 
-                initializeAudio(audioUrl).then(() => { // Pass audioUrl
-                    console.log('Audio loaded from comment marker, seeking to', timestamp);
+                initializeAudio(audioUrl).then(() => {
+                    console.log(`Audio loaded from comment marker for instance ${instanceId}, seeking to`, timestamp);
                     const seekDuration = wavesurfer.getDuration(); // Get fresh duration after load
                      if (seekDuration > 0) {
                          wavesurfer.seekTo(timestamp / seekDuration);
                      } else {
-                        console.warn("Cannot seek after load, duration still zero.");
+                        console.warn(`Cannot seek after load for instance ${instanceId}, duration still zero.`);
                      }
                      wavesurfer.pause(); // Ensure paused after seek
                     // Update display after seeking
                     updateTimeDisplay();
                      // Ensure Alpine state is paused
-                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                     if (alpineComponent) {
+                         alpineComponent.playerState.isPlaying = false;
+                     }
                 });
 
-                // Notify Alpine.js about state change (to paused) immediately
-                window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                    detail: { playing: false }
-                }));
+                // Update Alpine state immediately
+                if (alpineComponent) {
+                    alpineComponent.playerState.isPlaying = false;
+                }
 
                 return;
             }
 
             // Audio might be in process of loading even if audioLoaded flag is true
             if (audioLoadPromise && !audioLoadPromise.isResolved) {
-                console.log('Audio still loading, waiting to seek from comment marker');
+                console.log(`Audio still loading for instance ${instanceId}, waiting to seek from comment marker`);
                 audioLoadPromise.then(() => {
-                    console.log('Seeking after audio load completed from comment marker');
+                    console.log(`Seeking after audio load completed from comment marker for instance ${instanceId}`);
                      const seekDuration = wavesurfer.getDuration();
                      if (seekDuration > 0) {
                          wavesurfer.seekTo(timestamp / seekDuration);
                      } else {
-                         console.warn("Cannot seek after load, duration still zero.");
+                         console.warn(`Cannot seek after load for instance ${instanceId}, duration still zero.`);
                      }
                      wavesurfer.pause(); // Ensure paused after seek
                     updateTimeDisplay();
                      // Ensure Alpine state is paused
-                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                     if (alpineComponent) {
+                         alpineComponent.playerState.isPlaying = false;
+                     }
                 });
                 return;
             }
 
             // Normal seeking when audio is already loaded
-            console.log('Normal seeking from comment marker, audio already loaded');
+            console.log(`Normal seeking from comment marker for instance ${instanceId}, audio already loaded`);
             wavesurfer.seekTo(timestamp / duration);
             wavesurfer.pause();
 
             // Update time display
             updateTimeDisplay();
 
-            // Notify Alpine.js about state change
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: false }
-            }));
+            // Update Alpine state
+            if (alpineComponent) {
+                alpineComponent.playerState.isPlaying = false;
+            }
         });
 
         // Livewire event listeners
         Livewire.on('seekToPosition', ({ timestamp }) => {
-            console.log('Livewire event: seekToPosition', timestamp);
+            console.log(`Livewire event: seekToPosition for instance ${instanceId}`, timestamp);
             const duration = persistedDuration || (wavesurfer.getDuration && wavesurfer.getDuration()) || 0;
 
              if (duration <= 0) {
-                 console.warn("Cannot seek via Livewire, duration unknown or zero.");
+                 console.warn(`Cannot seek via Livewire for instance ${instanceId}, duration unknown or zero.`);
                  return;
              }
 
             // Handle seeking for pre-generated peaks when audio isn't loaded yet
             if (hasPreGeneratedPeaks && !audioLoaded) {
                 // Load audio first, then seek when ready
-                console.log('Loading audio before seeking from seekToPosition event');
+                console.log(`Loading audio before seeking from seekToPosition event for instance ${instanceId}`);
 
-                initializeAudio(audioUrl).then(() => { // Pass audioUrl
-                    console.log('Audio loaded from seekToPosition, seeking to', timestamp);
+                initializeAudio(audioUrl).then(() => {
+                    console.log(`Audio loaded from seekToPosition for instance ${instanceId}, seeking to`, timestamp);
                     const seekDuration = wavesurfer.getDuration(); // Get fresh duration
                      if (seekDuration > 0) {
                          wavesurfer.seekTo(timestamp / seekDuration);
                      } else {
-                         console.warn("Cannot seek after load, duration still zero.");
+                         console.warn(`Cannot seek after load for instance ${instanceId}, duration still zero.`);
                      }
                      wavesurfer.pause(); // Ensure paused
                     // Update display after seeking
                     updateTimeDisplay();
                      // Ensure Alpine state is paused
-                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                     if (alpineComponent) {
+                         alpineComponent.playerState.isPlaying = false;
+                     }
                 });
 
-                // Notify Alpine.js about state change (to paused) immediately
-                window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                    detail: { playing: false }
-                }));
+                // Update Alpine state immediately
+                if (alpineComponent) {
+                    alpineComponent.playerState.isPlaying = false;
+                }
 
                 return;
             }
 
             // Audio might be in process of loading even if audioLoaded flag is true
             if (audioLoadPromise && !audioLoadPromise.isResolved) {
-                console.log('Audio still loading, waiting to seek from seekToPosition');
+                console.log(`Audio still loading for instance ${instanceId}, waiting to seek from seekToPosition`);
                 audioLoadPromise.then(() => {
-                    console.log('Seeking after audio load completed from seekToPosition');
+                    console.log(`Seeking after audio load completed from seekToPosition for instance ${instanceId}`);
                      const seekDuration = wavesurfer.getDuration();
                      if (seekDuration > 0) {
                          wavesurfer.seekTo(timestamp / seekDuration);
                      } else {
-                         console.warn("Cannot seek after load, duration still zero.");
+                         console.warn(`Cannot seek after load for instance ${instanceId}, duration still zero.`);
                      }
                      wavesurfer.pause(); // Ensure paused
                     updateTimeDisplay();
                      // Ensure Alpine state is paused
-                     window.dispatchEvent(new CustomEvent('playback-state-changed', { detail: { playing: false } }));
+                     if (alpineComponent) {
+                         alpineComponent.playerState.isPlaying = false;
+                     }
                 });
                 return;
             }
 
             // Normal seeking when audio is already loaded
-            console.log('Normal seeking from seekToPosition, audio already loaded');
+            console.log(`Normal seeking from seekToPosition for instance ${instanceId}, audio already loaded`);
             wavesurfer.seekTo(timestamp / duration);
             wavesurfer.pause();
 
             // Update time display
             updateTimeDisplay();
 
-            // Notify Alpine.js about state change
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: false }
-            }));
+            // Update Alpine state
+            if (alpineComponent) {
+                alpineComponent.playerState.isPlaying = false;
+            }
         });
 
         Livewire.on('pausePlayback', () => {
-            console.log('Livewire event: pausePlayback');
+            console.log(`Livewire event: pausePlayback for instance ${instanceId}`);
             wavesurfer.pause();
 
-            // Notify Alpine.js about state change
-            window.dispatchEvent(new CustomEvent('playback-state-changed', {
-                detail: { playing: false }
-            }));
+            // Update Alpine state
+            if (alpineComponent) {
+                alpineComponent.playerState.isPlaying = false;
+            }
         });
 
         // Listen for comment added event (if needed for refresh)
         Livewire.on('commentAdded', () => {
-             console.log('Livewire event: commentAdded - triggering refresh');
+             console.log(`Livewire event: commentAdded for instance ${instanceId} - triggering refresh`);
              // Check if a full component refresh is desired/needed here
              // Maybe only re-fetch/re-render comments part?
              Livewire.dispatch('refresh'); // Or a more specific event
          });
 
         // Add timeline implementation
-        const timeline = document.querySelector('#waveform-timeline');
+        const timeline = document.getElementById(timelineId);
         if (timeline) {
             const setupTimeline = (renderDuration) => {
                  if (!renderDuration || isNaN(renderDuration) || renderDuration <= 0) {
-                     console.warn("Timeline setup skipped: Invalid duration", renderDuration);
+                     console.warn(`Timeline setup skipped for instance ${instanceId}: Invalid duration`, renderDuration);
                      return;
                  }
                  timeline.innerHTML = ''; // Clear any existing content
@@ -1325,20 +1617,19 @@
                      container.appendChild(mark);
                  }
 
-
                 timeline.appendChild(container);
              };
 
              // Setup timeline if duration is known from pre-generated peaks
              if (hasPreGeneratedPeaks && persistedDuration > 0) {
-                 console.log("Setting up timeline with pre-generated duration:", persistedDuration);
+                 console.log(`Setting up timeline with pre-generated duration for instance ${instanceId}:`, persistedDuration);
                  setupTimeline(persistedDuration);
              }
 
              // Also set up timeline when wavesurfer is ready (for non-pre-generated case)
             wavesurfer.on('ready', () => {
                  const readyDuration = wavesurfer.getDuration();
-                 console.log("Setting up timeline on ready event with duration:", readyDuration);
+                 console.log(`Setting up timeline on ready event for instance ${instanceId} with duration:`, readyDuration);
                  setupTimeline(readyDuration);
              });
 
@@ -1365,19 +1656,21 @@
                 
                 event.preventDefault();
                 
-                // Get current time and trigger comment form
-                const currentTime = wavesurfer ? wavesurfer.getCurrentTime() : 0;
+                // Get current time from Alpine component or fallback to wavesurfer
+                const currentTime = alpineComponent && alpineComponent.currentPosition !== undefined 
+                    ? alpineComponent.currentPosition 
+                    : (wavesurfer ? wavesurfer.getCurrentTime() : 0);
                 
                 // Dispatch to Livewire component
                 if (window.Livewire) {
-                    window.Livewire.find('{{ $this->getId() }}').call('toggleCommentForm', currentTime);
+                    window.Livewire.find(livewireComponentId).call('toggleCommentForm', currentTime);
                 }
             }
         });
         
         // Add hover effects for waveform
-        const waveformHoverTarget = document.getElementById('waveform');
-        const floatingBtn = document.getElementById('floating-comment-btn');
+        const waveformHoverTarget = document.getElementById(waveformId);
+        const floatingBtn = document.getElementById(floatingBtnId);
         
         if (waveformHoverTarget && floatingBtn) {
             waveformHoverTarget.addEventListener('mouseenter', function() {
@@ -1392,22 +1685,57 @@
                 }
             });
         }
+    }
+
+    // Try multiple initialization methods for better compatibility
+    document.addEventListener('livewire:initialized', () => {
+        console.log('Livewire initialized, starting PitchFilePlayer {{ $file->id }}');
+        window['initializePitchFilePlayer_{{ $file->id }}']();
     });
+    
+    // Wait for Alpine.js to be ready (client portal compatibility)
+    document.addEventListener('alpine:init', () => {
+        console.log('Alpine initialized, attempting PitchFilePlayer {{ $file->id }}');
+        setTimeout(() => {
+            if (!window['pitchPlayerInitialized_{{ $file->id }}']) {
+                window['initializePitchFilePlayer_{{ $file->id }}']();
+            }
+        }, 500);
+    });
+    
+    // Fallback for client portal or if events don't fire
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM loaded, attempting PitchFilePlayer {{ $file->id }} initialization');
+        setTimeout(() => {
+            if (!window['pitchPlayerInitialized_{{ $file->id }}']) {
+                console.log('Fallback initialization for PitchFilePlayer {{ $file->id }}');
+                window['initializePitchFilePlayer_{{ $file->id }}']();
+            }
+        }, 1000);
+    });
+
+    // Final fallback with longer delay
+    setTimeout(() => {
+        if (!window['pitchPlayerInitialized_{{ $file->id }}']) {
+            console.log('Final fallback initialization for PitchFilePlayer {{ $file->id }}');
+            window['initializePitchFilePlayer_{{ $file->id }}']();
+        }
+    }, 3000);
 </script>
 {{-- blade-formatter-enable --}}
 
 <style>
     /* Enhanced WaveSurfer Styling */
-    #waveform {
+    [id^="waveform-"] {
         opacity: 0;
         transition: all 0.5s ease-in-out;
         border-radius: 12px;
-        overflow: hidden;
+        /*overflow: hidden;*/
         background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
     }
 
-    #waveform.loaded {
+    [id^="waveform-"].loaded {
         opacity: 1;
         box-shadow: 
             inset 0 2px 4px rgba(0, 0, 0, 0.06),
@@ -1417,7 +1745,7 @@
     }
 
     /* Enhanced Timeline Styling */
-    #waveform-timeline {
+    [id^="waveform-timeline-"] {
         position: relative;
         height: 32px;
         margin-top: 16px;

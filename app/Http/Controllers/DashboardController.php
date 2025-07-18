@@ -400,4 +400,19 @@ class DashboardController extends Controller
             ],
         ];
     }
+
+    /**
+     * Show the full client management dashboard for producers.
+     */
+    public function clientManagement()
+    {
+        $user = Auth::user();
+        
+        // Ensure user is a producer or admin
+        if (!$user->hasRole(User::ROLE_PRODUCER) && !$user->hasRole(User::ROLE_ADMIN)) {
+            abort(403, 'Access denied. Producer role required.');
+        }
+
+        return view('producer.client-management');
+    }
 }

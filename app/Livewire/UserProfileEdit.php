@@ -55,11 +55,8 @@ class UserProfileEdit extends Component
 
     protected function rules()
     {
-        $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username';
-        // If username is locked, we don't need to validate uniqueness except for current user
-        if ($this->username_locked) {
-            $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username,'.auth()->id();
-        }
+        // Always exclude current user from uniqueness check to allow them to keep their existing username
+        $usernameRule = 'required|string|alpha_dash|max:30|unique:users,username,'.auth()->id();
 
         return [
             'name' => 'required|string|max:255',

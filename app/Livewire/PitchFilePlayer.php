@@ -37,6 +37,12 @@ class PitchFilePlayer extends Component
 
     public $isInCard = false;
 
+    // Client mode properties
+    public $clientMode = false;
+    public $clientEmail = '';
+    public $showResolved = false;
+    public $resolvedCount = 0;
+
     protected $listeners = [
         'waveformReady' => 'onWaveformReady',
         'playbackStarted' => 'onPlaybackStarted',
@@ -44,10 +50,13 @@ class PitchFilePlayer extends Component
         'refresh' => '$refresh',
     ];
 
-    public function mount(PitchFile $file, $isInCard = false)
+    public function mount(PitchFile $file, $isInCard = false, $clientMode = false, $clientEmail = '')
     {
         $this->file = $file;
         $this->isInCard = $isInCard;
+        $this->clientMode = $clientMode;
+        $this->clientEmail = $clientEmail;
+        
         $this->loadComments();
 
         // Initialize duration from the file's stored duration if available
@@ -59,11 +68,21 @@ class PitchFilePlayer extends Component
     public function loadComments()
     {
         // Load only top-level comments (no parent) with their replies
-        $this->comments = $this->file->comments()
+        $baseQuery = $this->file->comments()
             ->whereNull('parent_id')
-            ->with(['user', 'replies.user', 'replies.replies.user'])
-            ->orderBy('timestamp')
-            ->get();
+            ->with(['user', 'replies.user', 'replies.replies.user']);
+
+        // Calculate resolved count for client mode toggle button
+        if ($this->clientMode) {
+            $this->resolvedCount = $baseQuery->clone()->where('resolved', true)->count();
+        }
+
+        // Filter resolved comments if not showing them (client mode)
+        if ($this->clientMode && !$this->showResolved) {
+            $baseQuery->where('resolved', false);
+        }
+
+        $this->comments = $baseQuery->orderBy('timestamp')->get();
 
         $this->calculateCommentMarkers();
     }
@@ -133,25 +152,47 @@ class PitchFilePlayer extends Component
 
         $comment = new PitchFileComment;
         $comment->pitch_file_id = $this->file->id;
-        $comment->user_id = Auth::id();
+        
+        if ($this->clientMode) {
+            // Client comment
+            $comment->user_id = null;
+            $comment->client_email = $this->clientEmail;
+            $comment->is_client_comment = true;
+        } else {
+            // Regular user comment
+            $comment->user_id = Auth::id();
+            $comment->is_client_comment = false;
+        }
+        
         $comment->comment = $this->newComment;
         $comment->timestamp = $this->commentTimestamp;
         $comment->resolved = false;
         $comment->save();
 
-        // Send notification to the pitch file owner (if not the commenter)
+        // Send notification
         try {
-            app(\App\Services\NotificationService::class)->notifyPitchFileComment(
-                $this->file,
-                $comment,
-                Auth::id()
-            );
+            if ($this->clientMode) {
+                // Notify producer of client comment
+                app(\App\Services\NotificationService::class)->notifyProducerClientCommented(
+                    $this->file->pitch,
+                    $this->newComment
+                );
+            } else {
+                // Regular comment notification
+                app(\App\Services\NotificationService::class)->notifyPitchFileComment(
+                    $this->file,
+                    $comment,
+                    Auth::id()
+                );
+            }
         } catch (\Exception $e) {
             // Log error but don't prevent the comment from being added
             \Illuminate\Support\Facades\Log::error('Failed to send pitch file comment notification', [
                 'error' => $e->getMessage(),
                 'file_id' => $this->file->id,
+                'client_mode' => $this->clientMode,
                 'user_id' => Auth::id(),
+                'client_email' => $this->clientEmail,
             ]);
         }
 
@@ -166,7 +207,19 @@ class PitchFilePlayer extends Component
     {
         $comment = PitchFileComment::find($commentId);
 
-        if (Auth::id() === $comment->user_id || Auth::id() === $this->file->pitch->user_id) {
+        // Check permissions: logged-in user owns comment/pitch OR client mode with matching email
+        $canResolve = false;
+        
+        if ($this->clientMode) {
+            // In client mode, allow if it's a client comment with matching email OR producer comment
+            $canResolve = ($comment->is_client_comment && $comment->client_email === $this->clientEmail)
+                       || ($comment->user_id === $this->file->pitch->user_id);
+        } else {
+            // Regular mode: user owns comment or pitch
+            $canResolve = Auth::id() === $comment->user_id || Auth::id() === $this->file->pitch->user_id;
+        }
+
+        if ($canResolve) {
             $comment->resolved = ! $comment->resolved;
             $comment->save();
             $this->loadComments();
@@ -187,6 +240,11 @@ class PitchFilePlayer extends Component
 
     public function deleteComment($commentId = null)
     {
+        // Clients cannot delete comments
+        if ($this->clientMode) {
+            return;
+        }
+
         // If commentId is not provided, use the one stored in commentToDelete property
         if ($commentId === null) {
             $commentId = $this->commentToDelete;
@@ -291,9 +349,19 @@ class PitchFilePlayer extends Component
 
         $reply = new PitchFileComment;
         $reply->pitch_file_id = $this->file->id;
-        $reply->user_id = Auth::id();
         $reply->parent_id = $this->replyToCommentId;
         $reply->comment = $this->replyText;
+        
+        if ($this->clientMode) {
+            // Client reply
+            $reply->user_id = null;
+            $reply->client_email = $this->clientEmail;
+            $reply->is_client_comment = true;
+        } else {
+            // Regular user reply
+            $reply->user_id = Auth::id();
+            $reply->is_client_comment = false;
+        }
 
         // Use the timestamp from the top-level parent comment
         // If we're replying to a reply, find the original comment's timestamp
@@ -311,18 +379,29 @@ class PitchFilePlayer extends Component
 
         // Send notification to the parent comment author (if not the replier)
         try {
-            app(\App\Services\NotificationService::class)->notifyPitchFileComment(
-                $this->file,
-                $reply,
-                Auth::id()
-            );
+            if ($this->clientMode) {
+                // Notify producer of client reply
+                app(\App\Services\NotificationService::class)->notifyProducerClientCommented(
+                    $this->file->pitch,
+                    $this->replyText
+                );
+            } else {
+                // Regular reply notification
+                app(\App\Services\NotificationService::class)->notifyPitchFileComment(
+                    $this->file,
+                    $reply,
+                    Auth::id()
+                );
+            }
         } catch (\Exception $e) {
             // Log error but don't prevent the reply from being added
             \Illuminate\Support\Facades\Log::error('Failed to send pitch file comment reply notification', [
                 'error' => $e->getMessage(),
                 'file_id' => $this->file->id,
                 'parent_comment_id' => $this->replyToCommentId,
-                'user_id' => Auth::id(),
+                'client_mode' => $this->clientMode,
+                'user_id' => $this->clientMode ? null : Auth::id(),
+                'client_email' => $this->clientMode ? $this->clientEmail : null,
             ]);
         }
 
@@ -332,6 +411,34 @@ class PitchFilePlayer extends Component
         $this->loadComments();
 
         $this->dispatch('commentAdded');
+    }
+
+    // Client-specific methods
+    public function toggleShowResolved()
+    {
+        $this->showResolved = !$this->showResolved;
+        $this->loadComments();
+    }
+
+    public function getCommentPermissions(): array
+    {
+        if ($this->clientMode) {
+            return [
+                'can_add' => true,
+                'can_edit' => false,
+                'can_delete' => false,
+                'can_resolve' => true, // Clients can resolve comments
+                'can_reply' => true, // Clients can reply to comments
+            ];
+        }
+
+        return [
+            'can_add' => true,
+            'can_edit' => false, // Not implemented yet
+            'can_delete' => true,
+            'can_resolve' => true,
+            'can_reply' => true,
+        ];
     }
 
     public function render()

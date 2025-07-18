@@ -24,20 +24,35 @@
 
             <!-- Recall Submission Section (if applicable) -->
             @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-blue-800 mb-3 flex items-center">
-                    <i class="fas fa-undo text-blue-600 mr-2"></i>Submission Management
-                </h4>
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10 p-4 lg:p-6 backdrop-blur-sm">
+                    <div class="flex items-center">
+                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
+                            <i class="fas fa-undo text-lg text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-blue-800">Submission Management</h4>
+                            <p class="text-sm text-blue-600">Manage your submission status and revisions</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 lg:p-6">
                 
                 <div class="mb-4">
-                    <p class="text-sm text-blue-700 mb-3">
-                        Your work has been submitted for client review. You can recall this submission if you need to make changes.
-                    </p>
+                    <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 rounded-xl p-4 mb-4 backdrop-blur-sm">
+                        <p class="text-sm text-blue-700 flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                            Your work has been submitted for client review. You can recall this submission if you need to make changes.
+                        </p>
+                    </div>
                     
                     @if($canResubmit)
-                    <div class="bg-amber-50 border border-amber-200 rounded-md p-3 mb-3">
+                    <div class="bg-gradient-to-r from-amber-50/80 to-orange-50/80 border border-amber-200/50 rounded-xl p-4 mb-3 backdrop-blur-sm">
                         <div class="flex items-center">
-                            <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i>
+                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg mr-3">
+                                <i class="fas fa-exclamation-triangle text-white text-sm"></i>
+                            </div>
                             <span class="text-sm text-amber-700">
                                 <strong>Files Updated:</strong> You've added or modified files since submission. You can now resubmit with your changes.
                             </span>
@@ -48,55 +63,69 @@
                 
                 <div class="flex flex-col sm:flex-row gap-3">
                     <button wire:click="recallSubmission" 
-                            class="btn btn-outline btn-warning flex-1"
+                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-xl font-medium transition-all duration-200 hover:scale-105"
                             wire:confirm="Are you sure you want to recall this submission? The client will no longer be able to review it until you resubmit.">
                         <i class="fas fa-undo mr-2"></i>Recall Submission
                     </button>
                     
                     @if($canResubmit)
                     <button wire:click="submitForReview" 
-                            class="btn btn-primary flex-1">
+                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
                         <i class="fas fa-paper-plane mr-2"></i>Resubmit for Review
                     </button>
                     @endif
                 </div>
                 
-                <p class="text-xs text-blue-600 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>
+                <p class="text-xs text-blue-600 mt-4 bg-blue-50/50 rounded-lg p-3">
+                    <i class="fas fa-info-circle mr-2"></i>
                     Recalling allows you to add/remove files and make changes before resubmitting.
                 </p>
+                </div>
             </div>
             @endif
 
             <!-- Producer Comment Section -->
-            <div class="bg-white rounded-lg border border-base-300 shadow-sm p-4">
-                <h4 class="text-lg font-semibold mb-4 flex items-center">
-                    <i class="fas fa-comment-dots text-purple-500 mr-2"></i>
-                    Send Message to Client
-                </h4>
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
+                    <div class="flex items-center">
+                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
+                            <i class="fas fa-comment-dots text-lg text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-purple-800">Send Message to Client</h4>
+                            <p class="text-sm text-purple-600">Communicate directly with your client</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 lg:p-6">
                 
                 <form wire:submit.prevent="addProducerComment">
-                    <div class="mb-4">
-                        <label for="newComment" class="block text-sm font-medium text-gray-700 mb-2">
+                    <div class="mb-6">
+                        <label for="newComment" class="block text-sm font-semibold text-purple-800 mb-3">
                             Your Message
                         </label>
-                        <textarea wire:model.defer="newComment" 
-                                  id="newComment"
-                                  rows="3"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                  placeholder="Share updates, ask questions, or provide additional context..."></textarea>
-                        @error('newComment') 
-                            <span class="text-red-500 text-xs mt-1">{{ $message }}</span> 
-                        @enderror
+                        <div class="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 border border-purple-200/50 rounded-xl p-4 backdrop-blur-sm">
+                            <textarea wire:model.defer="newComment" 
+                                      id="newComment"
+                                      rows="4"
+                                      class="w-full px-4 py-3 text-gray-700 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200"
+                                      placeholder="Share updates, ask questions, or provide additional context..."></textarea>
+                            @error('newComment') 
+                                <span class="text-red-500 text-xs mt-2 block">{{ $message }}</span> 
+                            @enderror
+                        </div>
                     </div>
                     
-                    <div class="flex items-center justify-between">
-                        <p class="text-xs text-gray-500">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            This message will be visible to your client and they'll receive an email notification
-                        </p>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="bg-purple-50/50 rounded-lg p-3 flex-1">
+                            <p class="text-xs text-purple-600 flex items-center">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                This message will be visible to your client and they'll receive an email notification
+                            </p>
+                        </div>
                         <button type="submit" 
-                                class="btn btn-primary"
+                                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
                                 wire:loading.attr="disabled">
                             <span wire:loading.remove>
                                 <i class="fas fa-paper-plane mr-2"></i>Send Message
@@ -107,16 +136,27 @@
                         </button>
                     </div>
                 </form>
+                </div>
             </div>
 
             <!-- Communication Timeline -->
             <x-client-project.communication-timeline :component="$this" :conversationItems="$this->conversationItems" />
 
             <!-- File Management with Separation -->
-            <div class="bg-white rounded-lg border border-base-300 shadow-sm p-4">
-                <h4 class="text-lg font-semibold mb-4 flex items-center">
-                    <i class="fas fa-file-upload text-purple-500 mr-2"></i>File Management
-                </h4>
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
+                    <div class="flex items-center">
+                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
+                            <i class="fas fa-file-upload text-lg text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-purple-800">File Management</h4>
+                            <p class="text-sm text-purple-600">Manage client references and your deliverables</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 lg:p-6">
 
                 <!-- Storage Indicator -->
                 <x-file-management.storage-indicator 
@@ -125,64 +165,91 @@
                     :storageRemaining="$this->formatFileSize($storageRemaining)" />
 
                 <!-- Client Reference Files Section -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                    <h5 class="font-semibold text-blue-800 mb-3 flex items-center">
-                        <i class="fas fa-folder-open text-blue-600 mr-2"></i>
-                        Client Reference Files
-                        <span class="ml-2 bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full">
-                            {{ $this->clientFiles->count() }} files
-                        </span>
-                    </h5>
-                    <p class="text-sm text-blue-700 mb-4">Files uploaded by your client to provide project requirements, references, or examples.</p>
+                <div class="overflow-hidden rounded-2xl border border-blue-200/50 bg-gradient-to-br from-white/90 to-blue-50/90 shadow-lg backdrop-blur-sm mb-6">
+                    <div class="border-b border-blue-200/50 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 p-4 backdrop-blur-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
+                                    <i class="fas fa-folder-open text-white"></i>
+                                </div>
+                                <div>
+                                    <h5 class="font-bold text-blue-800">Client Reference Files
+                                        <span class="ml-2 bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                            {{ $this->clientFiles->count() }} files
+                                        </span>
+                                    </h5>
+                                    <p class="text-xs text-blue-600">Files uploaded by your client to provide project requirements, references, or examples</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4">
                     
                     @if($this->clientFiles->count() > 0)
-                        <div class="space-y-2">
-                            @foreach($this->clientFiles as $file)
-                                <div class="flex items-center justify-between py-2 px-3 bg-blue-100 rounded">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-file text-blue-600 mr-2"></i>
-                                        <div>
-                                            <span class="text-sm font-medium text-blue-800">{{ $file->file_name }}</span>
-                                            <div class="text-xs text-blue-600">
-                                                {{ $this->formatFileSize($file->size) }} • 
-                                                Uploaded {{ $file->created_at->diffForHumans() }}
-                                                @if(isset($file->metadata) && json_decode($file->metadata)?->uploaded_by_client)
-                                                    • <span class="font-medium">Client Upload</span>
-                                                @endif
+                            <div class="divide-y divide-blue-100/50">
+                                @foreach($this->clientFiles as $file)
+                                    <div class="group flex items-center justify-between py-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50">
+                                        <div class="flex flex-1 items-center overflow-hidden pr-2">
+                                            <div class="bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105">
+                                                <i class="fas fa-file"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate font-semibold text-blue-900">{{ $file->file_name }}</div>
+                                                <div class="text-xs text-blue-600">
+                                                    {{ $this->formatFileSize($file->size) }} • 
+                                                    Uploaded {{ $file->created_at->diffForHumans() }}
+                                                    @if(isset($file->metadata) && json_decode($file->metadata)?->uploaded_by_client)
+                                                        • <span class="font-medium">Client Upload</span>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
+                                        <div class="flex items-center space-x-2">
+                                            <button wire:click="downloadClientFile({{ $file->id }})" 
+                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-download mr-1"></i>Download
+                                            </button>
+                                            <button wire:click="confirmDeleteClientFile({{ $file->id }})" 
+                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-trash mr-1"></i>Delete
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center space-x-2">
-                                        <button wire:click="downloadClientFile({{ $file->id }})" 
-                                                class="text-blue-600 hover:text-blue-800 text-sm">
-                                            <i class="fas fa-download mr-1"></i>Download
-                                        </button>
-                                        <button wire:click="confirmDeleteClientFile({{ $file->id }})" 
-                                                class="text-red-600 hover:text-red-800 text-sm">
-                                            <i class="fas fa-trash mr-1"></i>Delete
-                                        </button>
-                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="text-center py-8">
+                                <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-4">
+                                    <i class="fas fa-inbox text-blue-500 text-xl"></i>
                                 </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="text-center py-6">
-                            <i class="fas fa-inbox text-blue-400 text-3xl mb-3"></i>
-                            <p class="text-blue-600 text-sm">No client files yet. Your client can upload reference files through their portal.</p>
-                        </div>
-                    @endif
+                                <p class="text-blue-600 text-sm">No client files yet. Your client can upload reference files through their portal.</p>
+                            </div>
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Producer Deliverables Section -->
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h5 class="font-semibold text-green-800 mb-3 flex items-center">
-                        <i class="fas fa-music text-green-600 mr-2"></i>
-                        Your Deliverables
-                        <span class="ml-2 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">
-                            {{ $this->producerFiles->count() }} files
-                        </span>
-                    </h5>
-                    <p class="text-sm text-green-700 mb-4">Upload your work files here. These will be visible to your client for review.</p>
+                <div data-section="producer-deliverables" class="overflow-hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-white/90 to-green-50/90 shadow-lg backdrop-blur-sm">
+                    <div class="border-b border-green-200/50 bg-gradient-to-r from-green-100/80 to-emerald-100/80 p-4 backdrop-blur-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
+                                    <i class="fas fa-music text-white"></i>
+                                </div>
+                                <div>
+                                    <h5 class="font-bold text-green-800">Your Deliverables
+                                        <span class="ml-2 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">
+                                            {{ $this->producerFiles->count() }} files
+                                        </span>
+                                    </h5>
+                                    <p class="text-xs text-green-600">Upload your work files here. These will be visible to your client for review</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4">
 
                     <!-- Upload Section for Producer -->
                     <x-file-management.upload-section 
@@ -192,40 +259,61 @@
 
                     <!-- Producer Files List -->
                     @if($this->producerFiles->count() > 0)
-                        <div class="space-y-2 mt-4">
+                        <div class="divide-y divide-green-100/50 mt-4">
                             @foreach($this->producerFiles as $file)
-                                <div class="flex items-center justify-between py-2 px-3 bg-green-100 rounded">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-file-audio text-green-600 mr-2"></i>
-                                        <div>
-                                            <span class="text-sm font-medium text-green-800">{{ $file->file_name }}</span>
-                                            <div class="text-xs text-green-600">
-                                                {{ $this->formatFileSize($file->size) }} • 
-                                                Uploaded {{ $file->created_at->diffForHumans() }}
+                                <div class="overflow-hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-white/90 to-green-50/90 shadow-md backdrop-blur-sm mb-3">
+                                    {{-- File Header --}}
+                                    <div class="group flex items-center justify-between p-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50">
+                                        <div class="flex flex-1 items-center overflow-hidden pr-2">
+                                            <div class="bg-gradient-to-br from-green-100 to-emerald-100 text-green-600 mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105">
+                                                <i class="fas fa-file-audio"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate font-semibold text-green-900">{{ $file->file_name }}</div>
+                                                <div class="text-xs text-green-600">
+                                                    {{ $this->formatFileSize($file->size) }} • 
+                                                    Uploaded {{ $file->created_at->diffForHumans() }}
+                                                </div>
                                             </div>
                                         </div>
+                                        <div class="flex items-center space-x-2">
+                                            <button wire:click="downloadFile({{ $file->id }})" 
+                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-download mr-1"></i>Download
+                                            </button>
+                                            @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
+                                            <button wire:click="confirmDeleteFile({{ $file->id }})" 
+                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-trash mr-1"></i>Delete
+                                            </button>
+                                            @endif
+                                        </div>
                                     </div>
-                                    <div class="flex items-center space-x-2">
-                                        <button wire:click="downloadFile({{ $file->id }})" 
-                                                class="text-green-600 hover:text-green-800 text-sm">
-                                            <i class="fas fa-download mr-1"></i>Download
-                                        </button>
-                                        @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
-                                        <button wire:click="confirmDeleteFile({{ $file->id }})" 
-                                                class="text-red-600 hover:text-red-800 text-sm">
-                                            <i class="fas fa-trash mr-1"></i>Delete
-                                        </button>
-                                        @endif
-                                    </div>
+                                    
+                                    {{-- Audio Player for Audio Files --}}
+                                    @if(in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
+                                        <div class="border-t border-green-200 bg-white p-3">
+                                            @livewire('pitch-file-player', [
+                                                'file' => $file,
+                                                'isInCard' => true
+                                            ], key('player-'.$file->id))
+                                        </div>
+                                        
+                                        
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
                     @else
-                        <div class="text-center py-6 mt-4">
-                            <i class="fas fa-cloud-upload-alt text-green-400 text-3xl mb-3"></i>
+                        <div class="text-center py-8 mt-4">
+                            <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full mx-auto mb-4">
+                                <i class="fas fa-cloud-upload-alt text-green-500 text-xl"></i>
+                            </div>
                             <p class="text-green-600 text-sm">No deliverables uploaded yet. Use the upload area above to add files.</p>
                         </div>
                     @endif
+                    </div>
+                </div>
                 </div>
             </div>
 
@@ -264,21 +352,25 @@
                 </div>
 
                 @if($this->producerFiles->count() === 0)
-                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                    <div class="bg-gradient-to-r from-amber-50/80 to-orange-50/80 border border-amber-200/50 rounded-xl p-4 mb-4 backdrop-blur-sm">
                         <div class="flex items-center">
-                            <i class="fas fa-exclamation-triangle text-amber-500 mr-3"></i>
+                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg mr-3">
+                                <i class="fas fa-exclamation-triangle text-white text-sm"></i>
+                            </div>
                             <div>
-                                <h5 class="font-medium text-amber-800">No deliverables uploaded</h5>
+                                <h5 class="font-semibold text-amber-800">No deliverables uploaded</h5>
                                 <p class="text-sm text-amber-700">You need to upload at least one file before submitting for review.</p>
                             </div>
                         </div>
                     </div>
                 @else
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div class="bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 rounded-xl p-4 mb-4 backdrop-blur-sm">
                         <div class="flex items-center">
-                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3">
+                                <i class="fas fa-check-circle text-white text-sm"></i>
+                            </div>
                             <div>
-                                <h5 class="font-medium text-green-800">{{ $this->producerFiles->count() }} {{ Str::plural('file', $this->producerFiles->count()) }} ready</h5>
+                                <h5 class="font-semibold text-green-800">{{ $this->producerFiles->count() }} {{ Str::plural('file', $this->producerFiles->count()) }} ready</h5>
                                 <p class="text-sm text-green-700">Your deliverables are ready to be submitted to the client.</p>
                             </div>
                         </div>
@@ -316,7 +408,7 @@
                         </button>
                     @endif
                     
-                    <button onclick="window.scrollTo({top: document.querySelector('.bg-green-50').offsetTop - 100, behavior: 'smooth'})"
+                    <button onclick="window.scrollTo({top: document.querySelector('[data-section=producer-deliverables]').offsetTop - 100, behavior: 'smooth'})"
                             class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-purple-100 to-indigo-100 hover:from-purple-200 hover:to-indigo-200 text-purple-800 border border-purple-300 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-md">
                         <i class="fas fa-upload mr-3"></i>Upload More Files
                     </button>
@@ -340,10 +432,20 @@
             </div>
             
             <!-- Client Management Details -->
-            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h3 class="text-lg font-semibold text-purple-800 mb-3">
-                    <i class="fas fa-briefcase mr-2"></i>Client Details
-                </h3>
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 backdrop-blur-sm">
+                    <div class="flex items-center">
+                        <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
+                            <i class="fas fa-briefcase text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-purple-800">Client Details</h3>
+                            <p class="text-xs text-purple-600">Manage client information and access</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4">
                 <div class="space-y-2 text-sm">
                     <div><strong>Client Name:</strong> {{ $project->client_name ?? 'N/A' }}</div>
                     <div><strong>Client Email:</strong> {{ $project->client_email ?? 'N/A' }}</div>
@@ -352,48 +454,72 @@
                     @endif
                 </div>
                 <div class="space-y-2 mt-3">
-                    <button wire:click="resendClientInvite" class="btn btn-sm btn-outline btn-primary w-full">
-                        <i class="fas fa-paper-plane mr-1"></i> Resend Client Invite
+                    <button wire:click="resendClientInvite" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-purple-100 to-indigo-100 hover:from-purple-200 hover:to-indigo-200 text-purple-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
+                        <i class="fas fa-paper-plane mr-2"></i> Resend Client Invite
                     </button>
-                    <button wire:click="previewClientPortal" class="btn btn-sm btn-outline btn-info w-full">
-                        <i class="fas fa-external-link-alt mr-1"></i> Preview Client Portal
+                    <button wire:click="previewClientPortal" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
+                        <i class="fas fa-external-link-alt mr-2"></i> Preview Client Portal
                     </button>
                 </div>
-                <p class="text-xs text-purple-600 mt-2">
+                <p class="text-xs text-purple-600 mt-3 bg-purple-50/50 rounded-lg p-2">
                     <i class="fas fa-info-circle mr-1"></i>
                     Preview shows exactly what your client sees when they click the email link.
                 </p>
+                </div>
             </div>
 
             <!-- Project Actions -->
-            <div class="bg-white rounded-lg border border-base-300 shadow-sm p-4">
-                <h3 class="text-lg font-semibold mb-3">
-                    <i class="fas fa-cog mr-2"></i>Project Actions
-                </h3>
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10 p-4 backdrop-blur-sm">
+                    <div class="flex items-center">
+                        <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
+                            <i class="fas fa-cog text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-blue-800">Project Actions</h3>
+                            <p class="text-xs text-blue-600">Edit and manage your project</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4">
                 <div class="space-y-3">
                     <a href="{{ route('projects.edit', $project) }}" 
-                       class="btn btn-outline btn-warning w-full">
+                       class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
                         <i class="fas fa-edit mr-2"></i>Edit Project Details
                     </a>
                     <a href="{{ route('projects.show', $project) }}" 
-                       class="btn btn-outline btn-info w-full">
+                       class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
                         <i class="fas fa-eye mr-2"></i>View Public Page
                     </a>
+                </div>
                 </div>
             </div>
 
             <!-- Danger Zone -->
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h3 class="text-lg font-semibold text-red-800 mb-3">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
-                </h3>
-                <p class="text-sm text-red-700 mb-3">
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-red-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-red-500/10 p-4 backdrop-blur-sm">
+                    <div class="flex items-center">
+                        <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
+                            <i class="fas fa-exclamation-triangle text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
+                            <p class="text-xs text-red-600">Irreversible project deletion</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4">
+                <p class="text-sm text-red-700 mb-4 bg-red-50/50 rounded-lg p-3">
+                    <i class="fas fa-warning mr-2"></i>
                     Permanently delete this project and all associated files. This action cannot be undone.
                 </p>
                 <button wire:click="confirmDeleteProject" 
-                        class="btn btn-error btn-sm w-full">
+                        class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
                     <i class="fas fa-trash-alt mr-2"></i>Delete Project
                 </button>
+                </div>
             </div>
         </div>
     </div>
@@ -463,4 +589,33 @@
         </div>
     </div>
     @endif
+
+    <!-- JavaScript for File Annotations -->
+    <script>
+        // Global function to expand comment details
+        function expandComment(fileId, commentId) {
+            console.log('Expand comment', commentId, 'for file', fileId);
+            
+            // Show a notification with comment details
+            showNotification('Comment details view - Comment ID: ' + commentId + ' (Full modal coming soon)');
+        }
+
+        // Helper function to show notifications
+        function showNotification(message) {
+            // Create a simple notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+
+
+    </script>
 </div> 

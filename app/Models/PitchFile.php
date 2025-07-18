@@ -269,7 +269,9 @@ class PitchFile extends Model
     public function getStreamingUrl(?User $user = null, int $expiration = 7200): ?string
     {
         if ($this->shouldServeWatermarked($user)) {
-            return $this->getProcessedFileUrl($expiration);
+            $processedUrl = $this->getProcessedFileUrl($expiration);
+            // Fallback to original if no processed version available
+            return $processedUrl ?: $this->getOriginalFileUrl($expiration);
         }
 
         return $this->getOriginalFileUrl($expiration);

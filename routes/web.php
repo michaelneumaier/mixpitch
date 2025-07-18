@@ -62,6 +62,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+    Route::get('/producer/client-management', [DashboardController::class, 'clientManagement'])->name('producer.client-management');
 });
 
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
@@ -926,6 +927,12 @@ Route::middleware(['auth', 'verified'])->prefix('orders')->name('orders.')->grou
 Route::get('/projects/{project:id}/portal', [ClientPortalController::class, 'show'])
     ->name('client.portal.view')
     ->middleware('signed');
+
+// Producer preview route (for project owners to preview the client portal)
+Route::get('/projects/{project}/portal/preview', [ClientPortalController::class, 'preview'])
+    ->name('client.portal.preview')
+    ->middleware('auth');
+
 
 // Client Portal Snapshot Navigation - NEW
 Route::get('/projects/{project:id}/portal/snapshot/{snapshot}', [ClientPortalController::class, 'showSnapshot'])

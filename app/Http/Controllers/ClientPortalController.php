@@ -862,4 +862,79 @@ class ClientPortalController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Preview the client portal (for project owners)
+     */
+    public function preview($projectId, Request $request)
+    {
+        Log::info('🔍 CLIENT PORTAL PREVIEW METHOD CALLED', [
+            'project_id' => $projectId,
+            'user_id' => auth()->id(),
+            'user_role' => auth()->user()->role ?? 'no_role',
+        ]);
+        
+        // Manually find the project to bypass implicit authorization
+        $project = Project::findOrFail($projectId);
+        
+        // Ensure only the project owner can preview
+        if (auth()->id() !== $project->user_id) {
+            Log::error('Client portal preview authorization failed', [
+                'project_id' => $project->id,
+                'project_owner_id' => $project->user_id,
+                'current_user_id' => auth()->id(),
+                'current_user_role' => auth()->user()->role ?? 'no_role',
+            ]);
+            abort(403, 'You are not authorized to preview this client portal.');
+        }
+
+        // Basic validation: Ensure it's a client management project
+        if (! $project->isClientManagement()) {
+            abort(404, 'Project not found or not accessible via client portal.');
+        }
+
+        // Retrieve the single pitch associated with this project
+        // Enhanced: Eager load snapshots and their associated files
+        $pitch = $project->pitches()
+            ->with([
+                'user',
+                'files',
+                'snapshots' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'events' => function ($query) {
+                    // Order events, newest first
+                    $query->orderBy('created_at', 'desc');
+                },
+                'events.user',
+            ])
+            ->first();
+
+        if (! $pitch) {
+            Log::error('Client portal preview accessed but no pitch found for project.', ['project_id' => $project->id]);
+            abort(404, 'Project details could not be loaded.'); // Or show an error view
+        }
+
+        // Enhanced: Prepare snapshot history and current snapshot
+        $snapshotHistory = $this->prepareSnapshotHistory($pitch);
+        $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
+
+        // Add preview banner context
+        $isPreview = true;
+
+        Log::info('🔍 CLIENT PORTAL PREVIEW ACCESS', [
+            'project_id' => $project->id,
+            'accessed_by' => auth()->user()->name.' (Project Owner)',
+            'pitch_id' => $pitch->id,
+            'pitch_status' => $pitch->status,
+        ]);
+
+        return view('client_portal.show', compact(
+            'project',
+            'pitch',
+            'snapshotHistory',
+            'currentSnapshot',
+            'isPreview'
+        ));
+    }
 }

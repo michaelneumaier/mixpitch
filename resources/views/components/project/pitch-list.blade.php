@@ -290,6 +290,47 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                             <div class="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs px-3 py-1 rounded-lg font-bold border border-blue-200 shadow-sm">
                                                 {{ $pitch->snapshots->count() }} versions
                                             </div>
+                                            @if($pitch->snapshots->count() >= 2)
+                                                <button onclick="showVersionComparison({{ $pitch->id }})" 
+                                                        class="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 text-xs px-3 py-1 rounded-lg font-bold border border-purple-200 shadow-sm hover:from-purple-200 hover:to-pink-200 transition-colors">
+                                                    <i class="fas fa-columns mr-1"></i>Compare
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Version Comparison Modal -->
+                                    <div id="versionComparisonModal-{{ $pitch->id }}" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                                        <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6 rounded-t-2xl">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <i class="fas fa-columns text-2xl mr-3"></i>
+                                                        <div>
+                                                            <h3 class="text-xl font-bold">Version Comparison</h3>
+                                                            <p class="text-purple-100">Compare snapshots from {{ $pitch->user->name }}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button onclick="hideVersionComparison({{ $pitch->id }})" 
+                                                            class="text-white hover:text-purple-200 transition-colors">
+                                                        <i class="fas fa-times text-2xl"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="p-6">
+                                                @if($pitch->snapshots->count() >= 2)
+                                                    @livewire('file-comparison-player', [
+                                                        'snapshots' => $pitch->snapshots->sortByDesc('created_at'),
+                                                        'pitchId' => $pitch->id,
+                                                        'allowAnnotations' => true
+                                                    ])
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                                             @if($pitch->snapshots->where('status', 'pending')->count() > 0 && auth()->id() === $project->user_id)
                                                 <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs px-3 py-1 rounded-lg font-bold animate-pulse shadow-lg border border-amber-300">
                                                     {{ $pitch->snapshots->where('status', 'pending')->count() }} pending
@@ -441,4 +482,43 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
     input:checked ~ .block {
         background-color: #c7d2fe;
     }
-</style> 
+</style>
+
+<script>
+    function showVersionComparison(pitchId) {
+        const modal = document.getElementById(`versionComparisonModal-${pitchId}`);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function hideVersionComparison(pitchId) {
+        const modal = document.getElementById(`versionComparisonModal-${pitchId}`);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+        if (event.target.id && event.target.id.startsWith('versionComparisonModal-')) {
+            const pitchId = event.target.id.replace('versionComparisonModal-', '');
+            hideVersionComparison(pitchId);
+        }
+    });
+
+    // Close modal with escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const openModals = document.querySelectorAll('[id^="versionComparisonModal-"]:not(.hidden)');
+            openModals.forEach(modal => {
+                const pitchId = modal.id.replace('versionComparisonModal-', '');
+                hideVersionComparison(pitchId);
+            });
+        }
+    });
+</script> 

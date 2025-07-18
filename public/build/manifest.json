@@ -32,12 +32,12 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-47a457f1.css",
+    "file": "assets/app-29c763c4.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-3873de75.css",
+    "file": "assets/theme-d5b78507.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -52,7 +52,7 @@
     "dynamicImports": [
       "resources/js/filament/billing/stripe-handler.js"
     ],
-    "file": "assets/app-3614c9ca.js",
+    "file": "assets/app-b9f806eb.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   },

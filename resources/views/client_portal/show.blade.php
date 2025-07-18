@@ -8,6 +8,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Add Bootstrap JS and its dependencies -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <!-- Add WaveSurfer.js for audio player -->
+    <script src="https://unpkg.com/wavesurfer.js"></script>
+    <!-- Add Livewire for pitch-file-player component -->
+    @livewireStyles
     <style>
         body { font-family: 'Inter', sans-serif; }
         
@@ -39,6 +47,22 @@
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 font-sans antialiased min-h-screen bg-pattern">
+
+    @if(isset($isPreview) && $isPreview)
+        <!-- Preview Banner -->
+        <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 px-4 relative z-50">
+            <div class="container mx-auto max-w-5xl">
+                <div class="flex items-center justify-center">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-eye text-orange-200"></i>
+                        <span class="font-semibold">Preview Mode</span>
+                        <span class="text-orange-100">•</span>
+                        <span class="text-orange-100">This is how your client sees their portal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Background Decorative Elements -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -498,18 +522,28 @@
                         @endif
                     </div>
 
-                    {{-- Snapshot Navigation (if multiple versions) --}}
+                    {{-- Enhanced Snapshot Navigation with Version Comparison --}}
                     @if($snapshotHistory->count() > 1)
                     <div class="mb-6">
                         <div class="bg-gradient-to-r from-blue-50/80 to-green-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
-                            <h5 class="font-semibold text-blue-800 mb-3">Submission History</h5>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div class="flex items-center justify-between mb-3">
+                                <h5 class="font-semibold text-blue-800">Submission History</h5>
+                                @if($snapshotHistory->count() >= 2)
+                                <button onclick="toggleVersionComparison()" 
+                                        class="text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-lg transition-colors duration-200">
+                                    <i class="fas fa-columns mr-1"></i>Compare Versions
+                                </button>
+                                @endif
+                            </div>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="snapshot-grid">
                                 @foreach($snapshotHistory as $snapshot)
-                                <a href="{{ URL::temporarySignedRoute('client.portal.snapshot', now()->addHours(24), ['project' => $project->id, 'snapshot' => $snapshot['id']]) }}"
-                                   class="group p-3 rounded-lg border transition-all duration-200 hover:shadow-md
+                                <div class="snapshot-item group p-3 rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer
                                           {{ $currentSnapshot && $currentSnapshot->id === $snapshot['id'] 
                                              ? 'bg-green-100 border-green-300 ring-2 ring-green-500' 
-                                             : 'bg-white border-gray-200 hover:border-green-300' }}">
+                                             : 'bg-white border-gray-200 hover:border-green-300' }}"
+                                     data-snapshot-id="{{ $snapshot['id'] }}"
+                                     onclick="selectSnapshot({{ $snapshot['id'] }})">
                                     
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center">
@@ -531,15 +565,34 @@
                                                         'bg-gray-100 text-gray-600') }}">
                                             {{ ucfirst($snapshot['status']) }}
                                         </div>
+                                        
+                                        {{-- Comparison Checkbox --}}
+                                        <input type="checkbox" class="comparison-checkbox hidden ml-2" 
+                                               data-snapshot-id="{{ $snapshot['id'] }}"
+                                               onchange="updateComparison()">
                                     </div>
-                                </a>
+                                </div>
                                 @endforeach
+                            </div>
+                            
+                            {{-- Version Comparison Interface --}}
+                            <div id="version-comparison" class="hidden mt-4 p-4 bg-white/60 backdrop-blur-sm border border-blue-200/30 rounded-lg">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h6 class="font-semibold text-blue-800">Compare Versions</h6>
+                                    <button onclick="hideVersionComparison()" class="text-blue-600 hover:text-blue-800">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <p class="text-sm text-blue-700 mb-3">Select two versions to compare side by side.</p>
+                                <div id="comparison-content">
+                                    <!-- Comparison content will be loaded here -->
+                                </div>
                             </div>
                         </div>
                     </div>
                     @endif
 
-                    {{-- Current Snapshot Files Display --}}
+                    {{-- Enhanced Current Snapshot Files Display with Audio Player --}}
                     @if($currentSnapshot && (method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0))
                     <div class="mb-4">
                         <div class="flex items-center justify-between mb-3">
@@ -551,23 +604,52 @@
                             </span>
                         </div>
                         
-                        <div class="space-y-3">
+                        {{-- Enhanced File Display with Audio Players and Annotations --}}
+                        <div class="space-y-4">
                             @foreach(($currentSnapshot->files ?? collect()) as $file)
-                            <div class="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
-                                <div class="flex items-center min-w-0 flex-1 mr-3">
-                                    <div class="hidden sm:flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-sm flex-shrink-0">
-                                        <i class="fas fa-music text-white text-sm"></i>
+                                {{-- Check if file is audio for enhanced player --}}
+                                @if(in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
+                                    {{-- Audio File with Enhanced Player --}}
+                                    <div class="bg-gradient-to-r from-white/90 to-green-50/70 backdrop-blur-sm border border-green-200/50 rounded-xl p-4 shadow-sm">
+                                        <div class="mb-3">
+                                            <h6 class="font-semibold text-green-900 mb-1">{{ $file->file_name }}</h6>
+                                            <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB • Audio File</div>
+                                        </div>
+                                        
+                                        {{-- Enhanced Audio Player with Client Comment Support --}}
+                                        @livewire('pitch-file-player', [
+                                            'file' => $file,
+                                            'isInCard' => true,
+                                            'clientMode' => true,
+                                            'clientEmail' => $project->client_email
+                                        ])
+                                        
+                                        {{-- Download Link --}}
+                                        <div class="mt-3 text-right">
+                                            <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
+                                               class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-sm">
+                                                <i class="fas fa-download mr-2"></i>Download
+                                            </a>
+                                        </div>
                                     </div>
-                                    <div class="min-w-0 flex-1">
-                                        <span class="text-xs sm:text-sm font-semibold text-green-900 block truncate">{{ $file->file_name }}</span>
-                                        <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB</div>
+                                @else
+                                    {{-- Non-Audio File - Standard Display --}}
+                                    <div class="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                                        <div class="flex items-center min-w-0 flex-1 mr-3">
+                                            <div class="hidden sm:flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-sm flex-shrink-0">
+                                                <i class="fas fa-file text-white text-sm"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <span class="text-xs sm:text-sm font-semibold text-green-900 block truncate">{{ $file->file_name }}</span>
+                                                <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB</div>
+                                            </div>
+                                        </div>
+                                        <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
+                                           class="inline-flex items-center px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm flex-shrink-0">
+                                            <i class="fas fa-download mr-1 sm:mr-2"></i><span class="hidden sm:inline">Download</span>
+                                        </a>
                                     </div>
-                                </div>
-                                <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
-                                   class="inline-flex items-center px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm flex-shrink-0">
-                                    <i class="fas fa-download mr-1 sm:mr-2"></i><span class="hidden sm:inline">Download</span>
-                                </a>
-                            </div>
+                                @endif
                             @endforeach
                         </div>
                         
@@ -678,7 +760,7 @@
                                 @endif
                             </div>
 
-                            {{-- Enhanced Request Revisions Form --}}
+                            {{-- Enhanced Request Revisions Form with Structured Feedback --}}
                             <div class="bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-sm border border-amber-200/50 rounded-xl p-6">
                                 <div class="mb-4">
                                     <h4 class="font-semibold text-amber-800 mb-2 flex items-center">
@@ -686,27 +768,38 @@
                                         Request Revisions
                                     </h4>
                                     <p class="text-sm text-amber-700 mb-4">
-                                        Provide specific feedback about what needs to be changed. The producer will be notified and can make adjustments.
+                                        Use our structured feedback system to provide specific, organized feedback about what needs to be changed.
                                     </p>
                                 </div>
                                 
-                                <form action="{{ URL::temporarySignedRoute('client.portal.revisions', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
-                                    @csrf
-                                    <label for="feedback" class="block text-sm font-semibold text-amber-800 mb-3">Detailed Feedback</label>
-                                    <textarea name="feedback" id="feedback" rows="4" required 
-                                              class="w-full rounded-xl border-amber-300 shadow-sm focus:border-amber-500 focus:ring focus:ring-amber-500 focus:ring-opacity-20 transition-all duration-300 bg-white/80 backdrop-blur-sm" 
-                                              placeholder="Please be specific about what needs to be changed or improved...">{{ old('feedback') }}</textarea>
-                                @error('feedback')
-                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                                    <button type="submit" class="mt-4 w-full group relative overflow-hidden bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-xl">
-                                        <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                        <div class="relative flex items-center justify-center">
-                                            <i class="fas fa-paper-plane mr-2"></i>
-                                            <span>Send Revision Request</span>
-                                        </div>
-                                    </button>
-                                </form>
+                                {{-- Enhanced Structured Feedback Form --}}
+                                <div class="bg-white/60 backdrop-blur-sm border border-amber-200/30 rounded-lg p-4 mb-4">
+                                    @livewire('structured-feedback-form', [
+                                        'pitch' => $pitch,
+                                        'pitchFile' => ($currentSnapshot->files ?? collect())->first(),
+                                        'clientEmail' => $project->client_email
+                                    ])
+                                </div>
+                                
+                                {{-- Fallback: Traditional Text Feedback --}}
+                                <div class="border-t border-amber-200/50 pt-4">
+                                    <h5 class="text-sm font-semibold text-amber-800 mb-3">Or send traditional feedback:</h5>
+                                    <form action="{{ URL::temporarySignedRoute('client.portal.revisions', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
+                                        @csrf
+                                        <textarea name="feedback" rows="3" 
+                                                  class="w-full rounded-lg border-amber-300 shadow-sm focus:border-amber-500 focus:ring focus:ring-amber-500 focus:ring-opacity-20 transition-all duration-300 bg-white/80 backdrop-blur-sm text-sm" 
+                                                  placeholder="Additional feedback or specific requests...">{{ old('feedback') }}</textarea>
+                                        @error('feedback')
+                                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                        <button type="submit" class="mt-3 w-full group relative overflow-hidden bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300 hover:shadow-lg text-sm">
+                                            <div class="relative flex items-center justify-center">
+                                                <i class="fas fa-paper-plane mr-2"></i>
+                                                <span>Send Traditional Feedback</span>
+                                            </div>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1188,7 +1281,105 @@
                 }, 400);
             }
         });
+        
+        // Version Comparison JavaScript
+        window.selectedSnapshots = [];
+        
+        window.toggleVersionComparison = function() {
+            const checkboxes = document.querySelectorAll('.comparison-checkbox');
+            const comparisonDiv = document.getElementById('version-comparison');
+            
+            checkboxes.forEach(cb => cb.classList.toggle('hidden'));
+            
+            if (checkboxes[0].classList.contains('hidden')) {
+                // Hide comparison mode
+                comparisonDiv.classList.add('hidden');
+                selectedSnapshots = [];
+                checkboxes.forEach(cb => cb.checked = false);
+            }
+        };
+        
+        window.hideVersionComparison = function() {
+            const checkboxes = document.querySelectorAll('.comparison-checkbox');
+            const comparisonDiv = document.getElementById('version-comparison');
+            
+            checkboxes.forEach(cb => {
+                cb.classList.add('hidden');
+                cb.checked = false;
+            });
+            comparisonDiv.classList.add('hidden');
+            selectedSnapshots = [];
+        };
+        
+        window.selectSnapshot = function(snapshotId) {
+            // Only navigate if not in comparison mode
+            const checkboxes = document.querySelectorAll('.comparison-checkbox');
+            if (checkboxes[0].classList.contains('hidden')) {
+                window.location.href = `/client-portal/project/{{ $project->id }}/snapshot/${snapshotId}`;
+            }
+        };
+        
+        window.updateComparison = function() {
+            const checkedBoxes = document.querySelectorAll('.comparison-checkbox:checked');
+            const comparisonDiv = document.getElementById('version-comparison');
+            const comparisonContent = document.getElementById('comparison-content');
+            
+            selectedSnapshots = Array.from(checkedBoxes).map(cb => cb.dataset.snapshotId);
+            
+            if (selectedSnapshots.length === 2) {
+                // Show comparison
+                comparisonDiv.classList.remove('hidden');
+                comparisonContent.innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin text-blue-500 text-xl mb-2"></i>
+                        <p class="text-blue-700">Loading version comparison...</p>
+                    </div>
+                `;
+                
+                // Load comparison component via Livewire
+                // This would need to be implemented as a separate Livewire component
+                // For now, we'll show a placeholder
+                setTimeout(() => {
+                    comparisonContent.innerHTML = `
+                        <div class="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+                            <h6 class="font-semibold text-blue-800 mb-2">Version Comparison: V${getVersionNumber(selectedSnapshots[0])} vs V${getVersionNumber(selectedSnapshots[1])}</h6>
+                            <p class="text-sm text-blue-700 mb-3">Enhanced file comparison with synchronized playback would be loaded here.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="bg-white/60 rounded-lg p-3">
+                                    <h7 class="font-medium text-green-800">Version ${getVersionNumber(selectedSnapshots[0])}</h7>
+                                    <p class="text-xs text-gray-600">Files and annotations from this version</p>
+                                </div>
+                                <div class="bg-white/60 rounded-lg p-3">
+                                    <h7 class="font-medium text-green-800">Version ${getVersionNumber(selectedSnapshots[1])}</h7>
+                                    <p class="text-xs text-gray-600">Files and annotations from this version</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }, 1000);
+            } else if (selectedSnapshots.length > 2) {
+                // Limit to 2 selections
+                checkedBoxes[checkedBoxes.length - 1].checked = false;
+                selectedSnapshots.pop();
+            } else {
+                comparisonDiv.classList.add('hidden');
+            }
+        };
+        
+        function getVersionNumber(snapshotId) {
+            const snapshots = @json($snapshotHistory);
+            const snapshot = snapshots.find(s => s.id == snapshotId);
+            return snapshot ? snapshot.version : '?';
+        }
     </script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
 
+    <!-- Add Livewire scripts for pitch-file-player component -->
+    @yield('scripts')
+    @livewireScripts
+    @stack('scripts')
 </body>
 </html> 

@@ -237,8 +237,8 @@
                         </div>
                         
                         @if($producerData['client_management']['total_projects'] > 0)
-                        <!-- Has Client Projects - Show Stats -->
-                        <div class="grid grid-cols-2 gap-4">
+                        <!-- Has Client Projects - Show Quick Stats -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
                             <div class="text-center p-3 bg-white/50 rounded-lg">
                                 <div class="text-2xl font-bold text-blue-900">{{ $producerData['client_management']['total_projects'] }}</div>
                                 <div class="text-xs text-blue-600">Total Projects</div>
@@ -255,6 +255,15 @@
                                 <div class="text-lg font-bold text-blue-900">${{ number_format($producerData['client_management']['total_revenue'], 0) }}</div>
                                 <div class="text-xs text-blue-600">Revenue</div>
                             </div>
+                        </div>
+                        
+                        <!-- Link to Full Client Management Dashboard -->
+                        <div class="text-center">
+                            <a href="{{ route('producer.client-management') }}" 
+                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                                <i class="fas fa-chart-line mr-2"></i>
+                                View Full Dashboard
+                            </a>
                         </div>
                         @else
                         <!-- No Client Projects - Show Empty State with CTA -->
