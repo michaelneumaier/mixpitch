@@ -387,7 +387,8 @@
                 <div class="absolute inset-0 bg-gradient-to-r {{ $comment->resolved ? 'from-green-600/5 to-emerald-600/5' : 'from-purple-600/5 to-indigo-600/5' }}"></div>
                 
                 <div class="relative z-10 {{ ($isInCard ?? false) ? 'p-3' : 'p-6' }}">
-                    <div class="flex items-start {{ ($isInCard ?? false) ? 'space-x-3' : 'space-x-4' }}">
+                    <!-- Header with avatar and user info -->
+                    <div class="flex items-start {{ ($isInCard ?? false) ? 'space-x-3 mb-2' : 'space-x-4 mb-3' }}">
                         <!-- Enhanced User Avatar -->
                         <div class="flex-shrink-0">
                             <div class="relative">
@@ -410,42 +411,41 @@
                             </div>
                         </div>
 
-                        <div class="flex-grow">
-                            <!-- Comment Header -->
-                            <div class="flex justify-between items-start {{ ($isInCard ?? false) ? 'mb-2' : 'mb-3' }}">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2">
-                                        <h4 class="{{ ($isInCard ?? false) ? 'font-semibold text-gray-900 text-sm' : 'font-semibold text-gray-900 text-lg' }}">
-                                            @if($comment->is_client_comment)
-                                                {{ $clientMode ? 'You' : ($comment->client_email ?? 'Client') }}
-                                            @elseif($comment->user)
-                                                {{ $comment->user->name }}
-                                            @else
-                                                {{ $comment->client_email ?? 'Client' }}
-                                            @endif
-                                        </h4>
-                                        @if($comment->resolved)
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            <i class="fas fa-check-circle mr-1"></i>Resolved
-                                        </span>
-                                        @endif
-                                    </div>
-                                    <div class="flex items-center text-sm text-gray-600 mt-1">
-                                        <i class="fas fa-clock text-purple-500 mr-1"></i>
-                                        <span>{{ $comment->created_at->diffForHumans() }}</span>
-                                        <span class="mx-2">•</span>
-                                        <button type="button" 
-                                                @click="$wire.seekTo({{ $comment->timestamp }})"
-                                                class="inline-flex items-center font-medium text-purple-600 hover:text-purple-800 transition-colors">
-                                            <i class="fas fa-play-circle mr-1"></i>
-                                            {{ $comment->formattedTimestamp }}
-                                        </button>
-                                    </div>
-                                </div>
+                        <!-- User info and timestamp - header only -->
+                        <div class="flex-grow min-w-0">
+                            <!-- Username and status row -->
+                            <div class="flex items-center gap-2 {{ ($isInCard ?? false) ? 'mb-1' : 'mb-2' }}">
+                                <h4 class="{{ ($isInCard ?? false) ? 'font-semibold text-gray-900 text-sm' : 'font-semibold text-gray-900 text-lg' }} truncate flex-1 min-w-0">
+                                    @if($comment->is_client_comment)
+                                        {{ $clientMode ? 'You' : ($comment->client_email ?? 'Client') }}
+                                    @elseif($comment->user)
+                                        {{ $comment->user->name }}
+                                    @else
+                                        {{ $comment->client_email ?? 'Client' }}
+                                    @endif
+                                </h4>
+                                @if($comment->resolved)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
+                                    <i class="fas fa-check-circle mr-1"></i>Resolved
+                                </span>
+                                @endif
+                            </div>
 
-                                <!-- Action Buttons -->
+                            <!-- Timestamp row -->
+                            <div class="flex items-center text-sm text-gray-600 min-w-0">
+                                <i class="fas fa-clock text-purple-500 mr-1 flex-shrink-0"></i>
+                                <span class="truncate">{{ $comment->created_at->diffForHumans() }}</span>
+                                <span class="mx-2 flex-shrink-0">•</span>
+                                <button type="button" 
+                                        @click="$wire.seekTo({{ $comment->timestamp }})"
+                                        class="inline-flex items-center font-medium text-purple-600 hover:text-purple-800 transition-colors flex-shrink-0">
+                                    <i class="fas fa-play-circle mr-1"></i>
+                                    {{ $comment->formattedTimestamp }}
+                                </button>
+                                
+                                <!-- Action Buttons for medium+ screens -->
                                 @if(!$clientMode || $this->getCommentPermissions()['can_reply'])
-                                <div class="flex items-center space-x-2">
+                                <div class="hidden md:flex items-center space-x-2 ml-4 flex-shrink-0">
                                     <!-- Reply Button -->
                                     @if($this->getCommentPermissions()['can_reply'])
                                     <button type="button" 
@@ -471,7 +471,7 @@
                                     <!-- Resolve Toggle Button -->
                                     <button type="button" 
                                             @click="$wire.toggleResolveComment({{ $comment->id }})"
-                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' : 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' }} text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' : 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' }} text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
                                         <i class="fas {{ $comment->resolved ? 'fa-undo' : 'fa-check' }} mr-1"></i>
                                         {{ $comment->resolved ? 'Unresolve' : 'Resolve' }}
                                     </button>
@@ -485,15 +485,61 @@
                                         <i class="fas fa-trash-alt mr-1"></i>Delete
                                     </button>
                                     @endif
+                                    </div>
                                     @endif
-                                </div>
-                                
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- Comment Content -->
-                            <div class="bg-gradient-to-r {{ $comment->resolved ? 'from-green-50/80 to-emerald-50/80 border-green-200/50' : 'from-purple-50/80 to-indigo-50/80 border-purple-200/50' }} backdrop-blur-sm border rounded-xl {{ ($isInCard ?? false) ? 'p-2 mb-2' : 'p-4 mb-4' }}">
-                                <p class="text-gray-800 whitespace-pre-line leading-relaxed">{{ $comment->comment }}</p>
-                            </div>
+                    <!-- Full Width Comment Content -->
+                    <div class="bg-gradient-to-r {{ $comment->resolved ? 'from-green-50/80 to-emerald-50/80 border-green-200/50' : 'from-purple-50/80 to-indigo-50/80 border-purple-200/50' }} backdrop-blur-sm border rounded-xl {{ ($isInCard ?? false) ? 'p-2 mb-3' : 'p-4 mb-4' }}">
+                        <p class="text-gray-800 whitespace-pre-line leading-relaxed">{{ $comment->comment }}</p>
+                    </div>
+
+                    <!-- Full Width Action Buttons for small screens -->
+                    @if(!$clientMode || $this->getCommentPermissions()['can_reply'])
+                    <div class="flex md:hidden items-center space-x-2 {{ ($isInCard ?? false) ? 'mb-2' : 'mb-3' }}">
+                                    <!-- Reply Button -->
+                                    @if($this->getCommentPermissions()['can_reply'])
+                                    <button type="button" 
+                                            @click="$wire.toggleReplyForm({{ $comment->id }})"
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                        <i class="fas fa-reply mr-1"></i>Reply
+                                    </button>
+                                    @endif
+
+                                    @php
+                                        $canResolve = false;
+                                        if ($clientMode) {
+                                            // Client can resolve their own comments OR producer comments
+                                            $canResolve = ($comment->is_client_comment && $comment->client_email === $clientEmail) 
+                                                       || ($comment->user_id === $file->pitch->user_id);
+                                        } else {
+                                            // Regular user can resolve if they own comment or pitch
+                                            $canResolve = Auth::id() === $comment->user_id || Auth::id() === $file->pitch->user_id;
+                                        }
+                                    @endphp
+                                    
+                                    @if($canResolve && $this->getCommentPermissions()['can_resolve'])
+                                    <!-- Resolve Toggle Button -->
+                                    <button type="button" 
+                                            @click="$wire.toggleResolveComment({{ $comment->id }})"
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' : 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' }} text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                        <i class="fas {{ $comment->resolved ? 'fa-undo' : 'fa-check' }} mr-1"></i>
+                                        {{ $comment->resolved ? 'Unresolve' : 'Resolve' }}
+                                    </button>
+                                    @endif
+
+                                    <!-- Delete Button -->
+                                    @if($this->getCommentPermissions()['can_delete'])
+                                    <button type="button" 
+                                            @click="$wire.confirmDelete({{ $comment->id }})"
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                        <i class="fas fa-trash-alt mr-1"></i>Delete
+                                    </button>
+                                    @endif
+                    </div>
+                    @endif
 
                             <!-- Reply Form -->
                             @if($showReplyForm && $replyToCommentId === $comment->id)
@@ -599,8 +645,7 @@
                                 @endforeach
                             </div>
                             @endif
-                        </div>
-                    </div>
+                     
                 </div>
             </div>
             @endforeach

@@ -13,7 +13,7 @@
         </div>
     </div>
     
-    <div class="p-4 lg:p-6">
+    <div class="p-2 md:p-4 lg:p-6">
     
     <div class="space-y-4 max-h-96 overflow-y-auto">
         @forelse($conversationItems as $item)

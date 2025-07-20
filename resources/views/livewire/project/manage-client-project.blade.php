@@ -37,7 +37,7 @@
                     </div>
                 </div>
                 
-                <div class="p-4 lg:p-6">
+                <div class="p-2 md:p-4 lg:p-6">
                 
                 <div class="mb-4">
                     <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 rounded-xl p-4 mb-4 backdrop-blur-sm">
@@ -156,7 +156,7 @@
                     </div>
                 </div>
 
-                <div class="p-4 lg:p-6">
+                <div class="p-2 md:p-4 lg:p-6">
 
                 <!-- Storage Indicator -->
                 <x-file-management.storage-indicator 
@@ -189,13 +189,13 @@
                     @if($this->clientFiles->count() > 0)
                             <div class="divide-y divide-blue-100/50">
                                 @foreach($this->clientFiles as $file)
-                                    <div class="group flex items-center justify-between py-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50">
-                                        <div class="flex flex-1 items-center overflow-hidden pr-2">
+                                    <div class="group py-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50">
+                                        <div class="flex items-center mb-3">
                                             <div class="bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105">
                                                 <i class="fas fa-file"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <div class="truncate font-semibold text-blue-900">{{ $file->file_name }}</div>
+                                                <div class="font-semibold text-blue-900">{{ $file->file_name }}</div>
                                                 <div class="text-xs text-blue-600">
                                                     {{ $this->formatFileSize($file->size) }} • 
                                                     Uploaded {{ $file->created_at->diffForHumans() }}
@@ -205,14 +205,16 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="flex items-center space-x-2">
+                                        
+                                        {{-- Action Buttons --}}
+                                        <div class="flex gap-2">
                                             <button wire:click="downloadClientFile({{ $file->id }})" 
-                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-download mr-1"></i>Download
+                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-download mr-2"></i>Download
                                             </button>
                                             <button wire:click="confirmDeleteClientFile({{ $file->id }})" 
-                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-trash mr-1"></i>Delete
+                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-trash mr-2"></i>Delete
                                             </button>
                                         </div>
                                     </div>
@@ -249,7 +251,7 @@
                         </div>
                     </div>
                     
-                    <div class="p-4">
+                    <div class="p-2 md:p-4">
 
                     <!-- Upload Section for Producer -->
                     <x-file-management.upload-section 
@@ -263,28 +265,30 @@
                             @foreach($this->producerFiles as $file)
                                 <div class="overflow-hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-white/90 to-green-50/90 shadow-md backdrop-blur-sm mb-3">
                                     {{-- File Header --}}
-                                    <div class="group flex items-center justify-between p-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50">
-                                        <div class="flex flex-1 items-center overflow-hidden pr-2">
+                                    <div class="group p-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50">
+                                        <div class="flex items-center mb-3">
                                             <div class="bg-gradient-to-br from-green-100 to-emerald-100 text-green-600 mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105">
                                                 <i class="fas fa-file-audio"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <div class="truncate font-semibold text-green-900">{{ $file->file_name }}</div>
+                                                <div class="font-semibold text-green-900">{{ $file->file_name }}</div>
                                                 <div class="text-xs text-green-600">
                                                     {{ $this->formatFileSize($file->size) }} • 
                                                     Uploaded {{ $file->created_at->diffForHumans() }}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="flex items-center space-x-2">
+                                        
+                                        {{-- Action Buttons --}}
+                                        <div class="flex gap-2">
                                             <button wire:click="downloadFile({{ $file->id }})" 
-                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-download mr-1"></i>Download
+                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-download mr-2"></i>Download
                                             </button>
                                             @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED, \App\Models\Pitch::STATUS_READY_FOR_REVIEW]))
                                             <button wire:click="confirmDeleteFile({{ $file->id }})" 
-                                                    class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-trash mr-1"></i>Delete
+                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
+                                                <i class="fas fa-trash mr-2"></i>Delete
                                             </button>
                                             @endif
                                         </div>

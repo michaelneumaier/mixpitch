@@ -640,7 +640,7 @@
 
                     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-xl overflow-hidden">
-                            <form wire:submit="save" class="p-4 lg:p-8 space-y-4 lg:space-y-8">
+                            <form wire:submit.prevent="save" class="p-4 lg:p-8 space-y-4 lg:space-y-8">
                                 
                                 <!-- Basic Project Information -->
                                 <div class="bg-gradient-to-br from-blue-50/50 to-purple-50/30 border border-blue-200/30 rounded-xl p-4 lg:p-6">
@@ -742,6 +742,97 @@
                                     </div>
                                 </div>
 
+                                @if($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+                                <!-- Client Management Settings -->
+                                <div class="bg-gradient-to-br from-white/90 to-purple-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-4 lg:p-6 shadow-lg">
+                                    <div class="flex items-center mb-4 lg:mb-6">
+                                        <div class="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-3">
+                                            <i class="fas fa-briefcase text-white text-sm sm:text-base"></i>
+                                        </div>
+                                        <h3 class="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Client Management Settings</h3>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                                        <div>
+                                            <label for="client_email_main" class="block text-sm sm:text-base font-medium text-purple-700 mb-2 lg:mb-3">
+                                                <i class="fas fa-envelope mr-2"></i>
+                                                Client Email <span class="text-red-500">*</span>
+                                            </label>
+                                            <input type="email" id="client_email_main" wire:model.blur="client_email" 
+                                                   class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm sm:text-base"
+                                                   placeholder="client@example.com">
+                                            @error('client_email')
+                                            <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                                {{ $message }}
+                                            </p>
+                                            @enderror
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="client_name_main" class="block text-sm sm:text-base font-medium text-purple-700 mb-2 lg:mb-3">
+                                                <i class="fas fa-user mr-2"></i>
+                                                Client Name
+                                            </label>
+                                            <input type="text" id="client_name_main" wire:model.blur="client_name" 
+                                                   class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm sm:text-base"
+                                                   placeholder="Client's full name">
+                                            @error('client_name')
+                                            <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                                {{ $message }}
+                                            </p>
+                                            @enderror
+                                        </div>
+                                        
+                                        <div class="lg:col-span-2">
+                                            <label for="payment_amount_main" class="block text-sm sm:text-base font-medium text-purple-700 mb-2 lg:mb-3">
+                                                <i class="fas fa-dollar-sign mr-2"></i>
+                                                Client Payment Amount <span class="text-red-500">*</span>
+                                            </label>
+                                            <div class="relative">
+                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <span class="text-purple-600 font-bold">$</span>
+                                                </div>
+                                                <input type="number" id="payment_amount_main" wire:model.blur="payment_amount" 
+                                                       class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm sm:text-base"
+                                                       placeholder="0.00" min="0" step="0.01">
+                                            </div>
+                                            <p class="mt-2 text-xs text-purple-600 flex items-center">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                This is the amount your client will pay upon project approval. Set to $0 if no payment is required.
+                                            </p>
+                                            @error('payment_amount')
+                                            <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                                {{ $message }}
+                                            </p>
+                                            @enderror
+                                        </div>
+                                        
+                                        <!-- Optional Deadline for Client Management -->
+                                        <div class="lg:col-span-2">
+                                            <label for="deadline_client_main" class="block text-sm sm:text-base font-medium text-purple-700 mb-2 lg:mb-3">
+                                                <i class="fas fa-calendar-alt mr-2"></i>
+                                                Project Deadline (Optional)
+                                                <span class="ml-2 text-xs font-normal text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
+                                                    {{ $this->getTimezoneDisplayName() }}
+                                                </span>
+                                            </label>
+                                            <input type="datetime-local" id="deadline_client_main" 
+                                                   wire:model="form.deadline"
+                                                   class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm sm:text-base">
+                                            @error('form.deadline')
+                                            <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                                {{ $message }}
+                                            </p>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+
                                 @if($workflow_type !== \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && $workflow_type !== \App\Models\Project::WORKFLOW_TYPE_CONTEST)
                                 <!-- Budget & Timeline -->
                                 <div class="bg-gradient-to-br from-white/90 to-amber-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-4 lg:p-6 shadow-lg">
@@ -830,6 +921,7 @@
                                         @endif
                                     </div>
                                 </div>
+                                @endif
 
                                 <!-- Workflow-Specific Settings -->
                                 @if($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CONTEST)
@@ -940,102 +1032,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                                @elseif($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
-                                <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl p-4 lg:p-6 shadow-xl overflow-hidden">
-                                    <!-- Background Effects -->
-                                    <div class="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-indigo-50/50"></div>
-                                    <div class="absolute top-4 right-4 w-16 h-16 bg-purple-400/10 rounded-full blur-lg"></div>
-                                    
-                                    <div class="relative">
-                                        <h4 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent mb-4 lg:mb-6 flex items-center">
-                                            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-2 sm:p-2.5 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center mr-3 shadow-lg">
-                                                <i class="fas fa-briefcase text-white text-sm sm:text-base"></i>
-                                            </div>
-                                            Client Management Settings
-                                        </h4>
-                                        
-                                        <div class="space-y-4 lg:space-y-6">
-                                            <div>
-                                                <label for="client_email" class="block text-sm sm:text-base font-bold text-indigo-700 mb-2 lg:mb-3">
-                                                    <i class="fas fa-envelope mr-2"></i>
-                                                    Client Email <span class="text-red-500">*</span>
-                                                </label>
-                                                <input type="email" id="client_email" wire:model.blur="client_email" 
-                                                       class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm sm:text-base"
-                                                       placeholder="client@example.com">
-                                                @error('client_email')
-                                                <p class="mt-2 text-sm text-red-600 flex items-center">
-                                                    <i class="fas fa-exclamation-circle mr-1"></i>
-                                                    {{ $message }}
-                                                </p>
-                                                @enderror
-                                            </div>
-
-                                            <div>
-                                                <label for="client_name" class="block text-sm sm:text-base font-bold text-indigo-700 mb-2 lg:mb-3">
-                                                    <i class="fas fa-user mr-2"></i>
-                                                    Client Name
-                                                </label>
-                                                <input type="text" id="client_name" wire:model.blur="client_name" 
-                                                       class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm sm:text-base"
-                                                       placeholder="Client's full name">
-                                                @error('client_name')
-                                                <p class="mt-2 text-sm text-red-600 flex items-center">
-                                                    <i class="fas fa-exclamation-circle mr-1"></i>
-                                                    {{ $message }}
-                                                </p>
-                                                @enderror
-                                            </div>
-
-                                            <div class="lg:col-span-2">
-                                                <label for="payment_amount" class="block text-sm sm:text-base font-bold text-indigo-700 mb-2 lg:mb-3">
-                                                    <i class="fas fa-dollar-sign mr-2"></i>
-                                                    Client Payment Amount <span class="text-red-500">*</span>
-                                                </label>
-                                                <div class="relative">
-                                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                        <span class="text-indigo-600 font-bold">$</span>
-                                                    </div>
-                                                    <input type="number" id="payment_amount" wire:model.blur="payment_amount" 
-                                                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm sm:text-base"
-                                                           placeholder="0.00" min="0" step="0.01">
-                                                </div>
-                                                <p class="mt-2 text-xs text-indigo-600 flex items-center">
-                                                    <i class="fas fa-info-circle mr-1"></i>
-                                                    This is the amount your client will pay upon project approval. Set to $0 if no payment is required.
-                                                </p>
-                                                @error('payment_amount')
-                                                <p class="mt-2 text-sm text-red-600 flex items-center">
-                                                    <i class="fas fa-exclamation-circle mr-1"></i>
-                                                    {{ $message }}
-                                                </p>
-                                                @enderror
-                                            </div>
-
-                                            <!-- Optional Deadline for Client Management -->
-                                            <div class="lg:col-span-2">
-                                                <label for="deadline_client" class="block text-sm sm:text-base font-bold text-indigo-700 mb-2 lg:mb-3">
-                                                    <i class="fas fa-calendar-alt mr-2"></i>
-                                                    Project Deadline (Optional)
-                                                    <span class="ml-2 text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md" id="deadline-client-timezone-indicator">
-                                                        {{ $this->getTimezoneDisplayName() }}
-                                                    </span>
-                                                </label>
-                                                <input type="datetime-local" id="deadline_client" 
-                                                       wire:model="form.deadline"
-                                                       class="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm border border-indigo-200/50 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all duration-200 text-sm sm:text-base">
-                                                @error('form.deadline')
-                                                <p class="mt-2 text-sm text-red-600 flex items-center">
-                                                    <i class="fas fa-exclamation-circle mr-1"></i>
-                                                    {{ $message }}
-                                                </p>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                                 @endif
-
                                 <!-- License Configuration Section -->
                                 <div class="bg-gradient-to-br from-white/90 to-indigo-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-4 lg:p-6 shadow-lg">
                                     <div class="flex items-center mb-4 lg:mb-6">
@@ -1267,4 +1264,3 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('hashchange', scrollToLicenseSection);
 });
 </script>
-@endif
