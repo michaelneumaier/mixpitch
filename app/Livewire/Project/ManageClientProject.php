@@ -55,9 +55,11 @@ class ManageClientProject extends Component
     public $newComment = '';
 
     public $showCommunicationTimeline = true;
+    
+    public $fileListKey;
 
     protected $listeners = [
-        'filesUploaded' => 'refreshData',
+        'filesUploaded' => '$refresh',
         'fileDeleted' => '$refresh',
     ];
 
@@ -72,6 +74,9 @@ class ManageClientProject extends Component
         if (! $project->isClientManagement()) {
             abort(404, 'This page is only available for client management projects.');
         }
+        
+        // Initialize file list key
+        $this->fileListKey = time();
 
         // Authorization check
         try {
@@ -168,6 +173,14 @@ class ManageClientProject extends Component
         $this->pitch->refresh();
         $this->updateStorageInfo();
         $this->checkResubmissionEligibility(); // Check if new files enable resubmission
+    }
+
+    public function handleFileUpload()
+    {
+        $this->refreshData();
+        
+        // Dispatch a browser event to reinitialize Alpine components
+        $this->dispatch('alpine-reinit');
     }
 
     /**

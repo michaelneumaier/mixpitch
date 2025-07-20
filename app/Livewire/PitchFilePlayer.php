@@ -48,6 +48,7 @@ class PitchFilePlayer extends Component
         'playbackStarted' => 'onPlaybackStarted',
         'playbackPaused' => 'onPlaybackPaused',
         'refresh' => '$refresh',
+        'pitch-files-updated' => 'reinitializePlayer',
     ];
 
     public function mount(PitchFile $file, $isInCard = false, $clientMode = false, $clientEmail = '')
@@ -126,6 +127,12 @@ class PitchFilePlayer extends Component
     public function onPlaybackPaused()
     {
         $this->isPlaying = false;
+    }
+
+    public function reinitializePlayer()
+    {
+        // Dispatch a browser event to reinitialize the player JavaScript
+        $this->dispatch('reinitialize-player-' . $this->file->id);
     }
 
     public function seekTo($timestamp)

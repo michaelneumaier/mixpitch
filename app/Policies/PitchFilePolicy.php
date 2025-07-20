@@ -145,10 +145,13 @@ class PitchFilePolicy
      */
     private function allowClientManagementUploads(Pitch $pitch): bool
     {
-        return in_array($pitch->status, [
+        $allowedStatuses = [
             Pitch::STATUS_IN_PROGRESS,
             Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-        ]);
+            Pitch::STATUS_READY_FOR_REVIEW, // Allow uploads when ready for review to support recall functionality
+        ];
+
+        return in_array($pitch->status, $allowedStatuses);
     }
 
     /**

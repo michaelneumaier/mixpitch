@@ -20,7 +20,15 @@
             this.currentPosition = time;
             console.log('currentPosition after setting:', this.currentPosition);
         }
-    }">
+    }"
+    x-init="
+        $nextTick(() => {
+            // Initialize when component mounts
+            if (typeof initializePitchFilePlayer_{{ $file->id }} === 'function') {
+                initializePitchFilePlayer_{{ $file->id }}();
+            }
+        });
+    ">
     <!-- Background Effects for Audio Theme -->
     <div class="absolute inset-0 pointer-events-none rounded-2xl">
         <div class="absolute top-4 left-4 w-16 h-16 bg-purple-400/20 rounded-full blur-xl"></div>
@@ -598,29 +606,35 @@
             @endforeach
         </div>
         @else
+        @if(!($isInCard ?? false))
         <!-- Enhanced Empty State -->
         <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-indigo-600/5 to-purple-600/5"></div>
             <div class="relative z-10 text-center {{ ($isInCard ?? false) ? 'py-6 px-4' : 'py-12 px-6' }}">
+                @if(!($isInCard ?? false))
                 <!-- Empty State Icon -->
-                <div class="flex items-center justify-center {{ ($isInCard ?? false) ? 'w-16 h-16' : 'w-20 h-20' }} bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mx-auto {{ ($isInCard ?? false) ? 'mb-4' : 'mb-6' }} shadow-lg">
-                    <i class="fas fa-comments text-white {{ ($isInCard ?? false) ? 'text-xl' : 'text-2xl' }}"></i>
+                <div class="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mx-auto mb-6 shadow-lg">
+                    <i class="fas fa-comments text-white text-2xl"></i>
                 </div>
                 
-                <h3 class="{{ ($isInCard ?? false) ? 'text-lg' : 'text-2xl' }} font-bold text-gray-900 mb-2">Start the Conversation</h3>
-                <p class="text-gray-600 {{ ($isInCard ?? false) ? 'mb-4' : 'mb-6' }} max-w-md mx-auto">
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Start the Conversation</h3>
+                <p class="text-gray-600 mb-6 max-w-md mx-auto">
                     No comments yet. Be the first to share your thoughts about this audio file and help improve the creative process.
                 </p>
                 
                 <!-- Call to Action Button -->
+                @endif
+                @if(!($isInCard ?? false))
                 <button type="button" 
                         @click="$wire.toggleCommentForm(getCurrentPosition())"
                         class="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-comment-plus mr-3 group-hover:scale-110 transition-transform"></i>
                     Add Your First Comment
                 </button>
+                @endif
             </div>
         </div>
+        @endif
         @endif
     </div>
 

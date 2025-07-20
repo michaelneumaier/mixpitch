@@ -336,6 +336,11 @@ class PitchPolicy
             // Maybe Pitch::STATUS_PENDING if initial files are allowed before approval?
         ];
 
+        // For Client Management projects, also allow uploading when READY_FOR_REVIEW (for recall functionality)
+        if ($pitch->project->isClientManagement() && $pitch->status === Pitch::STATUS_READY_FOR_REVIEW) {
+            $allowedStatuses[] = Pitch::STATUS_READY_FOR_REVIEW;
+        }
+
         return $canUpload && in_array($pitch->status, $allowedStatuses);
     }
 

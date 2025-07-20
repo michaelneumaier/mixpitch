@@ -281,7 +281,7 @@
                                                     class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
                                                 <i class="fas fa-download mr-1"></i>Download
                                             </button>
-                                            @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
+                                            @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED, \App\Models\Pitch::STATUS_READY_FOR_REVIEW]))
                                             <button wire:click="confirmDeleteFile({{ $file->id }})" 
                                                     class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
                                                 <i class="fas fa-trash mr-1"></i>Delete
@@ -292,11 +292,11 @@
                                     
                                     {{-- Audio Player for Audio Files --}}
                                     @if(in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
-                                        <div class="border-t border-green-200 bg-white p-3">
+                                        <div class="border-t border-green-200 bg-white p-3" wire:ignore>
                                             @livewire('pitch-file-player', [
                                                 'file' => $file,
                                                 'isInCard' => true
-                                            ], key('player-'.$file->id))
+                                            ], key('pitch-player-'.$file->id))
                                         </div>
                                         
                                         
@@ -616,6 +616,8 @@
             }, 3000);
         }
 
+        // Simple cleanup - no special handling needed
+        console.log('ManageClientProject initialized');
 
     </script>
 </div> 
