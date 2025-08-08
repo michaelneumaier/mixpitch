@@ -38,11 +38,20 @@
                                  <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent flex-1 min-w-0">
                                      Dashboard
                                  </h1>
-                                 <a href="{{ route('projects.create') }}"
-                                    class="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex-shrink-0">
-                                     <i class="fas fa-plus mr-1.5 group-hover:scale-110 transition-transform text-sm"></i>
-                                     <span class="text-sm">Create</span>
-                                 </a>
+                                 <div class="flex items-center gap-2 flex-shrink-0">
+                                     @if(isset($producerData['client_management']) && $producerData['client_management']['total_projects'] > 0)
+                                         <a href="{{ route('producer.client-management') }}"
+                                            class="group inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                             <i class="fas fa-users mr-1.5 group-hover:scale-110 transition-transform text-sm"></i>
+                                             <span class="text-sm hidden sm:inline">Clients</span>
+                                         </a>
+                                     @endif
+                                     <a href="{{ route('projects.create') }}"
+                                        class="group inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                         <i class="fas fa-plus mr-1.5 group-hover:scale-110 transition-transform text-sm"></i>
+                                         <span class="text-sm">Create</span>
+                                     </a>
+                                 </div>
                              </div>
                              <!-- Subtitle -->
                              <p class="text-base text-gray-600 font-medium leading-snug">Manage your projects, pitches, and collaborations</p>
@@ -58,8 +67,15 @@
                                  <p class="text-lg text-gray-600 font-medium">Manage your projects, pitches, and collaborations</p>
                              </div>
                                  
-                             <!-- Action Button -->
-                             <div class="flex-shrink-0">
+                             <!-- Action Buttons -->
+                             <div class="flex-shrink-0 flex items-center gap-3">
+                                 @if(isset($producerData['client_management']) && $producerData['client_management']['total_projects'] > 0)
+                                     <a href="{{ route('producer.client-management') }}"
+                                        class="group inline-flex items-center px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                                         <i class="fas fa-users mr-2 group-hover:scale-110 transition-transform"></i>
+                                         Client Management
+                                     </a>
+                                 @endif
                                  <a href="{{ route('projects.create') }}"
                                     class="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
                                      <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
@@ -166,6 +182,70 @@
             <!-- Payout Status Banner -->
             <x-payout-status-banner :user="auth()->user()" />
 
+            <!-- Client Management Promotion Banner (only show for producers without client projects) -->
+            @if(isset($producerData) && $producerData['client_management']['total_projects'] == 0)
+            <div class="relative mb-4 lg:mb-8">
+                <div class="relative bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 rounded-2xl shadow-xl overflow-hidden">
+                    <!-- Background Pattern -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-purple-600/20"></div>
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full"></div>
+                    <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-white/5 rounded-full"></div>
+                    
+                    <div class="relative p-4 lg:p-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <!-- Content -->
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
+                                        <i class="fas fa-users text-white text-xl lg:text-2xl"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 text-white">
+                                    <h3 class="text-lg lg:text-xl font-bold mb-1">🚀 Unlock Client Management Features</h3>
+                                    <p class="text-blue-100 text-sm lg:text-base leading-relaxed">
+                                        Take your business to the next level with professional client project management, 
+                                        custom branding, advanced analytics, and direct client approval workflows.
+                                    </p>
+                                    <div class="flex flex-wrap items-center gap-4 mt-3 text-xs lg:text-sm">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check-circle mr-1.5 text-emerald-300"></i>
+                                            Professional branding
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check-circle mr-1.5 text-emerald-300"></i>
+                                            Client portal access
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check-circle mr-1.5 text-emerald-300"></i>
+                                            Advanced analytics
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check-circle mr-1.5 text-emerald-300"></i>
+                                            Higher earnings
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row gap-2 lg:gap-3 flex-shrink-0">
+                                <a href="{{ route('producer.client-management') }}" 
+                                   class="inline-flex items-center px-4 lg:px-5 py-2.5 lg:py-3 bg-white hover:bg-gray-50 text-blue-600 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-sm lg:text-base">
+                                    <i class="fas fa-chart-line mr-2"></i>
+                                    Explore Dashboard
+                                </a>
+                                <a href="{{ route('projects.create') }}?workflow_type=client_management" 
+                                   class="inline-flex items-center px-4 lg:px-5 py-2.5 lg:py-3 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white font-semibold rounded-lg border border-white/30 hover:border-white/40 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-sm lg:text-base">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Create Client Project
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Phase 3: Producer Analytics Section -->
             @if(isset($producerData))
             <div class="mb-4 lg:mb-8">
@@ -219,21 +299,21 @@
                     </div>
 
                     <!-- Client Management Stats -->
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 lg:p-6 shadow-lg">
+                    <a href="{{ route('producer.client-management') }}" class="block">
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200/60 rounded-xl p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-[1.02]">
                         <div class="flex items-center justify-between mb-3 lg:mb-4">
                             <div class="flex items-center space-x-3">
-                                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-md">
+                                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-2.5 rounded-xl shadow-lg">
                                     <i class="fas fa-users text-white text-lg"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-semibold text-blue-800">Client Projects</h3>
-                                    <p class="text-sm text-blue-600">Your client management</p>
+                                    <h3 class="text-lg font-bold text-blue-800">Client Management</h3>
+                                    <p class="text-sm text-blue-600 font-medium">Professional client dashboard</p>
                                 </div>
                             </div>
-                            <a href="{{ route('projects.index') }}?workflow_type=client_management" 
-                               class="text-blue-600 hover:text-blue-800 transition-colors group">
-                                <i class="fas fa-external-link-alt group-hover:scale-110 transition-transform"></i>
-                            </a>
+                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-md">
+                                <i class="fas fa-arrow-right text-white text-sm"></i>
+                            </div>
                         </div>
                         
                         @if($producerData['client_management']['total_projects'] > 0)
@@ -257,30 +337,40 @@
                             </div>
                         </div>
                         
-                        <!-- Link to Full Client Management Dashboard -->
-                        <div class="text-center">
-                            <a href="{{ route('producer.client-management') }}" 
-                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                                <i class="fas fa-chart-line mr-2"></i>
-                                View Full Dashboard
-                            </a>
+                        <!-- Enhanced CTA -->
+                        <div class="mt-4 p-3 bg-white/70 rounded-lg border border-blue-200/50">
+                            <div class="flex items-center justify-between">
+                                <div class="text-sm text-blue-700 font-medium">
+                                    <i class="fas fa-chart-line mr-2 text-blue-500"></i>
+                                    Access full analytics & tools
+                                </div>
+                                <div class="text-xs text-blue-600 font-semibold">
+                                    Click anywhere →
+                                </div>
+                            </div>
                         </div>
                         @else
-                        <!-- No Client Projects - Show Empty State with CTA -->
+                        <!-- No Client Projects - Enhanced Empty State with CTA -->
                         <div class="text-center">
                             <div class="mb-4">
-
-                                <h4 class="text-lg font-semibold text-blue-800 mb-2">No Client Projects Yet</h4>
-                                <p class="text-sm text-blue-600 mb-4">Start managing client projects to earn more and build your portfolio</p>
+                                <div class="w-16 h-16 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                                    <i class="fas fa-rocket text-white text-2xl"></i>
+                                </div>
+                                <h4 class="text-lg font-bold text-blue-800 mb-2">Ready to Level Up?</h4>
+                                <p class="text-sm text-blue-600 mb-4 leading-relaxed">Start managing client projects to unlock professional features, higher earnings, and advanced analytics</p>
                             </div>
-                            <a href="{{ route('projects.create') }}?workflow_type=client_management" 
-                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                                <i class="fas fa-plus mr-2"></i>
-                                Create Client Project
-                            </a>
+                            <div class="space-y-2">
+                                <a href="{{ route('projects.create') }}?workflow_type=client_management" 
+                                   class="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Create Your First Client Project
+                                </a>
+                                <p class="text-xs text-blue-500 font-medium">Click this card to explore the dashboard →</p>
+                            </div>
                         </div>
                         @endif
-                    </div>
+                        </div>
+                    </a>
 
                     <!-- Stripe Connect Status -->
                     <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 lg:p-6 shadow-lg">
