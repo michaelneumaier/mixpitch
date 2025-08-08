@@ -1,28 +1,101 @@
-<div class="container mx-auto px-2 sm:px-4">
-    <!-- Project Header -->
-    <x-project.header 
+<div class="container mx-auto px-3 sm:px-4 pb-20 lg:pb-6 max-w-7xl">
+    <!-- Compact Client Management Header -->
+    <x-client-project.compact-header 
         :project="$project" 
-        :hasPreviewTrack="false" 
-        context="client"
-        :showEditButton="false"
-        :showActions="false"
+        :pitch="$pitch"
+        :component="$this"
     />
 
     <!-- Mobile Activity Summary (visible on mobile/tablet, hidden on desktop) -->
-    <div class="lg:hidden mb-6">
-        <x-client-project.activity-summary-mobile :pitch="$pitch" :project="$project" :component="$this" />
-    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <div class="grid">
         <!-- Main Content Area -->
-        <div class="lg:col-span-2 space-y-6">
-            <!-- Workflow Status -->
-            <x-pitch.workflow-status :pitch="$pitch" :project="$project" />
+        <div class="space-y-4 lg:space-y-6 mb-6">
+            <!-- Client Management Workflow Status - Always First -->
+            <x-client-management.workflow-status :pitch="$pitch" :project="$project" :component="$this" />
 
-            <!-- Enhanced Feedback Panel -->
-            <x-client-project.feedback-panel :pitch="$pitch" />
+            <!-- Status-Specific Workflow Actions -->
+            <x-client-management.workflow-actions 
+                :pitch="$pitch" 
+                :project="$project" 
+                :component="$this" />
 
-            {{-- Milestones (Producer Management) --}}
+            <!-- COMMUNICATION SECTION - Always accessible but positioned based on priority -->
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
+                    <div class="flex items-center">
+                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
+                            <i class="fas fa-comment-dots text-lg text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-purple-800">Client Communication</h4>
+                            <p class="text-sm text-purple-600">Send messages and view conversation history</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 lg:p-6">
+                    <!-- Send Message Form -->
+                    <form wire:submit.prevent="addProducerComment">
+                        <div class="mb-6">
+                            <label for="newComment" class="block text-sm font-semibold text-purple-800 mb-3">
+                                Send Message to Client
+                            </label>
+                            <div class="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 border border-purple-200/50 rounded-xl p-4 backdrop-blur-sm">
+                                <textarea wire:model.defer="newComment" 
+                                          id="newComment"
+                                          rows="4"
+                                          class="w-full px-4 py-3 text-gray-700 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200"
+                                          placeholder="Share updates, ask questions, or provide additional context..."></textarea>
+                                @error('newComment') 
+                                    <span class="text-red-500 text-xs mt-2 block">{{ $message }}</span> 
+                                @enderror
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="bg-purple-50/50 rounded-lg p-3 flex-1">
+                                <p class="text-xs text-purple-600 flex items-center">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    This message will be visible to your client and they'll receive an email notification
+                                </p>
+                            </div>
+                            <button type="submit" 
+                                    class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                                    wire:loading.attr="disabled">
+                                <span wire:loading.remove>
+                                    <i class="fas fa-paper-plane mr-2"></i>Send Message
+                                </span>
+                                <span wire:loading>
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>Sending...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Communication Timeline -->
+            <x-client-project.communication-timeline :component="$this" :conversationItems="$this->conversationItems" />
+
+            {{-- ADVANCED SECTIONS - Collapsible --}}
+            <div x-data="{ showAdvanced: false }" class="space-y-4 lg:space-y-6">
+                <button @click="showAdvanced = !showAdvanced" 
+                        class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border border-gray-200 rounded-xl transition-all duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-cog text-gray-500 mr-3"></i>
+                        <span class="font-medium text-gray-700">Advanced Project Settings</span>
+                        <span class="ml-2 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
+                            Milestones, File Management, Settings
+                        </span>
+                    </div>
+                    <i class="fas fa-chevron-down text-gray-500 transition-transform duration-200" 
+                       :class="showAdvanced ? 'rotate-180' : ''"></i>
+                </button>
+
+                <div x-show="showAdvanced" x-collapse class="space-y-4 lg:space-y-6" style="overflow: visible!important;">
+                    {{-- Milestones Section --}}
             <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
                 <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
                     <div class="flex items-center justify-between">
@@ -182,63 +255,6 @@
                 </div>
             </div>
 
-            <!-- Recall Submission Section (if applicable) -->
-            @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10 p-4 lg:p-6 backdrop-blur-sm">
-                    <div class="flex items-center">
-                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                            <i class="fas fa-undo text-lg text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-bold text-blue-800">Submission Management</h4>
-                            <p class="text-sm text-blue-600">Manage your submission status and revisions</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-2 md:p-4 lg:p-6">
-                    <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 rounded-xl p-4 mb-4 backdrop-blur-sm">
-                        <p class="text-sm text-blue-700 flex items-center">
-                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                            Your work has been submitted for client review. You can recall this submission if you need to make changes.
-                        </p>
-                    </div>
-                    
-                    @if($canResubmit)
-                    <div class="bg-gradient-to-r from-amber-50/80 to-orange-50/80 border border-amber-200/50 rounded-xl p-4 mb-3 backdrop-blur-sm">
-                        <div class="flex items-center">
-                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg mr-3">
-                                <i class="fas fa-exclamation-triangle text-white text-sm"></i>
-                            </div>
-                            <span class="text-sm text-amber-700">
-                                <strong>Files Updated:</strong> You've added or modified files since submission. You can now resubmit with your changes.
-                            </span>
-                        </div>
-                    </div>
-                    @endif
-                </div>
-                
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <button wire:click="recallSubmission" 
-                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-xl font-medium transition-all duration-200 hover:scale-105"
-                            wire:confirm="Are you sure you want to recall this submission? The client will no longer be able to review it until you resubmit.">
-                        <i class="fas fa-undo mr-2"></i>Recall Submission
-                    </button>
-                    
-                    @if($canResubmit)
-                    <button wire:click="submitForReview" 
-                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-paper-plane mr-2"></i>Resubmit for Review
-                    </button>
-                    @endif
-                </div>
-                
-                <p class="text-xs text-blue-600 mt-4 bg-blue-50/50 rounded-lg p-3">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Recalling allows you to add/remove files and make changes before resubmitting.
-                </p>
-            </div>
-            @endif
 
             <!-- Producer Comment Section -->
             <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
@@ -419,7 +435,7 @@
                     @if($this->producerFiles->count() > 0)
                         <div class="divide-y divide-green-100/50 mt-4">
                             @foreach($this->producerFiles as $file)
-                                <div class="overflow-hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-white/90 to-green-50/90 shadow-md backdrop-blur-sm mb-3">
+                                <div class="overflow-hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-white/90 to-green-50/90 shadow-md backdrop-blur-sm mb-3" x-data="{ showComments: false }">
                                     {{-- File Header --}}
                                     <div class="group p-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50">
                                         <div class="flex items-center mb-3">
@@ -427,17 +443,36 @@
                                                 <i class="fas fa-file-audio"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <div class="font-semibold text-green-900 flex items-center gap-2">
-                                                    {{ $file->file_name }}
+                                                <div class="font-semibold text-green-900 flex items-center gap-2 flex-wrap">
+                                                    <span>{{ $file->file_name }}</span>
+                                                    
                                                     @if($file->client_approval_status === 'approved')
                                                         <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]">
                                                             <i class="fas fa-check-circle mr-1"></i> Approved by client
                                                         </span>
+                                                    @elseif($file->client_approval_status === 'revision_requested')
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px]">
+                                                            <i class="fas fa-edit mr-1"></i> Revision requested
+                                                        </span>
+                                                    @endif
+                                                    
+                                                    {{-- Client Comments Badge --}}
+                                                    @php($fileComments = $pitch->events()->where('event_type', 'client_file_comment')->where('metadata->file_id', $file->id)->orderBy('created_at', 'desc')->get())
+                                                    
+                                                    @if($fileComments->count() > 0)
+                                                        <button @click="showComments = !showComments" 
+                                                                class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] hover:bg-blue-200 transition-colors">
+                                                            <i class="fas fa-comment mr-1"></i> 
+                                                            {{ $fileComments->count() }} comment{{ $fileComments->count() > 1 ? 's' : '' }}
+                                                        </button>
                                                     @endif
                                                 </div>
                                                 <div class="text-xs text-green-600">
                                                     {{ $this->formatFileSize($file->size) }} • 
                                                     Uploaded {{ $file->created_at->diffForHumans() }}
+                                                    @if($fileComments->count() > 0)
+                                                        • <span class="text-blue-600 font-medium">Client feedback available</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -457,6 +492,103 @@
                                         </div>
                                     </div>
                                     
+                                    {{-- Client File Comments Section --}}
+                                    @if($fileComments->count() > 0)
+                                        <div x-show="showComments" 
+                                             x-collapse
+                                             class="border-t border-blue-200 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-4">
+                                            <div class="mb-3">
+                                                <h6 class="text-sm font-semibold text-blue-900 flex items-center">
+                                                    <i class="fas fa-comments text-blue-600 mr-2"></i>
+                                                    Client Feedback for this File
+                                                </h6>
+                                            </div>
+                                            
+                                            <div class="space-y-3 max-h-48 overflow-y-auto">
+                                                @foreach($fileComments as $comment)
+                                                    <div class="bg-white/60 rounded-lg p-3 border border-blue-200/50">
+                                                        <div class="flex items-start justify-between mb-2">
+                                                            <div class="flex items-center">
+                                                                <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mr-2">
+                                                                    <i class="fas fa-user text-white text-xs"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <span class="text-sm font-medium text-blue-900">
+                                                                        {{ $project->client_name ?: 'Client' }}
+                                                                    </span>
+                                                                    <div class="text-xs text-blue-600">
+                                                                        {{ $comment->created_at->diffForHumans() }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            @if($comment->metadata['type'] ?? null === 'revision_request')
+                                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">
+                                                                    <i class="fas fa-edit mr-1"></i>Revision Request
+                                                                </span>
+                                                            @elseif($comment->metadata['type'] ?? null === 'approval')
+                                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">
+                                                                    <i class="fas fa-check mr-1"></i>Approved
+                                                                </span>
+                                                            @endif
+                                                        </div>
+                                                        
+                                                        <div class="text-sm text-gray-800 leading-relaxed">
+                                                            {{ $comment->comment }}
+                                                        </div>
+                                                        
+                                                        {{-- Quick Response for Revision Requests --}}
+                                                        @if(($comment->metadata['type'] ?? null) === 'revision_request' && !($comment->metadata['responded'] ?? false))
+                                                            <div class="mt-3 pt-3 border-t border-blue-200">
+                                                                <div class="flex gap-2">
+                                                                    <button wire:click="markFileCommentResolved({{ $comment->id }})" 
+                                                                            class="inline-flex items-center px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 rounded-md text-xs font-medium transition-colors">
+                                                                        <i class="fas fa-check mr-1"></i>Mark as Addressed
+                                                                    </button>
+                                                                    <button @click="showResponse = !showResponse" 
+                                                                            class="inline-flex items-center px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-xs font-medium transition-colors">
+                                                                        <i class="fas fa-reply mr-1"></i>Respond
+                                                                    </button>
+                                                                </div>
+                                                                
+                                                                <div x-data="{ showResponse: false }" 
+                                                                     x-show="showResponse" 
+                                                                     x-collapse 
+                                                                     class="mt-3">
+                                                                    <form wire:submit.prevent="respondToFileComment({{ $comment->id }})">
+                                                                        <textarea wire:model.defer="fileCommentResponse.{{ $comment->id }}" 
+                                                                                  rows="2"
+                                                                                  class="w-full px-3 py-2 text-sm border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                                  placeholder="Explain how you've addressed this feedback..."></textarea>
+                                                                        <div class="mt-2 flex gap-2">
+                                                                            <button type="submit" 
+                                                                                    class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium">
+                                                                                <i class="fas fa-paper-plane mr-1"></i>Send Response
+                                                                            </button>
+                                                                            <button type="button" 
+                                                                                    @click="showResponse = false" 
+                                                                                    class="inline-flex items-center px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-xs font-medium">
+                                                                                Cancel
+                                                                            </button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            
+                                            <div class="mt-3 pt-3 border-t border-blue-200">
+                                                <p class="text-xs text-blue-600">
+                                                    <i class="fas fa-info-circle mr-1"></i>
+                                                    This feedback is specific to the "{{ $file->file_name }}" file. 
+                                                    General project communication should use the main message area below.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
                                     {{-- Audio Player for Audio Files --}}
                                     @if(in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
                                         <div class="border-t border-green-200 bg-white p-3" wire:ignore>
@@ -465,8 +597,6 @@
                                                 'isInCard' => true
                                             ], key('pitch-player-'.$file->id))
                                         </div>
-                                        
-                                        
                                     @endif
                                 </div>
                             @endforeach
@@ -658,80 +788,6 @@
                 </div>
             </div>
             @endif
-        </div>
-
-        <!-- Sidebar -->
-        <div class="space-y-6">
-            <!-- Project Activity Summary (hidden on mobile, visible on desktop) -->
-            <div class="hidden lg:block">
-                <x-client-project.activity-summary :pitch="$pitch" :project="$project" :component="$this" />
-            </div>
-            
-            <!-- Client Management Details -->
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 backdrop-blur-sm">
-                    <div class="flex items-center">
-                        <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
-                            <i class="fas fa-briefcase text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-purple-800">Client Details</h3>
-                            <p class="text-xs text-purple-600">Manage client information and access</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="p-4">
-                <div class="space-y-2 text-sm">
-                    <div><strong>Client Name:</strong> {{ $project->client_name ?? 'N/A' }}</div>
-                    <div><strong>Client Email:</strong> {{ $project->client_email ?? 'N/A' }}</div>
-                    @if($project->payment_amount > 0)
-                    <div><strong>Payment Amount:</strong> ${{ number_format($project->payment_amount, 2) }}</div>
-                    @endif
-                </div>
-                <div class="space-y-2 mt-3">
-                    <button wire:click="resendClientInvite" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-purple-100 to-indigo-100 hover:from-purple-200 hover:to-indigo-200 text-purple-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                        <i class="fas fa-paper-plane mr-2"></i> Resend Client Invite
-                    </button>
-                    <button wire:click="previewClientPortal" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                        <i class="fas fa-external-link-alt mr-2"></i> Preview Client Portal
-                    </button>
-                </div>
-                <p class="text-xs text-purple-600 mt-3 bg-purple-50/50 rounded-lg p-2">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Preview shows exactly what your client sees when they click the email link.
-                </p>
-                </div>
-            </div>
-
-            <!-- Project Actions -->
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10 p-4 backdrop-blur-sm">
-                    <div class="flex items-center">
-                        <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                            <i class="fas fa-cog text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-blue-800">Project Actions</h3>
-                            <p class="text-xs text-blue-600">Edit and manage your project</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="p-4">
-                <div class="space-y-3">
-                    <a href="{{ route('projects.edit', $project) }}" 
-                       class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-amber-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                        <i class="fas fa-edit mr-2"></i>Edit Project Details
-                    </a>
-                    <a href="{{ route('projects.show', $project) }}" 
-                       class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                        <i class="fas fa-eye mr-2"></i>View Public Page
-                    </a>
-                </div>
-                </div>
-            </div>
-
             <!-- Danger Zone -->
             <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-red-50/90 shadow-xl backdrop-blur-md">
                 <div class="border-b border-white/20 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-red-500/10 p-4 backdrop-blur-sm">
@@ -758,7 +814,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- File Delete Confirmation Modal -->
     @if($showDeleteModal)
@@ -855,5 +910,125 @@
         // Simple cleanup - no special handling needed
         console.log('ManageClientProject initialized');
 
+    </script>
+
+    {{-- Mobile Floating Action Button --}}
+    @if($pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED)
+        {{-- Revision Response FAB --}}
+        <div class="fixed bottom-6 right-6 lg:hidden z-50" x-data="{ showTooltip: false }">
+            <button @click="handleFabAction('scrollToRevisionResponse')" 
+                    @mouseenter="showTooltip = true" 
+                    @mouseleave="showTooltip = false"
+                    class="bg-gradient-to-r from-amber-600 to-orange-600 hover:shadow-2xl text-white rounded-full w-14 h-14 shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center">
+                <i class="fas fa-edit text-lg"></i>
+            </button>
+            
+            <div x-show="showTooltip" 
+                 x-transition
+                 class="absolute bottom-full right-0 mb-2 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                Respond to Feedback
+                <div class="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+            </div>
+        </div>
+        
+    @elseif($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
+        {{-- Communication FAB --}}
+        <div class="fixed bottom-6 right-6 lg:hidden z-50" x-data="{ showTooltip: false }">
+            <button @click="handleFabAction('scrollToCommunication')" 
+                    @mouseenter="showTooltip = true" 
+                    @mouseleave="showTooltip = false"
+                    class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-2xl text-white rounded-full w-14 h-14 shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center">
+                <i class="fas fa-comment text-lg"></i>
+            </button>
+            
+            <div x-show="showTooltip" 
+                 x-transition
+                 class="absolute bottom-full right-0 mb-2 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                Send Message
+                <div class="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+            </div>
+        </div>
+        
+    @else
+        {{-- In Progress / Default FAB --}}
+        @if($this->producerFiles->count() === 0)
+            {{-- Upload Files FAB --}}
+            <div class="fixed bottom-6 right-6 lg:hidden z-50" x-data="{ showTooltip: false }">
+                <button @click="handleFabAction('scrollToUpload')" 
+                        @mouseenter="showTooltip = true" 
+                        @mouseleave="showTooltip = false"
+                        class="bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-2xl text-white rounded-full w-14 h-14 shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center">
+                    <i class="fas fa-upload text-lg"></i>
+                </button>
+                
+                <div x-show="showTooltip" 
+                     x-transition
+                     class="absolute bottom-full right-0 mb-2 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                    Upload Files
+                    <div class="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                </div>
+            </div>
+        @else
+            {{-- Submit for Review FAB --}}
+            <div class="fixed bottom-6 right-6 lg:hidden z-50" x-data="{ showTooltip: false }">
+                <button @click="handleFabAction('scrollToSubmit')" 
+                        @mouseenter="showTooltip = true" 
+                        @mouseleave="showTooltip = false"
+                        class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:shadow-2xl text-white rounded-full w-14 h-14 shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center">
+                    <i class="fas fa-paper-plane text-lg"></i>
+                </button>
+                
+                <div x-show="showTooltip" 
+                     x-transition
+                     class="absolute bottom-full right-0 mb-2 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                    Submit for Review
+                    <div class="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    {{-- JavaScript for FAB Actions --}}
+    <script>
+        function handleFabAction(action) {
+            switch(action) {
+                case 'scrollToRevisionResponse':
+                    // Scroll to revision response area
+                    const responseArea = document.querySelector('textarea[wire\\:model\\.lazy="responseToFeedback"]');
+                    if (responseArea) {
+                        responseArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => responseArea.focus(), 800);
+                    }
+                    break;
+                    
+                case 'scrollToCommunication':
+                    // Scroll to communication form
+                    const commentArea = document.getElementById('newComment');
+                    if (commentArea) {
+                        commentArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => commentArea.focus(), 800);
+                    }
+                    break;
+                    
+                case 'scrollToUpload':
+                    // Scroll to upload section
+                    const uploadSection = document.querySelector('[data-section="producer-deliverables"], .uppy-Dashboard');
+                    if (uploadSection) {
+                        uploadSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    break;
+                    
+                case 'scrollToSubmit':
+                    // Scroll to submit section
+                    const submitButton = document.querySelector('button[wire\\:click="submitForReview"]');
+                    if (submitButton) {
+                        submitButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Add a subtle highlight effect
+                        submitButton.classList.add('animate-pulse');
+                        setTimeout(() => submitButton.classList.remove('animate-pulse'), 2000);
+                    }
+                    break;
+            }
+        }
     </script>
 </div> 

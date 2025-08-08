@@ -983,4 +983,5 @@ class ManageClientProject extends Component
             return in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']);
         });
     }
+
 }
