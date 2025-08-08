@@ -12,9 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pitch_file_comments', function (Blueprint $table) {
-            $table->string('client_email')->nullable()->after('user_id');
-            $table->boolean('is_client_comment')->default(false)->after('is_resolved');
-            $table->index(['pitch_file_id', 'is_client_comment']);
+            if (!Schema::hasColumn('pitch_file_comments', 'client_email')) {
+                $table->string('client_email')->nullable()->after('user_id');
+            }
+
+            if (!Schema::hasColumn('pitch_file_comments', 'is_client_comment')) {
+                $isClientComment = $table->boolean('is_client_comment')->default(false);
+
+                if (Schema::hasColumn('pitch_file_comments', 'is_resolved')) {
+                    $isClientComment->after('is_resolved');
+                }
+            }
+
+            if (Schema::hasColumns('pitch_file_comments', ['pitch_file_id', 'is_client_comment'])) {
+                $table->index(['pitch_file_id', 'is_client_comment']);
+            }
         });
     }
 
