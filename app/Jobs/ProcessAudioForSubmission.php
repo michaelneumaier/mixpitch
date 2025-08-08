@@ -100,11 +100,24 @@ class ProcessAudioForSubmission implements ShouldQueue
                 'project_id' => $project->id,
             ]);
 
+            // Debug watermarking logic before checking
+            Log::info('Watermarking debug info', [
+                'file_id' => $this->pitchFile->id,
+                'project_workflow_type' => $project->workflow_type,
+                'project_is_client_management' => $project->isClientManagement(),
+                'pitch_watermarking_enabled' => $pitch->watermarking_enabled,
+                'config_client_management' => config('audio.watermarking.workflows.client_management'),
+                'shouldBeWatermarked_before_check' => $this->pitchFile->shouldBeWatermarked(),
+            ]);
+
             // Check if the file should be processed
             if (! $this->pitchFile->shouldBeWatermarked()) {
                 Log::info('File does not require watermarking, skipping processing', [
                     'file_id' => $this->pitchFile->id,
-                    'project_workflow' => $project->workflow ?? 'unknown',
+                    'project_workflow' => $project->workflow_type ?? 'unknown',
+                    'pitch_watermarking_enabled' => $pitch->watermarking_enabled ?? false,
+                    'project_is_client_management' => $project->isClientManagement(),
+                    'shouldBeWatermarked_result' => $this->pitchFile->shouldBeWatermarked(),
                 ]);
 
                 return;

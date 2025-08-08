@@ -333,10 +333,23 @@ class DashboardController extends Controller
         $currentRate = $user->getPlatformCommissionRate();
         $commissionSavings = $user->getCommissionSavings();
 
-        // Client management projects statistics
+        // Client management projects statistics (pivot by client_id for unique clients)
         $clientProjects = Project::where('user_id', $user->id)
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->get();
+
+        $distinctClientIds = Project::where('user_id', $user->id)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereNotNull('client_id')
+            ->distinct()
+            ->count('client_id');
+
+        $distinctEmailsWithoutClientId = Project::where('user_id', $user->id)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereNull('client_id')
+            ->whereNotNull('client_email')
+            ->distinct()
+            ->count('client_email');
 
         $clientStats = [
             'total_projects' => $clientProjects->count(),
@@ -345,11 +358,22 @@ class DashboardController extends Controller
                 Project::STATUS_IN_PROGRESS,
             ])->count(),
             'completed_projects' => $clientProjects->where('status', Project::STATUS_COMPLETED)->count(),
+            'unique_clients' => $distinctClientIds + $distinctEmailsWithoutClientId,
             'total_revenue' => $clientProjects->sum(function ($project) {
-                return $project->pitches
-                    ->where('payment_status', 'paid')
-                    ->sum('payment_amount');
+                return $project->pitches->sum(function ($pitch) {
+                    $base = $pitch->payment_status === Pitch::PAYMENT_STATUS_PAID ? ($pitch->payment_amount ?? 0) : 0;
+                    $milestones = method_exists($pitch, 'milestones') ? $pitch->milestones->where('payment_status', Pitch::PAYMENT_STATUS_PAID)->sum('amount') : 0;
+                    return $base + $milestones;
+                });
             }),
+            'milestone_adoption_rate' => (function () use ($clientProjects) {
+                $totalCM = $clientProjects->count();
+                if ($totalCM === 0) return 0;
+                $withMilestones = $clientProjects->sum(function ($project) {
+                    return $project->pitches->filter(function ($p) { return method_exists($p, 'milestones') && $p->milestones->count() > 0; })->count() > 0 ? 1 : 0;
+                });
+                return round(($withMilestones / $totalCM) * 100, 1);
+            })(),
         ];
 
         // Stripe Connect status with error handling

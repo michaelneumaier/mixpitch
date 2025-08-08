@@ -65,6 +65,7 @@ use Filament\Panel;
 
                 <!-- Auth Dropdown -->
                 <livewire:auth-dropdown />
+                
                 @else
                 <a href="{{ route('login') }}"
                     class="group relative inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md hover:shadow-md transition-all duration-300">

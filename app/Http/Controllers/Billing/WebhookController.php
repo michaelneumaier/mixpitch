@@ -550,6 +550,75 @@ class WebhookController extends CashierWebhookController
         }
         // --- End Client Management Pitch Payment Processing ---
 
+        // --- Client Management Milestone Payment Processing ---
+        elseif (($metadata['type'] ?? null) === 'client_milestone_payment' && ($metadata['milestone_id'] ?? null)) {
+            $milestoneId = $metadata['milestone_id'];
+            Log::info('Processing checkout.session.completed for Client Milestone Payment.', [
+                'session_id' => $sessionId,
+                'milestone_id' => $milestoneId,
+                'payment_intent_id' => $paymentIntentId,
+            ]);
+
+            try {
+                DB::transaction(function () use ($milestoneId, $sessionId, $paymentIntentId, $session) {
+                    $milestone = \App\Models\PitchMilestone::with('pitch')->find($milestoneId);
+                    if (! $milestone) {
+                        Log::error('Milestone not found for checkout session.', [
+                            'session_id' => $sessionId,
+                            'milestone_id' => $milestoneId,
+                        ]);
+                        throw new \Exception('Milestone not found');
+                    }
+
+                    // Idempotency check
+                    if ($milestone->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID) {
+                        Log::info('Milestone already marked as paid, skipping duplicate processing.', [
+                            'session_id' => $sessionId,
+                            'milestone_id' => $milestoneId,
+                        ]);
+                        return;
+                    }
+
+                    // Update milestone payment fields
+                    $milestone->update([
+                        'payment_status' => \App\Models\Pitch::PAYMENT_STATUS_PAID,
+                        'payment_completed_at' => now(),
+                        'stripe_invoice_id' => $sessionId, // store checkout session id; can be replaced with invoice id if created
+                        'status' => $milestone->status === 'approved' ? 'approved' : 'approved',
+                    ]);
+
+                    // Optionally, add an event to the pitch timeline
+                    try {
+                        $milestone->pitch?->events()->create([
+                            'event_type' => 'milestone_paid',
+                            'comment' => 'Milestone "'.$milestone->name.'" payment received.',
+                            'status' => $milestone->pitch?->status,
+                            'metadata' => [
+                                'milestone_id' => $milestone->id,
+                                'amount' => (string) $milestone->amount,
+                                'stripe_checkout_session_id' => $sessionId,
+                                'payment_intent_id' => $paymentIntentId,
+                            ],
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to create pitch event for milestone payment.', [
+                            'milestone_id' => $milestoneId,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                });
+
+            } catch (\Exception $e) {
+                Log::error('Error processing checkout.session.completed for Milestone: '.$e->getMessage(), [
+                    'session_id' => $sessionId,
+                    'milestone_id' => $milestoneId ?? null,
+                    'exception' => $e,
+                ]);
+                // Return success to prevent Stripe retries
+            }
+        }
+        // --- End Client Management Milestone Payment Processing ---
+
         else {
             Log::info('Checkout session completed did not match expected metadata for Order or Client Pitch.', [
                 'session_id' => $sessionId,

@@ -679,45 +679,55 @@ class PitchWorkflowService
                     }
                 }
 
-                // Process audio files for Standard Workflow projects
-                if ($pitch->project->isStandard()) {
-                    try {
-                        // Get all audio files for this pitch
-                        $audioFiles = $pitch->files()
-                            ->where(function ($query) {
-                                $query->whereRaw("LOWER(file_path) LIKE '%.mp3'")
-                                    ->orWhereRaw("LOWER(file_path) LIKE '%.wav'")
-                                    ->orWhereRaw("LOWER(file_path) LIKE '%.ogg'")
-                                    ->orWhereRaw("LOWER(file_path) LIKE '%.aac'")
-                                    ->orWhereRaw("LOWER(file_path) LIKE '%.m4a'")
-                                    ->orWhereRaw("LOWER(file_path) LIKE '%.flac'");
-                            })
-                            ->get();
+                // Process audio files for workflows that require watermarking
+                try {
+                    // Get all audio files for this pitch
+                    $audioFiles = $pitch->files()
+                        ->where(function ($query) {
+                            $query->whereRaw("LOWER(file_path) LIKE '%.mp3'")
+                                ->orWhereRaw("LOWER(file_path) LIKE '%.wav'")
+                                ->orWhereRaw("LOWER(file_path) LIKE '%.ogg'")
+                                ->orWhereRaw("LOWER(file_path) LIKE '%.aac'")
+                                ->orWhereRaw("LOWER(file_path) LIKE '%.m4a'")
+                                ->orWhereRaw("LOWER(file_path) LIKE '%.flac'");
+                        })
+                        ->get();
 
-                        if ($audioFiles->isNotEmpty()) {
-                            Log::info('Dispatching audio processing jobs for Standard Workflow submission', [
-                                'pitch_id' => $pitch->id,
-                                'audio_files_count' => $audioFiles->count(),
-                                'snapshot_id' => $snapshot->id,
-                            ]);
+                    // Filter files that need watermarking (workflow-agnostic)
+                    $filesToProcess = $audioFiles->filter(function ($file) {
+                        return $file->shouldBeWatermarked() && !$file->audio_processed;
+                    });
 
-                            // Dispatch individual jobs for each audio file (transcoding and watermarking)
-                            foreach ($audioFiles as $audioFile) {
-                                dispatch(new \App\Jobs\ProcessAudioForSubmission($audioFile));
-                            }
-                        } else {
-                            Log::info('No audio files found for processing', [
-                                'pitch_id' => $pitch->id,
-                                'snapshot_id' => $snapshot->id,
-                            ]);
-                        }
-                    } catch (\Exception $audioProcessingException) {
-                        Log::warning('Failed to dispatch audio processing job', [
+                    if ($filesToProcess->isNotEmpty()) {
+                        Log::info('Dispatching audio processing jobs for submission', [
                             'pitch_id' => $pitch->id,
-                            'error' => $audioProcessingException->getMessage(),
+                            'workflow_type' => $pitch->project->workflow_type,
+                            'audio_files_count' => $audioFiles->count(),
+                            'files_to_process' => $filesToProcess->count(),
+                            'snapshot_id' => $snapshot->id,
+                            'watermarking_enabled' => $pitch->watermarking_enabled ?? false,
                         ]);
-                        // Continue execution - audio processing failure shouldn't fail the whole operation
+
+                        // Dispatch individual jobs for each audio file that needs processing
+                        foreach ($filesToProcess as $audioFile) {
+                            dispatch(new \App\Jobs\ProcessAudioForSubmission($audioFile));
+                        }
+                    } else {
+                        Log::info('No audio files require processing', [
+                            'pitch_id' => $pitch->id,
+                            'workflow_type' => $pitch->project->workflow_type,
+                            'audio_files_count' => $audioFiles->count(),
+                            'snapshot_id' => $snapshot->id,
+                            'watermarking_enabled' => $pitch->watermarking_enabled ?? false,
+                        ]);
                     }
+                } catch (\Exception $audioProcessingException) {
+                    Log::warning('Failed to dispatch audio processing job', [
+                        'pitch_id' => $pitch->id,
+                        'workflow_type' => $pitch->project->workflow_type,
+                        'error' => $audioProcessingException->getMessage(),
+                    ]);
+                    // Continue execution - audio processing failure shouldn't fail the whole operation
                 }
 
                 return $pitch->fresh(['currentSnapshot']); // Reload with snapshot relationship

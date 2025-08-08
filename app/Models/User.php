@@ -100,6 +100,13 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'monthly_pitch_count',
         'monthly_pitch_reset_date',
         'is_admin',
+        // Branding & white-label fields
+        'brand_logo_url',
+        'brand_primary',
+        'brand_secondary',
+        'brand_text',
+        'invite_email_subject',
+        'invite_email_body',
     ];
 
     /**

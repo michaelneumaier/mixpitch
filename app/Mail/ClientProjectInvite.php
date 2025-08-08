@@ -35,9 +35,9 @@ class ClientProjectInvite extends Mailable
      */
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: 'Invitation to Collaborate on Project: '.$this->project->title,
-        );
+        $producer = $this->project->user;
+        $subject = $producer->invite_email_subject ?: ('Invitation to Collaborate on Project: '.$this->project->title);
+        return new Envelope(subject: $subject);
     }
 
     /**
@@ -45,13 +45,16 @@ class ClientProjectInvite extends Mailable
      */
     public function content(): Content
     {
+        $producer = $this->project->user;
+        $branding = app(\App\Services\BrandingResolver::class)->forProducer($producer);
         return new Content(
             markdown: 'emails.client.project_invite',
             with: [
                 'projectTitle' => $this->project->title,
-                'producerName' => $this->project->user->name, // Assuming Project has user relationship for producer
-                'clientName' => $this->project->client_name, // Optional client name
+                'producerName' => $producer->name,
+                'clientName' => $this->project->client_name,
                 'portalUrl' => $this->signedUrl,
+                'customBody' => $branding['invite_body'] ?? null,
             ],
         );
     }

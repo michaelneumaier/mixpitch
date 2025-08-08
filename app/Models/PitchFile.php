@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class PitchFile extends Model
 {
@@ -30,6 +31,10 @@ class PitchFile extends Model
         'waveform_processed',
         'waveform_processed_at',
         'duration',
+        // Client approval fields
+        'client_approval_status',
+        'client_approved_at',
+        'client_approval_note',
         // Audio processing fields
         'audio_processed',
         'audio_processed_at',
@@ -53,6 +58,7 @@ class PitchFile extends Model
         'is_transcoded' => 'boolean',
         'is_watermarked' => 'boolean',
         'processing_metadata' => 'array',
+        'client_approved_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -131,15 +137,21 @@ class PitchFile extends Model
     public function getSignedUrlAttribute($expirationMinutes = 60)
     {
         try {
-            return Storage::disk('s3')->temporaryUrl(
-                $this->file_path,
-                now()->addMinutes($expirationMinutes),
-                [
-                    'ResponseContentDisposition' => 'attachment; filename="'.$this->file_name.'"',
-                ]
-            );
+            /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+            $disk = Storage::disk('s3');
+            if (method_exists($disk, 'temporaryUrl')) {
+                return $disk->temporaryUrl(
+                    $this->file_path,
+                    now()->addMinutes($expirationMinutes),
+                    [
+                        'ResponseContentDisposition' => 'attachment; filename="'.$this->file_name.'"',
+                    ]
+                );
+            }
+            
+            return null;
         } catch (Exception $e) {
-            \Log::error('Error generating signed download URL for pitch file', [
+            Log::error('Error generating signed download URL for pitch file', [
                 'file_id' => $this->id,
                 'file_path' => $this->file_path,
                 'error' => $e->getMessage(),
@@ -169,7 +181,7 @@ class PitchFile extends Model
                 return $this->formatBytes($size);
             } catch (Exception $e) {
                 // Log error or handle as needed
-                \Log::warning("Could not get size for file path: {$this->file_path}", ['error' => $e->getMessage()]);
+                Log::warning("Could not get size for file path: {$this->file_path}", ['error' => $e->getMessage()]);
 
                 return '-';
             }
@@ -257,7 +269,14 @@ class PitchFile extends Model
         } elseif ($project->isDirectHire()) {
             return $workflowConfig['direct_hire'] ?? false;
         } elseif ($project->isClientManagement()) {
-            return $workflowConfig['client_management'] ?? false;
+            $configValue = $workflowConfig['client_management'] ?? false;
+            
+            // Handle user-controlled watermarking for client management
+            if ($configValue === 'user_controlled') {
+                return $this->pitch->watermarking_enabled ?? false;
+            }
+            
+            return $configValue;
         }
 
         return false;
@@ -310,9 +329,19 @@ class PitchFile extends Model
             return true;
         }
 
-        // Project owner can access original only if pitch is accepted, completed, and paid
+        // Project owner can access original if fully paid either via full payment or all milestones paid
         if ($user->id === $this->pitch->project->user_id) {
-            return $this->pitch->isAcceptedCompletedAndPaid();
+            $fullyPaid = $this->pitch->isAcceptedCompletedAndPaid();
+            if (! $fullyPaid) {
+                // Allow originals when all milestones with positive amounts are paid
+                $unpaidMilestones = $this->pitch->milestones()
+                    ->where('amount', '>', 0)
+                    ->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+                    ->count();
+                $fullyPaid = $unpaidMilestones === 0 && $this->pitch->milestones()->exists();
+            }
+
+            return $fullyPaid;
         }
 
         return false;
@@ -324,12 +353,18 @@ class PitchFile extends Model
     public function getOriginalFileUrl(int $expirationMinutes = 30): ?string
     {
         try {
-            return Storage::disk('s3')->temporaryUrl(
-                $this->file_path,
-                now()->addMinutes($expirationMinutes)
-            );
+            /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+            $disk = Storage::disk('s3');
+            if (method_exists($disk, 'temporaryUrl')) {
+                return $disk->temporaryUrl(
+                    $this->file_path,
+                    now()->addMinutes($expirationMinutes)
+                );
+            }
+            
+            return null;
         } catch (Exception $e) {
-            \Log::error('Error generating original file URL', [
+            Log::error('Error generating original file URL', [
                 'file_id' => $this->id,
                 'file_path' => $this->file_path,
                 'error' => $e->getMessage(),
@@ -349,12 +384,18 @@ class PitchFile extends Model
         }
 
         try {
-            return Storage::disk('s3')->temporaryUrl(
-                $this->processed_file_path,
-                now()->addMinutes($expirationMinutes)
-            );
+            /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+            $disk = Storage::disk('s3');
+            if (method_exists($disk, 'temporaryUrl')) {
+                return $disk->temporaryUrl(
+                    $this->processed_file_path,
+                    now()->addMinutes($expirationMinutes)
+                );
+            }
+            
+            return null;
         } catch (Exception $e) {
-            \Log::error('Error generating processed file URL', [
+            Log::error('Error generating processed file URL', [
                 'file_id' => $this->id,
                 'processed_file_path' => $this->processed_file_path,
                 'error' => $e->getMessage(),

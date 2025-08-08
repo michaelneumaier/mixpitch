@@ -3,6 +3,7 @@
 namespace App\Livewire\Project;
 
 use App\Exceptions\File\FileDeletionException;
+use App\Models\PitchMilestone;
 use App\Models\Pitch;
 use App\Models\Project;
 use App\Services\FileManagementService;
@@ -58,14 +59,36 @@ class ManageClientProject extends Component
     
     public $fileListKey;
 
+    // Watermarking controls
+    public $watermarkingEnabled = false;
+    
+    public $showWatermarkingInfo = false;
+
+    // Milestone editing state
+    public bool $showMilestoneForm = false;
+    public ?int $editingMilestoneId = null;
+    public string $milestoneName = '';
+    public ?string $milestoneDescription = null;
+    public ?float $milestoneAmount = null;
+    public ?int $milestoneSortOrder = null;
+
+    // Milestone split helper
+    public bool $showSplitForm = false;
+    public int $splitCount = 2;
+
     protected $listeners = [
         'filesUploaded' => '$refresh',
         'fileDeleted' => '$refresh',
+        'milestonesUpdated' => '$refresh',
     ];
 
     protected $rules = [
         'responseToFeedback' => 'nullable|string|max:5000',
         'newComment' => 'required|string|max:2000',
+        'milestoneName' => 'nullable|string|max:255',
+        'milestoneDescription' => 'nullable|string|max:2000',
+        'milestoneAmount' => 'nullable|numeric|min:0',
+        'milestoneSortOrder' => 'nullable|integer|min:0',
     ];
 
     public function mount(Project $project)
@@ -96,12 +119,14 @@ class ManageClientProject extends Component
         $this->updateStorageInfo();
         $this->loadStatusFeedback();
         $this->checkResubmissionEligibility();
+        
+        // Initialize watermarking preference
+        $this->watermarkingEnabled = $this->pitch->watermarking_enabled ?? false;
     }
 
     public function render()
     {
-        return view('livewire.project.manage-client-project')
-            ->layout('components.layouts.app');
+        return view('livewire.project.manage-client-project');
     }
 
     /**
@@ -236,6 +261,11 @@ class ManageClientProject extends Component
         $this->validateOnly('responseToFeedback');
 
         try {
+            // Update watermarking preference before submission
+            $this->pitch->update([
+                'watermarking_enabled' => $this->watermarkingEnabled
+            ]);
+
             $pitchWorkflowService->submitPitchForReview($this->pitch, Auth::user(), $this->responseToFeedback);
 
             Toaster::success('Pitch submitted for client review successfully.');
@@ -323,7 +353,7 @@ class ManageClientProject extends Component
 
         try {
             $this->authorize('deleteFile', $file);
-            $fileManagementService->deletePitchFile($file, Auth::user());
+            $fileManagementService->deletePitchFile($file);
 
             Toaster::success("File '{$file->file_name}' deleted successfully.");
             $this->updateStorageInfo();
@@ -685,6 +715,176 @@ class ManageClientProject extends Component
         return $this->pitch->files()->with('pitch')->get();
     }
 
+    private function getBaseClientBudget(): float
+    {
+        // Prefer explicit client payment amount on pitch; fallback to project budget
+        $paymentAmount = (float) ($this->pitch->payment_amount ?? 0);
+        if ($paymentAmount > 0) {
+            return $paymentAmount;
+        }
+        return (float) ($this->project->budget ?? 0);
+    }
+
+    // ----- Milestones management -----
+    public function beginAddMilestone(): void
+    {
+        $this->authorize('update', $this->project);
+        $this->resetMilestoneForm();
+        $this->showMilestoneForm = true;
+    }
+
+    public function beginEditMilestone(int $milestoneId): void
+    {
+        $this->authorize('update', $this->project);
+        $milestone = $this->pitch->milestones()->findOrFail($milestoneId);
+        $this->editingMilestoneId = $milestone->id;
+        $this->milestoneName = $milestone->name;
+        $this->milestoneDescription = $milestone->description;
+        $this->milestoneAmount = (float) $milestone->amount;
+        $this->milestoneSortOrder = $milestone->sort_order;
+        $this->showMilestoneForm = true;
+    }
+
+    public function cancelMilestoneForm(): void
+    {
+        $this->resetMilestoneForm();
+        $this->showMilestoneForm = false;
+    }
+
+    public function saveMilestone(): void
+    {
+        $this->authorize('update', $this->project);
+        $this->validate([
+            'milestoneName' => 'required|string|max:255',
+            'milestoneDescription' => 'nullable|string|max:2000',
+            'milestoneAmount' => 'required|numeric|min:0',
+            'milestoneSortOrder' => 'nullable|integer|min:0',
+        ]);
+
+        if ($this->editingMilestoneId) {
+            $milestone = $this->pitch->milestones()->findOrFail($this->editingMilestoneId);
+
+            // Prevent changing amount on paid milestones
+            if ($milestone->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID
+                && $this->milestoneAmount !== null
+                && (float) $this->milestoneAmount !== (float) $milestone->amount) {
+                Toaster::error('Amount cannot be changed for a paid milestone.');
+                return;
+            }
+
+            $updatePayload = [
+                'name' => $this->milestoneName,
+                'description' => $this->milestoneDescription,
+                'sort_order' => $this->milestoneSortOrder,
+            ];
+            // Only update amount if not paid
+            if ($milestone->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_PAID) {
+                $updatePayload['amount'] = $this->milestoneAmount;
+            }
+
+            $milestone->update($updatePayload);
+            Toaster::success('Milestone updated');
+        } else {
+            $this->pitch->milestones()->create([
+                'name' => $this->milestoneName,
+                'description' => $this->milestoneDescription,
+                'amount' => $this->milestoneAmount ?? 0,
+                'sort_order' => $this->milestoneSortOrder,
+                'status' => 'pending',
+                'payment_status' => null,
+            ]);
+            Toaster::success('Milestone created');
+        }
+
+        $this->cancelMilestoneForm();
+        $this->dispatch('milestonesUpdated');
+        $this->pitch->refresh();
+    }
+
+    public function deleteMilestone(int $milestoneId): void
+    {
+        $this->authorize('update', $this->project);
+        $milestone = $this->pitch->milestones()->findOrFail($milestoneId);
+        // Prevent deleting paid milestones
+        if ($milestone->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID) {
+            Toaster::error('Cannot delete a paid milestone');
+            return;
+        }
+        $milestone->delete();
+        Toaster::success('Milestone deleted');
+        $this->dispatch('milestonesUpdated');
+        $this->pitch->refresh();
+    }
+
+    private function resetMilestoneForm(): void
+    {
+        $this->editingMilestoneId = null;
+        $this->milestoneName = '';
+        $this->milestoneDescription = null;
+        $this->milestoneAmount = null;
+        $this->milestoneSortOrder = null;
+    }
+
+    // ----- Sorting -----
+    public function reorderMilestones(array $orderedIds): void
+    {
+        $this->authorize('update', $this->project);
+        foreach ($orderedIds as $index => $id) {
+            $milestone = $this->pitch->milestones()->find($id);
+            if ($milestone) {
+                $milestone->update(['sort_order' => $index + 1]);
+            }
+        }
+        $this->pitch->refresh();
+        Toaster::success('Milestones reordered');
+    }
+
+    // ----- Split Budget Helper -----
+    public function toggleSplitForm(): void
+    {
+        $this->authorize('update', $this->project);
+        $this->showSplitForm = ! $this->showSplitForm;
+    }
+
+    public function splitBudgetIntoMilestones(): void
+    {
+        $this->authorize('update', $this->project);
+        $this->validate([
+            'splitCount' => 'required|integer|min:2|max:20',
+        ]);
+
+        $budget = $this->getBaseClientBudget();
+        if ($budget <= 0) {
+            Toaster::error('Project budget not set or zero.');
+            return;
+        }
+
+        // Calculate equal parts, last milestone gets the remainder cents
+        $cents = (int) round($budget * 100);
+        $base = intdiv($cents, $this->splitCount);
+        $remainder = $cents % $this->splitCount;
+
+        // Optional: clear existing pending milestones
+        // $this->pitch->milestones()->whereNull('payment_status')->delete();
+
+        for ($i = 1; $i <= $this->splitCount; $i++) {
+            $amountCents = $base + ($i === $this->splitCount ? $remainder : 0);
+            $this->pitch->milestones()->create([
+                'name' => 'Milestone '.$i,
+                'description' => null,
+                'amount' => $amountCents / 100,
+                'sort_order' => ($this->pitch->milestones()->max('sort_order') ?? 0) + $i,
+                'status' => 'pending',
+                'payment_status' => null,
+            ]);
+        }
+
+        $this->showSplitForm = false;
+        $this->dispatch('milestonesUpdated');
+        $this->pitch->refresh();
+        Toaster::success('Budget split into milestones');
+    }
+
     /**
      * Get total file count for both types
      */
@@ -755,5 +955,32 @@ class ManageClientProject extends Component
         $this->showDeleteClientFileModal = false;
         $this->clientFileIdToDelete = null;
         $this->clientFileNameToDelete = '';
+    }
+
+    /**
+     * Livewire hook: Called when a property is updated
+     */
+    public function updatedWatermarkingEnabled($value)
+    {
+        // Save preference immediately when toggled
+        $this->pitch->update([
+            'watermarking_enabled' => $value
+        ]);
+        
+        $this->dispatch('watermarking-toggled', [
+            'enabled' => $value
+        ]);
+        
+        Toaster::success($value ? 'Audio protection enabled' : 'Audio protection disabled');
+    }
+
+    /**
+     * Get audio files that would be affected by watermarking
+     */
+    public function getAudioFilesProperty()
+    {
+        return $this->producerFiles->filter(function($file) {
+            return in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']);
+        });
     }
 }

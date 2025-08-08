@@ -125,6 +125,7 @@ class Pitch extends Model implements HasMedia
         'audio_processed_at',
         'audio_processing_results',
         'audio_processing_error',
+        'watermarking_enabled',
     ];
 
     protected $dates = [
@@ -159,6 +160,7 @@ class Pitch extends Model implements HasMedia
         'audio_processed' => 'boolean',
         'audio_processed_at' => 'datetime',
         'audio_processing_results' => 'json',
+        'watermarking_enabled' => 'boolean',
     ];
 
     public static $transitions = [
@@ -355,6 +357,11 @@ class Pitch extends Model implements HasMedia
     public function files()
     {
         return $this->hasMany(PitchFile::class);
+    }
+
+    public function milestones()
+    {
+        return $this->hasMany(PitchMilestone::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function events()
@@ -745,5 +752,19 @@ class Pitch extends Model implements HasMedia
     {
         return in_array($this->status, [self::STATUS_APPROVED, self::STATUS_COMPLETED]) &&
                $this->payment_status === self::PAYMENT_STATUS_PAID;
+    }
+
+    /**
+     * Check if clients can download files from this pitch
+     * Files can be downloaded when project is completed and payment is finalized
+     * (either paid for paid projects or not required for free projects)
+     */
+    public function canClientDownloadFiles(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED &&
+               in_array($this->payment_status, [
+                   self::PAYMENT_STATUS_PAID,
+                   self::PAYMENT_STATUS_NOT_REQUIRED
+               ]);
     }
 }

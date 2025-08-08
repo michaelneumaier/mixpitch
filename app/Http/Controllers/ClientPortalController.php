@@ -18,7 +18,6 @@ use Illuminate\Support\Facades\Log; // Needed for Cashier
 use Illuminate\Support\Facades\Storage; // Needed for Cashier
 use Illuminate\Support\Facades\URL; // Add FileManagementService
 use Laravel\Cashier\Exceptions\IncompletePayment;
-use Laravel\Cashier\Exceptions\PaymentActionRequired;
 
 class ClientPortalController extends Controller
 {
@@ -37,14 +36,9 @@ class ClientPortalController extends Controller
      */
     public function show(Project $project, Request $request)
     {
-        // Basic validation: Ensure it's a client management project
+        // Access: allow via signed URL or authenticated registered client (middleware ensures this)
         if (! $project->isClientManagement()) {
             abort(404, 'Project not found or not accessible via client portal.');
-        }
-
-        // Validate the signed URL (Laravel handles this via middleware, but double-check)
-        if (! $request->hasValidSignature()) {
-            abort(403, 'Invalid or expired link.');
         }
 
         // Retrieve the single pitch associated with this project
@@ -74,11 +68,14 @@ class ClientPortalController extends Controller
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
 
         // Pass enhanced data to view
-        return view('client_portal.show', [
+            $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
+            return view('client_portal.show', [
             'project' => $project,
             'pitch' => $pitch,
             'snapshotHistory' => $snapshotHistory,
             'currentSnapshot' => $currentSnapshot,
+                'branding' => $branding,
+                'milestones' => $pitch->milestones()->get(),
         ]);
     }
 
@@ -87,14 +84,9 @@ class ClientPortalController extends Controller
      */
     public function showSnapshot(Project $project, \App\Models\PitchSnapshot $snapshot, Request $request)
     {
-        // Basic validation: Ensure it's a client management project
+        // Access: allow via signed URL or authenticated registered client (middleware ensures this)
         if (! $project->isClientManagement()) {
             abort(404, 'Project not found or not accessible via client portal.');
-        }
-
-        // Validate the signed URL (Laravel handles this via middleware, but double-check)
-        if (! $request->hasValidSignature()) {
-            abort(403, 'Invalid or expired link.');
         }
 
         // Ensure snapshot belongs to this project
@@ -124,11 +116,14 @@ class ClientPortalController extends Controller
         // Use the specific snapshot as current
         $currentSnapshot = $snapshot;
 
+        $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
         return view('client_portal.show', [
             'project' => $project,
             'pitch' => $pitch,
             'snapshotHistory' => $snapshotHistory,
             'currentSnapshot' => $currentSnapshot,
+            'branding' => $branding,
+            'milestones' => $pitch->milestones()->get(),
         ]);
     }
 
@@ -141,20 +136,53 @@ class ClientPortalController extends Controller
 
         // If we have real snapshots, use them
         if ($snapshots->count() > 0) {
-            return $snapshots->map(function ($snapshot, $index) {
+            return $snapshots->map(function ($snapshot, $index) use ($pitch) {
+                // Get files for this snapshot
+                $fileIds = $snapshot->snapshot_data['file_ids'] ?? [];
+                $files = $pitch->files()->whereIn('id', $fileIds)->get()->map(function($file) {
+                    return [
+                        'id' => $file->id,
+                        'file_name' => $file->file_name,
+                        'original_file_name' => $file->original_file_name,
+                        'size' => $file->size,
+                        'duration' => $file->duration,
+                        'mime_type' => $file->mime_type,
+                        'created_at' => $file->created_at,
+                        'waveform_peaks' => $file->waveform_peaks,
+                        'note' => $file->note,
+                        'uuid' => $file->uuid
+                    ];
+                });
+                
                 return [
                     'id' => $snapshot->id,
                     'version' => $snapshot->snapshot_data['version'] ?? ($index + 1),
                     'submitted_at' => $snapshot->created_at,
                     'status' => $snapshot->status,
-                    'file_count' => count($snapshot->snapshot_data['file_ids'] ?? []),
+                    'file_count' => count($fileIds),
                     'response_to_feedback' => $snapshot->snapshot_data['response_to_feedback'] ?? null,
+                    'files' => $files
                 ];
             });
         }
 
         // Fallback: If no snapshots but files exist, create virtual snapshot history
         if ($pitch->files->count() > 0) {
+            $files = $pitch->files->map(function($file) {
+                return [
+                    'id' => $file->id,
+                    'file_name' => $file->file_name,
+                    'original_file_name' => $file->original_file_name,
+                    'size' => $file->size,
+                    'duration' => $file->duration,
+                    'mime_type' => $file->mime_type,
+                    'created_at' => $file->created_at,
+                    'waveform_peaks' => $file->waveform_peaks,
+                    'note' => $file->note,
+                    'uuid' => $file->uuid
+                ];
+            });
+            
             return collect([[
                 'id' => 'current',
                 'version' => 1,
@@ -162,6 +190,7 @@ class ClientPortalController extends Controller
                 'status' => 'pending',
                 'file_count' => $pitch->files->count(),
                 'response_to_feedback' => null,
+                'files' => $files
             ]]);
         }
 
@@ -300,6 +329,11 @@ class ClientPortalController extends Controller
                 $successUrl = URL::signedRoute('client.portal.view', ['project' => $project->id, 'checkout_status' => 'success']);
                 $cancelUrl = URL::signedRoute('client.portal.view', ['project' => $project->id, 'checkout_status' => 'cancel']);
 
+                // Guard: ensure producer has Stripe Connect ready if payouts required
+                if (! $producer->stripe_account_id || ! $producer->hasValidStripeConnectAccount()) {
+                    return back()->withErrors(['payment' => 'Producer is not ready to receive payouts. Please contact them to complete setup.']);
+                }
+
                 $checkoutSession = $producer->checkout([
                     // Define line items
                     'price_data' => [
@@ -341,7 +375,7 @@ class ClientPortalController extends Controller
             Log::warning('Client attempted to approve pitch with invalid status.', ['project_id' => $project->id, 'pitch_id' => $pitch->id, 'current_status' => $pitch->status]);
 
             return back()->withErrors(['approval' => $e->getMessage()]); // Show specific error
-        } catch (PaymentActionRequired|IncompletePayment $e) {
+        } catch (IncompletePayment $e) {
             // Handle specific Cashier exceptions related to SCA or failed payments if needed
             // This might happen if checkout() is used differently, less likely with direct redirect
             Log::error('Cashier payment exception during client approval checkout initiation.', ['pitch_id' => $pitch->id, 'error' => $e->getMessage()]);
@@ -352,6 +386,134 @@ class ClientPortalController extends Controller
 
             return back()->withErrors(['approval' => 'Could not approve pitch at this time. Please try again later.']);
         }
+    }
+
+    /**
+     * Approve a specific milestone and trigger payment if required.
+     */
+    public function approveMilestone(Project $project, \App\Models\PitchMilestone $milestone, Request $request)
+    {
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
+
+        $pitch = $project->pitches()->with('user')->firstOrFail();
+        if ($milestone->pitch_id !== $pitch->id) {
+            abort(404, 'Milestone not found for this project.');
+        }
+
+        // Approve milestone
+        $milestone->update([
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+
+        // Handle payment if amount > 0 and not paid
+        if ($milestone->amount > 0 && $milestone->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_PAID) {
+            $producer = $pitch->user;
+            // Create a Stripe Checkout session via Cashier for payment
+            $successUrl = URL::signedRoute('client.portal.view', ['project' => $project->id, 'checkout_status' => 'success']);
+            $cancelUrl = URL::signedRoute('client.portal.view', ['project' => $project->id, 'checkout_status' => 'cancel']);
+
+            // Guard: ensure producer has Stripe Connect ready if payouts required
+            if (! $producer->stripe_account_id || ! $producer->hasValidStripeConnectAccount()) {
+                return back()->withErrors(['payment' => 'Producer is not ready to receive payouts. Please contact them to complete setup.']);
+            }
+
+            $checkoutSession = $producer->checkout([
+                'price_data' => [
+                    'currency' => config('cashier.currency'),
+                    'product_data' => [
+                        'name' => 'Milestone Payment: '.$milestone->name,
+                        'description' => 'Payment for milestone on project: '.$project->title,
+                    ],
+                    'unit_amount' => (int) round($milestone->amount * 100),
+                ],
+                'quantity' => 1,
+            ], [
+                'success_url' => $successUrl,
+                'cancel_url' => $cancelUrl,
+                'metadata' => [
+                    'milestone_id' => $milestone->id,
+                    'pitch_id' => $pitch->id,
+                    'project_id' => $project->id,
+                    'type' => 'client_milestone_payment',
+                ],
+            ]);
+
+            // Mark as processing until webhook confirms
+            $milestone->update([
+                'payment_status' => \App\Models\Pitch::PAYMENT_STATUS_PROCESSING,
+            ]);
+
+            return redirect($checkoutSession->url);
+        }
+
+        return back()->with('success', 'Milestone approved.');
+    }
+
+    /**
+     * Client approves a specific file in the portal (per-file approval).
+     */
+    public function approveFile(Project $project, \App\Models\PitchFile $pitchFile, Request $request)
+    {
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
+
+        $pitch = $project->pitches()->firstOrFail();
+        if ($pitchFile->pitch_id !== $pitch->id) {
+            abort(404, 'File not found for this project.');
+        }
+
+        $pitchFile->update([
+            'client_approval_status' => 'approved',
+            'client_approved_at' => now(),
+        ]);
+
+        if ($request->expectsJson() || $request->boolean('ajax')) {
+            return response()->json([
+                'success' => true,
+                'file_id' => $pitchFile->id,
+                'approved_at' => optional($pitchFile->client_approved_at)->toIso8601String(),
+                'approved_at_human' => optional($pitchFile->client_approved_at)->diffForHumans(),
+                'status' => 'approved',
+            ]);
+        }
+
+        return back()->with('success', 'File approved.');
+    }
+
+    /**
+     * Client approves all files for the current visible snapshot/pitch.
+     */
+    public function approveAllFiles(Project $project, Request $request)
+    {
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
+
+        $pitch = $project->pitches()->firstOrFail();
+        // Approve all files on the pitch
+        $updated = $pitch->files()
+            ->where(function ($query) {
+                $query
+                    ->whereNull('client_approval_status')
+                    ->orWhere('client_approval_status', '!=', 'approved');
+            })
+            ->update([
+                'client_approval_status' => 'approved',
+                'client_approved_at' => now(),
+            ]);
+
+        if ($request->expectsJson() || $request->boolean('ajax')) {
+            return response()->json([
+                'success' => true,
+                'updated_count' => $updated,
+            ]);
+        }
+
+        return back()->with('success', 'All files approved.');
     }
 
     /**
@@ -538,7 +700,9 @@ class ClientPortalController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
 
-            return $user->hasRole(User::ROLE_CLIENT) &&
+            $isClientRole = ($user->role ?? null) === User::ROLE_CLIENT;
+
+            return $isClientRole &&
                    ($project->client_user_id === $user->id || $project->client_email === $user->email);
         }
 
@@ -614,13 +778,7 @@ class ClientPortalController extends Controller
      */
     public function downloadFile(Project $project, PitchFile $pitchFile, Request $request)
     {
-        // Double-check signature validity (middleware should handle, but good practice)
-        if (! $request->hasValidSignature()) {
-            Log::warning('Client portal download attempt with invalid signature.', ['project_id' => $project->id, 'file_id' => $pitchFile->id]);
-            abort(403, 'Invalid or expired link.');
-        }
-
-        // Ensure it's a client management project
+        // Ensure it's a client management project (access enforcement is handled by middleware)
         if (! $project->isClientManagement()) {
             Log::warning('Client portal download attempt for non-client project.', ['project_id' => $project->id, 'file_id' => $pitchFile->id]);
             abort(404); // Or 403
@@ -647,18 +805,18 @@ class ClientPortalController extends Controller
         // TODO: Add more granular permissions? E.g., only allow download if pitch is in specific statuses?
 
         try {
-            // Use Storage facade to stream the download securely
-            return Storage::disk($pitchFile->disk)->download($pitchFile->file_path, $pitchFile->file_name);
-        } catch (\League\Flysystem\FileNotFoundException $e) {
-            Log::error('Client portal download failed: File not found in storage.', [
-                'project_id' => $project->id,
-                'pitch_id' => $pitch->id,
-                'file_id' => $pitchFile->id,
-                'disk' => $pitchFile->disk,
-                'path' => $pitchFile->file_path,
-                'error' => $e->getMessage(),
-            ]);
-            abort(404, 'File not found.');
+            // Stream the download for broad driver compatibility
+            $stream = Storage::disk($pitchFile->disk)->readStream($pitchFile->file_path);
+            if (! $stream) {
+                abort(404, 'File not found.');
+            }
+
+            return response()->streamDownload(function () use ($stream) {
+                fpassthru($stream);
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }, $pitchFile->file_name);
         } catch (\Exception $e) {
             Log::error('Client portal download failed: Generic error.', [
                 'project_id' => $project->id,
@@ -782,11 +940,6 @@ class ClientPortalController extends Controller
         // Ensure the file belongs to this project
         if ($projectFile->project_id !== $project->id) {
             abort(404, 'File not found.');
-        }
-
-        // Double-check signature validity (middleware should handle, but good practice)
-        if (! request()->hasValidSignature()) {
-            abort(403, 'Invalid or expired link.');
         }
 
         try {
@@ -929,12 +1082,16 @@ class ClientPortalController extends Controller
             'pitch_status' => $pitch->status,
         ]);
 
-        return view('client_portal.show', compact(
-            'project',
-            'pitch',
-            'snapshotHistory',
-            'currentSnapshot',
-            'isPreview'
-        ));
+        $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
+
+        return view('client_portal.show', [
+            'project' => $project,
+            'pitch' => $pitch,
+            'snapshotHistory' => $snapshotHistory,
+            'currentSnapshot' => $currentSnapshot,
+            'isPreview' => $isPreview,
+            'branding' => $branding,
+            'milestones' => $pitch->milestones()->get(),
+        ]);
     }
 }

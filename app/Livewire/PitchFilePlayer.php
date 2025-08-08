@@ -101,16 +101,9 @@ class PitchFilePlayer extends Component
                 ];
             }
 
-            // Log the calculated positions for debugging
-            \Illuminate\Support\Facades\Log::info('Calculated comment markers', [
-                'duration' => $this->duration,
-                'count' => count($this->comments),
-                'markers' => $this->commentMarkers,
-            ]);
+            // Comment markers calculated successfully
         } else {
-            \Illuminate\Support\Facades\Log::warning('Cannot calculate comment markers: duration is zero or negative', [
-                'duration' => $this->duration,
-            ]);
+            // Duration is zero or negative, cannot calculate markers
         }
     }
 

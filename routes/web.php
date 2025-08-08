@@ -30,6 +30,8 @@ use App\Http\Controllers\PitchStatusController;
 use App\Livewire\User\ManagePortfolioItems;
 use App\Http\Controllers\AudioFileController;
 use App\Http\Controllers\ClientPortalController;
+use App\Http\Controllers\ClientImportController;
+use App\Http\Controllers\BrandingSettingsController;
 use App\Http\Controllers\Producer\ServicePackageController;
 use App\Http\Controllers\PublicServicePackageController;
 use App\Http\Controllers\OrderController;
@@ -923,10 +925,21 @@ Route::middleware(['auth', 'verified'])->prefix('orders')->name('orders.')->grou
 });
 
 // --- Client Portal Routes ---
-// Publicly accessible VIEW route (needs signed middleware)
+// Client Portal VIEW route: allow signed guests OR authenticated registered client
 Route::get('/projects/{project:id}/portal', [ClientPortalController::class, 'show'])
     ->name('client.portal.view')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
+
+// Client import (producer-only routes)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/clients/import', [ClientImportController::class, 'index'])->name('clients.import.index');
+    Route::post('/clients/import', [ClientImportController::class, 'store'])->name('clients.import.store');
+    Route::get('/clients/import/sample', [ClientImportController::class, 'sample'])->name('clients.import.sample');
+    Route::get('/clients/import/{job}', [ClientImportController::class, 'preview'])->name('clients.import.preview');
+    Route::post('/clients/import/{job}/confirm', [ClientImportController::class, 'confirm'])->name('clients.import.confirm');
+    Route::get('/settings/branding', [BrandingSettingsController::class, 'edit'])->name('settings.branding.edit');
+    Route::put('/settings/branding', [BrandingSettingsController::class, 'update'])->name('settings.branding.update');
+});
 
 // Producer preview route (for project owners to preview the client portal)
 Route::get('/projects/{project}/portal/preview', [ClientPortalController::class, 'preview'])
@@ -937,20 +950,33 @@ Route::get('/projects/{project}/portal/preview', [ClientPortalController::class,
 // Client Portal Snapshot Navigation - NEW
 Route::get('/projects/{project:id}/portal/snapshot/{snapshot}', [ClientPortalController::class, 'showSnapshot'])
     ->name('client.portal.snapshot')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
+
 
 // Client ACTION routes (need signed middleware)
 Route::post('/client-portal/project/{project:id}/comments', [ClientPortalController::class, 'storeComment'])
     ->name('client.portal.comments.store')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
 
 Route::post('/client-portal/project/{project:id}/approve', [ClientPortalController::class, 'approvePitch'])
     ->name('client.portal.approve')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
+
+Route::post('/client-portal/project/{project:id}/milestones/{milestone:id}/approve', [ClientPortalController::class, 'approveMilestone'])
+    ->name('client.portal.milestones.approve')
+    ->middleware(['signed_or_client']);
+
+Route::post('/client-portal/project/{project:id}/files/{pitchFile:id}/approve', [ClientPortalController::class, 'approveFile'])
+    ->name('client.portal.files.approve')
+    ->middleware(['signed_or_client']);
+
+Route::post('/client-portal/project/{project:id}/files/approve-all', [ClientPortalController::class, 'approveAllFiles'])
+    ->name('client.portal.files.approve_all')
+    ->middleware(['signed_or_client']);
 
 Route::post('/client-portal/project/{project:id}/request-revisions', [ClientPortalController::class, 'requestRevisions'])
     ->name('client.portal.revisions')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
 
 // Producer ACTION route (needs auth middleware)
 Route::post('/client-portal/project/{project:id}/resend-invite', [ClientPortalController::class, 'resendInvite'])
@@ -960,16 +986,17 @@ Route::post('/client-portal/project/{project:id}/resend-invite', [ClientPortalCo
 // Client File Download route (needs signed middleware)
 Route::get('/client-portal/project/{project:id}/file/{pitchFile:id}', [ClientPortalController::class, 'downloadFile'])
     ->name('client.portal.download_file')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
 
 // Client File Upload route - TEMPORARILY REMOVING SIGNED MIDDLEWARE FOR DEBUGGING
 Route::post('/client-portal/project/{project:id}/upload', [ClientPortalController::class, 'uploadFile'])
-    ->name('client.portal.upload_file');
+    ->name('client.portal.upload_file')
+    ->middleware(['signed_or_client']);
 
 // Client presigned URL upload routes
 Route::post('/client-portal/presigned-upload/generate', [\App\Http\Controllers\Api\PresignedUploadController::class, 'generatePresignedUrl'])
     ->name('client.portal.presigned.generate')
-    ->middleware(['signed', 'upload.validate:auto']);
+    ->middleware(['signed_or_client', 'upload.validate:auto']);
 Route::post('/client-portal/presigned-upload/complete', [\App\Http\Controllers\Api\PresignedUploadController::class, 'completeUpload'])
     ->name('client.portal.presigned.complete')
     ->middleware('signed');
@@ -977,7 +1004,7 @@ Route::post('/client-portal/presigned-upload/complete', [\App\Http\Controllers\A
 // Client Project File Download route (needs signed middleware) - NEW
 Route::get('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'downloadProjectFile'])
     ->name('client.portal.download_project_file')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
 
 // Client Project File Delete route
 Route::delete('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'deleteProjectFile'])
@@ -996,11 +1023,11 @@ Route::post('/client-portal/project/{project:id}/create-account', [ClientPortalC
 // Invoice and Deliverables Access (works with both signed URLs and authenticated clients)
 Route::get('/client-portal/project/{project:id}/invoice', [ClientPortalController::class, 'invoice'])
     ->name('client.portal.invoice')
-    ->middleware(['signed']);
+    ->middleware(['signed_or_client']);
 
 Route::get('/client-portal/project/{project:id}/deliverables', [ClientPortalController::class, 'deliverables'])
     ->name('client.portal.deliverables')
-    ->middleware(['signed']);
+    ->middleware(['signed_or_client']);
 
 // License signature routes
 Route::middleware('auth')->group(function () {

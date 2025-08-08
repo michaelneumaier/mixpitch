@@ -82,17 +82,22 @@
                 <div class="relative z-10">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
                         <div class="flex items-center">
-                            <div class="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mr-4 sm:mr-6 shadow-lg flex-shrink-0">
-                                <i class="fas fa-briefcase text-white text-lg sm:text-2xl"></i>
-                            </div>
+                            @if(!empty($branding['logo_url']))
+                                <img src="{{ $branding['logo_url'] }}" alt="Brand Logo" class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl mr-4 sm:mr-6 shadow-lg object-contain bg-white p-1">
+                            @else
+                                <div class="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mr-4 sm:mr-6 shadow-lg flex-shrink-0">
+                                    <i class="fas fa-briefcase text-white text-lg sm:text-2xl"></i>
+                                </div>
+                            @endif
                             <div class="min-w-0 flex-1">
                                 <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 sm:mb-2 break-words">{{ $project->title }}</h1>
-                                <p class="text-sm sm:text-base lg:text-lg text-gray-600 truncate">Managed by {{ $pitch->user->name }}</p>
+                                <p class="text-sm sm:text-base lg:text-lg text-gray-600 truncate">Managed by {{ $branding['brand_display'] ?? $pitch->user->name }}</p>
                             </div>
                         </div>
                         
                         <!-- Enhanced Status Badge -->
-                        <div class="bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl px-3 sm:px-6 py-2 sm:py-3 shadow-sm self-start sm:self-auto">
+                        <div class="bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl px-3 sm:px-6 py-2 sm:py-3 shadow-sm self-start sm:self-auto"
+                             style="border-color: {{ $branding['secondary'] ?? '#4f46e5' }};">
                             <span class="inline-flex items-center px-2 sm:px-4 py-1 sm:py-2 rounded-xl text-xs sm:text-sm font-bold {{ $pitch->getStatusColorClass() }} border-2 border-white/50 shadow-lg backdrop-blur-sm">
                                 <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1 sm:mr-2 bg-current animate-pulse"></div>
                                 <span class="truncate">{{ $pitch->readable_status }}</span>
@@ -102,7 +107,8 @@
                     
                     <!-- Project Status Dashboard -->
                     <div class="mb-6">
-                        <div class="bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-3 sm:p-4 lg:p-6">
+                        <div class="bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm border rounded-xl p-3 sm:p-4 lg:p-6"
+                             style="border-color: {{ $branding['primary'] ?? '#1f2937' }}33;">
                             <h3 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
                                 <i class="fas fa-route mr-2 text-blue-500"></i>
                                 Project Progress
@@ -114,14 +120,18 @@
                                 <div class="absolute top-4 left-4 right-4 h-0.5 bg-gray-200 rounded-full hidden sm:block"></div>
                                 
                                 <!-- Dynamic Progress Line -->
+                                @php
+                                    $progressWidth = match ($pitch->status) {
+                                        \App\Models\Pitch::STATUS_PENDING => '0%',
+                                        \App\Models\Pitch::STATUS_IN_PROGRESS => '25%',
+                                        \App\Models\Pitch::STATUS_READY_FOR_REVIEW => '50%',
+                                        \App\Models\Pitch::STATUS_APPROVED => '75%',
+                                        \App\Models\Pitch::STATUS_COMPLETED => '100%',
+                                        default => '25%',
+                                    };
+                                @endphp
                                 <div class="absolute top-4 left-4 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-1000 ease-out hidden sm:block" 
-                                     style="width: {{ 
-                                        $pitch->status === \App\Models\Pitch::STATUS_PENDING ? '0%' :
-                                        ($pitch->status === \App\Models\Pitch::STATUS_IN_PROGRESS ? '25%' :
-                                        ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW ? '50%' :
-                                        ($pitch->status === \App\Models\Pitch::STATUS_APPROVED ? '75%' :
-                                        ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED ? '100%' : '25%'))))
-                                     }}"></div>
+                                     style="width: {{ $progressWidth }};"></div>
                                 
                                 <!-- Step 1: Project Started -->
                                 <div class="relative flex flex-col items-center min-w-0 flex-1">
@@ -270,6 +280,7 @@
                         <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
                         <span class="text-green-800 font-medium">Payment successful! The project has been approved and the producer has been notified.</span>
                     </div>
+                    <script type="application/json" id="snapshot-data-json">@json($snapshotHistory)</script>
                 </div>
             </div>
         @elseif(request()->query('checkout_status') === 'cancel')
@@ -472,8 +483,7 @@
                                                        class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm">
                                                         <i class="fas fa-download mr-1 sm:mr-2"></i><span class="hidden sm:inline">Download</span>
                                         </a>
-                                                    <button onclick="deleteFile({{ $file->id }}, '{{ $file->file_name }}')" 
-                                                            class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm">
+                                                    <button class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm js-delete-file" data-file-id="{{ $file->id }}" data-file-name="{{ $file->file_name }}">
                                                         <i class="fas fa-trash mr-1 sm:mr-2"></i><span class="hidden sm:inline">Delete</span>
                                                     </button>
                                                 </div>
@@ -493,7 +503,7 @@
                 </div>
                 
                 {{-- ENHANCED Producer Deliverables with Snapshot Navigation --}}
-                <div class="bg-gradient-to-br from-green-50/90 to-emerald-50/80 backdrop-blur-md border border-green-200/50 rounded-2xl p-6 shadow-lg">
+                <div id="producer-deliverables" class="bg-gradient-to-br from-green-50/90 to-emerald-50/80 backdrop-blur-md border border-green-200/50 rounded-2xl p-6 shadow-lg">
                     
                     {{-- Header with Version Info --}}
                     <div class="flex items-center justify-between mb-6">
@@ -527,10 +537,9 @@
                     <div class="mb-6">
                         <div class="bg-gradient-to-r from-blue-50/80 to-green-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
                             <div class="flex items-center justify-between mb-3">
-                                <h5 class="font-semibold text-blue-800">Submission History</h5>
+                                <h5 class="font-semibold" style="color: {{ $branding['primary'] ?? '#1f2937' }};">Submission History</h5>
                                 @if($snapshotHistory->count() >= 2)
-                                <button onclick="toggleVersionComparison()" 
-                                        class="text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-lg transition-colors duration-200">
+                                <button class="text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-lg transition-colors duration-200 js-toggle-comparison">
                                     <i class="fas fa-columns mr-1"></i>Compare Versions
                                 </button>
                                 @endif
@@ -543,7 +552,10 @@
                                              ? 'bg-green-100 border-green-300 ring-2 ring-green-500' 
                                              : 'bg-white border-gray-200 hover:border-green-300' }}"
                                      data-snapshot-id="{{ $snapshot['id'] }}"
-                                     onclick="selectSnapshot({{ $snapshot['id'] }})">
+                                     @if($snapshot['id'] !== 'current')
+                                         data-snapshot-url="{{ URL::temporarySignedRoute('client.portal.snapshot', now()->addMinutes(60), ['project' => $project->id, 'snapshot' => $snapshot['id']]) }}#producer-deliverables"
+                                     @endif
+                                     >
                                     
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center">
@@ -579,7 +591,7 @@
                             <div id="version-comparison" class="hidden mt-4 p-4 bg-white/60 backdrop-blur-sm border border-blue-200/30 rounded-lg">
                                 <div class="flex items-center justify-between mb-3">
                                     <h6 class="font-semibold text-blue-800">Compare Versions</h6>
-                                    <button onclick="hideVersionComparison()" class="text-blue-600 hover:text-blue-800">
+                                    <button class="text-blue-600 hover:text-blue-800" id="js-hide-comparison">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -595,6 +607,14 @@
                     {{-- Enhanced Current Snapshot Files Display with Audio Player --}}
                     @if($currentSnapshot && (method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0))
                     <div class="mb-4">
+                        {{-- Response to Feedback (moved to top for better visibility) --}}
+                        @if($currentSnapshot->response_to_feedback ?? false)
+                        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h6 class="font-semibold text-blue-800 mb-2">Producer's Response to Feedback:</h6>
+                            <p class="text-blue-700 text-sm">{{ $currentSnapshot->response_to_feedback }}</p>
+                        </div>
+                        @endif
+                        
                         <div class="flex items-center justify-between mb-3">
                             <h5 class="font-semibold text-green-800">
                                 Files in Version {{ $currentSnapshot->version ?? 1 }}
@@ -603,17 +623,112 @@
                                 Submitted {{ $currentSnapshot->created_at->format('M j, Y g:i A') }}
                             </span>
                         </div>
+
+                        @if(!isset($isPreview) || !$isPreview)
+                        <div class="mb-4">
+                            <form x-data="approveAll({ url: '{{ URL::temporarySignedRoute('client.portal.files.approve_all', now()->addHours(24), ['project' => $project->id]) }}' })" @submit.prevent="submit" method="POST">
+                                @csrf
+                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 text-sm">
+                                    <i class="fas fa-check-double mr-2"></i>
+                                    <span x-show="!loading">Approve All Files</span>
+                                    <span x-show="loading"><i class="fas fa-spinner fa-spin mr-1"></i> Approving...</span>
+                                </button>
+                            </form>
+                        </div>
+                        @endif
                         
                         {{-- Enhanced File Display with Audio Players and Annotations --}}
+                        @if(request('checkout_status') === 'success')
+                            <div class="mb-3 rounded-lg border border-green-200 bg-green-50 p-3 text-green-800 text-sm">
+                                <i class="fas fa-check-circle mr-1"></i> Payment completed. Thank you!
+                            </div>
+                        @elseif(request('checkout_status') === 'cancel')
+                            <div class="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800 text-sm">
+                                <i class="fas fa-info-circle mr-1"></i> Checkout canceled.
+                            </div>
+                        @endif
+                        
+                        @if(isset($milestones) && $milestones->count() > 0)
+                        <div class="mb-5 bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl p-4 sm:p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-flag-checkered text-purple-500 mr-2"></i>
+                                    Milestones
+                                </h3>
+                                @php($sumMilestones = $milestones->sum('amount'))
+                                <div class="text-xs sm:text-sm text-gray-700">Total: ${{ number_format($sumMilestones, 2) }}</div>
+                            </div>
+                            <div class="space-y-2">
+                                @foreach($milestones as $m)
+                                <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-white">
+                                    <div class="min-w-0">
+                                        <div class="font-medium text-gray-900 truncate">{{ $m->name }}</div>
+                                        <div class="text-xs text-gray-600 mt-0.5 flex items-center gap-2">
+                                            <span>Status: {{ ucfirst($m->status) }}</span>
+                                            @if($m->amount > 0)
+                                                @if($m->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800">Paid</span>
+                                                @elseif($m->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-800">Payment pending</span>
+                                                @endif
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3 ml-4">
+                                        <div class="text-right">
+                                            <div class="text-sm font-semibold text-gray-900">${{ number_format($m->amount, 2) }}</div>
+                                        </div>
+                                        @if($m->status !== 'approved' || ($m->amount > 0 && $m->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_PAID))
+                                            <form method="POST" action="{{ URL::temporarySignedRoute('client.portal.milestones.approve', now()->addHours(24), ['project' => $project->id, 'milestone' => $m->id]) }}">
+                                                @csrf
+                                                <button type="submit" class="inline-flex items-center px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 text-xs sm:text-sm">
+                                                    @if($m->amount > 0)
+                                                        <i class="fas fa-credit-card mr-2"></i>Approve & Pay
+                                                    @else
+                                                        <i class="fas fa-check mr-2"></i>Approve
+                                                    @endif
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i> Completed
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
                         <div class="space-y-4">
                             @foreach(($currentSnapshot->files ?? collect()) as $file)
                                 {{-- Check if file is audio for enhanced player --}}
                                 @if(in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
                                     {{-- Audio File with Enhanced Player --}}
-                                    <div class="bg-gradient-to-r from-white/90 to-green-50/70 backdrop-blur-sm border border-green-200/50 rounded-xl p-4 shadow-sm">
+                                    <div id="file-{{ $file->id }}" class="bg-gradient-to-r from-white/90 to-green-50/70 backdrop-blur-sm border border-green-200/50 rounded-xl p-4 shadow-sm transition-all duration-300">
                                         <div class="mb-3">
-                                            <h6 class="font-semibold text-green-900 mb-1">{{ $file->file_name }}</h6>
-                                            <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB • Audio File</div>
+                                            <h6 class="font-semibold text-green-900 mb-1 flex items-center gap-2">
+                                                {{ $file->file_name }}
+                                                @if($file->client_approval_status === 'approved')
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]">
+                                                        <i class="fas fa-check-circle mr-1"></i> Approved
+                                                    </span>
+                                                @endif
+                                            </h6>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB • Audio File</span>
+                                                @if($pitch->canClientDownloadFiles())
+                                                    <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
+                                                       class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs">
+                                                        <i class="fas fa-download mr-1"></i><span class="hidden sm:inline">Download</span>
+                                                    </a>
+                                                @else
+                                                    <span class="text-xs text-gray-500 italic">
+                                                        <i class="fas fa-lock"></i>
+                                                        Download Locked
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </div>
                                         
                                         {{-- Enhanced Audio Player with Client Comment Support --}}
@@ -623,43 +738,79 @@
                                             'clientMode' => true,
                                             'clientEmail' => $project->client_email
                                         ])
-                                        
-                                        {{-- Download Link --}}
-                                        <div class="mt-3 text-right">
-                                            <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
-                                               class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-sm">
-                                                <i class="fas fa-download mr-2"></i>Download
-                                            </a>
+
+                                        @if(!isset($isPreview) || !$isPreview)
+                                        <div class="mt-3">
+                                            @if($file->client_approval_status !== 'approved')
+                                                <form method="POST" x-data="approveFile({ url: '{{ URL::temporarySignedRoute('client.portal.files.approve', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}' })" @submit.prevent="submit">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 text-xs">
+                                                        <i class="fas fa-check mr-2"></i>
+                                                        <span x-show="!loading">Approve File</span>
+                                                        <span x-show="loading"><i class="fas fa-spinner fa-spin mr-1"></i> Approving...</span>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <span class="text-xs text-green-700" data-approved-text>Approved {{ optional($file->client_approved_at)->diffForHumans() }}</span>
+                                            @endif
                                         </div>
+                                        @endif
                                     </div>
                                 @else
                                     {{-- Non-Audio File - Standard Display --}}
-                                    <div class="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                                    <div id="file-{{ $file->id }}" class="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/40 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
                                         <div class="flex items-center min-w-0 flex-1 mr-3">
                                             <div class="hidden sm:flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3 shadow-sm flex-shrink-0">
                                                 <i class="fas fa-file text-white text-sm"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <span class="text-xs sm:text-sm font-semibold text-green-900 block truncate">{{ $file->file_name }}</span>
-                                                <div class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB</div>
+                                                <span class="text-xs sm:text-sm font-semibold text-green-900 block truncate">
+                                                    {{ $file->file_name }}
+                                                    @if($file->client_approval_status === 'approved')
+                                                        <span class="inline-flex items-center ml-2 px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]">
+                                                            <i class="fas fa-check-circle mr-1"></i> Approved
+                                                        </span>
+                                                    @endif
+                                                </span>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="text-xs text-green-600">{{ number_format($file->size / 1024, 1) }} KB</span>
+                                                    @if($pitch->canClientDownloadFiles())
+                                                        <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
+                                                           class="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs flex-shrink-0">
+                                                            <i class="fas fa-download mr-1"></i><span class="hidden sm:inline">Download</span>
+                                                        </a>
+                                                    @else
+                                                        <span class="text-xs text-gray-500 italic">
+                                                            @if($pitch->status !== \App\Models\Pitch::STATUS_COMPLETED)
+                                                                Available when completed
+                                                            @elseif($pitch->payment_amount > 0 && !in_array($pitch->payment_status, [\App\Models\Pitch::PAYMENT_STATUS_PAID, \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED]))
+                                                                Available after payment
+                                                            @endif
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
-                                        <a href="{{ URL::temporarySignedRoute('client.portal.download_file', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}" 
-                                           class="inline-flex items-center px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg text-xs sm:text-sm flex-shrink-0">
-                                            <i class="fas fa-download mr-1 sm:mr-2"></i><span class="hidden sm:inline">Download</span>
-                                        </a>
+                                        @if(!isset($isPreview) || !$isPreview)
+                                        <div class="ml-3">
+                                            @if($file->client_approval_status !== 'approved')
+                                                <form method="POST" x-data="approveFile({ url: '{{ URL::temporarySignedRoute('client.portal.files.approve', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}' })" @submit.prevent="submit">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 text-xs">
+                                                        <i class="fas fa-check mr-2"></i>
+                                                        <span x-show="!loading">Approve File</span>
+                                                        <span x-show="loading"><i class="fas fa-spinner fa-spin mr-1"></i> Approving...</span>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <span class="text-xs text-green-700" data-approved-text>Approved {{ optional($file->client_approved_at)->diffForHumans() }}</span>
+                                            @endif
+                                        </div>
+                                        @endif
                                     </div>
                                 @endif
                             @endforeach
                         </div>
-                        
-                        {{-- Response to Feedback (if any) --}}
-                        @if($currentSnapshot->response_to_feedback ?? false)
-                        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h6 class="font-semibold text-blue-800 mb-2">Producer's Response to Feedback:</h6>
-                            <p class="text-blue-700 text-sm">{{ $currentSnapshot->response_to_feedback }}</p>
-                        </div>
-                        @endif
                     </div>
                     @else
                     <div class="text-center py-8">
@@ -854,7 +1005,50 @@
                             </div>
                         </div>
                         @endif
-                        
+
+                        @if(isset($milestones) && $milestones->count() > 0)
+                        <div class="bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl p-4 sm:p-6 mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                                <i class="fas fa-flag-checkered text-purple-500 mr-2"></i>
+                                Milestones
+                            </h3>
+                            <div class="space-y-3">
+                                @foreach($milestones as $m)
+                                <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200">
+                                    <div class="min-w-0">
+                                        <div class="font-medium text-gray-900 truncate">{{ $m->name }}</div>
+                                        @if($m->description)
+                                        <div class="text-sm text-gray-600 truncate">{{ $m->description }}</div>
+                                        @endif
+                                        <div class="text-xs text-gray-500 mt-1">Status: {{ ucfirst($m->status) }} @if($m->payment_status) • Payment: {{ str_replace('_',' ', $m->payment_status) }} @endif</div>
+                                    </div>
+                                    <div class="flex items-center gap-3 ml-4">
+                                        <div class="text-right">
+                                            <div class="text-sm font-semibold text-gray-900">${{ number_format($m->amount, 2) }}</div>
+                                        </div>
+                                        @if($m->status !== 'approved' || ($m->amount > 0 && $m->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_PAID))
+                                        <form method="POST" action="{{ route('client.portal.milestones.approve', ['project' => $project->id, 'milestone' => $m->id]) }}">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200">
+                                                @if($m->amount > 0)
+                                                <i class="fas fa-credit-card mr-2"></i>Approve & Pay
+                                                @else
+                                                <i class="fas fa-check mr-2"></i>Approve
+                                                @endif
+                                            </button>
+                                        </form>
+                                        @else
+                                        <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i> Completed
+                                        </span>
+                                        @endif
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
                         {{-- Phase 2: Enhanced Completed Project Actions --}}
                         @if($pitch->status === \App\Models\Pitch::STATUS_COMPLETED)
                         <div class="bg-gradient-to-r from-emerald-50/80 to-green-50/80 backdrop-blur-sm border border-emerald-200/50 rounded-xl p-6 mb-6">
@@ -1284,6 +1478,7 @@
         
         // Version Comparison JavaScript
         window.selectedSnapshots = [];
+        window.snapshotData = JSON.parse(document.getElementById('snapshot-data-json').textContent);
         
         window.toggleVersionComparison = function() {
             const checkboxes = document.querySelectorAll('.comparison-checkbox');
@@ -1315,7 +1510,24 @@
             // Only navigate if not in comparison mode
             const checkboxes = document.querySelectorAll('.comparison-checkbox');
             if (checkboxes[0].classList.contains('hidden')) {
-                window.location.href = `/client-portal/project/{{ $project->id }}/snapshot/${snapshotId}`;
+                // In preview mode, do not navigate (server may not have signed URLs)
+                if (typeof window.isPortalPreview !== 'undefined' && window.isPortalPreview) {
+                    console.log('Preview mode: Snapshot navigation disabled');
+                    return;
+                }
+                    // Find the snapshot element and get its pre-generated signed URL
+                    const snapshotElement = document.querySelector(`[data-snapshot-id="${snapshotId}"]`);
+                    if (snapshotElement && snapshotElement.dataset.snapshotUrl) {
+                        window.location.href = snapshotElement.dataset.snapshotUrl;
+                    } else if (snapshotId === 'current') {
+                        // For current snapshot, just scroll to the Producer Deliverables section
+                        const deliverables = document.getElementById('producer-deliverables');
+                        if (deliverables) {
+                            deliverables.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    } else {
+                        console.warn('No signed URL found for snapshot:', snapshotId);
+                    }
             }
         };
         
@@ -1336,27 +1548,21 @@
                     </div>
                 `;
                 
-                // Load comparison component via Livewire
-                // This would need to be implemented as a separate Livewire component
-                // For now, we'll show a placeholder
-                setTimeout(() => {
+                // Show comparison using the snapshots data already available on the page
+                const snapshots = window.snapshotData;
+                const leftSnapshot = snapshots.find(s => s.id == selectedSnapshots[0]);
+                const rightSnapshot = snapshots.find(s => s.id == selectedSnapshots[1]);
+                
+                if (leftSnapshot && rightSnapshot) {
+                    comparisonContent.innerHTML = buildComparisonView(leftSnapshot, rightSnapshot);
+                } else {
                     comparisonContent.innerHTML = `
-                        <div class="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
-                            <h6 class="font-semibold text-blue-800 mb-2">Version Comparison: V${getVersionNumber(selectedSnapshots[0])} vs V${getVersionNumber(selectedSnapshots[1])}</h6>
-                            <p class="text-sm text-blue-700 mb-3">Enhanced file comparison with synchronized playback would be loaded here.</p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="bg-white/60 rounded-lg p-3">
-                                    <h7 class="font-medium text-green-800">Version ${getVersionNumber(selectedSnapshots[0])}</h7>
-                                    <p class="text-xs text-gray-600">Files and annotations from this version</p>
-                                </div>
-                                <div class="bg-white/60 rounded-lg p-3">
-                                    <h7 class="font-medium text-green-800">Version ${getVersionNumber(selectedSnapshots[1])}</h7>
-                                    <p class="text-xs text-gray-600">Files and annotations from this version</p>
-                                </div>
-                            </div>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-xl mb-2"></i>
+                            <p class="text-red-700">Could not find the selected versions for comparison.</p>
                         </div>
                     `;
-                }, 1000);
+                }
             } else if (selectedSnapshots.length > 2) {
                 // Limit to 2 selections
                 checkedBoxes[checkedBoxes.length - 1].checked = false;
@@ -1367,14 +1573,905 @@
         };
         
         function getVersionNumber(snapshotId) {
-            const snapshots = @json($snapshotHistory);
+            const snapshots = window.snapshotData;
             const snapshot = snapshots.find(s => s.id == snapshotId);
             return snapshot ? snapshot.version : '?';
         }
+        
+        function buildComparisonView(leftSnapshot, rightSnapshot) {
+            return `
+                <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg">
+                    <div class="bg-gradient-to-r from-blue-50 to-green-50 border-b border-blue-200/50 rounded-t-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-blue-900">Version Comparison</h3>
+                                <p class="text-sm text-blue-700 mt-1">
+                                    Comparing Version ${leftSnapshot.version} 
+                                    <span class="text-blue-500 mx-2">vs</span> 
+                                    Version ${rightSnapshot.version}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex items-center space-x-4 text-sm">
+                            ${buildDifferencesSummary(leftSnapshot, rightSnapshot)}
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 space-y-6">
+                        {{-- File Differences Section --}}
+                        <div class="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-file-contract text-blue-500 mr-2"></i>
+                                    File Changes
+                                </h4>
+                                <p class="text-xs text-gray-500 flex items-center">
+                                    <i class="fas fa-mouse-pointer mr-1"></i>
+                                    Click any file to view it
+                                </p>
+                            </div>
+                            ${buildFileDiffSection(leftSnapshot, rightSnapshot)}
+                        </div>
+                        
+                        {{-- Version Details Side by Side --}}
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            ${buildSnapshotColumn(leftSnapshot, 'left', leftSnapshot, rightSnapshot)}
+                            ${buildSnapshotColumn(rightSnapshot, 'right', leftSnapshot, rightSnapshot)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function buildDifferencesSummary(leftSnapshot, rightSnapshot) {
+            // Parse the submitted_at dates properly
+            const leftDate = new Date(leftSnapshot.submitted_at.date || leftSnapshot.submitted_at);
+            const rightDate = new Date(rightSnapshot.submitted_at.date || rightSnapshot.submitted_at);
+            
+            const timeDiff = Math.abs(rightDate - leftDate);
+            const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
+            const hoursDiff = Math.round(timeDiff / (1000 * 60 * 60));
+            
+            let timeDisplay;
+            if (daysDiff > 0) {
+                timeDisplay = `${daysDiff} day${daysDiff !== 1 ? 's' : ''}`;
+            } else if (hoursDiff > 0) {
+                timeDisplay = `${hoursDiff} hour${hoursDiff !== 1 ? 's' : ''}`;
+            } else {
+                timeDisplay = 'Less than an hour';
+            }
+            
+            // Compare file counts
+            const leftFiles = leftSnapshot.file_count || 0;
+            const rightFiles = rightSnapshot.file_count || 0;
+            const fileDiff = rightFiles - leftFiles;
+            
+            return `
+                <span class="inline-flex items-center text-blue-700">
+                    <i class="fas fa-clock mr-1"></i>
+                    ${timeDisplay} between versions
+                </span>
+                ${fileDiff !== 0 ? `
+                    <span class="inline-flex items-center ${fileDiff > 0 ? 'text-green-700' : 'text-red-700'}">
+                        <i class="fas fa-file${fileDiff > 0 ? '-plus' : '-minus'} mr-1"></i>
+                        ${Math.abs(fileDiff)} file${Math.abs(fileDiff) !== 1 ? 's' : ''} ${fileDiff > 0 ? 'added' : 'removed'}
+                    </span>
+                ` : `
+                    <span class="inline-flex items-center text-gray-600">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Same number of files
+                    </span>
+                `}
+            `;
+        }
+        
+        function buildSnapshotColumn(snapshot, side, leftSnapshot, rightSnapshot) {
+            const sideClass = side === 'left' ? 'border-gray-200' : 'border-blue-200';
+            const headerClass = side === 'left' ? 'bg-gray-50' : 'bg-blue-50';
+            
+            // Determine which is newer based on version number
+            const isNewer = parseInt(snapshot.version) > parseInt(side === 'left' ? rightSnapshot.version : leftSnapshot.version);
+            const versionLabel = isNewer ? 'Newer version' : 'Older version';
+            
+            // Get file count
+            const fileCount = snapshot.file_count || 0;
+            
+            return `
+                <div class="border ${sideClass} rounded-lg">
+                    <div class="${headerClass} px-4 py-2 border-b ${sideClass}">
+                        <h4 class="font-semibold text-gray-800">
+                            Version ${snapshot.version}
+                            <span class="text-sm font-normal text-gray-600 ml-2">
+                                ${formatDate(snapshot.submitted_at)}
+                            </span>
+                        </h4>
+                    </div>
+                    
+                    <div class="p-4 space-y-3">
+                        ${snapshot.response_to_feedback ? `
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                                <h6 class="font-semibold text-blue-800 text-sm mb-1">Producer's Response:</h6>
+                                <p class="text-blue-700 text-sm">${snapshot.response_to_feedback}</p>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="text-center py-6">
+                            <div class="w-16 h-16 ${isNewer ? 'bg-green-100' : 'bg-gray-100'} rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-file-audio ${isNewer ? 'text-green-500' : 'text-gray-500'} text-xl"></i>
+                            </div>
+                            <p class="text-gray-900 font-medium mb-2">
+                                ${fileCount} file${fileCount !== 1 ? 's' : ''} in this version
+                            </p>
+                            <p class="text-gray-600 text-sm mb-3">
+                                ${versionLabel} • ${formatDate(snapshot.submitted_at)}
+                            </p>
+                            <div class="space-y-2">
+                                <div class="inline-flex items-center text-xs px-2 py-1 rounded-full ${snapshot.status === 'approved' ? 'bg-green-100 text-green-700' : snapshot.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">
+                                    <i class="fas fa-circle mr-1 text-xs"></i>
+                                    ${snapshot.status ? snapshot.status.charAt(0).toUpperCase() + snapshot.status.slice(1) : 'Unknown'}
+                                </div>
+                                <div class="mt-2">
+                                    <a href="/projects/{{ $project->id }}/portal/snapshot/${snapshot.id}" 
+                                       class="text-blue-600 hover:text-blue-800 underline text-xs">
+                                        View full version details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function formatDate(dateInput) {
+            // Handle both Carbon object format and direct date strings
+            let date;
+            if (typeof dateInput === 'object' && dateInput.date) {
+                // Carbon datetime object from Laravel
+                date = new Date(dateInput.date);
+            } else {
+                // Direct date string
+                date = new Date(dateInput);
+            }
+            
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                return 'Date unavailable';
+            }
+            
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        }
+        
+        function buildFileDiffSection(leftSnapshot, rightSnapshot) {
+            const leftFiles = leftSnapshot.files || [];
+            const rightFiles = rightSnapshot.files || [];
+            
+            // Create file diff analysis
+            const fileDiff = analyzeFileDifferences(leftFiles, rightFiles);
+            
+            if (fileDiff.all.length === 0) {
+                return `
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-file-circle-question text-gray-400 text-xl"></i>
+                        </div>
+                        <p class="text-gray-600">No files found in either version to compare</p>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="space-y-4">
+                    ${fileDiff.summary ? `
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p class="text-blue-800 text-sm font-medium">${fileDiff.summary}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="space-y-3">
+                        ${fileDiff.all.map(file => buildFileComparisonCard(file)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function analyzeFileDifferences(leftFiles, rightFiles) {
+            const leftMap = new Map(leftFiles.map(f => [f.file_name, f]));
+            const rightMap = new Map(rightFiles.map(f => [f.file_name, f]));
+            
+            const differences = [];
+            let added = 0, removed = 0, modified = 0, unchanged = 0;
+            
+            // Check all unique file names
+            const allFileNames = new Set([...leftMap.keys(), ...rightMap.keys()]);
+            
+            for (const fileName of allFileNames) {
+                const leftFile = leftMap.get(fileName);
+                const rightFile = rightMap.get(fileName);
+                
+                if (!leftFile && rightFile) {
+                    // File exists in right (older version) but not left (newer version) = removed
+                    differences.push({
+                        type: 'removed',
+                        fileName: fileName,
+                        rightFile: rightFile,
+                        leftFile: null
+                    });
+                    removed++;
+                } else if (leftFile && !rightFile) {
+                    // File exists in left (newer version) but not right (older version) = added
+                    differences.push({
+                        type: 'added',
+                        fileName: fileName,
+                        leftFile: leftFile,
+                        rightFile: null
+                    });
+                    added++;
+                } else if (leftFile && rightFile) {
+                    // File exists in both - check for modifications
+                    const changes = detectFileChanges(leftFile, rightFile);
+                    if (changes.length > 0) {
+                        differences.push({
+                            type: 'modified',
+                            fileName: fileName,
+                            leftFile: leftFile,
+                            rightFile: rightFile,
+                            changes: changes
+                        });
+                        modified++;
+                    } else {
+                        differences.push({
+                            type: 'unchanged',
+                            fileName: fileName,
+                            leftFile: leftFile,
+                            rightFile: rightFile,
+                            changes: []
+                        });
+                        unchanged++;
+                    }
+                }
+            }
+            
+            // Create summary
+            const parts = [];
+            if (added > 0) parts.push(`${added} file${added !== 1 ? 's' : ''} added`);
+            if (removed > 0) parts.push(`${removed} file${removed !== 1 ? 's' : ''} removed`);
+            if (modified > 0) parts.push(`${modified} file${modified !== 1 ? 's' : ''} modified`);
+            
+            // Always show unchanged count for context
+            const totalChanges = added + removed + modified;
+            if (totalChanges === 0) {
+                parts.push('No changes detected');
+            } else if (unchanged > 0) {
+                parts.push(`${unchanged} file${unchanged !== 1 ? 's' : ''} unchanged`);
+            }
+            
+            const summary = parts.join(', ');
+            
+            return {
+                all: differences,
+                summary: summary,
+                stats: { added, removed, modified, unchanged }
+            };
+        }
+        
+        function detectFileChanges(leftFile, rightFile) {
+            const changes = [];
+            
+            // Size changes
+            if (leftFile.size !== rightFile.size) {
+                const sizeDiff = rightFile.size - leftFile.size;
+                const percentChange = Math.round((sizeDiff / leftFile.size) * 100);
+                changes.push({
+                    type: 'size',
+                    label: 'File size',
+                    oldValue: formatFileSize(leftFile.size),
+                    newValue: formatFileSize(rightFile.size),
+                    difference: (sizeDiff > 0 ? '+' : '') + formatFileSize(Math.abs(sizeDiff)),
+                    percentChange: percentChange,
+                    improved: false // File size changes aren't necessarily improvements
+                });
+            }
+            
+            // Duration changes (for audio files)
+            if (leftFile.duration && rightFile.duration && leftFile.duration !== rightFile.duration) {
+                const durationDiff = rightFile.duration - leftFile.duration;
+                changes.push({
+                    type: 'duration',
+                    label: 'Duration',
+                    oldValue: formatDuration(leftFile.duration),
+                    newValue: formatDuration(rightFile.duration),
+                    difference: (durationDiff > 0 ? '+' : '') + formatDuration(Math.abs(durationDiff)),
+                    improved: false // Duration changes aren't necessarily improvements
+                });
+            }
+            
+            // Note changes
+            if ((leftFile.note || '') !== (rightFile.note || '')) {
+                changes.push({
+                    type: 'note',
+                    label: 'Notes',
+                    oldValue: leftFile.note || 'No notes',
+                    newValue: rightFile.note || 'No notes',
+                    improved: rightFile.note && !leftFile.note // Adding notes is generally good
+                });
+            }
+            
+            // File name changes (if original_file_name differs)
+            if (leftFile.original_file_name !== rightFile.original_file_name) {
+                changes.push({
+                    type: 'filename',
+                    label: 'Original filename',
+                    oldValue: leftFile.original_file_name,
+                    newValue: rightFile.original_file_name,
+                    improved: false
+                });
+            }
+            
+            return changes;
+        }
+        
+        function buildFileComparisonCard(fileDiff) {
+            const { type, fileName, leftFile, rightFile, changes } = fileDiff;
+            
+            // Don't show unchanged files to reduce clutter
+            if (type === 'unchanged') {
+                return '';
+            }
+            
+            // Card styling based on change type
+            const cardClass = {
+                'added': 'border-green-300 bg-green-50',
+                'removed': 'border-red-300 bg-red-50',
+                'modified': 'border-blue-300 bg-blue-50'
+            }[type];
+            
+            const iconClass = {
+                'added': 'fas fa-plus-circle text-green-600',
+                'removed': 'fas fa-minus-circle text-red-600', 
+                'modified': 'fas fa-edit text-blue-600'
+            }[type];
+            
+            const statusLabel = {
+                'added': 'Added',
+                'removed': 'Removed',
+                'modified': 'Modified'
+            }[type];
+            
+            // Get file for quick info
+            const displayFile = leftFile || rightFile;
+            const fileSize = displayFile ? formatFileSize(displayFile.size) : '';
+            const duration = displayFile && displayFile.duration ? formatDuration(displayFile.duration) : '';
+            
+            return `
+                <div class="border ${cardClass} rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-200 hover:border-opacity-80" 
+                     onclick="navigateToFile('${type}', '${fileName}', ${leftFile ? leftFile.id : 'null'}, ${rightFile ? rightFile.id : 'null'})"
+                     title="Click to find this file in the current view">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center min-w-0 flex-1">
+                            <i class="${iconClass} mr-2 flex-shrink-0"></i>
+                            <div class="min-w-0 flex-1">
+                                <h5 class="font-semibold text-gray-900 truncate">${fileName}</h5>
+                                <div class="flex items-center space-x-3 text-xs text-gray-600 mt-1">
+                                    ${fileSize ? `<span>${fileSize}</span>` : ''}
+                                    ${duration ? `<span>${duration}</span>` : ''}
+                                    <span class="text-${type === 'added' ? 'green' : type === 'removed' ? 'red' : 'blue'}-600 font-medium">${statusLabel}</span>
+                                    ${changes && changes.length > 0 ? `<span>${changes.length} change${changes.length !== 1 ? 's' : ''}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 ml-2 flex-shrink-0">
+                            <span class="text-xs px-2 py-1 rounded-full font-medium ${getStatusBadgeClass(type)}">
+                                ${statusLabel}
+                            </span>
+                            <i class="fas fa-external-link-alt text-gray-400 text-xs"></i>
+                        </div>
+                    </div>
+                    
+                    ${buildCompactFileDetails(type, leftFile, rightFile, changes)}
+                </div>
+            `;
+        }
+        
+        function buildFileComparisonDetails(type, leftFile, rightFile, changes) {
+            if (type === 'added') {
+                return `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white/60 rounded-lg p-3">
+                            ${buildFileDetails(leftFile, 'Added in newer version')}
+                        </div>
+                        <div class="text-center py-4 text-gray-400">
+                            <i class="fas fa-times-circle text-2xl mb-2"></i>
+                            <p class="text-sm">Not in older version</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (type === 'removed') {
+                return `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="text-center py-4 text-gray-400">
+                            <i class="fas fa-times-circle text-2xl mb-2"></i>
+                            <p class="text-sm">Not in newer version</p>
+                        </div>
+                        <div class="bg-white/60 rounded-lg p-3">
+                            ${buildFileDetails(rightFile, 'Removed from newer version')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (type === 'modified') {
+                return `
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-white/60 rounded-lg p-3">
+                                <h6 class="text-sm font-medium text-gray-700 mb-2">Previous Version</h6>
+                                ${buildFileDetails(leftFile, 'Previous version')}
+                            </div>
+                            <div class="bg-white/60 rounded-lg p-3">
+                                <h6 class="text-sm font-medium text-gray-700 mb-2">Current Version</h6>
+                                ${buildFileDetails(rightFile, 'Current version')}
+                            </div>
+                        </div>
+                        
+                        ${changes.length > 0 ? `
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <h6 class="text-sm font-semibold text-yellow-800 mb-2">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                                    Changes Detected
+                                </h6>
+                                <div class="space-y-2">
+                                    ${changes.map(change => `
+                                        <div class="text-sm">
+                                            <span class="font-medium text-yellow-700">${change.label}:</span>
+                                            <span class="text-gray-600">${change.oldValue}</span>
+                                            <i class="fas fa-arrow-right mx-2 text-yellow-600"></i>
+                                            <span class="text-gray-900 font-medium">${change.newValue}</span>
+                                            ${change.difference ? `
+                                                <span class="text-xs ml-2 px-1 py-0.5 rounded ${change.improved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                                                    ${change.difference}
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            if (type === 'unchanged') {
+                return `
+                    <div class="bg-white/60 rounded-lg p-3">
+                        ${buildFileDetails(rightFile, 'No changes detected')}
+                    </div>
+                `;
+            }
+        }
+        
+        function buildFileDetails(file, subtitle) {
+            if (!file) return '<p class="text-gray-500 text-sm">File not available</p>';
+            
+            return `
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500">${subtitle}</p>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Size:</span>
+                            <span class="font-medium">${formatFileSize(file.size)}</span>
+                        </div>
+                        ${file.duration ? `
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Duration:</span>
+                                <span class="font-medium">${formatDuration(file.duration)}</span>
+                            </div>
+                        ` : ''}
+                        ${file.note ? `
+                            <div class="pt-2 border-t border-gray-200">
+                                <span class="text-gray-600 text-xs">Notes:</span>
+                                <p class="text-gray-800 text-sm mt-1">${file.note}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function buildCompactFileDetails(type, leftFile, rightFile, changes) {
+            // For simple added/removed files, don't show additional details since info is already in the main card
+            if (type === 'added' || type === 'removed') {
+                return '';
+            }
+            
+            // For modified files, show the key changes inline
+            if (type === 'modified' && changes && changes.length > 0) {
+                return `
+                    <div class="mt-2 pt-2 border-t border-blue-200">
+                        <div class="flex flex-wrap gap-2 text-xs">
+                            ${changes.map(change => `
+                                <span class="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-arrow-right mr-1"></i>
+                                    ${change.label}: ${change.difference || change.newValue}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return '';
+        }
+        
+        function getStatusBadgeClass(type) {
+            return {
+                'added': 'bg-green-100 text-green-700',
+                'removed': 'bg-red-100 text-red-700',
+                'modified': 'bg-blue-100 text-blue-700',
+                'unchanged': 'bg-gray-100 text-gray-600'
+            }[type];
+        }
+        
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const factor = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, factor)).toFixed(1) + ' ' + units[factor];
+        }
+        
+        function formatDuration(seconds) {
+            if (!seconds) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        // File navigation from diff - simplified to scroll to existing files
+        window.navigateToFile = function(fileType, fileName, leftFileId, rightFileId) {
+            // Determine which file ID to look for based on type
+            let targetFileId;
+            let actionMessage;
+            
+            switch(fileType) {
+                case 'added':
+                    targetFileId = leftFileId;
+                    actionMessage = `${fileName} was added in the newer version`;
+                    break;
+                case 'removed':
+                    targetFileId = rightFileId;
+                    actionMessage = `${fileName} was removed in the newer version`;
+                    break;
+                case 'modified':
+                    targetFileId = leftFileId || rightFileId;
+                    actionMessage = `${fileName} was modified`;
+                    break;
+                default:
+                    console.error('Unknown file type:', fileType);
+                    return;
+            }
+            
+            if (!targetFileId) {
+                showFileNotFoundNotification(fileName);
+                return;
+            }
+            
+            // Try to find and scroll to the file in the current view
+            const targetElement = document.getElementById(`file-${targetFileId}`);
+            if (targetElement) {
+                // Hide the comparison modal first
+                hideVersionComparison();
+                
+                // Highlight and scroll to the file
+                setTimeout(() => {
+                    highlightAndScrollToFile(targetElement, fileName, actionMessage);
+                }, 300);
+            } else {
+                // File not in current view, show info message
+                showFileNotInCurrentVersionNotification(fileName, fileType);
+            }
+        };
+        
+        // Highlight and scroll to file after page load
+        window.highlightTargetFile = function() {
+            const targetFileId = sessionStorage.getItem('highlightFileId');
+            const targetFileName = sessionStorage.getItem('highlightFileName');
+            
+            if (targetFileId) {
+                // Clear the stored values
+                sessionStorage.removeItem('highlightFileId');
+                sessionStorage.removeItem('highlightFileName');
+                
+                // Find and highlight the target file
+                const targetElement = document.getElementById(`file-${targetFileId}`);
+                if (targetElement) {
+                    // Add highlight effect
+                    targetElement.classList.add('ring-4', 'ring-blue-400', 'ring-opacity-60');
+                    targetElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                    
+                    // Smooth scroll to the file
+                    setTimeout(() => {
+                        targetElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest' 
+                        });
+                    }, 100);
+                    
+                    // Remove highlight after a few seconds
+                    setTimeout(() => {
+                        targetElement.classList.remove('ring-4', 'ring-blue-400', 'ring-opacity-60');
+                        targetElement.style.backgroundColor = '';
+                    }, 4000);
+                    
+                    // Show a subtle notification
+                    showFileFoundNotification(targetFileName);
+                } else {
+                    console.warn(`File with ID ${targetFileId} not found on this snapshot`);
+                    showFileNotFoundNotification(targetFileName);
+                }
+            }
+        };
+        
+        // Highlight and scroll to a specific file element
+        function highlightAndScrollToFile(element, fileName, message) {
+            // Add highlight effect
+            element.classList.add('ring-4', 'ring-blue-400', 'ring-opacity-60');
+            element.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+            
+            // Smooth scroll to the file
+            element.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest' 
+            });
+            
+            // Show notification
+            showFileFoundNotification(fileName, message);
+            
+            // Remove highlight after a few seconds
+            setTimeout(() => {
+                element.classList.remove('ring-4', 'ring-blue-400', 'ring-opacity-60');
+                element.style.backgroundColor = '';
+            }, 4000);
+        }
+        
+        // Utility functions for user feedback
+        function showFileFoundNotification(fileName, message = null) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <div class="text-sm">
+                        <div class="font-medium">Found: ${fileName}</div>
+                        ${message ? `<div class="text-xs opacity-90 mt-1">${message}</div>` : ''}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        function showFileNotFoundNotification(fileName) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-orange-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span class="text-sm">File "${fileName}" not found</span>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        function showFileNotInCurrentVersionNotification(fileName, fileType) {
+            let message = '';
+            let suggestion = '';
+            
+            switch(fileType) {
+                case 'added':
+                    message = `"${fileName}" was added in a newer version`;
+                    suggestion = 'Switch to a newer snapshot to see this file';
+                    break;
+                case 'removed':
+                    message = `"${fileName}" was removed in newer versions`;
+                    suggestion = 'Switch to an older snapshot to see this file';
+                    break;
+                case 'modified':
+                    message = `"${fileName}" exists but may be in a different version`;
+                    suggestion = 'Try switching snapshots to find this file';
+                    break;
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 max-w-sm';
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle mr-2 mt-0.5"></i>
+                    <div class="text-sm">
+                        <div class="font-medium">${message}</div>
+                        <div class="text-xs opacity-90 mt-1">${suggestion}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+        
+        // Auto-scroll to Producer Deliverables if hash is present
+        function autoScrollToDeliverables() {
+            if (window.location.hash === '#producer-deliverables') {
+                setTimeout(() => {
+                    const deliverables = document.getElementById('producer-deliverables');
+                    if (deliverables) {
+                        deliverables.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100); // Small delay to ensure page is fully loaded
+            }
+        }
+        
+        // Run functions when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            highlightTargetFile();
+            autoScrollToDeliverables();
+        });
+    </script>
+    <script>
+        // Unobtrusive listeners replacing inline onclick attributes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.addEventListener('click', function(e) {
+                const deleteBtn = e.target.closest('.js-delete-file');
+                if (deleteBtn) {
+                    const id = deleteBtn.dataset.fileId;
+                    const name = deleteBtn.dataset.fileName;
+                    if (id) {
+                        deleteFile(id, name);
+                    }
+                }
+
+                const toggleBtn = e.target.closest('.js-toggle-comparison');
+                if (toggleBtn) {
+                    if (typeof window.toggleVersionComparison === 'function') {
+                        window.toggleVersionComparison();
+                    }
+                }
+
+                const hideBtn = e.target.closest('#js-hide-comparison');
+                if (hideBtn) {
+                    if (typeof window.hideVersionComparison === 'function') {
+                        window.hideVersionComparison();
+                    }
+                }
+
+                const snapshotItem = e.target.closest('.snapshot-item');
+                if (snapshotItem) {
+                    const snapshotId = snapshotItem.dataset.snapshotId;
+                    if (snapshotId && typeof window.selectSnapshot === 'function') {
+                        window.selectSnapshot(snapshotId);
+                    }
+                }
+            });
+        });
     </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        function approveFile({ url }) {
+            return {
+                loading: false,
+                async submit() {
+                    if (this.loading) return;
+                    this.loading = true;
+                    try {
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json'
+                            },
+                            body: new FormData(this.$el)
+                        });
+                        const data = await res.json();
+                        this.loading = false;
+                        if (data && data.success) {
+                            const card = this.$el.closest('[id^="file-"]');
+                            if (card) {
+                                const title = card.querySelector('h6, span.font-semibold');
+                                if (title && !title.querySelector('.approved-chip')) {
+                                    const chip = document.createElement('span');
+                                    chip.className = 'approved-chip inline-flex items-center ml-2 px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]';
+                                    chip.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Approved';
+                                    title.appendChild(chip);
+                                }
+                                const approvedText = card.querySelector('[data-approved-text]');
+                                if (approvedText) {
+                                    approvedText.textContent = 'Approved ' + (data.approved_at_human || 'just now');
+                                    approvedText.classList.remove('hidden');
+                                }
+                                this.$el.classList.add('hidden');
+                            }
+                        }
+                    } catch (e) {
+                        this.loading = false;
+                    }
+                }
+            }
+        }
+
+        function approveAll({ url }) {
+            return {
+                loading: false,
+                async submit() {
+                    if (this.loading) return;
+                    this.loading = true;
+                    try {
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json'
+                            },
+                            body: new FormData(this.$el)
+                        });
+                        const data = await res.json();
+                        this.loading = false;
+                        if (data && data.success) {
+                            // Mark all approve buttons hidden, and show chips/texts across all file cards
+                            document.querySelectorAll('form[x-data^="approveFile"]').forEach(form => {
+                                form.classList.add('hidden');
+                            });
+                            document.querySelectorAll('[id^="file-"]').forEach(card => {
+                                const title = card.querySelector('h6, span.font-semibold');
+                                if (title && !title.querySelector('.approved-chip')) {
+                                    const chip = document.createElement('span');
+                                    chip.className = 'approved-chip inline-flex items-center ml-2 px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]';
+                                    chip.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Approved';
+                                    title.appendChild(chip);
+                                }
+                                const approvedText = card.querySelector('[data-approved-text]');
+                                if (approvedText) {
+                                    approvedText.textContent = 'Approved just now';
+                                    approvedText.classList.remove('hidden');
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        this.loading = false;
+                    }
+                }
+            }
+        }
+    </script>
     
 
     <!-- Add Livewire scripts for pitch-file-player component -->

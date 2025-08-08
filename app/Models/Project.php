@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Project extends Model
 {
@@ -60,6 +61,7 @@ class Project extends Model
 
     protected $fillable = [
         'user_id',
+        'client_id',
         'name',
         'title',
         'description',
@@ -140,6 +142,7 @@ class Project extends Model
 
     protected $casts = [
         'user_id' => 'integer',
+        'client_id' => 'integer',
         'client_user_id' => 'integer',
         'collaboration_type' => 'array',
         'is_published' => 'boolean',
@@ -185,6 +188,11 @@ class Project extends Model
     public function projectType()
     {
         return $this->belongsTo(ProjectType::class);
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function isOwnedByUser(User $user)
@@ -294,6 +302,21 @@ class Project extends Model
     public function files()
     {
         return $this->hasMany(ProjectFile::class);
+    }
+
+    /**
+     * Milestones across this project's associated pitch (client management flow).
+     */
+    public function milestones(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            PitchMilestone::class, // Final model
+            Pitch::class,          // Intermediate model
+            'project_id',          // Foreign key on Pitch referencing Project
+            'pitch_id',            // Foreign key on PitchMilestone referencing Pitch
+            'id',                  // Local key on Project
+            'id'                   // Local key on Pitch
+        )->orderBy('sort_order')->orderBy('id');
     }
 
     public function projectFiles()

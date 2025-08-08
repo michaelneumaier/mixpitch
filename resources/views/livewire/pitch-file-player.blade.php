@@ -100,33 +100,33 @@
         <!-- Enhanced Audio Content Container -->
         <div class="relative z-10 {{ ($isInCard ?? false) ? 'p-3' : 'p-4 lg:p-6' }} flex flex-row items-start {{ ($isInCard ?? false) ? 'gap-4' : 'gap-6' }}">
                          <!-- Play Controls Container -->
-             <div class="flex flex-col items-center min-w-[80px] h-32 relative" wire:ignore>
+             <div class="flex flex-col items-center min-w-[80px] {{ ($isInCard ?? false) ? 'h-20' : 'h-32' }} relative" wire:ignore>
                                 <!-- Enhanced Play/Pause Button - Centered to waveform -->
                                 <button :id="'playPauseBtn-' + instanceId" 
                                         @click="playerState.isPlaying = !playerState.isPlaying; $dispatch('toggle-playback-' + instanceId, { playing: playerState.isPlaying })"
-                                        class="group absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center">
+                                        class="group absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 {{ ($isInCard ?? false) ? 'w-10 h-10' : 'w-14 h-14' }} bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center">
                                     
                                     <!-- Animated Background Effect -->
                                     <div class="absolute inset-0 bg-white/20 rounded-2xl transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                                     
                                     <!-- Play icon (shown when paused) -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="!playerState.isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 {{ ($isInCard ?? false) ? 'h-10 w-10' : 'h-14 w-14' }}" x-show="!playerState.isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
 
                                     <!-- Pause icon (shown when playing) -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 h-14 w-14" x-show="playerState.isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="relative z-10 {{ ($isInCard ?? false) ? 'h-10 w-10' : 'h-14 w-14' }}" x-show="playerState.isPlaying" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </button>
 
                                 <!-- Enhanced Time Display - Bottom aligned -->
                                 <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-center">
-                                    <div class="flex items-center justify-center space-x-1 text-sm font-medium font-mono">
-                                        <div class="text-purple-700 w-10 text-center" x-text="playerState.currentTime">00:00</div>
+                                    <div class="flex items-center justify-center {{ ($isInCard ?? false) ? 'space-x-0.5 text-xs' : 'space-x-1 text-sm' }} font-medium font-mono">
+                                        <div class="text-purple-700 {{ ($isInCard ?? false) ? 'w-8' : 'w-10' }} text-center" x-text="playerState.currentTime">00:00</div>
                                         <div class="text-gray-400">/</div>
-                                        <div class="text-gray-600 w-10 text-center" x-text="playerState.totalDuration">00:00</div>
+                                        <div class="text-gray-600 {{ ($isInCard ?? false) ? 'w-8' : 'w-10' }} text-center" x-text="playerState.totalDuration">00:00</div>
                                     </div>
                                 </div>
                             </div>
@@ -164,7 +164,7 @@
                             </div>
                         </div>
                         
-                        <div :id="'waveform-' + instanceId" class="h-32 rounded-xl overflow-hidden bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/50 shadow-inner" wire:ignore>
+                        <div :id="'waveform-' + instanceId" class="{{ ($isInCard ?? false) ? 'h-20' : 'h-32' }} rounded-xl overflow-hidden bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/50 shadow-inner" wire:ignore>
                             <!-- Waveform will be rendered here -->
                         </div>
 
@@ -293,6 +293,12 @@
         <div class="mb-3">
             <div class="flex items-center justify-between bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg px-3 py-2">
                 <div class="flex items-center space-x-3 text-sm">
+                    {{-- Minimal Watermarking Indicator --}}
+                    @if($file->is_watermarked && $file->audio_processed)
+                    <span class="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        <i class="fas fa-shield-alt mr-1"></i>Protected
+                    </span>
+                    @endif
                     @php
                         $pendingCount = $comments->where('resolved', false)->count();
                     @endphp
@@ -300,6 +306,8 @@
                     <span class="font-semibold text-gray-700">
                         {{ count($comments) }} {{ count($comments) === 1 ? 'Comment' : 'Comments' }}
                     </span>
+                    
+                    
                     
                     @if($resolvedCount > 0)
                     <span class="text-green-700">
@@ -797,6 +805,7 @@
         // Find the Alpine component
         const alpineComponent = Alpine.$data(container);
         const instanceId = alpineComponent?.instanceId || fileId;
+        const isInCard = {{ ($isInCard ?? false) ? 'true' : 'false' }};
         
         // Debug Alpine component access
         console.log(`Alpine component found for instance ${instanceId}:`, alpineComponent);
@@ -901,7 +910,7 @@
                     barWidth: 2,
                     barRadius: 1,
                     responsive: true,
-                    height: 128,
+                    height: isInCard ? 80 : 128,
                     normalize: true,
                     backend: 'WebAudio',
                     mediaControls: false

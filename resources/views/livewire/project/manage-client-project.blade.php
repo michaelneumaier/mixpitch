@@ -22,6 +22,166 @@
             <!-- Enhanced Feedback Panel -->
             <x-client-project.feedback-panel :pitch="$pitch" />
 
+            {{-- Milestones (Producer Management) --}}
+            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
+                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
+                                <i class="fas fa-flag-checkered text-lg text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-purple-800">Milestones</h4>
+                                <p class="text-sm text-purple-600">Define partial payments and approvals</p>
+                            </div>
+                        </div>
+                        <button wire:click="beginAddMilestone" class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200">
+                            <i class="fas fa-plus mr-2"></i>Add Milestone
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4 lg:p-6">
+                    @php($milestones = $pitch->milestones()->get())
+                    @php($milestoneTotal = $milestones->sum('amount'))
+                    @php($milestonePaid = $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->sum('amount'))
+                    @php($approvedFiles = $pitch->files->where('client_approval_status', 'approved')->count())
+                    @php($totalFiles = $pitch->files->count())
+
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <div class="text-sm text-gray-700">
+                            <span class="mr-2">Totals:</span>
+                            <span class="font-semibold text-gray-900">${{ number_format($milestonePaid, 2) }}</span>
+                            <span class="text-gray-500">of</span>
+                                <span class="font-semibold text-gray-900">${{ number_format($milestoneTotal, 2) }}</span>
+                                @php($baseBudget = $pitch->payment_amount > 0 ? $pitch->payment_amount : ($project->budget ?? 0))
+                                @if($baseBudget && $baseBudget > 0)
+                                    <span class="text-gray-500">(base budget: ${{ number_format($baseBudget, 2) }})</span>
+                                @endif
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-dollar-sign mr-1"></i> Paid: ${{ number_format($milestonePaid, 2) }}
+                            </span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-800">
+                                <i class="fas fa-flag mr-1"></i> Milestones: {{ $milestones->count() }}
+                            </span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-indigo-100 text-indigo-800">
+                                <i class="fas fa-file-check mr-1"></i> File approvals: {{ $approvedFiles }} / {{ $totalFiles }}
+                            </span>
+                                <button wire:click="toggleSplitForm" type="button" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-purple-200 text-purple-700 hover:bg-purple-50">
+                                    <i class="fas fa-divide mr-1"></i> Split budget
+                                </button>
+                        </div>
+                    </div>
+                    @if($milestones->count())
+                        <div class="mb-4">
+                            @php($percentPaid = $milestoneTotal > 0 ? round(($milestonePaid / max($milestoneTotal, 0.01)) * 100) : 0)
+                            <div class="w-full h-2 rounded-full bg-purple-100 overflow-hidden">
+                                <div class="h-2 bg-gradient-to-r from-purple-500 to-indigo-600" style="width: {{ $percentPaid }}%"></div>
+                            </div>
+                            <div class="mt-1 text-xs text-gray-600">{{ $percentPaid }}% paid</div>
+                        </div>
+
+                        <div
+                            x-data="{
+                                init() {
+                                    if (window.Sortable) {
+                                        const el = this.$refs.milestoneList;
+                                        window.Sortable.create(el, {
+                                            animation: 150,
+                                            handle: '.drag-handle',
+                                            onEnd: (evt) => {
+                                                const orderedIds = Array.from(el.querySelectorAll('[data-id]')).map(e => e.getAttribute('data-id'));
+                                                this.$wire.reorderMilestones(orderedIds);
+                                            }
+                                        });
+                                    }
+                                }
+                            }"
+                            x-init="init()"
+                        >
+                            <div class="divide-y divide-purple-100/50" x-ref="milestoneList">
+                            @foreach($milestones as $m)
+                                <div class="py-3 flex items-center justify-between" data-id="{{ $m->id }}">
+                                    <div class="min-w-0">
+                                        <div class="font-medium text-gray-900 flex items-center gap-2">
+                                            {{ $m->name }}
+                                            @if($m->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]"><i class="fas fa-dollar-sign mr-1"></i> Paid</span>
+                                            @elseif($m->status === 'approved')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px]"><i class="fas fa-check mr-1"></i> Approved</span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-[10px]"><i class="fas fa-clock mr-1"></i> Pending</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-xs text-gray-600">Status: {{ ucfirst($m->status) }} @if($m->payment_status) • Payment: {{ str_replace('_',' ', $m->payment_status) }} @endif</div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-sm font-semibold text-gray-900">${{ number_format($m->amount, 2) }}</div>
+                                        <span class="drag-handle cursor-move inline-flex items-center justify-center w-8 h-8 rounded-md bg-white border border-gray-200 text-gray-500 hover:text-gray-700" title="Drag to reorder">
+                                            <i class="fas fa-grip-vertical"></i>
+                                        </span>
+                                        <button wire:click="beginEditMilestone({{ $m->id }})" class="px-3 py-1.5 text-xs rounded-md bg-white border border-gray-200 hover:bg-gray-50">Edit</button>
+                                        <button wire:click="deleteMilestone({{ $m->id }})" wire:confirm="Delete this milestone?" class="px-3 py-1.5 text-xs rounded-md bg-white border border-red-200 text-red-600 hover:bg-red-50">Delete</button>
+                                    </div>
+                                </div>
+                            @endforeach
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-center py-6 text-sm text-gray-600">No milestones yet.</div>
+                    @endif
+
+                    @if($showMilestoneForm)
+                        <div class="mt-4 border border-purple-200 rounded-xl bg-white p-4">
+                            <h6 class="font-semibold text-purple-800 mb-3">{{ $editingMilestoneId ? 'Edit Milestone' : 'Add Milestone' }}</h6>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Name</label>
+                                    <input type="text" wire:model.defer="milestoneName" class="w-full border rounded-md px-3 py-2 text-sm" placeholder="e.g., Initial Deposit" />
+                                    @error('milestoneName')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Amount</label>
+                                    <input type="number" step="0.01" wire:model.defer="milestoneAmount" class="w-full border rounded-md px-3 py-2 text-sm" placeholder="0.00" />
+                                    @error('milestoneAmount')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                                    <textarea rows="2" wire:model.defer="milestoneDescription" class="w-full border rounded-md px-3 py-2 text-sm" placeholder="Optional details..."></textarea>
+                                    @error('milestoneDescription')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Sort Order</label>
+                                    <input type="number" wire:model.defer="milestoneSortOrder" class="w-full border rounded-md px-3 py-2 text-sm" placeholder="0" />
+                                    @error('milestoneSortOrder')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center gap-2 flex-wrap">
+                                <button wire:click="saveMilestone" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md text-sm">Save</button>
+                                <button wire:click="cancelMilestoneForm" class="px-4 py-2 bg-white border border-gray-200 rounded-md text-sm">Cancel</button>
+                                @if($pitch->project && $pitch->project->budget)
+                                <button type="button" wire:click="$set('milestoneAmount', {{ number_format($pitch->project->budget, 2, '.', '') }})" class="px-3 py-1.5 text-xs rounded-md bg-white border border-purple-200 text-purple-700 hover:bg-purple-50">Use total budget</button>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($showSplitForm)
+                        <div class="mt-4 border border-purple-200 rounded-xl bg-white p-4">
+                            <h6 class="font-semibold text-purple-800 mb-3">Split Total Budget</h6>
+                            <div class="flex items-center gap-3">
+                                <label class="text-sm text-gray-700">Number of milestones</label>
+                                <input type="number" min="2" max="20" wire:model.defer="splitCount" class="w-28 border rounded-md px-3 py-2 text-sm" />
+                                <button wire:click="splitBudgetIntoMilestones" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md text-sm">Create</button>
+                                <button type="button" wire:click="toggleSplitForm" class="px-4 py-2 bg-white border border-gray-200 rounded-md text-sm">Cancel</button>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-600">Splits the project budget into equal parts. The last milestone gets the rounding remainder.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Recall Submission Section (if applicable) -->
             @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
             <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 shadow-xl backdrop-blur-md">
@@ -36,10 +196,7 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="p-2 md:p-4 lg:p-6">
-                
-                <div class="mb-4">
                     <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 rounded-xl p-4 mb-4 backdrop-blur-sm">
                         <p class="text-sm text-blue-700 flex items-center">
                             <i class="fas fa-info-circle text-blue-500 mr-2"></i>
@@ -80,7 +237,6 @@
                     <i class="fas fa-info-circle mr-2"></i>
                     Recalling allows you to add/remove files and make changes before resubmitting.
                 </p>
-                </div>
             </div>
             @endif
 
@@ -271,7 +427,14 @@
                                                 <i class="fas fa-file-audio"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <div class="font-semibold text-green-900">{{ $file->file_name }}</div>
+                                                <div class="font-semibold text-green-900 flex items-center gap-2">
+                                                    {{ $file->file_name }}
+                                                    @if($file->client_approval_status === 'approved')
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]">
+                                                            <i class="fas fa-check-circle mr-1"></i> Approved by client
+                                                        </span>
+                                                    @endif
+                                                </div>
                                                 <div class="text-xs text-green-600">
                                                     {{ $this->formatFileSize($file->size) }} • 
                                                     Uploaded {{ $file->created_at->diffForHumans() }}
@@ -379,6 +542,75 @@
                             </div>
                         </div>
                     </div>
+                @endif
+
+                <!-- NEW: Watermarking Toggle Section -->
+                @if($this->producerFiles->count() > 0)
+                <div class="bg-white/60 backdrop-blur-sm border border-purple-200/30 rounded-xl p-4 mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <h5 class="font-semibold text-purple-900 mr-2">Audio Protection</h5>
+                            <button wire:click="$toggle('showWatermarkingInfo')" 
+                                    class="text-purple-600 hover:text-purple-800 transition-colors">
+                                <i class="fas fa-info-circle text-sm"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Toggle Switch -->
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   wire:model.live="watermarkingEnabled"
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                            <span class="ml-3 text-sm font-medium text-purple-900">
+                                {{ $watermarkingEnabled ? 'Enabled' : 'Disabled' }}
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <!-- Information Panel -->
+                    @if($showWatermarkingInfo)
+                    <div class="bg-purple-50/50 border border-purple-200/50 rounded-lg p-3 text-sm text-purple-800 mb-3">
+                        <p class="mb-2"><strong>Audio Protection adds a subtle watermark to your files during client review.</strong></p>
+                        <ul class="list-disc list-inside space-y-1 text-xs">
+                            <li>Protects your intellectual property during the review phase</li>
+                            <li>Client receives clean, unwatermarked files after approval and payment</li>
+                            <li>Processing takes 30-60 seconds per audio file</li>
+                            <li>Does not affect non-audio files (PDFs, images, etc.)</li>
+                        </ul>
+                    </div>
+                    @endif
+                    
+                    <!-- Audio Files Preview -->
+                    @if($this->audioFiles->count() > 0)
+                    <div class="mt-3 p-3 bg-purple-50/30 rounded-lg">
+                        <p class="text-xs text-purple-700 font-medium mb-2">
+                            {{ $this->audioFiles->count() }} audio file(s) will be {{ $watermarkingEnabled ? 'processed with watermarking' : 'submitted without processing' }}:
+                        </p>
+                        <ul class="text-xs text-purple-600 space-y-1">
+                            @foreach($this->audioFiles->take(3) as $file)
+                            <li class="flex items-center">
+                                <i class="fas fa-music mr-2"></i>
+                                {{ $file->file_name }}
+                                @if($watermarkingEnabled && $file->audio_processed)
+                                    <span class="ml-2 text-green-600">(Already processed)</span>
+                                @endif
+                            </li>
+                            @endforeach
+                            @if($this->audioFiles->count() > 3)
+                            <li class="text-purple-500 italic">... and {{ $this->audioFiles->count() - 3 }} more</li>
+                            @endif
+                        </ul>
+                    </div>
+                    @else
+                    <div class="mt-3 p-3 bg-gray-50/30 rounded-lg">
+                        <p class="text-xs text-gray-600">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            No audio files detected. Watermarking only affects audio files (MP3, WAV, etc.).
+                        </p>
+                    </div>
+                    @endif
+                </div>
                 @endif
 
                 @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]) && $responseToFeedback)

@@ -53,7 +53,7 @@ class Client extends Model
      */
     public function projects(): HasMany
     {
-        return $this->hasMany(Project::class, 'client_email', 'email');
+        return $this->hasMany(Project::class, 'client_id');
     }
 
     /**
@@ -80,6 +80,14 @@ class Client extends Model
     public function latestProject()
     {
         return $this->projects()->latest()->first();
+    }
+
+    /**
+     * Reminders for this client (owned by the producer user).
+     */
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(ClientReminder::class);
     }
 
     /**

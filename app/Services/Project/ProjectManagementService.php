@@ -4,6 +4,7 @@ namespace App\Services\Project;
 
 use App\Exceptions\Project\ProjectCreationException;
 use App\Exceptions\Project\ProjectUpdateException;
+use App\Models\Client;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -47,6 +48,20 @@ class ProjectManagementService
                     $path = $projectImage->store('project_images', 's3');
                     $project->image_path = $path;
                     Log::info('Project image uploaded to S3', ['path' => $path, 'project_name' => $project->name]);
+                }
+
+                // Link client for client management projects
+                if (($project->workflow_type ?? null) === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && ! empty($project->client_email)) {
+                    // Find or create Client for this producer + client email
+                    $client = Client::firstOrCreate(
+                        ['user_id' => $user->id, 'email' => $project->client_email],
+                        [
+                            'name' => $project->client_name,
+                            'timezone' => 'UTC',
+                            'status' => Client::STATUS_ACTIVE,
+                        ]
+                    );
+                    $project->client_id = $client->id;
                 }
 
                 // Save to get ID
@@ -156,6 +171,22 @@ class ProjectManagementService
                     'isDirty' => $project->isDirty(),
                     'dirtyFields' => $project->getDirty(),
                 ]);
+
+                // Ensure client_id is consistent for client management projects
+                if ($project->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && ! empty($project->client_email)) {
+                    $clientEmailChanged = array_key_exists('client_email', $fillData) ? $project->isDirty('client_email') : false;
+                    if ($clientEmailChanged || empty($project->client_id)) {
+                        $client = Client::firstOrCreate(
+                            ['user_id' => $project->user_id, 'email' => $project->client_email],
+                            [
+                                'name' => $project->client_name,
+                                'timezone' => 'UTC',
+                                'status' => Client::STATUS_ACTIVE,
+                            ]
+                        );
+                        $project->client_id = $client->id;
+                    }
+                }
 
                 // Handle new image upload
                 if ($newProjectImage) {

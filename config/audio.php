@@ -38,7 +38,17 @@ return [
             'standard' => true,
             'contest' => false,
             'direct_hire' => false,
-            'client_management' => false,
+            'client_management' => 'user_controlled', // NEW: User decides
+        ],
+
+        // User control settings
+        'user_control' => [
+            'client_management' => true, // Enable UI toggle for client management
+        ],
+
+        // Default settings when user control is enabled
+        'default_enabled' => [
+            'client_management' => false, // Default to disabled (maintain current behavior)
         ],
 
         // Default watermark settings

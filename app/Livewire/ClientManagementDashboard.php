@@ -3,7 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\Client;
+use App\Models\ClientReminder;
+use App\Models\ClientView;
 use App\Models\Project;
+use App\Models\Pitch;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -22,17 +26,66 @@ class ClientManagementDashboard extends Component
     public bool $expanded = false;
     public ?int $userId = null;
 
+    // Modal and form state
+    public ?Client $selectedClient = null;
+    public bool $showClientModal = false;
+    public string $clientName = '';
+    public string $clientEmail = '';
+    public string $clientCompany = '';
+    public string $clientPhone = '';
+    public string $clientNotes = '';
+    public array $clientTags = [];
+    public string $clientStatus = Client::STATUS_ACTIVE;
+
+    // Saved views state
+    public ?int $activeViewId = null;
+    public array $availableViews = [];
+    public string $newViewName = '';
+    public bool $newViewDefault = false;
+
+    // New reminder form state
+    public ?int $newReminderClientId = null;
+    public string $newReminderNote = '';
+    public string $newReminderDueAt = '';
+    public array $clientsForSelect = [];
+
     protected $queryString = [
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all'],
         'sortBy' => ['except' => 'last_contacted_at'],
         'sortDirection' => ['except' => 'desc'],
+        'activeViewId' => ['except' => null],
     ];
 
     public function mount($userId = null, $expanded = false)
     {
         $this->userId = $userId ?? Auth::id();
         $this->expanded = $expanded;
+
+        // Load saved views
+        $this->availableViews = ClientView::where('user_id', $this->userId)
+            ->orderBy('is_default', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'name', 'filters', 'is_default'])
+            ->toArray();
+
+        // If no active view specified, use default if available
+        if (!$this->activeViewId) {
+            $defaultView = collect($this->availableViews)->firstWhere('is_default', true);
+            if ($defaultView) {
+                $this->activeViewId = $defaultView['id'];
+                $this->applyViewFilters($defaultView['filters'] ?? []);
+            }
+        }
+
+        // Load clients for quick reminder creation
+        $this->clientsForSelect = Client::where('user_id', $this->userId)
+            ->orderByRaw('COALESCE(NULLIF(name, ""), email) asc')
+            ->get(['id', 'name', 'email'])
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'label' => $c->name ? ($c->name.' — '.$c->email) : $c->email,
+            ])->toArray();
     }
 
     public function updatingSearch()
@@ -182,7 +235,7 @@ class ClientManagementDashboard extends Component
     {
         $userId = $this->userId ?? Auth::id();
         
-        return Project::where('projects.user_id', $userId)
+        $query = Project::where('projects.user_id', $userId)
             ->where('projects.workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->with(['pitches' => function ($query) {
                 $query->with(['user', 'files', 'events']);
@@ -197,8 +250,17 @@ class ClientManagementDashboard extends Component
             ->when($this->statusFilter !== 'all', function ($query) {
                 $query->where('projects.status', $this->statusFilter);
             })
-            ->orderBy('projects.created_at', $this->sortDirection)
-            ->paginate(20);
+            ->orderBy('projects.created_at', $this->sortDirection);
+
+        // Apply active saved view filters
+        if ($this->activeViewId) {
+            $view = ClientView::where('user_id', $userId)->find($this->activeViewId);
+            if ($view) {
+                $this->applyFiltersToQuery($query, $view->filters ?? []);
+            }
+        }
+
+        return $query->paginate(20);
     }
 
     public function getStatsProperty()
@@ -213,7 +275,8 @@ class ClientManagementDashboard extends Component
             'total_projects' => $clientProjects->count(),
             'active_projects' => $clientProjects->whereNotIn('status', [Project::STATUS_COMPLETED])->count(),
             'completed_projects' => $clientProjects->where('status', Project::STATUS_COMPLETED)->count(),
-            'unique_clients' => $clientProjects->whereNotNull('client_email')->unique('client_email')->count(),
+            // Prefer distinct client_id; fallback to distinct client_email for any legacy rows
+            'unique_clients' => $this->getUniqueClientsCount($userId),
             'total_revenue' => $this->getTotalRevenue(),
             'avg_project_value' => $this->getAverageProjectValue(),
         ];
@@ -240,6 +303,268 @@ class ClientManagementDashboard extends Component
             ->count();
             
         return $completedProjects > 0 ? ($totalRevenue / $completedProjects) : 0;
+    }
+
+    protected function getUniqueClientsCount(int $userId): int
+    {
+        $distinctClientIds = Project::where('user_id', $userId)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereNotNull('client_id')
+            ->distinct()
+            ->count('client_id');
+
+        $distinctEmailsWithoutClientId = Project::where('user_id', $userId)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereNull('client_id')
+            ->whereNotNull('client_email')
+            ->distinct()
+            ->count('client_email');
+
+        return $distinctClientIds + $distinctEmailsWithoutClientId;
+    }
+
+    // --- Reminders ---
+    public function getUpcomingRemindersProperty()
+    {
+        $userId = $this->userId ?? Auth::id();
+
+        return ClientReminder::with('client')
+            ->where('user_id', $userId)
+            ->where('status', ClientReminder::STATUS_PENDING)
+            ->orderBy('due_at')
+            ->limit(5)
+            ->get();
+    }
+
+    public function completeReminder(int $reminderId): void
+    {
+        $userId = $this->userId ?? Auth::id();
+        $reminder = ClientReminder::where('user_id', $userId)->findOrFail($reminderId);
+        $reminder->update(['status' => ClientReminder::STATUS_COMPLETED]);
+        session()->flash('success', 'Reminder completed.');
+    }
+
+    public function snoozeReminder(int $reminderId, string $period = '1d'): void
+    {
+        $userId = $this->userId ?? Auth::id();
+        $reminder = ClientReminder::where('user_id', $userId)->findOrFail($reminderId);
+
+        $newTime = now();
+        switch ($period) {
+            case '7d':
+                $newTime = now()->addDays(7);
+                break;
+            case '1h':
+                $newTime = now()->addHour();
+                break;
+            case '1d':
+            default:
+                $newTime = now()->addDay();
+                break;
+        }
+
+        $reminder->update([
+            'snooze_until' => $newTime,
+            'due_at' => $newTime,
+            'status' => ClientReminder::STATUS_SNOOZED,
+        ]);
+
+        session()->flash('success', 'Reminder snoozed.');
+    }
+
+     /**
+      * Persist a saved view based on current filters.
+      */
+    public function saveCurrentView(): void
+    {
+        $name = trim($this->newViewName);
+        if ($name === '') {
+            session()->flash('error', 'Please provide a name for the view.');
+            return;
+        }
+
+        $filters = [
+            'search' => $this->search,
+            'status' => $this->statusFilter,
+        ];
+
+        $view = ClientView::create([
+            'user_id' => $this->userId,
+            'name' => $name,
+            'filters' => $filters,
+            'is_default' => $this->newViewDefault,
+        ]);
+
+        if ($this->newViewDefault) {
+            ClientView::where('user_id', $this->userId)
+                ->where('id', '!=', $view->id)
+                ->update(['is_default' => false]);
+        }
+
+        $this->availableViews = ClientView::where('user_id', $this->userId)
+            ->orderBy('is_default', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'name', 'filters', 'is_default'])
+            ->toArray();
+        $this->activeViewId = $view->id;
+        $this->applyViewFilters($filters);
+
+        $this->newViewName = '';
+        $this->newViewDefault = false;
+        $this->resetPage();
+    }
+
+    public function updatedActiveViewId($value): void
+    {
+        if (!$value) {
+            return;
+        }
+        $view = ClientView::where('user_id', $this->userId)->find($value);
+        if ($view) {
+            $this->applyViewFilters($view->filters ?? []);
+            $this->resetPage();
+        }
+    }
+
+    protected function applyViewFilters(array $filters): void
+    {
+        $this->search = (string)($filters['search'] ?? '');
+        $this->statusFilter = (string)($filters['status'] ?? 'all');
+    }
+
+    protected function applyFiltersToQuery($query, array $filters): void
+    {
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('projects.status', $filters['status']);
+        }
+        if (!empty($filters['search'])) {
+            $term = $filters['search'];
+            $query->where(function ($q) use ($term) {
+                $q->where('projects.name', 'like', "%{$term}%")
+                  ->orWhere('projects.client_name', 'like', "%{$term}%")
+                  ->orWhere('projects.client_email', 'like', "%{$term}%");
+            });
+        }
+    }
+
+    // --- LTV and Funnel Analytics ---
+    public function getLtvStatsProperty(): array
+    {
+        $userId = $this->userId ?? Auth::id();
+
+        $paid = Project::where('projects.user_id', $userId)
+            ->where('projects.workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->join('pitches', 'projects.id', '=', 'pitches.project_id')
+            ->where('pitches.payment_status', 'paid')
+            ->sum('pitches.payment_amount') ?? 0;
+
+        $uniqueClients = $this->getUniqueClientsCount($userId);
+        $avgLtv = $uniqueClients > 0 ? ($paid / $uniqueClients) : 0;
+
+        return [
+            'total_ltv' => $paid,
+            'avg_client_ltv' => $avgLtv,
+        ];
+    }
+
+    public function getFunnelStatsProperty(): array
+    {
+        $userId = $this->userId ?? Auth::id();
+
+        $totalProjects = Project::where('user_id', $userId)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->count();
+
+        $submitted = Pitch::whereHas('project', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+            })
+            ->whereIn('status', [
+                Pitch::STATUS_PENDING,
+                Pitch::STATUS_IN_PROGRESS,
+            ])->count();
+
+        $review = Pitch::whereHas('project', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+            })
+            ->where('status', Pitch::STATUS_READY_FOR_REVIEW)
+            ->count();
+
+        $approvedCompleted = Pitch::whereHas('project', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+            })
+            ->whereIn('status', [
+                Pitch::STATUS_APPROVED,
+                Pitch::STATUS_COMPLETED,
+            ])->count();
+
+        return [
+            'created' => $totalProjects,
+            'submitted' => $submitted,
+            'review' => $review,
+            'approved_completed' => $approvedCompleted,
+        ];
+    }
+
+    // --- Reminder creation ---
+    public function addReminder(): void
+    {
+        $userId = $this->userId ?? Auth::id();
+        if (!$this->newReminderClientId || trim($this->newReminderDueAt) === '') {
+            session()->flash('error', 'Please select a client and due date.');
+            return;
+        }
+
+        try {
+            $dueAt = Carbon::parse($this->newReminderDueAt);
+        } catch (\Throwable $e) {
+            session()->flash('error', 'Invalid due date/time.');
+            return;
+        }
+
+        ClientReminder::create([
+            'user_id' => $userId,
+            'client_id' => $this->newReminderClientId,
+            'due_at' => $dueAt,
+            'note' => trim($this->newReminderNote) ?: null,
+            'status' => ClientReminder::STATUS_PENDING,
+        ]);
+
+        $this->newReminderClientId = null;
+        $this->newReminderNote = '';
+        $this->newReminderDueAt = '';
+
+        session()->flash('success', 'Reminder added.');
+    }
+
+    public function quickReminderForProject(int $projectId): void
+    {
+        $project = Project::with('client')->where('user_id', $this->userId ?? Auth::id())
+            ->findOrFail($projectId);
+        if ($project->client_id) {
+            $this->newReminderClientId = $project->client_id;
+            $this->newReminderNote = 'Follow up on "'.$project->name.'"';
+            $this->newReminderDueAt = now()->addDay()->format('Y-m-d\TH:i');
+            session()->flash('success', 'Client pre-filled for reminder. Choose due date and save.');
+        } else {
+            session()->flash('error', 'This project is not linked to a client.');
+        }
+    }
+
+    public function createReminderForSelectedClient(): void
+    {
+        if (!$this->selectedClient) {
+            session()->flash('error', 'No client selected.');
+            return;
+        }
+
+        $this->newReminderClientId = $this->selectedClient->id;
+        $this->newReminderNote = 'Follow up with '.$this->selectedClient->name ?: $this->selectedClient->email;
+        $this->newReminderDueAt = now()->addDay()->format('Y-m-d\TH:i');
+        $this->showClientModal = false;
+        session()->flash('success', 'Reminder pre-filled. Choose due date and save.');
     }
 
     public function render()
