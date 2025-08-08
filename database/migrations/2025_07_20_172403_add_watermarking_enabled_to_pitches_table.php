@@ -12,7 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pitches', function (Blueprint $table) {
-            $table->boolean('watermarking_enabled')->default(false)->after('payment_hold_released_at');
+            if (! Schema::hasColumn('pitches', 'watermarking_enabled')) {
+                $column = $table->boolean('watermarking_enabled')->default(false);
+
+                if (Schema::hasColumn('pitches', 'payment_hold_released_at')) {
+                    $column->after('payment_hold_released_at');
+                }
+            }
         });
     }
 
@@ -22,7 +28,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pitches', function (Blueprint $table) {
-            $table->dropColumn('watermarking_enabled');
+            if (Schema::hasColumn('pitches', 'watermarking_enabled')) {
+                $table->dropColumn('watermarking_enabled');
+            }
         });
     }
 };

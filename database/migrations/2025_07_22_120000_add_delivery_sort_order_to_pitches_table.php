@@ -10,7 +10,12 @@ return new class extends Migration
     {
         Schema::table('pitches', function (Blueprint $table) {
             if (! Schema::hasColumn('pitches', 'delivery_sort_order')) {
-                $table->unsignedInteger('delivery_sort_order')->nullable()->after('watermarking_enabled');
+                $column = $table->unsignedInteger('delivery_sort_order')->nullable();
+
+                if (Schema::hasColumn('pitches', 'watermarking_enabled')) {
+                    $column->after('watermarking_enabled');
+                }
+
                 $table->index('delivery_sort_order');
             }
         });
