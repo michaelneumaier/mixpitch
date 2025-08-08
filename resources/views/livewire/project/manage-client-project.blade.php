@@ -425,11 +425,7 @@
                     
                     <div class="p-2 md:p-4">
 
-                    <!-- Upload Section for Producer -->
-                    <x-file-management.upload-section 
-                        :model="$pitch"
-                        title="Upload Deliverables"
-                        description="Upload audio, PDFs, or images for your client to review" />
+                    <!-- Upload Section is rendered by workflow-actions → upload-work-section; avoid duplicate here -->
 
                     <!-- Producer Files List -->
                     @if($this->producerFiles->count() > 0)
