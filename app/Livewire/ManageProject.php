@@ -99,7 +99,7 @@ class ManageProject extends Component
         }
 
         $this->project = $project;
-        $this->autoAllowAccess = $this->project->auto_allow_access;
+        $this->autoAllowAccess = $this->project->auto_allow_access ?? false;
 
         // Eager load relationships needed based on workflow type
         if ($this->project->isDirectHire()) {
@@ -124,8 +124,17 @@ class ManageProject extends Component
         // Handle standard project deadline - parse raw database value as UTC
         if ($this->project->deadline && $this->project->deadline instanceof \Carbon\Carbon) {
             $rawDeadline = $this->project->getRawOriginal('deadline');
+            $utcTime = null;
+            
             if ($rawDeadline) {
-                $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
+                // Check if the raw deadline contains time information
+                if (strpos($rawDeadline, ':') !== false) {
+                    // Full datetime format
+                    $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
+                } else {
+                    // Date only format - set to start of day in UTC
+                    $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d', $rawDeadline, 'UTC')->startOfDay();
+                }
                 $this->form->deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
             } else {
                 $this->form->deadline = null;
@@ -134,7 +143,7 @@ class ManageProject extends Component
             \Log::info('ManageProject: CORRECT standard project deadline', [
                 'project_id' => $this->project->id,
                 'raw_database' => $rawDeadline,
-                'parsed_as_utc' => $utcTime->format('Y-m-d H:i:s T'),
+                'parsed_as_utc' => $utcTime ? $utcTime->format('Y-m-d H:i:s T') : 'null',
                 'deadline_converted' => $this->form->deadline,
                 'user_timezone' => auth()->user()->getTimezone(),
             ]);
