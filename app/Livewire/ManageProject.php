@@ -124,8 +124,12 @@ class ManageProject extends Component
         // Handle standard project deadline - parse raw database value as UTC
         if ($this->project->deadline && $this->project->deadline instanceof \Carbon\Carbon) {
             $rawDeadline = $this->project->getRawOriginal('deadline');
-            $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
-            $this->form->deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+            if ($rawDeadline) {
+                $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawDeadline, 'UTC');
+                $this->form->deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+            } else {
+                $this->form->deadline = null;
+            }
 
             \Log::info('ManageProject: CORRECT standard project deadline', [
                 'project_id' => $this->project->id,
@@ -154,16 +158,24 @@ class ManageProject extends Component
             // Convert UTC times to user's timezone for datetime-local inputs - parse raw as UTC
             if ($this->project->submission_deadline) {
                 $rawSubmissionDeadline = $this->project->getRawOriginal('submission_deadline');
-                $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
-                $this->submission_deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+                if ($rawSubmissionDeadline) {
+                    $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawSubmissionDeadline, 'UTC');
+                    $this->submission_deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+                } else {
+                    $this->submission_deadline = null;
+                }
             } else {
                 $this->submission_deadline = null;
             }
 
             if ($this->project->judging_deadline) {
                 $rawJudgingDeadline = $this->project->getRawOriginal('judging_deadline');
-                $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
-                $this->judging_deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+                if ($rawJudgingDeadline) {
+                    $utcTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $rawJudgingDeadline, 'UTC');
+                    $this->judging_deadline = $timezoneService->convertToUserTimezone($utcTime, auth()->user())->format('Y-m-d\TH:i');
+                } else {
+                    $this->judging_deadline = null;
+                }
             } else {
                 $this->judging_deadline = null;
             }
