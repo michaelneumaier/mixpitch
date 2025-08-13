@@ -42,8 +42,69 @@ class SubscriptionLimitResource extends Resource
                                 'engineer' => 'Engineer',
                             ])
                             ->required(),
+
+                        Forms\Components\TextInput::make('display_name')
+                            ->label('Display Name')
+                            ->placeholder('e.g., Pro Artist')
+                            ->maxLength(100),
+
+                        Forms\Components\Textarea::make('description')
+                            ->label('Description')
+                            ->placeholder('e.g., For professional music creators')
+                            ->rows(2),
+
+                        Forms\Components\Toggle::make('is_most_popular')
+                            ->label('Mark as Most Popular')
+                            ->helperText('Shows a badge on the pricing page'),
                     ])
                     ->columns(2),
+
+                Forms\Components\Section::make('Pricing Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('monthly_price')
+                            ->label('Monthly Price')
+                            ->numeric()
+                            ->step(0.01)
+                            ->prefix('$')
+                            ->default(0)
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                // Auto-calculate yearly savings
+                                $yearly = $get('yearly_price');
+                                if ($state && $yearly) {
+                                    $savings = ($state * 12) - $yearly;
+                                    $set('yearly_savings', round($savings, 2));
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('yearly_price')
+                            ->label('Yearly Price')
+                            ->numeric()
+                            ->step(0.01)
+                            ->prefix('$')
+                            ->default(0)
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                // Auto-calculate yearly savings
+                                $monthly = $get('monthly_price');
+                                if ($monthly && $state) {
+                                    $savings = ($monthly * 12) - $state;
+                                    $set('yearly_savings', round($savings, 2));
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('yearly_savings')
+                            ->label('Yearly Savings')
+                            ->numeric()
+                            ->step(0.01)
+                            ->prefix('$')
+                            ->disabled()
+                            ->dehydrated()
+                            ->helperText('Auto-calculated from monthly and yearly prices'),
+                    ])
+                    ->columns(3),
 
                 Forms\Components\Section::make('Project & Pitch Limits')
                     ->schema([
@@ -70,19 +131,21 @@ class SubscriptionLimitResource extends Resource
                 Forms\Components\Section::make('Storage & File Management')
                     ->schema([
                         Forms\Components\TextInput::make('storage_per_project_mb')
-                            ->label('Storage per Project (MB) - Legacy')
+                            ->label('Storage per Project (MB) - DEPRECATED')
                             ->numeric()
                             ->default(100)
-                            ->helperText('Legacy field - kept for compatibility')
-                            ->disabled(),
+                            ->helperText('⚠️ DEPRECATED: Project storage limits are no longer used. Use Total User Storage instead.')
+                            ->disabled()
+                            ->hidden(),
 
                         Forms\Components\TextInput::make('storage_per_project_gb')
-                            ->label('Storage per Project (GB)')
+                            ->label('Storage per Project (GB) - DEPRECATED')
                             ->numeric()
                             ->step(0.1)
                             ->default(1.0)
-                            ->required()
-                            ->helperText('Current storage limit in GB'),
+                            ->helperText('⚠️ DEPRECATED: Project storage limits are no longer used. Use Total User Storage instead.')
+                            ->disabled()
+                            ->hidden(),
 
                         Forms\Components\TextInput::make('total_user_storage_gb')
                             ->label('Total User Storage (GB)')
@@ -116,13 +179,6 @@ class SubscriptionLimitResource extends Resource
 
                 Forms\Components\Section::make('Engagement Features')
                     ->schema([
-                        Forms\Components\TextInput::make('monthly_visibility_boosts')
-                            ->label('Monthly Visibility Boosts')
-                            ->numeric()
-                            ->default(0)
-                            ->required()
-                            ->helperText('Number of visibility boosts per month'),
-
                         Forms\Components\TextInput::make('reputation_multiplier')
                             ->label('Reputation Multiplier')
                             ->numeric()
@@ -130,14 +186,8 @@ class SubscriptionLimitResource extends Resource
                             ->default(1.0)
                             ->required()
                             ->helperText('Multiplier for reputation calculations'),
-
-                        Forms\Components\TextInput::make('max_private_projects_monthly')
-                            ->label('Max Private Projects/Month')
-                            ->numeric()
-                            ->placeholder('Leave empty for unlimited')
-                            ->helperText('Monthly limit for private projects'),
                     ])
-                    ->columns(3),
+                    ->columns(1),
 
                 Forms\Components\Section::make('Access & Analytics')
                     ->schema([
@@ -212,6 +262,12 @@ class SubscriptionLimitResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('display_name')
+                    ->label('Display Name')
+                    ->searchable()
+                    ->sortable()
+                    ->default(fn ($record) => ucfirst($record->plan_name) . ' ' . ucfirst($record->plan_tier)),
+
                 Tables\Columns\TextColumn::make('plan_name')
                     ->label('Plan')
                     ->badge()
@@ -233,6 +289,23 @@ class SubscriptionLimitResource extends Resource
                     })
                     ->sortable(),
 
+                Tables\Columns\IconColumn::make('is_most_popular')
+                    ->label('Popular')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-star')
+                    ->falseIcon('')
+                    ->alignCenter(),
+
+                Tables\Columns\TextColumn::make('monthly_price')
+                    ->label('Monthly')
+                    ->money('USD')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('yearly_price')
+                    ->label('Yearly')
+                    ->money('USD')
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('max_projects_owned')
                     ->label('Projects')
                     ->formatStateUsing(fn ($state) => $state ?? '∞'),
@@ -242,9 +315,10 @@ class SubscriptionLimitResource extends Resource
                     ->formatStateUsing(fn ($state) => $state ?? '∞'),
 
                 Tables\Columns\TextColumn::make('storage_per_project_gb')
-                    ->label('Per Project')
+                    ->label('Per Project (Deprecated)')
                     ->formatStateUsing(fn ($state) => $state.' GB')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('total_user_storage_gb')
                     ->label('Total User Storage')
@@ -256,9 +330,6 @@ class SubscriptionLimitResource extends Resource
                     ->formatStateUsing(fn ($state) => $state.'%')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('monthly_visibility_boosts')
-                    ->label('Boosts/mo')
-                    ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('reputation_multiplier')
                     ->label('Rep. Multi.')

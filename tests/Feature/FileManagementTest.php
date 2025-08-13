@@ -77,15 +77,19 @@ class FileManagementTest extends TestCase
         
         Storage::disk('s3')->assertExists($projectFile->file_path);
         
-        $this->project->refresh();
-        $this->assertEquals($file->getSize(), $this->project->total_storage_used);
+        // Check that user storage was updated (not project storage)
+        $userStorageService = app(\App\Services\UserStorageService::class);
+        $this->assertEquals($file->getSize(), $userStorageService->getUserStorageUsed($this->projectOwner));
     }
 
     /** @test */
     public function service_can_delete_project_file()
     {
+        // Set up initial user storage
+        $userStorageService = app(\App\Services\UserStorageService::class);
+        $userStorageService->incrementUserStorage($this->projectOwner, 1024);
+        
         $projectFile = ProjectFile::factory()->recycle($this->project)->recycle($this->projectOwner)->create(['size' => 1024]);
-        $this->project->update(['total_storage_used' => 1024]);
         Storage::disk('s3')->put($projectFile->file_path, 'content');
         
         // Call the service method directly (assuming prior authorization)
@@ -93,8 +97,9 @@ class FileManagementTest extends TestCase
         
         $this->assertSoftDeleted($projectFile);
         Storage::disk('s3')->assertMissing($projectFile->file_path);
-        $this->project->refresh();
-        $this->assertEquals(0, $this->project->total_storage_used);
+        
+        // Check that user storage was decremented
+        $this->assertEquals(0, $userStorageService->getUserStorageUsed($this->projectOwner));
     }
 
     /** @test */
@@ -176,8 +181,11 @@ class FileManagementTest extends TestCase
     /** @test */
     public function service_can_delete_pitch_file()
     {
+        // Set up initial user storage
+        $userStorageService = app(\App\Services\UserStorageService::class);
+        $userStorageService->incrementUserStorage($this->pitchProducer, 2048);
+        
         $pitchFile = PitchFile::factory()->recycle($this->pitch)->recycle($this->pitchProducer)->create(['size' => 2048]);
-        $this->pitch->update(['status' => Pitch::STATUS_IN_PROGRESS, 'total_storage_used' => 2048]);
         Storage::disk('s3')->put($pitchFile->file_path, 'audio data');
         
         // Call the service method directly (assuming prior authorization)
@@ -185,8 +193,9 @@ class FileManagementTest extends TestCase
         
         $this->assertSoftDeleted($pitchFile);
         Storage::disk('s3')->assertMissing($pitchFile->file_path);
-        $this->pitch->refresh();
-        $this->assertEquals(0, $this->pitch->total_storage_used);
+        
+        // Check that user storage was decremented
+        $this->assertEquals(0, $userStorageService->getUserStorageUsed($this->pitchProducer));
     }
 
     /** @test */

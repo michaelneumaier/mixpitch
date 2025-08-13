@@ -47,8 +47,8 @@ class FileManagementServiceTest extends TestCase
         // Create real user for database operations
         $this->user = User::factory()->create();
 
-        // Create service
-        $this->service = new FileManagementService;
+        // Create service with dependency injection
+        $this->service = app(FileManagementService::class);
 
         // Setup project mock (Partial mock - as it was before standard mock refactor)
         $this->project = Mockery::mock(Project::class)->makePartial();

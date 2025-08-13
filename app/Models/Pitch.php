@@ -411,11 +411,18 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Get user-friendly message about storage limits
-     *
+     * 
+     * @deprecated Pitch-based storage limits are deprecated. Use UserStorageService for user-based limits.
      * @return string
      */
     public function getStorageLimitMessage()
     {
+        if ($this->user) {
+            $userStorageService = app(\App\Services\UserStorageService::class);
+            return $userStorageService->getStorageLimitMessage($this->user);
+        }
+        
+        // Fallback for pitches without users
         $used = self::formatBytes($this->total_storage_used);
         $total = self::formatBytes(self::MAX_STORAGE_BYTES);
         $remaining = self::formatBytes($this->getRemainingStorageBytes());
@@ -540,11 +547,20 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Get remaining storage capacity in bytes
-     *
+     * 
+     * @deprecated Pitch-based storage limits are deprecated. Use UserStorageService for user-based limits.
      * @return int
      */
     public function getRemainingStorageBytes()
     {
+        if ($this->user) {
+            $userStorageService = app(\App\Services\UserStorageService::class);
+            $used = $userStorageService->getUserStorageUsed($this->user);
+            $limit = $userStorageService->getUserStorageLimit($this->user);
+            return max(0, $limit - $used);
+        }
+        
+        // Fallback logic for pitches without users
         // Use contest-specific storage limit for contest entries
         if ($this->status === self::STATUS_CONTEST_ENTRY) {
             // Load project if not loaded
@@ -591,8 +607,19 @@ class Pitch extends Model implements HasMedia
      *
      * @return float The percentage of storage used (0-100)
      */
+    /**
+     * @deprecated Pitch-based storage limits are deprecated. Use UserStorageService for user-based limits.
+     */
     public function getStorageUsedPercentage()
     {
+        if ($this->user) {
+            $userStorageService = app(\App\Services\UserStorageService::class);
+            $used = $userStorageService->getUserStorageUsed($this->user);
+            $limit = $userStorageService->getUserStorageLimit($this->user);
+            return $limit > 0 ? round(($used / $limit) * 100, 2) : 0;
+        }
+        
+        // Fallback logic for pitches without users
         // Use contest-specific storage limit for contest entries
         if ($this->status === self::STATUS_CONTEST_ENTRY) {
             // Load project if not loaded

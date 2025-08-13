@@ -17,6 +17,12 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
             [
                 'plan_name' => 'free',
                 'plan_tier' => 'basic',
+                'display_name' => 'Free',
+                'description' => 'Perfect for getting started with music collaboration',
+                'is_most_popular' => false,
+                'monthly_price' => 0,
+                'yearly_price' => 0,
+                'yearly_savings' => 0,
                 'max_projects_owned' => 1,
                 'max_active_pitches' => 3,
                 'max_monthly_pitches' => null,
@@ -24,10 +30,8 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'storage_per_project_gb' => 1.0,
                 'total_user_storage_gb' => 10.0,
                 'platform_commission_rate' => 10.0,
-                'max_license_templates' => 3,
-                'monthly_visibility_boosts' => 0,
+                'max_license_templates' => 0, // 0 means presets only
                 'reputation_multiplier' => 1.0,
-                'max_private_projects_monthly' => 0,
                 'has_client_portal' => false,
                 'analytics_level' => 'basic',
                 'challenge_early_access_hours' => 0,
@@ -43,6 +47,12 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
             [
                 'plan_name' => 'pro',
                 'plan_tier' => 'artist',
+                'display_name' => 'Pro Artist',
+                'description' => 'For professional music creators',
+                'is_most_popular' => true,
+                'monthly_price' => 6.99,
+                'yearly_price' => 69.99,
+                'yearly_savings' => 13.89,
                 'max_projects_owned' => null, // unlimited
                 'max_active_pitches' => null, // unlimited
                 'max_monthly_pitches' => null,
@@ -51,9 +61,7 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'total_user_storage_gb' => 50.0,
                 'platform_commission_rate' => 8.0,
                 'max_license_templates' => null, // unlimited custom templates
-                'monthly_visibility_boosts' => 4,
                 'reputation_multiplier' => 1.0,
-                'max_private_projects_monthly' => 2,
                 'has_client_portal' => false,
                 'analytics_level' => 'track',
                 'challenge_early_access_hours' => 24,
@@ -69,6 +77,12 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
             [
                 'plan_name' => 'pro',
                 'plan_tier' => 'engineer',
+                'display_name' => 'Pro Engineer',
+                'description' => 'Advanced tools for audio engineers',
+                'is_most_popular' => false,
+                'monthly_price' => 9.99,
+                'yearly_price' => 99.99,
+                'yearly_savings' => 19.89,
                 'max_projects_owned' => null, // unlimited
                 'max_active_pitches' => null, // unlimited
                 'max_monthly_pitches' => null,
@@ -76,10 +90,8 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
                 'storage_per_project_gb' => 10.0,
                 'total_user_storage_gb' => 200.0,
                 'platform_commission_rate' => 6.0,
-                'max_license_templates' => null, // unlimited custom templates (same as Pro Artist)
-                'monthly_visibility_boosts' => 1,
+                'max_license_templates' => null, // unlimited custom templates
                 'reputation_multiplier' => 1.25,
-                'max_private_projects_monthly' => null, // unlimited
                 'has_client_portal' => true,
                 'analytics_level' => 'client_earnings',
                 'challenge_early_access_hours' => 24,
@@ -104,8 +116,8 @@ class CompleteSubscriptionLimitsSeeder extends Seeder
 
         $this->command->info('✅ Subscription limits seeded successfully!');
         $this->command->info('📊 Plans created:');
-        $this->command->info('   • Free (Basic) - 10GB total storage, 10% commission');
-        $this->command->info('   • Pro Artist - 50GB total storage, 8% commission, 4 boosts/mo');
-        $this->command->info('   • Pro Engineer - 200GB total storage, 6% commission, client portal');
+        $this->command->info('   • Free ($0/mo) - 10GB storage, 10% commission');
+        $this->command->info('   • Pro Artist ($6.99/mo) - 50GB storage, 8% commission, track analytics');
+        $this->command->info('   • Pro Engineer ($9.99/mo) - 200GB storage, 6% commission, client portal');
     }
 }

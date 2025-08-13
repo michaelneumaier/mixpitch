@@ -9,9 +9,15 @@ class SubscriptionLimitsSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * 
+     * @deprecated Use CompleteSubscriptionLimitsSeeder instead for full feature support
      */
     public function run(): void
     {
+        $this->command->warn('⚠️  DEPRECATED: This seeder is outdated and missing many fields.');
+        $this->command->warn('⚠️  Use CompleteSubscriptionLimitsSeeder instead for complete plan setup.');
+        $this->command->warn('⚠️  This seeder will create plans with missing pricing and feature data.');
+        $this->command->newLine();
         $limits = [
             [
                 'plan_name' => 'free',
@@ -54,5 +60,9 @@ class SubscriptionLimitsSeeder extends Seeder
                 $limit
             );
         }
+
+        $this->command->newLine();
+        $this->command->info('✅ Basic subscription limits seeded (incomplete data)');
+        $this->command->warn('💡 For complete setup with pricing, run: php artisan db:seed --class=CompleteSubscriptionLimitsSeeder');
     }
 }

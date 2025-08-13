@@ -596,56 +596,67 @@ class Project extends Model
      * @param  int  $additionalBytes  Additional bytes to check if they would fit
      * @return bool
      */
+    /**
+     * @deprecated Project-based storage limits are deprecated. Use UserStorageService for user-based limits.
+     */
     public function hasStorageCapacity($additionalBytes = 0)
     {
-        // Use the project owner's subscription storage limit
+        if ($this->user) {
+            $userStorageService = app(\App\Services\UserStorageService::class);
+            return $userStorageService->hasUserStorageCapacity($this->user, $additionalBytes);
+        }
+        
+        // Fallback for projects without users
         $storageLimit = $this->getStorageLimit();
-
         return ($this->total_storage_used + $additionalBytes) <= $storageLimit;
     }
 
     /**
      * Get the storage limit for this project based on owner's subscription
-     *
+     * 
+     * @deprecated Project-based storage limits are deprecated. Use UserStorageService for user-based limits.
      * @return int Storage limit in bytes
      */
     public function getStorageLimit(): int
     {
-        // Check if user relationship is loaded, if not load it
-        if (! $this->relationLoaded('user')) {
-            $this->load('user');
-        }
-
-        if ($this->user) {
-            return $this->user->getProjectStorageLimit();
-        }
-
-        // Fallback to default if no user or user has no subscription limits
-        return self::MAX_STORAGE_BYTES;
+        // Delegate to user's total storage limit instead of project-specific limits
+        return $this->user ? $this->user->getStorageLimit() : self::MAX_STORAGE_BYTES;
     }
 
     /**
      * Get remaining storage capacity in bytes
-     *
+     * 
+     * @deprecated Project-based storage limits are deprecated. Use UserStorageService for user-based limits.
      * @return int
      */
     public function getRemainingStorageBytes()
     {
-        $storageLimit = $this->getStorageLimit();
-        $remaining = $storageLimit - $this->total_storage_used;
-
-        return max(0, $remaining);
+        if ($this->user) {
+            $userStorageService = app(\App\Services\UserStorageService::class);
+            $used = $userStorageService->getUserStorageUsed($this->user);
+            $limit = $userStorageService->getUserStorageLimit($this->user);
+            return max(0, $limit - $used);
+        }
+        
+        return self::MAX_STORAGE_BYTES - $this->total_storage_used;
     }
 
     /**
      * Get the percentage of storage used
-     *
+     * 
+     * @deprecated Project-based storage limits are deprecated. Use UserStorageService for user-based limits.
      * @return float
      */
     public function getStorageUsedPercentage()
     {
+        if ($this->user) {
+            $userStorageService = app(\App\Services\UserStorageService::class);
+            $used = $userStorageService->getUserStorageUsed($this->user);
+            $limit = $userStorageService->getUserStorageLimit($this->user);
+            return $limit > 0 ? round(($used / $limit) * 100, 2) : 0;
+        }
+        
         $storageLimit = $this->getStorageLimit();
-
         return round(($this->total_storage_used / $storageLimit) * 100, 2);
     }
 
@@ -662,11 +673,18 @@ class Project extends Model
 
     /**
      * Get user-friendly message about storage limits
-     *
+     * 
+     * @deprecated Project-based storage limits are deprecated. Use UserStorageService for user-based limits.
      * @return string
      */
     public function getStorageLimitMessage()
     {
+        if ($this->user) {
+            $userStorageService = app(\App\Services\UserStorageService::class);
+            return $userStorageService->getStorageLimitMessage($this->user);
+        }
+        
+        // Fallback for projects without users
         $used = Number::fileSize($this->total_storage_used, precision: 2);
         $total = Number::fileSize($this->getStorageLimit(), precision: 2);
         $remaining = Number::fileSize($this->getRemainingStorageBytes(), precision: 2);

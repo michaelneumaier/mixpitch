@@ -738,33 +738,37 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     /**
      * Get project storage limit for this user in bytes
+     * 
+     * @deprecated Project-based storage limits are deprecated. Use getStorageLimit() for user-based limits.
      */
     public function getProjectStorageLimit(): int
     {
-        // Use the new GB-based method instead of the legacy MB method
-        return $this->getProjectStorageCapacityBytes();
+        // Delegate to user total storage limit instead of project-specific limits
+        return $this->getStorageLimit();
     }
 
     // ========== NEW ENHANCED SUBSCRIPTION METHODS ==========
 
     /**
      * Get project storage limit in GB for this user
+     * 
+     * @deprecated Project-based storage limits are deprecated. Use getStorageLimitGB() for user-based limits.
      */
     public function getStoragePerProjectGB(): float
     {
-        $limits = $this->getSubscriptionLimits();
-
-        return $limits ? $limits->storage_per_project_gb : 1.0;
+        // Return user total storage limit instead of project-specific limits
+        return $this->getStorageLimitGB();
     }
 
     /**
      * Get project storage limit in bytes (using GB field)
+     * 
+     * @deprecated Project-based storage limits are deprecated. Use getStorageLimit() for user-based limits.
      */
     public function getProjectStorageCapacityBytes(): int
     {
-        $capacityGB = $this->getStoragePerProjectGB();
-
-        return (int) ($capacityGB * 1024 * 1024 * 1024); // Convert GB to bytes
+        // Return user total storage limit instead of project-specific limits
+        return $this->getStorageLimit();
     }
 
     // ========== USER-BASED STORAGE METHODS ==========
@@ -881,22 +885,22 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     /**
      * Get monthly visibility boosts available
+     * Note: Visibility boosts feature has been removed
      */
     public function getMonthlyVisibilityBoosts(): int
     {
-        $limits = $this->getSubscriptionLimits();
-
-        return $limits ? $limits->monthly_visibility_boosts : 0;
+        // Visibility boosts feature has been removed from the platform
+        return 0;
     }
 
     /**
      * Get max private projects per month
+     * Note: Private projects feature has been removed
      */
     public function getMaxPrivateProjectsMonthly(): ?int
     {
-        $limits = $this->getSubscriptionLimits();
-
-        return $limits ? $limits->max_private_projects_monthly : 0;
+        // Private projects feature has been removed from the platform
+        return null; // null means unlimited (no restrictions)
     }
 
     /**
@@ -1107,10 +1111,12 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     /**
      * Get remaining visibility boosts for current month
+     * Note: Visibility boosts feature has been removed
      */
     public function getRemainingVisibilityBoosts(): int
     {
-        return VisibilityBoost::getRemainingBoosts($this);
+        // Visibility boosts feature has been removed from the platform
+        return 0;
     }
 
     /**
