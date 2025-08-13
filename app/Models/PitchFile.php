@@ -8,9 +8,9 @@ use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 
 class PitchFile extends Model
 {
@@ -148,7 +148,7 @@ class PitchFile extends Model
                     ]
                 );
             }
-            
+
             return null;
         } catch (Exception $e) {
             Log::error('Error generating signed download URL for pitch file', [
@@ -270,12 +270,12 @@ class PitchFile extends Model
             return $workflowConfig['direct_hire'] ?? false;
         } elseif ($project->isClientManagement()) {
             $configValue = $workflowConfig['client_management'] ?? false;
-            
+
             // Handle user-controlled watermarking for client management
             if ($configValue === 'user_controlled') {
                 return $this->pitch->watermarking_enabled ?? false;
             }
-            
+
             return $configValue;
         }
 
@@ -289,6 +289,7 @@ class PitchFile extends Model
     {
         if ($this->shouldServeWatermarked($user)) {
             $processedUrl = $this->getProcessedFileUrl($expiration);
+
             // Fallback to original if no processed version available
             return $processedUrl ?: $this->getOriginalFileUrl($expiration);
         }
@@ -361,7 +362,7 @@ class PitchFile extends Model
                     now()->addMinutes($expirationMinutes)
                 );
             }
-            
+
             return null;
         } catch (Exception $e) {
             Log::error('Error generating original file URL', [
@@ -392,7 +393,7 @@ class PitchFile extends Model
                     now()->addMinutes($expirationMinutes)
                 );
             }
-            
+
             return null;
         } catch (Exception $e) {
             Log::error('Error generating processed file URL', [

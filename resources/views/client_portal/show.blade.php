@@ -19,13 +19,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         
-        /* Background Pattern */
-        .bg-pattern {
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(120, 200, 255, 0.1) 0%, transparent 50%);
-        }
+
         
         /* Custom animations */
         @keyframes fadeInUp {
@@ -46,7 +40,7 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 font-sans antialiased min-h-screen bg-pattern">
+<body class="bg-blue-50 font-sans antialiased min-h-screen">
 
     @if(isset($isPreview) && $isPreview)
         <!-- Preview Banner -->
@@ -63,13 +57,6 @@
             </div>
         </div>
     @endif
-
-    <!-- Background Decorative Elements -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-20 left-10 w-20 h-20 bg-blue-200/30 rounded-full blur-xl"></div>
-        <div class="absolute bottom-20 right-10 w-32 h-32 bg-purple-200/30 rounded-full blur-xl"></div>
-        <div class="absolute top-1/2 left-1/4 w-16 h-16 bg-pink-200/30 rounded-full blur-xl"></div>
-    </div>
 
     <div class="relative z-10 container mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 max-w-5xl">
 

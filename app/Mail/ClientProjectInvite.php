@@ -37,6 +37,7 @@ class ClientProjectInvite extends Mailable
     {
         $producer = $this->project->user;
         $subject = $producer->invite_email_subject ?: ('Invitation to Collaborate on Project: '.$this->project->title);
+
         return new Envelope(subject: $subject);
     }
 
@@ -47,6 +48,7 @@ class ClientProjectInvite extends Mailable
     {
         $producer = $this->project->user;
         $branding = app(\App\Services\BrandingResolver::class)->forProducer($producer);
+
         return new Content(
             markdown: 'emails.client.project_invite',
             with: [

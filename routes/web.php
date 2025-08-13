@@ -65,6 +65,7 @@ Route::middleware([
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
     Route::get('/producer/client-management', [DashboardController::class, 'clientManagement'])->name('producer.client-management');
+    Route::get('/producer/clients/{client}', [DashboardController::class, 'clientDetail'])->name('producer.client-detail');
 });
 
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');

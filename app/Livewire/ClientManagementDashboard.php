@@ -19,6 +19,7 @@ class ClientManagementDashboard extends Component
     // Search and filtering
     public string $search = '';
     public string $statusFilter = 'all';
+    public string $clientFilter = 'all';
     public string $sortBy = 'last_contacted_at';
     public string $sortDirection = 'desc';
     
@@ -52,6 +53,7 @@ class ClientManagementDashboard extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all'],
+        'clientFilter' => ['except' => 'all'],
         'sortBy' => ['except' => 'last_contacted_at'],
         'sortDirection' => ['except' => 'desc'],
         'activeViewId' => ['except' => null],
@@ -94,6 +96,11 @@ class ClientManagementDashboard extends Component
     }
 
     public function updatingStatusFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingClientFilter()
     {
         $this->resetPage();
     }
@@ -250,6 +257,9 @@ class ClientManagementDashboard extends Component
             ->when($this->statusFilter !== 'all', function ($query) {
                 $query->where('projects.status', $this->statusFilter);
             })
+            ->when($this->clientFilter !== 'all', function ($query) {
+                $query->where('projects.client_id', $this->clientFilter);
+            })
             ->orderBy('projects.created_at', $this->sortDirection);
 
         // Apply active saved view filters
@@ -261,6 +271,22 @@ class ClientManagementDashboard extends Component
         }
 
         return $query->paginate(20);
+    }
+
+    /**
+     * Get all clients for the filter dropdown
+     */
+    public function getClientsForFilterProperty()
+    {
+        $userId = $this->userId ?? Auth::id();
+        
+        return Client::where('user_id', $userId)
+            ->orderByRaw('COALESCE(NULLIF(name, ""), email) asc')
+            ->get(['id', 'name', 'email'])
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'label' => $c->name ? ($c->name.' — '.$c->email) : $c->email,
+            ]);
     }
 
     public function getStatsProperty()
@@ -386,6 +412,7 @@ class ClientManagementDashboard extends Component
         $filters = [
             'search' => $this->search,
             'status' => $this->statusFilter,
+            'client' => $this->clientFilter,
         ];
 
         $view = ClientView::create([
@@ -430,6 +457,7 @@ class ClientManagementDashboard extends Component
     {
         $this->search = (string)($filters['search'] ?? '');
         $this->statusFilter = (string)($filters['status'] ?? 'all');
+        $this->clientFilter = (string)($filters['client'] ?? 'all');
     }
 
     protected function applyFiltersToQuery($query, array $filters): void

@@ -153,6 +153,7 @@ class CreateProject extends Component
             'form.collaborationTypeProduction' => 'boolean',
             'form.collaborationTypeSongwriting' => 'boolean',
             'form.collaborationTypeVocalTuning' => 'boolean',
+            'form.collaborationTypeAudioEditing' => 'boolean',
 
             // Component properties
             'workflow_type' => ['required', Rule::in(Project::getWorkflowTypes())],
@@ -215,6 +216,7 @@ class CreateProject extends Component
                 $stepRules['form.collaborationTypeProduction'] = $allRules['form.collaborationTypeProduction'];
                 $stepRules['form.collaborationTypeSongwriting'] = $allRules['form.collaborationTypeSongwriting'];
                 $stepRules['form.collaborationTypeVocalTuning'] = $allRules['form.collaborationTypeVocalTuning'];
+                $stepRules['form.collaborationTypeAudioEditing'] = $allRules['form.collaborationTypeAudioEditing'];
 
                 return $stepRules;
             case 3: // Workflow-Specific Configuration
@@ -461,6 +463,9 @@ class CreateProject extends Component
         if ($this->form->collaborationTypeVocalTuning) {
             $types[] = 'vocal tuning';
         }
+        if ($this->form->collaborationTypeAudioEditing) {
+            $types[] = 'audio editing';
+        }
 
         return $types;
     }
@@ -480,7 +485,8 @@ class CreateProject extends Component
                                   $this->form->collaborationTypeMastering ||
                                   $this->form->collaborationTypeProduction ||
                                   $this->form->collaborationTypeSongwriting ||
-                                  $this->form->collaborationTypeVocalTuning;
+                                  $this->form->collaborationTypeVocalTuning ||
+                                  $this->form->collaborationTypeAudioEditing;
 
             if (! $hasCollaborationType) {
                 $this->addError('collaboration_type', 'Please select at least one collaboration type.');
@@ -539,6 +545,17 @@ class CreateProject extends Component
         $this->initializeWizardSteps();
 
         $this->project = new Project; // Keep for reference, maybe not needed
+
+        // Check for workflow_type query parameter and auto-advance to step 2
+        if (!$project && request()->has('workflow_type')) {
+            $workflowType = request()->get('workflow_type');
+            $validWorkflowTypes = Project::getWorkflowTypes();
+            
+            if (in_array($workflowType, $validWorkflowTypes)) {
+                $this->workflow_type = $workflowType;
+                $this->currentStep = 2; // Skip step 1 and go directly to step 2
+            }
+        }
 
         if ($project) {
             // Add authorization check for edit mode
@@ -730,6 +747,7 @@ class CreateProject extends Component
         $this->form->collaborationTypeProduction = in_array('Production', $types);
         $this->form->collaborationTypeSongwriting = in_array('Songwriting', $types);
         $this->form->collaborationTypeVocalTuning = in_array('Vocal Tuning', $types);
+        $this->form->collaborationTypeAudioEditing = in_array('Audio Editing', $types);
     }
 
     /**
@@ -948,6 +966,9 @@ class CreateProject extends Component
             if (! empty($this->form->collaborationTypeVocalTuning)) {
                 $collaborationTypes[] = 'Vocal Tuning';
             }
+            if (! empty($this->form->collaborationTypeAudioEditing)) {
+                $collaborationTypes[] = 'Audio Editing';
+            }
 
             // If none selected, use default
             if (empty($collaborationTypes)) {
@@ -989,6 +1010,10 @@ class CreateProject extends Component
                 'target_producer_id' => $this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE ? $this->target_producer_id : null,
                 'client_email' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_email : null,
                 'client_name' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_name : null,
+                
+                // Check for existing user account and auto-link for Client Management
+                'client_user_id' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && $this->client_email ? 
+                    $this->findClientUserByEmail($this->client_email) : null,
 
                 // Add payment_amount for Client Management (this gets passed to the ProjectObserver)
                 'payment_amount' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->payment_amount : null,
@@ -1250,6 +1275,15 @@ class CreateProject extends Component
         ]);
 
         return $result;
+    }
+
+    /**
+     * Find existing user account by email for client management linking
+     */
+    private function findClientUserByEmail(string $email): ?int
+    {
+        $user = \App\Models\User::where('email', $email)->first();
+        return $user ? $user->id : null;
     }
 
     /**

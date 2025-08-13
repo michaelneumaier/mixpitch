@@ -91,7 +91,7 @@ class FeedbackTemplateFactory extends Factory
                         'label' => 'Overall Rating',
                         'required' => true,
                         'max_rating' => 5,
-                        'help_text' => ''
+                        'help_text' => '',
                     ],
                     [
                         'id' => 'comments',
@@ -99,8 +99,8 @@ class FeedbackTemplateFactory extends Factory
                         'label' => 'Comments',
                         'required' => false,
                         'rows' => 3,
-                        'help_text' => ''
-                    ]
+                        'help_text' => '',
+                    ],
                 ],
             ];
         });
@@ -143,7 +143,7 @@ class FeedbackTemplateFactory extends Factory
                         'label' => 'Mix Balance',
                         'required' => true,
                         'max_rating' => 5,
-                        'help_text' => 'Rate the overall balance of the mix'
+                        'help_text' => 'Rate the overall balance of the mix',
                     ],
                     [
                         'id' => 'vocal_level',
@@ -151,7 +151,7 @@ class FeedbackTemplateFactory extends Factory
                         'label' => 'Vocal Level',
                         'required' => true,
                         'options' => ['Too quiet', 'Perfect', 'Too loud'],
-                        'help_text' => 'How is the vocal level?'
+                        'help_text' => 'How is the vocal level?',
                     ],
                 ];
 
@@ -165,7 +165,7 @@ class FeedbackTemplateFactory extends Factory
                         'min' => 0,
                         'max' => 100,
                         'step' => 1,
-                        'help_text' => 'Rate the loudness level'
+                        'help_text' => 'Rate the loudness level',
                     ],
                     [
                         'id' => 'clarity',
@@ -173,7 +173,7 @@ class FeedbackTemplateFactory extends Factory
                         'label' => 'Clarity',
                         'required' => true,
                         'max_rating' => 5,
-                        'help_text' => 'Rate the overall clarity'
+                        'help_text' => 'Rate the overall clarity',
                     ],
                 ];
 
@@ -188,9 +188,9 @@ class FeedbackTemplateFactory extends Factory
     protected function generateQuestionByType(string $type, int $index): array
     {
         $baseQuestion = [
-            'id' => 'question_' . $index,
+            'id' => 'question_'.$index,
             'type' => $type,
-            'label' => $this->faker->words(2, true) . '?',
+            'label' => $this->faker->words(2, true).'?',
             'required' => $this->faker->boolean(),
             'help_text' => $this->faker->sentence(),
         ];

@@ -29,5 +29,3 @@ return new class extends Migration
         Schema::dropIfExists('pitch_milestones');
     }
 };
-
-

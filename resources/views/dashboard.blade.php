@@ -299,8 +299,7 @@
                     </div>
 
                     <!-- Client Management Stats -->
-                    <a href="{{ route('producer.client-management') }}" class="block">
-                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200/60 rounded-xl p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-[1.02]">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200/60 rounded-xl p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] cursor-pointer" onclick="window.location.href='{{ route('producer.client-management') }}'">
                         <div class="flex items-center justify-between mb-3 lg:mb-4">
                             <div class="flex items-center space-x-3">
                                 <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-2.5 rounded-xl shadow-lg">
@@ -360,17 +359,16 @@
                                 <p class="text-sm text-blue-600 mb-4 leading-relaxed">Start managing client projects to unlock professional features, higher earnings, and advanced analytics</p>
                             </div>
                             <div class="space-y-2">
-                                <a href="{{ route('projects.create') }}?workflow_type=client_management" 
+                                <button onclick="event.stopPropagation(); window.location.href='{{ route('projects.create') }}?workflow_type=client_management'" 
                                    class="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
                                     <i class="fas fa-plus mr-2"></i>
                                     Create Your First Client Project
-                                </a>
+                                </button>
                                 <p class="text-xs text-blue-500 font-medium">Click this card to explore the dashboard →</p>
                             </div>
                         </div>
                         @endif
-                        </div>
-                    </a>
+                    </div>
 
                     <!-- Stripe Connect Status -->
                     <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 lg:p-6 shadow-lg">
@@ -581,11 +579,15 @@
                                 @php
                                     $itemType = 'unknown';
                                     if ($item instanceof \App\Models\Project) { 
+                                        // Check if this is a client management project where current user is the client
+                                        if ($item->isClientManagement() && ($item->client_user_id === auth()->id() || $item->client_email === auth()->user()->email)) {
+                                            $itemType = 'client';
+                                        }
                                         // Check if this is a contest project
-                                        if ($item->isContest()) {
+                                        elseif ($item->isContest()) {
                                             $itemType = 'contest';
                                         } else {
-                                        $itemType = 'project'; 
+                                            $itemType = 'project'; 
                                         }
                                     }
                                     elseif ($item instanceof \App\Models\Pitch) { 
@@ -619,7 +621,11 @@
                                     @elseif ($itemType === 'pitch')
                                         @include('dashboard.cards._pitch_card', ['pitch' => $item])
                                     @elseif ($itemType === 'client')
-                                        @include('dashboard.cards._pitch_card', ['pitch' => $item])
+                                        @if ($item instanceof \App\Models\Project)
+                                            @include('dashboard.cards._client_project_card', ['project' => $item])
+                                        @else
+                                            @include('dashboard.cards._pitch_card', ['pitch' => $item])
+                                        @endif
                                     @elseif ($itemType === 'order')
                                         @include('dashboard.cards._order_card', ['order' => $item])
                                     @elseif ($itemType === 'service')

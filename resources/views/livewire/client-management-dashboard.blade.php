@@ -1,13 +1,78 @@
 <div class="p-4 lg:p-6 xl:p-8">
     <!-- Section Header with Overview Icon -->
     <div class="mb-6 lg:mb-8">
-        <h2 class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2 flex items-center">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
-                <i class="fas fa-chart-line text-white text-sm"></i>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+                <h2 class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2 flex items-center">
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
+                        <i class="fas fa-chart-line text-white text-sm"></i>
+                    </div>
+                    Overview
+                </h2>
+                <p class="text-gray-600">Key client project metrics and performance</p>
             </div>
-            Overview
-        </h2>
-        <p class="text-gray-600">Key client project metrics and performance</p>
+            
+            <!-- Client Navigation Dropdown -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" 
+                        class="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                    <i class="fas fa-users mr-2"></i>
+                    <span>Go to Client</span>
+                    <i class="fas fa-chevron-down ml-2 transition-transform duration-200" :class="{ 'rotate-180': open }"></i>
+                </button>
+                
+                <!-- Dropdown Menu -->
+                <div x-show="open" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     @click.away="open = false"
+                     class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 max-h-80 overflow-y-auto">
+                    
+                    <!-- Dropdown Header -->
+                    <div class="px-4 py-2 border-b border-gray-100">
+                        <p class="text-sm font-semibold text-gray-900">Select a Client</p>
+                        <p class="text-xs text-gray-500">{{ count($this->clientsForFilter) }} {{ Str::plural('client', count($this->clientsForFilter)) }} available</p>
+                    </div>
+                    
+                    <!-- Client List -->
+                    <div class="py-1">
+                        @forelse($this->clientsForFilter as $client)
+                            <a href="{{ route('producer.client-detail', $client['id']) }}" 
+                               @click="open = false"
+                               class="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-150">
+                                <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-user text-white text-sm"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">{{ $client['label'] }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        @php
+                                            $projectCount = $this->clientProjects->where('client_id', $client['id'])->count();
+                                        @endphp
+                                        {{ $projectCount }} {{ Str::plural('project', $projectCount) }}
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="px-4 py-8 text-center">
+                                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-users text-gray-400 text-lg"></i>
+                                </div>
+                                <p class="text-sm text-gray-500">No clients found</p>
+                                <p class="text-xs text-gray-400 mt-1">Create your first client management project to get started</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Stats Overview -->
@@ -143,6 +208,19 @@
                         <option value="in_progress">In Progress</option>
                         <option value="completed">Completed</option>
                     </select>
+                    <select wire:model.live="clientFilter" class="flex-1 sm:flex-initial px-3 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        <option value="all">All Clients</option>
+                        @foreach($this->clientsForFilter as $client)
+                            <option value="{{ $client['id'] }}">{{ $client['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @if($this->clientFilter !== 'all')
+                        <a href="{{ route('producer.client-detail', $this->clientFilter) }}" 
+                           class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                            <i class="fas fa-external-link-alt mr-1.5"></i>
+                            View Client
+                        </a>
+                    @endif
                     <select wire:model.live="sortDirection" class="flex-1 sm:flex-initial px-3 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                         <option value="desc">Newest First</option>
                         <option value="asc">Oldest First</option>
@@ -248,7 +326,14 @@
                                     @if($project->client_name)
                                         <div class="flex items-center">
                                             <i class="fas fa-user mr-2 text-gray-400"></i>
-                                            {{ $project->client_name }}
+                                            @if($project->client_id)
+                                                <a href="{{ route('producer.client-detail', $project->client_id) }}" 
+                                                   class="text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200">
+                                                    {{ $project->client_name }}
+                                                </a>
+                                            @else
+                                                {{ $project->client_name }}
+                                            @endif
                                         </div>
                                     @endif
                                     @if($project->client_email)

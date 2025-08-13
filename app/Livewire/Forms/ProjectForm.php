@@ -31,6 +31,8 @@ class ProjectForm extends Form
 
     public $collaborationTypeVocalTuning = false;
 
+    public $collaborationTypeAudioEditing = false;
+
     public $budgetType;
 
     public $budget;
@@ -64,6 +66,7 @@ class ProjectForm extends Form
             'collaborationTypeProduction' => 'boolean',
             'collaborationTypeSongwriting' => 'boolean',
             'collaborationTypeVocalTuning' => 'boolean',
+            'collaborationTypeAudioEditing' => 'boolean',
             'budgetType' => 'required|in:free,paid',
             'budget' => 'nullable',
             'deadline' => 'nullable|date',
@@ -118,6 +121,7 @@ class ProjectForm extends Form
         $this->collaborationTypeProduction = in_array('Production', $project->collaboration_type ?? []);
         $this->collaborationTypeSongwriting = in_array('Songwriting', $project->collaboration_type ?? []);
         $this->collaborationTypeVocalTuning = in_array('Vocal Tuning', $project->collaboration_type ?? []);
+        $this->collaborationTypeAudioEditing = in_array('Audio Editing', $project->collaboration_type ?? []);
         $this->budget = $project->budget ?? 0;
         $this->budgetType = $this->budget > 0 ? 'paid' : 'free';
         $this->notes = $project->notes;

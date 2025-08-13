@@ -1,19 +1,5 @@
 <div>
-    <!-- Background Effects -->
-    <div class="pointer-events-none fixed inset-0 overflow-hidden">
-        <div
-            class="absolute -right-40 -top-40 h-80 w-80 rounded-full bg-gradient-to-br from-blue-400/20 to-purple-600/20 blur-3xl">
-        </div>
-        <div
-            class="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-tr from-purple-400/20 to-pink-600/20 blur-3xl">
-        </div>
-        <div
-            class="absolute left-1/4 top-1/3 h-64 w-64 rounded-full bg-gradient-to-r from-blue-300/10 to-purple-300/10 blur-2xl">
-        </div>
-        <div
-            class="absolute bottom-1/3 right-1/4 h-48 w-48 rounded-full bg-gradient-to-l from-purple-300/15 to-pink-300/15 blur-xl">
-        </div>
-    </div>
+    
 
     <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30">
         <div class="container mx-auto px-2 sm:px-4">

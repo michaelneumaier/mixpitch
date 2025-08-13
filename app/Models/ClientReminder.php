@@ -11,7 +11,9 @@ class ClientReminder extends Model
     use HasFactory;
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_SNOOZED = 'snoozed';
 
     protected $fillable = [
@@ -38,5 +40,3 @@ class ClientReminder extends Model
         return $this->belongsTo(Client::class);
     }
 }
-
-

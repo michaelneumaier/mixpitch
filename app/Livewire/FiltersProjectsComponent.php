@@ -30,6 +30,7 @@ class FiltersProjectsComponent extends Component
         'Production',
         'Songwriting',
         'Vocal Tuning',
+        'Audio Editing',
         // Removed outdated types like 'Producer', 'Mixing Engineer', etc.
     ];
 

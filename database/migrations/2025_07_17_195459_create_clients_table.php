@@ -27,10 +27,10 @@ return new class extends Migration
             $table->decimal('total_spent', 10, 2)->default(0); // Total amount spent by this client
             $table->integer('total_projects')->default(0); // Total number of projects for this client
             $table->timestamps();
-            
+
             // Ensure unique client per producer
             $table->unique(['user_id', 'email']);
-            
+
             // Indexes for performance
             $table->index(['user_id', 'status']);
             $table->index(['user_id', 'last_contacted_at']);

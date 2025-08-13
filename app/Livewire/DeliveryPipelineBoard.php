@@ -32,6 +32,9 @@ class DeliveryPipelineBoard extends Component
     public bool $filterUnpaidMilestones = false;
     public bool $filterRevisionsRequested = false;
     public bool $filterHasReminders = false;
+    
+    // Client filter for individual client pages
+    public ?int $clientId = null;
 
     /** @var array<string, string> */
     public array $columnTitles = [
@@ -67,6 +70,9 @@ class DeliveryPipelineBoard extends Component
         // Load projects and their pitch + relations (assuming one pitch per CM project)
         $projects = Project::where('user_id', $userId)
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->when($this->clientId, function ($query) {
+                $query->where('client_id', $this->clientId);
+            })
             ->with([
                 'pitches' => function ($query) {
                     $query->with([
@@ -315,6 +321,7 @@ class DeliveryPipelineBoard extends Component
 
         return [
             'project_id' => $project->id,
+            'project_slug' => $project->slug,
             'project_name' => $project->name ?? $project->title ?? ('Project #'.$project->id),
             'client_email' => $project->client_email,
             'pitch_id' => $pitch->id,

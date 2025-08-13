@@ -17,10 +17,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Phase 2: Handle client users with dedicated dashboard
-        if ($user->hasRole(User::ROLE_CLIENT)) {
-            return $this->clientDashboard($user);
-        }
+        // Note: Removed separate client dashboard - client projects now show in regular dashboard
 
         // Phase 3: Enhance producer dashboard with earnings and analytics
         $producerData = $this->getProducerAnalytics($user);
@@ -155,6 +152,20 @@ class DashboardController extends Controller
             ->latest('updated_at')
             ->get();
         $workItems = $this->mergeWithTypeKeys($workItems, $ordersAsClient);
+
+        // --- Fetch Client Management Projects Where User is the Client ---
+        $clientProjects = Project::where(function ($query) use ($user) {
+            $query->where('client_user_id', $user->id)
+                  ->orWhere('client_email', $user->email);
+        })
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereIn('status', $activeProjectStatuses)
+            ->with(['pitches' => function ($q) {
+                $q->with(['user', 'files']);
+            }])
+            ->latest('updated_at')
+            ->get();
+        $workItems = $this->mergeWithTypeKeys($workItems, $clientProjects);
 
         // --- Fetch Items Where User is the Producer/Assignee ---
         $assignedPitches = Pitch::where('user_id', $user->id)
@@ -426,17 +437,28 @@ class DashboardController extends Controller
     }
 
     /**
-     * Show the full client management dashboard for producers.
+     * Show the full client management dashboard for all registered users.
      */
     public function clientManagement()
     {
         $user = Auth::user();
         
-        // Ensure user is a producer or admin
-        if (!$user->hasRole(User::ROLE_PRODUCER) && !$user->hasRole(User::ROLE_ADMIN)) {
-            abort(403, 'Access denied. Producer role required.');
-        }
-
+        // Client management is now available to all registered users
         return view('producer.client-management');
+    }
+
+    /**
+     * Show individual client detail dashboard.
+     */
+    public function clientDetail(\App\Models\Client $client)
+    {
+        $user = Auth::user();
+        
+        // Ensure the client belongs to the current user
+        if ($client->user_id !== $user->id) {
+            abort(403, 'Access denied. You can only view your own clients.');
+        }
+        
+        return view('producer.client-detail', compact('client'));
     }
 }

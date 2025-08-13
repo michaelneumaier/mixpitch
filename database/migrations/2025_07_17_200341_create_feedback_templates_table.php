@@ -22,7 +22,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true); // Template is active/available
             $table->integer('usage_count')->default(0); // How many times this template has been used
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['user_id', 'is_active']);
             $table->index(['category', 'is_default']);

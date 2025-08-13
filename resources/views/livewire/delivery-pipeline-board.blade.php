@@ -143,7 +143,7 @@
               </div>
 
                <div class="mt-3 flex items-center gap-2">
-                 <a href="{{ route('projects.manage-client', $card['project_id']) }}" class="px-2 py-1 text-xs rounded-md bg-white border border-gray-200 hover:bg-gray-50">Manage</a>
+                 <a href="{{ route('projects.manage-client', $card['project_slug']) }}" class="px-2 py-1 text-xs rounded-md bg-white border border-gray-200 hover:bg-gray-50">Manage</a>
                  @if($key === 'make' && $card['files_total'] > 0)
                    <button wire:click="submitForReview({{ $card['project_id'] }})" class="px-2 py-1 text-xs rounded-md bg-purple-600 text-white hover:bg-purple-700">Submit for Review</button>
                  @endif

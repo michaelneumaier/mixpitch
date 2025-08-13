@@ -29,8 +29,8 @@
                 <!-- Hidden timezone input for server-side conversion -->
                 <input type="hidden" id="user-timezone" name="user_timezone" value="{{ auth()->user()->getTimezone() }}">
                 
-                <!-- Enhanced Progress Indicator Background -->
-                <div class="bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl mb-4 lg:mb-6 p-4 lg:p-6">
+                <!-- Progress Indicator -->
+                <div class="mb-4 lg:mb-6">
                     <x-wizard.progress-indicator 
                         :currentStep="$currentStep" 
                         :totalSteps="$totalSteps" 
@@ -175,31 +175,53 @@
                                         </div>
 
                                         <!-- Collaboration Types -->
-                                        <div>
+                                        <div class="lg:col-span-2">
                                             <label class="block text-sm font-medium text-gray-700 mb-3">
                                                 What type of collaboration are you looking for? 
                                                 <span class="text-gray-500">(Optional)</span>
                                             </label>
-                                            <div class="space-y-2 lg:space-y-3">
-                                                <label class="flex items-center">
-                                                    <input type="checkbox" wire:model="form.collaborationTypeMixing" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                    <span class="ml-2 text-sm text-gray-700">Mixing</span>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+                                                <label class="flex items-center p-3 lg:p-4 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-xl hover:bg-blue-50/50 transition-all duration-200 cursor-pointer">
+                                                    <input type="checkbox" wire:model="form.collaborationTypeMixing" class="rounded border-blue-300 text-blue-600 focus:ring-blue-500 mr-2 lg:mr-3">
+                                                    <div>
+                                                        <div class="font-medium text-blue-800 text-sm sm:text-base">Mixing</div>
+                                                        <div class="text-xs text-blue-600">Audio mixing services</div>
+                                                    </div>
                                                 </label>
-                                                <label class="flex items-center">
-                                                    <input type="checkbox" wire:model="form.collaborationTypeMastering" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                    <span class="ml-2 text-sm text-gray-700">Mastering</span>
+                                                <label class="flex items-center p-3 lg:p-4 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-xl hover:bg-blue-50/50 transition-all duration-200 cursor-pointer">
+                                                    <input type="checkbox" wire:model="form.collaborationTypeMastering" class="rounded border-blue-300 text-blue-600 focus:ring-blue-500 mr-2 lg:mr-3">
+                                                    <div>
+                                                        <div class="font-medium text-blue-800 text-sm sm:text-base">Mastering</div>
+                                                        <div class="text-xs text-blue-600">Audio mastering services</div>
+                                                    </div>
                                                 </label>
-                                                <label class="flex items-center">
-                                                    <input type="checkbox" wire:model="form.collaborationTypeProduction" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                    <span class="ml-2 text-sm text-gray-700">Production</span>
+                                                <label class="flex items-center p-3 lg:p-4 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-xl hover:bg-blue-50/50 transition-all duration-200 cursor-pointer">
+                                                    <input type="checkbox" wire:model="form.collaborationTypeProduction" class="rounded border-blue-300 text-blue-600 focus:ring-blue-500 mr-2 lg:mr-3">
+                                                    <div>
+                                                        <div class="font-medium text-blue-800 text-sm sm:text-base">Production</div>
+                                                        <div class="text-xs text-blue-600">Music production</div>
+                                                    </div>
                                                 </label>
-                                                <label class="flex items-center">
-                                                    <input type="checkbox" wire:model="form.collaborationTypeSongwriting" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                    <span class="ml-2 text-sm text-gray-700">Songwriting</span>
+                                                <label class="flex items-center p-3 lg:p-4 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-xl hover:bg-blue-50/50 transition-all duration-200 cursor-pointer">
+                                                    <input type="checkbox" wire:model="form.collaborationTypeSongwriting" class="rounded border-blue-300 text-blue-600 focus:ring-blue-500 mr-2 lg:mr-3">
+                                                    <div>
+                                                        <div class="font-medium text-blue-800 text-sm sm:text-base">Songwriting</div>
+                                                        <div class="text-xs text-blue-600">Songwriting collaboration</div>
+                                                    </div>
                                                 </label>
-                                                <label class="flex items-center">
-                                                    <input type="checkbox" wire:model="form.collaborationTypeVocalTuning" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                    <span class="ml-2 text-sm text-gray-700">Vocal Tuning</span>
+                                                <label class="flex items-center p-3 lg:p-4 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-xl hover:bg-blue-50/50 transition-all duration-200 cursor-pointer">
+                                                    <input type="checkbox" wire:model="form.collaborationTypeVocalTuning" class="rounded border-blue-300 text-blue-600 focus:ring-blue-500 mr-2 lg:mr-3">
+                                                    <div>
+                                                        <div class="font-medium text-blue-800 text-sm sm:text-base">Vocal Tuning</div>
+                                                        <div class="text-xs text-blue-600">Vocal tuning services</div>
+                                                    </div>
+                                                </label>
+                                                <label class="flex items-center p-3 lg:p-4 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-xl hover:bg-blue-50/50 transition-all duration-200 cursor-pointer">
+                                                    <input type="checkbox" wire:model="form.collaborationTypeAudioEditing" class="rounded border-blue-300 text-blue-600 focus:ring-blue-500 mr-2 lg:mr-3">
+                                                    <div>
+                                                        <div class="font-medium text-blue-800 text-sm sm:text-base">Audio Editing</div>
+                                                        <div class="text-xs text-blue-600">Audio editing services</div>
+                                                    </div>
                                                 </label>
                                             </div>
                                             @error('collaboration_type')
@@ -659,6 +681,18 @@
                                             @error('title') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                                         </div>
 
+                                        <!-- Artist Name -->
+                                        <div>
+                                            <label class="block text-sm sm:text-base font-medium text-gray-700 mb-2">
+                                                Artist Name
+                                                @if($workflow_type !== \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+                                                    <span class="text-gray-500">(Optional)</span>
+                                                @endif
+                                            </label>
+                                            <input wire:model="form.artistName" type="text" class="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" placeholder="Enter artist name" maxlength="30">
+                                            @error('form.artistName') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+
                                         <!-- Genre -->
                                         <div>
                                             <label class="block text-sm sm:text-base font-medium text-gray-700 mb-2">
@@ -737,6 +771,13 @@
                                             <div>
                                                 <div class="font-medium text-green-800 text-sm sm:text-base">Vocal Tuning</div>
                                                 <div class="text-xs text-green-600">Vocal tuning services</div>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center p-3 lg:p-4 bg-white/60 backdrop-blur-sm border border-green-200/50 rounded-xl hover:bg-green-50/50 transition-all duration-200 cursor-pointer md:col-span-2 lg:col-span-1">
+                                            <input type="checkbox" wire:model="form.collaborationTypeAudioEditing" class="rounded border-green-300 text-green-600 focus:ring-green-500 mr-2 lg:mr-3">
+                                            <div>
+                                                <div class="font-medium text-green-800 text-sm sm:text-base">Audio Editing</div>
+                                                <div class="text-xs text-green-600">Audio editing services</div>
                                             </div>
                                         </label>
                                     </div>

@@ -142,8 +142,9 @@
                                                         (strtolower($collaborationType) == 'mastering' ? 'fa-compact-disc' : 
                                                         (strtolower($collaborationType) == 'production' ? 'fa-music' : 
                                                         (strtolower($collaborationType) == 'vocals' || strtolower($collaborationType) == 'vocal tuning' ? 'fa-microphone' : 
+                                                        (strtolower($collaborationType) == 'audio editing' ? 'fa-cut' :
                                                         (strtolower($collaborationType) == 'instruments' ? 'fa-guitar' : 
-                                                        (strtolower($collaborationType) == 'songwriting' ? 'fa-pen-fancy' : 'fa-tasks'))))) 
+                                                        (strtolower($collaborationType) == 'songwriting' ? 'fa-pen-fancy' : 'fa-tasks')))))) 
                                                     }} mr-3 text-indigo-600"></i>
                                                     {{ $collaborationType }}
                                                 </span>
