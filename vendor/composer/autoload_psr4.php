@@ -147,6 +147,7 @@ return array(
     'GuzzleHttp\\' => array($vendorDir . '/guzzlehttp/guzzle/src'),
     'GrahamCampbell\\ResultType\\' => array($vendorDir . '/graham-campbell/result-type/src'),
     'Fruitcake\\Cors\\' => array($vendorDir . '/fruitcake/php-cors/src'),
+    'Flux\\' => array($vendorDir . '/livewire/flux/src'),
     'Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
     'Filament\\Widgets\\' => array($vendorDir . '/filament/widgets/src'),
     'Filament\\Tables\\' => array($vendorDir . '/filament/tables/src'),
