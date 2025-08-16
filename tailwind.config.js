@@ -41,41 +41,9 @@ export default {
         },
     },
 
-    daisyui: {
-        themes: [{
-            mytheme: {
-                "primary": "#0b4d1d",
-                "secondary": "#233303",
-                "accent": "#5a8c5e",
-                "neutral": "#3D372B",
-                "base-100": "#F8FCF0",
-                "info": "#91DAFA",
-                "success": "#1CD945",
-                "warning": "#FFB700",
-                "error": "#F74931",
-            },
-        },
-        {
-            main: {
-                "primary": "#263640",
-                "secondary": "#263640",
-                "accent": "#00EF2B",
-                "accent-focus": "#66ff66",
-                "neutral": "#3D372B",
-                "base-100": "#F7FAFC",
-                "info": "#91DAFA",
-                "success": "#1CD945",
-                "warning": "#FFB700",
-                "error": "#F74931",
-            },
-        },],
-    },
-
-
     plugins: [
         forms,
         typography,
         require('@tailwindcss/forms'),
-        require('@tailwindcss/aspect-ratio'),
-        require("daisyui")],
+        require('@tailwindcss/aspect-ratio')],
 };
