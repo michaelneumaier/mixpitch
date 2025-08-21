@@ -21,7 +21,7 @@
 @endphp
 
 @if($pendingPayouts->count() > 0 || $recentCompletedPayouts->count() > 0)
-<div class="mb-6">
+<div class="mb-2">
     <!-- Pending Payouts Alert -->
     @if($pendingPayouts->count() > 0)
     <div class="relative overflow-hidden bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-2xl p-6 mb-4 shadow-lg">

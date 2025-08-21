@@ -3,10 +3,6 @@
     <div class="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5"></div>
     
-    <!-- Decorative Elements -->
-    <div class="absolute top-20 left-10 w-20 h-20 bg-blue-200/30 rounded-full blur-xl"></div>
-    <div class="absolute bottom-20 right-10 w-32 h-32 bg-purple-200/30 rounded-full blur-xl"></div>
-    <div class="absolute top-1/2 left-1/4 w-16 h-16 bg-pink-200/30 rounded-full blur-xl"></div>
 
     <div class="container mx-auto px-2 sm:px-4 py-4 lg:py-6 relative z-10">
         <link href="{{ asset('css/projects-page.css') }}" rel="stylesheet">

@@ -5,6 +5,9 @@
 @import "../../vendor/livewire/flux/dist/flux.css";
 @config "../../tailwind.config.js";
 
+/* Dark mode custom variant for Flux UI */
+@custom-variant dark (&:where(.dark, .dark *));
+
 [x-cloak] {
     display: none;
 }

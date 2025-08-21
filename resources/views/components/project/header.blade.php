@@ -5,335 +5,344 @@
     'context' => 'view', // 'view', 'manage', 'client'
     'showActions' => true,
     'userPitch' => null,
-    'canPitch' => false
+    'canPitch' => false,
+    'autoAllowAccess' => null
 ])
 
-<!-- Modern Project Header with Glass Morphism -->
-<div class="relative mb-6 sm:mb-8 lg:mb-12">
-    <!-- Background Effects -->
-    <div class="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-purple-50/20 to-pink-50/30 rounded-2xl"></div>
-    <div class="absolute top-4 left-4 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl"></div>
-    <div class="absolute bottom-4 right-4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl"></div>
+@php
+    // Determine project status color and messaging based on UX guidelines
+    $statusConfig = match($project->status) {
+        'open' => [
+            'color' => 'blue',
+            'message' => 'Accepting Pitches',
+            'icon' => 'folder-open'
+        ],
+        'in_progress' => [
+            'color' => 'amber', 
+            'message' => 'In Progress',
+            'icon' => 'clock'
+        ],
+        'completed' => [
+            'color' => 'green',
+            'message' => 'Completed',
+            'icon' => 'check-circle'
+        ],
+        'unpublished' => [
+            'color' => 'gray',
+            'message' => 'Draft',
+            'icon' => 'document'
+        ],
+        default => [
+            'color' => 'gray',
+            'message' => ucfirst(str_replace('_', ' ', $project->status)),
+            'icon' => 'information-circle'
+        ]
+    };
+
+    // Determine primary action based on project state and user role
+    $primaryAction = null;
+    $user = auth()->user();
     
-    <!-- Main Header Card -->
-    <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl overflow-hidden">
-        <div class="flex flex-col lg:flex-row min-h-[280px] sm:min-h-[320px] lg:min-h-[400px]">
-            <!-- Project Image Section -->
-            <div x-data="{ lightbox: { isOpen: false } }" class="relative lg:w-80 flex-shrink-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col h-[200px] sm:h-[240px] lg:h-full lg:min-h-[400px]">
-                @if($project->image_path)
-                    <img @click="lightbox.isOpen = true" 
-                         src="{{ $project->imageUrl }}" 
-                         alt="{{ $project->name }}"
-                         class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-all duration-300 ease-out flex-1">
-                @else
-                    <div class="w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 flex items-center justify-center flex-1">
-                        <div class="text-center">
-                            <i class="fas fa-music text-5xl sm:text-6xl lg:text-7xl text-blue-400/60 mb-2"></i>
-                            <p class="text-sm text-gray-500 font-medium">No Image</p>
-                        </div>
-                    </div>
-                @endif
-                
-                <!-- Workflow Type Badge -->
-                <div class="absolute bottom-4 left-4">
-                    @php
-                        $workflowConfig = [
-                            'standard' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-users', 'label' => 'Standard'],
-                            'contest' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'icon' => 'fa-trophy', 'label' => 'Contest'],
-                            'direct_hire' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-user-check', 'label' => 'Direct Hire'],
-                            'client_management' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'icon' => 'fa-briefcase', 'label' => 'Client Project'],
-                        ];
-                        $workflowType = $project->workflow_type ?? 'standard';
-                        $workflowStyle = $workflowConfig[$workflowType] ?? $workflowConfig['standard'];
-                    @endphp
-                    <span class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium {{ $workflowStyle['bg'] }} {{ $workflowStyle['text'] }} border border-white/20 shadow-lg backdrop-blur-sm">
-                        <i class="fas {{ $workflowStyle['icon'] }} mr-2"></i>
-                        {{ $workflowStyle['label'] }}
-                    </span>
-                </div>
-                
-                <!-- Status Badge -->
-                <div class="absolute top-4 right-4">
-                    @php
-                        $statusConfig = [
-                            'unpublished' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'icon' => 'fa-eye-slash'],
-                            'open' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-check-circle'],
-                            'review' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-eye'],
-                            'completed' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'icon' => 'fa-check'],
-                            'closed' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'icon' => 'fa-times-circle'],
-                        ];
-                        $config = $statusConfig[$project->status] ?? ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'icon' => 'fa-question-circle'];
-                    @endphp
-                    <span class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium {{ $config['bg'] }} {{ $config['text'] }} border border-white/20 shadow-lg backdrop-blur-sm">
-                        <i class="fas {{ $config['icon'] }} mr-2"></i>
-                        {{ ucfirst($project->status) }}
-                    </span>
-                </div>
-                
-                <!-- Preview Track Player -->
-                @if($hasPreviewTrack)
-                    <div class="absolute bottom-4 right-4">
-                        @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isInCard' => true])
-                    </div>
-                @endif
+    if ($project->user_id === $user->id) {
+        // Project owner actions
+        if ($project->status === 'unpublished' && !$project->isClientManagement()) {
+            $primaryAction = [
+                'action' => 'wire:click="publish"',
+                'label' => 'Publish Project',
+                'variant' => 'primary'
+            ];
+        } elseif ($project->status === 'open' && $project->pitches()->count() > 0) {
+            $primaryAction = [
+                'url' => '#pitch-review',
+                'label' => 'Review Pitches',
+                'variant' => 'primary'
+            ];
+        } elseif ($project->status === 'in_progress') {
+            $primaryAction = [
+                'url' => '#current-work',
+                'label' => 'View Progress',
+                'variant' => 'primary'
+            ];
+        } elseif ($project->status === 'open') {
+            $primaryAction = [
+                'type' => 'modal',
+                'modal' => 'shareProject',
+                'label' => 'Share Project',
+                'variant' => 'outline'
+            ];
+        }
+    } else {
+        // Producer/collaborator actions
+        if (!$userPitch && $project->status === 'open' && $canPitch) {
+            $primaryAction = [
+                'url' => "javascript:openPitchTermsModal()",
+                'label' => 'Submit Pitch',
+                'variant' => 'primary'
+            ];
+        } elseif ($userPitch) {
+            $primaryAction = [
+                'url' => route('pitches.show', $userPitch),
+                'label' => 'View My Pitch',
+                'variant' => 'outline'
+            ];
+        }
+    }
 
-                <!-- Image Upload Button (Manage Context Only) -->
-                @if($context === 'manage' && auth()->check() && $project->isOwnedByUser(auth()->user()))
-                    <!-- Desktop: Bottom-right corner -->
-                    <div class="hidden sm:block absolute bottom-4 right-4 z-10">
-                        <button @click="$wire.showImageUpload()" 
-                                class="group relative bg-white/90 backdrop-blur-md hover:bg-white border-2 border-white/20 hover:border-blue-300 rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110">
-                            <!-- Button Content -->
-                            <div class="flex items-center justify-center w-8 h-8">
-                                @if($project->image_path)
-                                    <i class="fas fa-edit text-blue-600 group-hover:text-blue-700 transition-colors"></i>
-                                @else
-                                    <i class="fas fa-camera text-blue-600 group-hover:text-blue-700 transition-colors"></i>
-                                @endif
-                            </div>
-                            
-                            <!-- Tooltip -->
-                            <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block">
-                                <div class="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap shadow-lg">
-                                    {{ $project->image_path ? 'Update Image' : 'Add Image' }}
-                                    <div class="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Hover Ring -->
-                            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
-                        </button>
-                    </div>
-                    
-                    <!-- Mobile: Smaller circular button -->
-                    <div class="sm:hidden absolute bottom-3 right-3 z-10">
-                        <button @click="$wire.showImageUpload()" 
-                                class="group relative bg-white/90 backdrop-blur-md hover:bg-white border-2 border-white/20 hover:border-blue-300 rounded-full p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110">
-                            <!-- Button Content -->
-                            <div class="flex items-center justify-center w-6 h-6">
-                                @if($project->image_path)
-                                    <i class="fas fa-edit text-blue-600 group-hover:text-blue-700 transition-colors text-sm"></i>
-                                @else
-                                    <i class="fas fa-camera text-blue-600 group-hover:text-blue-700 transition-colors text-sm"></i>
-                                @endif
-                            </div>
-                            
-                            <!-- Hover Ring -->
-                            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
-                        </button>
-                    </div>
-                @endif
+    // Calculate time status
+    $timeStatus = '';
+    if ($project->deadline && $project->status !== 'completed') {
+        $daysRemaining = now()->diffInDays($project->deadline, false);
+        if ($daysRemaining < 0) {
+            $overdueDays = abs($daysRemaining);
+            $timeStatus = 'Overdue by ' . $overdueDays . ' ' . ($overdueDays === 1 ? 'day' : 'days');
+        } elseif ($daysRemaining === 0) {
+            $timeStatus = 'Due today';
+        } elseif ($daysRemaining <= 3) {
+            $timeStatus = 'Due in ' . $daysRemaining . ' ' . ($daysRemaining === 1 ? 'day' : 'days');
+        } else {
+            $timeStatus = 'Due ' . $project->deadline->format('M j');
+        }
+    } elseif ($project->status === 'completed') {
+        $timeStatus = 'Completed ' . $project->updated_at->diffForHumans();
+    } else {
+        $timeStatus = 'Created ' . $project->created_at->diffForHumans();
+    }
+@endphp
 
-                <!-- Lightbox -->
-                @if($project->image_path)
-                    <div x-cloak x-show="lightbox.isOpen" 
-                         class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-all duration-300"
-                         x-transition:enter="transition ease-out duration-300"
-                         x-transition:enter-start="opacity-0"
-                         x-transition:enter-end="opacity-100"
-                         x-transition:leave="transition ease-in duration-200"
-                         x-transition:leave-start="opacity-100"
-                         x-transition:leave-end="opacity-0">
-                        <div class="relative max-w-4xl mx-auto p-4">
-                            <img class="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl rounded-xl" 
-                                 src="{{ $project->imageUrl }}" 
-                                 alt="{{ $project->name }}">
-                            <button @click="lightbox.isOpen = false" 
-                                    class="absolute top-6 right-6 text-white bg-gray-900/50 hover:bg-gray-900/75 rounded-full p-3 transition-all duration-200 hover:scale-110">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                @endif
+<!-- Simplified Project Header -->
+<flux:card class="mb-2">
+    <!-- Main Header Content -->
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <!-- Project Identity -->
+        <div class="flex items-start gap-3 min-w-0 flex-1">
+            <!-- Project Type Icon -->
+            <div class="flex-shrink-0 mt-1">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br {{ $statusConfig['color'] === 'blue' ? 'from-blue-500 to-indigo-600' : ($statusConfig['color'] === 'green' ? 'from-emerald-500 to-green-600' : ($statusConfig['color'] === 'amber' ? 'from-amber-500 to-yellow-600' : 'from-slate-400 to-slate-500')) }} flex items-center justify-center shadow-sm">
+                    <flux:icon name="{{ $statusConfig['icon'] }}" class="w-5 h-5 text-white" />
+                </div>
             </div>
-
-            <!-- Project Details Section -->
-            <div class="flex-1 p-6 lg:p-8 flex flex-col">
-                <!-- Title and Artist -->
-                <div class="mb-6">
-                    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 leading-tight">
-                        @if($context === 'view')
-                            {{ $project->name }}
-                        @else
-                            <a href="{{ route('projects.show', $project) }}" 
-                               class="hover:text-blue-600 transition-colors duration-200">
-                                {{ $project->name }}
-                            </a>
-                        @endif
-                    </h1>
-                    @if($project->artist_name)
-                        <div class="flex items-center text-gray-600 mb-4">
-                            <div class="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full mr-3">
-                                <i class="fas fa-microphone text-purple-600 text-sm"></i>
-                            </div>
-                            <span class="text-lg font-medium">{{ $project->artist_name }}</span>
-                        </div>
-                    @endif
-                </div>
-
-                <!-- Project Owner -->
-                <div class="flex items-center mb-6">
-                    <img class="h-12 w-12 rounded-full object-cover mr-4 border-2 border-white shadow-md" 
-                         src="{{ $project->user->profile_photo_url }}" 
-                         alt="{{ $project->user->name }}">
-                    <div>
-                        <p class="text-lg font-semibold text-gray-900">
-                            @if(isset($components) && isset($components['user-link']))
-                                <x-user-link :user="$project->user" />
-                            @else
-                                {{ $project->user->name }}
-                            @endif
-                        </p>
-                        <p class="text-sm text-gray-500">Project Owner</p>
-                    </div>
-                </div>
-
-                <!-- Project Metadata Cards -->
-                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                    <!-- Project Type -->
-                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200/50">
-                        <div class="flex items-center mb-2">
-                            <i class="fas fa-tag text-blue-600 mr-2"></i>
-                            <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Type</span>
-                        </div>
-                        <div class="text-sm font-bold text-blue-900">{{ Str::title($project->project_type) }}</div>
-                    </div>
-
-                    <!-- Budget/Prizes -->
-                    @if($project->isContest())
-                        <!-- Contest Prizes -->
-                        <div class="bg-gradient-to-br from-amber-50 to-yellow-100 rounded-xl p-4 border border-amber-200/50">
-                            <div class="flex items-center mb-2">
-                                <i class="fas fa-trophy text-amber-600 mr-2"></i>
-                                <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Prizes</span>
-                            </div>
-                            <div class="text-sm font-bold text-amber-900">
-                                @if($project->hasPrizes())
-                                    @php $totalCash = $project->getTotalPrizeBudget(); @endphp
-                                    @if($totalCash > 0)
-                                        ${{ number_format($totalCash) }}+
-                                    @else
-                                        {{ $project->contestPrizes()->count() }} Prize{{ $project->contestPrizes()->count() > 1 ? 's' : '' }}
-                                    @endif
-                                @elseif($project->prize_amount && $project->prize_amount > 0)
-                                    ${{ number_format($project->prize_amount) }}
-                                @else
-                                    No Prizes
-                                @endif
-                            </div>
-                        </div>
+            
+            <!-- Project Info -->
+            <div class="min-w-0 flex-1">
+                <flux:heading size="lg" class="text-slate-900 dark:text-slate-100 mb-2">
+                    @if($context === 'view')
+                        {{ $project->name }}
                     @else
-                        <!-- Standard Budget -->
-                        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200/50">
-                            <div class="flex items-center mb-2">
-                                <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
-                                <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Budget</span>
-                            </div>
-                            <div class="text-sm font-bold text-green-900">
-                                @if (is_numeric($project->budget) && $project->budget > 0)
-                                    ${{ number_format((float) $project->budget, 0) }}
-                                @elseif(is_numeric($project->budget) && $project->budget == 0)
-                                    Free
-                                @else
-                                    TBD
-                                @endif
-                            </div>
-                        </div>
+                        <a href="{{ route('projects.show', $project) }}" 
+                           class="hover:text-blue-600 transition-colors duration-200">
+                            {{ $project->name }}
+                        </a>
                     @endif
-
-                    <!-- Deadline -->
-                    @if($project->isContest() ? $project->submission_deadline : $project->deadline)
-                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200/50 col-span-2 lg:col-span-1">
-                            <div class="flex items-center mb-2">
-                                <i class="fas fa-calendar text-purple-600 mr-2"></i>
-                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">{{ $project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
-                            </div>
-                            @if($project->isContest())
-                                <div class="text-sm font-bold text-purple-900">
-                                    <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
-                                </div>
-                                <div class="text-xs text-purple-600 mt-1">
-                                    <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
-                                </div>
-                            @else
-                                <div class="text-sm font-bold text-purple-900">
-                                    <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
-                                </div>
-                                <div class="text-xs text-purple-600 mt-1">
-                                    <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
-                                </div>
-                            @endif
-                        </div>
-                    @endif
+                </flux:heading>
+                
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <!-- Status Badge -->
+                    <flux:badge color="{{ $statusConfig['color'] }}" size="sm" icon="{{ $statusConfig['icon'] }}">
+                        {{ $statusConfig['message'] }}
+                    </flux:badge>
+                    
+                    <!-- Workflow Type -->
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {{ $project->readable_workflow_type }}
+                    </span>
                 </div>
-
-                <!-- Action Buttons -->
-                @if($showActions)
-                    <div class="mt-auto">
-                        @if($context === 'manage' || ($showEditButton && auth()->check() && $project->isOwnedByUser(auth()->user())))
-                            <div class="{{ $context === 'manage' ? 'hidden lg:flex' : 'flex' }} flex-col sm:flex-row gap-3">
-                                @if($context !== 'manage')
-                                    <a href="{{ route('projects.manage', $project) }}" 
-                                       class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl text-center font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                        <i class="fas fa-cog mr-2"></i>Manage Project
-                                    </a>
-                                @endif
-                                @if($context === 'manage')
-                                    <a href="{{ route('projects.show', $project) }}" 
-                                       class="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-3 px-6 rounded-xl text-center font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                        <i class="fas fa-eye mr-2"></i>View Project
-                                    </a>
-                                @endif
-                                @if($showEditButton)
-                                    <a href="{{ route('projects.edit', $project) }}" 
-                                       class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white py-3 px-6 rounded-xl text-center font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                        <i class="fas fa-edit mr-2"></i>Edit Details
-                                    </a>
-                                @endif
-                            </div>
-                            
-                            <!-- Contest Judging Navigation -->
-                            @if($project->isContest() && auth()->check() && auth()->user()->can('judgeContest', $project))
-                                <div class="mt-3 flex flex-col sm:flex-row gap-3">
-                                    @if($project->isJudgingFinalized())
-                                        <a href="{{ route('projects.contest.results', $project) }}" 
-                                           class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-6 rounded-xl text-center font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                            <i class="fas fa-trophy mr-2"></i>View Results
-                                        </a>
-                                        <a href="{{ route('projects.contest.judging', $project) }}" 
-                                           class="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white py-3 px-6 rounded-xl text-center font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                            <i class="fas fa-gavel mr-2"></i>Judging Dashboard
-                                        </a>
-                                    @else
-                                        <a href="{{ route('projects.contest.judging', $project) }}" 
-                                           class="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white py-3 px-6 rounded-xl text-center font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                            <i class="fas fa-gavel mr-2"></i>Judge Contest
-                                        </a>
-                                    @endif
-                                </div>
+            </div>
+        </div>
+        
+        <!-- Actions Dropdown -->
+        @if($showActions)
+            <div class="flex-shrink-0">
+                <flux:dropdown position="bottom" align="end">
+                    <flux:button variant="primary" size="base" icon="chevron-down" class="w-full sm:w-auto font-semibold">
+                        Manage
+                    </flux:button>
+                    
+                    <flux:menu>
+                        <!-- Primary Action (if exists) -->
+                        @if($primaryAction)
+                            @if(isset($primaryAction['action']))
+                                <flux:menu.item wire:click="publish" icon="{{ $statusConfig['icon'] }}">
+                                    {{ $primaryAction['label'] }}
+                                </flux:menu.item>
+                            @elseif(isset($primaryAction['type']) && $primaryAction['type'] === 'modal')
+                                <flux:modal.trigger name="{{ $primaryAction['modal'] }}">
+                                    <flux:menu.item icon="share">
+                                        {{ $primaryAction['label'] }}
+                                    </flux:menu.item>
+                                </flux:modal.trigger>
+                            @else
+                                <flux:menu.item href="{{ $primaryAction['url'] }}" icon="{{ $statusConfig['icon'] }}">
+                                    {{ $primaryAction['label'] }}
+                                </flux:menu.item>
                             @endif
-                        @else
-                            <div class="space-y-3">
-                                @if($userPitch)
-                                    <!-- Full Width Pitch Status Badge -->
-                                    <div class="w-full">
-                                        <span class="w-full flex items-center justify-center px-6 py-4 rounded-xl text-lg font-bold {{ $userPitch->getStatusColorClass() }} border border-white/30 shadow-lg backdrop-blur-sm">
-                                            {{ $userPitch->readable_status }}
-                                        </span>
-                                    </div>
-                                @elseif ($canPitch)
-                                    <button onclick="openPitchTermsModal()" 
-                                            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                        <i class="fas fa-paper-plane mr-2"></i>Start Your Pitch
-                                    </button>
-                                @endif
-                            </div>
+                            <flux:menu.separator />
                         @endif
+                        
+                        <!-- Standard Actions -->
+                        @if($context === 'manage')
+                            @if($project->isClientManagement())
+                                <!-- Client Management Specific Actions -->
+                                <flux:menu.item wire:click="previewClientPortal" icon="eye">
+                                    Preview Client Portal
+                                </flux:menu.item>
+                                
+                                <flux:menu.item wire:click="resendClientInvite" icon="envelope">
+                                    Resend Client Invite
+                                </flux:menu.item>
+                            @else
+                                <!-- Standard Project Actions -->
+                                <flux:menu.item href="{{ route('projects.show', $project) }}" icon="eye">
+                                    View Public
+                                </flux:menu.item>
+                            @endif
+                            
+                            <!-- Edit/Settings -->
+                            @if($showEditButton)
+                                <flux:menu.item href="{{ route('projects.edit', $project) }}" icon="cog-6-tooth">
+                                    Project Settings
+                                </flux:menu.item>
+                            @endif
+                            
+                            
+                            <!-- Reddit Integration (Not for Client Management) -->
+                            @if(!$project->isClientManagement())
+                                @if($project->hasBeenPostedToReddit())
+                                    <flux:menu.item href="{{ $project->getRedditUrl() }}" target="_blank" icon="arrow-top-right-on-square">
+                                        View on Reddit
+                                    </flux:menu.item>
+                                @elseif($project->is_published)
+                                    <flux:menu.item wire:click="postToReddit" icon="globe-alt">
+                                        Post to r/MixPitch
+                                    </flux:menu.item>
+                                @endif
+                            @endif
+                            
+                            <!-- Auto-Allow Access Toggle (for Standard/Contest projects) -->
+                            @if(!$project->isClientManagement() && !$project->isDirectHire())
+                                <flux:menu.item wire:click="$toggle('autoAllowAccess')" icon="{{ $autoAllowAccess ?? $project->auto_allow_access ? 'check-circle' : 'x-circle' }}">
+                                    {{ ($autoAllowAccess ?? $project->auto_allow_access) ? 'Disable' : 'Enable' }} Auto-Approve
+                                </flux:menu.item>
+                            @endif
+
+                            
+                            <flux:menu.separator />
+                            
+                            <!-- Publish/Unpublish Toggle (Not for Client Management) -->
+                            @if($project->user_id === auth()->id() && !$project->isClientManagement())
+                                @if($project->is_published)
+                                    <flux:menu.item wire:click="unpublish" icon="eye-slash">
+                                        Unpublish Project
+                                    </flux:menu.item>
+                                @elseif($project->status !== 'unpublished')
+                                    <flux:menu.item wire:click="publish" icon="globe-alt">
+                                        Publish Project
+                                    </flux:menu.item>
+                                @endif
+                            @endif
+                            
+                            <!-- Additional Management Actions -->
+                            @if($project->isContest() && auth()->check() && auth()->user()->can('judgeContest', $project))
+                                <flux:menu.separator />
+                                @if($project->isJudgingFinalized())
+                                    <flux:menu.item href="{{ route('projects.contest.results', $project) }}" icon="trophy">
+                                        View Results
+                                    </flux:menu.item>
+                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="gavel">
+                                        Judging Dashboard
+                                    </flux:menu.item>
+                                @else
+                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="gavel">
+                                        Judge Contest
+                                    </flux:menu.item>
+                                @endif
+                            @endif
+                            
+                            <!-- Danger Zone -->
+                            <flux:menu.separator />
+                            <flux:menu.item wire:click="confirmDeleteProject" icon="trash" class="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                Delete Project
+                            </flux:menu.item>
+                        @else
+                            <!-- Non-manage context actions -->
+                            <flux:menu.item href="{{ route('projects.manage', $project) }}" icon="cog-6-tooth">
+                                Manage Project
+                            </flux:menu.item>
+                            
+                            @if($showEditButton)
+                                <flux:menu.item href="{{ route('projects.edit', $project) }}" icon="pencil">
+                                    Edit Details
+                                </flux:menu.item>
+                            @endif
+                        @endif
+                    </flux:menu>
+                </flux:dropdown>
+            </div>
+        @endif
+    </div>
+    
+    <!-- Quick Stats Row -->
+    <div class="border-t border-slate-200 dark:border-slate-700 mt-4 pt-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <!-- Stats -->
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+                <!-- Pitch Count (Not for Client Management) -->
+                @if(!$project->isClientManagement())
+                    <div class="flex items-center gap-1.5">
+                        <flux:icon name="paper-airplane" class="w-4 h-4 text-slate-500" />
+                        <span class="font-medium text-slate-900 dark:text-slate-100">
+                            {{ $project->pitches()->count() }}
+                        </span>
+                        <span class="text-slate-500">
+                            {{ $project->pitches()->count() === 1 ? 'pitch' : 'pitches' }}
+                        </span>
+                    </div>
+                @endif
+                
+                <!-- Budget -->
+                @if($project->budget)
+                    <div class="flex items-center gap-1.5">
+                        <flux:icon name="currency-dollar" class="w-4 h-4 text-slate-500" />
+                        <span class="font-medium text-slate-900 dark:text-slate-100">
+                            ${{ number_format($project->budget) }}
+                        </span>
+                    </div>
+                @endif
+                
+                <!-- Time Status -->
+                @if($timeStatus)
+                    <div class="flex items-center gap-1.5">
+                        <flux:icon name="clock" class="w-4 h-4 {{ str_contains($timeStatus, 'Overdue') ? 'text-red-500' : (str_contains($timeStatus, 'Due') ? 'text-amber-500' : 'text-slate-500') }}" />
+                        <span class="font-medium {{ str_contains($timeStatus, 'Overdue') ? 'text-red-600' : (str_contains($timeStatus, 'Due') ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100') }}">
+                            {{ $timeStatus }}
+                        </span>
+                    </div>
+                @endif
+                
+                <!-- Artist Name -->
+                @if($project->artist_name)
+                    <div class="flex items-center gap-1.5">
+                        <flux:icon name="microphone" class="w-4 h-4 text-slate-500" />
+                        <span class="font-medium text-slate-900 dark:text-slate-100">
+                            {{ $project->artist_name }}
+                        </span>
                     </div>
                 @endif
             </div>
         </div>
     </div>
-</div> 
+</flux:card>
+
+<!-- Legacy Image Modal Support for Existing Features -->
+@if($project->image_path && $context === 'manage')
+    <!-- Simplified image display option -->
+    <div class="mb-4" x-data="{ showImage: false }">
+        <flux:button @click="showImage = !showImage" variant="ghost" size="sm" class="mb-2">
+            <flux:icon name="photo" class="w-4 h-4 mr-2" />
+            {{ $project->image_path ? 'Show Project Image' : 'Add Project Image' }}
+        </flux:button>
+        
+        <div x-show="showImage" x-transition class="rounded-lg overflow-hidden">
+            <img src="{{ $project->imageUrl }}" alt="{{ $project->name }}" class="w-full max-h-64 object-cover">
+        </div>
+    </div>
+@endif 

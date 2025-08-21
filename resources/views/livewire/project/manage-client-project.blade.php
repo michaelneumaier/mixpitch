@@ -1,119 +1,185 @@
-<div class="container mx-auto px-3 sm:px-4 pb-20 lg:pb-6 max-w-7xl">
-    <!-- Compact Client Management Header -->
-    <x-client-project.compact-header 
-        :project="$project" 
-        :pitch="$pitch"
-        :component="$this"
-    />
+@php
+    // Unified Color System - Workflow-aware colors (matching manage-project.blade.php)
+    $workflowColors = match($project->workflow_type) {
+        'standard' => [
+            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'border' => 'border-blue-200 dark:border-blue-800', 
+            'text_primary' => 'text-blue-900 dark:text-blue-100',
+            'text_secondary' => 'text-blue-700 dark:text-blue-300',
+            'text_muted' => 'text-blue-600 dark:text-blue-400',
+            'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
+            'accent_border' => 'border-blue-200 dark:border-blue-800',
+            'icon' => 'text-blue-600 dark:text-blue-400'
+        ],
+        'contest' => [
+            'bg' => 'bg-orange-50 dark:bg-orange-950',
+            'border' => 'border-orange-200 dark:border-orange-800',
+            'text_primary' => 'text-orange-900 dark:text-orange-100', 
+            'text_secondary' => 'text-orange-700 dark:text-orange-300',
+            'text_muted' => 'text-orange-600 dark:text-orange-400',
+            'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
+            'accent_border' => 'border-orange-200 dark:border-orange-800',
+            'icon' => 'text-orange-600 dark:text-orange-400'
+        ],
+        'direct_hire' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text_primary' => 'text-green-900 dark:text-green-100',
+            'text_secondary' => 'text-green-700 dark:text-green-300', 
+            'text_muted' => 'text-green-600 dark:text-green-400',
+            'accent_bg' => 'bg-green-100 dark:bg-green-900',
+            'accent_border' => 'border-green-200 dark:border-green-800',
+            'icon' => 'text-green-600 dark:text-green-400'
+        ],
+        'client_management' => [
+            'bg' => 'bg-purple-50 dark:bg-purple-950',
+            'border' => 'border-purple-200 dark:border-purple-800',
+            'text_primary' => 'text-purple-900 dark:text-purple-100',
+            'text_secondary' => 'text-purple-700 dark:text-purple-300',
+            'text_muted' => 'text-purple-600 dark:text-purple-400', 
+            'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
+            'accent_border' => 'border-purple-200 dark:border-purple-800',
+            'icon' => 'text-purple-600 dark:text-purple-400'
+        ],
+        default => [
+            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'border' => 'border-gray-200 dark:border-gray-800',
+            'text_primary' => 'text-gray-900 dark:text-gray-100',
+            'text_secondary' => 'text-gray-700 dark:text-gray-300',
+            'text_muted' => 'text-gray-600 dark:text-gray-400',
+            'accent_bg' => 'bg-gray-100 dark:bg-gray-900', 
+            'accent_border' => 'border-gray-200 dark:border-gray-800',
+            'icon' => 'text-gray-600 dark:text-gray-400'
+        ]
+    };
 
-    <!-- Mobile Activity Summary (visible on mobile/tablet, hidden on desktop) -->
+    // Semantic colors (always consistent regardless of workflow)
+    $semanticColors = [
+        'success' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text' => 'text-green-800 dark:text-green-200',
+            'icon' => 'text-green-600 dark:text-green-400',
+            'accent' => 'bg-green-600 dark:bg-green-500'
+        ],
+        'warning' => [
+            'bg' => 'bg-amber-50 dark:bg-amber-950',
+            'border' => 'border-amber-200 dark:border-amber-800',
+            'text' => 'text-amber-800 dark:text-amber-200',
+            'icon' => 'text-amber-600 dark:text-amber-400', 
+            'accent' => 'bg-amber-500'
+        ],
+        'danger' => [
+            'bg' => 'bg-red-50 dark:bg-red-950',
+            'border' => 'border-red-200 dark:border-red-800',
+            'text' => 'text-red-800 dark:text-red-200',
+            'icon' => 'text-red-600 dark:text-red-400',
+            'accent' => 'bg-red-500'
+        ]
+    ];
+@endphp
 
+<div>
 
-    <div class="grid">
-        <!-- Main Content Area -->
-        <div class="space-y-4 lg:space-y-6 mb-6">
-            <!-- Client Management Workflow Status - Always First -->
-            <x-client-management.workflow-status :pitch="$pitch" :project="$project" :component="$this" />
-
-            <!-- Status-Specific Workflow Actions -->
-            <x-client-management.workflow-actions 
-                :pitch="$pitch" 
-                :project="$project" 
-                :component="$this" />
-
-            <!-- COMMUNICATION SECTION - Always accessible but positioned based on priority -->
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
-                    <div class="flex items-center">
-                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
-                            <i class="fas fa-comment-dots text-lg text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-bold text-purple-800">Client Communication</h4>
-                            <p class="text-sm text-purple-600">Send messages and view conversation history</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="p-4 lg:p-6">
-                    <!-- Send Message Form -->
-                    <form wire:submit.prevent="addProducerComment">
-                        <div class="mb-6">
-                            <label for="newComment" class="block text-sm font-semibold text-purple-800 mb-3">
-                                Send Message to Client
-                            </label>
-                            <div class="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 border border-purple-200/50 rounded-xl p-4 backdrop-blur-sm">
-                                <textarea wire:model.defer="newComment" 
-                                          id="newComment"
-                                          rows="4"
-                                          class="w-full px-4 py-3 text-gray-700 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200"
-                                          placeholder="Share updates, ask questions, or provide additional context..."></textarea>
-                                @error('newComment') 
-                                    <span class="text-red-500 text-xs mt-2 block">{{ $message }}</span> 
-                                @enderror
+<div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-2 py-2">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-center">
+                <div class="w-full">
+                    <!-- Enhanced Project Header -->
+                    <x-project.header 
+                        :project="$project" 
+                        context="manage" 
+                        :showActions="true"
+                        :showEditButton="true"
+                    />
+                    
+                    <div class="grid grid-cols-1 gap-2 lg:grid-cols-3">
+                        <!-- Main Content Area (2/3 width on large screens) -->
+                        <div class="space-y-2 lg:col-span-2">
+                            <!-- Client Management Workflow Status -->
+                            <div class="mb-2">
+                                <x-client-management.workflow-status :pitch="$pitch" :project="$project" :component="$this" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
                             </div>
-                        </div>
-                        
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div class="bg-purple-50/50 rounded-lg p-3 flex-1">
-                                <p class="text-xs text-purple-600 flex items-center">
-                                    <i class="fas fa-info-circle mr-2"></i>
-                                    This message will be visible to your client and they'll receive an email notification
-                                </p>
-                            </div>
-                            <button type="submit" 
-                                    class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                                    wire:loading.attr="disabled">
-                                <span wire:loading.remove>
-                                    <i class="fas fa-paper-plane mr-2"></i>Send Message
-                                </span>
-                                <span wire:loading>
-                                    <i class="fas fa-spinner fa-spin mr-2"></i>Sending...
-                                </span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
 
-            <!-- Communication Timeline -->
-            <x-client-project.communication-timeline :component="$this" :conversationItems="$this->conversationItems" />
-
-            {{-- ADVANCED SECTIONS - Collapsible --}}
-            <div x-data="{ showAdvanced: false }" class="space-y-4 lg:space-y-6">
-                <button @click="showAdvanced = !showAdvanced" 
-                        class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border border-gray-200 rounded-xl transition-all duration-200">
-                    <div class="flex items-center">
-                        <i class="fas fa-cog text-gray-500 mr-3"></i>
-                        <span class="font-medium text-gray-700">Advanced Project Settings</span>
-                        <span class="ml-2 text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
-                            Milestones, File Management, Settings
-                        </span>
-                    </div>
-                    <i class="fas fa-chevron-down text-gray-500 transition-transform duration-200" 
-                       :class="showAdvanced ? 'rotate-180' : ''"></i>
-                </button>
-
-                <div x-show="showAdvanced" x-collapse class="space-y-4 lg:space-y-6" style="overflow: visible!important;">
-                    {{-- Milestones Section --}}
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
-                                <i class="fas fa-flag-checkered text-lg text-white"></i>
+                            <!-- Status-Specific Workflow Actions -->
+                            <div class="mb-2">
+                                <x-client-management.workflow-actions 
+                                    :pitch="$pitch" 
+                                    :project="$project" 
+                                    :component="$this"
+                                    :workflowColors="$workflowColors"
+                                    :semanticColors="$semanticColors" />
                             </div>
-                            <div>
-                                <h4 class="text-lg font-bold text-purple-800">Milestones</h4>
-                                <p class="text-sm text-purple-600">Define partial payments and approvals</p>
+
+                            <!-- COMMUNICATION SECTION - Always accessible but positioned based on priority -->
+                            <flux:card class="mb-2 {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                <div class="border-b {{ $workflowColors['border'] }}">
+                                    <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                        <flux:icon name="chat-bubble-left-ellipsis" class="mr-2 {{ $workflowColors['icon'] }}" />
+                                        Client Communication
+                                    </flux:heading>
+                                    <flux:text size="sm" class="{{ $workflowColors['text_muted'] }}">Send messages and view conversation history</flux:text>
+                                </div>
+                                
+                                <div class="p-6">
+                                    <!-- Send Message Form -->
+                                    <form wire:submit.prevent="addProducerComment">
+                                        <flux:field>
+                                            <flux:label for="newComment">Send Message to Client</flux:label>
+                                            <flux:textarea wire:model.defer="newComment" 
+                                                          id="newComment"
+                                                          rows="4"
+                                                          placeholder="Share updates, ask questions, or provide additional context..." />
+                                            <flux:error name="newComment" />
+                                        </flux:field>
+                                        
+                                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6">
+                                            <div class="flex-1 {{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} border rounded-lg p-3">
+                                                <div class="flex items-center gap-2">
+                                                    <flux:icon.information-circle class="w-4 h-4 {{ $semanticColors['success']['icon'] }}" />
+                                                    <span class="text-sm {{ $semanticColors['success']['text'] }}">This message will be visible to your client and they'll receive an email notification</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <flux:button type="submit" 
+                                                    variant="primary"
+                                                    icon="paper-airplane"
+                                                    wire:loading.attr="disabled">
+                                                <span wire:loading.remove>Send Message</span>
+                                                <span wire:loading>Sending...</span>
+                                            </flux:button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </flux:card>
+
+                            <!-- Communication Timeline -->
+                            <div class="mb-2">
+                                <x-client-project.communication-timeline 
+                                    :component="$this" 
+                                    :conversationItems="$this->conversationItems"
+                                    :workflowColors="$workflowColors"
+                                    :semanticColors="$semanticColors" />
                             </div>
-                        </div>
-                        <button wire:click="beginAddMilestone" class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200">
-                            <i class="fas fa-plus mr-2"></i>Add Milestone
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4 lg:p-6">
+
+                            <!-- Milestones Section -->
+                            <flux:card class="mb-2 {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                <div class="border-b {{ $workflowColors['border'] }}">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                                <flux:icon name="flag" class="mr-2 {{ $workflowColors['icon'] }}" />
+                                                Milestones
+                                            </flux:heading>
+                                            <flux:text size="sm" class="{{ $workflowColors['text_muted'] }}">Define partial payments and approvals</flux:text>
+                                        </div>
+                                        <flux:button wire:click="beginAddMilestone" variant="primary" icon="plus">
+                                            Add Milestone
+                                        </flux:button>
+                                    </div>
+                                </div>
+                                <div>
                     @php($milestones = $pitch->milestones()->get())
                     @php($milestoneTotal = $milestones->sum('amount'))
                     @php($milestonePaid = $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->sum('amount'))
@@ -149,10 +215,10 @@
                     @if($milestones->count())
                         <div class="mb-4">
                             @php($percentPaid = $milestoneTotal > 0 ? round(($milestonePaid / max($milestoneTotal, 0.01)) * 100) : 0)
-                            <div class="w-full h-2 rounded-full bg-purple-100 overflow-hidden">
-                                <div class="h-2 bg-gradient-to-r from-purple-500 to-indigo-600" style="width: {{ $percentPaid }}%"></div>
+                            <div class="w-full h-2 rounded-full {{ $workflowColors['accent_bg'] }} overflow-hidden">
+                                <div class="h-2 bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-300" style="width: {{ $percentPaid }}%"></div>
                             </div>
-                            <div class="mt-1 text-xs text-gray-600">{{ $percentPaid }}% paid</div>
+                            <div class="mt-1 text-xs {{ $workflowColors['text_muted'] }}">{{ $percentPaid }}% paid</div>
                         </div>
 
                         <div
@@ -173,7 +239,7 @@
                             }"
                             x-init="init()"
                         >
-                            <div class="divide-y divide-purple-100/50" x-ref="milestoneList">
+                            <div class="divide-y {{ $workflowColors['accent_border'] }}" x-ref="milestoneList">
                             @foreach($milestones as $m)
                                 <div class="py-3 flex items-center justify-between" data-id="{{ $m->id }}">
                                     <div class="min-w-0">
@@ -206,8 +272,8 @@
                     @endif
 
                     @if($showMilestoneForm)
-                        <div class="mt-4 border border-purple-200 rounded-xl bg-white p-4">
-                            <h6 class="font-semibold text-purple-800 mb-3">{{ $editingMilestoneId ? 'Edit Milestone' : 'Add Milestone' }}</h6>
+                        <div class="mt-4 border {{ $workflowColors['border'] }} rounded-xl bg-white dark:bg-gray-800 p-4">
+                            <h6 class="font-semibold {{ $workflowColors['text_primary'] }} mb-3">{{ $editingMilestoneId ? 'Edit Milestone' : 'Add Milestone' }}</h6>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-xs font-medium text-gray-700 mb-1">Name</label>
@@ -231,104 +297,41 @@
                                 </div>
                             </div>
                             <div class="mt-3 flex items-center gap-2 flex-wrap">
-                                <button wire:click="saveMilestone" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md text-sm">Save</button>
-                                <button wire:click="cancelMilestoneForm" class="px-4 py-2 bg-white border border-gray-200 rounded-md text-sm">Cancel</button>
+                                <flux:button wire:click="saveMilestone" variant="primary">Save</flux:button>
+                                <flux:button wire:click="cancelMilestoneForm" variant="outline">Cancel</flux:button>
                                 @if($pitch->project && $pitch->project->budget)
-                                <button type="button" wire:click="$set('milestoneAmount', {{ number_format($pitch->project->budget, 2, '.', '') }})" class="px-3 py-1.5 text-xs rounded-md bg-white border border-purple-200 text-purple-700 hover:bg-purple-50">Use total budget</button>
+                                <flux:button type="button" wire:click="$set('milestoneAmount', {{ number_format($pitch->project->budget, 2, '.', '') }})" variant="ghost" size="sm" class="{{ $workflowColors['text_secondary'] }} hover:{{ $workflowColors['accent_bg'] }}">Use total budget</flux:button>
                                 @endif
                             </div>
                         </div>
                     @endif
 
                     @if($showSplitForm)
-                        <div class="mt-4 border border-purple-200 rounded-xl bg-white p-4">
-                            <h6 class="font-semibold text-purple-800 mb-3">Split Total Budget</h6>
+                        <div class="mt-4 border {{ $workflowColors['border'] }} rounded-xl bg-white dark:bg-gray-800 p-4">
+                            <h6 class="font-semibold {{ $workflowColors['text_primary'] }} mb-3">Split Total Budget</h6>
                             <div class="flex items-center gap-3">
-                                <label class="text-sm text-gray-700">Number of milestones</label>
-                                <input type="number" min="2" max="20" wire:model.defer="splitCount" class="w-28 border rounded-md px-3 py-2 text-sm" />
-                                <button wire:click="splitBudgetIntoMilestones" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md text-sm">Create</button>
-                                <button type="button" wire:click="toggleSplitForm" class="px-4 py-2 bg-white border border-gray-200 rounded-md text-sm">Cancel</button>
+                                <flux:label class="text-sm">Number of milestones</flux:label>
+                                <flux:input type="number" min="2" max="20" wire:model.defer="splitCount" class="w-28" />
+                                <flux:button wire:click="splitBudgetIntoMilestones" variant="primary">Create</flux:button>
+                                <flux:button type="button" wire:click="toggleSplitForm" variant="outline">Cancel</flux:button>
                             </div>
-                            <p class="mt-2 text-xs text-gray-600">Splits the project budget into equal parts. The last milestone gets the rounding remainder.</p>
+                            <p class="mt-2 text-xs {{ $workflowColors['text_muted'] }}">Splits the project budget into equal parts. The last milestone gets the rounding remainder.</p>
                         </div>
                     @endif
                 </div>
-            </div>
+            </flux:card>
 
-
-            <!-- Producer Comment Section -->
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
-                    <div class="flex items-center">
-                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
-                            <i class="fas fa-comment-dots text-lg text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-bold text-purple-800">Send Message to Client</h4>
-                            <p class="text-sm text-purple-600">Communicate directly with your client</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="p-4 lg:p-6">
-                
-                <form wire:submit.prevent="addProducerComment">
-                    <div class="mb-6">
-                        <label for="newComment" class="block text-sm font-semibold text-purple-800 mb-3">
-                            Your Message
-                        </label>
-                        <div class="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 border border-purple-200/50 rounded-xl p-4 backdrop-blur-sm">
-                            <textarea wire:model.defer="newComment" 
-                                      id="newComment"
-                                      rows="4"
-                                      class="w-full px-4 py-3 text-gray-700 bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200"
-                                      placeholder="Share updates, ask questions, or provide additional context..."></textarea>
-                            @error('newComment') 
-                                <span class="text-red-500 text-xs mt-2 block">{{ $message }}</span> 
-                            @enderror
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div class="bg-purple-50/50 rounded-lg p-3 flex-1">
-                            <p class="text-xs text-purple-600 flex items-center">
-                                <i class="fas fa-info-circle mr-2"></i>
-                                This message will be visible to your client and they'll receive an email notification
-                            </p>
-                        </div>
-                        <button type="submit" 
-                                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                                wire:loading.attr="disabled">
-                            <span wire:loading.remove>
-                                <i class="fas fa-paper-plane mr-2"></i>Send Message
-                            </span>
-                            <span wire:loading>
-                                <i class="fas fa-spinner fa-spin mr-2"></i>Sending...
-                            </span>
-                        </button>
-                    </div>
-                </form>
-                </div>
-            </div>
-
-            <!-- Communication Timeline -->
-            <x-client-project.communication-timeline :component="$this" :conversationItems="$this->conversationItems" />
-
-            <!-- File Management with Separation -->
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
-                    <div class="flex items-center">
-                        <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
-                            <i class="fas fa-file-upload text-lg text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-bold text-purple-800">File Management</h4>
-                            <p class="text-sm text-purple-600">Manage client references and your deliverables</p>
-                        </div>
-                    </div>
+            <!-- File Management Section -->
+            <flux:card class="mb-2 {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                <div class="border-b {{ $workflowColors['border'] }}">
+                    <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                        <flux:icon name="folder" class="mr-2 {{ $workflowColors['icon'] }}" />
+                        File Management
+                    </flux:heading>
+                    <flux:text size="sm" class="{{ $workflowColors['text_muted'] }}">Manage client references and your deliverables</flux:text>
                 </div>
 
-                <div class="p-2 md:p-4 lg:p-6">
+                <div>
 
                 <!-- Storage Indicator -->
                 <x-file-management.storage-indicator 
@@ -337,154 +340,170 @@
                     :storageRemaining="$this->formatFileSize($storageRemaining)" />
 
                 <!-- Client Reference Files Section -->
-                <div class="overflow-hidden rounded-2xl border border-blue-200/50 bg-gradient-to-br from-white/90 to-blue-50/90 shadow-lg backdrop-blur-sm mb-6">
-                    <div class="border-b border-blue-200/50 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 p-4 backdrop-blur-sm">
+                <div class="{{ $semanticColors['success']['bg'] }} border {{ $semanticColors['success']['border'] }} rounded-lg mb-6">
+                    <div class="p-2 border-b {{ $semanticColors['success']['border'] }}">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                                    <i class="fas fa-folder-open text-white"></i>
-                                </div>
+                            <div class="flex items-center gap-3">
+                                <flux:icon.folder-open variant="solid" class="w-8 h-8 {{ $semanticColors['success']['icon'] }}" />
                                 <div>
-                                    <h5 class="font-bold text-blue-800">Client Reference Files
-                                        <span class="ml-2 bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                    <flux:heading size="lg" class="{{ $semanticColors['success']['text'] }}">
+                                        Client Reference Files
+                                        <flux:badge variant="outline" size="sm" class="ml-2">
                                             {{ $this->clientFiles->count() }} files
-                                        </span>
-                                    </h5>
-                                    <p class="text-xs text-blue-600">Files uploaded by your client to provide project requirements, references, or examples</p>
+                                        </flux:badge>
+                                    </flux:heading>
+                                    <flux:text size="sm" class="{{ $semanticColors['success']['icon'] }}">Files uploaded by your client to provide project requirements, references, or examples</flux:text>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="p-4">
+                    <div class="p-6">
                     
                     @if($this->clientFiles->count() > 0)
-                            <div class="divide-y divide-blue-100/50">
+                            <div class="space-y-4">
                                 @foreach($this->clientFiles as $file)
-                                    <div class="group py-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50">
-                                        <div class="flex items-center mb-3">
-                                            <div class="bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105">
-                                                <i class="fas fa-file"></i>
-                                            </div>
-                                            <div class="min-w-0 flex-1">
-                                                <div class="font-semibold text-blue-900">{{ $file->file_name }}</div>
-                                                <div class="text-xs text-blue-600">
-                                                    {{ $this->formatFileSize($file->size) }} • 
-                                                    Uploaded {{ $file->created_at->diffForHumans() }}
-                                                    @if(isset($file->metadata) && json_decode($file->metadata)?->uploaded_by_client)
-                                                        • <span class="font-medium">Client Upload</span>
-                                                    @endif
+                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <div class="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 flex h-10 w-10 items-center justify-center rounded-lg">
+                                                    <flux:icon name="document" size="sm" />
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <flux:text weight="semibold" class="text-gray-900 dark:text-gray-100">{{ $file->file_name }}</flux:text>
+                                                    <flux:text size="xs" class="text-gray-600 dark:text-gray-400">
+                                                        {{ $this->formatFileSize($file->size) }} • 
+                                                        Uploaded {{ $file->created_at->diffForHumans() }}
+                                                        @if(isset($file->metadata) && json_decode($file->metadata)?->uploaded_by_client)
+                                                            • <span class="font-medium">Client Upload</span>
+                                                        @endif
+                                                    </flux:text>
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        {{-- Action Buttons --}}
-                                        <div class="flex gap-2">
-                                            <button wire:click="downloadClientFile({{ $file->id }})" 
-                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-download mr-2"></i>Download
-                                            </button>
-                                            <button wire:click="confirmDeleteClientFile({{ $file->id }})" 
-                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-trash mr-2"></i>Delete
-                                            </button>
+                                            
+                                            <div class="flex gap-2">
+                                                <flux:button 
+                                                    wire:click="downloadClientFile({{ $file->id }})" 
+                                                    variant="outline"
+                                                    size="sm"
+                                                    icon="arrow-down-tray"
+                                                    class="sm:px-3">
+                                                    <span class="hidden sm:inline">Download</span>
+                                                </flux:button>
+                                                <flux:button 
+                                                    wire:click="confirmDeleteClientFile({{ $file->id }})" 
+                                                    variant="danger"
+                                                    size="sm"
+                                                    icon="trash"
+                                                    class="sm:px-3">
+                                                    <span class="hidden sm:inline">Delete</span>
+                                                </flux:button>
+                                            </div>
                                         </div>
                                     </div>
                                 @endforeach
                             </div>
                         @else
                             <div class="text-center py-8">
-                                <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-4">
-                                    <i class="fas fa-inbox text-blue-500 text-xl"></i>
+                                <div class="flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mx-auto mb-4">
+                                    <flux:icon.inbox class="w-8 h-8 text-gray-400" />
                                 </div>
-                                <p class="text-blue-600 text-sm">No client files yet. Your client can upload reference files through their portal.</p>
+                                <flux:text size="sm" class="text-gray-600 dark:text-gray-400">No client files yet. Your client can upload reference files through their portal.</flux:text>
                             </div>
                         @endif
                     </div>
                 </div>
 
                 <!-- Producer Deliverables Section -->
-                <div data-section="producer-deliverables" class="overflow-hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-white/90 to-green-50/90 shadow-lg backdrop-blur-sm">
-                    <div class="border-b border-green-200/50 bg-gradient-to-r from-green-100/80 to-emerald-100/80 p-4 backdrop-blur-sm">
+                <div data-section="producer-deliverables" class="{{ $workflowColors['bg'] }} border {{ $workflowColors['border'] }} rounded-lg">
+                    <div class="p-2 border-b {{ $workflowColors['border'] }}">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
-                                    <i class="fas fa-music text-white"></i>
-                                </div>
+                            <div class="flex items-center gap-3">
+                                <flux:icon.musical-note variant="solid" class="w-8 h-8 {{ $workflowColors['icon'] }}" />
                                 <div>
-                                    <h5 class="font-bold text-green-800">Your Deliverables
-                                        <span class="ml-2 bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">
+                                    <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                        Your Deliverables
+                                        <flux:badge variant="outline" size="sm" class="ml-2">
                                             {{ $this->producerFiles->count() }} files
-                                        </span>
-                                    </h5>
-                                    <p class="text-xs text-green-600">Upload your work files here. These will be visible to your client for review</p>
+                                        </flux:badge>
+                                    </flux:heading>
+                                    <flux:text size="sm" class="{{ $workflowColors['text_muted'] }}">Upload your work files here. These will be visible to your client for review</flux:text>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="p-2 md:p-4">
+                    <div class="p-2">
 
                     <!-- Upload Section is rendered by workflow-actions → upload-work-section; avoid duplicate here -->
 
                     <!-- Producer Files List -->
                     @if($this->producerFiles->count() > 0)
-                        <div class="divide-y divide-green-100/50 mt-4">
+                        <div class="space-y-4 mt-4">
                             @foreach($this->producerFiles as $file)
-                                <div class="overflow-hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-white/90 to-green-50/90 shadow-md backdrop-blur-sm mb-3" x-data="{ showComments: false }">
+                                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow" x-data="{ showComments: false }">
                                     {{-- File Header --}}
-                                    <div class="group p-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50">
-                                        <div class="flex items-center mb-3">
-                                            <div class="bg-gradient-to-br from-green-100 to-emerald-100 text-green-600 mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105">
-                                                <i class="fas fa-file-audio"></i>
-                                            </div>
-                                            <div class="min-w-0 flex-1">
-                                                <div class="font-semibold text-green-900 flex items-center gap-2 flex-wrap">
-                                                    <span>{{ $file->file_name }}</span>
+                                    <div class="p-4">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <div class="bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 flex h-10 w-10 items-center justify-center rounded-lg">
+                                                    <flux:icon name="musical-note" size="sm" />
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <flux:text weight="semibold" class="text-gray-900 dark:text-gray-100">{{ $file->file_name }}</flux:text>
                                                     
-                                                    @if($file->client_approval_status === 'approved')
-                                                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-[10px]">
-                                                            <i class="fas fa-check-circle mr-1"></i> Approved by client
-                                                        </span>
-                                                    @elseif($file->client_approval_status === 'revision_requested')
-                                                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px]">
-                                                            <i class="fas fa-edit mr-1"></i> Revision requested
-                                                        </span>
-                                                    @endif
+                                                        @if($file->client_approval_status === 'approved')
+                                                            <flux:badge variant="success" size="xs">
+                                                                <flux:icon name="check-circle" size="xs" class="mr-1" /> Approved by client
+                                                            </flux:badge>
+                                                        @elseif($file->client_approval_status === 'revision_requested')
+                                                            <flux:badge variant="warning" size="xs">
+                                                                <flux:icon name="pencil" size="xs" class="mr-1" /> Revision requested
+                                                            </flux:badge>
+                                                        @endif
                                                     
                                                     {{-- Client Comments Badge --}}
                                                     @php($fileComments = $pitch->events()->where('event_type', 'client_file_comment')->where('metadata->file_id', $file->id)->orderBy('created_at', 'desc')->get())
                                                     
-                                                    @if($fileComments->count() > 0)
-                                                        <button @click="showComments = !showComments" 
-                                                                class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] hover:bg-blue-200 transition-colors">
-                                                            <i class="fas fa-comment mr-1"></i> 
-                                                            {{ $fileComments->count() }} comment{{ $fileComments->count() > 1 ? 's' : '' }}
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                                <div class="text-xs text-green-600">
-                                                    {{ $this->formatFileSize($file->size) }} • 
-                                                    Uploaded {{ $file->created_at->diffForHumans() }}
-                                                    @if($fileComments->count() > 0)
-                                                        • <span class="text-blue-600 font-medium">Client feedback available</span>
-                                                    @endif
+                                                        @if($fileComments->count() > 0)
+                                                            <flux:button 
+                                                                @click="showComments = !showComments" 
+                                                                variant="outline"
+                                                                size="xs">
+                                                                <flux:icon name="chat-bubble-left-ellipsis" size="xs" class="mr-1" />
+                                                                {{ $fileComments->count() }} comment{{ $fileComments->count() > 1 ? 's' : '' }}
+                                                            </flux:button>
+                                                        @endif
+                                                    </div>
+                                                    <flux:text size="xs" class="text-gray-600 dark:text-gray-400 mt-1">
+                                                        {{ $this->formatFileSize($file->size) }} • 
+                                                        Uploaded {{ $file->created_at->diffForHumans() }}
+                                                        @if($fileComments->count() > 0)
+                                                            • <span class="text-blue-600 font-medium">Client feedback available</span>
+                                                        @endif
+                                                    </flux:text>
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        {{-- Action Buttons --}}
-                                        <div class="flex gap-2">
-                                            <button wire:click="downloadFile({{ $file->id }})" 
-                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-download mr-2"></i>Download
-                                            </button>
-                                            @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED, \App\Models\Pitch::STATUS_READY_FOR_REVIEW]))
-                                            <button wire:click="confirmDeleteFile({{ $file->id }})" 
-                                                    class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm">
-                                                <i class="fas fa-trash mr-2"></i>Delete
-                                            </button>
-                                            @endif
+                                            
+                                            {{-- Action Buttons --}}
+                                            <div class="flex gap-2">
+                                                <flux:button 
+                                                    wire:click="downloadFile({{ $file->id }})" 
+                                                    variant="outline"
+                                                    size="sm"
+                                                    icon="arrow-down-tray"
+                                                    class="sm:px-3">
+                                                </flux:button>
+                                                @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED, \App\Models\Pitch::STATUS_READY_FOR_REVIEW]))
+                                                <flux:button 
+                                                    wire:click="confirmDeleteFile({{ $file->id }})" 
+                                                    variant="danger"
+                                                    size="sm"
+                                                    icon="trash">
+                                                </flux:button>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -492,46 +511,46 @@
                                     @if($fileComments->count() > 0)
                                         <div x-show="showComments" 
                                              x-collapse
-                                             class="border-t border-blue-200 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-4">
+                                             class="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-4">
                                             <div class="mb-3">
-                                                <h6 class="text-sm font-semibold text-blue-900 flex items-center">
-                                                    <i class="fas fa-comments text-blue-600 mr-2"></i>
+                                                <flux:text weight="semibold" size="sm" class="text-gray-900 dark:text-gray-100 flex items-center">
+                                                    <flux:icon name="chat-bubble-left-ellipsis" class="mr-2 text-blue-600" />
                                                     Client Feedback for this File
-                                                </h6>
+                                                </flux:text>
                                             </div>
                                             
                                             <div class="space-y-3 max-h-48 overflow-y-auto">
                                                 @foreach($fileComments as $comment)
-                                                    <div class="bg-white/60 rounded-lg p-3 border border-blue-200/50">
+                                                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                                                         <div class="flex items-start justify-between mb-2">
-                                                            <div class="flex items-center">
-                                                                <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mr-2">
-                                                                    <i class="fas fa-user text-white text-xs"></i>
+                                                            <div class="flex items-center gap-2">
+                                                                <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                    <flux:icon name="user" size="xs" class="text-white" />
                                                                 </div>
                                                                 <div>
-                                                                    <span class="text-sm font-medium text-blue-900">
+                                                                    <flux:text weight="medium" size="sm" class="text-gray-900 dark:text-gray-100">
                                                                         {{ $project->client_name ?: 'Client' }}
-                                                                    </span>
-                                                                    <div class="text-xs text-blue-600">
+                                                                    </flux:text>
+                                                                    <flux:text size="xs" class="text-gray-600 dark:text-gray-400">
                                                                         {{ $comment->created_at->diffForHumans() }}
-                                                                    </div>
+                                                                    </flux:text>
                                                                 </div>
                                                             </div>
                                                             
                                                             @if($comment->metadata['type'] ?? null === 'revision_request')
-                                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">
-                                                                    <i class="fas fa-edit mr-1"></i>Revision Request
-                                                                </span>
+                                                                <flux:badge variant="warning" size="xs">
+                                                                    <flux:icon name="pencil" size="xs" class="mr-1" />Revision Request
+                                                                </flux:badge>
                                                             @elseif($comment->metadata['type'] ?? null === 'approval')
-                                                                <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">
-                                                                    <i class="fas fa-check mr-1"></i>Approved
-                                                                </span>
+                                                                <flux:badge variant="success" size="xs">
+                                                                    <flux:icon name="check" size="xs" class="mr-1" />Approved
+                                                                </flux:badge>
                                                             @endif
                                                         </div>
                                                         
-                                                        <div class="text-sm text-gray-800 leading-relaxed">
+                                                        <flux:text size="sm" class="text-gray-800 dark:text-gray-200 leading-relaxed">
                                                             {{ $comment->comment }}
-                                                        </div>
+                                                        </flux:text>
                                                         
                                                         {{-- Quick Response for Revision Requests --}}
                                                         @if(($comment->metadata['type'] ?? null) === 'revision_request' && !($comment->metadata['responded'] ?? false))
@@ -608,41 +627,40 @@
                     </div>
                 </div>
                 </div>
-            </div>
+            </flux:card>
 
             <!-- Response to Feedback Section (if applicable) -->
             @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-amber-800 mb-3 flex items-center">
-                    <i class="fas fa-reply text-amber-600 mr-2"></i>Respond to Feedback
-                </h4>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-amber-700 mb-2">
-                        Your Response to Client Feedback
-                    </label>
-                    <textarea wire:model.lazy="responseToFeedback" 
-                              rows="4"
-                              class="w-full px-3 py-2 border border-amber-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                              placeholder="Explain what changes you've made in response to the feedback..."></textarea>
-                    @error('responseToFeedback') 
-                        <span class="text-red-500 text-xs mt-1">{{ $message }}</span> 
-                    @enderror
+            <flux:card class="mb-2 bg-amber-50 border-amber-200">
+                <div class="p-6 border-b border-amber-200">
+                    <flux:heading size="lg">
+                        <flux:icon name="arrow-uturn-left" class="mr-2" />
+                        Respond to Feedback
+                    </flux:heading>
                 </div>
-            </div>
+                <div class="p-6">
+                    <flux:field>
+                        <flux:label>Your Response to Client Feedback</flux:label>
+                        <flux:textarea wire:model.lazy="responseToFeedback" 
+                                      rows="4"
+                                      placeholder="Explain what changes you've made in response to the feedback..." />
+                        <flux:error name="responseToFeedback" />
+                    </flux:field>
+                </div>
+            </flux:card>
             @endif
 
             <!-- Submit for Review Section -->
             @if(in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED]))
-            <div class="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50 rounded-xl p-6 shadow-lg">
-                <div class="flex items-center mb-4">
-                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4 shadow-lg">
-                        <i class="fas fa-paper-plane text-white"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-purple-800">Ready to Submit for Review?</h4>
-                        <p class="text-purple-600 text-sm">Submit your work to your client for review and approval</p>
-                    </div>
+            <flux:card class="mb-2">
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <flux:heading size="lg">
+                        <flux:icon name="paper-airplane" class="mr-2" />
+                        Ready to Submit for Review?
+                    </flux:heading>
+                    <flux:text size="sm" class="text-gray-600">Submit your work to your client for review and approval</flux:text>
                 </div>
+                <div>
 
                 @if($this->producerFiles->count() === 0)
                     <div class="bg-gradient-to-r from-amber-50/80 to-orange-50/80 border border-amber-200/50 rounded-xl p-4 mb-4 backdrop-blur-sm">
@@ -783,33 +801,93 @@
                     </p>
                 </div>
             </div>
+            </flux:card>
             @endif
-            <!-- Danger Zone -->
-            <div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-red-50/90 shadow-xl backdrop-blur-md">
-                <div class="border-b border-white/20 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-red-500/10 p-4 backdrop-blur-sm">
-                    <div class="flex items-center">
-                        <div class="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
-                            <i class="fas fa-exclamation-triangle text-white"></i>
                         </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
-                            <p class="text-xs text-red-600">Irreversible project deletion</p>
+                        
+                        <!-- Sidebar (1/3 width on large screens) -->
+                        <div class="space-y-2 lg:col-span-1">
+                            {{-- Client Management Workflow Information --}}
+                            <flux:card class="mb-2 hidden lg:block {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                <div class="flex items-center gap-3 mb-6">
+                                    <flux:icon.users variant="solid" class="w-8 h-8 {{ $workflowColors['icon'] }}" />
+                                    <div>
+                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Client Management</flux:heading>
+                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Private client workflow</flux:subheading>
+                                    </div>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="p-4 {{ $workflowColors['accent_bg'] }} rounded-xl border {{ $workflowColors['accent_border'] }}">
+                                        <div class="flex items-start gap-3">
+                                            <flux:icon.shield-check class="w-6 h-6 {{ $workflowColors['icon'] }} flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <flux:subheading class="{{ $workflowColors['text_primary'] }} font-semibold mb-1">Private Workflow</flux:subheading>
+                                                <p class="text-sm {{ $workflowColors['text_secondary'] }}">Work exclusively with your client through a secure, private workflow.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 {{ $workflowColors['accent_bg'] }} rounded-xl border {{ $workflowColors['accent_border'] }}">
+                                        <div class="flex items-start gap-3">
+                                            <flux:icon.envelope class="w-6 h-6 {{ $workflowColors['icon'] }} flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <flux:subheading class="{{ $workflowColors['text_primary'] }} font-semibold mb-1">Client Portal</flux:subheading>
+                                                <p class="text-sm {{ $workflowColors['text_secondary'] }}">Your client reviews and approves work through their dedicated portal.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 {{ $workflowColors['accent_bg'] }} rounded-xl border {{ $workflowColors['accent_border'] }}">
+                                        <div class="flex items-start gap-3">
+                                            <flux:icon.currency-dollar class="w-6 h-6 {{ $workflowColors['icon'] }} flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <flux:subheading class="{{ $workflowColors['text_primary'] }} font-semibold mb-1">Direct Payment</flux:subheading>
+                                                <p class="text-sm {{ $workflowColors['text_secondary'] }}">Get paid immediately after client approval with no waiting period.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </flux:card>
+
+                            {{-- Client Information --}}
+                            @if($project->client_name || $project->client_email)
+                            <flux:card class="mb-2 {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <flux:icon.user-circle variant="solid" class="w-8 h-8 {{ $workflowColors['icon'] }}" />
+                                    <div>
+                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Client Information</flux:heading>
+                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Project stakeholder details</flux:subheading>
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    @if($project->client_name)
+                                        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                            <flux:icon.user class="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                                            <div>
+                                                <flux:subheading class="font-medium">{{ $project->client_name }}</flux:subheading>
+                                                <flux:text size="sm" class="text-gray-600 dark:text-gray-400">Client Name</flux:text>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    @if($project->client_email)
+                                        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                            <flux:icon.envelope class="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                                            <div>
+                                                <flux:subheading class="font-medium">{{ $project->client_email }}</flux:subheading>
+                                                <flux:text size="sm" class="text-gray-600 dark:text-gray-400">Contact Email</flux:text>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </flux:card>
+                            @endif
+
+
+
                         </div>
                     </div>
                 </div>
-                
-                <div class="p-4">
-                <p class="text-sm text-red-700 mb-4 bg-red-50/50 rounded-lg p-3">
-                    <i class="fas fa-warning mr-2"></i>
-                    Permanently delete this project and all associated files. This action cannot be undone.
-                </p>
-                <button wire:click="confirmDeleteProject" 
-                        class="w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                    <i class="fas fa-trash-alt mr-2"></i>Delete Project
-                </button>
-                </div>
             </div>
         </div>
+    </div>
 
     <!-- File Delete Confirmation Modal -->
     @if($showDeleteModal)

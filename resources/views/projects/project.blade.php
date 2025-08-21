@@ -1,6 +1,5 @@
-@extends('components.layouts.app')
+<x-layouts.app-sidebar>
 
-@section('content')
 <div class="relative min-h-screen bg-gray-50">
     <div class="container mx-auto px-2 sm:px-4 py-6">
         <div class="max-w-6xl mx-auto">
@@ -432,4 +431,4 @@
 <!-- Include the pitch terms modal component -->
 <x-pitch-terms-modal :project="$project" />
 
-@endsection
+</x-layouts.app-sidebar>

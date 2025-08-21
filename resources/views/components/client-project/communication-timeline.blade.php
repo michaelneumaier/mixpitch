@@ -1,50 +1,48 @@
 @props(['component', 'conversationItems'])
 
-<div class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 shadow-xl backdrop-blur-md">
-    <div class="border-b border-white/20 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10 p-4 lg:p-6 backdrop-blur-sm">
-        <div class="flex items-center">
-            <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                <i class="fas fa-comments text-lg text-white"></i>
-            </div>
+<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-3">
+            <flux:icon.chat-bubble-left-ellipsis variant="solid" class="w-8 h-8 text-blue-600 dark:text-blue-400" />
             <div>
-                <h4 class="text-lg font-bold text-blue-800">Communication Timeline</h4>
-                <p class="text-sm text-blue-600">Track all project communications and updates</p>
+                <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">Communication Timeline</flux:heading>
+                <flux:text size="sm" class="text-gray-600 dark:text-gray-400">Track all project communications and updates</flux:text>
             </div>
         </div>
     </div>
     
-    <div class="p-2 md:p-4 lg:p-6">
+    <div class="p-6">
     
     <div class="space-y-4 max-h-96 overflow-y-auto">
         @forelse($conversationItems as $item)
-        <div class="relative bg-white/80 backdrop-blur-sm border border-white/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 {{ $component->getEventBorderColor($item) }} border-l-4">
+        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 {{ $component->getEventBorderColor($item) }} border-l-4">
             <div class="flex items-start justify-between">
                 <div class="flex-1">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center {{ $component->getEventBgColor($item) }} shadow-md">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center {{ $component->getEventBgColor($item) }}">
                             <i class="{{ $component->getEventIcon($item) }} text-white text-sm"></i>
                         </div>
                         <div class="flex-1">
-                            <span class="font-semibold text-gray-900">{{ $component->getEventTitle($item) }}</span>
-                            <div class="flex items-center space-x-2 mt-1">
+                            <flux:text weight="semibold" class="text-gray-900 dark:text-gray-100">{{ $component->getEventTitle($item) }}</flux:text>
+                            <div class="flex items-center gap-2 mt-1">
                                 @if($item['user'])
-                                <span class="text-xs text-gray-600 font-medium">
+                                <flux:text size="xs" class="text-gray-600 dark:text-gray-400 font-medium">
                                     by {{ $item['user']->name }}
-                                </span>
+                                </flux:text>
                                 @endif
-                                <span class="text-xs text-gray-500">
+                                <flux:text size="xs" class="text-gray-500">
                                     {{ $item['date']->diffForHumans() }}
-                                </span>
-                                <span class="text-xs text-gray-400">
+                                </flux:text>
+                                <flux:text size="xs" class="text-gray-400">
                                     {{ $item['date']->format('M d, Y \a\t g:i A') }}
-                                </span>
+                                </flux:text>
                             </div>
                         </div>
                     </div>
                     
                     @if($item['content'])
-                    <div class="bg-gradient-to-r from-blue-50/60 to-indigo-50/60 border border-blue-200/30 rounded-xl p-4 ml-12 backdrop-blur-sm">
-                        <p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{{ $item['content'] }}</p>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 ml-13">
+                        <flux:text size="sm" class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{{ $item['content'] }}</flux:text>
                     </div>
                     @endif
                 </div>
@@ -52,11 +50,11 @@
         </div>
         @empty
         <div class="text-center py-12">
-            <div class="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-6">
-                <i class="fas fa-comments text-blue-500 text-2xl"></i>
+            <div class="flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mx-auto mb-4">
+                <flux:icon.chat-bubble-left-ellipsis class="w-8 h-8 text-gray-400" />
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No communication yet</h3>
-            <p class="text-sm text-gray-600">Messages and updates will appear here as you communicate with your client</p>
+            <flux:heading size="lg" class="text-gray-900 dark:text-gray-100 mb-2">No communication yet</flux:heading>
+            <flux:text size="sm" class="text-gray-600 dark:text-gray-400">Messages and updates will appear here as you communicate with your client</flux:text>
         </div>
         @endforelse
     </div>

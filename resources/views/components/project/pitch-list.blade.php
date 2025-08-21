@@ -1,12 +1,89 @@
-@props(['project'])
+@props(['project', 'workflowColors' => null, 'semanticColors' => null])
 
 @php
+// Provide default workflow colors if not passed from parent
+$workflowColors = $workflowColors ?? match($project->workflow_type) {
+    'standard' => [
+        'bg' => 'bg-blue-50 dark:bg-blue-950',
+        'border' => 'border-blue-200 dark:border-blue-800',
+        'text_primary' => 'text-blue-900 dark:text-blue-100',
+        'text_secondary' => 'text-blue-700 dark:text-blue-300',
+        'text_muted' => 'text-blue-600 dark:text-blue-400',
+        'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
+        'icon' => 'text-blue-600 dark:text-blue-400'
+    ],
+    'contest' => [
+        'bg' => 'bg-orange-50 dark:bg-orange-950',
+        'border' => 'border-orange-200 dark:border-orange-800',
+        'text_primary' => 'text-orange-900 dark:text-orange-100',
+        'text_secondary' => 'text-orange-700 dark:text-orange-300',
+        'text_muted' => 'text-orange-600 dark:text-orange-400',
+        'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
+        'icon' => 'text-orange-600 dark:text-orange-400'
+    ],
+    'direct_hire' => [
+        'bg' => 'bg-green-50 dark:bg-green-950',
+        'border' => 'border-green-200 dark:border-green-800',
+        'text_primary' => 'text-green-900 dark:text-green-100',
+        'text_secondary' => 'text-green-700 dark:text-green-300',
+        'text_muted' => 'text-green-600 dark:text-green-400',
+        'accent_bg' => 'bg-green-100 dark:bg-green-900',
+        'icon' => 'text-green-600 dark:text-green-400'
+    ],
+    'client_management' => [
+        'bg' => 'bg-purple-50 dark:bg-purple-950',
+        'border' => 'border-purple-200 dark:border-purple-800',
+        'text_primary' => 'text-purple-900 dark:text-purple-100',
+        'text_secondary' => 'text-purple-700 dark:text-purple-300',
+        'text_muted' => 'text-purple-600 dark:text-purple-400',
+        'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
+        'icon' => 'text-purple-600 dark:text-purple-400'
+    ],
+    default => [
+        'bg' => 'bg-gray-50 dark:bg-gray-950',
+        'border' => 'border-gray-200 dark:border-gray-800',
+        'text_primary' => 'text-gray-900 dark:text-gray-100',
+        'text_secondary' => 'text-gray-700 dark:text-gray-300',
+        'text_muted' => 'text-gray-600 dark:text-gray-400',
+        'accent_bg' => 'bg-gray-100 dark:bg-gray-900',
+        'icon' => 'text-gray-600 dark:text-gray-400'
+    ]
+};
+
+// Semantic colors for status-based theming (consistent across workflows)
+$semanticColors = $semanticColors ?? [
+    'success' => [
+        'bg' => 'bg-green-50 dark:bg-green-950',
+        'border' => 'border-green-200 dark:border-green-800',
+        'text' => 'text-green-800 dark:text-green-200',
+        'icon' => 'text-green-600 dark:text-green-400',
+        'accent' => 'bg-green-500'
+    ],
+    'warning' => [
+        'bg' => 'bg-amber-50 dark:bg-amber-950',
+        'border' => 'border-amber-200 dark:border-amber-800',
+        'text' => 'text-amber-800 dark:text-amber-200',
+        'icon' => 'text-amber-600 dark:text-amber-400',
+        'accent' => 'bg-amber-500'
+    ],
+    'danger' => [
+        'bg' => 'bg-red-50 dark:bg-red-950',
+        'border' => 'border-red-200 dark:border-red-800',
+        'text' => 'text-red-800 dark:text-red-200',
+        'icon' => 'text-red-600 dark:text-red-400',
+        'accent' => 'bg-red-500'
+    ]
+];
+
 // Sort pitches to show completed first, then approved, then others
 $sortedPitches = $project->pitches->sortBy(function($pitch) {
-    if ($pitch->status === 'completed') return 1;
-    if ($pitch->status === 'approved') return 2;
-    if ($pitch->status === 'closed') return 4;
-    return 3; // All other statuses
+    return match($pitch->status) {
+        'completed' => 1,
+        'approved' => 2,
+        'revisions_requested' => 3,
+        'closed' => 5,
+        default => 4
+    };
 });
 
 // Check for multiple approved pitches
@@ -14,29 +91,82 @@ $hasMultipleApprovedPitches = $project->pitches->where('status', 'approved')->co
 $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 0;
 @endphp
 
-<!-- Background Effects -->
-<div class="absolute inset-0 overflow-hidden pointer-events-none">
-    <div class="absolute top-4 right-4 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-2xl"></div>
-    <div class="absolute bottom-8 left-8 w-24 h-24 bg-gradient-to-tr from-blue-400/10 to-purple-400/10 rounded-full blur-xl"></div>
-</div>
+@php
+// Create workflow-aware gradient classes similar to project-workflow-status
+$gradientClasses = match($project->workflow_type) {
+    'standard' => [
+        'outer' => 'bg-gradient-to-br from-blue-50/95 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50',
+        'header' => 'bg-gradient-to-r from-blue-100/80 to-indigo-100/80 border-b border-blue-200/30',
+        'text_primary' => 'text-blue-900',
+        'text_secondary' => 'text-blue-700',
+        'text_muted' => 'text-blue-600',
+        'icon' => 'text-blue-600'
+    ],
+    'contest' => [
+        'outer' => 'bg-gradient-to-br from-amber-50/95 to-yellow-50/90 backdrop-blur-sm border border-amber-200/50',
+        'header' => 'bg-gradient-to-r from-amber-100/80 to-yellow-100/80 border-b border-amber-200/30',
+        'text_primary' => 'text-amber-900',
+        'text_secondary' => 'text-amber-700',
+        'text_muted' => 'text-amber-600',
+        'icon' => 'text-amber-600'
+    ],
+    'direct_hire' => [
+        'outer' => 'bg-gradient-to-br from-green-50/95 to-emerald-50/90 backdrop-blur-sm border border-green-200/50',
+        'header' => 'bg-gradient-to-r from-green-100/80 to-emerald-100/80 border-b border-green-200/30',
+        'text_primary' => 'text-green-900',
+        'text_secondary' => 'text-green-700',
+        'text_muted' => 'text-green-600',
+        'icon' => 'text-green-600'
+    ],
+    'client_management' => [
+        'outer' => 'bg-gradient-to-br from-purple-50/95 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50',
+        'header' => 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 border-b border-purple-200/30',
+        'text_primary' => 'text-purple-900',
+        'text_secondary' => 'text-purple-700',
+        'text_muted' => 'text-purple-600',
+        'icon' => 'text-purple-600'
+    ],
+    default => [
+        'outer' => 'bg-gradient-to-br from-gray-50/95 to-slate-50/90 backdrop-blur-sm border border-gray-200/50',
+        'header' => 'bg-gradient-to-r from-gray-100/80 to-slate-100/80 border-b border-gray-200/30',
+        'text_primary' => 'text-gray-900',
+        'text_secondary' => 'text-gray-700',
+        'text_muted' => 'text-gray-600',
+        'icon' => 'text-gray-600'
+    ]
+};
+@endphp
 
-<div class="relative bg-gradient-to-br from-white/95 to-purple-50/90 backdrop-blur-md border border-white/50 rounded-2xl shadow-xl overflow-hidden">
-    <!-- Modern Header -->
-    <div class="bg-gradient-to-r from-purple-50/80 to-blue-50/80 backdrop-blur-sm border-b border-purple-200/30 p-6">
+<div class="{{ $gradientClasses['outer'] }} rounded-2xl shadow-lg overflow-hidden">
+    <!-- Professional Header matching workflow-status style -->
+    <div class="{{ $gradientClasses['header'] }} p-6">
         <div class="flex items-center justify-between">
-            <div class="flex items-center">
-                <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl mr-4 shadow-lg">
-                    <i class="fas fa-paper-plane text-white text-lg"></i>
-                </div>
                 <div>
-                    <h3 class="text-xl font-bold text-purple-900">Submitted Pitches</h3>
-                    <p class="text-sm text-purple-700 mt-1">Review and manage pitch submissions</p>
-                </div>
+                <h3 class="text-lg font-bold {{ $gradientClasses['text_primary'] }} flex items-center">
+                    <flux:icon.paper-airplane class="w-5 h-5 {{ $gradientClasses['icon'] }} mr-3" />
+                    Submitted Pitches
+                </h3>
+                <p class="text-sm {{ $gradientClasses['text_secondary'] }} mt-1">
+                    @if($project->pitches->count() > 0)
+                        {{ $project->pitches->count() }} {{ Str::plural('submission', $project->pitches->count()) }} received
+                    @else
+                        Ready to receive pitch submissions
+                    @endif
+                </p>
             </div>
-            <div class="flex items-center space-x-3">
-                <div class="bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl px-4 py-2 shadow-sm">
-                    <div class="text-lg font-bold text-purple-900">{{ $project->pitches->count() }}</div>
-                    <div class="text-xs text-purple-600">Total</div>
+            <div class="flex items-center gap-4">
+                <!-- Metrics display -->
+                <div class="text-right">
+                    <div class="text-2xl font-bold {{ $gradientClasses['icon'] }}">{{ $project->pitches->count() }}</div>
+                    <div class="text-xs {{ $gradientClasses['text_muted'] }}">Pitches</div>
+                </div>
+                <!-- Auto-allow toggle -->
+                <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl px-3 py-2">
+                    <div class="flex items-center gap-2">
+                        <flux:label class="text-xs {{ $gradientClasses['text_secondary'] }} font-medium">Auto-allow access</flux:label>
+                        <flux:switch wire:model.live="autoAllowAccess" wire:loading.attr="disabled" wire:target="autoAllowAccess" size="sm" />
+                        <div wire:loading wire:target="autoAllowAccess" class="text-xs {{ $gradientClasses['text_muted'] }}">...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -44,107 +174,81 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
 
     <!-- Content Area -->
     <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h4 class="text-lg font-semibold text-purple-800">Review Pitches</h4>
-            <div class="flex items-center">
-                <label for="auto-allow-access" class="flex items-center cursor-pointer">
-                    <span class="text-sm font-medium text-gray-700 mr-3">Automatically Allow Access</span>
-                    <div class="relative">
-                        <input type="checkbox" id="auto-allow-access" class="sr-only" wire:model.live="autoAllowAccess">
-                        <div class="block bg-gray-200 w-14 h-8 rounded-full"></div>
-                        <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition"></div>
-                    </div>
-                </label>
-            </div>
-        </div>
-        <div class="flex flex-col space-y-4">
-        <div class="flex flex-col divide-y divide-white/20">
+        <div class="space-y-4">
             @forelse($sortedPitches as $pitch)
                     @php
-                        // Determine status-based theming
-                        $statusTheme = match($pitch->status) {
+                        // Clean semantic status theming
+                        $statusColors = match($pitch->status) {
                             'completed' => [
-                                'bg' => 'bg-gradient-to-br from-green-50/90 to-emerald-50/80',
-                                'border' => 'border-green-200/50',
-                                'accent' => 'bg-gradient-to-br from-green-500 to-emerald-600',
-                                'ring' => 'ring-green-200/50'
+                                'bg' => $semanticColors['success']['bg'],
+                                'border' => $semanticColors['success']['border'],
+                                'accent' => $semanticColors['success']['accent'],
+                                'badge' => 'green'
                             ],
-                            'approved' => $hasMultipleApprovedPitches ? [
-                                'bg' => 'bg-gradient-to-br from-amber-50/90 to-orange-50/80',
-                                'border' => 'border-amber-200/50',
-                                'accent' => 'bg-gradient-to-br from-amber-500 to-orange-600',
-                                'ring' => 'ring-amber-200/50'
-                            ] : [
-                                'bg' => 'bg-gradient-to-br from-blue-50/90 to-indigo-50/80',
-                                'border' => 'border-blue-200/50',
-                                'accent' => 'bg-gradient-to-br from-blue-500 to-indigo-600',
-                                'ring' => 'ring-blue-200/50'
+                            'approved' => [
+                                'bg' => $hasMultipleApprovedPitches ? $semanticColors['warning']['bg'] : 'bg-blue-50 dark:bg-blue-950',
+                                'border' => $hasMultipleApprovedPitches ? $semanticColors['warning']['border'] : 'border-blue-200 dark:border-blue-800',
+                                'accent' => $hasMultipleApprovedPitches ? $semanticColors['warning']['accent'] : 'bg-blue-500',
+                                'badge' => $hasMultipleApprovedPitches ? 'amber' : 'blue'
                             ],
                             'denied' => [
-                                'bg' => 'bg-gradient-to-br from-red-50/90 to-pink-50/80',
-                                'border' => 'border-red-200/50',
-                                'accent' => 'bg-gradient-to-br from-red-500 to-pink-600',
-                                'ring' => 'ring-red-200/50'
+                                'bg' => $semanticColors['danger']['bg'],
+                                'border' => $semanticColors['danger']['border'],
+                                'accent' => $semanticColors['danger']['accent'],
+                                'badge' => 'red'
                             ],
                             'revisions_requested' => [
-                                'bg' => 'bg-gradient-to-br from-amber-50/90 to-yellow-50/80',
-                                'border' => 'border-amber-200/50',
-                                'accent' => 'bg-gradient-to-br from-amber-500 to-yellow-600',
-                                'ring' => 'ring-amber-200/50'
-                            ],
-                            'pending_review', 'ready_for_review', 'in_progress' => [
-                                'bg' => 'bg-gradient-to-br from-blue-50/90 to-cyan-50/80',
-                                'border' => 'border-blue-200/50',
-                                'accent' => 'bg-gradient-to-br from-blue-500 to-cyan-600',
-                                'ring' => 'ring-blue-200/50'
+                                'bg' => $semanticColors['warning']['bg'],
+                                'border' => $semanticColors['warning']['border'],
+                                'accent' => $semanticColors['warning']['accent'],
+                                'badge' => 'amber'
                             ],
                             'closed' => [
-                                'bg' => 'bg-gradient-to-br from-gray-50/90 to-slate-50/80',
-                                'border' => 'border-gray-200/50',
-                                'accent' => 'bg-gradient-to-br from-gray-500 to-slate-600',
-                                'ring' => 'ring-gray-200/50'
+                                'bg' => 'bg-gray-50 dark:bg-gray-950',
+                                'border' => 'border-gray-200 dark:border-gray-800',
+                                'accent' => 'bg-gray-500',
+                                'badge' => 'gray'
                             ],
                             default => [
-                                'bg' => 'bg-gradient-to-br from-white/95 to-gray-50/80',
-                                'border' => 'border-gray-200/50',
-                                'accent' => 'bg-gradient-to-br from-gray-500 to-gray-600',
-                                'ring' => 'ring-gray-200/50'
+                                'bg' => 'bg-white dark:bg-gray-800',
+                                'border' => 'border-gray-200 dark:border-gray-700',
+                                'accent' => $gradientClasses['icon'],
+                                'badge' => 'gray'
                             ]
                         };
                     @endphp
 
                     <div wire:key="pitch-{{$pitch->id}}" class="relative group">
-                        <!-- Status Accent Bar -->
-                        <div class="absolute left-0 top-6 bottom-6 w-1 {{ $statusTheme['accent'] }} rounded-r-full z-10"></div>
+                        <!-- Minimal Status Accent Bar -->
+                        <div class="absolute left-0 top-6 bottom-6 w-1 {{ $statusColors['accent'] }} rounded-r-full z-10"></div>
                         
                         <!-- Main Card -->
-                        <div class="relative {{ $statusTheme['bg'] }} backdrop-blur-md border {{ $statusTheme['border'] }} rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:{{ $statusTheme['ring'] }} hover:ring-2 overflow-hidden">
+                        <div class="relative transition-all duration-200 hover:shadow-lg bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl overflow-hidden {{ $statusColors['bg'] }} {{ $statusColors['border'] }}">
                             <!-- Enhanced User Profile Section -->
-                            <div class="p-6 pb-4">
-                                <div class="flex items-start space-x-4">
+                            <div class="p-4 pb-3">
+                                <div class="flex items-start gap-3">
                                     <div class="relative flex-shrink-0">
-                                        <img class="h-12 w-12 rounded-xl object-cover border-2 border-white shadow-lg ring-2 ring-white/20"
-                                    src="{{ $pitch->user->profile_photo_url }}" alt="{{ $pitch->user->name }}" />
-                                        <div class="absolute -bottom-1 -right-1 w-4 h-4 {{ $statusTheme['accent'] }} rounded-full border-2 border-white shadow-sm"></div>
+                                        <flux:avatar size="md" src="{{ $pitch->user->profile_photo_url }}" alt="{{ $pitch->user->name }}" />
+                                        <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 {{ $statusColors['accent'] }} rounded-full border-2 border-white dark:border-gray-800"></div>
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                             <div class="flex-1 min-w-0">
-                                                <div class="flex items-center space-x-2 mb-1">
-                                                    <a href="{{ route('profile.show', $pitch->user->id) }}" class="font-bold text-gray-900 hover:text-purple-600 transition-colors text-base truncate">{{ $pitch->user->name }}</a>
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <a href="{{ route('profile.show', $pitch->user->id) }}" class="font-bold text-gray-900 dark:text-gray-100 hover:{{ $gradientClasses['text_muted'] }} transition-colors text-base truncate">{{ $pitch->user->name }}</a>
                                     @if($pitch->status === 'completed')
-                                                        <div class="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs px-2 py-0.5 rounded-lg font-medium border border-green-200 flex-shrink-0">
-                                                            <i class="fas fa-trophy mr-1"></i>Completed
-                                                        </div>
+                                                        <flux:badge color="green" size="sm">
+                                                            <flux:icon.trophy class="w-3 h-3 mr-1" />Completed
+                                                        </flux:badge>
                                                     @endif
                                                 </div>
-                                                <div class="flex flex-col sm:flex-row sm:items-center text-sm text-gray-600 gap-1 sm:gap-3">
-                                                    <div class="flex items-center">
-                                                        <i class="fas fa-calendar-alt mr-1.5 text-gray-400"></i>
+                                                <div class="flex flex-col sm:flex-row sm:items-center text-sm text-gray-600 dark:text-gray-400 gap-1 sm:gap-3">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <flux:icon.calendar class="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                                         Pitched {{ $pitch->created_at->format('M j, Y') }}
                                                     </div>
-                                                    <div class="flex items-center">
-                                                        <i class="fas fa-clock mr-1.5 text-gray-400"></i>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <flux:icon.clock class="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                                         {{ $pitch->created_at->diffForHumans() }}
                                                     </div>
                                                     {{-- License Agreement Status --}}
@@ -158,15 +262,15 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                                     @if($project->requiresLicenseAgreement())
                                                         <div class="flex items-center">
                                                             @if($hasLicenseAgreement)
-                                                                <div class="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium border border-green-200">
-                                                                    <i class="fas fa-shield-check mr-1.5"></i>
+                                                                <flux:badge color="green" size="sm">
+                                                                    <flux:icon.shield-check class="w-3 h-3 mr-1.5" />
                                                                     License Agreed
-                                                                </div>
+                                                                </flux:badge>
                                                             @else
-                                                                <div class="inline-flex items-center px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium border border-amber-200">
-                                                                    <i class="fas fa-shield-exclamation mr-1.5"></i>
+                                                                <flux:badge color="amber" size="sm">
+                                                                    <flux:icon.shield-exclamation class="w-3 h-3 mr-1.5" />
                                                                     License Pending
-                                                                </div>
+                                                                </flux:badge>
                                                             @endif
                                                         </div>
                                                     @endif
@@ -174,13 +278,13 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                                 {{-- Enhanced Rating Display --}}
                                                 @if($pitch->status === 'completed' && $pitch->getCompletionRating())
                                                     <div class="mt-2 flex items-center">
-                                                        <div class="bg-gradient-to-r from-orange-100 to-amber-100 border border-orange-200 rounded-lg px-3 py-1 flex items-center">
+                                                        <div class="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg px-3 py-1 flex items-center">
                                                             <div class="flex items-center mr-2">
                                                                 @for($i = 1; $i <= 5; $i++)
-                                                                    <i class="fas fa-star text-xs {{ $i <= $pitch->getCompletionRating() ? 'text-orange-500' : 'text-gray-300' }}"></i>
+                                                                    <flux:icon.star class="w-3 h-3 {{ $i <= $pitch->getCompletionRating() ? 'text-orange-500' : 'text-gray-300 dark:text-gray-600' }}" />
                                                                 @endfor
                                                             </div>
-                                                            <span class="text-sm font-bold text-orange-800">{{ number_format($pitch->getCompletionRating(), 1) }}</span>
+                                                            <span class="text-sm font-bold text-orange-800 dark:text-orange-200">{{ number_format($pitch->getCompletionRating(), 1) }}</span>
                                                         </div>
                                                     </div>
                                                 @endif
@@ -188,10 +292,9 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                             
                                             <!-- Status Badge - Moved to top right -->
                                             <div class="flex-shrink-0 sm:ml-4">
-                                                <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold {{ $pitch->getStatusColorClass() }} border-2 border-white/50 shadow-lg backdrop-blur-sm">
-                                                    <div class="w-2 h-2 rounded-full mr-2 {{ $statusTheme['accent'] }}"></div>
+                                                <flux:badge color="{{ $statusColors['badge'] }}" size="lg">
                                                     {{ $pitch->readable_status }}
-                                                </span>
+                                                </flux:badge>
                                             </div>
                                         </div>
                                     </div>
@@ -213,10 +316,10 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                 ])) ||
                                 ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED)
                             )
-                                <div class="px-6 pb-4">
+                                <div class="px-4 pb-4">
                                     <div class="flex flex-col gap-3">
                                         <!-- Action Buttons Row -->
-                                        <div class="flex flex-wrap gap-2">
+                                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-2">
                                 @if($pitch->status === \App\Models\Pitch::STATUS_APPROVED && !$hasCompletedPitch)
                                         <livewire:pitch.component.complete-pitch
                                             :key="'complete-pitch-'.$pitch->id" :pitch="$pitch" />
@@ -226,17 +329,27 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                 @if(auth()->id() === $project->user_id && 
                                     $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
                                     (empty($pitch->payment_status) || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING || $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
-                                        <a href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project, 'pitch' => $pitch]) }}" 
-                                                   class="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg shadow-sm">
-                                            <i class="fas fa-credit-card mr-2"></i> Process Payment
-                                        </a>
+                                        <flux:button 
+                                            href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project, 'pitch' => $pitch]) }}"
+                                            variant="primary"
+                                            size="sm"
+                                            class="w-full sm:w-auto">
+                                            <flux:icon.credit-card class="w-4 h-4 sm:mr-2" />
+                                            <span class="hidden sm:inline ml-1">Process Payment</span>
+                                            <span class="sm:hidden">Payment</span>
+                                        </flux:button>
                                 @elseif(auth()->id() === $project->user_id && 
                                     $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
                                     in_array($pitch->payment_status, [\App\Models\Pitch::PAYMENT_STATUS_PAID, \App\Models\Pitch::PAYMENT_STATUS_PROCESSING]))
-                                        <a href="{{ route('projects.pitches.payment.receipt', ['project' => $pitch->project, 'pitch' => $pitch]) }}" 
-                                                   class="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg shadow-sm">
-                                                    <i class="fas fa-file-invoice-dollar mr-2"></i> View Receipt
-                                        </a>
+                                        <flux:button 
+                                            href="{{ route('projects.pitches.payment.receipt', ['project' => $pitch->project, 'pitch' => $pitch]) }}"
+                                            variant="filled"
+                                            size="sm"
+                                            class="w-full sm:w-auto">
+                                            <flux:icon.document class="w-4 h-4 sm:mr-2" />
+                                            <span class="hidden sm:inline ml-1">View Receipt</span>
+                                            <span class="sm:hidden">Receipt</span>
+                                        </flux:button>
                                 @endif
 
                                 @if(auth()->id() === $project->user_id && in_array($pitch->status, [
@@ -254,18 +367,15 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
                                         
                                         <!-- Payment Status Row (if applicable) -->
                                 @if ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED)
-                                            <div class="bg-gradient-to-r from-white/80 to-gray-50/80 backdrop-blur-sm border border-gray-200/50 rounded-lg px-3 py-2 shadow-sm w-fit">
-                                                <div class="flex items-center text-xs">
-                                                    <i class="fas fa-credit-card mr-2 text-gray-500"></i>
-                                                    <span class="text-gray-600 font-medium">Payment Status:</span>
-                                                    <span class="ml-2 font-bold {{
-                                            $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'text-green-600' :
-                                                        ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'text-amber-600' :
-                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'text-blue-600' :
-                                            ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'text-red-600' : 'text-gray-600')))
-                                        }}">
-                                            {{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }}
-                                        </span>
+                                            <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 w-fit">
+                                                <div class="flex items-center text-xs gap-2">
+                                                    <flux:icon.credit-card class="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                    <span class="text-gray-600 dark:text-gray-300 font-medium">Payment Status:</span>
+                                                    <flux:badge 
+                                                        color="{{ $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'green' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'amber' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'blue' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'red' : 'gray'))) }}"
+                                                        size="sm">
+                                                        {{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }}
+                                                    </flux:badge>
                                                 </div>
                                     </div>
                                 @endif
@@ -275,250 +385,128 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
 
                     @if($pitch->snapshots->count() > 0)
                                 <!-- Enhanced Snapshots Section -->
-                                <div class="mx-6 mb-4 p-4 bg-gradient-to-br from-white/60 to-gray-50/40 backdrop-blur-sm border border-white/40 rounded-xl shadow-inner">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div class="flex items-center">
-                                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3">
-                                                <i class="fas fa-history text-white text-sm"></i>
+                                <div x-data="{ expanded: false }" class="border-t border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30">
+                                    <div class="px-4 py-2">
+                                        <button @click="expanded = !expanded" class="w-full flex items-center justify-between text-left group">
+                                            <div class="flex items-center gap-2">
+                                                <flux:icon.clock class="w-4 h-4 {{ $gradientClasses['icon'] }}" />
+                                                <flux:text size="sm" class="{{ $gradientClasses['text_primary'] }}">Snapshots ({{ $pitch->snapshots->count() }})</flux:text>
                                             </div>
-                                            <div>
-                                                <h5 class="font-bold text-gray-800 text-sm">Snapshots</h5>
-                                                <p class="text-xs text-gray-600">Version history</p>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <div class="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs px-3 py-1 rounded-lg font-bold border border-blue-200 shadow-sm">
-                                                {{ $pitch->snapshots->count() }} versions
-                                            </div>
+                                            <div class="flex items-center gap-1">
                                             @if($pitch->snapshots->count() >= 2)
-                                                <button onclick="showVersionComparison({{ $pitch->id }})" 
-                                                        class="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 text-xs px-3 py-1 rounded-lg font-bold border border-purple-200 shadow-sm hover:from-purple-200 hover:to-pink-200 transition-colors">
-                                                    <i class="fas fa-columns mr-1"></i>Compare
-                                                </button>
+                                                <flux:button 
+                                                    variant="ghost" 
+                                                        size="xs"
+                                                    flux:modal="version-comparison-{{ $pitch->id }}">
+                                                        <flux:icon.squares-2x2 class="w-3 h-3" />
+                                                </flux:button>
                                             @endif
+                                                <flux:icon.chevron-down x-show="!expanded" class="w-3 h-3 {{ $gradientClasses['text_muted'] }}" />
+                                                <flux:icon.chevron-up x-show="expanded" class="w-3 h-3 {{ $gradientClasses['text_muted'] }}" />
                                         </div>
+                                        </button>
                                     </div>
                                     
+                                    <div x-show="expanded" x-collapse class="px-4 pb-3">
+                                        <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-lg p-3">
+                                    
                                     <!-- Version Comparison Modal -->
-                                    <div id="versionComparisonModal-{{ $pitch->id }}" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-                                        <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6 rounded-t-2xl">
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center">
-                                                        <i class="fas fa-columns text-2xl mr-3"></i>
-                                                        <div>
-                                                            <h3 class="text-xl font-bold">Version Comparison</h3>
-                                                            <p class="text-purple-100">Compare snapshots from {{ $pitch->user->name }}</p>
-                                                        </div>
-                                                    </div>
-                                                    <button onclick="hideVersionComparison({{ $pitch->id }})" 
-                                                            class="text-white hover:text-purple-200 transition-colors">
-                                                        <i class="fas fa-times text-2xl"></i>
-                                                    </button>
+                                    <flux:modal name="version-comparison-{{ $pitch->id }}" class="max-w-6xl">
+                                        <div class="p-6">
+                                            <div class="flex items-center gap-3 mb-6">
+                                                <flux:icon.squares-2x2 class="w-6 h-6 {{ $gradientClasses['icon'] }}" />
+                                                <div>
+                                                    <flux:heading size="lg">Version Comparison</flux:heading>
+                                                    <flux:subheading>Compare snapshots from {{ $pitch->user->name }}</flux:subheading>
                                                 </div>
                                             </div>
                                             
-                                            <div class="p-6">
-                                                @if($pitch->snapshots->count() >= 2)
-                                                    @livewire('file-comparison-player', [
-                                                        'snapshots' => $pitch->snapshots->sortByDesc('created_at'),
-                                                        'pitchId' => $pitch->id,
-                                                        'allowAnnotations' => true
-                                                    ])
-                                                @endif
-                                            </div>
+                                            @if($pitch->snapshots->count() >= 2)
+                                                @livewire('file-comparison-player', [
+                                                    'snapshots' => $pitch->snapshots->sortByDesc('created_at'),
+                                                    'pitchId' => $pitch->id,
+                                                    'allowAnnotations' => true
+                                                ])
+                                            @endif
                                         </div>
-                                    </div>
+                                    </flux:modal>
                                 </div>
                             </div>
-                                            @if($pitch->snapshots->where('status', 'pending')->count() > 0 && auth()->id() === $project->user_id)
-                                                <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs px-3 py-1 rounded-lg font-bold animate-pulse shadow-lg border border-amber-300">
-                                                    {{ $pitch->snapshots->where('status', 'pending')->count() }} pending
-                                        </div>
-                                    @endif
-                                </div>
-                                    </div>
-                                    
-                                    <!-- Enhanced Snapshots Grid -->
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <!-- Compact Snapshots Grid -->
+                                            <div class="space-y-2">
                                     @foreach($pitch->snapshots->sortByDesc('created_at') as $snapshot)
                                         <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
-                                                class="group flex items-center p-3 bg-gradient-to-br from-white/80 to-gray-50/60 hover:from-white/90 hover:to-blue-50/60 backdrop-blur-sm border border-white/50 hover:border-blue-200/50 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+                                                        class="group flex items-center p-2 bg-white dark:bg-gray-800 hover:bg-white/80 border border-gray-200 dark:border-gray-700 rounded-lg transition-all duration-200">
                                                 
                                                 <!-- Snapshot Icon -->
-                                                <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200 text-blue-700 mr-3 shadow-sm group-hover:shadow-md transition-shadow">
-                                                <i class="fas fa-camera text-sm"></i>
-                                            </div>
+                                                        <div class="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center bg-white/60 {{ $gradientClasses['icon'] }} mr-2">
+                                                            <flux:icon.camera class="w-3 h-3" />
+                                                </div>
                                                 
                                                 <!-- Snapshot Info -->
-                                            <div class="min-w-0 flex-1">
-                                                    <div class="font-bold truncate text-sm text-gray-800 group-hover:text-blue-800">
+                                                <div class="min-w-0 flex-1">
+                                                            <div class="flex items-center justify-between">
+                                                                <div class="font-medium truncate text-xs text-gray-800 dark:text-gray-200 group-hover:{{ $gradientClasses['text_primary'] }}">
                                                         Version {{ $snapshot->snapshot_data['version'] ?? 'N/A' }}
                                                     </div>
-                                                    <div class="text-xs text-gray-500 truncate flex items-center">
-                                                        <i class="fas fa-clock mr-1"></i>
-                                                        {{ $snapshot->created_at->format('M j, Y g:i A') }}
+                                                                <div class="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                                                    {{ $snapshot->created_at->format('M j') }}
+                                                                </div>
                                                     </div>
-                                            </div>
+                                                </div>
                                                 
-                                                <!-- Enhanced Status Badge -->
-                                                <div class="ml-2 flex-shrink-0">
-                                            @if($snapshot->status === 'accepted')
-                                                        <span class="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs px-2.5 py-1 rounded-lg font-bold border border-green-200 shadow-sm">
-                                                            <i class="fas fa-check mr-1"></i>Accepted
-                                                        </span>
-                                            @elseif($snapshot->status === 'declined')
-                                                        <span class="bg-gradient-to-r from-red-100 to-pink-100 text-red-800 text-xs px-2.5 py-1 rounded-lg font-bold border border-red-200 shadow-sm">
-                                                            <i class="fas fa-times mr-1"></i>Declined
-                                                        </span>
-                                            @elseif($snapshot->status === 'revisions_requested')
-                                                        <span class="bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 text-xs px-2.5 py-1 rounded-lg font-bold border border-amber-200 shadow-sm">
-                                                            <i class="fas fa-edit mr-1"></i>Revisions
-                                                        </span>
-                                            @elseif($snapshot->status === 'revision_addressed')
-                                                        <span class="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 text-xs px-2.5 py-1 rounded-lg font-bold border border-blue-200 shadow-sm">
-                                                            <i class="fas fa-undo mr-1"></i>Addressed
-                                                        </span>
-                                            @elseif($snapshot->status === 'pending')
-                                                        <span class="bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 text-xs px-2.5 py-1 rounded-lg font-bold border border-yellow-200 shadow-sm animate-pulse">
-                                                            <i class="fas fa-clock mr-1"></i>Pending
-                                                        </span>
-                                            @else
-                                                        <span class="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 text-xs px-2.5 py-1 rounded-lg font-bold border border-gray-200 shadow-sm">
-                                                            {{ ucfirst($snapshot->status) }}
-                                                        </span>
-                                            @endif
+                                                        <!-- Status Indicator -->
+                                                        <div class="ml-1 flex-shrink-0">
+                                                    @if($snapshot->status === 'accepted')
+                                                                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                    @elseif($snapshot->status === 'declined')
+                                                                <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                    @elseif($snapshot->status === 'revisions_requested')
+                                                                <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                    @elseif($snapshot->status === 'pending')
+                                                                <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                                                    @else
+                                                                <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                                    @endif
                                                 </div>
                                         </a>
                                     @endforeach
-                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
                         </div>
                     @endif
 
                     @if($pitch->status === 'completed' && !empty($pitch->completion_feedback))
-                                <!-- Enhanced Completion Feedback -->
-                                <div class="mx-6 mb-4 p-4 bg-gradient-to-br from-green-50/80 to-emerald-50/70 backdrop-blur-sm border border-green-200/50 rounded-xl shadow-lg">
-                                    <div class="flex items-center mb-3">
-                                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl mr-3 shadow-lg">
-                                            <i class="fas fa-comment-alt text-white"></i>
+                                <!-- Compact Completion Feedback -->
+                                <div class="border-t {{ $semanticColors['success']['border'] }} {{ $semanticColors['success']['bg'] }} px-4 py-3">
+                                    <div class="flex items-start gap-2">
+                                        <flux:icon.chat-bubble-left-ellipsis class="w-4 h-4 {{ $semanticColors['success']['icon'] }} mt-0.5 flex-shrink-0" />
+                                        <div class="min-w-0">
+                                            <flux:text size="sm" class="{{ $semanticColors['success']['text'] }} font-medium mb-1">Completion Feedback</flux:text>
+                                            <flux:text size="xs" class="{{ $semanticColors['success']['text'] }} leading-relaxed">{{ $pitch->completion_feedback }}</flux:text>
                                         </div>
-                                        <div>
-                                            <h5 class="font-bold text-green-900">Project Completed</h5>
-                                            <p class="text-sm text-green-700">Feedback from project owner</p>
-                                        </div>
-                                    </div>
-                                    <div class="bg-gradient-to-br from-white/80 to-green-50/60 backdrop-blur-sm border border-green-200/30 rounded-lg p-4">
-                                        <p class="text-green-800 leading-relaxed">{{ $pitch->completion_feedback }}</p>
                                     </div>
                                 </div>
                             @endif
                         </div>
                     </div>
                 @empty
-                    <!-- Enhanced Empty State -->
-                    <div class="text-center py-8 lg:py-12">
-                        <!-- Enhanced Icon Container -->
-                        <div class="mb-4 lg:mb-6">
-                            <div class="flex items-center justify-center w-16 lg:w-20 h-16 lg:h-20 bg-gradient-to-br from-purple-100 to-blue-100 backdrop-blur-sm border border-purple-200/50 rounded-2xl mx-auto shadow-lg">
-                                <i class="fas fa-paper-plane text-2xl lg:text-3xl text-purple-500"></i>
-                            </div>
+                    <!-- Clean Empty State -->
+                    <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl p-6 text-center">
+                        <div class="flex items-center justify-center gap-2 {{ $gradientClasses['text_muted'] }}">
+                            <flux:icon.paper-airplane class="w-5 h-5" />
+                            <span class="text-sm font-medium">No pitches submitted yet</span>
                         </div>
-                        
-                        <!-- Enhanced Text Content -->
-                        <div class="mb-4 lg:mb-6">
-                            <h4 class="text-lg lg:text-xl font-bold text-gray-800 mb-2">No pitches submitted yet</h4>
-                            <p class="text-gray-600 max-w-md mx-auto leading-relaxed">
-                                Your project is ready to receive pitches from talented producers. 
-                                Once users submit their proposals, they'll appear here for your review.
-                            </p>
-                    </div>
-                    
-                    @if($project->isStandard() && $project->status === \App\Models\Project::STATUS_OPEN)
-                            <!-- Enhanced Tips Card -->
-                            <div class="bg-gradient-to-br from-purple-50/90 to-blue-50/80 backdrop-blur-md border border-purple-200/50 rounded-2xl p-6 max-w-lg mx-auto shadow-lg">
-                                <div class="flex items-center mb-4">
-                                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl mr-3 shadow-lg">
-                                        <i class="fas fa-lightbulb text-white"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="font-bold text-purple-900">Boost Your Project</h5>
-                                        <p class="text-sm text-purple-700">Tips to attract quality pitches</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                                    <div class="flex items-center p-3 bg-gradient-to-br from-white/60 to-purple-50/40 rounded-lg border border-white/50">
-                                        <i class="fas fa-share-alt text-purple-500 mr-3"></i>
-                                        <span class="text-sm font-medium text-purple-800">Share on social media</span>
-                                    </div>
-                                    <div class="flex items-center p-3 bg-gradient-to-br from-white/60 to-blue-50/40 rounded-lg border border-white/50">
-                                        <i class="fas fa-file-alt text-blue-500 mr-3"></i>
-                                        <span class="text-sm font-medium text-blue-800">Add detailed description</span>
-                                    </div>
-                                    <div class="flex items-center p-3 bg-gradient-to-br from-white/60 to-purple-50/40 rounded-lg border border-white/50">
-                                        <i class="fas fa-music text-purple-500 mr-3"></i>
-                                        <span class="text-sm font-medium text-purple-800">Upload reference tracks</span>
-                                    </div>
-                                    <div class="flex items-center p-3 bg-gradient-to-br from-white/60 to-blue-50/40 rounded-lg border border-white/50">
-                                        <i class="fas fa-dollar-sign text-blue-500 mr-3"></i>
-                                        <span class="text-sm font-medium text-blue-800">Set clear budget & deadline</span>
-                                    </div>
-                                </div>
-                        </div>
-                    @endif
+                        <p class="text-xs {{ $gradientClasses['text_muted'] }} mt-2">
+                            Pitch submissions will appear here for review once producers respond to your project.
+                        </p>
                 </div>
             @endforelse
-            </div>
         </div>
     </div>
 </div>
 
-<style>
-    /* Toggle B */
-    input:checked ~ .dot {
-        transform: translateX(100%);
-        background-color: #4f46e5;
-    }
-    input:checked ~ .block {
-        background-color: #c7d2fe;
-    }
-</style>
 
-<script>
-    function showVersionComparison(pitchId) {
-        const modal = document.getElementById(`versionComparisonModal-${pitchId}`);
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-    }
 
-    function hideVersionComparison(pitchId) {
-        const modal = document.getElementById(`versionComparisonModal-${pitchId}`);
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.style.overflow = 'auto';
-        }
-    }
-
-    // Close modal when clicking outside
-    document.addEventListener('click', function(event) {
-        if (event.target.id && event.target.id.startsWith('versionComparisonModal-')) {
-            const pitchId = event.target.id.replace('versionComparisonModal-', '');
-            hideVersionComparison(pitchId);
-        }
-    });
-
-    // Close modal with escape key
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            const openModals = document.querySelectorAll('[id^="versionComparisonModal-"]:not(.hidden)');
-            openModals.forEach(modal => {
-                const pitchId = modal.id.replace('versionComparisonModal-', '');
-                hideVersionComparison(pitchId);
-            });
-        }
-    });
-</script> 
+ 

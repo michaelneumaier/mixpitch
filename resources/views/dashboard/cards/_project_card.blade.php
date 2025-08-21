@@ -7,27 +7,20 @@
     ])->count();
 @endphp
 
-<div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-    <!-- Gradient Border Effect -->
-    @if($project->isContest())
-        <div class="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-    @else
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-indigo-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-    @endif
-    
-    <a href="{{ $projectUrl }}" class="relative block m-0.5 bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
+<flux:card class="group hover:shadow-xl transition-all duration-300">
+    <a href="{{ $projectUrl }}" class="block -m-6">
         <div class="flex flex-col lg:flex-row">
             {{-- Enhanced Project Image --}}
-            <div class="relative lg:w-64 h-48 lg:h-auto bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+            <div class="relative lg:w-64 h-48 lg:h-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 overflow-hidden">
                 @if($project->image_path)
                     <img src="{{ $project->imageUrl }}" 
                          alt="{{ $project->name }}"
                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 @else
-                    <div class="w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 flex items-center justify-center">
+                    <div class="w-full h-full bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 flex items-center justify-center">
                         <div class="text-center">
-                            <i class="fas fa-music text-4xl text-blue-400/60 mb-2"></i>
-                            <p class="text-sm text-gray-500 font-medium">{{ $project->name }}</p>
+                            <i class="fas fa-music text-4xl text-blue-400/60 dark:text-blue-500/60 mb-2"></i>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">{{ $project->name }}</p>
                         </div>
                     </div>
                 @endif
@@ -62,12 +55,12 @@
             <div class="flex-1 p-6 lg:p-8">
                 <!-- Header Section -->
                 <div class="mb-6">
-                    <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-200">
+                    <flux:heading size="lg" class="mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
                         {{ $project->name }}
-                    </h3>
-                    <div class="flex items-center text-gray-600 mb-4">
-                        <div class="flex items-center justify-center w-6 h-6 bg-purple-100 rounded-full mr-2">
-                            <i class="fas fa-layer-group text-purple-600 text-xs"></i>
+                    </flux:heading>
+                    <div class="flex items-center text-gray-600 dark:text-gray-400 mb-4">
+                        <div class="flex items-center justify-center w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full mr-2">
+                            <i class="fas fa-layer-group text-purple-600 dark:text-purple-400 text-xs"></i>
                         </div>
                         <span class="text-sm font-medium">{{ $project->readableWorkflowTypeAttribute }}</span>
                     </div>
@@ -78,10 +71,10 @@
                     @if($project->isContest())
                         @if($project->hasPrizes())
                             <!-- New Contest Prize System -->
-                            <div class="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-4 border border-amber-200/50">
+                            <div class="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl p-4 border border-amber-200/50 dark:border-amber-700/50">
                                 <div class="flex items-center mb-2">
                                     <i class="fas fa-trophy text-amber-600 mr-2"></i>
-                                    <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Contest Prizes</span>
+                                    <span class="text-xs font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide">Contest Prizes</span>
                                 </div>
                                 <div class="text-sm font-bold text-amber-900">
                                     @php $totalCash = $project->getTotalPrizeBudget(); @endphp
@@ -323,4 +316,4 @@
             </div>
         </div>
     </a>
-</div> 
+</flux:card> 

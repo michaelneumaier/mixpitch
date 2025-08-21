@@ -1,12 +1,8 @@
-@extends('components.layouts.app')
-
-@section('title', $client->name ? $client->name . ' - Client Management' : 'Client - Client Management')
+<x-layouts.app-sidebar :title="$client->name ? $client->name . ' - Client Management' : 'Client - Client Management'">
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 @endpush
-
-@section('content')
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
     <!-- Background decorative elements -->
     <div class="fixed top-20 left-10 w-20 h-20 bg-blue-200/30 rounded-full blur-xl"></div>
@@ -31,4 +27,4 @@
         <livewire:client-detail-dashboard :client="$client" />
     </div>
 </div>
-@endsection
+</x-layouts.app-sidebar>

@@ -1,443 +1,470 @@
 @props(['project'])
 
 @php
-    // Check if this is a contest - if so, use dedicated contest workflow component
-    if ($project->isContest()) {
-        // Use contest-specific workflow component
-        $useContestComponent = true;
-    } else {
-        $useContestComponent = false;
-        
-        // Original workflow stages for non-contest projects
-        $workflowStages = [
-            'open' => ['label' => 'Open for Pitches', 'icon' => 'fa-bullhorn', 'progress' => 10],
-            'reviewing' => ['label' => 'Reviewing Pitches', 'icon' => 'fa-search', 'progress' => 30],
-            'approved' => ['label' => 'Pitch Approved', 'icon' => 'fa-check-circle', 'progress' => 50],
-            'in_progress' => ['label' => 'Work in Progress', 'icon' => 'fa-cogs', 'progress' => 70],
-            'under_review' => ['label' => 'Under Review', 'icon' => 'fa-eye', 'progress' => 85],
-            'revisions' => ['label' => 'Revisions Requested', 'icon' => 'fa-edit', 'progress' => 75],
-            'approved_final' => ['label' => 'Approved', 'icon' => 'fa-thumbs-up', 'progress' => 95],
-            'completed' => ['label' => 'Completed', 'icon' => 'fa-trophy', 'progress' => 100],
-        ];
+    // Determine current focus based on project status and workflow type
+    $currentFocus = [
+        'title' => '',
+        'description' => '',
+        'action' => null,
+        'urgency' => 'normal', // normal, warning, urgent
+        'icon' => 'check-circle',
+        'progress' => null
+    ];
 
-        // Original logic for non-contest projects
-        $currentStage = 'open';
-        $progressPercentage = 10;
-        $statusMessage = '';
-        $contextualGuidance = '';
-        $timeInStatus = null;
-        $showWarning = false;
-
-        // Load pitches if not already loaded
-        if (!$project->relationLoaded('pitches')) {
-            $project->load(['pitches' => function($q) {
-                $q->with('user')->orderBy('created_at', 'desc');
-            }]);
-        }
-
-        $pitchCount = $project->pitches->count();
-        $approvedPitch = $project->pitches->where('status', 'approved')->first();
-        $completedPitch = $project->pitches->where('status', 'completed')->first();
-        $hasApprovedPitch = $approvedPitch !== null;
-        $hasCompletedPitch = $completedPitch !== null;
-
-        // Load user relationship for completed pitch if needed for tipjar functionality
-        if ($hasCompletedPitch && !$completedPitch->relationLoaded('user')) {
-            $completedPitch->load('user');
-        }
-
-        // Determine current stage
-        if (!$project->is_published) {
-            $currentStage = 'open';
-            $statusMessage = 'Project is not yet published';
-            $contextualGuidance = 'Publish your project to start receiving pitches from producers.';
-        } elseif ($pitchCount === 0) {
-            $currentStage = 'open';
-            $statusMessage = 'Waiting for pitches';
-            $contextualGuidance = 'Your project is live and accepting pitches. Share it to attract more producers.';
-            $timeInStatus = $project->created_at;
-        } elseif (!$hasApprovedPitch && !$hasCompletedPitch && $pitchCount > 0) {
-            $currentStage = 'reviewing';
-            $statusMessage = "Reviewing {$pitchCount} pitch" . ($pitchCount > 1 ? 'es' : '');
-            $contextualGuidance = 'Review submitted pitches and approve one to move forward with the project.';
-            $timeInStatus = $project->pitches->first()->created_at;
-        } elseif ($hasCompletedPitch) {
-            // Handle completed pitch with payment status consideration
-            $paymentStatus = $completedPitch->payment_status;
-            $requiresPayment = $project->budget > 0;
-            
-            if ($requiresPayment) {
-                switch ($paymentStatus) {
-                    case 'pending':
-                        $currentStage = 'completed';
-                        $statusMessage = 'Pitch completed - payment pending';
-                        $contextualGuidance = 'The work has been completed successfully. Process payment to finalize the project.';
-                        break;
-                    case 'processing':
-                        $currentStage = 'completed';
-                        $statusMessage = 'Payment processing';
-                        $contextualGuidance = 'Payment is being processed. You will receive confirmation once completed.';
-                        break;
-                    case 'paid':
-                        $currentStage = 'completed';
-                        $statusMessage = 'Project completed & paid';
-                        $contextualGuidance = 'Project successfully completed and payment processed. Thank you for using our platform!';
-                        break;
-                    case 'failed':
-                        $currentStage = 'completed';
-                        $statusMessage = 'Payment failed - action required';
-                        $contextualGuidance = 'The work is completed but payment failed. Please retry payment processing.';
-                        break;
-                    default:
-                        $currentStage = 'completed';
-                        $statusMessage = 'Pitch completed - payment pending';
-                        $contextualGuidance = 'The work has been completed successfully. Process payment to finalize the project.';
-                }
-            } else {
-                $currentStage = 'completed';
-                $statusMessage = 'Project completed';
-                $contextualGuidance = 'Project successfully completed. Thank you for using our platform!';
-            }
-            $timeInStatus = $completedPitch->updated_at;
-        } elseif ($hasApprovedPitch) {
-            // Check the approved pitch status for more granular stages
-            switch ($approvedPitch->status) {
-                case 'approved':
-                    if ($approvedPitch->files->count() === 0) {
-                        $currentStage = 'approved';
-                        $statusMessage = 'Pitch approved - waiting for work to begin';
-                        $contextualGuidance = 'The producer has been notified and should begin working on your project soon.';
-                    } else {
-                        $currentStage = 'in_progress';
-                        $statusMessage = 'Work in progress';
-                        $contextualGuidance = 'The producer is actively working on your project. Files have been uploaded.';
-                    }
-                    break;
-                case 'submitted_for_review':
-                    $currentStage = 'under_review';
-                    $statusMessage = 'Work submitted for review';
-                    $contextualGuidance = 'Review the submitted work and provide feedback or approve the final deliverable.';
-                    break;
-                case 'revision_requested':
-                    $currentStage = 'revisions';
-                    $statusMessage = 'Revisions requested';
-                    $contextualGuidance = 'Waiting for the producer to implement your requested changes.';
-                    break;
-                case 'approved_final':
-                    $currentStage = 'approved_final';
-                    $statusMessage = 'Final work approved';
-                    $contextualGuidance = 'Great! The work has been approved. Payment processing will begin shortly.';
-                    break;
-                case 'completed':
-                    $currentStage = 'completed';
-                    $statusMessage = 'Project completed';
-                    $contextualGuidance = 'Project successfully completed. Thank you for using our platform!';
-                    break;
-            }
-            $timeInStatus = $approvedPitch->updated_at;
-        }
-
-        $progressPercentage = $workflowStages[$currentStage]['progress'];
-
-        // Check for warnings (time in status)
-        if ($timeInStatus) {
-            $daysInStatus = $timeInStatus->diffInDays(now());
-            if ($currentStage === 'reviewing' && $daysInStatus > 7) {
-                $showWarning = true;
-            } elseif ($currentStage === 'under_review' && $daysInStatus > 5) {
-                $showWarning = true;
-            }
-        }
-
-        // Get file metrics
-        $totalFiles = $project->files->count();
-        $recentFiles = $project->files->where('created_at', '>=', now()->subDays(7))->count();
-        $storageUsed = $project->files->sum('size');
-
-        // Get activity metrics
-        $recentActivity = $project->pitches->where('updated_at', '>=', now()->subDays(7))->count();
-        $pitchCount = $project->pitches->count();
+    // Load pitches if not already loaded
+    if (!$project->relationLoaded('pitches')) {
+        $project->load(['pitches' => function($q) {
+            $q->with('user')->orderBy('created_at', 'desc');
+        }]);
     }
+
+    $pitchCount = $project->pitches->count();
+    $approvedPitch = $project->pitches->where('status', 'approved')->first();
+    $completedPitch = $project->pitches->where('status', 'completed')->first();
+
+    // Contest-specific logic
+    if ($project->isContest()) {
+        if (!$project->is_published) {
+            $currentFocus = [
+                'title' => 'Contest Ready to Launch',
+                'description' => 'Publish your contest to start accepting entries',
+                'action' => ['type' => 'wire', 'method' => 'publish', 'label' => 'Publish Contest'],
+                'urgency' => 'warning',
+                'icon' => 'megaphone',
+                'progress' => 10
+            ];
+        } elseif ($project->deadline && now()->gt($project->deadline) && !$project->isJudgingFinalized()) {
+            $currentFocus = [
+                'title' => 'Ready for Judging',
+                'description' => "Contest closed with {$pitchCount} entries. Time to select winners.",
+                'action' => ['type' => 'route', 'name' => 'projects.contest.judging', 'params' => $project, 'label' => 'Start Judging'],
+                'urgency' => 'urgent',
+                'icon' => 'scale',
+                'progress' => 80
+            ];
+        } elseif ($project->isJudgingFinalized()) {
+            $currentFocus = [
+                'title' => 'Contest Complete',
+                'description' => 'Winners have been selected and prizes distributed',
+                'action' => ['type' => 'route', 'name' => 'projects.contest.results', 'params' => $project, 'label' => 'View Results'],
+                'urgency' => 'normal',
+                'icon' => 'trophy',
+                'progress' => 100
+            ];
+        } elseif ($project->deadline) {
+            $daysLeft = now()->diffInDays($project->deadline, false);
+            if ($daysLeft > 0) {
+                $currentFocus = [
+                    'title' => 'Contest Active',
+                    'description' => "{$pitchCount} entries • {$daysLeft} " . ($daysLeft === 1 ? 'day' : 'days') . " remaining",
+                    'action' => null,
+                    'urgency' => $daysLeft <= 3 ? 'warning' : 'normal',
+                    'icon' => 'clock',
+                    'progress' => 50
+                ];
+            }
+        }
+    }
+    // Client Management workflow
+    elseif ($project->isClientManagement()) {
+        if ($completedPitch) {
+            $currentFocus = [
+                'title' => 'Project Delivered',
+                'description' => 'Work completed and delivered to client',
+                'action' => null,
+                'urgency' => 'normal',
+                'icon' => 'check-circle',
+                'progress' => 100
+            ];
+        } elseif ($approvedPitch) {
+            $workSubmitted = $approvedPitch->status === 'submitted_for_review';
+            $currentFocus = [
+                'title' => $workSubmitted ? 'Client Review Pending' : 'Work in Progress',
+                'description' => $workSubmitted ? 'Waiting for client feedback' : 'Producer is working on your project',
+                'action' => $workSubmitted ? ['type' => 'wire', 'method' => 'resendClientInvite', 'label' => 'Resend Client Link'] : null,
+                'urgency' => 'normal',
+                'icon' => $workSubmitted ? 'eye' : 'cog',
+                'progress' => $workSubmitted ? 85 : 60
+            ];
+        } else {
+            $currentFocus = [
+                'title' => 'Setup Client Review',
+                'description' => 'Configure client access for project approval',
+                'action' => ['type' => 'wire', 'method' => 'resendClientInvite', 'label' => 'Send Client Invite'],
+                'urgency' => 'warning',
+                'icon' => 'user-group',
+                'progress' => 30
+            ];
+        }
+    }
+    // Standard and Direct Hire workflows
+    else {
+        if (!$project->is_published) {
+            $currentFocus = [
+                'title' => 'Ready to Publish',
+                'description' => 'Publish your project to start receiving pitches',
+                'action' => ['type' => 'wire', 'method' => 'publish', 'label' => 'Publish Project'],
+                'urgency' => 'warning',
+                'icon' => 'globe-alt',
+                'progress' => 10
+            ];
+        } elseif ($completedPitch) {
+            $requiresPayment = $project->budget > 0;
+            $paymentStatus = $completedPitch->payment_status;
+            
+            if ($requiresPayment && in_array($paymentStatus, ['pending', 'failed', null])) {
+                $currentFocus = [
+                    'title' => 'Payment Required',
+                    'description' => "Process \${$project->budget} payment to complete project",
+                    'action' => ['type' => 'route', 'name' => 'projects.pitches.payment.overview', 'params' => [$project, $completedPitch], 'label' => 'Process Payment'],
+                    'urgency' => 'urgent',
+                    'icon' => 'credit-card',
+                    'progress' => 95
+                ];
+            } else {
+                $currentFocus = [
+                    'title' => 'Project Complete',
+                    'description' => "Completed by {$completedPitch->user->name}",
+                    'action' => ['type' => 'route', 'name' => 'projects.pitches.show', 'params' => [$project, $completedPitch], 'label' => 'View Final Work'],
+                    'urgency' => 'normal',
+                    'icon' => 'check-circle',
+                    'progress' => 100
+                ];
+            }
+        } elseif ($approvedPitch) {
+            $workSubmitted = $approvedPitch->status === 'submitted_for_review';
+            $revisionRequested = $approvedPitch->status === 'revision_requested';
+            
+            if ($workSubmitted) {
+                $currentFocus = [
+                    'title' => 'Review Submitted Work',
+                    'description' => 'Producer has submitted work for your approval',
+                    'action' => ['type' => 'anchor', 'href' => '#pitch-review', 'label' => 'Review Work'],
+                    'urgency' => 'urgent',
+                    'icon' => 'eye',
+                    'progress' => 85
+                ];
+            } elseif ($revisionRequested) {
+                $currentFocus = [
+                    'title' => 'Revisions in Progress',
+                    'description' => 'Producer is implementing your requested changes',
+                    'action' => null,
+                    'urgency' => 'normal',
+                    'icon' => 'arrow-path',
+                    'progress' => 70
+                ];
+            } else {
+                $fileCount = $approvedPitch->files->count();
+                $currentFocus = [
+                    'title' => 'Work in Progress',
+                    'description' => $fileCount > 0 ? "{$fileCount} files uploaded • Producer is working" : 'Waiting for producer to begin work',
+                    'action' => null,
+                    'urgency' => 'normal',
+                    'icon' => 'cog',
+                    'progress' => $fileCount > 0 ? 60 : 40
+                ];
+            }
+        } elseif ($pitchCount > 0) {
+            $pendingPitches = $project->pitches->where('status', 'pending')->count();
+            $currentFocus = [
+                'title' => 'Review Pitches',
+                'description' => "{$pendingPitches} pitch" . ($pendingPitches !== 1 ? 'es' : '') . " waiting for your review",
+                'action' => ['type' => 'anchor', 'href' => '#pitches-section', 'label' => 'Review Pitches'],
+                'urgency' => 'urgent',
+                'icon' => 'clipboard-document-list',
+                'progress' => 30
+            ];
+        } else {
+            $daysSincePublished = $project->created_at->diffInDays(now());
+            $currentFocus = [
+                'title' => 'Waiting for Pitches',
+                'description' => $daysSincePublished > 3 ? "Published {$daysSincePublished} days ago • Consider sharing" : 'Project is live and accepting pitches',
+                'action' => ['type' => 'modal', 'modal' => 'shareProject', 'label' => 'Share Project'],
+                'urgency' => $daysSincePublished > 7 ? 'warning' : 'normal',
+                'icon' => 'share',
+                'progress' => 20
+            ];
+        }
+    }
+
+    // Color scheme based on urgency
+    $colorScheme = match($currentFocus['urgency']) {
+        'urgent' => [
+            'bg' => 'bg-red-50 dark:bg-red-950',
+            'border' => 'border-red-200 dark:border-red-800',
+            'icon' => 'text-red-600 dark:text-red-400',
+            'title' => 'text-red-900 dark:text-red-100',
+            'desc' => 'text-red-700 dark:text-red-300',
+            'progress' => 'bg-red-500'
+        ],
+        'warning' => [
+            'bg' => 'bg-amber-50 dark:bg-amber-950',
+            'border' => 'border-amber-200 dark:border-amber-800',
+            'icon' => 'text-amber-600 dark:text-amber-400',
+            'title' => 'text-amber-900 dark:text-amber-100',
+            'desc' => 'text-amber-700 dark:text-amber-300',
+            'progress' => 'bg-amber-500'
+        ],
+        default => [
+            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'border' => 'border-blue-200 dark:border-blue-800',
+            'icon' => 'text-blue-600 dark:text-blue-400',
+            'title' => 'text-blue-900 dark:text-blue-100',
+            'desc' => 'text-blue-700 dark:text-blue-300',
+            'progress' => 'bg-blue-500'
+        ]
+    };
 @endphp
 
-@if($useContestComponent)
-    <x-contest.project-workflow-status :project="$project" />
-@else
-    <div class="bg-gradient-to-br from-white/95 to-blue-50/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg overflow-hidden">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-b border-blue-200/30 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-blue-900 flex items-center">
-                        <i class="fas fa-project-diagram text-blue-600 mr-3"></i>
-                        Project Workflow Status
-                    </h3>
-                    <p class="text-sm text-blue-700 mt-1">{{ $statusMessage }}</p>
-                </div>
-                <div class="text-right">
-                    <div class="text-2xl font-bold text-blue-600">{{ $progressPercentage }}%</div>
-                    <div class="text-xs text-blue-500">Complete</div>
+<!-- Current Focus Component -->
+<flux:card class="{{ $colorScheme['bg'] }} {{ $colorScheme['border'] }} overflow-hidden">
+        <div class="flex items-start gap-4">
+            <!-- Icon -->
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 rounded-xl {{ $colorScheme['bg'] }} {{ $colorScheme['border'] }} flex items-center justify-center">
+                    <flux:icon name="{{ $currentFocus['icon'] }}" class="w-6 h-6 {{ $colorScheme['icon'] }}" />
                 </div>
             </div>
-
-            <!-- Progress Bar -->
-            <div class="mt-4">
-                <div class="flex justify-between text-xs text-blue-600 mb-2">
-                    <span>Progress</span>
-                    <span>{{ $workflowStages[$currentStage]['label'] }}</span>
-                </div>
-                <div class="w-full bg-blue-200/50 rounded-full h-2">
-                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
-                         style="width: {{ $progressPercentage }}%"></div>
-                </div>
-            </div>
-
-            <!-- Stage Indicators -->
-            <div class="flex justify-between mt-4 text-xs">
-                @foreach(['open', 'reviewing', 'approved', 'in_progress', 'completed'] as $stage)
-                    @php
-                        $isActive = $currentStage === $stage;
-                        $isCompleted = $progressPercentage >= ($workflowStages[$stage]['progress'] ?? 0);
-                        $stageIcon = $workflowStages[$stage]['icon'] ?? 'fa-circle';
-                    @endphp
-                    <div class="flex flex-col items-center {{ $isActive ? 'text-blue-600' : 'text-blue-400' }}">
-                        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center mb-1 transition-all duration-300
-                            {{ $isCompleted ? 'bg-blue-600 border-blue-600 text-white' : 'border-blue-300 text-blue-400' }}
-                            {{ $isActive ? 'ring-2 ring-blue-300 ring-offset-2' : '' }}">
-                            <i class="fas {{ $stageIcon }} text-xs"></i>
-                        </div>
-                        <span class="text-center leading-tight max-w-16">{{ $workflowStages[$stage]['label'] ?? ucfirst($stage) }}</span>
+            
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0 flex-1">
+                        <flux:heading size="lg" class="{{ $colorScheme['title'] }} mb-1">
+                            {{ $currentFocus['title'] }}
+                        </flux:heading>
+                        <p class="text-sm {{ $colorScheme['desc'] }} mb-3">
+                            {{ $currentFocus['description'] }}
+                        </p>
+                        
+                        <!-- Progress Bar (if applicable) -->
+                        @if($currentFocus['progress'])
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="flex-1 bg-white dark:bg-gray-800 rounded-full h-2 {{ $colorScheme['border'] }} border">
+                                    <div class="{{ $colorScheme['progress'] }} h-full rounded-full transition-all duration-500" 
+                                         style="width: {{ $currentFocus['progress'] }}%"></div>
+                                </div>
+                                <span class="text-xs font-medium {{ $colorScheme['desc'] }} min-w-fit">
+                                    {{ $currentFocus['progress'] }}%
+                                </span>
+                            </div>
+                        @endif
+                        
+                        <!-- Action Button -->
+                        @if($currentFocus['action'])
+                            @php $action = $currentFocus['action']; @endphp
+                            
+                            @if($action['type'] === 'wire')
+                                <flux:button 
+                                    wire:click="{{ $action['method'] }}" 
+                                    variant="primary" 
+                                    size="sm"
+                                    class="inline-flex items-center">
+                                    {{ $action['label'] }}
+                                </flux:button>
+                            @elseif($action['type'] === 'route')
+                                <flux:button 
+                                    href="{{ route($action['name'], $action['params']) }}" 
+                                    variant="primary" 
+                                    size="sm"
+                                    class="inline-flex items-center">
+                                    {{ $action['label'] }}
+                                </flux:button>
+                            @elseif($action['type'] === 'anchor')
+                                <flux:button 
+                                    href="{{ $action['href'] }}" 
+                                    variant="primary" 
+                                    size="sm"
+                                    class="inline-flex items-center">
+                                    {{ $action['label'] }}
+                                </flux:button>
+                            @elseif($action['type'] === 'modal')
+                                <flux:modal.trigger name="{{ $action['modal'] }}">
+                                    <flux:button 
+                                        variant="primary" 
+                                        size="sm"
+                                        icon="share"
+                                        class="inline-flex items-center">
+                                        {{ $action['label'] }}
+                                    </flux:button>
+                                </flux:modal.trigger>
+                            @endif
+                        @endif
                     </div>
-                @endforeach
+                    
+                    <!-- Quick Stats -->
+                    <div class="flex flex-col gap-2 text-right min-w-fit">
+                        @if(!$project->isClientManagement())
+                            <div class="text-xs {{ $colorScheme['desc'] }}">
+                                {{ $project->pitches->count() }} {{ $project->pitches->count() === 1 ? 'pitch' : 'pitches' }}
+                            </div>
+                        @endif
+                        @if($project->deadline && !$project->isContest())
+                            @php 
+                                $daysToDeadline = now()->diffInDays($project->deadline, false);
+                            @endphp
+                            <div class="text-xs {{ $daysToDeadline < 0 ? 'text-red-600 dark:text-red-400' : $colorScheme['desc'] }}">
+                                @if($daysToDeadline < 0)
+                                    {{ abs($daysToDeadline) }} days overdue
+                                @elseif($daysToDeadline === 0)
+                                    Due today
+                                @else
+                                    {{ $daysToDeadline }} days left
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
+</flux:card>
 
-        <!-- Status-Specific Content -->
-        <div class="p-6">
-            @if($showWarning)
-                <div class="bg-gradient-to-r from-amber-50/80 to-orange-50/80 backdrop-blur-sm border border-amber-200/50 rounded-xl p-4 mb-6">
-                    <div class="flex items-center">
-                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl mr-3">
-                            <i class="fas fa-exclamation-triangle text-white"></i>
+<!-- Share Project Modal -->
+<flux:modal name="shareProject" class="md:w-2xl" x-data="{ 
+    copyToClipboard() {
+        navigator.clipboard.writeText(this.$refs.projectUrl.value).then(() => {
+            // You can add a toast notification here if you have a toast system
+            console.log('URL copied to clipboard');
+        });
+    }
+}">
+    <div class="space-y-6">
+        <div>
+            <flux:heading size="lg">Share Your Project</flux:heading>
+            <flux:subheading>Help your project reach more producers by sharing it across platforms</flux:subheading>
+        </div>
+
+        <!-- Project URL -->
+        <div class="space-y-2">
+            <flux:field>
+                <flux:label>Project URL</flux:label>
+                <div class="flex gap-2">
+                    <flux:input 
+                        value="{{ route('projects.show', $project) }}" 
+                        readonly 
+                        x-ref="projectUrl"
+                        class="flex-1" />
+                    <flux:button 
+                        variant="outline" 
+                        x-on:click="copyToClipboard()"
+                        icon="clipboard">
+                        Copy
+                    </flux:button>
+                </div>
+            </flux:field>
+        </div>
+
+        <!-- r/MixPitch Integration -->
+        @if ($project->is_published)
+            <div class="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                            </svg>
                         </div>
                         <div>
-                            <h4 class="font-bold text-amber-800">Attention Needed</h4>
-                            <p class="text-sm text-amber-700 mt-1">
-                                This project has been in "{{ $workflowStages[$currentStage]['label'] }}" status for {{ $daysInStatus }} days.
+                            <flux:heading size="sm" class="text-orange-900 dark:text-orange-100">r/MixPitch</flux:heading>
+                            <p class="text-sm text-orange-700 dark:text-orange-300">
+                                @if ($project->hasBeenPostedToReddit())
+                                    Already posted to our community
+                                @else
+                                    Share with our Reddit community
+                                @endif
                             </p>
                         </div>
                     </div>
-                </div>
-            @endif
-
-            <!-- Contextual Guidance -->
-            <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 mb-6">
-                <h4 class="font-bold text-blue-900 mb-2 flex items-center">
-                    <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3">
-                        <i class="fas fa-lightbulb text-white text-sm"></i>
-                    </div>
-                    Next Steps
-                </h4>
-                <p class="text-sm text-blue-800">{{ $contextualGuidance }}</p>
-            </div>
-
-            <!-- Project Metrics -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-gradient-to-br from-white/80 to-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 text-center">
-                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto mb-2">
-                        <i class="fas fa-bullhorn text-white text-sm"></i>
-                    </div>
-                    <div class="text-lg font-bold text-blue-900">{{ $pitchCount }}</div>
-                    <div class="text-xs text-blue-600">Pitch{{ $pitchCount !== 1 ? 'es' : '' }}</div>
-                </div>
-                <div class="bg-gradient-to-br from-white/80 to-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 text-center">
-                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto mb-2">
-                        <i class="fas fa-folder text-white text-sm"></i>
-                    </div>
-                    <div class="text-lg font-bold text-blue-900">{{ $totalFiles }}</div>
-                    <div class="text-xs text-blue-600">Files</div>
-                </div>
-                <div class="bg-gradient-to-br from-white/80 to-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 text-center">
-                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto mb-2">
-                        <i class="fas fa-hdd text-white text-sm"></i>
-                    </div>
-                    <div class="text-lg font-bold text-blue-900">{{ number_format($storageUsed / 1024 / 1024, 1) }}MB</div>
-                    <div class="text-xs text-blue-600">Storage</div>
-                </div>
-                <div class="bg-gradient-to-br from-white/80 to-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 text-center">
-                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto mb-2">
-                        <i class="fas fa-chart-line text-white text-sm"></i>
-                    </div>
-                    <div class="text-lg font-bold text-blue-900">{{ $recentActivity }}</div>
-                    <div class="text-xs text-blue-600">Recent Activity</div>
+                    @if ($project->hasBeenPostedToReddit())
+                        <flux:button 
+                            href="{{ $project->getRedditUrl() }}" 
+                            target="_blank"
+                            variant="outline" 
+                            size="sm">
+                            View Post
+                        </flux:button>
+                    @else
+                        <flux:button 
+                            wire:click="postToReddit"
+                            variant="primary" 
+                            size="sm"
+                            :disabled="$isPostingToReddit ?? false"
+                            :loading="$isPostingToReddit ?? false">
+                            @if($isPostingToReddit ?? false)
+                                Posting...
+                            @else
+                                Post Now
+                            @endif
+                        </flux:button>
+                    @endif
                 </div>
             </div>
+        @endif
 
-            <!-- Status-Specific Actions -->
-            @if($currentStage === 'completed' && $hasCompletedPitch)
+        <!-- Social Sharing -->
+        <div class="space-y-3">
+            <flux:heading size="base">Share on Social Media</flux:heading>
+            <div class="grid grid-cols-2 gap-3">
                 @php
-                    $paymentStatus = $completedPitch->payment_status;
-                    $requiresPayment = $project->budget > 0;
-                    $producerHasTipjar = !empty($completedPitch->user->tipjar_link);
+                    $projectUrl = route('projects.show', $project);
+                    $shareText = "Check out my music project: " . $project->name;
+                    $twitterUrl = "https://twitter.com/intent/tweet?text=" . urlencode($shareText) . "&url=" . urlencode($projectUrl);
+                    $facebookUrl = "https://www.facebook.com/sharer/sharer.php?u=" . urlencode($projectUrl);
+                    $linkedinUrl = "https://www.linkedin.com/sharing/share-offsite/?url=" . urlencode($projectUrl);
+                    $redditUrl = "https://reddit.com/submit?title=" . urlencode($shareText) . "&url=" . urlencode($projectUrl);
                 @endphp
                 
-                <div class="space-y-4">
-                    <!-- Payment Actions -->
-                    @if($requiresPayment)
-                        @if($paymentStatus === 'pending' || $paymentStatus === 'failed' || empty($paymentStatus))
-                            <div class="bg-gradient-to-r from-amber-50/80 to-orange-50/80 backdrop-blur-sm border border-amber-200/50 rounded-xl p-4">
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                    <div class="flex items-center">
-                                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl mr-3">
-                                            <i class="fas fa-credit-card text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-bold text-amber-800">Payment Required</h4>
-                                            <p class="text-sm text-amber-700">
-                                                @if($paymentStatus === 'failed')
-                                                    Previous payment failed. Please retry payment processing.
-                                                @else
-                                                    Process payment of ${{ number_format($project->budget, 2) }} to complete the project.
-                                                @endif
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('projects.pitches.payment.overview', ['project' => $project, 'pitch' => $completedPitch]) }}" 
-                                       class="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg shadow-sm">
-                                        <i class="fas fa-credit-card mr-2"></i> Process Payment
-                                    </a>
-                                </div>
-                            </div>
-                        @elseif($paymentStatus === 'processing')
-                            <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
-                                <div class="flex items-center">
-                                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mr-3">
-                                        <i class="fas fa-spinner fa-spin text-white"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-bold text-blue-800">Payment Processing</h4>
-                                        <p class="text-sm text-blue-700">Your payment of ${{ number_format($project->budget, 2) }} is being processed. You will receive confirmation shortly.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @elseif($paymentStatus === 'paid')
-                            <div class="bg-gradient-to-r from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 rounded-xl p-4">
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                    <div class="flex items-center">
-                                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl mr-3">
-                                            <i class="fas fa-check-circle text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-bold text-green-800">Payment Completed</h4>
-                                            <p class="text-sm text-green-700">Payment of ${{ number_format($project->budget, 2) }} processed successfully{{ $completedPitch->payment_completed_at && is_object($completedPitch->payment_completed_at) ? ' on ' . $completedPitch->payment_completed_at->format('M d, Y') : '' }}.</p>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('projects.pitches.payment.receipt', ['project' => $project, 'pitch' => $completedPitch]) }}" 
-                                       class="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg shadow-sm">
-                                        <i class="fas fa-receipt mr-2"></i> View Receipt
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-                    @endif
+                <flux:button 
+                    href="{{ $twitterUrl }}" 
+                    target="_blank"
+                    variant="outline" 
+                    class="justify-start">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    Twitter
+                </flux:button>
+                
+                <flux:button 
+                    href="{{ $facebookUrl }}" 
+                    target="_blank"
+                    variant="outline" 
+                    class="justify-start">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Facebook
+                </flux:button>
+                
+                <flux:button 
+                    href="{{ $linkedinUrl }}" 
+                    target="_blank"
+                    variant="outline" 
+                    class="justify-start">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                    LinkedIn
+                </flux:button>
+                
+                <flux:button 
+                    href="{{ $redditUrl }}" 
+                    target="_blank"
+                    variant="outline" 
+                    class="justify-start">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                    </svg>
+                    Reddit
+                </flux:button>
+            </div>
+        </div>
 
-                    <!-- Tipjar Section -->
-                    @if($producerHasTipjar && ($paymentStatus === 'paid' || !$requiresPayment))
-                        <div class="bg-gradient-to-r from-purple-50/80 to-pink-50/80 backdrop-blur-sm border border-purple-200/50 rounded-xl p-4">
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                <div class="flex items-center">
-                                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl mr-3">
-                                        <i class="fas fa-heart text-white"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-bold text-purple-800">Show Your Appreciation</h4>
-                                        <p class="text-sm text-purple-700">Love the work? Consider leaving a tip for <strong>{{ $completedPitch->user->name }}</strong>!</p>
-                                    </div>
-                                </div>
-                                <a href="{{ $completedPitch->user->tipjar_link }}" target="_blank"
-                                   class="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg shadow-sm">
-                                    <i class="fas fa-donate mr-2"></i> Leave a Tip
-                                </a>
-                            </div>
-                        </div>
-                    @endif
-
-                    <!-- Project Summary -->
-                    <div class="bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div class="flex items-center">
-                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-gray-500 to-blue-600 rounded-xl mr-3">
-                                    <i class="fas fa-trophy text-white"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-gray-800">Project Completed</h4>
-                                    <p class="text-sm text-gray-700">Completed by <strong>{{ $completedPitch->user->name }}</strong>{{ $completedPitch->completed_at && is_object($completedPitch->completed_at) ? ' on ' . $completedPitch->completed_at->format('M d, Y') : '' }}</p>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row gap-2">
-                                <a href="{{ route('projects.pitches.show', ['project' => $project, 'pitch' => $completedPitch]) }}" 
-                                   class="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg shadow-sm">
-                                    <i class="fas fa-eye mr-2"></i> View Pitch
-                                </a>
-                                <a href="{{ route('profile.show', $completedPitch->user) }}" 
-                                   class="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg shadow-sm">
-                                    <i class="fas fa-user mr-2"></i> View Profile
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @elseif($currentStage === 'open' && !$project->is_published)
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <button wire:click="publish" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-bullhorn mr-2"></i>
-                        Publish Project
-                    </button>
-                    <a href="{{ route('projects.edit', $project) }}" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-edit mr-2"></i>
-                        Edit Details
-                    </a>
-                </div>
-            @elseif($currentStage === 'reviewing')
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <a href="#pitches-section" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-search mr-2"></i>
-                        Review Pitches
-                    </a>
-                    <a href="{{ route('projects.show', $project) }}" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-eye mr-2"></i>
-                        View Public Page
-                    </a>
-                </div>
-            @elseif($currentStage === 'under_review')
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <button wire:click="approveWork" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-check mr-2"></i>
-                        Approve Work
-                    </button>
-                    <button wire:click="requestRevisions" class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-edit mr-2"></i>
-                        Request Revisions
-                    </button>
-                </div>
-            @elseif($currentStage === 'completed')
-                <div class="text-center">
-                    <div class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-100/80 to-emerald-100/80 backdrop-blur-sm border border-green-200/50 text-green-800 rounded-xl font-medium">
-                        <i class="fas fa-trophy mr-2"></i>
-                        Project Successfully Completed!
-                    </div>
-                </div>
-            @endif
-
-            <!-- Time in Status -->
-            @if($timeInStatus)
-                <div class="mt-4 pt-4 border-t border-blue-200/50">
-                    <div class="flex items-center justify-between text-sm text-blue-600">
-                        <span>Time in current status:</span>
-                        <span class="font-medium">{{ $timeInStatus->diffForHumans() }}</span>
-                    </div>
-                </div>
-            @endif
+        <!-- Close Button -->
+        <div class="flex justify-end">
+            <flux:button x-on:click="$flux.modal('shareProject').close()" variant="primary">
+                Done
+            </flux:button>
         </div>
     </div>
-@endif 
+</flux:modal>

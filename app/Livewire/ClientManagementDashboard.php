@@ -5,8 +5,8 @@ namespace App\Livewire;
 use App\Models\Client;
 use App\Models\ClientReminder;
 use App\Models\ClientView;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -18,37 +18,63 @@ class ClientManagementDashboard extends Component
 
     // Search and filtering
     public string $search = '';
+
     public string $statusFilter = 'all';
+
     public string $clientFilter = 'all';
+
     public string $sortBy = 'last_contacted_at';
+
     public string $sortDirection = 'desc';
-    
+
     // Component properties
     public bool $expanded = false;
+
     public ?int $userId = null;
 
     // Modal and form state
     public ?Client $selectedClient = null;
+
     public bool $showClientModal = false;
+
     public string $clientName = '';
+
     public string $clientEmail = '';
+
     public string $clientCompany = '';
+
     public string $clientPhone = '';
+
     public string $clientNotes = '';
+
     public array $clientTags = [];
+
     public string $clientStatus = Client::STATUS_ACTIVE;
 
     // Saved views state
     public ?int $activeViewId = null;
+
     public array $availableViews = [];
+
     public string $newViewName = '';
+
     public bool $newViewDefault = false;
 
-    // New reminder form state
+    // New reminder form state (legacy inline form)
     public ?int $newReminderClientId = null;
+
     public string $newReminderNote = '';
+
     public string $newReminderDueAt = '';
+
     public array $clientsForSelect = [];
+
+    // Modal reminder form state
+    public ?int $modalReminderClientId = null;
+
+    public string $modalReminderNote = '';
+
+    public string $modalReminderDueAt = '';
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -72,7 +98,7 @@ class ClientManagementDashboard extends Component
             ->toArray();
 
         // If no active view specified, use default if available
-        if (!$this->activeViewId) {
+        if (! $this->activeViewId) {
             $defaultView = collect($this->availableViews)->firstWhere('is_default', true);
             if ($defaultView) {
                 $this->activeViewId = $defaultView['id'];
@@ -84,7 +110,7 @@ class ClientManagementDashboard extends Component
         $this->clientsForSelect = Client::where('user_id', $this->userId)
             ->orderByRaw('COALESCE(NULLIF(name, ""), email) asc')
             ->get(['id', 'name', 'email'])
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id' => $c->id,
                 'label' => $c->name ? ($c->name.' — '.$c->email) : $c->email,
             ])->toArray();
@@ -113,7 +139,7 @@ class ClientManagementDashboard extends Component
             $this->sortBy = $field;
             $this->sortDirection = 'asc';
         }
-        
+
         $this->resetPage();
     }
 
@@ -128,7 +154,7 @@ class ClientManagementDashboard extends Component
     public function editClient(int $clientId)
     {
         $client = Client::where('user_id', Auth::id())->findOrFail($clientId);
-        
+
         $this->selectedClient = $client;
         $this->clientName = $client->name ?? '';
         $this->clientEmail = $client->email;
@@ -137,7 +163,7 @@ class ClientManagementDashboard extends Component
         $this->clientNotes = $client->notes ?? '';
         $this->clientTags = $client->tags ?? [];
         $this->clientStatus = $client->status;
-        
+
         $this->showClientModal = true;
     }
 
@@ -172,13 +198,14 @@ class ClientManagementDashboard extends Component
     public function deleteClient(int $clientId)
     {
         $client = Client::where('user_id', Auth::id())->findOrFail($clientId);
-        
+
         // Check if client has any projects
         if ($client->projects()->count() > 0) {
             session()->flash('error', 'Cannot delete client with existing projects.');
+
             return;
         }
-        
+
         $client->delete();
         session()->flash('success', 'Client deleted successfully!');
     }
@@ -187,14 +214,14 @@ class ClientManagementDashboard extends Component
     {
         $client = Client::where('user_id', Auth::id())->findOrFail($clientId);
         $client->markAsContacted();
-        
+
         session()->flash('success', 'Client marked as contacted!');
     }
 
     public function createProjectForClient(int $clientId)
     {
         $client = Client::where('user_id', Auth::id())->findOrFail($clientId);
-        
+
         return redirect()->route('projects.create', [
             'workflow_type' => 'client_management',
             'client_email' => $client->email,
@@ -207,8 +234,8 @@ class ClientManagementDashboard extends Component
         $this->showClientModal = false;
         $this->selectedClient = null;
         $this->reset([
-            'clientName', 'clientEmail', 'clientCompany', 
-            'clientPhone', 'clientNotes', 'clientTags', 'clientStatus'
+            'clientName', 'clientEmail', 'clientCompany',
+            'clientPhone', 'clientNotes', 'clientTags', 'clientStatus',
         ]);
         $this->resetValidation();
     }
@@ -216,8 +243,8 @@ class ClientManagementDashboard extends Component
     public function openNewClientModal()
     {
         $this->reset([
-            'clientName', 'clientEmail', 'clientCompany', 
-            'clientPhone', 'clientNotes', 'clientTags'
+            'clientName', 'clientEmail', 'clientCompany',
+            'clientPhone', 'clientNotes', 'clientTags',
         ]);
         $this->clientStatus = 'active';
         $this->selectedClient = null;
@@ -227,7 +254,7 @@ class ClientManagementDashboard extends Component
     public function addTag(string $tag)
     {
         $tag = trim($tag);
-        if ($tag && !in_array($tag, $this->clientTags)) {
+        if ($tag && ! in_array($tag, $this->clientTags)) {
             $this->clientTags[] = $tag;
         }
     }
@@ -241,7 +268,7 @@ class ClientManagementDashboard extends Component
     public function getClientProjectsProperty()
     {
         $userId = $this->userId ?? Auth::id();
-        
+
         $query = Project::where('projects.user_id', $userId)
             ->where('projects.workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->with(['pitches' => function ($query) {
@@ -249,9 +276,9 @@ class ClientManagementDashboard extends Component
             }])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('projects.name', 'like', '%' . $this->search . '%')
-                      ->orWhere('projects.client_name', 'like', '%' . $this->search . '%')
-                      ->orWhere('projects.client_email', 'like', '%' . $this->search . '%');
+                    $q->where('projects.name', 'like', '%'.$this->search.'%')
+                        ->orWhere('projects.client_name', 'like', '%'.$this->search.'%')
+                        ->orWhere('projects.client_email', 'like', '%'.$this->search.'%');
                 });
             })
             ->when($this->statusFilter !== 'all', function ($query) {
@@ -279,11 +306,11 @@ class ClientManagementDashboard extends Component
     public function getClientsForFilterProperty()
     {
         $userId = $this->userId ?? Auth::id();
-        
+
         return Client::where('user_id', $userId)
             ->orderByRaw('COALESCE(NULLIF(name, ""), email) asc')
             ->get(['id', 'name', 'email'])
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id' => $c->id,
                 'label' => $c->name ? ($c->name.' — '.$c->email) : $c->email,
             ]);
@@ -292,11 +319,11 @@ class ClientManagementDashboard extends Component
     public function getStatsProperty()
     {
         $userId = $this->userId ?? Auth::id();
-        
+
         $clientProjects = Project::where('user_id', $userId)
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->get();
-            
+
         return [
             'total_projects' => $clientProjects->count(),
             'active_projects' => $clientProjects->whereNotIn('status', [Project::STATUS_COMPLETED])->count(),
@@ -311,7 +338,7 @@ class ClientManagementDashboard extends Component
     protected function getTotalRevenue()
     {
         $userId = $this->userId ?? Auth::id();
-        
+
         return Project::where('projects.user_id', $userId)
             ->where('projects.workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->join('pitches', 'projects.id', '=', 'pitches.project_id')
@@ -327,7 +354,7 @@ class ClientManagementDashboard extends Component
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->where('status', Project::STATUS_COMPLETED)
             ->count();
-            
+
         return $completedProjects > 0 ? ($totalRevenue / $completedProjects) : 0;
     }
 
@@ -398,14 +425,15 @@ class ClientManagementDashboard extends Component
         session()->flash('success', 'Reminder snoozed.');
     }
 
-     /**
-      * Persist a saved view based on current filters.
-      */
+    /**
+     * Persist a saved view based on current filters.
+     */
     public function saveCurrentView(): void
     {
         $name = trim($this->newViewName);
         if ($name === '') {
             session()->flash('error', 'Please provide a name for the view.');
+
             return;
         }
 
@@ -443,7 +471,7 @@ class ClientManagementDashboard extends Component
 
     public function updatedActiveViewId($value): void
     {
-        if (!$value) {
+        if (! $value) {
             return;
         }
         $view = ClientView::where('user_id', $this->userId)->find($value);
@@ -455,22 +483,22 @@ class ClientManagementDashboard extends Component
 
     protected function applyViewFilters(array $filters): void
     {
-        $this->search = (string)($filters['search'] ?? '');
-        $this->statusFilter = (string)($filters['status'] ?? 'all');
-        $this->clientFilter = (string)($filters['client'] ?? 'all');
+        $this->search = (string) ($filters['search'] ?? '');
+        $this->statusFilter = (string) ($filters['status'] ?? 'all');
+        $this->clientFilter = (string) ($filters['client'] ?? 'all');
     }
 
     protected function applyFiltersToQuery($query, array $filters): void
     {
-        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+        if (! empty($filters['status']) && $filters['status'] !== 'all') {
             $query->where('projects.status', $filters['status']);
         }
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $term = $filters['search'];
             $query->where(function ($q) use ($term) {
                 $q->where('projects.name', 'like', "%{$term}%")
-                  ->orWhere('projects.client_name', 'like', "%{$term}%")
-                  ->orWhere('projects.client_email', 'like', "%{$term}%");
+                    ->orWhere('projects.client_name', 'like', "%{$term}%")
+                    ->orWhere('projects.client_email', 'like', "%{$term}%");
             });
         }
     }
@@ -504,29 +532,29 @@ class ClientManagementDashboard extends Component
             ->count();
 
         $submitted = Pitch::whereHas('project', function ($q) use ($userId) {
-                $q->where('user_id', $userId)
-                  ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
-            })
+            $q->where('user_id', $userId)
+                ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+        })
             ->whereIn('status', [
-                Pitch::STATUS_PENDING,
-                Pitch::STATUS_IN_PROGRESS,
-            ])->count();
+            Pitch::STATUS_PENDING,
+            Pitch::STATUS_IN_PROGRESS,
+        ])->count();
 
         $review = Pitch::whereHas('project', function ($q) use ($userId) {
-                $q->where('user_id', $userId)
-                  ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
-            })
+            $q->where('user_id', $userId)
+                ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+        })
             ->where('status', Pitch::STATUS_READY_FOR_REVIEW)
             ->count();
 
         $approvedCompleted = Pitch::whereHas('project', function ($q) use ($userId) {
-                $q->where('user_id', $userId)
-                  ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
-            })
+            $q->where('user_id', $userId)
+                ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
+        })
             ->whereIn('status', [
-                Pitch::STATUS_APPROVED,
-                Pitch::STATUS_COMPLETED,
-            ])->count();
+            Pitch::STATUS_APPROVED,
+            Pitch::STATUS_COMPLETED,
+        ])->count();
 
         return [
             'created' => $totalProjects,
@@ -540,8 +568,9 @@ class ClientManagementDashboard extends Component
     public function addReminder(): void
     {
         $userId = $this->userId ?? Auth::id();
-        if (!$this->newReminderClientId || trim($this->newReminderDueAt) === '') {
+        if (! $this->newReminderClientId || trim($this->newReminderDueAt) === '') {
             session()->flash('error', 'Please select a client and due date.');
+
             return;
         }
 
@@ -549,6 +578,7 @@ class ClientManagementDashboard extends Component
             $dueAt = Carbon::parse($this->newReminderDueAt);
         } catch (\Throwable $e) {
             session()->flash('error', 'Invalid due date/time.');
+
             return;
         }
 
@@ -583,8 +613,9 @@ class ClientManagementDashboard extends Component
 
     public function createReminderForSelectedClient(): void
     {
-        if (!$this->selectedClient) {
+        if (! $this->selectedClient) {
             session()->flash('error', 'No client selected.');
+
             return;
         }
 
@@ -593,6 +624,68 @@ class ClientManagementDashboard extends Component
         $this->newReminderDueAt = now()->addDay()->format('Y-m-d\TH:i');
         $this->showClientModal = false;
         session()->flash('success', 'Reminder pre-filled. Choose due date and save.');
+    }
+
+    // --- Modal Reminder Methods ---
+    public function openReminderModal(?int $projectId = null): void
+    {
+        if ($projectId) {
+            $project = Project::with('client')->where('user_id', $this->userId ?? Auth::id())
+                ->findOrFail($projectId);
+
+            if ($project->client_id) {
+                $this->modalReminderClientId = $project->client_id;
+                $this->modalReminderNote = 'Follow up on "'.$project->name.'"';
+            } else {
+                $this->modalReminderNote = 'Follow up on project: '.$project->name;
+            }
+        }
+
+        // Set default due date to tomorrow
+        $this->modalReminderDueAt = now()->addDay()->format('Y-m-d\TH:i');
+
+        // Show the modal using Flux's modal system
+        $this->dispatch('modal-show', name: 'add-reminder');
+    }
+
+    public function saveModalReminder(): void
+    {
+        $userId = $this->userId ?? Auth::id();
+
+        $this->validate([
+            'modalReminderClientId' => 'required|exists:clients,id',
+            'modalReminderDueAt' => 'required|date|after:now',
+            'modalReminderNote' => 'nullable|string|max:500',
+        ], [
+            'modalReminderClientId.required' => 'Please select a client.',
+            'modalReminderClientId.exists' => 'Selected client not found.',
+            'modalReminderDueAt.required' => 'Please select a due date.',
+            'modalReminderDueAt.after' => 'Due date must be in the future.',
+        ]);
+
+        try {
+            $dueAt = Carbon::parse($this->modalReminderDueAt);
+        } catch (\Throwable $e) {
+            session()->flash('error', 'Invalid due date/time format.');
+
+            return;
+        }
+
+        ClientReminder::create([
+            'user_id' => $userId,
+            'client_id' => $this->modalReminderClientId,
+            'due_at' => $dueAt,
+            'note' => trim($this->modalReminderNote) ?: null,
+            'status' => ClientReminder::STATUS_PENDING,
+        ]);
+
+        // Reset modal fields
+        $this->reset(['modalReminderClientId', 'modalReminderDueAt', 'modalReminderNote']);
+
+        // Close modal
+        $this->dispatch('modal-close', name: 'add-reminder');
+
+        session()->flash('success', 'Reminder added successfully!');
     }
 
     public function render()

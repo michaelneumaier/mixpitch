@@ -1,289 +1,261 @@
-@props(['pitch', 'project', 'component' => null, 'showActions' => true, 'compact' => false])
+@props(['pitch', 'project', 'component' => null, 'workflowColors' => null, 'semanticColors' => null])
 
 @php
     // Ensure this is only used for client management projects
     if (!$project->isClientManagement()) {
         throw new InvalidArgumentException('Client management workflow status component can only be used with client management projects.');
     }
-    
-    // Define workflow stages specific to client management
-    $workflowStages = [
-        'project_setup' => ['label' => 'Setup', 'icon' => 'fa-cog', 'progress' => 10],
-        'working' => ['label' => 'Working', 'icon' => 'fa-palette', 'progress' => 40],
-        'client_review' => ['label' => 'Review', 'icon' => 'fa-eye', 'progress' => 70],
-        'approved' => ['label' => 'Approved', 'icon' => 'fa-check-circle', 'progress' => 100],
+
+    // Provide fallback colors if not passed from parent
+    $workflowColors = $workflowColors ?? [
+        'bg' => 'bg-purple-50 dark:bg-purple-950',
+        'border' => 'border-purple-200 dark:border-purple-800',
+        'text_primary' => 'text-purple-900 dark:text-purple-100',
+        'text_secondary' => 'text-purple-700 dark:text-purple-300',
+        'text_muted' => 'text-purple-600 dark:text-purple-400',
+        'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
+        'accent_border' => 'border-purple-200 dark:border-purple-800',
+        'icon' => 'text-purple-600 dark:text-purple-400'
     ];
 
-    // Determine current stage and guidance based on pitch status
-    $currentStage = 'project_setup';
-    $progressPercentage = 10;
-    $contextualGuidance = '';
-    $showWarning = false;
-    $showDecision = false;
-    $decisionType = '';
-    $daysInStatus = 0;
+    $semanticColors = $semanticColors ?? [
+        'success' => ['bg' => 'bg-green-50 dark:bg-green-950', 'text' => 'text-green-800 dark:text-green-200', 'icon' => 'text-green-600 dark:text-green-400'],
+        'warning' => ['bg' => 'bg-amber-50 dark:bg-amber-950', 'text' => 'text-amber-800 dark:text-amber-200', 'icon' => 'text-amber-600 dark:text-amber-400'],
+        'danger' => ['bg' => 'bg-red-50 dark:bg-red-950', 'text' => 'text-red-800 dark:text-red-200', 'icon' => 'text-red-600 dark:text-red-400']
+    ];
 
-    // Map pitch status to workflow stage for client management
+    // Determine current focus based on pitch status - following main workflow-status pattern
+    $currentFocus = [
+        'title' => '',
+        'description' => '',
+        'action' => null,
+        'urgency' => 'normal', // normal, warning, urgent
+        'icon' => 'chart-bar',
+        'progress' => null
+    ];
+
+    // Get file comments for context
+    $pitchFileIds = $pitch->files->pluck('id');
+    $allFileComments = DB::table('pitch_file_comments')
+        ->whereIn('pitch_file_id', $pitchFileIds)
+        ->get();
+    $unresolvedComments = $allFileComments->filter(function($comment) {
+        return !($comment->resolved ?? false) && ($comment->is_client_comment ?? false);
+    });
+
+    // Calculate time in current status for urgency detection
+    $daysInStatus = $pitch->updated_at ? $pitch->updated_at->diffInDays(now()) : 0;
+
+    // Map pitch status to workflow focus (centralized logic)
     switch ($pitch->status) {
         case \App\Models\Pitch::STATUS_IN_PROGRESS:
             if ($pitch->files->count() === 0) {
-                $currentStage = 'project_setup';
-                $contextualGuidance = 'Start by downloading any client reference files, then upload your work as you create it.';
+                $currentFocus = [
+                    'title' => 'Project Setup',
+                    'description' => 'Download client reference files and begin working on deliverables',
+                    'action' => null,
+                    'urgency' => $daysInStatus > 3 ? 'warning' : 'normal',
+                    'icon' => 'cog-6-tooth',
+                    'progress' => 20
+                ];
             } else {
-                $currentStage = 'working';
-                $contextualGuidance = 'Continue working on deliverables. Submit for client review when ready.';
+                $currentFocus = [
+                    'title' => 'Work in Progress',
+                    'description' => "{$pitch->files->count()} files uploaded • Continue working on deliverables",
+                    'action' => null,
+                    'urgency' => $daysInStatus > 10 ? 'warning' : 'normal',
+                    'icon' => 'paint-brush',
+                    'progress' => 60
+                ];
             }
             break;
             
         case \App\Models\Pitch::STATUS_READY_FOR_REVIEW:
-            $currentStage = 'client_review';
-            $contextualGuidance = 'Your work is submitted. The client will review and either approve or request revisions.';
-            $showDecision = true;
-            $decisionType = 'review_submitted';
+            $canResubmit = method_exists($component, 'canResubmit') ? $component->canResubmit : false;
+            $currentFocus = [
+                'title' => 'Client Review Pending',
+                'description' => $unresolvedComments->count() > 0 
+                    ? "Submitted for review • {$unresolvedComments->count()} unresolved client comments"
+                    : 'Work submitted and waiting for client feedback',
+                'action' => $canResubmit 
+                    ? ['type' => 'wire', 'method' => 'submitForReview', 'label' => 'Resubmit Changes']
+                    : ['type' => 'wire', 'method' => 'recallSubmission', 'label' => 'Recall Submission'],
+                'urgency' => $daysInStatus > 7 ? 'warning' : 'normal',
+                'icon' => 'eye',
+                'progress' => 85
+            ];
             break;
             
         case \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED:
-            $currentStage = 'working';
-            $contextualGuidance = 'Review the client\'s feedback below and make the requested revisions before resubmitting.';
-            $showDecision = true;
-            $decisionType = 'revisions';
+            $currentFocus = [
+                'title' => 'Revisions Requested',
+                'description' => $unresolvedComments->count() > 0 
+                    ? "Client requested changes • {$unresolvedComments->count()} comments to address"
+                    : 'Review client feedback and implement requested changes',
+                'action' => null,
+                'urgency' => $daysInStatus > 5 ? 'urgent' : 'warning',
+                'icon' => 'pencil',
+                'progress' => 70
+            ];
             break;
             
         case \App\Models\Pitch::STATUS_COMPLETED:
-            $currentStage = 'approved';
-            $contextualGuidance = 'Project completed! The client approved your work and payment has been processed.';
+            $currentFocus = [
+                'title' => 'Project Completed',
+                'description' => 'Client approved your work and payment has been processed',
+                'action' => null,
+                'urgency' => 'normal',
+                'icon' => 'check-circle',
+                'progress' => 100
+            ];
             break;
+            
+        default:
+            $currentFocus = [
+                'title' => 'Project Active',
+                'description' => 'Working on client deliverables',
+                'action' => null,
+                'urgency' => 'normal',
+                'icon' => 'chart-bar',
+                'progress' => 30
+            ];
     }
 
-    // Set progress percentage based on current stage
-    if (isset($workflowStages[$currentStage])) {
-        $progressPercentage = $workflowStages[$currentStage]['progress'];
-    }
-
-    // Check for workflow warnings
-    if ($pitch->updated_at) {
-        $daysInStatus = $pitch->updated_at->diffInDays(now());
-        if ($currentStage === 'client_review' && $daysInStatus > 7) {
-            $showWarning = true;
-        } elseif ($currentStage === 'working' && $daysInStatus > 10) {
-            $showWarning = true;
-        }
-    }
+    // Color scheme based on urgency (matching main workflow-status pattern)
+    $colorScheme = match($currentFocus['urgency']) {
+        'urgent' => [
+            'bg' => 'bg-red-50 dark:bg-red-950',
+            'border' => 'border-red-200 dark:border-red-800',
+            'icon' => 'text-red-600 dark:text-red-400',
+            'title' => 'text-red-900 dark:text-red-100',
+            'desc' => 'text-red-700 dark:text-red-300',
+            'progress' => 'bg-red-500'
+        ],
+        'warning' => [
+            'bg' => 'bg-amber-50 dark:bg-amber-950',
+            'border' => 'border-amber-200 dark:border-amber-800',
+            'icon' => 'text-amber-600 dark:text-amber-400',
+            'title' => 'text-amber-900 dark:text-amber-100',
+            'desc' => 'text-amber-700 dark:text-amber-300',
+            'progress' => 'bg-amber-500'
+        ],
+        default => [
+            'bg' => $workflowColors['bg'],
+            'border' => $workflowColors['border'],
+            'icon' => $workflowColors['icon'],
+            'title' => $workflowColors['text_primary'],
+            'desc' => $workflowColors['text_secondary'],
+            'progress' => 'bg-purple-500'
+        ]
+    };
 @endphp
 
-<!-- Slim Client Workflow Status -->
-<div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl shadow-md overflow-hidden relative z-0">
-    
-    <!-- Compact Header -->
-    <div class="p-4 pb-2">
-        <div class="flex items-center justify-between mb-3">
-            <h3 class="text-base font-bold text-blue-900 flex items-center">
-                <i class="fas fa-route text-blue-600 mr-2 text-sm"></i>
-                Workflow Progress
-            </h3>
-            <div class="text-right">
-                <div class="text-lg font-bold text-blue-600">{{ $progressPercentage }}%</div>
+<!-- Client Management Workflow Status (Modern Design) -->
+<flux:card class="{{ $colorScheme['bg'] }} {{ $colorScheme['border'] }} overflow-hidden">
+    <div class="flex items-start gap-4">
+        <!-- Icon -->
+        <div class="flex-shrink-0">
+            <div class="w-12 h-12 rounded-xl {{ $colorScheme['bg'] }} {{ $colorScheme['border'] }} flex items-center justify-center">
+                <flux:icon name="{{ $currentFocus['icon'] }}" class="w-6 h-6 {{ $colorScheme['icon'] }}" />
             </div>
         </div>
         
-        <!-- Progress Bar -->
-        <div class="w-full bg-blue-200/50 rounded-full h-1.5 mb-3">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-1.5 rounded-full transition-all duration-500"
-                 style="width: {{ $progressPercentage }}%"></div>
-        </div>
-        
-        <!-- Stage Indicators -->
-        <div class="flex justify-between text-xs">
-            @foreach(['project_setup', 'working', 'client_review', 'approved'] as $stage)
-                @php
-                    $isActive = $currentStage === $stage;
-                    $isCompleted = $progressPercentage >= ($workflowStages[$stage]['progress'] ?? 0);
-                    $stageIcon = $workflowStages[$stage]['icon'] ?? 'fa-circle';
-                @endphp
-                <div class="flex flex-col items-center {{ $isActive ? 'text-blue-600' : ($isCompleted ? 'text-blue-500' : 'text-blue-400') }}">
-                    <div class="w-6 h-6 rounded-full border flex items-center justify-center mb-1 transition-all duration-300
-                        {{ $isCompleted ? 'bg-blue-600 border-blue-600 text-white' : 'border-blue-300' }}
-                        {{ $isActive ? 'ring-1 ring-blue-300' : '' }}">
-                        <i class="fas {{ $stageIcon }} text-[10px]"></i>
-                    </div>
-                    <span class="text-center leading-tight max-w-12 text-[10px]">{{ $workflowStages[$stage]['label'] }}</span>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <!-- Status-Specific Alerts -->
-    <div class="px-4 pb-4">
-        @if($showWarning)
-            <div class="bg-amber-50/90 border border-amber-200/50 rounded-lg p-3 mb-3">
-                <div class="flex items-start">
-                    <i class="fas fa-clock text-amber-600 mr-2 mt-0.5 text-sm"></i>
-                    <div>
-                        <p class="text-xs text-amber-800 font-medium">
-                            {{ $daysInStatus }} days in {{ strtolower($workflowStages[$currentStage]['label']) }}
-                        </p>
-                        <p class="text-xs text-amber-700 mt-1">
-                            @if($currentStage === 'client_review')
-                                Consider sending a follow-up message to the client.
-                            @elseif($currentStage === 'working')
-                                Consider submitting your work or reaching out for clarification.
-                            @endif
-                        </p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        @if($showDecision && $decisionType === 'revisions')
-            <div class="bg-amber-50/90 border border-amber-200/50 rounded-lg p-3 mb-3">
-                <div class="flex items-start">
-                    <i class="fas fa-edit text-amber-600 mr-2 mt-0.5 text-sm"></i>
-                    <div>
-                        <p class="text-xs text-amber-800 font-medium">Client requested revisions</p>
-                        <p class="text-xs text-amber-700 mt-1">Check the feedback panel below for details.</p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        {{-- Get file comments from the pitch_file_comments table --}}
-        @php
-            // Get pitch file IDs
-            $pitchFileIds = $pitch->files->pluck('id');
-            
-            // Get all file comments for this pitch's files
-            $allFileComments = DB::table('pitch_file_comments')
-                ->whereIn('pitch_file_id', $pitchFileIds)
-                ->get();
-            
-            // Filter for unresolved client comments
-            $unresolvedComments = $allFileComments->filter(function($comment) {
-                return !($comment->resolved ?? false) && ($comment->is_client_comment ?? false);
-            });
-                
-            // Group by file for better display
-            $commentsByFile = $unresolvedComments->groupBy('pitch_file_id');
-        @endphp
-        
-
-        @if($showDecision && $decisionType === 'review_submitted' && $showActions && $component)
-            @php
-                $canResubmit = method_exists($component, 'canResubmit') ? $component->canResubmit : false;
-            @endphp
-            
-            @if($commentsByFile->count() > 0)
-                        <div class="bg-amber-50 border border-amber-200 rounded-md p-3 mb-3 overflow-hidden">
-                            <div class="flex items-center mb-2">
-                                <i class="fas fa-exclamation-triangle text-amber-600 mr-2 text-xs flex-shrink-0"></i>
-                                <p class="text-xs text-amber-800 font-medium">
-                                    {{ $unresolvedComments->count() }} unresolved comment{{ $unresolvedComments->count() > 1 ? 's' : '' }}
-                                    on {{ $commentsByFile->count() }} file{{ $commentsByFile->count() > 1 ? 's' : '' }}
-                                </p>
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0 flex-1">
+                    <flux:heading size="lg" class="{{ $colorScheme['title'] }} mb-1">
+                        {{ $currentFocus['title'] }}
+                    </flux:heading>
+                    <p class="text-sm {{ $colorScheme['desc'] }} mb-3">
+                        {{ $currentFocus['description'] }}
+                    </p>
+                    
+                    <!-- Progress Bar (if applicable) -->
+                    @if($currentFocus['progress'])
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="flex-1 bg-white dark:bg-gray-800 rounded-full h-2 {{ $colorScheme['border'] }} border">
+                                <div class="{{ $colorScheme['progress'] }} h-full rounded-full transition-all duration-500" 
+                                     style="width: {{ $currentFocus['progress'] }}%"></div>
                             </div>
-                            
-                            @if($commentsByFile->count() <= 3)
-                                <div class="space-y-2">
-                                    @foreach($commentsByFile as $pitchFileId => $comments)
-                                        @php
-                                            $file = $pitch->files->firstWhere('id', $pitchFileId);
-                                        @endphp
-                                        @if($file)
-                                        <div class="bg-white border border-amber-200 rounded-md p-2 overflow-hidden">
-                                            <div class="flex items-start mb-2">
-                                                <i class="fas fa-file text-amber-600 mr-2 mt-0.5 text-xs flex-shrink-0"></i>
-                                                <div class="flex-1 min-w-0 overflow-hidden">
-                                                    <div class="font-medium text-amber-800 text-xs truncate w-full" title="{{ $file->file_name }}">
-                                                        {{ Str::limit($file->file_name, 35) }}
-                                                    </div>
-                                                    <div class="text-xs text-amber-600 whitespace-nowrap">
-                                                        {{ $comments->count() }} comment{{ $comments->count() > 1 ? 's' : '' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="space-y-1">
-                                                @foreach($comments->take(2) as $comment)
-                                                    <div class="text-xs text-amber-700 bg-amber-50 rounded p-2 border-l-2 border-amber-300">
-                                                        <span class="break-words">"{{ Str::limit($comment->comment ?? '', 50) }}"</span>
-                                                    </div>
-                                                @endforeach
-                                                @if($comments->count() > 2)
-                                                    <div class="text-xs text-amber-600 italic">
-                                                        +{{ $comments->count() - 2 }} more comment{{ ($comments->count() - 2) > 1 ? 's' : '' }}
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            @else
-                                <p class="text-xs text-amber-700">
-                                    Check the File Management section below for details.
-                                </p>
-                            @endif
+                            <span class="text-xs font-medium {{ $colorScheme['desc'] }} min-w-fit">
+                                {{ $currentFocus['progress'] }}%
+                            </span>
                         </div>
+                    @endif
+                    
+                    <!-- Action Button -->
+                    @if($currentFocus['action'] && $component)
+                        @php $action = $currentFocus['action']; @endphp
+                        
+                        @if($action['type'] === 'wire')
+                            <flux:button 
+                                wire:click="{{ $action['method'] }}" 
+                                variant="primary" 
+                                size="sm"
+                                wire:confirm="{{ $action['method'] === 'recallSubmission' ? 'Are you sure you want to recall this submission? The client will no longer be able to review it until you resubmit.' : '' }}"
+                                class="inline-flex items-center">
+                                {{ $action['label'] }}
+                            </flux:button>
+                        @elseif($action['type'] === 'route')
+                            <flux:button 
+                                href="{{ route($action['name'], $action['params']) }}" 
+                                variant="primary" 
+                                size="sm"
+                                class="inline-flex items-center">
+                                {{ $action['label'] }}
+                            </flux:button>
+                        @elseif($action['type'] === 'anchor')
+                            <flux:button 
+                                href="{{ $action['href'] }}" 
+                                variant="primary" 
+                                size="sm"
+                                class="inline-flex items-center">
+                                {{ $action['label'] }}
+                            </flux:button>
                         @endif
-            <div class="bg-blue-50/90 border border-blue-200/50 rounded-lg p-3 mb-3">
-                <div class="flex items-start">
-                    <i class="fas fa-eye text-blue-600 mr-2 mt-0.5 text-sm"></i>
-                    <div class="flex-1">
-                        <p class="text-xs text-blue-800 font-medium">Submitted for review</p>
-                        <p class="text-xs text-blue-700 mt-1 mb-3">You can recall this submission if you need to make changes.</p>
-                        
-                        
-                        
-                        
-                        @if($canResubmit)
-                        <div class="bg-amber-50 border border-amber-200 rounded-md p-2 mb-3">
-                            <div class="flex items-center">
-                                <i class="fas fa-exclamation-triangle text-amber-600 mr-2 text-xs"></i>
-                                <span class="text-xs text-amber-700">
-                                    <strong>Files Updated:</strong> You can resubmit with changes.
+                    @endif
+
+                    <!-- Unresolved Comments Alert (if any) -->
+                    @if($unresolvedComments->count() > 0 && in_array($pitch->status, [\App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
+                        <div class="mt-3 {{ $semanticColors['warning']['bg'] }} border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                            <div class="flex items-center gap-2">
+                                <flux:icon.exclamation-triangle class="w-4 h-4 {{ $semanticColors['warning']['icon'] }}" />
+                                <span class="text-sm {{ $semanticColors['warning']['text'] }} font-medium">
+                                    {{ $unresolvedComments->count() }} unresolved comment{{ $unresolvedComments->count() > 1 ? 's' : '' }}
                                 </span>
                             </div>
+                            <p class="text-xs {{ $semanticColors['warning']['text'] }} mt-1">
+                                Check the File Management section below for detailed feedback.
+                            </p>
                         </div>
-                        @endif
+                    @endif
 
-                        <div class="flex gap-2">
-                            <button wire:click="recallSubmission" 
-                                    class="inline-flex items-center px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-md font-medium text-xs transition-all duration-200"
-                                    wire:confirm="Are you sure you want to recall this submission? The client will no longer be able to review it until you resubmit.">
-                                <i class="fas fa-undo mr-1 text-xs"></i>Recall Submission
-                            </button>
-                            
-                            @if($canResubmit)
-                            <button wire:click="submitForReview" 
-                                    class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-xs transition-all duration-200">
-                                <i class="fas fa-paper-plane mr-1 text-xs"></i>Resubmit
-                            </button>
+                    <!-- Time-based Warnings -->
+                    @if($daysInStatus > 0 && $currentFocus['urgency'] !== 'normal')
+                        <div class="mt-3 text-xs {{ $colorScheme['desc'] }}">
+                            {{ $daysInStatus }} {{ $daysInStatus === 1 ? 'day' : 'days' }} in {{ strtolower($currentFocus['title']) }}
+                            @if($currentFocus['urgency'] === 'warning')
+                                • Consider taking action soon
+                            @elseif($currentFocus['urgency'] === 'urgent')
+                                • Immediate attention recommended
                             @endif
                         </div>
-                    </div>
+                    @endif
                 </div>
-            </div>
-        @endif
-
-        @if($currentStage === 'approved')
-            <div class="bg-green-50/90 border border-green-200/50 rounded-lg p-3 mb-3">
-                <div class="flex items-start">
-                    <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5 text-sm"></i>
-                    <div>
-                        <p class="text-xs text-green-800 font-medium">Project completed successfully!</p>
-                        <p class="text-xs text-green-700 mt-1">The client approved your work.</p>
+                
+                <!-- Quick Stats -->
+                <div class="flex flex-col gap-2 text-right min-w-fit">
+                    <div class="text-xs {{ $colorScheme['desc'] }}">
+                        {{ $pitch->files->count() }} {{ $pitch->files->count() === 1 ? 'file' : 'files' }}
                     </div>
-                </div>
-            </div>
-        @endif
-
-        <!-- Next Steps Guidance -->
-        <div class="bg-blue-50/60 border border-blue-200/30 rounded-lg p-3">
-            <div class="flex items-start">
-                <i class="fas fa-lightbulb text-blue-600 mr-2 mt-0.5 text-sm"></i>
-                <div>
-                    <p class="text-xs text-blue-800 font-medium">Next Steps</p>
-                    <p class="text-xs text-blue-700 mt-1">{{ $contextualGuidance }}</p>
+                    @if($unresolvedComments->count() > 0)
+                        <div class="text-xs {{ $semanticColors['warning']['text'] }}">
+                            {{ $unresolvedComments->count() }} comment{{ $unresolvedComments->count() > 1 ? 's' : '' }}
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
-</div>
+</flux:card>

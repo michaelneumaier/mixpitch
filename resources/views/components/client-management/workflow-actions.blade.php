@@ -45,11 +45,12 @@
     {{-- STANDARD FLOW: In Progress / Getting Started --}}
     
     <!-- 1. CLIENT REFERENCE FILES: First priority for new projects -->
+    <div class="mb-2">
     <x-client-management.client-files-section 
         :project="$project"
         :component="$component"
         :files="$clientFiles" />
-
+        </div>
     <!-- 2. UPLOAD AREA: Primary action for active work -->
     <x-client-management.upload-work-section 
         :pitch="$pitch"

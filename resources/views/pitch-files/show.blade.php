@@ -1,8 +1,6 @@
 <!-- resources/views/pitch-files/show.blade.php -->
 
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <!-- Background Effects Container -->
 <div class="relative min-h-screen bg-gradient-to-br from-purple-50/30 via-white to-indigo-50/30">
     <!-- Floating Blur Circles for Audio Theme -->
@@ -139,8 +137,6 @@
         </div>
     </div>
 </div>
-@endsection
-
 @push('styles')
 <style>
     /* Enhanced WaveSurfer Styling */
@@ -254,3 +250,5 @@
     });
 </script>
 @endpush
+
+</x-layouts.app-sidebar>

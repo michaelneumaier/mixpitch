@@ -3,7 +3,6 @@
 namespace App\Livewire\Project;
 
 use App\Exceptions\File\FileDeletionException;
-use App\Models\PitchMilestone;
 use App\Models\Pitch;
 use App\Models\Project;
 use App\Services\FileManagementService;
@@ -56,24 +55,30 @@ class ManageClientProject extends Component
     public $newComment = '';
 
     public $showCommunicationTimeline = true;
-    
+
     public $fileListKey;
 
     // Watermarking controls
     public $watermarkingEnabled = false;
-    
+
     public $showWatermarkingInfo = false;
 
     // Milestone editing state
     public bool $showMilestoneForm = false;
+
     public ?int $editingMilestoneId = null;
+
     public string $milestoneName = '';
+
     public ?string $milestoneDescription = null;
+
     public ?float $milestoneAmount = null;
+
     public ?int $milestoneSortOrder = null;
 
     // Milestone split helper
     public bool $showSplitForm = false;
+
     public int $splitCount = 2;
 
     protected $listeners = [
@@ -97,7 +102,7 @@ class ManageClientProject extends Component
         if (! $project->isClientManagement()) {
             abort(404, 'This page is only available for client management projects.');
         }
-        
+
         // Initialize file list key
         $this->fileListKey = time();
 
@@ -119,14 +124,14 @@ class ManageClientProject extends Component
         $this->updateStorageInfo();
         $this->loadStatusFeedback();
         $this->checkResubmissionEligibility();
-        
+
         // Initialize watermarking preference
         $this->watermarkingEnabled = $this->pitch->watermarking_enabled ?? false;
     }
 
     public function render()
     {
-        return view('livewire.project.manage-client-project');
+        return view('livewire.project.manage-client-project')->layout('components.layouts.app-sidebar');
     }
 
     /**
@@ -203,7 +208,7 @@ class ManageClientProject extends Component
     public function handleFileUpload()
     {
         $this->refreshData();
-        
+
         // Dispatch a browser event to reinitialize Alpine components
         $this->dispatch('alpine-reinit');
     }
@@ -263,7 +268,7 @@ class ManageClientProject extends Component
         try {
             // Update watermarking preference before submission
             $this->pitch->update([
-                'watermarking_enabled' => $this->watermarkingEnabled
+                'watermarking_enabled' => $this->watermarkingEnabled,
             ]);
 
             $pitchWorkflowService->submitPitchForReview($this->pitch, Auth::user(), $this->responseToFeedback);
@@ -722,6 +727,7 @@ class ManageClientProject extends Component
         if ($paymentAmount > 0) {
             return $paymentAmount;
         }
+
         return (float) ($this->project->budget ?? 0);
     }
 
@@ -769,6 +775,7 @@ class ManageClientProject extends Component
                 && $this->milestoneAmount !== null
                 && (float) $this->milestoneAmount !== (float) $milestone->amount) {
                 Toaster::error('Amount cannot be changed for a paid milestone.');
+
                 return;
             }
 
@@ -808,6 +815,7 @@ class ManageClientProject extends Component
         // Prevent deleting paid milestones
         if ($milestone->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID) {
             Toaster::error('Cannot delete a paid milestone');
+
             return;
         }
         $milestone->delete();
@@ -856,6 +864,7 @@ class ManageClientProject extends Component
         $budget = $this->getBaseClientBudget();
         if ($budget <= 0) {
             Toaster::error('Project budget not set or zero.');
+
             return;
         }
 
@@ -964,13 +973,13 @@ class ManageClientProject extends Component
     {
         // Save preference immediately when toggled
         $this->pitch->update([
-            'watermarking_enabled' => $value
+            'watermarking_enabled' => $value,
         ]);
-        
+
         $this->dispatch('watermarking-toggled', [
-            'enabled' => $value
+            'enabled' => $value,
         ]);
-        
+
         Toaster::success($value ? 'Audio protection enabled' : 'Audio protection disabled');
     }
 
@@ -979,9 +988,8 @@ class ManageClientProject extends Component
      */
     public function getAudioFilesProperty()
     {
-        return $this->producerFiles->filter(function($file) {
+        return $this->producerFiles->filter(function ($file) {
             return in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']);
         });
     }
-
 }

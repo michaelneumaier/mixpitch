@@ -8,7 +8,7 @@
     <div
         x-show="open"
         @click.away="open = false"
-        class="absolute -right-12 mt-3 w-80 md:w-96 max-w-[calc(100vw-2rem)] bg-white/90 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl overflow-hidden z-50"
+        class="absolute left-0 top-full mt-2 w-80 md:w-96 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-[9999]"
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 transform scale-95 translate-y-2"
         x-transition:enter-end="opacity-100 transform scale-100 translate-y-0"
@@ -19,7 +19,7 @@
     >
         <div class="flex flex-col">
             <!-- Header -->
-            <div class="px-6 py-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 backdrop-blur-sm border-b border-white/20">
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 backdrop-blur-sm border-b border-gray-200 dark:border-gray-600">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                         <i class="fas fa-bell mr-2"></i>
@@ -40,7 +40,7 @@
             <!-- Notifications List -->
             <div class="max-h-80 overflow-y-auto">
                 @forelse($notifications as $notification)
-                <div class="group relative border-b border-white/10 last:border-0 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 transition-all duration-200 {{ $notification->read_at ? 'bg-white/20' : 'bg-gradient-to-r from-blue-50/50 to-purple-50/50' }}">
+                <div class="group relative border-b border-gray-200/20 dark:border-gray-600/20 last:border-0 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 transition-all duration-200 {{ $notification->read_at ? 'bg-gray-50/20 dark:bg-gray-700/20' : 'bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/30 dark:to-purple-900/30' }}">
                     <a 
                         href="{{ $notification->getUrl() }}"
                         wire:click="markAsRead({{ $notification->id }})"
@@ -99,11 +99,11 @@
                                 @endif
                             </div>
                             <div class="ml-4 flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 leading-relaxed">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 leading-relaxed">
                                     {{ $notification->getReadableDescription() }}
                                 </p>
                                 <div class="flex items-center mt-2">
-                                    <p class="text-xs text-gray-500 flex items-center">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                                         <i class="fas fa-clock mr-1"></i>
                                         {{ $notification->created_at->diffForHumans() }}
                                     </p>
@@ -122,25 +122,25 @@
                         wire:click.prevent="deleteNotification({{ $notification->id }})"
                         wire:loading.attr="disabled"
                         aria-label="Delete notification"
-                        class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50/50 rounded-lg focus:outline-none focus:text-red-600"
+                        class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/20 rounded-lg focus:outline-none focus:text-red-600"
                     >
                         <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
                 @empty
                 <div class="flex flex-col items-center justify-center py-12 px-6">
-                    <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 mb-4">
-                        <i class="fas fa-bell-slash text-2xl text-gray-400"></i>
+                    <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 mb-4">
+                        <i class="fas fa-bell-slash text-2xl text-gray-400 dark:text-gray-500"></i>
                     </div>
-                    <h4 class="text-lg font-medium text-gray-600 mb-2">No notifications yet</h4>
-                    <p class="text-sm text-gray-500 text-center">When you have new activity, notifications will appear here</p>
+                    <h4 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">No notifications yet</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center">When you have new activity, notifications will appear here</p>
                 </div>
                 @endforelse
             </div>
             
             <!-- Load More Footer -->
             @if(count($notifications) > 5)
-            <div class="px-6 py-4 bg-gradient-to-r from-gray-50/80 to-gray-100/80 backdrop-blur-sm border-t border-white/20">
+            <div class="px-6 py-4 bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-700/80 dark:to-gray-600/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-600">
                 <button 
                     wire:click="loadMoreNotifications"
                     class="w-full px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500/20"

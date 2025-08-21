@@ -1,8 +1,89 @@
-<div>
-    
+@php
+    // Unified Color System - Workflow-aware colors
+    $workflowColors = match($project->workflow_type) {
+        'standard' => [
+            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'border' => 'border-blue-200 dark:border-blue-800', 
+            'text_primary' => 'text-blue-900 dark:text-blue-100',
+            'text_secondary' => 'text-blue-700 dark:text-blue-300',
+            'text_muted' => 'text-blue-600 dark:text-blue-400',
+            'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
+            'accent_border' => 'border-blue-200 dark:border-blue-800',
+            'icon' => 'text-blue-600 dark:text-blue-400'
+        ],
+        'contest' => [
+            'bg' => 'bg-orange-50 dark:bg-orange-950',
+            'border' => 'border-orange-200 dark:border-orange-800',
+            'text_primary' => 'text-orange-900 dark:text-orange-100', 
+            'text_secondary' => 'text-orange-700 dark:text-orange-300',
+            'text_muted' => 'text-orange-600 dark:text-orange-400',
+            'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
+            'accent_border' => 'border-orange-200 dark:border-orange-800',
+            'icon' => 'text-orange-600 dark:text-orange-400'
+        ],
+        'direct_hire' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text_primary' => 'text-green-900 dark:text-green-100',
+            'text_secondary' => 'text-green-700 dark:text-green-300', 
+            'text_muted' => 'text-green-600 dark:text-green-400',
+            'accent_bg' => 'bg-green-100 dark:bg-green-900',
+            'accent_border' => 'border-green-200 dark:border-green-800',
+            'icon' => 'text-green-600 dark:text-green-400'
+        ],
+        'client_management' => [
+            'bg' => 'bg-purple-50 dark:bg-purple-950',
+            'border' => 'border-purple-200 dark:border-purple-800',
+            'text_primary' => 'text-purple-900 dark:text-purple-100',
+            'text_secondary' => 'text-purple-700 dark:text-purple-300',
+            'text_muted' => 'text-purple-600 dark:text-purple-400', 
+            'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
+            'accent_border' => 'border-purple-200 dark:border-purple-800',
+            'icon' => 'text-purple-600 dark:text-purple-400'
+        ],
+        default => [
+            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'border' => 'border-gray-200 dark:border-gray-800',
+            'text_primary' => 'text-gray-900 dark:text-gray-100',
+            'text_secondary' => 'text-gray-700 dark:text-gray-300',
+            'text_muted' => 'text-gray-600 dark:text-gray-400',
+            'accent_bg' => 'bg-gray-100 dark:bg-gray-900', 
+            'accent_border' => 'border-gray-200 dark:border-gray-800',
+            'icon' => 'text-gray-600 dark:text-gray-400'
+        ]
+    };
 
-    <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30">
-        <div class="container mx-auto px-2 sm:px-4">
+    // Semantic colors (always consistent regardless of workflow)
+    $semanticColors = [
+        'success' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text' => 'text-green-800 dark:text-green-200',
+            'icon' => 'text-green-600 dark:text-green-400',
+            'accent' => 'bg-green-600 dark:bg-green-500'
+        ],
+        'warning' => [
+            'bg' => 'bg-amber-50 dark:bg-amber-950',
+            'border' => 'border-amber-200 dark:border-amber-800',
+            'text' => 'text-amber-800 dark:text-amber-200',
+            'icon' => 'text-amber-600 dark:text-amber-400', 
+            'accent' => 'bg-amber-500'
+        ],
+        'danger' => [
+            'bg' => 'bg-red-50 dark:bg-red-950',
+            'border' => 'border-red-200 dark:border-red-800',
+            'text' => 'text-red-800 dark:text-red-200',
+            'icon' => 'text-red-600 dark:text-red-400',
+            'accent' => 'bg-red-500'
+        ]
+    ];
+@endphp
+
+<div>
+
+<div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-2 py-2">
+        <div class="max-w-7xl mx-auto">
             <style>
                 /* Custom breakpoint for extra small screens */
                 @media (min-width: 475px) {
@@ -133,98 +214,22 @@
 
             <div class="flex justify-center">
                 <div class="w-full">
-                    <!-- Project Header -->
-                    <x-project.header :project="$project" :hasPreviewTrack="$this->hasPreviewTrack" context="manage" :showEditButton="true" />
-                    <div class="grid grid-cols-1 gap-3 p-0 sm:gap-4 sm:p-2 md:p-4 lg:grid-cols-3">
+                    <!-- Enhanced Project Header -->
+                    <x-project.header 
+                        :project="$project" 
+                        context="manage" 
+                        :showActions="true"
+                        :showEditButton="true"
+                        :autoAllowAccess="$autoAllowAccess"
+                    />
+                    <div class="grid grid-cols-1 gap-2 lg:grid-cols-3">
                         <!-- Main Content Area (2/3 width on large screens) -->
-                        <div class="space-y-6 lg:col-span-2">
-                            {{-- Quick Actions - Show first on mobile for immediate access --}}
-                            @if ($project->isStandard() || $project->isContest())
-                                <div
-                                    class="rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-4 shadow-xl backdrop-blur-md lg:hidden">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                                            <i class="fas fa-bolt text-lg text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-blue-800">Quick Actions</h3>
-                                            <p class="text-sm text-blue-600">Manage your project efficiently</p>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <a href="{{ route('projects.show', $project) }}"
-                                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg">
-                                            <i class="fas fa-eye mr-1.5"></i>View Public
-                                        </a>
-                                        <a href="{{ route('projects.edit', $project) }}"
-                                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-3 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
-                                            <i class="fas fa-edit mr-1.5"></i>Edit Project
-                                        </a>
-                                        
-                                        {{-- Reddit Post Button --}}
-                                        @if ($project->is_published)
-                                            @if ($project->hasBeenPostedToReddit())
-                                                <a href="{{ $project->getRedditUrl() }}" target="_blank" rel="noopener"
-                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg">
-                                                    <i class="fab fa-reddit mr-2"></i>View on Reddit
-                                                </a>
-                                            @else
-                                                <button wire:click="postToReddit"
-                                                    @if($isPostingToReddit) disabled @endif
-                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg {{ $isPostingToReddit ? 'opacity-75 cursor-not-allowed' : '' }}">
-                                                    @if($isPostingToReddit)
-                                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Posting...
-                                                    @else
-                                                        <i class="fab fa-reddit mr-2"></i>Post to r/MixPitch
-                                                    @endif
-                                                </button>
-                                            @endif
-                                        @endif
-                                        
-                                        @if (!$project->isClientManagement())
-                                            @if ($project->is_published)
-                                                <button wire:click="unpublish"
-                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
-                                                    <i class="fas fa-eye-slash mr-2"></i>Unpublish Project
-                                                </button>
-                                            @else
-                                                <button wire:click="publish"
-                                                    class="col-span-2 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
-                                                    <i class="fas fa-globe mr-2"></i>Publish Project
-                                                </button>
-                                            @endif
-                                        @else
-                                            {{-- Client Management projects remain private by design --}}
-                                            <div class="col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 text-center">
-                                                <div class="flex items-center justify-center mb-2">
-                                                    <i class="fas fa-user-shield text-blue-600 mr-2"></i>
-                                                    <span class="font-semibold text-blue-800">Private Project</span>
-                                                </div>
-                                                <p class="text-sm text-blue-700">
-                                                    Client Management projects remain private and are only accessible through secure client portals.
-                                                </p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endif
+                        <div class="space-y-2 lg:col-span-2">
 
                             {{-- Workflow Status Component --}}
                             @if ($project->isStandard() || $project->isContest() || $project->isDirectHire())
                                 <div>
                                     <x-project.workflow-status :project="$project" />
-                                </div>
-                            @endif
-
-                            {{-- Project Insights - Show early on mobile for key metrics --}}
-                            @if ($project->isStandard())
-                                <div class="lg:hidden">
-                                    <x-project.quick-stats-mobile :project="$project" />
                                 </div>
                             @endif
 
@@ -234,758 +239,285 @@
                                 @livewire('project.component.contest-judging', ['project' => $project], key('contest-judging-' . $project->id))
                             @else
                                 {{-- Regular Pitches Section --}}
-                                <x-project.pitch-list :project="$project" />
+                                <x-project.pitch-list :project="$project" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
                             @endif
-
-                            {{-- License Management Component --}}
-                            <div>
-                                <x-project.license-management :project="$project" />
-                            </div>
 
                             @if ($project->isStandard() || $project->isContest())
                                 <!-- Upload Files Section -->
-                                <div x-data="{ showUploader: true }"
-                                    class="overflow-hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-purple-50/90 shadow-xl backdrop-blur-md">
-                                    <div
-                                        class="border-b border-white/20 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 p-4 lg:p-6 backdrop-blur-sm">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center">
-                                                <div
-                                                    class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
-                                                    <i class="fas fa-upload text-lg text-white"></i>
-                                                </div>
-                                                <div>
-                                                    <h3 class="text-lg font-bold text-purple-800">{{ $project->isContest() ? 'Contest Files' : 'Project Files' }}</h3>
-                                                    <p class="text-sm text-purple-600">Upload and manage {{ $project->isContest() ? 'contest' : 'project' }}
-                                                        resources</p>
-                                                </div>
+                                <flux:card x-data="{ showUploader: true }">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-3">
+                                            <flux:icon.cloud-arrow-up variant="solid" class="w-8 h-8 {{ $workflowColors['icon'] }}" />
+                                            <div>
+                                                <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                                    {{ $project->isContest() ? 'Contest Files' : 'Project Files' }}
+                                                </flux:heading>
+                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                                                    Upload and manage {{ $project->isContest() ? 'contest' : 'project' }} resources
+                                                </flux:subheading>
                                             </div>
-                                                                        <button @click="showUploader = !showUploader"
-                                class="inline-flex items-center rounded-xl bg-gradient-to-r from-purple-100 to-indigo-100 px-3 lg:px-4 py-2 font-medium text-purple-700 transition-all duration-200 hover:scale-105 hover:from-purple-200 hover:to-indigo-200">
-                                <span class="hidden lg:inline" x-text="showUploader ? 'Hide Uploader' : 'Show Uploader'"></span>
-                                <i class="fas lg:ml-2"
-                                    :class="showUploader ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                            </button>
                                         </div>
+                                        <flux:button @click="showUploader = !showUploader" variant="ghost" size="sm">
+                                            <span class="hidden lg:inline" x-text="showUploader ? 'Hide Uploader' : 'Show Uploader'"></span>
+                                            <flux:icon name="chevron-up" x-show="showUploader" class="lg:ml-2" />
+                                            <flux:icon name="chevron-down" x-show="!showUploader" class="lg:ml-2" />
+                                        </flux:button>
                                     </div>
 
                                     <!-- Storage Usage Indicator -->
-                                    <div class="border-b border-white/20 p-4 lg:p-6">
-                                        <div
-                                            class="rounded-xl border border-purple-200/50 bg-gradient-to-br from-white/80 to-purple-50/80 p-4 backdrop-blur-sm">
-                                            <div class="mb-3 flex items-center justify-between">
-                                                <div class="flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500">
-                                                        <i class="fas fa-hdd text-sm text-white"></i>
+                                    <div class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
+                                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                                            <div class="flex items-center gap-3 mb-4">
+                                                <flux:icon.server variant="solid" class="w-6 h-6 {{ $workflowColors['icon'] }}" />
+                                                <div>
+                                                    <div class="text-sm font-semibold {{ $workflowColors['text_primary'] }}">
+                                                        Storage Used: {{ $storageLimitMessage }}
                                                     </div>
-                                                    <div>
-                                                        <span class="text-sm font-bold text-purple-800">Storage Used:
-                                                            {{ $storageLimitMessage }}</span>
-                                                        <div class="text-xs text-purple-600">
-                                                            {{ $this->formatFileSize($storageRemaining) }} remaining
-                                                        </div>
+                                                    <div class="text-xs {{ $workflowColors['text_muted'] }}">
+                                                        {{ $this->formatFileSize($storageRemaining) }} remaining
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="h-3 w-full rounded-full bg-purple-100/60 shadow-inner">
-                                                <div class="{{ $storageUsedPercentage > 90 ? 'bg-gradient-to-r from-red-500 to-pink-500' : ($storageUsedPercentage > 70 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-purple-500 to-indigo-500') }} h-3 rounded-full transition-all duration-500"
-                                                    style="width: {{ $storageUsedPercentage }}%"></div>
+                                            
+                                            <!-- Progress Bar -->
+                                            <div class="mb-3">
+                                                <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                    <div class="h-2 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? $semanticColors['danger']['accent'] : ($storageUsedPercentage > 70 ? $semanticColors['warning']['accent'] : $workflowColors['icon']) }}"
+                                                        style="width: {{ $storageUsedPercentage }}%"></div>
+                                                </div>
                                             </div>
-                                            <div class="mt-2 flex items-center text-xs text-purple-600">
-                                                <i class="fas fa-info-circle mr-2 text-purple-500"></i>
-                                                Maximum file size: 200MB. Storage based on your subscription plan.
+                                            
+                                            <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                                <flux:icon.information-circle class="w-3 h-3" />
+                                                <span>Maximum file size: 200MB. Storage based on your subscription plan.</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- File Uploader Component -->
-                                    <div x-show="showUploader" x-transition class="border-b border-white/20 p-4 lg:p-6">
-                                        <div
-                                            class="overflow-hidden rounded-2xl border border-purple-200/50 bg-gradient-to-br from-white/90 to-purple-50/90 shadow-lg backdrop-blur-sm">
-                                            <div
-                                                class="border-b border-purple-200/50 bg-gradient-to-r from-purple-100/80 to-indigo-100/80 p-4 backdrop-blur-sm">
-                                                <div class="flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
-                                                        <i class="fas fa-cloud-upload-alt text-sm text-white"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h5 class="font-bold text-purple-800">Upload New Files</h5>
-                                                        <p class="text-xs text-purple-600">Upload audio, PDFs, or images
-                                                            to share with {{ $project->isContest() ? 'contest participants' : 'collaborators' }}</p>
-                                                    </div>
+                                    <div x-show="showUploader" x-transition class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
+                                        <flux:card>
+                                            <div class="flex items-center gap-3 mb-4">
+                                                <flux:icon.cloud-arrow-up class="w-6 h-6 {{ $workflowColors['icon'] }}" />
+                                                <div>
+                                                    <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">Upload New Files</flux:heading>
+                                                    <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                                                        Upload audio, PDFs, or images to share with {{ $project->isContest() ? 'contest participants' : 'collaborators' }}
+                                                    </flux:subheading>
                                                 </div>
                                             </div>
-                                            <div class="p-4">
-                                                @if($this->canUploadFiles)
-                                                    <livewire:uppy-file-uploader :model="$project"
-                                                        wire:key="enhanced-project-uploader-{{ $project->id }}" />
-                                                @else
-                                                    <div class="text-center py-8">
-                                                        <p class="text-gray-500 mb-2">File uploads are not available for this project.</p>
-                                                        @if($project->status === App\Models\Project::STATUS_COMPLETED)
-                                                            <p class="text-sm text-gray-400">Project is completed - no additional files can be uploaded.</p>
-                                                        @endif
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
+                                            
+                                            @if($this->canUploadFiles)
+                                                <livewire:uppy-file-uploader :model="$project"
+                                                    wire:key="enhanced-project-uploader-{{ $project->id }}" />
+                                            @else
+                                                <div class="text-center py-8">
+                                                    <flux:icon.folder-open class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                                                    <p class="text-gray-500 dark:text-gray-400 mb-2">File uploads are not available for this project.</p>
+                                                    @if($project->status === App\Models\Project::STATUS_COMPLETED)
+                                                        <p class="text-sm text-gray-400 dark:text-gray-500">Project is completed - no additional files can be uploaded.</p>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </flux:card>
                                     </div>
 
                                     <!-- Files List Section -->
-                                    <div
-                                        class="mx-4 lg:mx-6 mt-0 mb-4 lg:mb-6 overflow-hidden rounded-2xl border border-purple-200/50 bg-gradient-to-br from-white/90 to-purple-50/90 shadow-lg backdrop-blur-sm">
-                                        <div
-                                            class="border-b border-purple-200/50 bg-gradient-to-r from-purple-100/80 to-indigo-100/80 p-4 backdrop-blur-sm">
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex items-center">
-                                                    <div
-                                                        class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
-                                                        <i class="fas fa-folder text-sm text-white"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h5 class="font-bold text-purple-800">Files
-                                                            ({{ $project->files->count() }})</h5>
-                                                        @if ($project->files->count() > 0)
-                                                            <div class="text-xs text-purple-600">Total:
-                                                                {{ $this->formatFileSize($project->files->sum('size')) }}
-                                                            </div>
-                                                        @endif
-                                                    </div>
-                                                </div>
+                                    <flux:card>
+                                        <div class="flex items-center gap-3 mb-6">
+                                            <flux:icon.folder variant="solid" class="w-6 h-6 {{ $workflowColors['icon'] }}" />
+                                            <div>
+                                                <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">
+                                                    Files ({{ $project->files->count() }})
+                                                </flux:heading>
+                                                @if ($project->files->count() > 0)
+                                                    <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                                                        Total: {{ $this->formatFileSize($project->files->sum('size')) }}
+                                                    </flux:subheading>
+                                                @endif
                                             </div>
                                         </div>
 
-                                        <div class="divide-y divide-purple-100/50">
+                                        <div class="divide-y divide-gray-200 dark:divide-gray-700">
                                             @forelse($project->files as $file)
-                                                <div
-                                                    class="track-item @if (isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif group flex items-center justify-between px-4 py-4 transition-all duration-300 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-indigo-50/50">
-                                                    <div class="flex flex-1 items-center overflow-hidden pr-2">
-                                                        <div
-                                                            class="{{ $file->id == $project->preview_track ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white' : 'bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-600' }} mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105">
-                                                            <i class="fas fa-music"></i>
+                                                <div class="track-item @if (isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif group flex items-center justify-between py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
+                                                    <div class="flex flex-1 items-center overflow-hidden pr-4">
+                                                        <div class="{{ $file->id == $project->preview_track ? $workflowColors['icon'] . ' bg-white text-current' : $workflowColors['accent_bg'] . ' ' . $workflowColors['icon'] }} mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
+                                                            <flux:icon.musical-note class="w-5 h-5" />
                                                         </div>
                                                         <div class="min-w-0 flex-1">
-                                                            <div class="truncate font-semibold text-purple-900">
-                                                                {{ $file->file_name }}
+                                                            <div class="flex items-center gap-2 mb-1">
+                                                                <span class="truncate font-semibold text-gray-900 dark:text-gray-100">
+                                                                    {{ $file->file_name }}
+                                                                </span>
                                                                 @if ($file->id == $project->preview_track)
-                                                                    <span
-                                                                        class="ml-2 inline-flex items-center rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
-                                                                        <i class="fas fa-star mr-1"></i>Preview
-                                                                    </span>
+                                                                    <flux:badge variant="primary" size="xs">
+                                                                        <flux:icon.star class="w-3 h-3 mr-1" />
+                                                                        Preview
+                                                                    </flux:badge>
                                                                 @endif
                                                             </div>
-                                                            <div class="flex items-center text-xs text-purple-600">
-                                                                <i class="fas fa-calendar-alt mr-1"></i>
-                                                                <span>{{ $file->created_at->format('M d, Y') }}</span>
-                                                                <span class="mx-2">•</span>
-                                                                <i class="fas fa-weight-hanging mr-1"></i>
-                                                                <span>{{ $file->formatted_size }}</span>
+                                                            <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                                                                <div class="flex items-center gap-1">
+                                                                    <flux:icon.calendar class="w-3 h-3" />
+                                                                    <span>{{ $file->created_at->format('M d, Y') }}</span>
+                                                                </div>
+                                                                <div class="flex items-center gap-1">
+                                                                    <flux:icon.scale class="w-3 h-3" />
+                                                                    <span>{{ $file->formatted_size }}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="flex items-center space-x-2">
+                                                    <div class="flex items-center gap-2">
                                                         @if ($file->id != $project->preview_track)
-                                                            <button
-                                                                wire:click="togglePreviewTrack({{ $file->id }})"
-                                                                class="rounded-lg bg-gradient-to-r from-purple-100 to-indigo-100 p-2 text-purple-600 transition-all duration-200 hover:scale-105 hover:from-purple-200 hover:to-indigo-200 hover:text-purple-700">
-                                                                <i class="fas fa-star text-sm"></i>
-                                                            </button>
+                                                            <flux:button wire:click="togglePreviewTrack({{ $file->id }})" variant="ghost" size="xs" icon="star">
+                                                            </flux:button>
                                                         @else
-                                                            <button wire:click="clearPreviewTrack"
-                                                                class="rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600 p-2 text-white transition-all duration-200 hover:scale-105 hover:from-purple-600 hover:to-indigo-700">
-                                                                <i class="fas fa-star-half-alt text-sm"></i>
-                                                            </button>
+                                                            <flux:button wire:click="clearPreviewTrack" variant="primary" size="xs" icon="star">
+                                                            </flux:button>
                                                         @endif
 
-                                                        <button wire:click="getDownloadUrl({{ $file->id }})"
-                                                            class="rounded-lg bg-gradient-to-r from-blue-100 to-blue-200 p-2 text-blue-600 transition-all duration-200 hover:scale-105 hover:from-blue-200 hover:to-blue-300 hover:text-blue-700">
-                                                            <i class="fas fa-download text-sm"></i>
-                                                        </button>
+                                                        <flux:button wire:click="getDownloadUrl({{ $file->id }})" variant="ghost" size="xs" icon="arrow-down-tray">
+                                                        </flux:button>
 
-                                                        <button wire:click="confirmDeleteFile({{ $file->id }})"
-                                                            class="rounded-lg bg-gradient-to-r from-red-100 to-pink-100 p-2 text-red-600 transition-all duration-200 hover:scale-105 hover:from-red-200 hover:to-pink-200 hover:text-red-700">
-                                                            <i class="fas fa-trash text-sm"></i>
-                                                        </button>
+                                                        <flux:button wire:click="confirmDeleteFile({{ $file->id }})" variant="ghost" size="xs" icon="trash">
+                                                        </flux:button>
                                                     </div>
                                                 </div>
                                             @empty
                                                 <div class="p-8 text-center">
-                                                    <div
-                                                        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100">
-                                                        <i class="fas fa-folder-open text-2xl text-purple-400"></i>
-                                                    </div>
-                                                    <h4 class="mb-2 text-lg font-bold text-purple-800">No files
-                                                        uploaded yet</h4>
-                                                    <p class="text-sm text-purple-600">Upload files to share with
-                                                        {{ $project->isContest() ? 'contest participants' : 'collaborators' }}</p>
+                                                    <flux:icon.folder-open class="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                                                    <flux:heading size="lg" class="text-gray-800 dark:text-gray-200 mb-2">No files uploaded yet</flux:heading>
+                                                    <flux:subheading class="text-gray-600 dark:text-gray-400">
+                                                        Upload files to share with {{ $project->isContest() ? 'contest participants' : 'collaborators' }}
+                                                    </flux:subheading>
                                                 </div>
                                             @endforelse
                                         </div>
-                                    </div>
-                                </div>
+                                    </flux:card>
+                                </flux:card>
                             @endif
 
-                            {{-- Tips for Success - Show on mobile after main content --}}
-                            @if ($project->isStandard())
-                                <div
-                                    class="rounded-2xl border border-green-200/50 bg-gradient-to-br from-green-50/90 to-emerald-50/90 p-4 shadow-lg backdrop-blur-sm lg:hidden">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
-                                            <i class="fas fa-lightbulb text-lg text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-green-800">Tips for Success</h3>
-                                            <p class="text-sm text-green-600">Maximize your project potential</p>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-3">
-                                        @if ($project->pitches->count() === 0)
-                                            <div
-                                                class="flex items-start rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                    <i class="fas fa-check text-xs text-white"></i>
-                                                </div>
-                                                <span class="text-sm font-medium text-green-800">Share your project on
-                                                    social media to attract more producers</span>
-                                            </div>
-                                            <div
-                                                class="flex items-start rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                    <i class="fas fa-check text-xs text-white"></i>
-                                                </div>
-                                                <span class="text-sm font-medium text-green-800">Add reference tracks
-                                                    to help producers understand your vision</span>
-                                            </div>
-                                        @elseif($project->pitches->where('status', 'approved')->count() === 0)
-                                            <div
-                                                class="flex items-start rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                    <i class="fas fa-check text-xs text-white"></i>
-                                                </div>
-                                                <span class="text-sm font-medium text-green-800">Review pitches
-                                                    carefully and communicate with producers</span>
-                                            </div>
-                                            <div
-                                                class="flex items-start rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                    <i class="fas fa-check text-xs text-white"></i>
-                                                </div>
-                                                <span class="text-sm font-medium text-green-800">Ask questions to
-                                                    ensure the producer understands your needs</span>
-                                            </div>
-                                        @else
-                                            <div
-                                                class="flex items-start rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                    <i class="fas fa-check text-xs text-white"></i>
-                                                </div>
-                                                <span class="text-sm font-medium text-green-800">Provide clear feedback
-                                                    to help your producer deliver the best results</span>
-                                            </div>
-                                            <div
-                                                class="flex items-start rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                    <i class="fas fa-check text-xs text-white"></i>
-                                                </div>
-                                                <span class="text-sm font-medium text-green-800">Upload reference files
-                                                    to guide the production process</span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endif
+                            {{-- License Management Component --}}
+                            <div class="mb-2">
+                                <x-project.license-management :project="$project" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
+                            </div>
 
-                            {{-- Standard Project Info - Show on mobile after tips --}}
-                            @if ($project->isStandard())
-                                <div
-                                    class="rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 p-4 shadow-lg backdrop-blur-sm lg:hidden">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                                            <i class="fas fa-users text-lg text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-blue-800">Standard Project</h3>
-                                            <p class="text-sm text-blue-600">Open collaboration workflow</p>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-4">
-                                        <div
-                                            class="rounded-xl border border-blue-200/50 bg-white/60 p-4 backdrop-blur-sm">
-                                            <div class="flex items-start">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                                                    <i class="fas fa-users text-sm text-white"></i>
-                                                </div>
-                                                <div>
-                                                    <h4 class="mb-1 text-sm font-bold text-blue-800">Open Collaboration
-                                                    </h4>
-                                                    <p class="text-xs text-blue-700">Any producer can submit a pitch
-                                                        for your project. Review and approve the best fit.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="rounded-xl border border-blue-200/50 bg-white/60 p-4 backdrop-blur-sm">
-                                            <div class="flex items-start">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                                                    <i class="fas fa-handshake text-sm text-white"></i>
-                                                </div>
-                                                <div>
-                                                    <h4 class="mb-1 text-sm font-bold text-blue-800">Direct
-                                                        Communication</h4>
-                                                    <p class="text-xs text-blue-700">Work directly with your chosen
-                                                        producer throughout the project lifecycle.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-
-                            {{-- Danger Zone - Mobile --}}
-                            @if ($project->isStandard() || $project->isContest())
-                                <div class="relative lg:hidden">
-                                    <!-- Background Effects -->
-                                    <div
-                                        class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-50/30 via-pink-50/20 to-red-50/30">
-                                    </div>
-                                    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-red-400/10 blur-xl"></div>
-                                    <div class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-pink-400/10 blur-lg">
-                                    </div>
-
-                                    <!-- Content -->
-                                    <div
-                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-4 lg:p-6 shadow-xl backdrop-blur-md">
-                                        <div class="mb-4 flex items-center">
-                                            <div
-                                                class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
-                                                <i class="fas fa-exclamation-triangle text-lg text-white"></i>
-                                            </div>
-                                            <div>
-                                                <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
-                                                <p class="text-sm text-red-600">Irreversible actions</p>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="mb-4 rounded-xl border border-red-200/50 bg-gradient-to-r from-red-50/80 to-pink-50/80 p-4 backdrop-blur-sm">
-                                            <p class="text-sm font-medium text-red-700">
-                                                Permanently delete this {{ $project->isContest() ? 'contest' : 'project' }} and all associated files. This action cannot
-                                                be undone.
-                                            </p>
-                                        </div>
-                                        <button wire:click="confirmDeleteProject"
-                                            class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-pink-600 px-4 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-pink-700 hover:shadow-lg">
-                                            <i class="fas fa-trash-alt mr-2"></i>Delete {{ $project->isContest() ? 'Contest' : 'Project' }}
-                                        </button>
-                                    </div>
-                                </div>
-                            @endif
+                            
                         </div>
 
                         <!-- Sidebar (1/3 width on large screens) -->
-                        <div class="space-y-6 lg:col-span-1">
+                        <div class="space-y-2 lg:col-span-1">
                             {{-- Workflow Type Specific Information --}}
                             @if ($project->isStandard())
-                                <div
-                                    class="mb-6 hidden rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 p-4 lg:p-6 shadow-lg backdrop-blur-sm lg:block">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                                            <i class="fas fa-users text-lg text-white"></i>
-                                        </div>
+                                <flux:card class="mb-2 hidden lg:block {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                    <div class="flex items-center gap-3 mb-6">
+                                        <flux:icon.users variant="solid" class="w-8 h-8 {{ $workflowColors['icon'] }}" />
                                         <div>
-                                            <h3 class="text-lg font-bold text-blue-800">Standard Project</h3>
-                                            <p class="text-sm text-blue-600">Open collaboration workflow</p>
+                                            <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Standard Project</flux:heading>
+                                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Open collaboration workflow</flux:subheading>
                                         </div>
                                     </div>
                                     <div class="space-y-4">
-                                        <div
-                                            class="rounded-xl border border-blue-200/50 bg-white/60 p-4 backdrop-blur-sm">
-                                            <div class="flex items-start">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                                                    <i class="fas fa-users text-sm text-white"></i>
-                                                </div>
+                                        <div class="p-4 {{ $workflowColors['accent_bg'] }} rounded-xl border {{ $workflowColors['accent_border'] }}">
+                                            <div class="flex items-start gap-3">
+                                                <flux:icon.users class="w-6 h-6 {{ $workflowColors['icon'] }} flex-shrink-0 mt-0.5" />
                                                 <div>
-                                                    <h4 class="mb-1 text-sm font-bold text-blue-800">Open Collaboration
-                                                    </h4>
-                                                    <p class="text-xs text-blue-700">Any producer can submit a pitch
-                                                        for your project. Review and approve the best fit.</p>
+                                                    <flux:subheading class="{{ $workflowColors['text_primary'] }} font-semibold mb-1">Open Collaboration</flux:subheading>
+                                                    <p class="text-sm {{ $workflowColors['text_secondary'] }}">Any producer can submit a pitch for your project. Review and approve the best fit.</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div
-                                            class="rounded-xl border border-blue-200/50 bg-white/60 p-4 backdrop-blur-sm">
-                                            <div class="flex items-start">
-                                                <div
-                                                    class="mr-3 mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                                                    <i class="fas fa-handshake text-sm text-white"></i>
-                                                </div>
+                                        <div class="p-4 {{ $workflowColors['accent_bg'] }} rounded-xl border {{ $workflowColors['accent_border'] }}">
+                                            <div class="flex items-start gap-3">
+                                                <flux:icon.chat-bubble-left-right class="w-6 h-6 {{ $workflowColors['icon'] }} flex-shrink-0 mt-0.5" />
                                                 <div>
-                                                    <h4 class="mb-1 text-sm font-bold text-blue-800">Direct
-                                                        Communication</h4>
-                                                    <p class="text-xs text-blue-700">Work directly with your chosen
-                                                        producer throughout the project lifecycle.</p>
+                                                    <flux:subheading class="{{ $workflowColors['text_primary'] }} font-semibold mb-1">Direct Communication</flux:subheading>
+                                                    <p class="text-sm {{ $workflowColors['text_secondary'] }}">Work directly with your chosen producer throughout the project lifecycle.</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </flux:card>
 
                                 <!-- Project Insights -->
-                                <div class="mb-6 hidden lg:block">
+                                <div class="mb-2 hidden lg:block">
                                     <x-project.quick-stats :project="$project" />
                                 </div>
 
-                                <!-- Quick Actions -->
-                                <div
-                                    class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-4 lg:p-6 shadow-xl backdrop-blur-md lg:block">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                                            <i class="fas fa-bolt text-lg text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-blue-800">Quick Actions</h3>
-                                            <p class="text-sm text-blue-600">Manage your project efficiently</p>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <a href="{{ route('projects.show', $project) }}"
-                                            class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg">
-                                            <i class="fas fa-eye mr-2"></i>View Public Page
-                                        </a>
-                                        <a href="{{ route('projects.edit', $project) }}"
-                                            class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
-                                            <i class="fas fa-edit mr-2"></i>Edit Project
-                                        </a>
-                                        
-                                        {{-- Reddit Post Button --}}
-                                        @if ($project->is_published)
-                                            @if ($project->hasBeenPostedToReddit())
-                                                <a href="{{ $project->getRedditUrl() }}" target="_blank" rel="noopener"
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg">
-                                                    <i class="fab fa-reddit mr-2"></i>View on Reddit
-                                                </a>
-                                            @else
-                                                <button wire:click="postToReddit"
-                                                    @if($isPostingToReddit) disabled @endif
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg {{ $isPostingToReddit ? 'opacity-75 cursor-not-allowed' : '' }}">
-                                                    @if($isPostingToReddit)
-                                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Posting...
-                                                    @else
-                                                        <i class="fab fa-reddit mr-2"></i>Post to r/MixPitch
-                                                    @endif
-                                                </button>
-                                            @endif
-                                        @endif
-                                        
-                                        @if (!$project->isClientManagement())
-                                            @if ($project->is_published)
-                                                <button wire:click="unpublish"
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
-                                                    <i class="fas fa-eye-slash mr-2"></i>Unpublish
-                                                </button>
-                                            @else
-                                                <button wire:click="publish"
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
-                                                    <i class="fas fa-globe mr-2"></i>Publish Project
-                                                </button>
-                                            @endif
-                                        @else
-                                            {{-- Client Management projects remain private by design --}}
-                                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 text-center">
-                                                <div class="flex items-center justify-center mb-1">
-                                                    <i class="fas fa-user-shield text-blue-600 mr-2"></i>
-                                                    <span class="font-semibold text-blue-800 text-sm">Private Project</span>
-                                                </div>
-                                                <p class="text-xs text-blue-700">
-                                                    Client projects remain private and accessible only through secure portals.
-                                                </p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
 
                                 <!-- Tips & Best Practices -->
-                                <div
-                                    class="mb-6 hidden rounded-2xl border border-green-200/50 bg-gradient-to-br from-green-50/90 to-emerald-50/90 p-4 lg:p-6 shadow-lg backdrop-blur-sm lg:block">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
-                                            <i class="fas fa-lightbulb text-lg text-white"></i>
-                                        </div>
+                                <flux:card class="mb-2 hidden lg:block {{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }}">
+                                    <div class="flex items-center gap-3 mb-6">
+                                        <flux:icon.light-bulb variant="solid" class="w-8 h-8 {{ $semanticColors['success']['icon'] }}" />
                                         <div>
-                                            <h3 class="text-lg font-bold text-green-800">Tips for Success</h3>
-                                            <p class="text-sm text-green-600">Maximize your project potential</p>
+                                            <flux:heading size="lg" class="{{ $semanticColors['success']['text'] }}">Tips for Success</flux:heading>
+                                            <flux:subheading class="{{ $semanticColors['success']['icon'] }}">Maximize your project potential</flux:subheading>
                                         </div>
                                     </div>
                                     <div class="space-y-3">
                                         @if ($project->pitches->count() === 0)
-                                            <div
-                                                class="rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div class="flex items-start">
-                                                    <div
-                                                        class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                        <i class="fas fa-check text-xs text-white"></i>
-                                                    </div>
-                                                    <span class="text-sm font-medium text-green-800">Share your project
-                                                        on social media to attract more producers</span>
+                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
+                                                <div class="flex items-start gap-3">
+                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
+                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Share your project on social media to attract more producers</span>
                                                 </div>
                                             </div>
-                                            <div
-                                                class="rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div class="flex items-start">
-                                                    <div
-                                                        class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                        <i class="fas fa-check text-xs text-white"></i>
-                                                    </div>
-                                                    <span class="text-sm font-medium text-green-800">Add reference
-                                                        tracks to help producers understand your vision</span>
+                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
+                                                <div class="flex items-start gap-3">
+                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
+                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Add reference tracks to help producers understand your vision</span>
                                                 </div>
                                             </div>
                                         @elseif($project->pitches->where('status', 'approved')->count() === 0)
-                                            <div
-                                                class="rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div class="flex items-start">
-                                                    <div
-                                                        class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                        <i class="fas fa-check text-xs text-white"></i>
-                                                    </div>
-                                                    <span class="text-sm font-medium text-green-800">Review pitches
-                                                        carefully and communicate with producers</span>
+                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
+                                                <div class="flex items-start gap-3">
+                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
+                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Review pitches carefully and communicate with producers</span>
                                                 </div>
                                             </div>
-                                            <div
-                                                class="rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div class="flex items-start">
-                                                    <div
-                                                        class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                        <i class="fas fa-check text-xs text-white"></i>
-                                                    </div>
-                                                    <span class="text-sm font-medium text-green-800">Ask questions to
-                                                        ensure the producer understands your needs</span>
+                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
+                                                <div class="flex items-start gap-3">
+                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
+                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Ask questions to ensure the producer understands your needs</span>
                                                 </div>
                                             </div>
                                         @else
-                                            <div
-                                                class="rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div class="flex items-start">
-                                                    <div
-                                                        class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                        <i class="fas fa-check text-xs text-white"></i>
-                                                    </div>
-                                                    <span class="text-sm font-medium text-green-800">Provide clear
-                                                        feedback to help your producer deliver the best results</span>
+                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
+                                                <div class="flex items-start gap-3">
+                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
+                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Provide clear feedback to help your producer deliver the best results</span>
                                                 </div>
                                             </div>
-                                            <div
-                                                class="rounded-xl border border-green-200/50 bg-white/60 p-3 backdrop-blur-sm">
-                                                <div class="flex items-start">
-                                                    <div
-                                                        class="mr-3 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                                                        <i class="fas fa-check text-xs text-white"></i>
-                                                    </div>
-                                                    <span class="text-sm font-medium text-green-800">Upload reference
-                                                        files to guide the production process</span>
+                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
+                                                <div class="flex items-start gap-3">
+                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
+                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Upload reference files to guide the production process</span>
                                                 </div>
                                             </div>
                                         @endif
                                     </div>
-                                </div>
+                                </flux:card>
 
-                                {{-- Danger Zone - Desktop --}}
-                                <div class="relative hidden lg:block">
-                                    <!-- Background Effects -->
-                                    <div
-                                        class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-50/30 via-pink-50/20 to-red-50/30">
-                                    </div>
-                                    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-red-400/10 blur-xl">
-                                    </div>
-                                    <div
-                                        class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-pink-400/10 blur-lg">
-                                    </div>
-
-                                    <!-- Content -->
-                                    <div
-                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-4 lg:p-6 shadow-xl backdrop-blur-md">
-                                        <div class="mb-4 flex items-center">
-                                            <div
-                                                class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
-                                                <i class="fas fa-exclamation-triangle text-lg text-white"></i>
-                                            </div>
-                                            <div>
-                                                <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
-                                                <p class="text-sm text-red-600">Irreversible actions</p>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="mb-4 rounded-xl border border-red-200/50 bg-gradient-to-r from-red-50/80 to-pink-50/80 p-4 backdrop-blur-sm">
-                                            <p class="text-sm font-medium text-red-700">
-                                                Permanently delete this project and all associated files. This action
-                                                cannot be undone.
-                                            </p>
-                                        </div>
-                                        <button wire:click="confirmDeleteProject"
-                                            class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-pink-600 px-4 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-pink-700 hover:shadow-lg">
-                                            <i class="fas fa-trash-alt mr-2"></i>Delete Project
-                                        </button>
-                                    </div>
-                                </div>
+                                
                             @elseif($project->isContest())
                                 <!-- Contest Prizes Component -->
                                 @livewire('project.component.contest-prizes', ['project' => $project], key('contest-prizes-' . $project->id))
 
                                 <!-- Contest Early Closure Component -->
-                                <div class="mb-6">
+                                <div class="mb-2">
                                     @include('livewire.project.component.contest-early-closure', ['project' => $project])
                                 </div>
 
-                                {{-- Quick Actions for Contest Projects --}}
-                                <div
-                                    class="mb-6 hidden rounded-2xl border border-white/30 bg-gradient-to-br from-white/95 to-blue-50/90 p-4 lg:p-6 shadow-xl backdrop-blur-md lg:block">
-                                    <div class="mb-4 flex items-center">
-                                        <div
-                                            class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
-                                            <i class="fas fa-bolt text-lg text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-blue-800">Quick Actions</h3>
-                                            <p class="text-sm text-blue-600">Manage your contest efficiently</p>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <a href="{{ route('projects.show', $project) }}"
-                                            class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg">
-                                            <i class="fas fa-eye mr-2"></i>View Public Page
-                                        </a>
-                                        <a href="{{ route('projects.edit', $project) }}"
-                                            class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-gray-700 hover:to-gray-800 hover:shadow-lg">
-                                            <i class="fas fa-edit mr-2"></i>Edit Contest
-                                        </a>
-                                        
-                                        {{-- Contest Judging Button --}}
-                                        @if($project->isSubmissionPeriodClosed() && !$project->isJudgingFinalized())
-                                            <a href="{{ route('projects.contest.judging', $project) }}"
-                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-purple-700 hover:to-indigo-700 hover:shadow-lg">
-                                                <i class="fas fa-gavel mr-2"></i>Judge Contest
-                                            </a>
-                                        @elseif($project->isJudgingFinalized())
-                                            <a href="{{ route('projects.contest.results', $project) }}"
-                                                class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
-                                                <i class="fas fa-trophy mr-2"></i>View Results
-                                            </a>
-                                        @endif
-                                        
-                                        {{-- Reddit Post Button --}}
-                                        @if ($project->is_published)
-                                            @if ($project->hasBeenPostedToReddit())
-                                                <a href="{{ $project->getRedditUrl() }}" target="_blank" rel="noopener"
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg">
-                                                    <i class="fab fa-reddit mr-2"></i>View on Reddit
-                                                </a>
-                                            @else
-                                                <button wire:click="postToReddit"
-                                                    @if($isPostingToReddit) disabled @endif
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-orange-600 hover:to-red-600 hover:shadow-lg {{ $isPostingToReddit ? 'opacity-75 cursor-not-allowed' : '' }}">
-                                                    @if($isPostingToReddit)
-                                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Posting...
-                                                    @else
-                                                        <i class="fab fa-reddit mr-2"></i>Post to r/MixPitch
-                                                    @endif
-                                                </button>
-                                            @endif
-                                        @endif
-                                        
-                                        @if (!$project->isClientManagement())
-                                            @if ($project->is_published)
-                                                <button wire:click="unpublish"
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg">
-                                                    <i class="fas fa-eye-slash mr-2"></i>Unpublish Contest
-                                                </button>
-                                            @else
-                                                <button wire:click="publish"
-                                                    class="block inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-3 font-medium text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg">
-                                                    <i class="fas fa-globe mr-2"></i>Publish Contest
-                                                </button>
-                                            @endif
-                                        @else
-                                            {{-- Client Management projects should not appear in contest sections --}}
-                                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 text-center">
-                                                <div class="flex items-center justify-center mb-1">
-                                                    <i class="fas fa-user-shield text-blue-600 mr-2"></i>
-                                                    <span class="font-semibold text-blue-800 text-sm">Private Project</span>
-                                                </div>
-                                                <p class="text-xs text-blue-700">
-                                                    Client projects remain private and accessible only through secure portals.
-                                                </p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
 
-                                {{-- Danger Zone for Contest Projects --}}
-                                <div class="relative hidden lg:block">
-                                    <!-- Background Effects -->
-                                    <div
-                                        class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-50/30 via-pink-50/20 to-red-50/30">
-                                    </div>
-                                    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-red-400/10 blur-xl">
-                                    </div>
-                                    <div
-                                        class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-pink-400/10 blur-lg">
-                                    </div>
-
-                                    <!-- Content -->
-                                    <div
-                                        class="relative rounded-2xl border border-white/20 bg-white/95 p-4 lg:p-6 shadow-xl backdrop-blur-md">
-                                        <div class="mb-4 flex items-center">
-                                            <div
-                                                class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-600">
-                                                <i class="fas fa-exclamation-triangle text-lg text-white"></i>
-                                            </div>
-                                            <div>
-                                                <h3 class="text-lg font-bold text-red-800">Danger Zone</h3>
-                                                <p class="text-sm text-red-600">Irreversible actions</p>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="mb-4 rounded-xl border border-red-200/50 bg-gradient-to-r from-red-50/80 to-pink-50/80 p-4 backdrop-blur-sm">
-                                            <p class="text-sm font-medium text-red-700">
-                                                Permanently delete this contest and all associated files, entries, and judging data. This action cannot be undone.
-                                            </p>
-                                        </div>
-                                        <button wire:click="confirmDeleteProject"
-                                            class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-pink-600 px-4 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-pink-700 hover:shadow-lg">
-                                            <i class="fas fa-trash-alt mr-2"></i>Delete Contest
-                                        </button>
-                                    </div>
-                                </div>
+                                
                             @elseif($project->isDirectHire())
-                                <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
-                                    <h3 class="mb-2 text-lg font-semibold text-green-800"><i
+                                <div class="mb-2 rounded-lg {{ $workflowColors['border'] }} {{ $workflowColors['bg'] }} p-4 border">
+                                    <h3 class="mb-2 text-lg font-semibold {{ $workflowColors['text_primary'] }}"><i
                                             class="fas fa-user-check mr-2"></i>Direct Hire Details</h3>
                                     @if ($project->targetProducer)
-                                        <p class="mt-1 text-sm text-gray-700">Assigned Producer:
+                                        <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">Assigned Producer:
                                             @if ($project->targetProducer->username)
                                                 <a href="{{ route('profile.username', $project->targetProducer->username) }}"
                                                     class="text-primary font-semibold hover:underline">
@@ -997,16 +529,16 @@
                                             @endif
                                         </p>
                                     @else
-                                        <p class="mt-1 text-sm text-gray-500">No producer assigned yet.</p>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No producer assigned yet.</p>
                                     @endif
                                 </div>
                             @elseif($project->isClientManagement())
-                                <div class="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
-                                    <h3 class="mb-2 text-lg font-semibold text-purple-800"><i
+                                <div class="mb-2 rounded-lg {{ $workflowColors['border'] }} {{ $workflowColors['bg'] }} p-4 border">
+                                    <h3 class="mb-2 text-lg font-semibold {{ $workflowColors['text_primary'] }}"><i
                                             class="fas fa-briefcase mr-2"></i>Client Management Details</h3>
-                                    <p class="text-sm"><strong>Client Name:</strong>
+                                    <p class="text-sm text-gray-700 dark:text-gray-300"><strong>Client Name:</strong>
                                         {{ $project->client_name ?? 'N/A' }}</p>
-                                    <p class="text-sm"><strong>Client Email:</strong>
+                                    <p class="text-sm text-gray-700 dark:text-gray-300"><strong>Client Email:</strong>
                                         {{ $project->client_email ?? 'N/A' }}</p>
                                     {{-- Add Resend Invite Button --}}
                                     @can('update', $project)
@@ -1025,67 +557,65 @@
         </div>
 
         {{-- File Delete Confirmation Modal --}}
-        @if ($showDeleteModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-                 x-data="{ 
-                     handleKeydown(event) { 
-                         if (event.key === 'Enter' && !this.$wire.isDeleting) { 
-                             this.$wire.deleteFile(); 
-                         } 
-                     } 
-                 }"
-                 x-on:keydown.window="handleKeydown($event)">
-                <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900">Confirm File Deletion</h3>
-                    <p class="mb-6 text-gray-600">Are you sure you want to delete this file? This action cannot be
-                        undone.</p>
-                    <div class="flex justify-end space-x-3">
-                        <button wire:click="cancelDeleteFile" 
-                                class="btn btn-outline"
-                                wire:loading.attr="disabled"
-                                wire:target="deleteFile">
+        <flux:modal name="delete-file" class="max-w-md">
+            <div class="space-y-6">
+                <div class="flex items-center gap-3">
+                    <flux:icon.exclamation-triangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                    <flux:heading size="lg">Confirm File Deletion</flux:heading>
+                </div>
+                
+                <flux:subheading class="text-gray-600 dark:text-gray-400">
+                    Are you sure you want to delete this file? This action cannot be undone.
+                </flux:subheading>
+
+                <div class="flex items-center justify-end gap-3 pt-4">
+                    <flux:modal.close>
+                        <flux:button variant="ghost" wire:click="cancelDeleteFile">
                             Cancel
-                        </button>
-                        <button wire:click="deleteFile" 
-                                class="btn btn-error flex items-center justify-center"
-                                wire:loading.attr="disabled"
-                                wire:target="deleteFile">
-                            <span wire:loading.remove wire:target="deleteFile">Delete File</span>
-                            <svg wire:loading wire:target="deleteFile" class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </button>
-                    </div>
+                        </flux:button>
+                    </flux:modal.close>
+                    <flux:button wire:click="deleteFile" variant="danger" icon="trash" wire:loading.attr="disabled" wire:target="deleteFile">
+                        <span wire:loading.remove wire:target="deleteFile">Delete File</span>
+                        <span wire:loading wire:target="deleteFile">Deleting...</span>
+                    </flux:button>
                 </div>
             </div>
-        @endif
+        </flux:modal>
 
         {{-- Project Delete Confirmation Modal --}}
-        @if ($showProjectDeleteModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
-                    <h3 class="mb-4 text-lg font-semibold text-red-800">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>Delete Project
-                    </h3>
-                    <p class="mb-4 text-gray-600">
+        <flux:modal name="delete-project" class="max-w-md">
+            <div class="space-y-6">
+                <div class="flex items-center gap-3">
+                    <flux:icon.exclamation-triangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                    <flux:heading size="lg" class="text-red-800 dark:text-red-200">Delete Project</flux:heading>
+                </div>
+                
+                <div class="space-y-4">
+                    <flux:subheading class="text-gray-600 dark:text-gray-400">
                         Are you sure you want to permanently delete this project? This will also delete:
-                    </p>
-                    <ul class="mb-6 list-inside list-disc text-sm text-gray-600">
+                    </flux:subheading>
+                    
+                    <ul class="list-inside list-disc text-sm text-gray-600 dark:text-gray-400 space-y-1">
                         <li>All project files</li>
                         <li>All pitch files and data</li>
                         <li>All project history and events</li>
                     </ul>
-                    <p class="mb-6 font-medium text-red-600">This action cannot be undone.</p>
-                    <div class="flex justify-end space-x-3">
-                        <button wire:click="cancelDeleteProject" class="btn btn-outline">Cancel</button>
-                        <button wire:click="deleteProject" class="btn btn-error">
-                            <i class="fas fa-trash-alt mr-2"></i>Delete Project
-                        </button>
-                    </div>
+                    
+                    <p class="font-medium text-red-600 dark:text-red-400">This action cannot be undone.</p>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4">
+                    <flux:modal.close>
+                        <flux:button variant="ghost" wire:click="cancelDeleteProject">
+                            Cancel
+                        </flux:button>
+                    </flux:modal.close>
+                    <flux:button wire:click="deleteProject" variant="danger" icon="trash">
+                        Delete Project
+                    </flux:button>
                 </div>
             </div>
-        @endif
+        </flux:modal>
 
         {{-- Project Content Tabs (Consider hiding these if project is a contest) --}}
         <div class="mt-6">
@@ -1100,45 +630,49 @@
         
         <!-- Complete Pitch Modal -->
         @livewire('project.complete-pitch-modal',[] , key('complete-pitch-modal'))
+        </div>
     </div>
-    
-    {{-- Reddit Posting Polling Script --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let redditPollingInterval = null;
-            
-            // Listen for start polling event
-            document.addEventListener('livewire:init', () => {
-                Livewire.on('start-reddit-polling', () => {
-                    console.log('Starting Reddit polling...');
-                    
-                    // Clear any existing interval
-                    if (redditPollingInterval) {
-                        clearInterval(redditPollingInterval);
-                    }
-                    
-                    // Start polling every 3 seconds
-                    redditPollingInterval = setInterval(() => {
-                        Livewire.dispatch('checkRedditStatus');
-                    }, 3000);
-                });
+
+
+{{-- Reddit Posting Polling Script --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let redditPollingInterval = null;
+        
+        // Listen for start polling event
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('start-reddit-polling', () => {
+                console.log('Starting Reddit polling...');
                 
-                // Listen for stop polling event
-                Livewire.on('stop-reddit-polling', () => {
-                    console.log('Stopping Reddit polling...');
-                    if (redditPollingInterval) {
-                        clearInterval(redditPollingInterval);
-                        redditPollingInterval = null;
-                    }
-                });
-            });
-            
-            // Clean up on page unload
-            window.addEventListener('beforeunload', () => {
+                // Clear any existing interval
                 if (redditPollingInterval) {
                     clearInterval(redditPollingInterval);
                 }
+                
+                // Start polling every 3 seconds
+                redditPollingInterval = setInterval(() => {
+                    Livewire.dispatch('checkRedditStatus');
+                }, 3000);
+            });
+            
+            // Listen for stop polling event
+            Livewire.on('stop-reddit-polling', () => {
+                console.log('Stopping Reddit polling...');
+                if (redditPollingInterval) {
+                    clearInterval(redditPollingInterval);
+                    redditPollingInterval = null;
+                }
             });
         });
-    </script>
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (redditPollingInterval) {
+                clearInterval(redditPollingInterval);
+            }
+        });
+    });
+</script>
+
+
 </div>

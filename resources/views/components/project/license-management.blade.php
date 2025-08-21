@@ -1,4 +1,4 @@
-@props(['project'])
+@props(['project', 'workflowColors' => null, 'semanticColors' => null])
 
 @php
     $licenseTemplate = $project->license_template_id ? $project->licenseTemplate : null;
@@ -8,268 +8,238 @@
     // Get fresh license signatures for this project
     $licenseSignatures = $project->licenseSignatures()->get();
     $pendingSignatures = $licenseSignatures->where('status', 'pending');
-    $signedSignatures = $licenseSignatures->where('status', 'active'); // Fixed: looking for 'active' status
+    $signedSignatures = $licenseSignatures->where('status', 'active');
+
+    // Create workflow-aware gradient classes matching other components
+    $gradientClasses = match($project->workflow_type) {
+        'standard' => [
+            'outer' => 'bg-gradient-to-br from-blue-50/95 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50',
+            'header' => 'bg-gradient-to-r from-blue-100/80 to-indigo-100/80 border-b border-blue-200/30',
+            'text_primary' => 'text-blue-900',
+            'text_secondary' => 'text-blue-700',
+            'text_muted' => 'text-blue-600',
+            'icon' => 'text-blue-600'
+        ],
+        'contest' => [
+            'outer' => 'bg-gradient-to-br from-amber-50/95 to-yellow-50/90 backdrop-blur-sm border border-amber-200/50',
+            'header' => 'bg-gradient-to-r from-amber-100/80 to-yellow-100/80 border-b border-amber-200/30',
+            'text_primary' => 'text-amber-900',
+            'text_secondary' => 'text-amber-700',
+            'text_muted' => 'text-amber-600',
+            'icon' => 'text-amber-600'
+        ],
+        'direct_hire' => [
+            'outer' => 'bg-gradient-to-br from-green-50/95 to-emerald-50/90 backdrop-blur-sm border border-green-200/50',
+            'header' => 'bg-gradient-to-r from-green-100/80 to-emerald-100/80 border-b border-green-200/30',
+            'text_primary' => 'text-green-900',
+            'text_secondary' => 'text-green-700',
+            'text_muted' => 'text-green-600',
+            'icon' => 'text-green-600'
+        ],
+        'client_management' => [
+            'outer' => 'bg-gradient-to-br from-purple-50/95 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50',
+            'header' => 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 border-b border-purple-200/30',
+            'text_primary' => 'text-purple-900',
+            'text_secondary' => 'text-purple-700',
+            'text_muted' => 'text-purple-600',
+            'icon' => 'text-purple-600'
+        ],
+        default => [
+            'outer' => 'bg-gradient-to-br from-gray-50/95 to-slate-50/90 backdrop-blur-sm border border-gray-200/50',
+            'header' => 'bg-gradient-to-r from-gray-100/80 to-slate-100/80 border-b border-gray-200/30',
+            'text_primary' => 'text-gray-900',
+            'text_secondary' => 'text-gray-700',
+            'text_muted' => 'text-gray-600',
+            'icon' => 'text-gray-600'
+        ]
+    };
+
+    // Provide fallback colors if not passed from parent
+    $workflowColors = $workflowColors ?? [
+        'text_primary' => $gradientClasses['text_primary'],
+        'text_secondary' => $gradientClasses['text_secondary'],
+        'text_muted' => $gradientClasses['text_muted'],
+        'icon' => $gradientClasses['icon']
+    ];
+
+    $semanticColors = $semanticColors ?? [
+        'success' => ['bg' => 'bg-green-50 dark:bg-green-950', 'text' => 'text-green-800 dark:text-green-200', 'icon' => 'text-green-600 dark:text-green-400'],
+        'warning' => ['bg' => 'bg-amber-50 dark:bg-amber-950', 'text' => 'text-amber-800 dark:text-amber-200', 'icon' => 'text-amber-600 dark:text-amber-400'],
+        'danger' => ['bg' => 'bg-red-50 dark:bg-red-950', 'text' => 'text-red-800 dark:text-red-200', 'icon' => 'text-red-600 dark:text-red-400']
+    ];
 @endphp
 
 <!-- License Management Section -->
-<div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-    <!-- Gradient Border Effect -->
-    <div class="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-teal-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-    <div class="relative bg-white/95 backdrop-blur-sm rounded-2xl m-0.5 p-4 lg:p-6">
-        <!-- Header -->
-        <div class="flex items-center mb-6">
-                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                    <i class="fas fa-file-contract text-white text-lg"></i>
-                </div>
-                <div>
-                <h3 class="text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 to-purple-800 bg-clip-text text-transparent">
-                        License Management
-                    </h3>
-                    <p class="text-gray-600 text-sm">Track license agreements and compliance</p>
-                </div>
-        </div>
-
-        @if($licenseTemplate || $requiresAgreement || $hasLicenseNotes)
-            <!-- Current License Configuration -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- License Template Info -->
-                <div class="bg-gradient-to-r from-purple-50/50 to-blue-50/50 rounded-xl p-6 border border-purple-200/30">
-                    <h4 class="text-lg font-bold text-purple-900 mb-4 flex items-center">
-                        <i class="fas fa-document text-purple-600 mr-2"></i>
-                        License Template
-                    </h4>
-                    
-                    @if($licenseTemplate)
-                        <div class="space-y-3">
-                            <div>
-                                <span class="text-sm font-medium text-purple-700">Template:</span>
-                                <span class="text-purple-900 font-semibold">{{ $licenseTemplate->name }}</span>
-                            </div>
-                            @if($licenseTemplate->category)
-                                <div>
-                                    <span class="text-sm font-medium text-purple-700">Category:</span>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold bg-purple-200 text-purple-900 ml-2">
-                                        {{ ucwords(str_replace('_', ' ', $licenseTemplate->category)) }}
-                                    </span>
-                                </div>
-                            @endif
-                            <div>
-                                <span class="text-sm font-medium text-purple-700">Type:</span>
-                                <span class="text-purple-900">{{ $licenseTemplate->user_id ? 'Custom Template' : 'System Template' }}</span>
-                            </div>
-                        </div>
+<div class="{{ $gradientClasses['outer'] }} rounded-2xl shadow-lg overflow-hidden">
+    <!-- Professional Header matching workflow-status style -->
+    <div class="{{ $gradientClasses['header'] }} p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold {{ $gradientClasses['text_primary'] }} flex items-center">
+                    <flux:icon.document-text class="w-5 h-5 {{ $gradientClasses['icon'] }} mr-3" />
+                    License Management
+                </h3>
+                <p class="text-sm {{ $gradientClasses['text_secondary'] }} mt-1">
+                    @if($requiresAgreement)
+                        {{ $signedSignatures->count() }} {{ Str::plural('agreement', $signedSignatures->count()) }} active
                     @else
-                        <p class="text-purple-700">No specific license template selected. Using platform default terms.</p>
+                        Using platform default terms
                     @endif
-                </div>
+                </p>
+            </div>
+            <div class="text-right">
+                @if($requiresAgreement)
+                    <div class="text-2xl font-bold {{ $gradientClasses['icon'] }}">{{ $signedSignatures->count() }}</div>
+                    <div class="text-xs {{ $gradientClasses['text_muted'] }}">Agreements</div>
+                @else
+                    <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl px-3 py-2">
+                        <div class="text-xs {{ $gradientClasses['text_secondary'] }} font-medium">Default Terms</div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
 
-                <!-- License Settings -->
-                <div class="bg-gradient-to-r from-blue-50/50 to-teal-50/50 rounded-xl p-6 border border-blue-200/30">
-                    <h4 class="text-lg font-bold text-blue-900 mb-4 flex items-center">
-                        <i class="fas fa-cog text-blue-600 mr-2"></i>
-                        Settings
-                    </h4>
-                    
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-blue-700">Agreement Required:</span>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $requiresAgreement ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' }}">
-                                <i class="fas {{ $requiresAgreement ? 'fa-check-circle' : 'fa-times-circle' }} mr-1"></i>
-                                {{ $requiresAgreement ? 'Yes' : 'No' }}
-                            </span>
-                        </div>
-                        
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-blue-700">Custom Notes:</span>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $hasLicenseNotes ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700' }}">
-                                <i class="fas {{ $hasLicenseNotes ? 'fa-sticky-note' : 'fa-times' }} mr-1"></i>
-                                {{ $hasLicenseNotes ? 'Yes' : 'None' }}
-                            </span>
-                        </div>
-                        
-                        @if($hasLicenseNotes)
-                            <div class="mt-4 p-3 bg-blue-100/50 rounded-lg border border-blue-200/30">
-                                <p class="text-sm text-blue-800">{{ $project->license_notes }}</p>
+    <!-- Content Area -->
+    <div class="p-6">
+        @if($licenseTemplate || $requiresAgreement || $hasLicenseNotes)
+            <!-- Compact License Overview -->
+            <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl p-4 mb-4">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        @if($licenseTemplate)
+                            <div class="flex items-center gap-2 mb-2">
+                                <flux:icon.document class="w-4 h-4 {{ $gradientClasses['icon'] }}" />
+                                <span class="text-sm font-medium {{ $gradientClasses['text_primary'] }}">{{ $licenseTemplate->name }}</span>
+                                @if($licenseTemplate->category)
+                                    <flux:badge color="gray" size="xs">
+                                        {{ ucwords(str_replace('_', ' ', $licenseTemplate->category)) }}
+                                    </flux:badge>
+                                @endif
                             </div>
                         @endif
+                        
+                        @if($hasLicenseNotes)
+                            <div class="text-xs {{ $gradientClasses['text_muted'] }} mb-2">
+                                <span class="font-medium">Custom Notes:</span> {{ Str::limit($project->license_notes, 80) }}
+                            </div>
+                        @endif
+                        
+                        <div class="flex items-center gap-3 text-xs {{ $gradientClasses['text_muted'] }}">
+                            <div class="flex items-center gap-1">
+                                @if($requiresAgreement)
+                                    <flux:icon.check-circle class="w-3 h-3 text-green-500" />
+                                    <span>Agreement required</span>
+                                @else
+                                    <flux:icon.information-circle class="w-3 h-3" />
+                                    <span>Platform defaults</span>
+                                @endif
+                            </div>
+                            @if($requiresAgreement && $signedSignatures->count() > 0)
+                                <div class="flex items-center gap-1">
+                                    <flux:icon.users class="w-3 h-3" />
+                                    <span>{{ $signedSignatures->count() }} signed</span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 ml-4">
+                        @if($licenseTemplate)
+                            <flux:button 
+                                variant="ghost"
+                                size="xs"
+                                flux:modal="license-preview">
+                                <flux:icon.eye class="w-3 h-3" />
+                            </flux:button>
+                        @endif
+                        <flux:button 
+                            href="{{ route('projects.edit', $project) }}#license"
+                            variant="ghost"
+                            size="xs">
+                            <flux:icon.pencil class="w-3 h-3" />
+                        </flux:button>
                     </div>
                 </div>
             </div>
-
-            @if($requiresAgreement)
-                <!-- Active License Agreements Section -->
-                <div class="bg-gradient-to-r from-green-50/50 to-emerald-50/50 rounded-xl p-6 border border-green-200/30 mb-6">
-                    <h4 class="text-lg font-bold text-green-900 mb-4 flex items-center">
-                        <i class="fas fa-check-shield text-green-600 mr-2"></i>
-                        License Compliance
-                    </h4>
-
-                    <!-- Compliance Statistics -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div class="bg-white/60 rounded-lg p-4 border border-green-200/50">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-green-600">Active Agreements</p>
-                                    <p class="text-2xl font-bold text-green-700">{{ $signedSignatures->count() }}</p>
-                                    <p class="text-xs text-green-600 mt-1">Users who agreed during pitch creation</p>
-                                </div>
-                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-check-circle text-green-600"></i>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-white/60 rounded-lg p-4 border border-blue-200/50">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-blue-600">Compliance Status</p>
-                                    <p class="text-lg font-bold text-blue-700">
-                                        @if($signedSignatures->count() > 0)
-                                            <i class="fas fa-shield-check mr-1"></i>Active
-                                        @else
-                                            <i class="fas fa-info-circle mr-1"></i>Ready
-                                        @endif
-                                    </p>
-                                    <p class="text-xs text-blue-600 mt-1">
-                                        @if($signedSignatures->count() > 0)
-                                            All participants have agreed to terms
-                                        @else
-                                            License terms will be enforced on participation
-                                        @endif
-                                    </p>
-                                </div>
-                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-shield-alt text-blue-600"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- License Status Summary -->
-                    <div class="text-center py-4">
-                        <div class="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            License status is shown with each pitch submission
-                        </div>
+            
+            @if($requiresAgreement && $signedSignatures->count() > 0)
+                <!-- Simple Compliance Status -->
+                <div class="bg-green-50/50 dark:bg-green-950/50 border border-green-200/30 dark:border-green-800/30 rounded-lg p-3 text-center">
+                    <div class="flex items-center justify-center gap-2 text-sm {{ $semanticColors['success']['text'] }}">
+                        <flux:icon.shield-check class="w-4 h-4" />
+                        <span>License compliance active - Status shown with each pitch</span>
                     </div>
                 </div>
             @endif
-
-            <!-- License Actions -->
-            <div class="flex flex-wrap gap-3">
-                @if($licenseTemplate)
-                    <button onclick="viewLicenseModal()" 
-                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
-                        <i class="fas fa-eye mr-2"></i>
-                        View License Terms
-                    </button>
-                @endif
-                
-                <a href="{{ route('projects.edit', $project) }}#license" 
-                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
-                    <i class="fas fa-edit mr-2"></i>
-                    Modify License
-                </a>
-
-                @if($requiresAgreement)
-                    <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl shadow-lg">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        Auto-enforced on pitch creation
-                    </div>
-                @endif
-            </div>
         @else
-            <!-- No License Configuration -->
-            <div class="text-center py-12">
-                <div class="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <i class="fas fa-file-contract text-3xl text-purple-400"></i>
+            <!-- Clean Empty State -->
+            <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl p-6 text-center">
+                <div class="flex items-center justify-center gap-2 {{ $gradientClasses['text_muted'] }} mb-3">
+                    <flux:icon.document-text class="w-5 h-5" />
+                    <span class="text-sm font-medium">Using platform default terms</span>
                 </div>
-                <h4 class="text-xl font-semibold text-gray-700 mb-2">No License Configuration</h4>
-                <p class="text-gray-500 max-w-md mx-auto mb-6">
-                    This project is using platform default terms. You can add a specific license template to provide clearer terms for collaborators.
+                <p class="text-xs {{ $gradientClasses['text_muted'] }} mb-4">
+                    Add a specific license template to provide clearer terms for collaborators.
                 </p>
-                <a href="{{ route('projects.edit', $project) }}#license" 
-                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
-                    <i class="fas fa-plus mr-2"></i>
-                    Add License Template
-                </a>
+                <flux:button 
+                    href="{{ route('projects.edit', $project) }}#license"
+                    variant="primary"
+                    size="sm">
+                    <flux:icon.plus class="w-3 h-3 mr-1" />
+                    Add License
+                </flux:button>
             </div>
         @endif
     </div>
 </div>
 
 <!-- License Preview Modal -->
-<div id="licensePreviewModal" class="fixed inset-0 z-[9999] hidden overflow-y-auto" 
-     aria-labelledby="modal-title" role="dialog" aria-modal="true" 
-     style="z-index: 9999;">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <!-- Background overlay -->
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeLicenseModal()"></div>
+<flux:modal name="license-preview" class="max-w-2xl">
+    <div class="p-6">
+        <flux:heading class="mb-4">License Agreement</flux:heading>
         
-        <!-- Spacer element to center modal -->
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        
-        <!-- Modal panel -->
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-lg font-medium text-gray-900" id="modal-title">License Agreement</h3>
-                    <button type="button" onclick="closeLicenseModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                
-                @if($licenseTemplate)
-                    <div class="mb-4">
-                        <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{{ $licenseTemplate->category_name ?? 'License' }}</span>
-                        @if($licenseTemplate->use_case)
-                            <span class="inline-block bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full ml-1">{{ $licenseTemplate->use_case_name }}</span>
-                        @endif
-                    </div>
+        @if($licenseTemplate)
+            <div class="mb-4 flex gap-2">
+                <flux:badge color="gray" size="sm">{{ $licenseTemplate->category_name ?? 'License' }}</flux:badge>
+                @if($licenseTemplate->use_case)
+                    <flux:badge color="blue" size="sm">{{ $licenseTemplate->use_case_name }}</flux:badge>
                 @endif
-                
-                <div class="max-h-96 overflow-y-auto">
-                    <div id="license-content" class="text-sm text-gray-700 whitespace-pre-line border rounded-lg p-4 bg-gray-50">
-                        <!-- License content will be loaded here -->
-                    </div>
-                </div>
             </div>
-            
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button" onclick="closeLicenseModal()" 
-                        class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
-                    Close
-                </button>
+        @endif
+        
+        <div class="max-h-96 overflow-y-auto mb-6">
+            <div id="license-content" class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                <!-- License content will be loaded here -->
             </div>
         </div>
+        
+        <div class="flex justify-end">
+            <flux:button variant="ghost" flux:modal.close>Close</flux:button>
+        </div>
     </div>
-</div>
+</flux:modal>
+
+@php
+$licenseData = [
+    'name' => $licenseTemplate ? $licenseTemplate->name : 'License Agreement',
+    'content' => $licenseTemplate ? nl2br(e($licenseTemplate->generateLicenseContent())) : 'No license content available.'
+];
+@endphp
 
 <script>
 // Pre-render license content server-side for security
-const licenseData = @json([
-    'name' => $licenseTemplate ? $licenseTemplate->name : 'License Agreement',
-    'content' => $licenseTemplate ? nl2br(e($licenseTemplate->generateLicenseContent())) : 'No license content available.'
-]);
+const licenseData = @json($licenseData);
 
-function viewLicenseModal() {
-    const modal = document.getElementById('licensePreviewModal');
-    const content = document.getElementById('license-content');
-    const title = document.getElementById('modal-title');
-    
-    // Set content from pre-rendered data
-    title.textContent = licenseData.name;
-    content.innerHTML = licenseData.content;
-    
-    // Show modal
-    modal.classList.remove('hidden');
-}
-
-function closeLicenseModal() {
-    document.getElementById('licensePreviewModal').classList.add('hidden');
-}
+// Listen for modal opening to populate content
+document.addEventListener('flux:modal.opened', function(event) {
+    if (event.detail.name === 'license-preview') {
+        const content = document.getElementById('license-content');
+        if (content) {
+            content.innerHTML = licenseData.content;
+        }
+    }
+});
 
 function sendReminders() {
     // This would trigger a Livewire method to send reminder emails

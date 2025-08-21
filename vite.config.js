@@ -17,4 +17,18 @@ export default defineConfig({
             ],
         }),
     ],
+    build: {
+        rollupOptions: {
+            external: [],
+            output: {
+                assetFileNames: (assetInfo) => {
+                    // Keep font files in the webfonts directory
+                    if (assetInfo.name && /\.(woff2?|eot|ttf|otf)(\?.*)?$/i.test(assetInfo.name)) {
+                        return 'webfonts/[name].[ext]';
+                    }
+                    return 'assets/[name]-[hash].[ext]';
+                }
+            }
+        }
+    }
 });

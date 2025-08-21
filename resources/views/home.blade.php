@@ -1,10 +1,5 @@
-@extends('components.layouts.app')
-
-@section('title', 'MixPitch - Where Artists & Audio Professionals Connect')
-@section('description', 'Connect with skilled audio professionals to transform your music or find exciting projects to
-showcase your mixing and mastering talents.')
-
-@section('content')
+<x-layouts.app-sidebar title="MixPitch - Where Artists & Audio Professionals Connect" description="Connect with skilled audio professionals to transform your music or find exciting projects to showcase your mixing and mastering talents.">
+<x-public-nav-header />
 <x-home.hero />
 <x-home.your-journey />
 {{-- <x-home.statistics /> --}}
@@ -12,7 +7,7 @@ showcase your mixing and mastering talents.')
 {{-- <x-home.testimonials /> --}}
 <x-home.faq />
 <x-home.cta />
-@endsection
+</x-layouts.app-sidebar>
 
 @push('scripts')
 <script src="{{ asset('js/hero.js') }}"></script>

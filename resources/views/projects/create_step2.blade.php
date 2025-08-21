@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="container mx-auto px-4 py-6">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
@@ -27,9 +25,6 @@
     </div>
 </div>
 
-@endsection
-
-@section('scripts')
 <script>
     Dropzone.autoDiscover = false;
 
@@ -57,7 +52,6 @@
     //     window.location.href = `/projects/${projectId}`;
     // });
 </script>
-@endsection
 
 <!-- @section('scripts')
     <script>
@@ -84,3 +78,5 @@
 </script>
 
 @endsection -->
+
+</x-layouts.app-sidebar>

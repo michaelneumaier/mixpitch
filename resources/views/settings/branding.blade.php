@@ -1,6 +1,5 @@
-@extends('components.layouts.app')
+<x-layouts.app-sidebar>
 
-@section('content')
 <div class="container mx-auto max-w-6xl py-8">
     <h1 class="text-2xl font-bold mb-6">Branding Settings</h1>
 
@@ -77,6 +76,6 @@
     </div>
     
 </div>
-@endsection
+</x-layouts.app-sidebar>
 
 

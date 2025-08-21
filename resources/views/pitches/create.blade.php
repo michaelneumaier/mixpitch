@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="container mx-auto px-1">
     <div class="flex justify-center">
         <div class="w-full lg:w-3/4 2xl:w-2/3">
@@ -23,5 +21,4 @@
         </div>
     </div>
 </div>
-
-@endsection
+</x-layouts.app-sidebar>

@@ -2,89 +2,85 @@
     @if(!$embeddedMode)
         <!-- Section Header -->
         <div class="text-center">
-            <h4 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent">
+            <flux:heading size="lg" class="bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 dark:from-gray-100 dark:via-indigo-300 dark:to-purple-300 bg-clip-text text-transparent">
                 License Templates
-            </h4>
-            <p class="text-sm text-gray-600 mt-2">
+            </flux:heading>
+            <flux:subheading class="mt-2">
                 Create and manage your custom license agreement templates
-            </p>
+            </flux:subheading>
         </div>
     @endif
 
     <!-- Template Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white/80 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center">
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-1.5 w-6 h-6 flex items-center justify-center mr-2 shadow-md">
-                    <i class="fas fa-file-contract text-white text-xs"></i>
+        <flux:card>
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
+                    <flux:icon name="document-text" class="text-white" size="sm" />
                 </div>
                 <div>
-                    <p class="text-xs font-medium text-gray-600">Your Templates</p>
-                    <p class="text-lg font-bold text-gray-900">{{ $userTemplates->count() }}</p>
+                    <flux:subheading size="xs">Your Templates</flux:subheading>
+                    <flux:heading size="lg">{{ $userTemplates->count() }}</flux:heading>
                 </div>
             </div>
-        </div>
+        </flux:card>
         
-        <div class="bg-white/80 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center">
-                <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg p-1.5 w-6 h-6 flex items-center justify-center mr-2 shadow-md">
-                    <i class="fas fa-star text-white text-xs"></i>
+        <flux:card>
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md">
+                    <flux:icon name="star" class="text-white" size="sm" />
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-600">Default Template</p>
+                    <flux:subheading size="xs">Default Template</flux:subheading>
                     @php $defaultTemplate = $userTemplates->where('is_default', true)->first(); @endphp
                     @if($defaultTemplate)
-                        <p class="text-sm font-bold text-gray-900 truncate">{{ $defaultTemplate->name }}</p>
+                        <flux:heading size="sm" class="truncate">{{ $defaultTemplate->name }}</flux:heading>
                     @else
-                        <p class="text-sm font-medium text-gray-500">None set</p>
+                        <flux:subheading class="text-gray-500 dark:text-gray-400">None set</flux:subheading>
                     @endif
                 </div>
             </div>
-        </div>
+        </flux:card>
         
-        <div class="bg-white/80 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center">
-                <div class="bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg p-1.5 w-6 h-6 flex items-center justify-center mr-2 shadow-md">
-                    <i class="fas fa-chart-line text-white text-xs"></i>
+        <flux:card>
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg shadow-md">
+                    <flux:icon name="chart-bar" class="text-white" size="sm" />
                 </div>
                 <div>
-                    <p class="text-xs font-medium text-gray-600">Active</p>
-                    <p class="text-lg font-bold text-gray-900">{{ $userTemplates->where('is_active', true)->count() }}</p>
+                    <flux:subheading size="xs">Active</flux:subheading>
+                    <flux:heading size="lg">{{ $userTemplates->where('is_active', true)->count() }}</flux:heading>
                 </div>
             </div>
-        </div>
+        </flux:card>
     </div>
 
     <!-- Usage Limit Notice -->
     @if($remainingTemplates !== null)
-        <div class="bg-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center">
-                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
-                <span class="text-sm text-blue-800">
+        <flux:card variant="outline" class="border-blue-200 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/20">
+            <div class="flex items-center gap-2">
+                <flux:icon name="information-circle" class="text-blue-600 dark:text-blue-400" size="sm" />
+                <span class="text-sm text-blue-800 dark:text-blue-200">
                     @if($remainingTemplates > 0)
                         You can create <strong>{{ $remainingTemplates }}</strong> more template{{ $remainingTemplates > 1 ? 's' : '' }}.
                     @else
                         You've reached your template limit.
                     @endif
-                    <a href="{{ route('subscription.index') }}" class="font-medium underline">Upgrade to Pro</a> for unlimited templates.
+                    <a href="{{ route('subscription.index') }}" class="font-medium underline hover:no-underline">Upgrade to Pro</a> for unlimited templates.
                 </span>
             </div>
-        </div>
+        </flux:card>
     @endif
 
     <!-- Action Buttons -->
     <div class="flex flex-col sm:flex-row gap-3">
-        <button type="button" wire:click="openMarketplace()" 
-                class="inline-flex items-center justify-center px-4 py-2 bg-white/80 backdrop-blur-sm border border-white/30 text-gray-700 font-medium rounded-lg shadow-sm hover:shadow-md hover:bg-white/90 transition-all duration-200">
-            <i class="fas fa-store mr-2"></i>
+        <flux:button wire:click="openMarketplace()" icon="building-storefront" variant="outline">
             Browse Marketplace
-        </button>
+        </flux:button>
         @if($canCreateMore)
-            <button type="button" wire:click="createTemplate()" 
-                    class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
-                <i class="fas fa-plus mr-2"></i>
+            <flux:button wire:click="createTemplate()" icon="plus" variant="filled">
                 Create Template
-            </button>
+            </flux:button>
         @endif
     </div>
 
@@ -92,58 +88,56 @@
         <!-- Templates Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @foreach($userTemplates as $template)
-                <div wire:key="template-{{ $template->id }}" class="bg-white/80 backdrop-blur-sm border border-white/40 rounded-xl p-4 hover:bg-white/90 hover:shadow-md transition-all duration-200">
+                <flux:card wire:key="template-{{ $template->id }}" class="hover:shadow-lg transition-all duration-200">
                     <!-- Template Header -->
                     <div class="mb-3">
-                        <h5 class="font-bold text-gray-900 text-base mb-1 truncate">
+                        <flux:heading size="base" class="mb-1 truncate">
                             {{ $template->name }}
-                        </h5>
+                        </flux:heading>
                         @if($template->description)
-                            <p class="text-gray-600 text-xs line-clamp-2">{{ $template->description }}</p>
+                            <flux:subheading size="xs" class="line-clamp-2">{{ $template->description }}</flux:subheading>
                         @endif
                     </div>
                     
                     <!-- Template Badges -->
                     <div class="flex items-center gap-2 mb-3 flex-wrap">
                         @if($template->is_default)
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <i class="fas fa-star mr-1"></i> Default
-                            </span>
+                            <flux:badge icon="star" color="green" size="sm">
+                                Default
+                            </flux:badge>
                         @endif
                         
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
-                            @if($template->is_active) bg-green-100 text-green-800 
-                            @else bg-gray-100 text-gray-600 @endif">
-                            @if($template->is_active)
-                                <i class="fas fa-check-circle mr-1"></i> Active
-                            @else
-                                <i class="fas fa-pause-circle mr-1"></i> Inactive
-                            @endif
-                        </span>
+                        <flux:badge 
+                            icon="{{ $template->is_active ? 'check-circle' : 'pause-circle' }}" 
+                            color="{{ $template->is_active ? 'green' : 'zinc' }}" 
+                            size="sm"
+                        >
+                            {{ $template->is_active ? 'Active' : 'Inactive' }}
+                        </flux:badge>
                         
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <flux:badge color="blue" size="sm">
                             {{ ucfirst($template->category) }}
-                        </span>
+                        </flux:badge>
                     </div>
 
                     <!-- Template Status Indicators -->
                     @if($template->is_public || $template->isPendingApproval() || $template->isRejected())
                         <div class="mb-3">
                             @if($template->is_public)
-                                <div class="flex items-center text-xs text-green-700 bg-green-50 px-2 py-1 rounded-lg">
-                                    <i class="fas fa-store mr-1"></i> Published to Marketplace
+                                <flux:badge icon="building-storefront" color="green" variant="outline" size="sm" class="w-full">
+                                    Published to Marketplace
                                     @if($template->fork_count > 0)
-                                        <span class="ml-2 text-green-600">• {{ $template->fork_count }} fork{{ $template->fork_count !== 1 ? 's' : '' }}</span>
+                                        • {{ $template->fork_count }} fork{{ $template->fork_count !== 1 ? 's' : '' }}
                                     @endif
-                                </div>
+                                </flux:badge>
                             @elseif($template->isPendingApproval())
-                                <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded-lg">
-                                    <i class="fas fa-clock mr-1"></i> Pending Marketplace Approval
-                                </div>
+                                <flux:badge icon="clock" color="amber" variant="outline" size="sm" class="w-full">
+                                    Pending Marketplace Approval
+                                </flux:badge>
                             @elseif($template->isRejected())
-                                <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded-lg">
-                                    <i class="fas fa-times-circle mr-1"></i> Marketplace Submission Rejected
-                                </div>
+                                <flux:badge icon="x-circle" color="red" variant="outline" size="sm" class="w-full">
+                                    Marketplace Submission Rejected
+                                </flux:badge>
                             @endif
                         </div>
                     @endif
@@ -151,68 +145,64 @@
                     <!-- Template Actions -->
                     <div class="space-y-2">
                         <div class="flex gap-2">
-                            <button type="button" wire:click="previewTemplate({{ $template->id }})" 
-                                    class="flex-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center justify-center">
-                                <i class="fas fa-eye mr-1"></i> Preview
-                            </button>
+                            <flux:button wire:click="previewTemplate({{ $template->id }})" icon="eye" variant="ghost" size="xs" class="flex-1">
+                                Preview
+                            </flux:button>
                             
-                            <button type="button" wire:click="editTemplate({{ $template->id }})" 
-                                    class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center justify-center">
-                                <i class="fas fa-edit mr-1"></i> Edit
-                            </button>
+                            <flux:button wire:click="editTemplate({{ $template->id }})" icon="pencil-square" variant="ghost" size="xs" class="flex-1">
+                                Edit
+                            </flux:button>
 
-                            <button type="button" wire:click="confirmDelete({{ $template->id }})" 
-                                    class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center justify-center">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <flux:button wire:click="confirmDelete({{ $template->id }})" icon="trash" variant="ghost" color="red" size="xs">
+                            </flux:button>
                         </div>
                         
                         <div class="flex gap-2">
                             @if(!$template->is_default)
-                                <button type="button" wire:click="setAsDefault({{ $template->id }})" 
-                                        class="flex-1 bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center justify-center">
-                                    <i class="fas fa-star mr-1"></i> Set Default
-                                </button>
+                                <flux:button wire:click="setAsDefault({{ $template->id }})" icon="star" variant="ghost" color="green" size="xs" class="flex-1">
+                                    Set Default
+                                </flux:button>
                             @endif
                             
-                            <button type="button" wire:click="toggleActive({{ $template->id }})" 
-                                    class="flex-1 {{ $template->is_active ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700' : 'bg-green-100 hover:bg-green-200 text-green-700' }} px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center justify-center">
-                                @if($template->is_active)
-                                    <i class="fas fa-pause mr-1"></i> Deactivate
-                                @else
-                                    <i class="fas fa-play mr-1"></i> Activate
-                                @endif
-                            </button>
+                            <flux:button 
+                                wire:click="toggleActive({{ $template->id }})" 
+                                icon="{{ $template->is_active ? 'pause' : 'play' }}" 
+                                variant="ghost" 
+                                color="{{ $template->is_active ? 'amber' : 'green' }}" 
+                                size="xs" 
+                                class="flex-1"
+                            >
+                                {{ $template->is_active ? 'Deactivate' : 'Activate' }}
+                            </flux:button>
                         </div>
                         
                         <!-- Marketplace Publishing Action -->
                         @if($template->canBePublishedToMarketplace())
-                            <button type="button" wire:click="openPublishModal({{ $template->id }})" 
-                                    class="w-full bg-gradient-to-r from-purple-100 to-indigo-100 hover:from-purple-200 hover:to-indigo-200 text-purple-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center justify-center">
-                                <i class="fas fa-store mr-1"></i> Publish to Marketplace
-                            </button>
+                            <flux:button wire:click="openPublishModal({{ $template->id }})" icon="building-storefront" variant="outline" color="purple" size="xs" class="w-full">
+                                Publish to Marketplace
+                            </flux:button>
                         @endif
                     </div>
-                </div>
+                </flux:card>
             @endforeach
         </div>
     @else
         <!-- Empty State -->
         <div class="text-center py-8">
-            <div class="bg-gray-100/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-6">
-                <i class="fas fa-file-contract text-gray-400 text-2xl mb-3"></i>
-                <h5 class="text-base font-bold text-gray-900 mb-2">No License Templates Yet</h5>
-                <p class="text-sm text-gray-600 mb-4">
+            <flux:card class="bg-gray-50/50 dark:bg-gray-800/50">
+                <div class="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                    <flux:icon name="document-text" size="lg" class="text-gray-400 dark:text-gray-500" />
+                </div>
+                <flux:heading size="base" class="mb-2">No License Templates Yet</flux:heading>
+                <flux:subheading class="mb-4">
                     Create your first license template to streamline your project licensing process.
-                </p>
+                </flux:subheading>
                 @if($canCreateMore)
-                    <button type="button" wire:click="createTemplate()" 
-                            class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
-                        <i class="fas fa-plus mr-2"></i>
+                    <flux:button wire:click="createTemplate()" icon="plus" variant="filled">
                         Create Your First Template
-                    </button>
+                    </flux:button>
                 @endif
-            </div>
+            </flux:card>
         </div>
     @endif
 

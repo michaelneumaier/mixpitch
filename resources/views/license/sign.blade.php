@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30">
     <!-- Background Effects -->
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
@@ -186,4 +184,4 @@
         </div>
     </div>
 </div>
-@endsection 
+</x-layouts.app-sidebar> 

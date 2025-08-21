@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
         <!-- Breadcrumbs -->
@@ -218,4 +216,4 @@
         </div>
     </div>
 </div>
-@endsection
+</x-layouts.app-sidebar>

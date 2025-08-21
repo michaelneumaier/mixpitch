@@ -1,8 +1,4 @@
-@extends('components.layouts.app')
-
-@section('title', 'Contest Prize Payment')
-
-@section('content')
+<x-layouts.app-sidebar title="Contest Prize Payment">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <div class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 py-12">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -759,4 +755,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endsection 
+</x-layouts.app-sidebar> 

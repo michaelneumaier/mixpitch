@@ -1,334 +1,305 @@
-<div class="p-4 lg:p-6 xl:p-8">
-    <!-- Section Header with Overview Icon -->
-    <div class="mb-6 lg:mb-8">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+<div>
+<!-- Section Header with Client Navigation -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2">
+        <div class="flex items-center gap-3">
+            <flux:icon.chart-bar variant="solid" class="w-8 h-8 text-blue-600 dark:text-blue-400" />
             <div>
-                <h2 class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2 flex items-center">
-                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
-                        <i class="fas fa-chart-line text-white text-sm"></i>
-                    </div>
-                    Overview
-                </h2>
-                <p class="text-gray-600">Key client project metrics and performance</p>
-            </div>
-            
-            <!-- Client Navigation Dropdown -->
-            <div class="relative" x-data="{ open: false }">
-                <button @click="open = !open" 
-                        class="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
-                    <i class="fas fa-users mr-2"></i>
-                    <span>Go to Client</span>
-                    <i class="fas fa-chevron-down ml-2 transition-transform duration-200" :class="{ 'rotate-180': open }"></i>
-                </button>
-                
-                <!-- Dropdown Menu -->
-                <div x-show="open" 
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 scale-95"
-                     x-transition:enter-end="opacity-100 scale-100"
-                     x-transition:leave="transition ease-in duration-150"
-                     x-transition:leave-start="opacity-100 scale-100"
-                     x-transition:leave-end="opacity-0 scale-95"
-                     @click.away="open = false"
-                     class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 max-h-80 overflow-y-auto">
-                    
-                    <!-- Dropdown Header -->
-                    <div class="px-4 py-2 border-b border-gray-100">
-                        <p class="text-sm font-semibold text-gray-900">Select a Client</p>
-                        <p class="text-xs text-gray-500">{{ count($this->clientsForFilter) }} {{ Str::plural('client', count($this->clientsForFilter)) }} available</p>
-                    </div>
-                    
-                    <!-- Client List -->
-                    <div class="py-1">
-                        @forelse($this->clientsForFilter as $client)
-                            <a href="{{ route('producer.client-detail', $client['id']) }}" 
-                               @click="open = false"
-                               class="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-150">
-                                <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
-                                    <i class="fas fa-user text-white text-sm"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 truncate">{{ $client['label'] }}</p>
-                                    <p class="text-xs text-gray-500">
-                                        @php
-                                            $projectCount = $this->clientProjects->where('client_id', $client['id'])->count();
-                                        @endphp
-                                        {{ $projectCount }} {{ Str::plural('project', $projectCount) }}
-                                    </p>
-                                </div>
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
-                                </div>
-                            </a>
-                        @empty
-                            <div class="px-4 py-8 text-center">
-                                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-users text-gray-400 text-lg"></i>
-                                </div>
-                                <p class="text-sm text-gray-500">No clients found</p>
-                                <p class="text-xs text-gray-400 mt-1">Create your first client management project to get started</p>
-                            </div>
-                        @endforelse
-                    </div>
-                </div>
+                <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">Overview</flux:heading>
+                <flux:subheading class="text-gray-600 dark:text-gray-400">Key client project metrics and performance</flux:subheading>
             </div>
         </div>
+        
+        <!-- Client Navigation Popover -->
+        <flux:dropdown position="bottom" align="end">
+            <flux:button variant="primary" icon="users" icon:trailing="chevron-down">
+                Go to Client
+            </flux:button>
+            
+            <flux:popover class="w-80 max-h-80 overflow-y-auto">
+                <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Select a Client</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ count($this->clientsForFilter) }} {{ Str::plural('client', count($this->clientsForFilter)) }} available</p>
+                </div>
+                
+                <div class="p-1">
+                    @forelse($this->clientsForFilter as $client)
+                        <a href="{{ route('producer.client-detail', $client['id']) }}" class="flex items-center gap-3 w-full p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <flux:avatar size="sm" class="bg-blue-600 text-white">
+                                <flux:icon.user />
+                            </flux:avatar>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{{ $client['label'] }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    @php
+                                        $projectCount = $this->clientProjects->where('client_id', $client['id'])->count();
+                                    @endphp
+                                    {{ $projectCount }} {{ Str::plural('project', $projectCount) }}
+                                </p>
+                            </div>
+                        </a>
+                    @empty
+                        <div class="px-4 py-8 text-center">
+                            <flux:icon.users class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                            <p class="text-sm text-gray-500 dark:text-gray-400">No clients found</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Create your first client management project to get started</p>
+                        </div>
+                    @endforelse
+                </div>
+            </flux:popover>
+        </flux:dropdown>
     </div>
 
     <!-- Stats Overview -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4 mb-4 lg:mb-6">
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 lg:p-4 shadow-lg">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <flux:card class="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm text-blue-600 font-medium">Total Projects</p>
-                    <p class="text-xl lg:text-2xl font-bold text-blue-900">{{ $this->stats['total_projects'] }}</p>
+                    <flux:subheading class="text-blue-600 dark:text-blue-400">Total Projects</flux:subheading>
+                    <flux:heading size="xl" class="text-blue-900 dark:text-blue-100">{{ $this->stats['total_projects'] }}</flux:heading>
                 </div>
-                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-1.5 lg:p-2 shadow-md">
-                    <i class="fas fa-folder text-white text-sm lg:text-lg"></i>
-                </div>
+                <flux:icon.folder variant="solid" class="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
-        </div>
+        </flux:card>
 
-        <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 lg:p-4 shadow-lg">
+        <flux:card class="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm text-green-600 font-medium">Active Projects</p>
-                    <p class="text-xl lg:text-2xl font-bold text-green-900">{{ $this->stats['active_projects'] }}</p>
+                    <flux:subheading class="text-green-600 dark:text-green-400">Active Projects</flux:subheading>
+                    <flux:heading size="xl" class="text-green-900 dark:text-green-100">{{ $this->stats['active_projects'] }}</flux:heading>
                 </div>
-                <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg p-1.5 lg:p-2 shadow-md">
-                    <i class="fas fa-play text-white text-sm lg:text-lg"></i>
-                </div>
+                <flux:icon.play variant="solid" class="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
-        </div>
+        </flux:card>
 
-        <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-3 lg:p-4 shadow-lg">
+        <flux:card class="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm text-purple-600 font-medium">Completed</p>
-                    <p class="text-xl lg:text-2xl font-bold text-purple-900">{{ $this->stats['completed_projects'] }}</p>
+                    <flux:subheading class="text-purple-600 dark:text-purple-400">Completed</flux:subheading>
+                    <flux:heading size="xl" class="text-purple-900 dark:text-purple-100">{{ $this->stats['completed_projects'] }}</flux:heading>
                 </div>
-                <div class="bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg p-1.5 lg:p-2 shadow-md">
-                    <i class="fas fa-check text-white text-sm lg:text-lg"></i>
-                </div>
+                <flux:icon.check variant="solid" class="w-8 h-8 text-purple-600 dark:text-purple-400" />
             </div>
-        </div>
+        </flux:card>
 
-        <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-3 lg:p-4 shadow-lg">
+        <flux:card class="bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm text-orange-600 font-medium">Unique Clients</p>
-                    <p class="text-xl lg:text-2xl font-bold text-orange-900">{{ $this->stats['unique_clients'] }}</p>
+                    <flux:subheading class="text-orange-600 dark:text-orange-400">Unique Clients</flux:subheading>
+                    <flux:heading size="xl" class="text-orange-900 dark:text-orange-100">{{ $this->stats['unique_clients'] }}</flux:heading>
                 </div>
-                <div class="bg-gradient-to-r from-orange-500 to-amber-600 rounded-lg p-1.5 lg:p-2 shadow-md">
-                    <i class="fas fa-users text-white text-sm lg:text-lg"></i>
-                </div>
+                <flux:icon.users variant="solid" class="w-8 h-8 text-orange-600 dark:text-orange-400" />
             </div>
-        </div>
+        </flux:card>
 
-        <div class="bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-200 rounded-xl p-3 lg:p-4 shadow-lg">
+        <flux:card class="bg-cyan-50 dark:bg-cyan-950 border-cyan-200 dark:border-cyan-800">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm text-cyan-600 font-medium">Total Revenue</p>
-                    <p class="text-xl lg:text-2xl font-bold text-cyan-900">${{ number_format($this->stats['total_revenue'], 0) }}</p>
+                    <flux:subheading class="text-cyan-600 dark:text-cyan-400">Total Revenue</flux:subheading>
+                    <flux:heading size="xl" class="text-cyan-900 dark:text-cyan-100">${{ number_format($this->stats['total_revenue'], 0) }}</flux:heading>
                 </div>
-                <div class="bg-gradient-to-r from-cyan-500 to-teal-600 rounded-lg p-1.5 lg:p-2 shadow-md">
-                    <i class="fas fa-dollar-sign text-white text-sm lg:text-lg"></i>
-                </div>
+                <flux:icon.currency-dollar variant="solid" class="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
             </div>
-        </div>
+        </flux:card>
 
-        <div class="bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200 rounded-xl p-3 lg:p-4 shadow-lg">
+        <flux:card class="bg-pink-50 dark:bg-pink-950 border-pink-200 dark:border-pink-800">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm text-pink-600 font-medium">Avg. Value</p>
-                    <p class="text-xl lg:text-2xl font-bold text-pink-900">${{ number_format($this->stats['avg_project_value'], 0) }}</p>
+                    <flux:subheading class="text-pink-600 dark:text-pink-400">Avg. Value</flux:subheading>
+                    <flux:heading size="xl" class="text-pink-900 dark:text-pink-100">${{ number_format($this->stats['avg_project_value'], 0) }}</flux:heading>
                 </div>
-                <div class="bg-gradient-to-r from-pink-500 to-rose-600 rounded-lg p-1.5 lg:p-2 shadow-md">
-                    <i class="fas fa-chart-line text-white text-sm lg:text-lg"></i>
-                </div>
+                <flux:icon.chart-bar variant="solid" class="w-8 h-8 text-pink-600 dark:text-pink-400" />
             </div>
-        </div>
+        </flux:card>
     </div>
 
     <!-- LTV & Funnel Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4 mb-4 lg:mb-6">
-        <div class="bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl p-3 lg:p-4 shadow-lg">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <flux:card>
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm text-gray-600 font-medium">Total Client LTV</p>
-                    <p class="text-xl lg:text-2xl font-bold text-gray-900">${{ number_format($this->ltvStats['total_ltv'] ?? 0, 0) }}</p>
+                    <flux:subheading class="text-gray-600 dark:text-gray-400">Total Client LTV</flux:subheading>
+                    <flux:heading size="xl" class="text-gray-900 dark:text-gray-100">${{ number_format($this->ltvStats['total_ltv'] ?? 0, 0) }}</flux:heading>
                 </div>
-                <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg p-1.5 lg:p-2 shadow-md">
-                    <i class="fas fa-piggy-bank text-white text-sm lg:text-lg"></i>
+                <flux:icon.banknotes variant="solid" class="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div class="mt-2">
+                <flux:subheading class="text-gray-600 dark:text-gray-400">Avg per client: ${{ number_format($this->ltvStats['avg_client_ltv'] ?? 0, 0) }}</flux:subheading>
+            </div>
+        </flux:card>
+        
+        <flux:card>
+            <div class="flex items-center justify-between mb-4">
+                <flux:subheading class="text-gray-600 dark:text-gray-400">Funnel</flux:subheading>
+                <flux:icon.funnel class="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            </div>
+            <div class="grid grid-cols-4 gap-4 text-center">
+                <div>
+                    <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">{{ $this->funnelStats['created'] ?? 0 }}</flux:heading>
+                    <flux:subheading class="text-gray-600 dark:text-gray-400">Created</flux:subheading>
+                </div>
+                <div>
+                    <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">{{ $this->funnelStats['submitted'] ?? 0 }}</flux:heading>
+                    <flux:subheading class="text-gray-600 dark:text-gray-400">Submitted</flux:subheading>
+                </div>
+                <div>
+                    <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">{{ $this->funnelStats['review'] ?? 0 }}</flux:heading>
+                    <flux:subheading class="text-gray-600 dark:text-gray-400">Review</flux:subheading>
+                </div>
+                <div>
+                    <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">{{ $this->funnelStats['approved_completed'] ?? 0 }}</flux:heading>
+                    <flux:subheading class="text-gray-600 dark:text-gray-400">Approved</flux:subheading>
                 </div>
             </div>
-            <div class="mt-2 text-xs lg:text-sm text-gray-600">Avg per client: ${{ number_format($this->ltvStats['avg_client_ltv'] ?? 0, 0) }}</div>
-        </div>
-        <div class="bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl p-3 lg:p-4 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-                <p class="text-xs lg:text-sm text-gray-600 font-medium">Funnel</p>
-                <i class="fas fa-filter text-gray-400 text-sm"></i>
-            </div>
-            <div class="grid grid-cols-4 gap-1 lg:gap-2 text-center">
-                <div>
-                    <div class="text-base lg:text-lg font-bold text-gray-900">{{ $this->funnelStats['created'] ?? 0 }}</div>
-                    <div class="text-[10px] lg:text-xs text-gray-600">Created</div>
-                </div>
-                <div>
-                    <div class="text-base lg:text-lg font-bold text-gray-900">{{ $this->funnelStats['submitted'] ?? 0 }}</div>
-                    <div class="text-[10px] lg:text-xs text-gray-600">Submitted</div>
-                </div>
-                <div>
-                    <div class="text-base lg:text-lg font-bold text-gray-900">{{ $this->funnelStats['review'] ?? 0 }}</div>
-                    <div class="text-[10px] lg:text-xs text-gray-600">Review</div>
-                </div>
-                <div>
-                    <div class="text-base lg:text-lg font-bold text-gray-900">{{ $this->funnelStats['approved_completed'] ?? 0 }}</div>
-                    <div class="text-[10px] lg:text-xs text-gray-600">Approved</div>
-                </div>
-            </div>
-        </div>
+        </flux:card>
     </div>
 
     <!-- Search, Filters, and Saved Views -->
-    <div class="bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl p-3 lg:p-4 mb-4 lg:mb-6 shadow-lg">
-        <div class="flex flex-col gap-4">
+    <flux:card class="mb-6">
+        <div class="space-y-6">
+            <!-- Main Search and Filters -->
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div class="flex-1">
-                    <input type="text" 
-                           wire:model.live.debounce.300ms="search" 
-                           placeholder="Search projects by name, client name, or email..."
-                           class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                    <flux:input 
+                        wire:model.live.debounce.300ms="search" 
+                        placeholder="Search projects by name, client name, or email..."
+                        icon="magnifying-glass" />
                 </div>
-                <div class="flex flex-wrap items-center gap-2 lg:gap-3">
-                    <select wire:model.live="statusFilter" class="flex-1 sm:flex-initial px-3 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                <div class="flex flex-wrap items-center gap-3">
+                    <select wire:model.live="statusFilter" class="px-3 pr-10 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <option value="all">All Statuses</option>
                         <option value="unpublished">Unpublished</option>
                         <option value="open">Open</option>
                         <option value="in_progress">In Progress</option>
                         <option value="completed">Completed</option>
                     </select>
-                    <select wire:model.live="clientFilter" class="flex-1 sm:flex-initial px-3 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                    
+                    <select wire:model.live="clientFilter" class="px-3 pr-10 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <option value="all">All Clients</option>
                         @foreach($this->clientsForFilter as $client)
                             <option value="{{ $client['id'] }}">{{ $client['label'] }}</option>
                         @endforeach
                     </select>
+                    
                     @if($this->clientFilter !== 'all')
-                        <a href="{{ route('producer.client-detail', $this->clientFilter) }}" 
-                           class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                            <i class="fas fa-external-link-alt mr-1.5"></i>
+                        <flux:button 
+                            href="{{ route('producer.client-detail', $this->clientFilter) }}" 
+                            variant="primary" 
+                            size="sm"
+                            icon="arrow-top-right-on-square">
                             View Client
-                        </a>
+                        </flux:button>
                     @endif
-                    <select wire:model.live="sortDirection" class="flex-1 sm:flex-initial px-3 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                    
+                    <select wire:model.live="sortDirection" class="px-3 pr-10 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <option value="desc">Newest First</option>
                         <option value="asc">Oldest First</option>
                     </select>
                 </div>
             </div>
 
+            <!-- Saved Views Section -->
+            <flux:separator />
+            
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <select wire:model.live="activeViewId" class="px-3 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                    <select wire:model.live="activeViewId" class="px-3 pr-10 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <option value="">Saved Views…</option>
                         @foreach($this->availableViews as $view)
                             <option value="{{ $view['id'] }}">{{ $view['name'] }}{{ $view['is_default'] ? ' (Default)' : '' }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="flex flex-wrap items-center gap-2 lg:gap-3">
-                    <input type="text" wire:model.live="newViewName" placeholder="Save current filters as…" class="flex-1 sm:flex-initial px-3 lg:px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                    <label class="inline-flex items-center gap-2 text-sm">
-                        <input type="checkbox" wire:model.live="newViewDefault" class="rounded border-gray-300"> Default
-                    </label>
-                    <button wire:click="saveCurrentView" class="px-3 lg:px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">Save View</button>
+                <div class="flex flex-wrap items-center gap-3">
+                    <flux:input 
+                        wire:model.live="newViewName" 
+                        placeholder="Save current filters as…" 
+                        size="sm" />
+                    <flux:checkbox wire:model.live="newViewDefault" label="Default" />
+                    <flux:button wire:click="saveCurrentView" variant="primary" size="sm">Save View</flux:button>
                     @if($this->selectedClient)
-                        <button wire:click="createReminderForSelectedClient" class="px-3 lg:px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">Create Reminder</button>
+                        <flux:button wire:click="createReminderForSelectedClient" variant="filled" size="sm" icon="bell">Create Reminder</flux:button>
                     @endif
                 </div>
             </div>
 
-            <!-- Quick Add Reminder -->
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div class="flex flex-wrap items-center gap-2 lg:gap-3">
-                    <select wire:model.live="newReminderClientId" class="flex-1 sm:flex-initial px-3 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                        <option value="">Add reminder for client…</option>
-                        @foreach($this->clientsForSelect as $c)
-                            <option value="{{ $c['id'] }}">{{ $c['label'] }}</option>
-                        @endforeach
-                    </select>
-                    <input type="datetime-local" wire:model.live="newReminderDueAt" class="flex-1 sm:flex-initial px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" />
-                    <input type="text" wire:model.live="newReminderNote" placeholder="Note (optional)" class="flex-1 px-3 lg:px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                </div>
-                <div>
-                    <button wire:click="addReminder" class="px-3 lg:px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">Add Reminder</button>
-                </div>
+            <!-- Quick Add Reminder Button -->
+            <flux:separator />
+            
+            <div class="flex items-center justify-between pt-6">
+                <flux:subheading class="text-gray-600 dark:text-gray-400">Need to follow up with a client?</flux:subheading>
+                <flux:button wire:click="openReminderModal()" variant="primary" icon="plus">Add Reminder for Client</flux:button>
             </div>
         </div>
-    </div>
+    </flux:card>
 
     <!-- Client Management Projects + Upcoming Reminders -->
-    <div class="bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden">
-        <div class="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200">
-            <div class="flex items-start justify-between gap-4">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center mr-3 shadow-md">
-                        <i class="fas fa-briefcase text-white text-xs"></i>
+    <flux:card>
+        <!-- Header Section -->
+        <div class="flex items-start justify-between gap-4 mb-6">
+            <div class="flex items-center gap-3">
+                <flux:icon.briefcase variant="solid" class="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+                <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">Client Management Projects</flux:heading>
+            </div>
+            
+            <!-- Upcoming Reminders Panel -->
+            <div class="hidden md:block">
+                <flux:card class="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <flux:icon.bell class="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                        <flux:subheading class="text-gray-700 dark:text-gray-300">Upcoming Reminders</flux:subheading>
                     </div>
-                    Client Management Projects
-                </h3>
-                <div class="hidden md:block">
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                        <div class="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <i class="fas fa-bell text-amber-500"></i> Upcoming Reminders
-                        </div>
-                        <div class="space-y-2">
-                            @forelse($this->upcomingReminders as $reminder)
-                                <div class="flex items-center justify-between text-xs">
-                                    <div class="truncate">
-                                        <span class="text-gray-800 font-medium">{{ $reminder->client->name ?: $reminder->client->email }}</span>
-                                        <span class="text-gray-500">— {{ $reminder->note ?: 'Follow up' }}</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-gray-500">{{ $reminder->due_at->diffForHumans() }}</span>
-                                        <button wire:click="completeReminder({{ $reminder->id }})" class="px-2 py-1 bg-emerald-600/10 text-emerald-700 rounded">Done</button>
-                                        <button wire:click="snoozeReminder({{ $reminder->id }}, '1d')" class="px-2 py-1 bg-amber-500/10 text-amber-700 rounded">+1d</button>
-                                    </div>
+                    <div class="space-y-2">
+                        @forelse($this->upcomingReminders as $reminder)
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="truncate">
+                                    <span class="text-gray-800 dark:text-gray-200 font-medium">{{ $reminder->client->name ?: $reminder->client->email }}</span>
+                                    <span class="text-gray-500 dark:text-gray-400">— {{ $reminder->note ?: 'Follow up' }}</span>
                                 </div>
-                            @empty
-                                <div class="text-xs text-gray-500">No upcoming reminders</div>
-                            @endforelse
-                        </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-500 dark:text-gray-400">{{ $reminder->due_at->diffForHumans() }}</span>
+                                    <flux:button wire:click="completeReminder({{ $reminder->id }})" variant="subtle" size="xs">Done</flux:button>
+                                    <flux:button wire:click="snoozeReminder({{ $reminder->id }}, '1d')" variant="subtle" size="xs">+1d</flux:button>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-xs text-gray-500 dark:text-gray-400">No upcoming reminders</div>
+                        @endforelse
                     </div>
-                </div>
+                </flux:card>
             </div>
         </div>
 
         @if($this->clientProjects->count() > 0)
-            <div class="divide-y divide-gray-200">
+            <div class="space-y-4">
                 @foreach($this->clientProjects as $project)
-                    <div class="p-4 lg:p-6 hover:bg-gray-50 transition-colors">
+                    <flux:card class="hover:shadow-md transition-shadow">
                         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                             <div class="flex-1 min-w-0">
-                                <div class="flex items-center space-x-3 mb-2">
-                                    <h4 class="text-base lg:text-lg font-semibold text-gray-900 truncate">
-                                        <a href="{{ route('projects.show', $project) }}" class="hover:text-blue-600 transition-colors">
+                                <!-- Project Header -->
+                                <div class="flex flex-wrap items-center gap-3 mb-3">
+                                    <flux:heading size="base">
+                                        <a href="{{ route('projects.show', $project) }}" class="text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                             {{ $project->name }}
                                         </a>
-                                    </h4>
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium {{ $project->getStatusColorClass() }}">
+                                    </flux:heading>
+                                    <flux:badge variant="{{ match($project->status) {
+                                        'completed' => 'success',
+                                        'in_progress' => 'warning',
+                                        'open' => 'info',
+                                        default => 'neutral'
+                                    } }}">
                                         {{ $project->readable_status }}
-                                    </span>
+                                    </flux:badge>
                                 </div>
 
-                                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600 mb-3">
+                                <!-- Client Information -->
+                                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
                                     @if($project->client_name)
-                                        <div class="flex items-center">
-                                            <i class="fas fa-user mr-2 text-gray-400"></i>
+                                        <div class="flex items-center gap-2">
+                                            <flux:icon.user class="w-4 h-4" />
                                             @if($project->client_id)
                                                 <a href="{{ route('producer.client-detail', $project->client_id) }}" 
-                                                   class="text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200">
+                                                   class="text-blue-600 dark:text-blue-400 hover:underline">
                                                     {{ $project->client_name }}
                                                 </a>
                                             @else
@@ -337,33 +308,35 @@
                                         </div>
                                     @endif
                                     @if($project->client_email)
-                                        <div class="flex items-center">
-                                            <i class="fas fa-envelope mr-2 text-gray-400"></i>
+                                        <div class="flex items-center gap-2">
+                                            <flux:icon.envelope class="w-4 h-4" />
                                             {{ $project->client_email }}
                                         </div>
                                     @endif
-                                    <div class="flex items-center">
-                                        <i class="fas fa-calendar mr-2 text-gray-400"></i>
+                                    <div class="flex items-center gap-2">
+                                        <flux:icon.calendar class="w-4 h-4" />
                                         {{ $project->created_at->format('M j, Y') }}
                                     </div>
                                 </div>
 
                                 @if($project->description)
-                                    <p class="text-gray-700 mb-3 line-clamp-2 text-sm">{{ Str::limit($project->description, 150) }}</p>
+                                    <flux:subheading class="text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">
+                                        {{ Str::limit($project->description, 150) }}
+                                    </flux:subheading>
                                 @endif
 
                                 <!-- Project Metrics -->
-                                <div class="flex flex-wrap items-center gap-4 text-sm">
+                                <div class="flex flex-wrap items-center gap-4">
                                     @if($project->pitches->count() > 0)
-                                        <div class="flex items-center text-blue-600">
-                                            <i class="fas fa-paper-plane mr-1"></i>
-                                            {{ $project->pitches->count() }} {{ Str::plural('pitch', $project->pitches->count()) }}
+                                        <div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                                            <flux:icon.paper-airplane class="w-4 h-4" />
+                                            <span class="text-sm">{{ $project->pitches->count() }} {{ Str::plural('pitch', $project->pitches->count()) }}</span>
                                         </div>
                                     @endif
                                     @if($project->payment_amount > 0)
-                                        <div class="flex items-center text-green-600">
-                                            <i class="fas fa-dollar-sign mr-1"></i>
-                                            ${{ number_format($project->payment_amount, 2) }}
+                                        <div class="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                            <flux:icon.currency-dollar class="w-4 h-4" />
+                                            <span class="text-sm">${{ number_format($project->payment_amount, 2) }}</span>
                                         </div>
                                     @endif
                                     @php
@@ -371,62 +344,122 @@
                                         $totalPaid = $paidPitches->sum('payment_amount');
                                     @endphp
                                     @if($totalPaid > 0)
-                                        <div class="flex items-center text-emerald-600">
-                                            <i class="fas fa-check-circle mr-1"></i>
-                                            ${{ number_format($totalPaid, 2) }} earned
+                                        <div class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                            <flux:icon.check-circle class="w-4 h-4" />
+                                            <span class="text-sm">${{ number_format($totalPaid, 2) }} earned</span>
                                         </div>
                                     @endif
                                 </div>
                             </div>
 
-                            <div class="flex items-stretch gap-2 ml-4 flex-col sm:flex-row w-full sm:w-auto">
-                                <a href="{{ route('projects.show', $project) }}" 
-                                   class="inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 w-full sm:w-auto">
-                                    <i class="fas fa-eye mr-1.5"></i>
-                                    <span>View</span>
-                                </a>
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row gap-2 sm:w-auto w-full">
+                                <flux:button href="{{ route('projects.show', $project) }}" variant="primary" size="sm" icon="eye">
+                                    View
+                                </flux:button>
                                 @if($project->pitches->count() > 0 && $project->isClientManagement())
-                                    <a href="{{ route('projects.manage-client', $project) }}" 
-                                       class="inline-flex items-center justify-center px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 text-sm font-medium rounded-lg transition-colors w-full sm:w-auto">
-                                        <i class="fas fa-cog mr-1.5"></i>
-                                        <span>Manage</span>
-                                    </a>
-                                    <button wire:click="quickReminderForProject({{ $project->id }})" class="inline-flex items-center justify-center px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-medium rounded-lg transition-colors w-full sm:w-auto">
-                                        <i class="fas fa-bell mr-1.5"></i>
-                                        <span>Remind</span>
-                                    </button>
+                                    <flux:button href="{{ route('projects.manage-client', $project) }}" variant="ghost" size="sm" icon="cog-6-tooth">
+                                        Manage
+                                    </flux:button>
+                                    <flux:button wire:click="openReminderModal({{ $project->id }})" variant="filled" size="sm" icon="bell">
+                                        Remind
+                                    </flux:button>
                                 @endif
                             </div>
                         </div>
-                    </div>
+                    </flux:card>
                 @endforeach
             </div>
 
             <!-- Pagination -->
-            <div class="px-4 lg:px-6 py-3 lg:py-4 border-t border-gray-200">
+            <flux:separator class="my-6" />
+            <div class="flex justify-center">
                 {{ $this->clientProjects->links() }}
             </div>
         @else
-            <!-- Enhanced Empty State -->
-            <div class="text-center py-12 lg:py-16">
-                <div class="mx-auto w-24 lg:w-32 h-24 lg:h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center mb-6 lg:mb-8 shadow-lg">
-                    <i class="fas fa-briefcase text-4xl lg:text-5xl text-blue-500"></i>
-                </div>
-                <h3 class="text-xl lg:text-2xl font-bold text-gray-800 mb-3 lg:mb-4">Ready to Manage Clients?</h3>
-                <p class="text-gray-600 mb-6 lg:mb-8 max-w-md mx-auto leading-relaxed">
+            <!-- Empty State -->
+            <div class="text-center py-16">
+                <flux:icon.briefcase class="w-24 h-24 text-blue-500 dark:text-blue-400 mx-auto mb-6" />
+                <flux:heading size="xl" class="text-gray-800 dark:text-gray-200 mb-4">Ready to Manage Clients?</flux:heading>
+                <flux:subheading class="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
                     You haven't created any client management projects yet. Start building your client relationships and grow your business.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center">
-                    <a href="{{ route('projects.create') }}?workflow_type=client_management" 
-                       class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
-                        <i class="fas fa-plus mr-2"></i>Create Client Project
-                    </a>
-                    <a href="{{ route('clients.import.index') }}" 
-                       class="inline-flex items-center px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border-2 border-gray-200 hover:border-gray-300 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                        <i class="fas fa-file-upload mr-2"></i>Import Clients
-                    </a>
+                </flux:subheading>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <flux:button 
+                        href="{{ route('projects.create') }}?workflow_type=client_management" 
+                        variant="primary" 
+                        size="base"
+                        icon="plus">
+                        Create Client Project
+                    </flux:button>
+                    <flux:button 
+                        href="{{ route('clients.import.index') }}" 
+                        variant="outline" 
+                        size="base"
+                        icon="arrow-up-tray">
+                        Import Clients
+                    </flux:button>
                 </div>
             </div>
         @endif
-    </div>
+    </flux:card>
+
+    <!-- Add Reminder Modal -->
+    <flux:modal name="add-reminder" class="max-w-lg">
+        <div class="space-y-6">
+            <div class="flex items-center gap-3">
+                <flux:icon.bell class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <flux:heading size="lg">Add Client Reminder</flux:heading>
+            </div>
+            
+            <flux:subheading class="text-gray-600 dark:text-gray-400">
+                Set a reminder to follow up with a client about their project or general business.
+            </flux:subheading>
+
+            <div class="space-y-4">
+                <!-- Client Selection -->
+                <div>
+                    <flux:field>
+                        <flux:label>Client</flux:label>
+                        <flux:select wire:model="modalReminderClientId" placeholder="Select a client">
+                            @foreach($this->clientsForSelect as $client)
+                                <option value="{{ $client['id'] }}">{{ $client['label'] }}</option>
+                            @endforeach
+                        </flux:select>
+                        <flux:error name="modalReminderClientId" />
+                    </flux:field>
+                </div>
+
+                <!-- Due Date -->
+                <div>
+                    <flux:field>
+                        <flux:label>Due Date & Time</flux:label>
+                        <flux:date-picker wire:model="modalReminderDueAt" />
+                        <flux:error name="modalReminderDueAt" />
+                    </flux:field>
+                </div>
+
+                <!-- Note -->
+                <div>
+                    <flux:field>
+                        <flux:label>Note</flux:label>
+                        <flux:textarea 
+                            wire:model="modalReminderNote" 
+                            placeholder="What should you follow up about? (optional)"
+                            rows="3" />
+                        <flux:error name="modalReminderNote" />
+                    </flux:field>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancel</flux:button>
+                </flux:modal.close>
+                <flux:button wire:click="saveModalReminder" variant="primary" icon="plus">
+                    Add Reminder
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </div>

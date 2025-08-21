@@ -1,6 +1,5 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
+<x-public-nav-header />
 <div class="bg-gray-50 min-h-screen">
     <!-- Background Effects -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -433,4 +432,4 @@
         transform: scale(1.05);
     }
 </style>
-@endsection
+</x-layouts.app-sidebar>

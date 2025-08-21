@@ -1,18 +1,25 @@
-<div class="p-4">
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent">Delivery Pipeline</h2>
-      <p class="text-xs text-gray-500">Make • Review • Wrap Up</p>
+<div>
+<!-- Delivery Pipeline Header -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2">
+    <div class="flex items-center gap-3">
+      <flux:icon.truck variant="solid" class="w-8 h-8 text-blue-600 dark:text-blue-400" />
+      <div>
+        <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">Delivery Pipeline</flux:heading>
+        <flux:subheading class="text-gray-600 dark:text-gray-400">Make • Review • Wrap Up</flux:subheading>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
-      <div class="hidden md:flex items-center gap-3 text-xs">
-        <label class="inline-flex items-center gap-1"><input type="checkbox" wire:click="toggleFilter('filterClientComments')" @checked($filterClientComments) /> Client comments</label>
-        <label class="inline-flex items-center gap-1"><input type="checkbox" wire:click="toggleFilter('filterUnpaidMilestones')" @checked($filterUnpaidMilestones) /> Unpaid milestones</label>
-        <label class="inline-flex items-center gap-1"><input type="checkbox" wire:click="toggleFilter('filterRevisionsRequested')" @checked($filterRevisionsRequested) /> Revisions</label>
-        <label class="inline-flex items-center gap-1"><input type="checkbox" wire:click="toggleFilter('filterHasReminders')" @checked($filterHasReminders) /> Has reminders</label>
-        <div class="inline-flex items-center gap-1">
-          <span class="text-gray-500">Recent window:</span>
-          <select wire:model="recentClientCommentDays" class="pl-2 pr-10 py-1 border border-gray-200 rounded-md bg-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+    
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <!-- Filter Checkboxes -->
+      <div class="hidden md:flex items-center gap-4 text-sm">
+        <flux:checkbox wire:click="toggleFilter('filterClientComments')" :checked="$filterClientComments" label="Client comments" />
+        <flux:checkbox wire:click="toggleFilter('filterUnpaidMilestones')" :checked="$filterUnpaidMilestones" label="Unpaid milestones" />
+        <flux:checkbox wire:click="toggleFilter('filterRevisionsRequested')" :checked="$filterRevisionsRequested" label="Revisions" />
+        <flux:checkbox wire:click="toggleFilter('filterHasReminders')" :checked="$filterHasReminders" label="Has reminders" />
+        
+        <div class="flex items-center gap-2">
+          <span class="text-gray-500 dark:text-gray-400 text-sm">Recent window:</span>
+          <select wire:model="recentClientCommentDays" class="pl-2 pr-10 py-1 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 dark:text-gray-100">
             <option value="3">3d</option>
             <option value="7">7d</option>
             <option value="14">14d</option>
@@ -21,35 +28,49 @@
           </select>
         </div>
       </div>
-      <button wire:click="loadBoard" class="px-3 py-1.5 text-sm rounded-md bg-white border border-gray-200 hover:bg-gray-50">Refresh</button>
+      
+      <flux:button wire:click="loadBoard" variant="ghost" size="sm" icon="arrow-path">Refresh</flux:button>
     </div>
   </div>
 
+  <!-- Kanban Board -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     @foreach($columnTitles as $key => $label)
-      <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden">
-        <div class="px-4 py-2.5 border-b flex items-center justify-between
-            @if($key==='make') bg-gradient-to-r from-blue-50 to-indigo-50 @elseif($key==='review') bg-gradient-to-r from-amber-50 to-orange-50 @else bg-gradient-to-r from-emerald-50 to-teal-50 @endif">
-          <div class="text-sm font-semibold flex items-center gap-2">
-            @if($key==='make')
-              <span class="inline-block w-2 h-2 rounded-full bg-indigo-500"></span>
-            @elseif($key==='review')
-              <span class="inline-block w-2 h-2 rounded-full bg-orange-500"></span>
-            @else
-              <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-            @endif
-            {{ $label }}
+      <flux:card class="{{ match($key) {
+        'make' => 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+        'review' => 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800',
+        'wrap' => 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800',
+        default => 'bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800'
+      } }}">
+        <!-- Column Header -->
+        <div class="flex items-center justify-between mb-4 p-4 -m-4 mb-4 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full {{ match($key) {
+              'make' => 'bg-indigo-500',
+              'review' => 'bg-orange-500',
+              'wrap' => 'bg-emerald-500',
+              default => 'bg-gray-500'
+            } }}"></div>
+            <flux:subheading class="font-semibold {{ match($key) {
+              'make' => 'text-blue-700 dark:text-blue-300',
+              'review' => 'text-amber-700 dark:text-amber-300',
+              'wrap' => 'text-emerald-700 dark:text-emerald-300',
+              default => 'text-gray-700 dark:text-gray-300'
+            } }}">{{ $label }}</flux:subheading>
           </div>
-          <div class="text-xs text-gray-500 flex items-center gap-2">
+          <div class="flex items-center gap-2">
             @if($key === 'wrap')
-              <span class="text-[10px] bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded" title="Outstanding payments">
+              <flux:badge variant="warning" size="xs">
                 ${{ number_format(($columnMeta['wrap']['outstanding_amount'] ?? 0), 2) }}
-              </span>
+              </flux:badge>
             @endif
-            <span>{{ isset($columns[$key]) ? count($columns[$key]) : 0 }}</span>
+            <flux:badge variant="neutral" size="xs">
+              {{ isset($columns[$key]) ? count($columns[$key]) : 0 }}
+            </flux:badge>
           </div>
         </div>
-        <div class="p-3 space-y-3 min-h-[120px]" x-data x-init="
+        <!-- Column Content -->
+        <div class="space-y-3 min-h-[120px]" x-data x-init="
             () => {
               if (window.Sortable) {
                 const el = $el;
@@ -72,94 +93,114 @@
             }
           " data-stage="{{ $key }}">
           @forelse(($columns[$key] ?? []) as $card)
-            <div class="border border-gray-200/70 rounded-xl p-4 hover:shadow-md transition" data-project-id="{{ $card['project_id'] }}">
-              <div class="flex items-center justify-between">
-                <div class="font-medium text-sm truncate" title="{{ $card['project_name'] }}">{{ $card['project_name'] }}</div>
-                <span class="text-[10px] uppercase tracking-wide text-gray-500">#{{ $card['project_id'] }}</span>
+            <flux:card class="hover:shadow-md transition-shadow cursor-move" data-project-id="{{ $card['project_id'] }}">
+              <!-- Project Header -->
+              <div class="flex items-center justify-between mb-2">
+                <flux:subheading class="font-medium truncate" title="{{ $card['project_name'] }}">
+                  {{ $card['project_name'] }}
+                </flux:subheading>
+                <flux:badge variant="neutral" size="xs">#{{ $card['project_id'] }}</flux:badge>
               </div>
-              <div class="mt-1 text-xs text-gray-500 truncate">{{ $card['client_email'] }}</div>
+              
+              <div class="text-xs text-gray-500 dark:text-gray-400 mb-3 truncate">{{ $card['client_email'] }}</div>
 
-              <div class="mt-2 flex flex-wrap gap-1.5">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-gray-100 text-gray-700">
+              <!-- Status Badges -->
+              <div class="flex flex-wrap gap-1.5 mb-3">
+                <flux:badge variant="neutral" size="xs">
                   Files {{ $card['files_approved'] }}/{{ $card['files_total'] }}
-                </span>
+                </flux:badge>
+                
                 @if($card['milestones_unpaid'] > 0)
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-yellow-100 text-yellow-800">
+                  <flux:badge variant="warning" size="xs">
                     {{ $card['milestones_unpaid'] }} unpaid milestones
-                  </span>
+                  </flux:badge>
                 @elseif($card['milestones_paid'] > 0)
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-green-100 text-green-800">
+                  <flux:badge variant="success" size="xs">
                     {{ $card['milestones_paid'] }} milestones paid
-                  </span>
+                  </flux:badge>
                 @endif
+                
                 @if(($card['client_comments_total'] ?? 0) > 0)
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-blue-100 text-blue-800" title="Unresolved/Total client comments">
-                    {{ $card['client_comments_unresolved'] ?? 0 }}/{{ $card['client_comments_total'] }} client comments
-                  </span>
+                  <flux:badge variant="info" size="xs" title="Unresolved/Total client comments">
+                    {{ $card['client_comments_unresolved'] ?? 0 }}/{{ $card['client_comments_total'] }} comments
+                  </flux:badge>
                 @endif
+                
                 @if(($card['client_uploads'] ?? 0) > 0)
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-sky-100 text-sky-800">
-                    Client uploads
-                  </span>
+                  <flux:badge variant="info" size="xs">Client uploads</flux:badge>
                 @endif
+                
                 @if($card['revisions_requested'])
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-purple-100 text-purple-800">
-                    Revisions requested
-                  </span>
+                  <flux:badge variant="warning" size="xs">Revisions requested</flux:badge>
                 @endif
+                
                 @if($card['overdue_reminders'] > 0)
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-red-100 text-red-800">
-                    {{ $card['overdue_reminders'] }} overdue
-                  </span>
+                  <flux:badge variant="danger" size="xs">{{ $card['overdue_reminders'] }} overdue</flux:badge>
                 @elseif($card['upcoming_reminders'] > 0)
-                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-indigo-100 text-indigo-800">
-                    {{ $card['upcoming_reminders'] }} upcoming
-                  </span>
+                  <flux:badge variant="info" size="xs">{{ $card['upcoming_reminders'] }} upcoming</flux:badge>
                 @endif
               </div>
-              <div class="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-gray-500">
+              
+              <!-- Additional Info -->
+              <div class="space-y-2 mb-3">
                 @if(!empty($card['time_in_stage']))
-                  <span>In stage {{ $card['time_in_stage'] }}</span>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">In stage {{ $card['time_in_stage'] }}</div>
                 @endif
+                
                 @if(!empty($card['last_client_comment_excerpt']))
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700" title="Latest client comment">
-                    <i class="fas fa-comment-alt text-[9px]"></i>
-                    <span class="truncate max-w-[220px]">{{ $card['last_client_comment_excerpt'] }}</span>
-                    @if(!empty($card['last_client_comment_at']))
-                      <span class="text-[9px] text-gray-400 ml-1">{{ $card['last_client_comment_at'] }} ago</span>
-                    @endif
-                  </span>
+                  <div class="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950 rounded text-xs">
+                    <flux:icon.chat-bubble-left class="w-3 h-3 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div class="flex-1 min-w-0">
+                      <div class="truncate text-blue-700 dark:text-blue-300">{{ $card['last_client_comment_excerpt'] }}</div>
+                      @if(!empty($card['last_client_comment_at']))
+                        <div class="text-gray-500 dark:text-gray-400">{{ $card['last_client_comment_at'] }} ago</div>
+                      @endif
+                    </div>
+                  </div>
                 @endif
+                
                 @if(!empty($card['next_reminder_id']))
-                  <span class="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-yellow-50 text-yellow-800" title="Upcoming reminder">
-                    <i class="fas fa-bell text-[9px]"></i>
-                    <span class="truncate max-w-[220px]">{{ $card['next_reminder_note'] }}</span>
-                    @if(!empty($card['next_reminder_due_human']))
-                      <span class="text-[9px] ml-1">{{ $card['next_reminder_due_human'] }}</span>
-                    @endif
-                    <button wire:click="completeReminder({{ $card['next_reminder_id'] }})" class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-yellow-100 hover:bg-yellow-200 border border-yellow-200">Done</button>
-                  </span>
+                  <div class="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-950 rounded text-xs">
+                    <flux:icon.bell class="w-3 h-3 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                    <div class="flex-1 min-w-0">
+                      <div class="truncate text-yellow-700 dark:text-yellow-300">{{ $card['next_reminder_note'] }}</div>
+                      @if(!empty($card['next_reminder_due_human']))
+                        <div class="text-gray-500 dark:text-gray-400">{{ $card['next_reminder_due_human'] }}</div>
+                      @endif
+                    </div>
+                    <flux:button wire:click="completeReminder({{ $card['next_reminder_id'] }})" variant="subtle" size="xs">Done</flux:button>
+                  </div>
                 @endif
               </div>
 
-               <div class="mt-3 flex items-center gap-2">
-                 <a href="{{ route('projects.manage-client', $card['project_slug']) }}" class="px-2 py-1 text-xs rounded-md bg-white border border-gray-200 hover:bg-gray-50">Manage</a>
-                 @if($key === 'make' && $card['files_total'] > 0)
-                   <button wire:click="submitForReview({{ $card['project_id'] }})" class="px-2 py-1 text-xs rounded-md bg-purple-600 text-white hover:bg-purple-700">Submit for Review</button>
-                 @endif
-                 <button wire:click="openReminderModal({{ $card['project_id'] }})" class="px-2 py-1 text-xs rounded-md bg-white border border-gray-200 hover:bg-gray-50">Add Reminder</button>
-               </div>
-            </div>
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-2">
+                <flux:button href="{{ route('projects.manage-client', $card['project_slug']) }}" variant="ghost" size="xs">
+                  Manage
+                </flux:button>
+                @if($key === 'make' && $card['files_total'] > 0)
+                  <flux:button wire:click="submitForReview({{ $card['project_id'] }})" variant="primary" size="xs">
+                    Submit for Review
+                  </flux:button>
+                @endif
+                <flux:button wire:click="openReminderModal({{ $card['project_id'] }})" variant="ghost" size="xs" icon="bell">
+                  Reminder
+                </flux:button>
+              </div>
+            </flux:card>
           @empty
-            <div class="text-xs text-gray-500">No items</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 text-center py-8">No items</div>
           @endforelse
+          
           @if(count($columns[$key] ?? []) >= ($limits[$key] ?? 20))
             <div class="pt-2">
-              <button wire:click="loadMore('{{ $key }}')" class="w-full px-3 py-2 text-xs rounded-md bg-white border border-gray-200 hover:bg-gray-50">Load more</button>
+              <flux:button wire:click="loadMore('{{ $key }}')" variant="ghost" size="sm" class="w-full">
+                Load more
+              </flux:button>
             </div>
           @endif
         </div>
-      </div>
+      </flux:card>
     @endforeach
   </div>
   
@@ -172,23 +213,22 @@
       <x-slot name="content">
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-gray-700">Due</label>
-            <input type="datetime-local" wire:model.defer="reminderDueAt" class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
-            @error('reminderDueAt')<div class="text-xs text-red-600 mt-1">{{ $message }}</div>@enderror
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Due Date & Time</label>
+            <input type="datetime-local" wire:model.defer="reminderDueAt" class="mt-1 w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+            @error('reminderDueAt')<div class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</div>@enderror
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700">Note</label>
-            <textarea rows="4" wire:model.defer="reminderNote" class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="What should we follow up on?"></textarea>
-            @error('reminderNote')<div class="text-xs text-red-600 mt-1">{{ $message }}</div>@enderror
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Note</label>
+            <textarea rows="4" wire:model.defer="reminderNote" class="mt-1 w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="What should we follow up on?"></textarea>
+            @error('reminderNote')<div class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</div>@enderror
           </div>
         </div>
       </x-slot>
       <x-slot name="footer">
-        <button type="button" wire:click="$set('showReminderModal', false)" class="px-3 py-1.5 text-sm rounded-md bg-white border border-gray-200 hover:bg-gray-50 mr-2">Cancel</button>
-        <button type="button" wire:click="saveReminder" class="px-3 py-1.5 text-sm rounded-md bg-indigo-600 text-white hover:bg-indigo-700">Save Reminder</button>
+        <button type="button" wire:click="$set('showReminderModal', false)" class="px-4 py-2 text-sm rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 mr-2 text-gray-700 dark:text-gray-300">Cancel</button>
+        <button type="button" wire:click="saveReminder" class="px-4 py-2 text-sm rounded-md bg-indigo-600 hover:bg-indigo-700 text-white">Save Reminder</button>
       </x-slot>
     </x-dialog-modal>
   </template>
 </div>
-
 

@@ -1,6 +1,5 @@
-@extends('components.layouts.app')
+<x-layouts.app-sidebar>
 
-@section('content')
 <div class="bg-gray-50 min-h-screen py-12">
     <!-- Enhanced Header Section -->
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mb-8">
@@ -649,7 +648,7 @@
         </div>
     </div>
 </div>
-@endsection
+</x-layouts.app-sidebar>
 
     @push('scripts')
         <script src="https://js.stripe.com/v3/"></script>

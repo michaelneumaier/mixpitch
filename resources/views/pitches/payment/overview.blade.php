@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
         <!-- Breadcrumbs -->
@@ -380,7 +378,6 @@
     </div>
 </div>
 
-@push('scripts')
 <script src="https://js.stripe.com/v3/"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -492,6 +489,4 @@
         });
     });
 </script>
-@endpush
-
-@endsection 
+</x-layouts.app-sidebar> 

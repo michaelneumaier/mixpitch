@@ -1,8 +1,4 @@
-@extends('components.layouts.app')
-
-@section('title', 'Client Dashboard - MIXPITCH')
-
-@section('content')
+<x-layouts.app-sidebar title="Client Dashboard - MIXPITCH">
 <div class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
     <!-- Header -->
     <div class="bg-black/20 backdrop-blur-sm border-b border-white/10">
@@ -228,4 +224,4 @@
         </div>
     </div>
 </div>
-@endsection 
+</x-layouts.app-sidebar> 

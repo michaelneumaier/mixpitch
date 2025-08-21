@@ -1,5 +1,3 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 @livewire('upload-project-component')
-@endsection
+</x-layouts.app-sidebar>

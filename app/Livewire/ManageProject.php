@@ -45,7 +45,7 @@ class ManageProject extends Component
 
     public $storageRemaining = 0;
 
-    public bool $showDeleteModal = false;
+    // Removed: public bool $showDeleteModal = false; - Now using Flux modal events
 
     public $fileToDelete = null;
 
@@ -54,7 +54,7 @@ class ManageProject extends Component
     public $showDeleteConfirmation = false;
 
     // Project deletion properties
-    public bool $showProjectDeleteModal = false;
+    // Removed: public bool $showProjectDeleteModal = false; - Now using Flux modal events
 
     // Project image management properties
     public bool $showImageUploadModal = false;
@@ -125,7 +125,7 @@ class ManageProject extends Component
         if ($this->project->deadline && $this->project->deadline instanceof \Carbon\Carbon) {
             $rawDeadline = $this->project->getRawOriginal('deadline');
             $utcTime = null;
-            
+
             if ($rawDeadline) {
                 // Check if the raw deadline contains time information
                 if (strpos($rawDeadline, ':') !== false) {
@@ -427,8 +427,8 @@ class ManageProject extends Component
      */
     public function confirmDeleteFile($fileId)
     {
-        $this->showDeleteModal = true;
         $this->fileToDelete = $fileId;
+        $this->dispatch('modal-show', name: 'delete-file');
     }
 
     /**
@@ -436,8 +436,8 @@ class ManageProject extends Component
      */
     public function cancelDeleteFile()
     {
-        $this->showDeleteModal = false;
         $this->fileToDelete = null;
+        $this->dispatch('modal-close', name: 'delete-file');
     }
 
     /**
@@ -542,7 +542,7 @@ class ManageProject extends Component
             ]);
             Toaster::error('An unexpected error occurred while deleting the file: '.$e->getMessage());
         } finally {
-            $this->showDeleteModal = false;
+            $this->dispatch('modal-close', name: 'delete-file');
             $this->fileToDelete = null;
             $this->isDeleting = false;
         }
@@ -672,7 +672,7 @@ class ManageProject extends Component
             'hasMultipleApprovedPitches' => $hasMultipleApprovedPitches,
             'approvedPitchesCount' => $approvedPitchesCount,
             'newlyUploadedFileIds' => $newlyUploadedFileIds,
-        ]);
+        ])->layout('components.layouts.app-sidebar');
     }
 
     /**
@@ -917,7 +917,7 @@ class ManageProject extends Component
     public function confirmDeleteProject()
     {
         $this->authorize('delete', $this->project);
-        $this->showProjectDeleteModal = true;
+        $this->dispatch('modal-show', name: 'delete-project');
     }
 
     /**
@@ -925,7 +925,7 @@ class ManageProject extends Component
      */
     public function cancelDeleteProject()
     {
-        $this->showProjectDeleteModal = false;
+        $this->dispatch('modal-close', name: 'delete-project');
     }
 
     /**

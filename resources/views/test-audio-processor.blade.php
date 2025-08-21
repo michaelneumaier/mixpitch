@@ -1,95 +1,92 @@
-@extends('components.layouts.app')
-
-@section('content')
-<div class="container mx-auto py-8 px-4">
-    <h1 class="text-2xl font-bold mb-6">AWS Lambda Audio Processor Test</h1>
-    
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 class="text-xl font-semibold mb-4">Configuration</h2>
-        <div class="mb-4">
-            <p class="mb-2"><strong>Lambda URL:</strong> <code id="lambda-url" class="bg-gray-100 px-2 py-1 rounded">{{ $lambdaUrl ?: 'Not configured' }}</code></p>
-            <p class="mb-2"><strong>Status:</strong> <span id="lambda-status" class="px-2 py-1 rounded {{ $lambdaUrl ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">{{ $lambdaUrl ? 'Configured' : 'Not configured' }}</span></p>
-        </div>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Test with existing files -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4">Test with Existing Files</h2>
-            
-            @if(count($files) > 0)
-                <div class="mb-4">
-                    <label for="file-select" class="block text-sm font-medium text-gray-700 mb-2">Select an audio file:</label>
-                    <select id="file-select" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">Select a file...</option>
-                        @foreach($files as $file)
-                            <option value="{{ $file->id }}">{{ $file->file_name }} ({{ $file->formatted_size }})</option>
-                        @endforeach
-                    </select>
-                </div>
-                
-                <button id="test-button" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    Test Lambda Function
-                </button>
-                
-                <div id="test-result" class="mt-4 hidden">
-                    <h3 class="font-medium text-lg mb-2">Result:</h3>
-                    <div id="test-output" class="bg-gray-100 p-4 rounded-md overflow-auto max-h-60"></div>
-                </div>
-                
-                <div id="visualization-container" class="mt-6 hidden">
-                    <h3 class="font-medium text-lg mb-2">Waveform Visualization:</h3>
-                    <div id="waveform" class="bg-gray-100 p-4 h-32 rounded-md"></div>
-                    <div class="mt-2 text-sm text-gray-500 flex justify-between">
-                        <span>0:00</span>
-                        <span id="duration-display">0:00</span>
-                    </div>
-                </div>
-            @else
-                <p>No audio files found. Please upload some files first.</p>
-            @endif
+<x-layouts.app-sidebar>
+    <div class="container mx-auto py-8 px-4">
+        <h1 class="text-2xl font-bold mb-6">AWS Lambda Audio Processor Test</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Configuration</h2>
+            <div class="mb-4">
+                <p class="mb-2"><strong>Lambda URL:</strong> <code id="lambda-url" class="bg-gray-100 px-2 py-1 rounded">{{ $lambdaUrl ?: 'Not configured' }}</code></p>
+                <p class="mb-2"><strong>Status:</strong> <span id="lambda-status" class="px-2 py-1 rounded {{ $lambdaUrl ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">{{ $lambdaUrl ? 'Configured' : 'Not configured' }}</span></p>
+            </div>
         </div>
         
-        <!-- Test with upload -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4">Test with File Upload</h2>
-            
-            <form id="upload-form" class="mb-4">
-                <div class="mb-4">
-                    <label for="audio-file" class="block text-sm font-medium text-gray-700 mb-2">Upload an audio file:</label>
-                    <input type="file" id="audio-file" name="audio_file" accept="audio/mp3,audio/wav" class="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-md file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100">
-                    <p class="mt-1 text-sm text-gray-500">Accepted formats: MP3, WAV (max 100MB)</p>
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Test with existing files -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Test with Existing Files</h2>
                 
-                <button type="submit" id="upload-button" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    Upload and Test
-                </button>
-            </form>
-            
-            <div id="upload-result" class="mt-4 hidden">
-                <h3 class="font-medium text-lg mb-2">Result:</h3>
-                <div id="upload-output" class="bg-gray-100 p-4 rounded-md overflow-auto max-h-60"></div>
+                @if(count($files) > 0)
+                    <div class="mb-4">
+                        <label for="file-select" class="block text-sm font-medium text-gray-700 mb-2">Select an audio file:</label>
+                        <select id="file-select" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Select a file...</option>
+                            @foreach($files as $file)
+                                <option value="{{ $file->id }}">{{ $file->file_name }} ({{ $file->formatted_size }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <button id="test-button" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Test Lambda Function
+                    </button>
+                    
+                    <div id="test-result" class="mt-4 hidden">
+                        <h3 class="font-medium text-lg mb-2">Result:</h3>
+                        <div id="test-output" class="bg-gray-100 p-4 rounded-md overflow-auto max-h-60"></div>
+                    </div>
+                    
+                    <div id="visualization-container" class="mt-6 hidden">
+                        <h3 class="font-medium text-lg mb-2">Waveform Visualization:</h3>
+                        <div id="waveform" class="bg-gray-100 p-4 h-32 rounded-md"></div>
+                        <div class="mt-2 text-sm text-gray-500 flex justify-between">
+                            <span>0:00</span>
+                            <span id="duration-display">0:00</span>
+                        </div>
+                    </div>
+                @else
+                    <p>No audio files found. Please upload some files first.</p>
+                @endif
             </div>
             
-            <div id="upload-visualization-container" class="mt-6 hidden">
-                <h3 class="font-medium text-lg mb-2">Waveform Visualization:</h3>
-                <div id="upload-waveform" class="bg-gray-100 p-4 h-32 rounded-md"></div>
-                <div class="mt-2 text-sm text-gray-500 flex justify-between">
-                    <span>0:00</span>
-                    <span id="upload-duration-display">0:00</span>
+            <!-- Test with upload -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Test with File Upload</h2>
+                
+                <form id="upload-form" class="mb-4">
+                    <div class="mb-4">
+                        <label for="audio-file" class="block text-sm font-medium text-gray-700 mb-2">Upload an audio file:</label>
+                        <input type="file" id="audio-file" name="audio_file" accept="audio/mp3,audio/wav" class="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-md file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100">
+                        <p class="mt-1 text-sm text-gray-500">Accepted formats: MP3, WAV (max 100MB)</p>
+                    </div>
+                    
+                    <button type="submit" id="upload-button" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Upload and Test
+                    </button>
+                </form>
+                
+                <div id="upload-result" class="mt-4 hidden">
+                    <h3 class="font-medium text-lg mb-2">Result:</h3>
+                    <div id="upload-output" class="bg-gray-100 p-4 rounded-md overflow-auto max-h-60"></div>
+                </div>
+                
+                <div id="upload-visualization-container" class="mt-6 hidden">
+                    <h3 class="font-medium text-lg mb-2">Waveform Visualization:</h3>
+                    <div id="upload-waveform" class="bg-gray-100 p-4 h-32 rounded-md"></div>
+                    <div class="mt-2 text-sm text-gray-500 flex justify-between">
+                        <span>0:00</span>
+                        <span id="upload-duration-display">0:00</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-@endsection
 
-@section('scripts')
+    @push('scripts')
 <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -266,4 +263,5 @@
         }
     });
 </script>
-@endsection 
+    @endpush
+</x-layouts.app-sidebar> 

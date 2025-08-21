@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="container mx-auto px-1">
     <div class="flex justify-center">
         <div class="w-full lg:w-2/3">
@@ -132,9 +130,6 @@
 </div>
 
 
-@endsection
-
-@section('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const deleteFileButtons = document.querySelectorAll('.delete-file-form button');
@@ -157,4 +152,5 @@
         }
     };
 </script>
-@endsection
+
+</x-layouts.app-sidebar>

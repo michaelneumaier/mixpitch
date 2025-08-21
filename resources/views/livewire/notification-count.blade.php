@@ -9,13 +9,13 @@
                 </span>
             </span>
             <!-- Bell icon with enhanced styling -->
-            <div class="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 text-gray-600 hover:text-blue-600 transition-all duration-200">
+            <div class="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 text-gray-600 hover:text-blue-600">
                 <i class="fas fa-bell text-lg"></i>
             </div>
         </div>
     @else
         <!-- Bell icon without notification -->
-        <div class="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 text-gray-500 hover:text-blue-600 hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 transition-all duration-200">
+        <div class="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 text-gray-500 hover:text-blue-600 hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50">
             <i class="fas fa-bell text-lg"></i>
         </div>
     @endif

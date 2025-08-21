@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="bg-gray-50 min-h-screen">
     <!-- Background Effects -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -168,7 +166,6 @@
         </div>
     </div>
 </div>
-@endsection
 
 @push('scripts')
     <script src="https://js.stripe.com/v3/"></script>
@@ -281,4 +278,5 @@
             });
         });
     </script>
-@endpush 
+@endpush
+</x-layouts.app-sidebar> 

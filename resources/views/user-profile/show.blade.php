@@ -1,6 +1,4 @@
-@extends('components.layouts.app')
-
-@section('content')
+<x-layouts.app-sidebar>
 <div class="bg-gray-50 min-h-screen py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
@@ -573,7 +571,7 @@
         --}}
     </div>
 </div>
-@endsection
+</x-layouts.app-sidebar>
 
 @push('scripts')
 <script>

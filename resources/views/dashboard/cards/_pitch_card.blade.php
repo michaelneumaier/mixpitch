@@ -23,14 +23,11 @@
     };
 @endphp
 
-<div class="group relative bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-    <!-- Gradient Border Effect -->
-    <div class="absolute inset-0 bg-gradient-to-r {{ $isClientProject ? 'from-purple-500/20 via-pink-500/20 to-purple-500/20' : 'from-indigo-500/20 via-blue-500/20 to-purple-500/20' }} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-    
-    <a href="{{ $pitchUrl }}" class="relative block m-0.5 bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
+<flux:card class="group hover:shadow-xl transition-all duration-300">
+    <a href="{{ $pitchUrl }}" class="block -m-6">
         <div class="flex flex-col lg:flex-row">
             {{-- Enhanced Project Image --}}
-            <div class="relative lg:w-64 h-48 lg:h-auto bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+            <div class="relative lg:w-64 h-48 lg:h-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 overflow-hidden">
                 @if($pitch->project && $pitch->project->image_path)
                     <img src="{{ $pitch->project->imageUrl }}" 
                          alt="{{ $pitch->project->name }}"
@@ -39,7 +36,7 @@
                     <div class="w-full h-full bg-gradient-to-br {{ $isClientProject ? 'from-purple-100 via-pink-100 to-purple-100' : 'from-indigo-100 via-blue-100 to-purple-100' }} flex items-center justify-center">
                         <div class="text-center">
                             <i class="fas {{ $isClientProject ? 'fa-briefcase' : 'fa-paper-plane' }} text-4xl {{ $isClientProject ? 'text-purple-400/60' : 'text-indigo-400/60' }} mb-2"></i>
-                            <p class="text-sm text-gray-500 font-medium">{{ $pitch->project ? $pitch->project->name : 'Pitch' }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">{{ $pitch->project ? $pitch->project->name : 'Pitch' }}</p>
                         </div>
                     </div>
                 @endif
@@ -77,12 +74,12 @@
             <div class="flex-1 p-6 lg:p-8">
                 <!-- Header Section -->
                 <div class="mb-6">
-                    <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2 group-hover:text-{{ $isClientProject ? 'purple' : 'indigo' }}-600 transition-colors duration-200">
+                    <flux:heading size="lg" class="mb-2 group-hover:text-{{ $isClientProject ? 'purple' : 'indigo' }}-600 dark:group-hover:text-{{ $isClientProject ? 'purple' : 'indigo' }}-400 transition-colors duration-200">
                         {{ $pitch->project ? $pitch->project->name : 'Pitch' }}
-                    </h3>
-                    <div class="flex items-center text-gray-600 mb-4">
-                        <div class="flex items-center justify-center w-6 h-6 {{ $isClientProject ? 'bg-purple-100' : 'bg-indigo-100' }} rounded-full mr-2">
-                            <i class="fas fa-layer-group {{ $isClientProject ? 'text-purple-600' : 'text-indigo-600' }} text-xs"></i>
+                    </flux:heading>
+                    <div class="flex items-center text-gray-600 dark:text-gray-400 mb-4">
+                        <div class="flex items-center justify-center w-6 h-6 {{ $isClientProject ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-indigo-100 dark:bg-indigo-900/30' }} rounded-full mr-2">
+                            <i class="fas fa-layer-group {{ $isClientProject ? 'text-purple-600 dark:text-purple-400' : 'text-indigo-600 dark:text-indigo-400' }} text-xs"></i>
                         </div>
                         <span class="text-sm font-medium">{{ $pitch->project ? $pitch->project->readableWorkflowTypeAttribute : 'Pitch' }}</span>
                     </div>
@@ -91,12 +88,12 @@
                 {{-- Enhanced Key Details Grid --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     @if($pitch->amount && $pitch->amount > 0)
-                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border border-green-200/50 dark:border-green-700/50">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
-                                <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Amount</span>
+                                <span class="text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wide">Amount</span>
                             </div>
-                            <div class="text-sm font-bold text-green-900">{{ Number::currency($pitch->amount, 'USD') }}</div>
+                            <div class="text-sm font-bold text-green-900 dark:text-green-100">{{ Number::currency($pitch->amount, 'USD') }}</div>
                         </div>
                     @endif
 
@@ -108,22 +105,22 @@
                         @endphp
                         
                         @if($paymentStatus === 'paid')
-                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 border border-green-200/50 dark:border-green-700/50">
                                 <div class="flex items-center mb-2">
                                     <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                                    <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Payment Received</span>
+                                    <span class="text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wide">Payment Received</span>
                                 </div>
-                                <div class="text-sm font-bold text-green-900">{{ Number::currency($projectBudget, 'USD') }}</div>
-                                <div class="text-xs text-green-600 mt-1">Paid & Complete</div>
+                                <div class="text-sm font-bold text-green-900 dark:text-green-100">{{ Number::currency($projectBudget, 'USD') }}</div>
+                                <div class="text-xs text-green-600 dark:text-green-400 mt-1">Paid & Complete</div>
                             </div>
                         @elseif($paymentStatus === 'pending' || $paymentStatus === 'failed' || empty($paymentStatus))
-                            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200/50">
+                            <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-4 border border-amber-200/50 dark:border-amber-700/50">
                                 <div class="flex items-center mb-2">
                                     <i class="fas fa-clock text-amber-600 mr-2"></i>
-                                    <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">Payment Pending</span>
+                                    <span class="text-xs font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide">Payment Pending</span>
                                 </div>
-                                <div class="text-sm font-bold text-amber-900">{{ Number::currency($projectBudget, 'USD') }}</div>
-                                <div class="text-xs text-amber-600 mt-1">
+                                <div class="text-sm font-bold text-amber-900 dark:text-amber-100">{{ Number::currency($projectBudget, 'USD') }}</div>
+                                <div class="text-xs text-amber-600 dark:text-amber-400 mt-1">
                                     @if($paymentStatus === 'failed')
                                         Payment Failed
                                     @else
@@ -132,28 +129,28 @@
                                 </div>
                             </div>
                         @elseif($paymentStatus === 'processing')
-                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50">
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-700/50">
                                 <div class="flex items-center mb-2">
                                     <i class="fas fa-spinner fa-spin text-blue-600 mr-2"></i>
-                                    <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Processing Payment</span>
+                                    <span class="text-xs font-medium text-blue-700 dark:text-blue-300 uppercase tracking-wide">Processing Payment</span>
                                 </div>
-                                <div class="text-sm font-bold text-blue-900">{{ Number::currency($projectBudget, 'USD') }}</div>
+                                <div class="text-sm font-bold text-blue-900 dark:text-blue-100">{{ Number::currency($projectBudget, 'USD') }}</div>
                                 <div class="text-xs text-blue-600 mt-1">Processing...</div>
                             </div>
                         @endif
                     @endif
                     
                     @if($pitch->project && ($pitch->project->isContest() ? $pitch->project->submission_deadline : $pitch->project->deadline))
-                        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200/50">
+                        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-purple-200/50 dark:border-purple-700/50">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-calendar text-purple-600 mr-2"></i>
-                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">{{ $pitch->project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
+                                <span class="text-xs font-medium text-purple-700 dark:text-purple-300 uppercase tracking-wide">{{ $pitch->project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
                             </div>
                             @if($pitch->project->isContest())
-                                <div class="text-sm font-bold text-purple-900">
+                                <div class="text-sm font-bold text-purple-900 dark:text-purple-100">
                                     <x-datetime :date="$pitch->project->submission_deadline" :user="$pitch->project->user" :convertToViewer="true" format="M d, Y" />
                                 </div>
-                                <div class="text-xs text-purple-600 mt-1">
+                                <div class="text-xs text-purple-600 dark:text-purple-400 mt-1">
                                     <x-datetime :date="$pitch->project->submission_deadline" :user="$pitch->project->user" :convertToViewer="true" format="g:i A T" />
                                 </div>
                                 @php
@@ -163,10 +160,10 @@
                                         now()->diffInDays($deadlineField, false);
                                 @endphp
                             @else
-                                <div class="text-sm font-bold text-purple-900">
+                                <div class="text-sm font-bold text-purple-900 dark:text-purple-100">
                                     <x-datetime :date="$pitch->project->deadline" :user="$pitch->project->user" :convertToViewer="true" format="M d, Y" />
                                 </div>
-                                <div class="text-xs text-purple-600 mt-1">
+                                <div class="text-xs text-purple-600 dark:text-purple-400 mt-1">
                                     <x-datetime :date="$pitch->project->deadline" :user="$pitch->project->user" :convertToViewer="true" format="g:i A T" />
                                 </div>
                                 @php
@@ -205,12 +202,12 @@
                     @endif
                     
                     @if($pitch->project && $pitch->project->client_email)
-                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200/50">
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-200/50 dark:border-purple-700/50">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-user-tie text-purple-600 mr-2"></i>
-                                <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Client</span>
+                                <span class="text-xs font-medium text-purple-700 dark:text-purple-300 uppercase tracking-wide">Client</span>
                             </div>
-                            <div class="text-sm font-bold text-purple-900">{{ $pitch->project->client_name ?? $pitch->project->client_email }}</div>
+                            <div class="text-sm font-bold text-purple-900 dark:text-purple-100">{{ $pitch->project->client_name ?? $pitch->project->client_email }}</div>
                         </div>
                     @endif
 
@@ -227,7 +224,7 @@
 
                 {{-- Enhanced Stats and Action Indicators --}}
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div class="text-sm text-gray-500 flex items-center">
+                    <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                         <i class="fas fa-clock mr-2"></i>
                         <span>Updated <x-datetime :date="$pitch->updated_at" relative="true" /></span>
                     </div>
@@ -298,4 +295,4 @@
             </div>
         </div>
     </a>
-</div> 
+</flux:card> 
