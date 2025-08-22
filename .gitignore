@@ -3,3 +3,4 @@
 .env.dusk.local
 public/hot
 .kiro/
+auth.json
