@@ -286,6 +286,7 @@
                                         'completed' => 'success',
                                         'in_progress' => 'warning',
                                         'open' => 'info',
+                                        'unpublished' => 'neutral',
                                         default => 'neutral'
                                     } }}">
                                         {{ $project->readable_status }}

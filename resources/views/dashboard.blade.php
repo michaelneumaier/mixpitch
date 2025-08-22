@@ -306,10 +306,10 @@
                                 </flux:callout.text>
                                 
                                 <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-                                    <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary" size="lg">
+                                    <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary">
                                         Create Project
                                     </flux:button>
-                                    <flux:button href="{{ route('projects.index') }}" icon="magnifying-glass" variant="outline" size="lg">
+                                    <flux:button href="{{ route('projects.index') }}" icon="magnifying-glass" variant="outline">
                                         Browse Projects
                                     </flux:button>
                                 </div>
