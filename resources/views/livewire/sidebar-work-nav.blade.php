@@ -2,7 +2,7 @@
     expandedSection: @js(
         request()->routeIs('projects.manage') ? 'projects' : 
         (request()->routeIs('projects.manage-client') ? 'client' : 
-        (request()->routeIs('pitches.show') ? 'pitches' : 'none'))
+        (request()->routeIs('projects.pitches.show') ? 'pitches' : 'none'))
     ),
     toggleSection(section) {
         this.expandedSection = this.expandedSection === section ? 'none' : section;
@@ -68,7 +68,7 @@
     <!-- Collapsible Content -->
     <div x-show="expandedSection === 'pitches'" x-transition x-cloak class="ml-4 mt-1 space-y-1">
         @foreach($pitches as $pitch)
-        <a href="{{ route('pitches.show', $pitch) }}" 
+        <a href="{{ route('projects.pitches.show', [$pitch->project, $pitch]) }}" 
            class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('pitch')?->id == $pitch->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}">
             <span class="truncate">{{ $pitch->project->name ?? 'Untitled Project' }}</span>
         </a>

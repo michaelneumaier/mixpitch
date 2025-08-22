@@ -24,7 +24,7 @@ class SidebarFinancesNav extends Component
     private function getProducerAnalytics(User $user)
     {
         // Calculate earnings
-        $totalEarnings = PayoutSchedule::where('producer_id', $user->id)
+        $totalEarnings = PayoutSchedule::where('producer_user_id', $user->id)
             ->where('status', 'completed')
             ->sum('net_amount');
 

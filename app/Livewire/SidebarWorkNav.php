@@ -34,7 +34,7 @@ class SidebarWorkNav extends Component
             ->count();
 
         // Count active pitches
-        $pitchesCount = Pitch::where('producer_id', $user->id)
+        $pitchesCount = Pitch::where('user_id', $user->id)
             ->whereIn('status', [
                 Pitch::STATUS_PENDING, Pitch::STATUS_IN_PROGRESS, Pitch::STATUS_READY_FOR_REVIEW,
                 Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_AWAITING_ACCEPTANCE,
@@ -43,7 +43,7 @@ class SidebarWorkNav extends Component
             ->count();
 
         // Count contest entries
-        $contestsCount = Pitch::where('producer_id', $user->id)
+        $contestsCount = Pitch::where('user_id', $user->id)
             ->whereIn('status', [
                 Pitch::STATUS_CONTEST_ENTRY,
                 Pitch::STATUS_CONTEST_WINNER,
@@ -100,7 +100,7 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        return Pitch::where('producer_id', $user->id)
+        return Pitch::where('user_id', $user->id)
             ->whereIn('status', [
                 Pitch::STATUS_PENDING,
                 Pitch::STATUS_IN_PROGRESS,
@@ -124,7 +124,7 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        return Pitch::where('producer_id', $user->id)
+        return Pitch::where('user_id', $user->id)
             ->whereIn('status', [
                 Pitch::STATUS_CONTEST_ENTRY,
                 Pitch::STATUS_CONTEST_WINNER,

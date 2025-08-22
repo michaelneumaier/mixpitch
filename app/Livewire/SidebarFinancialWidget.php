@@ -24,15 +24,15 @@ class SidebarFinancialWidget extends Component
     private function getProducerAnalytics(User $user)
     {
         // Calculate earnings
-        $totalEarnings = PayoutSchedule::where('producer_id', $user->id)
+        $totalEarnings = PayoutSchedule::where('producer_user_id', $user->id)
             ->where('status', 'completed')
             ->sum('net_amount');
 
-        $pendingEarnings = PayoutSchedule::where('producer_id', $user->id)
+        $pendingEarnings = PayoutSchedule::where('producer_user_id', $user->id)
             ->where('status', 'pending')
             ->sum('net_amount');
 
-        $thisMonthEarnings = PayoutSchedule::where('producer_id', $user->id)
+        $thisMonthEarnings = PayoutSchedule::where('producer_user_id', $user->id)
             ->where('status', 'completed')
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
