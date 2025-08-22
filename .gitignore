@@ -1,6 +1,6 @@
+auth.json
 /public/index.php
 .env
 .env.dusk.local
 public/hot
 .kiro/
-auth.json
