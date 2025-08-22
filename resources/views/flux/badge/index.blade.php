@@ -29,32 +29,51 @@ $classes = Flux::classes()
     })
     ->add(match ($variant) {
         'pill' => 'rounded-full px-3',
+        'success' => 'rounded-full px-3',
+        'warning' => 'rounded-full px-3',
+        'info' => 'rounded-full px-3',
+        'neutral' => 'rounded-full px-3',
+        'danger' => 'rounded-full px-3',
+        'primary' => 'rounded-full px-3',
+        'outline' => 'rounded-full px-3',
         default => 'rounded-full px-3',
     })
     /**
      * We can't compile classes for each color because of variants color to color and Tailwind's JIT compiler.
      * We instead need to write out each one by hand. Sorry...
      */
-    ->add($variant === 'solid' ? match ($color) {
-        default => 'text-white dark:text-white bg-slate-600 dark:bg-slate-600',
-        'red' => 'text-white dark:text-white bg-gradient-to-r from-red-500 to-pink-600',
-        'orange' => 'text-white dark:text-white bg-gradient-to-r from-orange-500 to-red-500',
-        'amber' => 'text-white dark:text-slate-950 bg-gradient-to-r from-amber-400 to-yellow-500',
-        'yellow' => 'text-slate-950 dark:text-slate-950 bg-gradient-to-r from-yellow-400 to-amber-500',
-        'lime' => 'text-slate-950 dark:text-slate-950 bg-gradient-to-r from-lime-400 to-green-500',
-        'green' => 'text-white dark:text-white bg-gradient-to-r from-green-500 to-emerald-600',
-        'emerald' => 'text-white dark:text-white bg-gradient-to-r from-emerald-500 to-teal-600',
-        'teal' => 'text-white dark:text-white bg-gradient-to-r from-teal-500 to-cyan-600',
-        'cyan' => 'text-white dark:text-white bg-gradient-to-r from-cyan-500 to-blue-600',
-        'sky' => 'text-white dark:text-white bg-gradient-to-r from-sky-500 to-blue-600',
-        'blue' => 'text-white dark:text-white bg-gradient-to-r from-blue-500 to-indigo-600',
-        'indigo' => 'text-white dark:text-white bg-gradient-to-r from-indigo-500 to-purple-600',
-        'violet' => 'text-white dark:text-white bg-gradient-to-r from-violet-500 to-purple-600',
-        'purple' => 'text-white dark:text-white bg-gradient-to-r from-purple-500 to-indigo-600',
-        'fuchsia' => 'text-white dark:text-white bg-gradient-to-r from-fuchsia-500 to-pink-600',
-        'pink' => 'text-white dark:text-white bg-gradient-to-r from-pink-500 to-rose-600',
-        'rose' => 'text-white dark:text-white bg-gradient-to-r from-rose-500 to-pink-600',
-    } :  match ($color) {
+    ->add(match ($variant) {
+        // Semantic variants with predefined colors
+        'success' => 'text-green-800 dark:text-green-200 bg-green-400/20 dark:bg-green-400/40',
+        'warning' => 'text-amber-800 dark:text-amber-200 bg-amber-400/25 dark:bg-amber-400/40',
+        'info' => 'text-blue-800 dark:text-blue-200 bg-blue-400/20 dark:bg-blue-400/40',
+        'neutral' => 'text-zinc-700 dark:text-zinc-200 bg-zinc-400/15 dark:bg-zinc-400/40',
+        'danger' => 'text-red-700 dark:text-red-200 bg-red-400/20 dark:bg-red-400/40',
+        'primary' => 'text-indigo-700 dark:text-indigo-200 bg-indigo-400/20 dark:bg-indigo-400/40',
+        'outline' => 'text-zinc-700 dark:text-zinc-200 bg-transparent border border-zinc-300 dark:border-zinc-600',
+        // Color-based variants
+        'solid' => match ($color) {
+            default => 'text-white dark:text-white bg-slate-600 dark:bg-slate-600',
+            'red' => 'text-white dark:text-white bg-gradient-to-r from-red-500 to-pink-600',
+            'orange' => 'text-white dark:text-white bg-gradient-to-r from-orange-500 to-red-500',
+            'amber' => 'text-white dark:text-slate-950 bg-gradient-to-r from-amber-400 to-yellow-500',
+            'yellow' => 'text-slate-950 dark:text-slate-950 bg-gradient-to-r from-yellow-400 to-amber-500',
+            'lime' => 'text-slate-950 dark:text-slate-950 bg-gradient-to-r from-lime-400 to-green-500',
+            'green' => 'text-white dark:text-white bg-gradient-to-r from-green-500 to-emerald-600',
+            'emerald' => 'text-white dark:text-white bg-gradient-to-r from-emerald-500 to-teal-600',
+            'teal' => 'text-white dark:text-white bg-gradient-to-r from-teal-500 to-cyan-600',
+            'cyan' => 'text-white dark:text-white bg-gradient-to-r from-cyan-500 to-blue-600',
+            'sky' => 'text-white dark:text-white bg-gradient-to-r from-sky-500 to-blue-600',
+            'blue' => 'text-white dark:text-white bg-gradient-to-r from-blue-500 to-indigo-600',
+            'indigo' => 'text-white dark:text-white bg-gradient-to-r from-indigo-500 to-purple-600',
+            'violet' => 'text-white dark:text-white bg-gradient-to-r from-violet-500 to-purple-600',
+            'purple' => 'text-white dark:text-white bg-gradient-to-r from-purple-500 to-indigo-600',
+            'fuchsia' => 'text-white dark:text-white bg-gradient-to-r from-fuchsia-500 to-pink-600',
+            'pink' => 'text-white dark:text-white bg-gradient-to-r from-pink-500 to-rose-600',
+            'rose' => 'text-white dark:text-white bg-gradient-to-r from-rose-500 to-pink-600',
+        },
+        // Default case for when neither semantic nor solid variants are used
+        default => match ($color) {
         default => 'text-zinc-700 [&_button]:text-zinc-700! dark:text-zinc-200 dark:[&_button]:text-zinc-200! bg-zinc-400/15 dark:bg-zinc-400/40 [&:is(button)]:hover:bg-zinc-400/25 dark:[button]:hover:bg-zinc-400/50',
         'red' => 'text-red-700 [&_button]:text-red-700! dark:text-red-200 dark:[&_button]:text-red-200! bg-red-400/20 dark:bg-red-400/40 [&:is(button)]:hover:bg-red-400/30 dark:[button]:hover:bg-red-400/50',
         'orange' => 'text-orange-700 [&_button]:text-orange-700! dark:text-orange-200 dark:[&_button]:text-orange-200! bg-orange-400/20 dark:bg-orange-400/40 [&:is(button)]:hover:bg-orange-400/30 dark:[button]:hover:bg-orange-400/50',
@@ -73,6 +92,7 @@ $classes = Flux::classes()
         'fuchsia' => 'text-fuchsia-700 [&_button]:text-fuchsia-700! dark:text-fuchsia-200 dark:[&_button]:text-fuchsia-200! bg-fuchsia-400/20 dark:bg-fuchsia-400/40 [&:is(button)]:hover:bg-fuchsia-400/30 dark:[button]:hover:bg-fuchsia-400/50',
         'pink' => 'text-pink-700 [&_button]:text-pink-700! dark:text-pink-200 dark:[&_button]:text-pink-200! bg-pink-400/20 dark:bg-pink-400/40 [&:is(button)]:hover:bg-pink-400/30 dark:[button]:hover:bg-pink-400/50',
         'rose' => 'text-rose-700 [&_button]:text-rose-700! dark:text-rose-200 dark:[&_button]:text-rose-200! bg-rose-400/20 dark:bg-rose-400/40 [&:is(button)]:hover:bg-rose-400/30 dark:[button]:hover:bg-rose-400/50',
+        },
     });
 @endphp
 
