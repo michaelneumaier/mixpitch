@@ -296,7 +296,7 @@ class CreateProject extends Component
                 'value' => Project::WORKFLOW_TYPE_STANDARD,
                 'name' => 'Standard Project',
                 'description' => 'Open to all producers. Receive multiple pitches and choose the best one.',
-                'icon' => 'fas fa-bullhorn',
+                'icon' => 'megaphone',
                 'color' => 'blue',
                 'features' => [
                     'Open to all producers',
@@ -310,7 +310,7 @@ class CreateProject extends Component
                 'value' => Project::WORKFLOW_TYPE_CONTEST,
                 'name' => 'Contest Project',
                 'description' => 'Run a competition with deadlines and prizes to attract top talent.',
-                'icon' => 'fas fa-trophy',
+                'icon' => 'trophy',
                 'color' => 'amber',
                 'features' => [
                     'Competition format',
@@ -325,7 +325,7 @@ class CreateProject extends Component
             //     'value' => Project::WORKFLOW_TYPE_DIRECT_HIRE,
             //     'name' => 'Direct Hire',
             //     'description' => 'Invite a specific producer to work on your project privately.',
-            //     'icon' => 'fas fa-user-check',
+            //     'icon' => 'check-circle',
             //     'color' => 'green',
             //     'features' => [
             //         'Private collaboration',
@@ -339,7 +339,7 @@ class CreateProject extends Component
                 'value' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
                 'name' => 'Client Management',
                 'description' => 'Manage projects for external clients with a dedicated portal.',
-                'icon' => 'fas fa-briefcase',
+                'icon' => 'briefcase',
                 'color' => 'purple',
                 'features' => [
                     'Client portal access',
@@ -547,10 +547,10 @@ class CreateProject extends Component
         $this->project = new Project; // Keep for reference, maybe not needed
 
         // Check for workflow_type query parameter and auto-advance to step 2
-        if (!$project && request()->has('workflow_type')) {
+        if (! $project && request()->has('workflow_type')) {
             $workflowType = request()->get('workflow_type');
             $validWorkflowTypes = Project::getWorkflowTypes();
-            
+
             if (in_array($workflowType, $validWorkflowTypes)) {
                 $this->workflow_type = $workflowType;
                 $this->currentStep = 2; // Skip step 1 and go directly to step 2
@@ -1010,9 +1010,9 @@ class CreateProject extends Component
                 'target_producer_id' => $this->workflow_type === Project::WORKFLOW_TYPE_DIRECT_HIRE ? $this->target_producer_id : null,
                 'client_email' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_email : null,
                 'client_name' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT ? $this->client_name : null,
-                
+
                 // Check for existing user account and auto-link for Client Management
-                'client_user_id' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && $this->client_email ? 
+                'client_user_id' => $this->workflow_type === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && $this->client_email ?
                     $this->findClientUserByEmail($this->client_email) : null,
 
                 // Add payment_amount for Client Management (this gets passed to the ProjectObserver)
@@ -1228,7 +1228,8 @@ class CreateProject extends Component
 
     public function render()
     {
-        return view('livewire.project.page.create-project');
+        return view('livewire.project.page.create-project')
+            ->layout('components.layouts.app-sidebar');
     }
 
     /**
@@ -1283,6 +1284,7 @@ class CreateProject extends Component
     private function findClientUserByEmail(string $email): ?int
     {
         $user = \App\Models\User::where('email', $email)->first();
+
         return $user ? $user->id : null;
     }
 

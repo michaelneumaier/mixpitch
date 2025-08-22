@@ -10,11 +10,13 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/filament/billing/stripe-handler.js',
             ],
-            refresh: [
-                ...refreshPaths,
-                'app/Livewire/**',
-                'app/Filament/**',
-            ],
+            refresh: false
+            // [
+            //     ...refreshPaths,
+            //     'app/Livewire/**',
+            //     'app/Filament/**',
+            // ]
+            ,
         }),
     ],
     build: {

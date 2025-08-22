@@ -1,280 +1,208 @@
-<div>
-    <!-- Background Effects -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-indigo-600/20 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-blue-600/20 rounded-full blur-3xl"></div>
-        <div class="absolute top-1/3 left-1/4 w-64 h-64 bg-gradient-to-r from-blue-300/10 to-purple-300/10 rounded-full blur-2xl"></div>
-        <div class="absolute bottom-1/3 right-1/4 w-48 h-48 bg-gradient-to-l from-indigo-300/15 to-purple-300/15 rounded-full blur-xl"></div>
-    </div>
+<div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+    <div class="mx-auto px-2 md:py-2">
+        <div class="max-w-7xl mx-auto">
 
-    <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30 py-12">
-        <div class="max-w-7xl mx-auto px-2 md:px-6 lg:px-8">
-
-        <!-- Enhanced Header Section -->
-        <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden mb-8">
-            <!-- Header Background Effects -->
-            <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-purple-50/30 via-indigo-50/20 to-blue-50/30"></div>
-            <div class="absolute top-4 left-4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl"></div>
-            <div class="absolute top-4 right-4 w-16 h-16 bg-indigo-400/10 rounded-full blur-lg"></div>
-            
-            <div class="relative px-6 sm:px-8 py-8 z-10">
-                <!-- Breadcrumb Navigation -->
-                <div class="mb-6">
-                    <nav class="flex items-center space-x-2 text-sm">
-                        <a href="{{ route('profile.username', '@' . auth()->user()->username) }}" 
-                           class="text-gray-600 hover:text-indigo-600 transition-colors duration-200 flex items-center">
-                            <i class="fas fa-user-circle mr-1"></i>
-                            My Profile
-                        </a>
-                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
-                        <span class="text-indigo-600 font-medium">Portfolio Management</span>
-                    </nav>
+            <!-- Compact Dashboard Header -->
+            <flux:card class="mb-2 bg-white/50">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <flux:heading size="lg" class="bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 dark:from-gray-100 dark:via-indigo-300 dark:to-purple-300 bg-clip-text text-transparent">
+                        Portfolio Management
+                    </flux:heading>
+                    
+                    <div class="flex items-center gap-2">
+                        <flux:button href="{{ route('profile.username', '@' . auth()->user()->username) }}" icon="eye" variant="outline" size="xs">
+                            View Profile
+                        </flux:button>
+                        <flux:button wire:click="addItem()" icon="plus" variant="primary" size="xs">
+                            Add Item
+                        </flux:button>
+                    </div>
                 </div>
+                
+                <flux:subheading class="text-slate-600 dark:text-slate-400">
+                    Showcase your best work and manage your creative portfolio
+                </flux:subheading>
+            </flux:card>
 
-                <!-- Page Title and Stats -->
-                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                    <div class="flex-1">
-                        <h1 class="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent mb-3">
-                            Portfolio Management
-                        </h1>
-                        <p class="text-lg text-gray-600 font-medium mb-6">Showcase your best work and manage your creative portfolio</p>
-                        
-                        <!-- Portfolio Stats -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-                                <div class="flex items-center">
-                                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center mr-3 shadow-md">
-                                        <i class="fas fa-images text-white text-xs"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-600">Total Items</p>
-                                        <p class="text-xl font-bold text-gray-900">{{ count($portfolioItems ?? []) }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-                                <div class="flex items-center">
-                                    <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center mr-3 shadow-md">
-                                        <i class="fas fa-eye text-white text-xs"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-600">Public</p>
-                                        <p class="text-xl font-bold text-gray-900">{{ collect($portfolioItems ?? [])->where('is_public', true)->count() }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-                                <div class="flex items-center">
-                                    <div class="bg-gradient-to-r from-gray-500 to-slate-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center mr-3 shadow-md">
-                                        <i class="fas fa-eye-slash text-white text-xs"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-600">Private</p>
-                                        <p class="text-xl font-bold text-gray-900">{{ collect($portfolioItems ?? [])->where('is_public', false)->count() }}</p>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Portfolio Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <flux:card class="p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-sm">
+                            <flux:icon name="photo" class="text-white" size="sm" />
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-slate-600 dark:text-slate-400">Total Items</div>
+                            <div class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ count($portfolioItems ?? []) }}</div>
                         </div>
                     </div>
-                    
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <a href="{{ route('profile.username', '@' . auth()->user()->username) }}" 
-                           class="group inline-flex items-center justify-center px-6 py-3 bg-white/80 backdrop-blur-sm border border-white/30 text-gray-700 font-semibold rounded-xl shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-200 hover:scale-105">
-                            <i class="fas fa-external-link-alt mr-2 group-hover:scale-110 transition-transform"></i>
-                            View Public Profile
-                        </a>
-                        <button wire:click="addItem()" 
-                                class="group inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
-                            <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
-                            Add Portfolio Item
-                        </button>
+                </flux:card>
+                
+                <flux:card class="p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg shadow-sm">
+                            <flux:icon name="eye" class="text-white" size="sm" />
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-slate-600 dark:text-slate-400">Public</div>
+                            <div class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ collect($portfolioItems ?? [])->where('is_public', true)->count() }}</div>
+                        </div>
                     </div>
-                </div>
+                </flux:card>
+                
+                <flux:card class="p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-gradient-to-r from-gray-500 to-slate-600 rounded-lg shadow-sm">
+                            <flux:icon name="eye-slash" class="text-white" size="sm" />
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-slate-600 dark:text-slate-400">Private</div>
+                            <div class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ collect($portfolioItems ?? [])->where('is_public', false)->count() }}</div>
+                        </div>
+                    </div>
+                </flux:card>
             </div>
-        </div>
 
-        <!-- Portfolio Items Section -->
-        <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden">
-            <!-- Section Background -->
-            <div class="absolute inset-0 bg-gradient-to-br from-indigo-50/20 to-purple-50/20 rounded-2xl"></div>
-            <div class="absolute top-4 right-4 w-20 h-20 bg-indigo-400/10 rounded-full blur-xl"></div>
-            <div class="absolute bottom-4 left-4 w-16 h-16 bg-purple-400/10 rounded-full blur-lg"></div>
-            
-            <div class="relative p-2 md:p-6">
+            <!-- Portfolio Items Section -->
+            <flux:card>
                 @if(count($portfolioItems ?? []) > 0)
                     <!-- Portfolio Grid Header -->
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent flex items-center">
-                            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
-                                <i class="fas fa-th-large text-white text-sm"></i>
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-sm">
+                                <flux:icon name="squares-2x2" class="text-white" size="lg" />
                             </div>
-                            Your Portfolio Items
-                        </h2>
-                        <div class="text-sm text-gray-600 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl px-4 py-2 shadow-sm">
-                            <i class="fas fa-arrows-alt mr-2"></i>
-                            Drag to reorder
+                            <flux:heading size="lg" class="text-slate-800 dark:text-slate-200">Your Portfolio Items</flux:heading>
                         </div>
+                        <flux:badge color="blue" size="sm">
+                            <flux:icon name="arrows-pointing-in" size="xs" class="mr-1" />
+                            Drag to reorder
+                        </flux:badge>
                     </div>
 
                     <!-- Portfolio Items Grid -->
-                    <div id="portfolio-sortable" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            @foreach($portfolioItems as $item)
-                            <div data-item-id="{{ $item->id }}" wire:key="portfolio-item-{{ $item->id }}" class="group bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl overflow-hidden hover:bg-white/80 hover:shadow-xl transition-all duration-300 cursor-move">
-                                
-                                <!-- Order Display Header -->
-                                <div class="p-3 border-b border-white/30 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center text-sm text-gray-600">
-                                            <i class="fas fa-grip-vertical text-gray-400 mr-2"></i>
-                                            <span class="font-medium">Order: {{ $item->display_order }}</span>
-                                        </div>
-                                        <i class="fas fa-arrows-alt text-gray-400"></i>
-                                    </div>
+                    <div id="portfolio-sortable" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @foreach($portfolioItems as $item)
+                        <flux:card data-item-id="{{ $item->id }}" wire:key="portfolio-item-{{ $item->id }}" class="cursor-move hover:shadow-lg transition-all duration-300">
+                            <!-- Order Display Header -->
+                            <div class="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                                <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                    <flux:icon name="bars-3" size="xs" class="text-slate-400" />
+                                    <span class="font-medium">Order: {{ $item->display_order }}</span>
                                 </div>
+                                <flux:icon name="arrows-pointing-in" size="xs" class="text-slate-400" />
+                            </div>
                             
-                            <!-- Item Header -->
-                            <div class="p-6 pb-4">
-                                <div class="flex items-start justify-between mb-3">
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="font-bold text-gray-900 text-lg mb-1 truncate group-hover:text-indigo-600 transition-colors duration-200">
-                                            {{ $item->title }}
-                                        </h3>
+                            <!-- Item Content -->
+                            <div class="p-4">
+                                <div class="mb-3">
+                                    <flux:heading size="sm" class="mb-1 truncate group-hover:text-indigo-600 transition-colors duration-200">
+                                        {{ $item->title }}
+                                    </flux:heading>
                                     @if($item->description)
-                                        <p class="text-gray-600 text-sm line-clamp-2 leading-relaxed">{{ $item->description }}</p>
+                                        <flux:text size="sm" class="text-slate-600 dark:text-slate-400 line-clamp-2">{{ $item->description }}</flux:text>
                                     @endif
-                                    </div>
                                 </div>
                                 
                                 <!-- Item Type and Visibility Badges -->
                                 <div class="flex items-center gap-2 mb-4">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border shadow-sm
-                                        @if($item->item_type === \App\Models\PortfolioItem::TYPE_AUDIO) bg-blue-100/80 border-blue-200/50 text-blue-800 
-                                        @elseif($item->item_type === \App\Models\PortfolioItem::TYPE_YOUTUBE) bg-red-100/80 border-red-200/50 text-red-800 
-                                        @else bg-gray-100/80 border-gray-200/50 text-gray-800 @endif">
+                                    <flux:badge 
+                                        :color="match($item->item_type) {
+                                            \App\Models\PortfolioItem::TYPE_AUDIO => 'blue',
+                                            \App\Models\PortfolioItem::TYPE_YOUTUBE => 'red',
+                                            default => 'gray'
+                                        }"
+                                        size="sm"
+                                    >
                                         @if($item->item_type === \App\Models\PortfolioItem::TYPE_AUDIO)
-                                            <i class="fas fa-music mr-1"></i> Audio
+                                            Audio
                                         @elseif($item->item_type === \App\Models\PortfolioItem::TYPE_YOUTUBE)
-                                            <i class="fab fa-youtube mr-1"></i> YouTube
+                                            YouTube
                                         @else
-                                        {{ ucfirst($item->item_type) }}
+                                            {{ ucfirst($item->item_type) }}
                                         @endif
-                                    </span>
+                                    </flux:badge>
                                     
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border shadow-sm
-                                        @if($item->is_public) bg-green-100/80 border-green-200/50 text-green-800 
-                                        @else bg-gray-100/80 border-gray-200/50 text-gray-800 @endif">
-                                        @if($item->is_public)
-                                            <i class="fas fa-eye mr-1"></i> Public
-                                        @else
-                                            <i class="fas fa-eye-slash mr-1"></i> Private
-                                        @endif
-                                    </span>
+                                    <flux:badge 
+                                        :color="$item->is_public ? 'green' : 'gray'"
+                                        size="sm"
+                                    >
+                                        {{ $item->is_public ? 'Public' : 'Private' }}
+                                    </flux:badge>
                                 </div>
-                            </div>
 
-                            <!-- Item Preview -->
-                            <div class="px-6 pb-4">
+                                <!-- Item Preview -->
                                 @if($item->item_type === \App\Models\PortfolioItem::TYPE_AUDIO && $item->file_path)
-                                    <div class="bg-gradient-to-r from-blue-100/80 to-indigo-100/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 shadow-sm">
-                                        <div class="flex items-center text-blue-700">
-                                            <i class="fas fa-music text-lg mr-3"></i>
+                                    <flux:callout color="blue" size="sm" class="mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <flux:icon name="musical-note" size="lg" />
                                             <div>
-                                                <p class="font-medium text-sm">Audio File</p>
-                                                <p class="text-xs text-blue-600">{{ basename($item->file_path) }}</p>
+                                                <div class="font-medium text-sm">Audio File</div>
+                                                <div class="text-xs opacity-75">{{ basename($item->file_path) }}</div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </flux:callout>
                                 @elseif($item->item_type === \App\Models\PortfolioItem::TYPE_YOUTUBE && $item->video_id)
-                                    <div class="bg-gradient-to-r from-red-100/80 to-pink-100/80 backdrop-blur-sm border border-red-200/50 rounded-xl p-4 shadow-sm">
-                                        <div class="flex items-center text-red-700">
-                                            <i class="fab fa-youtube text-lg mr-3"></i>
+                                    <flux:callout color="red" size="sm" class="mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <flux:icon name="play" size="lg" />
                                             <div>
-                                                <p class="font-medium text-sm">YouTube Video</p>
-                                                <p class="text-xs text-red-600">ID: {{ $item->video_id }}</p>
+                                                <div class="font-medium text-sm">YouTube Video</div>
+                                                <div class="text-xs opacity-75">ID: {{ $item->video_id }}</div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </flux:callout>
                                 @endif
-                            </div>
 
-                            <!-- Item Actions -->
-                            <div class="px-6 pb-6">
-                                    <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/30">
-                                        <button wire:click="editItem({{ $item->id }})" 
-                                                data-no-drag
-                                                class="group inline-flex items-center px-3 py-2 bg-indigo-100/80 hover:bg-indigo-200/80 text-indigo-700 hover:text-indigo-800 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 shadow-sm">
-                                            <i class="fas fa-edit mr-1 group-hover:scale-110 transition-transform"></i>
-                                            Edit
-                                    </button>
-                                        <button wire:click="deleteItem({{ $item->id }})" 
-                                                data-no-drag
-                                                class="group inline-flex items-center px-3 py-2 bg-red-100/80 hover:bg-red-200/80 text-red-700 hover:text-red-800 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 shadow-sm">
-                                            <i class="fas fa-trash-alt mr-1 group-hover:scale-110 transition-transform"></i>
-                                            Delete
-                                    </button>
+                                <!-- Item Actions -->
+                                <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <flux:button wire:click="editItem({{ $item->id }})" data-no-drag icon="pencil" variant="outline" size="xs">
+                                        Edit
+                                    </flux:button>
+                                    <flux:button wire:click="deleteItem({{ $item->id }})" data-no-drag icon="trash" variant="danger" size="xs">
+                                        Delete
+                                    </flux:button>
                                 </div>
                             </div>
-                        </div>
-                            @endforeach
-                </div>
+                        </flux:card>
+                        @endforeach
+                    </div>
                 @else
-                    <!-- Enhanced Empty State -->
-                    <div class="text-center py-16">
-                        <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-2xl p-12 shadow-lg max-w-md mx-auto">
-                            <!-- Animated Icon -->
-                            <div class="relative mb-6">
-                                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full p-6 w-24 h-24 mx-auto shadow-xl">
-                                    <i class="fas fa-images text-white text-3xl"></i>
-                                </div>
-                                
-                    </div>
-                            
-                            <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent mb-3">
-                                No Portfolio Items Yet
-                            </h3>
-                            <p class="text-gray-600 mb-8 leading-relaxed">
-                                Start building your portfolio by adding your best work. Showcase audio files, YouTube videos, and more to attract potential clients.
-                            </p>
-                            
-                            <button wire:click="addItem()" 
-                                    class="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
-                                <i class="fas fa-plus mr-3 group-hover:scale-110 transition-transform"></i>
-                                Add Your First Portfolio Item
-                    </button>
+                    <!-- Empty State -->
+                    <div class="text-center py-12">
+                        <div class="mb-4">
+                            <flux:icon name="photo" class="mx-auto text-slate-400 dark:text-slate-500" size="2xl" />
                         </div>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        <!-- Add/Edit Form Modal -->
-                @if($showForm)
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4">
-            <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <!-- Modal Background Effects -->
-                <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-50/30 via-purple-50/20 to-blue-50/30 rounded-t-2xl"></div>
-                <div class="absolute top-4 left-4 w-16 h-16 bg-indigo-400/10 rounded-full blur-lg"></div>
-                <div class="absolute top-4 right-4 w-12 h-12 bg-purple-400/10 rounded-full blur-md"></div>
-                
-                <div class="relative p-4 md:p-6">
-                    <!-- Modal Header -->
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-indigo-800 bg-clip-text text-transparent flex items-center">
-                            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
-                                <i class="fas fa-{{ $editingItemId ? 'edit' : 'plus' }} text-white text-sm"></i>
-                            </div>
-                            {{ $editingItemId ? 'Edit' : 'Add' }} Portfolio Item
-                        </h3>
-                        <button wire:click="resetForm()" 
-                                class="group p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100/50 rounded-lg transition-all duration-200 hover:scale-110">
-                            <i class="fas fa-times text-lg group-hover:scale-110 transition-transform"></i>
-                        </button>
+                        <flux:heading size="lg" class="mb-2">No Portfolio Items Yet</flux:heading>
+                        <flux:text class="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
+                            Start building your portfolio by adding your best work. Showcase audio files, YouTube videos, and more to attract potential clients.
+                        </flux:text>
+                        
+                        <flux:button wire:click="addItem()" icon="plus" variant="primary">
+                            Add Your First Portfolio Item
+                        </flux:button>
                     </div>
+                @endif
+            </flux:card>
 
-                    <!-- Form Content -->
+            <!-- Add/Edit Form Modal -->
+            @if($showForm)
+            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-sm">
+                                <flux:icon name="{{ $editingItemId ? 'pencil' : 'plus' }}" class="text-white" size="sm" />
+                            </div>
+                            <flux:heading size="lg">{{ $editingItemId ? 'Edit' : 'Add' }} Portfolio Item</flux:heading>
+                        </div>
+                        <flux:button wire:click="resetForm()" icon="x-mark" variant="ghost" size="sm" />
+                    </div>
+                    
+                    <!-- Modal Body -->
+                    <div class="p-6">
+
                     <div x-data="{ 
                         currentType: @entangle('type').live,
                         init() {
@@ -282,188 +210,146 @@
                                 // Type change handling
                             });
                         }
-                    }" class="relative space-y-2 md:space-y-6">
+                    }" class="space-y-6">
                         
                         <!-- Form Loading Overlay -->
-                        <div wire:loading wire:target="saveItem" class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl z-10 flex items-center justify-center">
+                        <div wire:loading wire:target="saveItem" class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
                             <div class="text-center">
-                                <div class="bg-white/90 backdrop-blur-sm border border-white/30 rounded-2xl p-2 md:p-8 shadow-xl">
-                                    <div class="flex items-center justify-center mb-4">
-                                        <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                    </div>
-                                    <h4 class="text-lg font-semibold text-gray-900 mb-2">Saving Portfolio Item</h4>
-                                    <p class="text-sm text-gray-600">
-                                        <span class="animate-pulse">Processing your upload...</span>
-                                    </p>
-                                    <div class="mt-4 bg-gray-200 rounded-full h-2 overflow-hidden">
-                                        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full animate-pulse"></div>
-                                    </div>
-                                </div>
+                                <flux:icon name="arrow-path" class="animate-spin mx-auto mb-4 text-indigo-600" size="lg" />
+                                <flux:heading size="base" class="mb-2">Saving Portfolio Item</flux:heading>
+                                <flux:text size="sm" class="animate-pulse">Processing your upload...</flux:text>
                             </div>
                         </div>
                         
                         <!-- Form Fields Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Item Type -->
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-                                <label class="block text-sm font-semibold text-gray-700 mb-3">Item Type</label>
-                                <select x-model="currentType"
-                                    wire:model.live="type" 
-                                        class="w-full rounded-xl border-white/30 bg-white/80 backdrop-blur-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200">
+                            <flux:field>
+                                <flux:label>Item Type</flux:label>
+                                <select x-model="currentType" wire:model.live="type" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                                     <option value="{{\App\Models\PortfolioItem::TYPE_AUDIO}}">🎵 Audio File</option>
                                     <option value="{{\App\Models\PortfolioItem::TYPE_YOUTUBE}}">📺 YouTube Video</option>
                                 </select>
-                                @error('type') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
+                                <flux:error name="type" />
+                            </flux:field>
 
                             <!-- Title -->
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-                                <label class="block text-sm font-semibold text-gray-700 mb-3">Title</label>
-                                <input type="text" 
-                                       wire:model="title" 
-                                       class="w-full rounded-xl border-white/30 bg-white/80 backdrop-blur-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
-                                       placeholder="Enter a descriptive title">
-                                @error('title') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
+                            <flux:field>
+                                <flux:label>Title</flux:label>
+                                <flux:input wire:model="title" placeholder="Enter a descriptive title" />
+                                <flux:error name="title" />
+                            </flux:field>
                         </div>
 
                         <!-- Description -->
-                        <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm">
-                            <label class="block text-sm font-semibold text-gray-700 mb-3">Description (Optional)</label>
-                            <textarea wire:model="description" 
-                                      rows="3"
-                                      class="w-full rounded-xl border-white/30 bg-white/80 backdrop-blur-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
-                                      placeholder="Describe your work, the process, or any relevant details..."></textarea>
-                            @error('description') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
+                        <flux:field>
+                            <flux:label>Description (Optional)</flux:label>
+                            <flux:textarea wire:model="description" rows="3" placeholder="Describe your work, the process, or any relevant details..." />
+                            <flux:error name="description" />
+                        </flux:field>
 
                         <!-- Audio File Section -->
                         <div x-show="currentType === '{{\App\Models\PortfolioItem::TYPE_AUDIO}}'" 
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0 transform scale-95"
-                             x-transition:enter-end="opacity-100 transform scale-100"
-                             class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-6 shadow-sm">
+                             x-transition:enter-end="opacity-100 transform scale-100">
                             
-                            <label class="block text-sm font-semibold text-gray-700 mb-4">Audio File (MP3, WAV - Max 100MB)</label>
-                            
-                            @if($editingItemId && $existingFilePath)
-                                <div class="mb-4 p-4 bg-blue-100/80 backdrop-blur-sm border border-blue-200/50 rounded-xl">
-                                    <div class="flex items-center text-blue-700">
-                                        <i class="fas fa-music mr-3"></i>
-                                    <div>
-                                            <p class="font-medium">Current file: {{ basename($existingFilePath) }}</p>
-                                            <p class="text-sm text-blue-600">Upload a new file to replace the current one</p>
+                            <flux:field>
+                                <flux:label>Audio File (MP3, WAV - Max 100MB)</flux:label>
+                                
+                                @if($editingItemId && $existingFilePath)
+                                    <flux:callout color="blue" class="mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <flux:icon name="musical-note" />
+                                            <div>
+                                                <div class="font-medium">Current file: {{ basename($existingFilePath) }}</div>
+                                                <div class="text-sm opacity-75">Upload a new file to replace the current one</div>
+                                            </div>
+                                        </div>
+                                    </flux:callout>
+                                @endif
+                                
+                                <!-- File Upload Area -->
+                                <div class="relative">
+                                    <label for="audioFile" class="cursor-pointer block">
+                                        <div class="border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 hover:border-indigo-400 hover:bg-indigo-50/50
+                                            {{ $audioFile ? 'border-green-400 bg-green-50/50' : 'border-gray-300' }}">
+                                            @if($audioFile)
+                                                <flux:icon name="check-circle" class="text-green-500 mx-auto mb-3" size="xl" />
+                                                <flux:text class="text-green-700 font-medium">{{ $audioFile->getClientOriginalName() }}</flux:text>
+                                                <flux:text size="sm" class="text-green-600 mt-1">File ready for upload</flux:text>
+                                            @else
+                                                <flux:icon name="cloud-arrow-up" class="text-gray-400 mx-auto mb-3" size="xl" />
+                                                <flux:text class="text-gray-600 font-medium">Click to select audio file</flux:text>
+                                                <flux:text size="sm" class="text-gray-500 mt-1">or drag and drop here</flux:text>
+                                            @endif
+                                        </div>
+                                        <input id="audioFile" type="file" wire:model.live="audioFile" class="hidden" accept=".mp3,.wav">
+                                    </label>
+                                    
+                                    <div wire:loading wire:target="audioFile" class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                                        <div class="text-indigo-600 text-center">
+                                            <flux:icon name="arrow-path" class="animate-spin mx-auto mb-2" size="lg" />
+                                            <flux:text class="font-medium">Uploading...</flux:text>
                                         </div>
                                     </div>
                                 </div>
-                            @endif
-                            
-                            <!-- File Upload Area -->
-                            <div class="relative">
-                                <label for="audioFile" class="cursor-pointer block">
-                                    <div class="border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 hover:border-indigo-400 hover:bg-indigo-50/50
-                                        {{ $audioFile ? 'border-green-400 bg-green-50/50' : 'border-gray-300' }}">
-                                        @if($audioFile)
-                                            <i class="fas fa-check-circle text-green-500 text-3xl mb-3"></i>
-                                            <p class="text-green-700 font-medium">{{ $audioFile->getClientOriginalName() }}</p>
-                                            <p class="text-sm text-green-600 mt-1">File ready for upload</p>
-                                        @else
-                                            <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
-                                            <p class="text-gray-600 font-medium">Click to select audio file</p>
-                                            <p class="text-sm text-gray-500 mt-1">or drag and drop here</p>
-                                        @endif
-                                    </div>
-                                    <input id="audioFile" type="file" wire:model.live="audioFile" class="hidden" accept=".mp3,.wav">
-                                </label>
-                                
-                                <div wire:loading wire:target="audioFile" class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                                    <div class="text-indigo-600 text-center">
-                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                                        <p class="font-medium">Uploading...</p>
-                                    </div>
-                            </div>
-                            </div>
-                            @error('audioFile') <p class="mt-3 text-sm text-red-600">{{ $message }}</p> @enderror
+                                <flux:error name="audioFile" />
+                            </flux:field>
                         </div>
 
                         <!-- YouTube Video Section -->
                         <div x-show="currentType === '{{\App\Models\PortfolioItem::TYPE_YOUTUBE}}'" 
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0 transform scale-95"
-                             x-transition:enter-end="opacity-100 transform scale-100"
-                             class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-6 shadow-sm">
+                             x-transition:enter-end="opacity-100 transform scale-100">
                             
-                            <label class="block text-sm font-semibold text-gray-700 mb-4">YouTube Video URL</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <i class="fab fa-youtube text-red-500 text-lg"></i>
+                            <flux:field>
+                                <flux:label>YouTube Video URL</flux:label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <flux:icon name="play" class="text-red-500" />
+                                    </div>
+                                    <flux:input type="url" wire:model.live="video_url" class="pl-10" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." />
                                 </div>
-                                <input type="url" 
-                                       wire:model.live="video_url" 
-                                       class="w-full pl-12 rounded-xl border-white/30 bg-white/80 backdrop-blur-sm shadow-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all duration-200"
-                                       placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
-                            </div>
-                            @error('video_url') <p class="mt-3 text-sm text-red-600">{{ $message }}</p> @enderror
+                                <flux:error name="video_url" />
+                            </flux:field>
                         </div>
 
                         <!-- Visibility Toggle -->
-                        <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-6 shadow-sm">
-                            <div class="flex items-start space-x-4">
-                                <div class="flex items-center h-6">
-                                    <input id="isPublic" 
-                                           type="checkbox" 
-                                           wire:model="isPublic" 
-                                           class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2">
-                                </div>
-                                <div class="flex-1">
-                                    <label for="isPublic" class="text-sm font-semibold text-gray-700">Show publicly on profile</label>
-                                    <p class="text-sm text-gray-600 mt-1">When enabled, this item will be visible to anyone who views your profile</p>
+                        <flux:field>
+                            <div class="flex items-start gap-4">
+                                <flux:checkbox wire:model="isPublic" />
+                                <div>
+                                    <flux:label>Show publicly on profile</flux:label>
+                                    <flux:text size="sm" class="text-slate-600 dark:text-slate-400">When enabled, this item will be visible to anyone who views your profile</flux:text>
                                 </div>
                             </div>
-                            @error('isPublic') <p class="mt-3 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
+                            <flux:error name="isPublic" />
+                        </flux:field>
 
-                        <!-- Form Actions -->
-                        <div class="flex justify-end gap-4 pt-6 border-t border-white/30">
-                            <button wire:click="resetForm()" 
-                                    wire:loading.attr="disabled"
-                                    wire:target="saveItem"
-                                    class="inline-flex items-center px-6 py-3 bg-white/80 backdrop-blur-sm border border-white/30 text-gray-700 font-semibold rounded-xl shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                                Cancel
-                            </button>
-                            
-                            <!-- Save Button with Loading States -->
-                            <button wire:click="saveItem()" 
-                                    wire:loading.attr="disabled"
-                                    wire:target="saveItem"
-                                    class="group relative inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:scale-100 min-w-[140px]">
-                                
-                                <!-- Normal State -->
-                                <span wire:loading.remove wire:target="saveItem" class="flex items-center">
-                                    <i class="fas fa-save mr-2 group-hover:scale-110 transition-transform"></i>
-                                    Save Item
-                                </span>
-                                
-                                <!-- Loading State -->
-                                <span wire:loading wire:target="saveItem" class="flex items-center">
-                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span class="animate-pulse">Saving...</span>
-                                </span>
-                            </button>
-                        </div>
+                    </div>
+                    
+                    <!-- Modal Footer -->
+                    <div class="flex justify-end gap-4 p-6 border-t border-gray-200 dark:border-gray-700">
+                        <flux:button wire:click="resetForm()" wire:loading.attr="disabled" wire:target="saveItem" variant="ghost">
+                            Cancel
+                        </flux:button>
+                        
+                        <flux:button wire:click="saveItem()" wire:loading.attr="disabled" wire:target="saveItem" variant="primary">
+                            <span wire:loading.remove wire:target="saveItem">Save Item</span>
+                            <span wire:loading wire:target="saveItem" class="flex items-center gap-2">
+                                <flux:icon name="arrow-path" class="animate-spin" size="sm" />
+                                Saving...
+                            </span>
+                        </flux:button>
                     </div>
                 </div>
             </div>
+            @endif
         </div>
-        @endif
     </div>
-</div>
+
 
 <!-- Simple CSS for drag states -->
 <style>
@@ -674,3 +560,4 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     </script>
+    </div>

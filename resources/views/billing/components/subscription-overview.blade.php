@@ -1,83 +1,81 @@
 <!-- Subscription Overview Section -->
-<div class="mb-8">
-    <div class="bg-gradient-to-br from-white/90 to-blue-50/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-xl p-8">
+<flux:card class="mb-2">
+    <div class="">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <!-- Plan Information -->
             <div class="mb-6 lg:mb-0">
                 <div class="flex items-center mb-4">
-                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mr-4">
-                        <i class="fas fa-crown text-white text-xl"></i>
+                    <div class="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl mr-4">
+                        <flux:icon name="star" class="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                        <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                            Current Subscription
-                        </h2>
-                        <p class="text-gray-600">Manage your plan and billing settings</p>
+                        <flux:heading size="lg" class="mb-1">Current Subscription</flux:heading>
+                        <flux:subheading>Manage your plan and billing settings</flux:subheading>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- Plan Badge -->
                     <div class="flex items-center space-x-3">
-                        <div class="text-2xl">
+                        <div class="flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg">
                             @if($user->subscription_tier === 'artist')
-                                🔷
+                                <flux:icon name="musical-note" class="w-6 h-6 text-blue-600 dark:text-blue-400" />
                             @elseif($user->subscription_tier === 'engineer')
-                                🔶
+                                <flux:icon name="cog-6-tooth" class="w-6 h-6 text-orange-600 dark:text-orange-400" />
                             @else
-                                🆓
+                                <flux:icon name="user" class="w-6 h-6 text-gray-600 dark:text-gray-400" />
                             @endif
                         </div>
                         <div>
-                            <div class="text-sm font-medium text-gray-500">Plan</div>
-                            <div class="text-lg font-bold text-gray-900">{{ $billingSummary['plan_name'] }}</div>
+                            <flux:text size="sm" class="text-gray-500 dark:text-gray-400">Plan</flux:text>
+                            <flux:text class="font-semibold text-gray-900 dark:text-white">{{ $billingSummary['plan_name'] }}</flux:text>
                         </div>
                     </div>
                     
                     <!-- Billing Period -->
                     <div class="flex items-center space-x-3">
-                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg">
-                            <i class="fas fa-calendar-alt text-green-600"></i>
+                        <div class="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                            <flux:icon name="calendar" class="w-6 h-6 text-green-600 dark:text-green-400" />
                         </div>
                         <div>
-                            <div class="text-sm font-medium text-gray-500">Billing</div>
-                            <div class="text-lg font-bold text-gray-900">{{ $billingSummary['billing_period'] }}</div>
+                            <flux:text size="sm" class="text-gray-500 dark:text-gray-400">Billing</flux:text>
+                            <flux:text class="font-semibold text-gray-900 dark:text-white">{{ $billingSummary['billing_period'] }}</flux:text>
                             @if($billingSummary['yearly_savings'])
-                                <div class="text-xs text-green-600 font-medium">
+                                <flux:badge color="green" size="sm" class="mt-1">
                                     Saving ${{ number_format($billingSummary['yearly_savings'], 2) }}/year
-                                </div>
+                                </flux:badge>
                             @endif
                         </div>
                     </div>
                     
                     <!-- Next Billing / Status -->
                     <div class="flex items-center space-x-3">
-                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg">
+                        <div class="flex items-center justify-center w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                             @if($onGracePeriod)
-                                <i class="fas fa-hourglass-half text-yellow-600"></i>
+                                <flux:icon name="clock" class="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                             @elseif($isSubscribed)
-                                <i class="fas fa-check-circle text-green-600"></i>
+                                <flux:icon name="check-circle" class="w-6 h-6 text-green-600 dark:text-green-400" />
                             @else
-                                <i class="fas fa-exclamation-circle text-gray-600"></i>
+                                <flux:icon name="exclamation-circle" class="w-6 h-6 text-gray-600 dark:text-gray-400" />
                             @endif
                         </div>
                         <div>
                             @if($onGracePeriod)
-                                <div class="text-sm font-medium text-yellow-600">Cancelling</div>
-                                <div class="text-lg font-bold text-yellow-700">
+                                <flux:text size="sm" class="text-yellow-600 dark:text-yellow-400">Cancelling</flux:text>
+                                <flux:text class="font-semibold text-yellow-700 dark:text-yellow-300">
                                     {{ $subscription->ends_at->format('M d, Y') }}
-                                </div>
+                                </flux:text>
                             @elseif($isSubscribed && $billingSummary['next_billing_date'])
-                                <div class="text-sm font-medium text-gray-500">Next Billing</div>
-                                <div class="text-lg font-bold text-gray-900">
+                                <flux:text size="sm" class="text-gray-500 dark:text-gray-400">Next Billing</flux:text>
+                                <flux:text class="font-semibold text-gray-900 dark:text-white">
                                     {{ $billingSummary['next_billing_date']->format('M d, Y') }}
-                                </div>
-                                <div class="text-xs text-gray-500">
+                                </flux:text>
+                                <flux:text size="sm" class="text-gray-500 dark:text-gray-400">
                                     {{ $billingSummary['next_billing_date']->diffForHumans() }}
-                                </div>
+                                </flux:text>
                             @else
-                                <div class="text-sm font-medium text-gray-500">Status</div>
-                                <div class="text-lg font-bold text-gray-900">Free Plan</div>
+                                <flux:text size="sm" class="text-gray-500 dark:text-gray-400">Status</flux:text>
+                                <flux:text class="font-semibold text-gray-900 dark:text-white">Free Plan</flux:text>
                             @endif
                         </div>
                     </div>
@@ -87,69 +85,53 @@
             <!-- Quick Actions -->
             <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
                 @if($user->isFreePlan())
-                    <a href="{{ route('pricing') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-medium">
-                        <i class="fas fa-rocket mr-2"></i>
+                    <flux:button href="{{ route('pricing') }}" variant="primary" icon="rocket-launch">
                         Upgrade to Pro
-                    </a>
-                    <a href="{{ route('subscription.index') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl border border-gray-300/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-medium">
-                        <i class="fas fa-cog mr-2"></i>
+                    </flux:button>
+                    <flux:button href="{{ route('subscription.index') }}" variant="outline" icon="cog-6-tooth">
                         View Plans
-                    </a>
+                    </flux:button>
                 @elseif($onGracePeriod)
                     <form action="{{ route('subscription.resume') }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-medium">
-                            <i class="fas fa-play mr-2"></i>
+                        <flux:button type="submit" variant="primary" icon="play" class="w-full">
                             Resume Subscription
-                        </button>
+                        </flux:button>
                     </form>
-                    <a href="{{ route('subscription.index') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl border border-gray-300/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-medium">
-                        <i class="fas fa-cog mr-2"></i>
+                    <flux:button href="{{ route('subscription.index') }}" variant="outline" icon="cog-6-tooth">
                         Manage Plan
-                    </a>
+                    </flux:button>
                 @else
-                    <a href="{{ route('subscription.index') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-medium">
-                        <i class="fas fa-cog mr-2"></i>
+                    <flux:button href="{{ route('subscription.index') }}" variant="primary" icon="cog-6-tooth">
                         Manage Subscription
-                    </a>
-                    <a href="{{ route('billing.portal') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl border border-gray-300/50 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 font-medium">
-                        <i class="fas fa-external-link-alt mr-2"></i>
+                    </flux:button>
+                    <flux:button href="{{ route('billing.portal') }}" variant="outline" icon="arrow-top-right-on-square">
                         Billing Portal
-                    </a>
+                    </flux:button>
                 @endif
             </div>
         </div>
         
         <!-- Subscription Status Alert -->
         @if($onGracePeriod)
-            <div class="mt-6 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
-                <div class="flex items-center">
-                    <div class="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-lg mr-3">
-                        <i class="fas fa-exclamation-triangle text-yellow-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h4 class="font-medium text-yellow-800">Subscription Ending</h4>
-                        <p class="text-sm text-yellow-700 mt-1">
-                            Your subscription will end on {{ $subscription->ends_at->format('F j, Y') }}. 
-                            You'll continue to have access to Pro features until then.
-                        </p>
-                    </div>
-                </div>
+            <div class="mt-6">
+                <flux:callout variant="warning">
+                    <flux:heading size="sm">Subscription Ending</flux:heading>
+                    <flux:text class="mt-1">
+                        Your subscription will end on {{ $subscription->ends_at->format('F j, Y') }}. 
+                        You'll continue to have access to Pro features until then.
+                    </flux:text>
+                </flux:callout>
             </div>
         @elseif($isSubscribed && $billingSummary['next_billing_date'] && $billingSummary['next_billing_date']->diffInDays() <= 7)
-            <div class="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
-                <div class="flex items-center">
-                    <div class="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mr-3">
-                        <i class="fas fa-info-circle text-blue-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h4 class="font-medium text-blue-800">Upcoming Billing</h4>
-                        <p class="text-sm text-blue-700 mt-1">
-                            Your next payment of {{ $billingSummary['formatted_price'] }} will be processed on {{ $billingSummary['next_billing_date']->format('F j, Y') }}.
-                        </p>
-                    </div>
-                </div>
+            <div class="mt-6">
+                <flux:callout variant="info">
+                    <flux:heading size="sm">Upcoming Billing</flux:heading>
+                    <flux:text class="mt-1">
+                        Your next payment of {{ $billingSummary['formatted_price'] }} will be processed on {{ $billingSummary['next_billing_date']->format('F j, Y') }}.
+                    </flux:text>
+                </flux:callout>
             </div>
         @endif
     </div>
-</div> 
+</flux:card> 

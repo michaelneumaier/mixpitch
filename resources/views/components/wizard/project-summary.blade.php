@@ -10,7 +10,7 @@
         <div class="relative">
             <h4 class="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-4 flex items-center">
                 <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
-                    <i class="fas fa-check-circle text-white"></i>
+                    <flux:icon name="check-circle" class="w-5 h-5 text-white" />
                 </div>
                 Project Summary
             </h4>
@@ -21,7 +21,7 @@
                 <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
-                            <i class="{{ $workflowConfig['icon'] ?? 'fas fa-workflow' }} text-white text-sm"></i>
+                            <flux:icon name="{{ $workflowConfig['icon'] ?? 'cog' }}" class="w-4 h-4 text-white" />
                         </div>
                     </div>
                     <span class="text-xs font-bold bg-gradient-to-r from-purple-700 to-purple-800 bg-clip-text text-transparent block mb-1">Workflow</span>
@@ -32,7 +32,7 @@
                 <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
-                            <i class="fas fa-project-diagram text-white text-sm"></i>
+                            <flux:icon name="squares-2x2" class="w-4 h-4 text-white" />
                         </div>
                     </div>
                     <span class="text-xs font-bold bg-gradient-to-r from-blue-700 to-blue-800 bg-clip-text text-transparent block mb-1">Type</span>
@@ -43,7 +43,7 @@
                 <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
-                            <i class="fas fa-dollar-sign text-white text-sm"></i>
+                            <flux:icon name="currency-dollar" class="w-4 h-4 text-white" />
                         </div>
                     </div>
                     <span class="text-xs font-bold bg-gradient-to-r from-green-700 to-green-800 bg-clip-text text-transparent block mb-1">Budget</span>
@@ -60,7 +60,7 @@
                 <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
-                            <i class="fas fa-calendar text-white text-sm"></i>
+                            <flux:icon name="calendar" class="w-4 h-4 text-white" />
                         </div>
                     </div>
                     <span class="text-xs font-bold bg-gradient-to-r from-indigo-700 to-indigo-800 bg-clip-text text-transparent block mb-1">Deadline</span>
@@ -85,7 +85,7 @@
         <div class="relative">
             <h5 class="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent mb-4 flex items-center">
                 <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center mr-3 shadow-md">
-                    <i class="fas fa-info-circle text-white text-sm"></i>
+                    <flux:icon name="information-circle" class="w-4 h-4 text-white" />
                 </div>
                 Project Details
             </h5>
@@ -148,7 +148,7 @@
         <div class="relative">
             <h4 class="text-lg font-bold bg-gradient-to-r from-{{ $workflowConfig['color'] ?? 'purple' }}-700 to-{{ $workflowConfig['color'] ?? 'purple' }}-800 bg-clip-text text-transparent mb-4 flex items-center">
                 <div class="bg-gradient-to-r from-{{ $workflowConfig['color'] ?? 'purple' }}-500 to-{{ $workflowConfig['color'] ?? 'purple' }}-600 rounded-xl p-2.5 w-10 h-10 flex items-center justify-center mr-3 shadow-lg">
-                    <i class="{{ $workflowConfig['icon'] ?? 'fas fa-cog' }} text-white"></i>
+                    <flux:icon name="{{ $workflowConfig['icon'] ?? 'cog' }}" class="w-5 h-5 text-white" />
                 </div>
                 {{ $workflowConfig['name'] }} Details
             </h4>
@@ -179,7 +179,7 @@
     @if(isset($project['workflow_type']) && $project['workflow_type'] === 'contest')
     <div class="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-4">
         <h4 class="text-lg font-semibold text-amber-800 mb-4 flex items-center">
-            <i class="fas fa-trophy text-amber-600 mr-2"></i>
+            <flux:icon name="trophy" class="w-5 h-5 text-amber-600 mr-2" />
             Contest Prizes
         </h4>
         
@@ -229,7 +229,7 @@
         @endif
         @else
         <div class="bg-white/60 backdrop-blur-sm border border-amber-200/30 rounded-lg p-4 text-center">
-            <i class="fas fa-info-circle text-amber-600 mb-2"></i>
+            <flux:icon name="information-circle" class="w-5 h-5 text-amber-600 mb-2 mx-auto" />
             <p class="text-sm text-amber-700 font-medium">No prizes configured yet</p>
             <p class="text-xs text-amber-600">Prizes can be added during project creation or editing</p>
         </div>
@@ -241,7 +241,7 @@
     @if(isset($project['additional_notes']) && $project['additional_notes'])
     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <h4 class="text-sm font-medium text-gray-700 mb-2 flex items-center">
-            <i class="fas fa-sticky-note text-gray-500 mr-2"></i>
+            <flux:icon name="document-text" class="w-4 h-4 text-gray-500 mr-2" />
             Additional Notes
         </h4>
         <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ $project['additional_notes'] }}</p>

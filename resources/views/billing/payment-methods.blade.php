@@ -1,136 +1,180 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Payment Methods') }}
-        </h2>
-    </x-slot>
+<x-layouts.app-sidebar>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                <div class="p-6 sm:p-8">
-                    @if (session('success'))
-                        <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-md border border-green-200">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    @if ($errors->any())
-                        <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-md border border-red-200">
-                            <ul class="list-disc pl-4">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold">Your Payment Methods</h3>
-                        <button id="addCard" class="bg-primary hover:bg-primary-focus text-white px-3 py-2 rounded shadow transition-colors text-sm">
-                            <i class="fas fa-plus mr-1"></i> Add New Card
-                        </button>
-                    </div>
-                    
-                    <!-- Payment Method Form (hidden by default) -->
-                    <div id="paymentMethodForm" class="mb-8 hidden p-5 bg-gray-50 rounded-lg border border-gray-200">
-                        <h4 class="text-md font-medium mb-3">Add a New Payment Method</h4>
-                        <form id="payment-form" action="{{ route('billing.payment.update') }}" method="POST">
-                            @csrf
-                            <div class="mb-4">
-                                <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Credit or debit card
-                                </label>
-                                <div id="card-element" class="p-4 border border-gray-300 rounded-md bg-white"></div>
-                                <div id="card-errors" class="text-red-600 text-sm mt-2"></div>
-                            </div>
-
-                            <div class="flex gap-2">
-                                <button type="submit" id="card-button" data-secret="{{ $intent->client_secret }}" class="bg-primary hover:bg-primary-focus text-white px-4 py-2 rounded shadow transition-colors">
-                                    <span id="button-text">Add Card</span>
-                                    <span id="spinner" class="hidden">
-                                        <i class="fas fa-spinner fa-spin"></i>
-                                    </span>
-                                </button>
-                                <button type="button" id="cancelAdd" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded shadow transition-colors">
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- List of Payment Methods -->
-                    <div class="space-y-4">
-                        @forelse($paymentMethods as $method)
-                            <div class="p-4 border rounded-lg flex items-center justify-between {{ $defaultPaymentMethod && $method->id === $defaultPaymentMethod->id ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200' }}">
-                                <div class="flex items-center">
-                                    <div class="mr-3">
-                                        @if($method->card->brand === 'visa')
-                                            <i class="fab fa-cc-visa text-2xl text-blue-600"></i>
-                                        @elseif($method->card->brand === 'mastercard')
-                                            <i class="fab fa-cc-mastercard text-2xl text-orange-600"></i>
-                                        @elseif($method->card->brand === 'amex')
-                                            <i class="fab fa-cc-amex text-2xl text-blue-800"></i>
-                                        @elseif($method->card->brand === 'discover')
-                                            <i class="fab fa-cc-discover text-2xl text-orange-500"></i>
-                                        @else
-                                            <i class="fas fa-credit-card text-2xl text-gray-700"></i>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <div class="font-medium">{{ ucfirst($method->card->brand) }} ending in {{ $method->card->last4 }}</div>
-                                        <div class="text-sm text-gray-600">Expires {{ $method->card->exp_month }}/{{ $method->card->exp_year }}</div>
-                                        @if($defaultPaymentMethod && $method->id === $defaultPaymentMethod->id)
-                                            <span class="inline-flex items-center mt-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                                Default
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    @if(!$defaultPaymentMethod || $method->id !== $defaultPaymentMethod->id)
-                                        <form method="POST" action="{{ route('billing.payment.update') }}">
-                                            @csrf
-                                            <input type="hidden" name="payment_method" value="{{ $method->id }}">
-                                            <button type="submit" class="text-blue-600 hover:text-blue-800 transition-colors text-sm bg-transparent border border-blue-200 hover:bg-blue-50 px-2 py-1 rounded">
-                                                Make Default
-                                            </button>
-                                        </form>
-                                    @endif
-                                    <form method="POST" action="{{ route('billing.payment.remove') }}" onsubmit="return confirm('Are you sure you want to remove this payment method?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <input type="hidden" name="payment_method_id" value="{{ $method->id }}">
-                                        <button type="submit" class="text-red-600 hover:text-red-800 transition-colors text-sm">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-                                <i class="fas fa-credit-card text-4xl text-gray-300 mb-3"></i>
-                                <p class="mb-2">You don't have any payment methods yet.</p>
-                                <p class="text-sm">Add a credit or debit card to make payments.</p>
-                            </div>
-                        @endforelse
-                    </div>
-
-                    <div class="mt-8 pt-6 border-t border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <a href="{{ route('billing') }}" class="text-gray-600 hover:text-gray-800 transition-colors flex items-center">
-                                <i class="fas fa-arrow-left mr-1"></i> Back to Billing
-                            </a>
-                            
-                            <a href="{{ route('billing.portal') }}" class="inline-block bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded shadow transition-colors">
-                                Stripe Billing Portal
-                            </a>
-                        </div>
-                    </div>
-                </div>
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <flux:heading size="xl" class="mb-2">Payment Methods</flux:heading>
+                <flux:subheading>Manage your credit cards and payment options</flux:subheading>
             </div>
+            <flux:button id="addCard" variant="primary" icon="plus">
+                Add New Card
+            </flux:button>
         </div>
     </div>
+
+    <div class="space-y-8">
+        @if (session('success'))
+            <flux:callout variant="success" class="mb-6">
+                {{ session('success') }}
+            </flux:callout>
+        @endif
+
+        @if ($errors->any())
+            <flux:callout variant="danger" class="mb-6">
+                <ul class="list-disc pl-4">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </flux:callout>
+        @endif
+
+                    
+        <!-- Payment Method Form (hidden by default) -->
+        <div id="paymentMethodForm" class="mb-8 hidden">
+            <flux:card>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <flux:icon name="credit-card" class="w-6 h-6 text-blue-600 dark:text-blue-400 mr-3" />
+                        <flux:heading size="lg">Add a New Payment Method</flux:heading>
+                    </div>
+                    
+                    <form id="payment-form" action="{{ route('billing.payment.update') }}" method="POST">
+                        @csrf
+                        <div class="mb-6">
+                            <flux:label class="mb-3" icon="credit-card">
+                                Credit or Debit Card Information
+                            </flux:label>
+                            <div class="relative">
+                                <div id="card-element" class="p-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-400 transition-all duration-200"></div>
+                                <div class="absolute top-2 right-2">
+                                    <div class="flex items-center space-x-1">
+                                        <i class="fab fa-cc-visa text-blue-600 text-sm"></i>
+                                        <i class="fab fa-cc-mastercard text-orange-600 text-sm"></i>
+                                        <i class="fab fa-cc-amex text-blue-800 text-sm"></i>
+                                        <i class="fab fa-cc-discover text-orange-500 text-sm"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="card-errors" class="text-red-600 text-sm mt-2 flex items-center">
+                                <flux:icon name="exclamation-circle" class="w-4 h-4 mr-1 hidden error-icon" />
+                                <span class="error-text"></span>
+                            </div>
+                            <div class="mt-2 text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                                <flux:icon name="shield-check" class="w-4 h-4 mr-1" />
+                                Your payment information is encrypted and secure
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <flux:button type="submit" id="card-button" data-secret="{{ $intent->client_secret }}" variant="primary" icon="check">
+                                <span id="button-text">Add Card</span>
+                                <span id="spinner" class="hidden">
+                                    Processing...
+                                </span>
+                            </flux:button>
+                            <flux:button type="button" id="cancelAdd" variant="ghost" icon="x-mark">
+                                Cancel
+                            </flux:button>
+                        </div>
+                    </form>
+                </div>
+            </flux:card>
+        </div>
+
+        <!-- List of Payment Methods -->
+        <flux:card>
+            <div class="p-6">
+                <div class="flex items-center mb-6">
+                    <flux:icon name="credit-card" class="w-6 h-6 text-gray-600 dark:text-gray-400 mr-3" />
+                    <flux:heading size="lg">Your Payment Methods</flux:heading>
+                </div>
+                
+                <div class="space-y-4">
+                    @forelse($paymentMethods as $method)
+                        <flux:card class="{{ $defaultPaymentMethod && $method->id === $defaultPaymentMethod->id ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/20' : '' }}">
+                            <div class="p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex items-center justify-center w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg mr-4">
+                                            @if($method->card->brand === 'visa')
+                                                <i class="fab fa-cc-visa text-2xl text-blue-600"></i>
+                                            @elseif($method->card->brand === 'mastercard')
+                                                <i class="fab fa-cc-mastercard text-2xl text-orange-600"></i>
+                                            @elseif($method->card->brand === 'amex')
+                                                <i class="fab fa-cc-amex text-2xl text-blue-800"></i>
+                                            @elseif($method->card->brand === 'discover')
+                                                <i class="fab fa-cc-discover text-2xl text-orange-500"></i>
+                                            @else
+                                                <i class="fas fa-credit-card text-2xl text-gray-700"></i>
+                                            @endif
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-gray-900 dark:text-white">{{ ucfirst($method->card->brand) }} ending in {{ $method->card->last4 }}</div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                                                <flux:icon name="calendar" class="w-4 h-4 mr-1" />
+                                                Expires {{ $method->card->exp_month }}/{{ $method->card->exp_year }}
+                                            </div>
+                                            @if($defaultPaymentMethod && $method->id === $defaultPaymentMethod->id)
+                                                <div class="mt-2">
+                                                    <flux:badge color="blue" size="sm">
+                                                        <flux:icon name="check-circle" class="w-3 h-3 mr-1" />
+                                                        Default
+                                                    </flux:badge>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        @if(!$defaultPaymentMethod || $method->id !== $defaultPaymentMethod->id)
+                                            <form method="POST" action="{{ route('billing.payment.update') }}">
+                                                @csrf
+                                                <input type="hidden" name="payment_method" value="{{ $method->id }}">
+                                                <flux:button type="submit" variant="outline" size="sm" icon="star">
+                                                    Make Default
+                                                </flux:button>
+                                            </form>
+                                        @endif
+                                        <form method="POST" action="{{ route('billing.payment.remove') }}" onsubmit="return confirm('Are you sure you want to remove this payment method?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="payment_method_id" value="{{ $method->id }}">
+                                            <flux:button type="submit" variant="danger" size="sm" icon="trash" />
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </flux:card>
+                    @empty
+                        <div class="text-center py-12">
+                            <flux:icon name="credit-card" class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                            <flux:heading size="lg" class="mb-2">No Payment Methods</flux:heading>
+                            <flux:text class="text-gray-600 dark:text-gray-400 mb-4">You don't have any payment methods yet.</flux:text>
+                            <flux:text size="sm" class="text-gray-500 dark:text-gray-500">Add a credit or debit card to make payments.</flux:text>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </flux:card>
+
+        <!-- Actions -->
+        <flux:card>
+            <div class="p-6">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <flux:button href="{{ route('billing') }}" variant="ghost" icon="arrow-left">
+                        Back to Billing
+                    </flux:button>
+                    
+                    <flux:button href="{{ route('billing.portal') }}" variant="primary" icon="arrow-top-right-on-square">
+                        Stripe Billing Portal
+                    </flux:button>
+                </div>
+            </div>
+        </flux:card>
+    </div>
+</div>
 
     @push('scripts')
         <script src="https://js.stripe.com/v3/"></script>
@@ -140,20 +184,28 @@
                 const stripe = Stripe(`{{ env('STRIPE_KEY') }}`);
                 const elements = stripe.elements();
                 
-                // Custom styling
+                // Enhanced styling for Stripe Elements to match Flux UI
                 const style = {
                     base: {
-                        color: '#32325d',
-                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                        color: '#1f2937',
+                        fontFamily: '"Inter", "Helvetica Neue", Helvetica, sans-serif',
                         fontSmoothing: 'antialiased',
                         fontSize: '16px',
+                        fontWeight: '500',
                         '::placeholder': {
-                            color: '#aab7c4'
+                            color: '#9ca3af'
+                        },
+                        ':focus': {
+                            color: '#1f2937'
                         }
                     },
                     invalid: {
-                        color: '#fa755a',
-                        iconColor: '#fa755a'
+                        color: '#dc2626',
+                        iconColor: '#dc2626'
+                    },
+                    complete: {
+                        color: '#059669',
+                        iconColor: '#059669'
                     }
                 };
                 
@@ -161,13 +213,26 @@
                 const cardElement = elements.create('card', { style: style });
                 cardElement.mount('#card-element');
                 
-                // Handle validation errors
+                // Enhanced validation error handling
                 cardElement.on('change', function(event) {
                     const displayError = document.getElementById('card-errors');
+                    const errorIcon = displayError.querySelector('.error-icon');
+                    const errorText = displayError.querySelector('.error-text');
+                    
                     if (event.error) {
-                        displayError.textContent = event.error.message;
+                        errorIcon.classList.remove('hidden');
+                        errorText.textContent = event.error.message;
+                        displayError.classList.add('text-red-600');
+                        displayError.classList.remove('text-green-600');
+                    } else if (event.complete) {
+                        errorIcon.classList.add('hidden');
+                        errorText.textContent = 'Payment information is valid';
+                        displayError.classList.remove('text-red-600');
+                        displayError.classList.add('text-green-600');
                     } else {
-                        displayError.textContent = '';
+                        errorIcon.classList.add('hidden');
+                        errorText.textContent = '';
+                        displayError.classList.remove('text-red-600', 'text-green-600');
                     }
                 });
                 
@@ -193,9 +258,14 @@
                     );
                     
                     if (error) {
-                        // Show error to your customer
+                        // Show error to customer with enhanced styling
                         const errorElement = document.getElementById('card-errors');
-                        errorElement.textContent = error.message;
+                        const errorIcon = errorElement.querySelector('.error-icon');
+                        const errorText = errorElement.querySelector('.error-text');
+                        
+                        errorIcon.classList.remove('hidden');
+                        errorText.textContent = error.message;
+                        errorElement.classList.add('text-red-600');
                         
                         // Re-enable the submit button
                         cardButton.disabled = false;
@@ -222,14 +292,14 @@
                 
                 addCardButton.addEventListener('click', function() {
                     paymentMethodForm.classList.remove('hidden');
-                    addCardButton.classList.add('hidden');
+                    addCardButton.style.display = 'none';
                 });
                 
                 cancelAddButton.addEventListener('click', function() {
                     paymentMethodForm.classList.add('hidden');
-                    addCardButton.classList.remove('hidden');
+                    addCardButton.style.display = 'inline-flex';
                 });
             });
         </script>
     @endpush
-</x-app-layout> 
+</x-layouts.app-sidebar> 
