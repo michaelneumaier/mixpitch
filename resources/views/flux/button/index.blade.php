@@ -103,13 +103,19 @@ $classes = Flux::classes()
     ->add(match ($variant) { // Border color...
         'primary' => 'border-0',
         'outline' => 'border border-slate-300 dark:border-slate-600',
-         default => '',
+        'filled' => '',
+        'danger' => '',
+        'ghost' => '',
+        'subtle' => '',
+        default => '',
     })
     ->add(match ($variant) { // Shadows...
         'primary' => 'shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30',
         'danger' => 'shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30',
         'outline' => 'shadow-sm hover:shadow-md',
         'filled' => 'shadow-sm hover:shadow-md',
+        'ghost' => '',
+        'subtle' => '',
         default => '',
     })
     ->add(match ($variant) { // Grouped border treatments...
