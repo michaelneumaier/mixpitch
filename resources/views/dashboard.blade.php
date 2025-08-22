@@ -65,7 +65,7 @@
                         <!-- Action Buttons Row -->
                         <div class="flex items-center justify-center gap-2">
                             @if($subscription['plan'] === 'free')
-                                <flux:button href="{{ route('subscription.index') }}" icon="arrow-up" variant="filled" size="xs" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex-1 !text-white">
+                                <flux:button href="{{ route('subscription.index') }}" icon="arrow-up" variant="filled" size="xs" class="!bg-gradient-to-r !from-blue-600 !to-purple-600 !hover:from-blue-700 !hover:to-purple-700 !text-white flex-1">
                                     Upgrade to Pro
                                 </flux:button>
                             @else
@@ -122,7 +122,7 @@
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-2">
                             @if($subscription['plan'] === 'free')
-                                <flux:button href="{{ route('subscription.index') }}" icon="arrow-up" variant="filled" size="xs" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 !text-white">
+                                <flux:button href="{{ route('subscription.index') }}" icon="arrow-up" variant="filled" size="xs" class="!bg-gradient-to-r !from-blue-600 !to-purple-600 !hover:from-blue-700 !hover:to-purple-700 !text-white">
                                     Upgrade to Pro
                                 </flux:button>
                             @else

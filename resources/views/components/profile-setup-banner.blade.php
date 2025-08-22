@@ -115,7 +115,7 @@
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row lg:flex-col gap-3 lg:w-48">
             <flux:button href="{{ route('profile.edit') }}" icon="pencil" variant="filled" size="sm" 
-                         class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 !text-white shadow-lg">
+                         class="!bg-gradient-to-r !from-amber-500 !to-orange-500 !hover:from-amber-600 !hover:to-orange-600 !text-white shadow-lg">
                 Set Up Profile
             </flux:button>
             
