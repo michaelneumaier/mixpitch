@@ -24,11 +24,30 @@
         }
     </style>
     
+    <!-- Anti-flash: Apply theme before anything else loads -->
+    <script>
+        // Immediately apply saved theme to prevent flash
+        (function() {
+            const saved = sessionStorage.getItem('mixpitch_theme');
+            if (saved === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else if (saved === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                // Check system preference if no saved theme
+                const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (systemDark) {
+                    document.documentElement.classList.add('dark');
+                }
+            }
+        })();
+    </script>
+    
     <!-- reCAPTCHA scripts -->
     @stack('scripts')
 </head>
 
-<body class="font-sans antialiased bg-gray-50">
+<body class="font-sans antialiased bg-gray-50 dark:bg-gray-900">
     {{ $slot }}
 </body>
 

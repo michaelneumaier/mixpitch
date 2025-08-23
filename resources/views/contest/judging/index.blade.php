@@ -2,10 +2,10 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                     Contest Judging: {{ $project->title }}
                 </h2>
-                <p class="text-sm text-gray-600 mt-1">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     {{ $contestEntries->count() }} entries submitted
                     @if($project->submission_deadline)
                         • Deadline: <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t g:i A" />
@@ -15,7 +15,7 @@
             <div class="flex items-center space-x-3">
                 <!-- Back to Manage Contest Button -->
                 <a href="{{ route('projects.manage', $project) }}" 
-                   class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200">
+                   class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200">
                     <i class="fas fa-arrow-left mr-2"></i>
                     Manage Contest
                 </a>
@@ -101,12 +101,12 @@
             <!-- Contest Status -->
             <div class="mb-8">
                 @if($isFinalized)
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-700 rounded-lg p-4">
                         <div class="flex items-center">
-                            <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
+                            <i class="fas fa-check-circle text-green-600 dark:text-green-400 text-xl mr-3"></i>
                             <div>
-                                <h3 class="text-lg font-medium text-green-800">Contest Judging Finalized</h3>
-                                <p class="text-sm text-green-700">
+                                <h3 class="text-lg font-medium text-green-800 dark:text-green-200">Contest Judging Finalized</h3>
+                                <p class="text-sm text-green-700 dark:text-green-300">
                                     Judging completed on {{ $project->judging_finalized_at->format('M d, Y \a\t g:i A') }}
                                     • All participants have been notified
                                 </p>
@@ -114,12 +114,12 @@
                         </div>
                     </div>
                 @else
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
                         <div class="flex items-center">
-                            <i class="fas fa-gavel text-yellow-600 text-xl mr-3"></i>
+                            <i class="fas fa-gavel text-yellow-600 dark:text-yellow-400 text-xl mr-3"></i>
                             <div>
-                                <h3 class="text-lg font-medium text-yellow-800">Contest Judging in Progress</h3>
-                                <p class="text-sm text-yellow-700">
+                                <h3 class="text-lg font-medium text-yellow-800 dark:text-yellow-200">Contest Judging in Progress</h3>
+                                <p class="text-sm text-yellow-700 dark:text-yellow-300">
                                     Review all entries and assign placements. Once finalized, all participants will be notified of the results.
                                 </p>
                             </div>
@@ -160,13 +160,13 @@
                 @if($hasCashPrizes)
                     <div class="mb-8">
                         @if($prizesPaid)
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div class="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-700 rounded-lg p-4">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
-                                        <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
+                                        <i class="fas fa-check-circle text-green-600 dark:text-green-400 text-xl mr-3"></i>
                                         <div>
-                                            <h3 class="text-lg font-medium text-green-800">Contest Prizes Paid</h3>
-                                            <p class="text-sm text-green-700">
+                                            <h3 class="text-lg font-medium text-green-800 dark:text-green-200">Contest Prizes Paid</h3>
+                                            <p class="text-sm text-green-700 dark:text-green-300">
                                                 All contest prizes (${{ number_format($totalPrizeAmount, 2) }}) have been successfully paid to winners.
                                             </p>
                                         </div>
@@ -179,13 +179,13 @@
                                 </div>
                             </div>
                         @else
-                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <div class="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
-                                        <i class="fas fa-dollar-sign text-purple-600 text-xl mr-3"></i>
+                                        <i class="fas fa-dollar-sign text-purple-600 dark:text-purple-400 text-xl mr-3"></i>
                                         <div>
-                                            <h3 class="text-lg font-medium text-purple-800">Contest Prizes Ready for Payment</h3>
-                                            <p class="text-sm text-purple-700">
+                                            <h3 class="text-lg font-medium text-purple-800 dark:text-purple-200">Contest Prizes Ready for Payment</h3>
+                                            <p class="text-sm text-purple-700 dark:text-purple-300">
                                                 Total prize amount: ${{ number_format($totalPrizeAmount, 2) }} • Winners must have valid Stripe Connect accounts
                                             </p>
                                         </div>
@@ -212,10 +212,10 @@
             <!-- Winners Summary (always show if there are contest entries to display placeholders) -->
             @if($contestEntries->count() > 0)
                 <div class="mb-8" id="current-winners-section">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200">
-                        <div class="p-6 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-gray-200">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                                <i class="fas fa-trophy text-yellow-600 mr-2"></i>
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div class="p-6 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950 dark:to-amber-950 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                                <i class="fas fa-trophy text-yellow-600 dark:text-yellow-400 mr-2"></i>
                                 Current Winners
                             </h3>
                             
@@ -320,15 +320,15 @@
                             <!-- Runner-ups -->
                             <div id="runner-ups-section" class="mt-4">
                                 @if($contestResult->runner_up_pitch_ids && count($contestResult->runner_up_pitch_ids) > 0)
-                                    <h4 class="font-medium text-gray-900 mb-2">
-                                        <i class="fas fa-medal text-blue-600 mr-1"></i>
+                                    <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                                        <i class="fas fa-medal text-blue-600 dark:text-blue-400 mr-1"></i>
                                         Runner-ups
                                     </h4>
                                     <div class="flex flex-wrap gap-2" id="runner-ups-list">
                                         @foreach($contestResult->runner_up_pitch_ids as $runnerUpId)
                                             @php $runnerUp = $contestEntries->firstWhere('id', $runnerUpId) @endphp
                                             @if($runnerUp)
-                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800" data-pitch-id="{{ $runnerUp->id }}">
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200" data-pitch-id="{{ $runnerUp->id }}">
                                                     🏅 {{ $runnerUp->user->name }}
                                                 </span>
                                             @endif
@@ -342,37 +342,37 @@
             @endif
 
             <!-- Contest Entries Table -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 bg-white border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Contest Entries</h3>
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Contest Entries</h3>
                     
                     @if($contestEntries->count() > 0)
                         <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Participant
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Submitted
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Current Placement
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             @if(!$isFinalized)
                                                 Set Placement
                                             @else
                                                 Final Status
                                             @endif
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Actions
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                     @foreach($contestEntries as $entry)
                                         <tr>
                                             <td class="px-6 py-4 whitespace-nowrap">
@@ -385,24 +385,24 @@
                                                         </div>
                                                     </div>
                                                     <div class="ml-3">
-                                                        <div class="text-sm font-medium text-gray-900">
+                                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             {{ $entry->user->name }}
                                                         </div>
-                                                        <div class="text-xs text-gray-500">
+                                                        <div class="text-xs text-gray-500 dark:text-gray-400">
                                                             {{ $entry->user->email }}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                                                 @if($entry->submitted_at)
                                                     {{ $entry->submitted_at->format('M d, Y') }}
-                                                    <div class="text-xs text-gray-500">
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
                                                         {{ $entry->submitted_at->format('g:i A') }}
                                                     </div>
                                                 @else
-                                                    <span class="text-gray-500">Not submitted</span>
-                                                    <div class="text-xs text-gray-400">
+                                                    <span class="text-gray-500 dark:text-gray-400">Not submitted</span>
+                                                    <div class="text-xs text-gray-400 dark:text-gray-500">
                                                         Created {{ $entry->created_at->format('M d, Y') }}
                                                     </div>
                                                 @endif
@@ -428,7 +428,7 @@
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @if(!$isFinalized)
                                                     <select onchange="updatePlacement('{{ $entry->slug }}', this.value)" 
-                                                            class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500">
+                                                            class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 dark:focus:ring-yellow-400 dark:focus:border-yellow-400">
                                                         <option value="">No Placement</option>
                                                         <option value="1st" {{ $entry->rank === '1st' ? 'selected' : '' }}
                                                                 @if($contestResult && $contestResult->first_place_pitch_id && $contestResult->first_place_pitch_id !== $entry->id) disabled @endif>
@@ -447,7 +447,7 @@
                                                         </option>
                                                     </select>
                                                 @else
-                                                    <span class="text-sm font-medium text-gray-900">
+                                                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                         {{ ucfirst(str_replace('_', ' ', $entry->status)) }}
                                                     </span>
                                                 @endif
@@ -471,11 +471,11 @@
                         </div>
                     @else
                         <div class="text-center py-8">
-                            <div class="text-gray-400 text-4xl mb-4">
+                            <div class="text-gray-400 dark:text-gray-500 text-4xl mb-4">
                                 <i class="fas fa-inbox"></i>
                             </div>
-                            <h3 class="text-lg font-medium text-gray-900 mb-2">No Contest Entries</h3>
-                            <p class="text-gray-500">No entries have been submitted to this contest yet.</p>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Contest Entries</h3>
+                            <p class="text-gray-500 dark:text-gray-400">No entries have been submitted to this contest yet.</p>
                         </div>
                     @endif
                 </div>

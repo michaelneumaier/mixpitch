@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             MigrateUserTagsSeeder::class,
             TagSeeder::class,
             LicenseTemplateSeeder::class, // Seed license templates
+            TestProjectSeeder::class, // Seed test projects for development/testing
         ]);
     }
 }

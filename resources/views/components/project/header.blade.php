@@ -247,11 +247,11 @@
                                     <flux:menu.item href="{{ route('projects.contest.results', $project) }}" icon="trophy">
                                         View Results
                                     </flux:menu.item>
-                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="gavel">
+                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="scale">
                                         Judging Dashboard
                                     </flux:menu.item>
                                 @else
-                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="gavel">
+                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="scale">
                                         Judge Contest
                                     </flux:menu.item>
                                 @endif

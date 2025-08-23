@@ -76,12 +76,21 @@
         [data-flux-sidebar] {
             overflow: visible !important;
         }
+
+        /* Ensure sidebar content doesn't overflow horizontally */
+        [data-flux-sidebar] .space-y-1 a {
+            min-width: 0;
+        }
+        
+        [data-flux-sidebar] .space-y-1 a span {
+            min-width: 0;
+        }
     </style>
 
 </head>
 
 <body class="font-sans antialiased bg-gray-50 dark:bg-gray-900">
-    <flux:sidebar sticky stashable class="bg-gradient-to-br from-blue-50/70 via-purple-50/70 to-pink-50/70 backdrop-blur-lg dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+    <flux:sidebar sticky stashable class="bg-gradient-to-br from-blue-50/70 via-purple-50/70 to-pink-50/70 dark:from-gray-900/80 dark:via-slate-900/80 dark:to-gray-900/80 backdrop-blur-lg border-r border-gray-200 dark:border-gray-700">
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="top" />
 
         <div class="relative flex items-center justify-between pl-4 py-3 overflow-visible">
@@ -124,7 +133,7 @@
         </flux:navlist>
 
         <!-- Finances Section (with visual separation) -->
-        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
             <flux:navlist variant="outline">
                 <livewire:sidebar-finances-nav />
             </flux:navlist>

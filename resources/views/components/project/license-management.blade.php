@@ -13,44 +13,44 @@
     // Create workflow-aware gradient classes matching other components
     $gradientClasses = match($project->workflow_type) {
         'standard' => [
-            'outer' => 'bg-gradient-to-br from-blue-50/95 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50',
-            'header' => 'bg-gradient-to-r from-blue-100/80 to-indigo-100/80 border-b border-blue-200/30',
-            'text_primary' => 'text-blue-900',
-            'text_secondary' => 'text-blue-700',
-            'text_muted' => 'text-blue-600',
-            'icon' => 'text-blue-600'
+            'outer' => 'bg-gradient-to-br from-blue-50/95 to-indigo-50/90 dark:from-blue-950/95 dark:to-indigo-950/90 backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50',
+            'header' => 'bg-gradient-to-r from-blue-100/80 to-indigo-100/80 dark:from-blue-900/80 dark:to-indigo-900/80 border-b border-blue-200/30 dark:border-blue-700/30',
+            'text_primary' => 'text-blue-900 dark:text-blue-100',
+            'text_secondary' => 'text-blue-700 dark:text-blue-300',
+            'text_muted' => 'text-blue-600 dark:text-blue-400',
+            'icon' => 'text-blue-600 dark:text-blue-400'
         ],
         'contest' => [
-            'outer' => 'bg-gradient-to-br from-amber-50/95 to-yellow-50/90 backdrop-blur-sm border border-amber-200/50',
-            'header' => 'bg-gradient-to-r from-amber-100/80 to-yellow-100/80 border-b border-amber-200/30',
-            'text_primary' => 'text-amber-900',
-            'text_secondary' => 'text-amber-700',
-            'text_muted' => 'text-amber-600',
-            'icon' => 'text-amber-600'
+            'outer' => 'bg-gradient-to-br from-amber-50/95 to-yellow-50/90 dark:from-amber-950/95 dark:to-yellow-950/90 backdrop-blur-sm border border-amber-200/50 dark:border-amber-700/50',
+            'header' => 'bg-gradient-to-r from-amber-100/80 to-yellow-100/80 dark:from-amber-900/80 dark:to-yellow-900/80 border-b border-amber-200/30 dark:border-amber-700/30',
+            'text_primary' => 'text-amber-900 dark:text-amber-100',
+            'text_secondary' => 'text-amber-700 dark:text-amber-300',
+            'text_muted' => 'text-amber-600 dark:text-amber-400',
+            'icon' => 'text-amber-600 dark:text-amber-400'
         ],
         'direct_hire' => [
-            'outer' => 'bg-gradient-to-br from-green-50/95 to-emerald-50/90 backdrop-blur-sm border border-green-200/50',
-            'header' => 'bg-gradient-to-r from-green-100/80 to-emerald-100/80 border-b border-green-200/30',
-            'text_primary' => 'text-green-900',
-            'text_secondary' => 'text-green-700',
-            'text_muted' => 'text-green-600',
-            'icon' => 'text-green-600'
+            'outer' => 'bg-gradient-to-br from-green-50/95 to-emerald-50/90 dark:from-green-950/95 dark:to-emerald-950/90 backdrop-blur-sm border border-green-200/50 dark:border-green-700/50',
+            'header' => 'bg-gradient-to-r from-green-100/80 to-emerald-100/80 dark:from-green-900/80 dark:to-emerald-900/80 border-b border-green-200/30 dark:border-green-700/30',
+            'text_primary' => 'text-green-900 dark:text-green-100',
+            'text_secondary' => 'text-green-700 dark:text-green-300',
+            'text_muted' => 'text-green-600 dark:text-green-400',
+            'icon' => 'text-green-600 dark:text-green-400'
         ],
         'client_management' => [
-            'outer' => 'bg-gradient-to-br from-purple-50/95 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50',
-            'header' => 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 border-b border-purple-200/30',
-            'text_primary' => 'text-purple-900',
-            'text_secondary' => 'text-purple-700',
-            'text_muted' => 'text-purple-600',
-            'icon' => 'text-purple-600'
+            'outer' => 'bg-gradient-to-br from-purple-50/95 to-indigo-50/90 dark:from-purple-950/95 dark:to-indigo-950/90 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50',
+            'header' => 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 dark:from-purple-900/80 dark:to-indigo-900/80 border-b border-purple-200/30 dark:border-purple-700/30',
+            'text_primary' => 'text-purple-900 dark:text-purple-100',
+            'text_secondary' => 'text-purple-700 dark:text-purple-300',
+            'text_muted' => 'text-purple-600 dark:text-purple-400',
+            'icon' => 'text-purple-600 dark:text-purple-400'
         ],
         default => [
-            'outer' => 'bg-gradient-to-br from-gray-50/95 to-slate-50/90 backdrop-blur-sm border border-gray-200/50',
-            'header' => 'bg-gradient-to-r from-gray-100/80 to-slate-100/80 border-b border-gray-200/30',
-            'text_primary' => 'text-gray-900',
-            'text_secondary' => 'text-gray-700',
-            'text_muted' => 'text-gray-600',
-            'icon' => 'text-gray-600'
+            'outer' => 'bg-gradient-to-br from-gray-50/95 to-slate-50/90 dark:from-gray-950/95 dark:to-slate-950/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50',
+            'header' => 'bg-gradient-to-r from-gray-100/80 to-slate-100/80 dark:from-gray-900/80 dark:to-slate-900/80 border-b border-gray-200/30 dark:border-gray-700/30',
+            'text_primary' => 'text-gray-900 dark:text-gray-100',
+            'text_secondary' => 'text-gray-700 dark:text-gray-300',
+            'text_muted' => 'text-gray-600 dark:text-gray-400',
+            'icon' => 'text-gray-600 dark:text-gray-400'
         ]
     };
 
@@ -92,7 +92,7 @@
                     <div class="text-2xl font-bold {{ $gradientClasses['icon'] }}">{{ $signedSignatures->count() }}</div>
                     <div class="text-xs {{ $gradientClasses['text_muted'] }}">Agreements</div>
                 @else
-                    <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl px-3 py-2">
+                    <div class="bg-white/60 dark:bg-gray-800/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl px-3 py-2">
                         <div class="text-xs {{ $gradientClasses['text_secondary'] }} font-medium">Default Terms</div>
                     </div>
                 @endif
@@ -104,7 +104,7 @@
     <div class="p-6">
         @if($licenseTemplate || $requiresAgreement || $hasLicenseNotes)
             <!-- Compact License Overview -->
-            <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl p-4 mb-4">
+            <div class="bg-white/60 dark:bg-gray-800/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl p-4 mb-4">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         @if($licenseTemplate)
@@ -174,7 +174,7 @@
             @endif
         @else
             <!-- Clean Empty State -->
-            <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl p-6 text-center">
+            <div class="bg-white/60 dark:bg-gray-800/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl p-6 text-center">
                 <div class="flex items-center justify-center gap-2 {{ $gradientClasses['text_muted'] }} mb-3">
                     <flux:icon.document-text class="w-5 h-5" />
                     <span class="text-sm font-medium">Using platform default terms</span>

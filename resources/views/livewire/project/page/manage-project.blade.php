@@ -229,14 +229,14 @@
                             {{-- Workflow Status Component --}}
                             @if ($project->isStandard() || $project->isContest() || $project->isDirectHire())
                                 <div>
-                                    <x-project.workflow-status :project="$project" />
+                                    <x-project.workflow-status :project="$project" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
                                 </div>
                             @endif
 
                             {{-- Pitches Section / Contest Entries --}}
                             @if ($project->isContest())
                                 {{-- Contest Judging Component (includes Contest Entries) --}}
-                                @livewire('project.component.contest-judging', ['project' => $project], key('contest-judging-' . $project->id))
+                                @livewire('project.component.contest-judging', ['project' => $project, 'workflowColors' => $workflowColors, 'semanticColors' => $semanticColors], key('contest-judging-' . $project->id))
                             @else
                                 {{-- Regular Pitches Section --}}
                                 <x-project.pitch-list :project="$project" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
@@ -503,11 +503,11 @@
                                 
                             @elseif($project->isContest())
                                 <!-- Contest Prizes Component -->
-                                @livewire('project.component.contest-prizes', ['project' => $project], key('contest-prizes-' . $project->id))
+                                @livewire('project.component.contest-prizes', ['project' => $project, 'workflowColors' => $workflowColors, 'semanticColors' => $semanticColors], key('contest-prizes-' . $project->id))
 
                                 <!-- Contest Early Closure Component -->
                                 <div class="mb-2">
-                                    @include('livewire.project.component.contest-early-closure', ['project' => $project])
+                                    @include('livewire.project.component.contest-early-closure', ['project' => $project, 'workflowColors' => $workflowColors, 'semanticColors' => $semanticColors])
                                 </div>
 
 

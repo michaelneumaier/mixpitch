@@ -1,4 +1,4 @@
-@props(['project'])
+@props(['project', 'workflowColors' => [], 'semanticColors' => []])
 
 @php
     // Contest-specific workflow stages with finalized state
@@ -112,31 +112,31 @@
     $draftEntries = $contestEntries->whereNull('submitted_at')->count();
 @endphp
 
-<div class="bg-gradient-to-br from-amber-50/95 to-yellow-50/90 backdrop-blur-sm border border-amber-200/50 rounded-2xl shadow-lg overflow-hidden">
+<div class="bg-gradient-to-br {{ $workflowColors['bg'] ?? 'from-amber-50/95 to-yellow-50/90 dark:from-amber-950/95 dark:to-yellow-950/90' }} backdrop-blur-sm border {{ $workflowColors['border'] ?? 'border-amber-200/50 dark:border-amber-700/50' }} rounded-2xl shadow-lg overflow-hidden">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-amber-100/80 to-yellow-100/80 border-b border-amber-200/30 p-6">
+    <div class="bg-gradient-to-r {{ $workflowColors['accent_bg'] ?? 'from-amber-100/80 to-yellow-100/80 dark:from-amber-900/80 dark:to-yellow-900/80' }} border-b {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} p-6">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-lg font-bold text-amber-900 flex items-center">
-                    <i class="fas fa-trophy text-amber-600 mr-3"></i>
+                <h3 class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }} flex items-center">
+                    <i class="fas fa-trophy {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }} mr-3"></i>
                     Contest Workflow Status
                 </h3>
-                <p class="text-sm text-amber-700 mt-1">{{ $statusMessage }}</p>
+                <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }} mt-1">{{ $statusMessage }}</p>
             </div>
             <div class="text-right">
-                <div class="text-2xl font-bold text-amber-600">{{ $progressPercentage }}%</div>
-                <div class="text-xs text-amber-500">Complete</div>
+                <div class="text-2xl font-bold {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}">{{ $progressPercentage }}%</div>
+                <div class="text-xs {{ $workflowColors['text_muted'] ?? 'text-amber-500 dark:text-amber-400' }}">Complete</div>
             </div>
         </div>
 
         <!-- Progress Bar -->
         <div class="mt-4">
-            <div class="flex justify-between text-xs text-amber-600 mb-2">
+            <div class="flex justify-between text-xs {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }} mb-2">
                 <span>Progress</span>
                 <span>{{ $workflowStages[$currentStage]['label'] }}</span>
             </div>
-            <div class="w-full bg-amber-200/50 rounded-full h-2">
-                <div class="bg-gradient-to-r from-amber-500 to-yellow-600 h-2 rounded-full transition-all duration-500"
+            <div class="w-full bg-amber-200/50 dark:bg-amber-800/50 rounded-full h-2">
+                <div class="bg-gradient-to-r {{ $workflowColors['icon'] ?? 'from-amber-500 to-yellow-600' }} h-2 rounded-full transition-all duration-500"
                      style="width: {{ $progressPercentage }}%"></div>
             </div>
         </div>
@@ -149,10 +149,10 @@
                     $isCompleted = $progressPercentage >= ($workflowStages[$stage]['progress'] ?? 0);
                     $stageIcon = $workflowStages[$stage]['icon'] ?? 'fa-circle';
                 @endphp
-                <div class="flex flex-col items-center {{ $isActive ? 'text-amber-600' : 'text-amber-400' }}">
+                <div class="flex flex-col items-center {{ $isActive ? ($workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400') : ($workflowColors['text_muted'] ?? 'text-amber-400 dark:text-amber-500') }}">
                     <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center mb-1 transition-all duration-300
-                        {{ $isCompleted ? 'bg-amber-600 border-amber-600 text-white' : 'border-amber-300 text-amber-400' }}
-                        {{ $isActive ? 'ring-2 ring-amber-300 ring-offset-2' : '' }}">
+                        {{ $isCompleted ? ($workflowColors['icon'] ?? 'bg-amber-600 border-amber-600') . ' text-white' : ($workflowColors['accent_border'] ?? 'border-amber-300 dark:border-amber-600') . ' ' . ($workflowColors['text_muted'] ?? 'text-amber-400 dark:text-amber-500') }}
+                        {{ $isActive ? 'ring-2 ring-amber-300 dark:ring-amber-600 ring-offset-2 dark:ring-offset-gray-900' : '' }}">
                         <i class="fas {{ $stageIcon }} text-xs"></i>
                     </div>
                     <span class="text-center leading-tight max-w-16">{{ $workflowStages[$stage]['label'] ?? ucfirst($stage) }}</span>
@@ -165,12 +165,12 @@
     <div class="p-6">
         <!-- Warning Banner -->
         @if($showWarning)
-            <div class="mb-6 p-4 bg-red-50/80 border border-red-200/50 rounded-xl">
+            <div class="mb-6 p-4 {{ $semanticColors['danger']['bg'] ?? 'bg-red-50/80 dark:bg-red-950/80' }} border {{ $semanticColors['danger']['border'] ?? 'border-red-200/50 dark:border-red-700/50' }} rounded-xl">
                 <div class="flex items-center">
-                    <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                    <i class="fas fa-exclamation-triangle {{ $semanticColors['danger']['icon'] ?? 'text-red-500 dark:text-red-400' }} mr-3"></i>
                     <div>
-                        <h4 class="font-medium text-red-800">Attention Required</h4>
-                        <p class="text-sm text-red-700 mt-1">
+                        <h4 class="font-medium {{ $semanticColors['danger']['text'] ?? 'text-red-800 dark:text-red-200' }}">Attention Required</h4>
+                        <p class="text-sm {{ $semanticColors['danger']['icon'] ?? 'text-red-700 dark:text-red-300' }} mt-1">
                             @if($currentStage === 'contest_judging')
                                 Contest judging has been in progress for over 2 weeks. Consider finalizing the results soon.
                             @elseif($currentStage === 'contest_submissions_closed')
@@ -183,63 +183,63 @@
         @endif
 
         <!-- Contextual Guidance -->
-        <div class="bg-white/60 border border-amber-200/30 rounded-xl p-4 mb-6">
-            <h4 class="font-medium text-amber-800 mb-2 flex items-center">
-                <i class="fas fa-lightbulb mr-2 text-amber-600"></i>
+        <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} rounded-xl p-4 mb-6">
+            <h4 class="font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-800 dark:text-amber-200' }} mb-2 flex items-center">
+                <i class="fas fa-lightbulb mr-2 {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}"></i>
                 What's Next?
             </h4>
-            <p class="text-sm text-amber-700">{{ $contextualGuidance }}</p>
+            <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">{{ $contextualGuidance }}</p>
         </div>
 
         <!-- Contest Metrics Grid -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-white/60 border border-amber-200/30 rounded-xl p-4 text-center">
-                <div class="text-2xl font-bold text-amber-700">{{ $contestEntries->count() }}</div>
-                <div class="text-xs text-amber-600">Total Entries</div>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">{{ $contestEntries->count() }}</div>
+                <div class="text-xs {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}">Total Entries</div>
             </div>
             
-            <div class="bg-white/60 border border-amber-200/30 rounded-xl p-4 text-center">
-                <div class="text-2xl font-bold text-amber-700">{{ $submittedEntries }}</div>
-                <div class="text-xs text-amber-600">Submitted</div>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">{{ $submittedEntries }}</div>
+                <div class="text-xs {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}">Submitted</div>
             </div>
             
-            <div class="bg-white/60 border border-amber-200/30 rounded-xl p-4 text-center">
-                <div class="text-2xl font-bold text-amber-700">{{ $placedEntries }}</div>
-                <div class="text-xs text-amber-600">Placed</div>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">{{ $placedEntries }}</div>
+                <div class="text-xs {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}">Placed</div>
             </div>
             
-            <div class="bg-white/60 border border-amber-200/30 rounded-xl p-4 text-center">
-                <div class="text-2xl font-bold text-amber-700">{{ $totalFiles }}</div>
-                <div class="text-xs text-amber-600">Files Uploaded</div>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">{{ $totalFiles }}</div>
+                <div class="text-xs {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}">Files Uploaded</div>
             </div>
         </div>
 
         <!-- Timeline Information -->
         @if($timeInStatus)
-            <div class="mt-6 bg-white/60 border border-amber-200/30 rounded-xl p-4">
-                <h4 class="font-medium text-amber-800 mb-3 flex items-center">
-                    <i class="fas fa-clock mr-2 text-amber-600"></i>
+            <div class="mt-6 bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} rounded-xl p-4">
+                <h4 class="font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-800 dark:text-amber-200' }} mb-3 flex items-center">
+                    <i class="fas fa-clock mr-2 {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}"></i>
                     Timeline
                 </h4>
                 <div class="space-y-2 text-sm">
                     <div class="flex items-center justify-between">
-                        <span class="text-amber-700">Current Stage:</span>
-                        <span class="font-medium text-amber-900">{{ $workflowStages[$currentStage]['label'] }}</span>
+                        <span class="{{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Current Stage:</span>
+                        <span class="font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }}">{{ $workflowStages[$currentStage]['label'] }}</span>
                     </div>
                     <div class="flex items-center justify-between">
-                        <span class="text-amber-700">Time in Stage:</span>
-                        <span class="font-medium text-amber-900"><x-datetime :date="$timeInStatus" relative="true" /></span>
+                        <span class="{{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Time in Stage:</span>
+                        <span class="font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }}"><x-datetime :date="$timeInStatus" relative="true" /></span>
                     </div>
                     @if($project->submission_deadline)
                         <div class="flex items-center justify-between">
-                            <span class="text-amber-700">Submission Deadline:</span>
-                            <span class="font-medium text-amber-900"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y g:i A" /></span>
+                            <span class="{{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Submission Deadline:</span>
+                            <span class="font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }}"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y g:i A" /></span>
                         </div>
                     @endif
                     @if($project->judging_finalized_at)
                         <div class="flex items-center justify-between">
-                            <span class="text-amber-700">Judging Finalized:</span>
-                            <span class="font-medium text-green-700"><x-datetime :date="$project->judging_finalized_at" format="M d, Y g:i A" /></span>
+                            <span class="{{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Judging Finalized:</span>
+                            <span class="font-medium {{ $semanticColors['success']['text'] ?? 'text-green-700 dark:text-green-300' }}"><x-datetime :date="$project->judging_finalized_at" format="M d, Y g:i A" /></span>
                         </div>
                     @endif
                 </div>
@@ -249,10 +249,10 @@
     
     <!-- Contest Management Actions -->
     @if(($currentStage === 'contest_finalized' || $currentStage === 'contest_results') && ($project->user_id === auth()->id() || auth()->user()?->hasRole('admin')))
-        <div class="mt-6 bg-white/60 border border-amber-200/30 rounded-xl p-4">
+        <div class="mt-6 bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} rounded-xl p-4">
             <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-amber-800 flex items-center">
-                    <i class="fas fa-bullhorn mr-2 text-amber-600"></i>
+                <h4 class="font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-800 dark:text-amber-200' }} flex items-center">
+                    <i class="fas fa-bullhorn mr-2 {{ $workflowColors['icon'] ?? 'text-amber-600 dark:text-amber-400' }}"></i>
                     Contest Management
                 </h4>
                 <x-contest.payment-status-badge :project="$project" compact="true" />
@@ -306,8 +306,8 @@
             </div>
             
             @if($notSelectedCount > 0)
-                <div class="mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-lg">
-                    <p class="text-xs text-amber-700">
+                <div class="mt-3 p-3 {{ $workflowColors['accent_bg'] ?? 'bg-amber-50/80 dark:bg-amber-950/80' }} border {{ $workflowColors['accent_border'] ?? 'border-amber-200 dark:border-amber-700' }} rounded-lg">
+                    <p class="text-xs {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">
                         <i class="fas fa-info-circle mr-1"></i>
                         {{ $notSelectedCount }} {{ Str::plural('entry', $notSelectedCount) }} marked as not selected. 
                         You can still select winners or formally announce the results as-is.
@@ -316,8 +316,8 @@
             @endif
             
             @if($hasCashPrizes)
-                <div class="mt-3 p-3 bg-purple-50/80 border border-purple-200 rounded-lg">
-                    <p class="text-xs text-purple-700">
+                <div class="mt-3 p-3 bg-purple-50/80 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-700 rounded-lg">
+                    <p class="text-xs text-purple-700 dark:text-purple-300">
                         <i class="fas fa-info-circle mr-1"></i>
                         This contest has cash prizes totaling ${{ number_format($paymentStatus['total_prize_amount'], 2) }}. 
                         @if($prizesPaid)
@@ -333,14 +333,14 @@
 
     <!-- Announcement Success -->
     @if($currentStage === 'contest_results')
-        <div class="mt-6 bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 rounded-xl p-4">
+        <div class="mt-6 bg-gradient-to-r {{ $semanticColors['success']['bg'] ?? 'from-green-50/80 to-emerald-50/80 dark:from-green-950/80 dark:to-emerald-950/80' }} border {{ $semanticColors['success']['border'] ?? 'border-green-200/50 dark:border-green-700/50' }} rounded-xl p-4">
             <div class="flex items-center">
                 <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl mr-3">
                     <i class="fas fa-trophy text-white"></i>
                 </div>
                 <div>
-                    <h4 class="font-bold text-green-800">Contest Successfully Completed</h4>
-                    <p class="text-sm text-green-700">Results have been announced and all participants notified.</p>
+                    <h4 class="font-bold {{ $semanticColors['success']['text'] ?? 'text-green-800 dark:text-green-200' }}">Contest Successfully Completed</h4>
+                    <p class="text-sm {{ $semanticColors['success']['icon'] ?? 'text-green-700 dark:text-green-300' }}">Results have been announced and all participants notified.</p>
                 </div>
             </div>
             

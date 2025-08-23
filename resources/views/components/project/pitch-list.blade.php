@@ -95,44 +95,44 @@ $hasCompletedPitch = $project->pitches->where('status', 'completed')->count() > 
 // Create workflow-aware gradient classes similar to project-workflow-status
 $gradientClasses = match($project->workflow_type) {
     'standard' => [
-        'outer' => 'bg-gradient-to-br from-blue-50/95 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50',
-        'header' => 'bg-gradient-to-r from-blue-100/80 to-indigo-100/80 border-b border-blue-200/30',
-        'text_primary' => 'text-blue-900',
-        'text_secondary' => 'text-blue-700',
-        'text_muted' => 'text-blue-600',
-        'icon' => 'text-blue-600'
+        'outer' => 'bg-gradient-to-br from-blue-50/95 to-indigo-50/90 dark:from-blue-950/95 dark:to-indigo-950/90 backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50',
+        'header' => 'bg-gradient-to-r from-blue-100/80 to-indigo-100/80 dark:from-blue-900/80 dark:to-indigo-900/80 border-b border-blue-200/30 dark:border-blue-700/30',
+        'text_primary' => 'text-blue-900 dark:text-blue-100',
+        'text_secondary' => 'text-blue-700 dark:text-blue-300',
+        'text_muted' => 'text-blue-600 dark:text-blue-400',
+        'icon' => 'text-blue-600 dark:text-blue-400'
     ],
     'contest' => [
-        'outer' => 'bg-gradient-to-br from-amber-50/95 to-yellow-50/90 backdrop-blur-sm border border-amber-200/50',
-        'header' => 'bg-gradient-to-r from-amber-100/80 to-yellow-100/80 border-b border-amber-200/30',
-        'text_primary' => 'text-amber-900',
-        'text_secondary' => 'text-amber-700',
-        'text_muted' => 'text-amber-600',
-        'icon' => 'text-amber-600'
+        'outer' => 'bg-gradient-to-br from-amber-50/95 to-yellow-50/90 dark:from-amber-950/95 dark:to-yellow-950/90 backdrop-blur-sm border border-amber-200/50 dark:border-amber-700/50',
+        'header' => 'bg-gradient-to-r from-amber-100/80 to-yellow-100/80 dark:from-amber-900/80 dark:to-yellow-900/80 border-b border-amber-200/30 dark:border-amber-700/30',
+        'text_primary' => 'text-amber-900 dark:text-amber-100',
+        'text_secondary' => 'text-amber-700 dark:text-amber-300',
+        'text_muted' => 'text-amber-600 dark:text-amber-400',
+        'icon' => 'text-amber-600 dark:text-amber-400'
     ],
     'direct_hire' => [
-        'outer' => 'bg-gradient-to-br from-green-50/95 to-emerald-50/90 backdrop-blur-sm border border-green-200/50',
-        'header' => 'bg-gradient-to-r from-green-100/80 to-emerald-100/80 border-b border-green-200/30',
-        'text_primary' => 'text-green-900',
-        'text_secondary' => 'text-green-700',
-        'text_muted' => 'text-green-600',
-        'icon' => 'text-green-600'
+        'outer' => 'bg-gradient-to-br from-green-50/95 to-emerald-50/90 dark:from-green-950/95 dark:to-emerald-950/90 backdrop-blur-sm border border-green-200/50 dark:border-green-700/50',
+        'header' => 'bg-gradient-to-r from-green-100/80 to-emerald-100/80 dark:from-green-900/80 dark:to-emerald-900/80 border-b border-green-200/30 dark:border-green-700/30',
+        'text_primary' => 'text-green-900 dark:text-green-100',
+        'text_secondary' => 'text-green-700 dark:text-green-300',
+        'text_muted' => 'text-green-600 dark:text-green-400',
+        'icon' => 'text-green-600 dark:text-green-400'
     ],
     'client_management' => [
-        'outer' => 'bg-gradient-to-br from-purple-50/95 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50',
-        'header' => 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 border-b border-purple-200/30',
-        'text_primary' => 'text-purple-900',
-        'text_secondary' => 'text-purple-700',
-        'text_muted' => 'text-purple-600',
-        'icon' => 'text-purple-600'
+        'outer' => 'bg-gradient-to-br from-purple-50/95 to-indigo-50/90 dark:from-purple-950/95 dark:to-indigo-950/90 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50',
+        'header' => 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 dark:from-purple-900/80 dark:to-indigo-900/80 border-b border-purple-200/30 dark:border-purple-700/30',
+        'text_primary' => 'text-purple-900 dark:text-purple-100',
+        'text_secondary' => 'text-purple-700 dark:text-purple-300',
+        'text_muted' => 'text-purple-600 dark:text-purple-400',
+        'icon' => 'text-purple-600 dark:text-purple-400'
     ],
     default => [
-        'outer' => 'bg-gradient-to-br from-gray-50/95 to-slate-50/90 backdrop-blur-sm border border-gray-200/50',
-        'header' => 'bg-gradient-to-r from-gray-100/80 to-slate-100/80 border-b border-gray-200/30',
-        'text_primary' => 'text-gray-900',
-        'text_secondary' => 'text-gray-700',
-        'text_muted' => 'text-gray-600',
-        'icon' => 'text-gray-600'
+        'outer' => 'bg-gradient-to-br from-gray-50/95 to-slate-50/90 dark:from-gray-950/95 dark:to-slate-950/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50',
+        'header' => 'bg-gradient-to-r from-gray-100/80 to-slate-100/80 dark:from-gray-900/80 dark:to-slate-900/80 border-b border-gray-200/30 dark:border-gray-700/30',
+        'text_primary' => 'text-gray-900 dark:text-gray-100',
+        'text_secondary' => 'text-gray-700 dark:text-gray-300',
+        'text_muted' => 'text-gray-600 dark:text-gray-400',
+        'icon' => 'text-gray-600 dark:text-gray-400'
     ]
 };
 @endphp
@@ -161,7 +161,7 @@ $gradientClasses = match($project->workflow_type) {
                     <div class="text-xs {{ $gradientClasses['text_muted'] }}">Pitches</div>
                 </div>
                 <!-- Auto-allow toggle -->
-                <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl px-3 py-2">
+                <div class="bg-white/60 dark:bg-gray-800/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl px-3 py-2">
                     <div class="flex items-center gap-2">
                         <flux:label class="text-xs {{ $gradientClasses['text_secondary'] }} font-medium">Auto-allow access</flux:label>
                         <flux:switch wire:model.live="autoAllowAccess" wire:loading.attr="disabled" wire:target="autoAllowAccess" size="sm" />
@@ -223,7 +223,7 @@ $gradientClasses = match($project->workflow_type) {
                         <div class="absolute left-0 top-6 bottom-6 w-1 {{ $statusColors['accent'] }} rounded-r-full z-10"></div>
                         
                         <!-- Main Card -->
-                        <div class="relative transition-all duration-200 hover:shadow-lg bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl overflow-hidden {{ $statusColors['bg'] }} {{ $statusColors['border'] }}">
+                        <div class="relative transition-all duration-200 hover:shadow-lg bg-white/60 dark:bg-gray-800/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl overflow-hidden {{ $statusColors['bg'] }} {{ $statusColors['border'] }}">
                             <!-- Enhanced User Profile Section -->
                             <div class="p-4 pb-3">
                                 <div class="flex items-start gap-3">
@@ -242,13 +242,13 @@ $gradientClasses = match($project->workflow_type) {
                                                         </flux:badge>
                                                     @endif
                                                 </div>
-                                                <div class="flex flex-col sm:flex-row sm:items-center text-sm text-gray-600 dark:text-gray-400 gap-1 sm:gap-3">
+                                                <div class="flex flex-col sm:flex-row sm:items-center text-sm text-gray-700 dark:text-gray-300 gap-1 sm:gap-3">
                                                     <div class="flex items-center gap-1.5">
-                                                        <flux:icon.calendar class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                                        <flux:icon.calendar class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                                         Pitched {{ $pitch->created_at->format('M j, Y') }}
                                                     </div>
                                                     <div class="flex items-center gap-1.5">
-                                                        <flux:icon.clock class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                                        <flux:icon.clock class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                                         {{ $pitch->created_at->diffForHumans() }}
                                                     </div>
                                                     {{-- License Agreement Status --}}
@@ -369,7 +369,7 @@ $gradientClasses = match($project->workflow_type) {
                                 @if ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED)
                                             <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 w-fit">
                                                 <div class="flex items-center text-xs gap-2">
-                                                    <flux:icon.credit-card class="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                    <flux:icon.credit-card class="w-4 h-4 text-gray-600 dark:text-gray-300" />
                                                     <span class="text-gray-600 dark:text-gray-300 font-medium">Payment Status:</span>
                                                     <flux:badge 
                                                         color="{{ $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'green' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'amber' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'blue' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'red' : 'gray'))) }}"
@@ -449,7 +449,7 @@ $gradientClasses = match($project->workflow_type) {
                                                                 <div class="font-medium truncate text-xs text-gray-800 dark:text-gray-200 group-hover:{{ $gradientClasses['text_primary'] }}">
                                                         Version {{ $snapshot->snapshot_data['version'] ?? 'N/A' }}
                                                     </div>
-                                                                <div class="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                                                <div class="text-xs text-gray-600 dark:text-gray-300 ml-2">
                                                                     {{ $snapshot->created_at->format('M j') }}
                                                                 </div>
                                                     </div>
@@ -493,12 +493,12 @@ $gradientClasses = match($project->workflow_type) {
                     </div>
                 @empty
                     <!-- Clean Empty State -->
-                    <div class="bg-white/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 rounded-xl p-6 text-center">
-                        <div class="flex items-center justify-center gap-2 {{ $gradientClasses['text_muted'] }}">
+                    <div class="bg-white/60 dark:bg-gray-800/60 border border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl p-6 text-center">
+                        <div class="flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
                             <flux:icon.paper-airplane class="w-5 h-5" />
                             <span class="text-sm font-medium">No pitches submitted yet</span>
                         </div>
-                        <p class="text-xs {{ $gradientClasses['text_muted'] }} mt-2">
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">
                             Pitch submissions will appear here for review once producers respond to your project.
                         </p>
                 </div>

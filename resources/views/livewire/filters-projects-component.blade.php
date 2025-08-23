@@ -3,7 +3,7 @@
         <!-- Genre Dropdown -->
         <div x-data="{ open: {{ !empty($genres) ? 'true' : 'false' }} }">
             <button type="button" @click="open = !open"
-                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-primary" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
@@ -23,10 +23,10 @@
                 x-transition:enter-start="transform opacity-0 scale-95"
                 x-transition:enter-end="transform opacity-100 scale-100" class="mt-2 space-y-1 pl-2">
                 @foreach(['Pop','Rock','Country','Hip Hop','Jazz','Electronic','Classical','R&B','Folk'] as $genre)
-                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100">
+                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
                     <input type="checkbox" wire:model.live="genres" value="{{ $genre }}"
-                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span class="ml-2 text-sm text-gray-700">{{ $genre }}</span>
+                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" />
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $genre }}</span>
                 </label>
                 @endforeach {{-- @formatter:on --}}
             </div>
@@ -35,7 +35,7 @@
         <!-- Workflow Type Dropdown -->
         <div x-data="{ open: {{ !empty($projectTypes) ? 'true' : 'false' }} }">
             <button type="button" @click="open = !open"
-                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 mr-2 text-primary">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
@@ -62,10 +62,10 @@
                 @endphp
 
                 @foreach($workflowTypeOptions as $value => $label)
-                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100">
+                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
                     <input type="checkbox" wire:model.live="projectTypes" value="{{ $value }}"
-                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span class="ml-2 text-sm text-gray-700">
+                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" />
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         {{ $label }}
                     </span>
                 </label>
@@ -76,7 +76,7 @@
         <!-- Status Dropdown -->
         <div x-data="{ open: {{ !empty($statuses) ? 'true' : 'false' }} }">
             <button type="button" @click="open = !open"
-                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-primary" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
@@ -103,17 +103,17 @@
                 ];
 
                 $statusColors = [
-                'open' => 'text-green-600',
-                'in_progress' => 'text-blue-600',
-                'completed' => 'text-purple-600'
+                'open' => 'text-green-600 dark:text-green-400',
+                'in_progress' => 'text-blue-600 dark:text-blue-400',
+                'completed' => 'text-purple-600 dark:text-purple-400'
                 ];
                 @endphp
 
                 @foreach(['open', 'in_progress', 'completed'] as $status)
-                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100">
+                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
                     <input type="checkbox" wire:model.live="statuses" value="{{ $status }}"
-                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span class="ml-2 text-sm {{ $statusColors[$status] ?? 'text-gray-700' }}">
+                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" />
+                    <span class="ml-2 text-sm {{ $statusColors[$status] ?? 'text-gray-700 dark:text-gray-300' }}">
                         {{ $statusLabels[$status] ?? ucfirst(str_replace('_', ' ', $status)) }}
                     </span>
                 </label>
@@ -176,7 +176,7 @@
             "
         >
             <button type="button" @click="open = !open"
-                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 mr-2 text-primary">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -193,14 +193,14 @@
             <div x-show="open" x-transition class="mt-2 space-y-4 px-2 pt-2 pb-4">
                 <!-- Budget Range Display -->
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-medium text-gray-700" x-text="minBudget === null ? 'Any' : formatCurrency(minBudget)"></span>
-                    <span class="text-xs text-gray-500">to</span>
-                    <span class="text-sm font-medium text-gray-700" x-text="maxBudget === null || maxBudget >= maxSliderValue ? 'Any' : formatCurrency(maxBudget)"></span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="minBudget === null ? 'Any' : formatCurrency(minBudget)"></span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">to</span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="maxBudget === null || maxBudget >= maxSliderValue ? 'Any' : formatCurrency(maxBudget)"></span>
                 </div>
                 
                 <!-- Range Slider -->
                 <div class="relative pt-1">
-                    <div class="h-1 bg-gray-200 rounded-full">
+                    <div class="h-1 bg-gray-200 dark:bg-gray-600 rounded-full">
                         <div class="absolute h-1 rounded-full bg-primary" 
                             :style="`left: ${(displayMin / maxSliderValue) * 100}%; right: ${100 - (displayMax / maxSliderValue) * 100}%`"></div>
                     </div>
@@ -232,32 +232,32 @@
                 <div class="grid grid-cols-2 gap-2 mt-4 sm:grid-cols-3">
                     <button type="button" @click="setPreset(null, 10)" 
                         class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === null && maxBudget === 10, 'text-gray-700 hover:bg-gray-50': !(minBudget === null && maxBudget === 10)}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === null && maxBudget === 10, 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': !(minBudget === null && maxBudget === 10)}">
                         Under $10
                     </button>
                     <button type="button" @click="setPreset(10, 50)" 
                         class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 10 && maxBudget === 50, 'text-gray-700 hover:bg-gray-50': !(minBudget === 10 && maxBudget === 50)}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 10 && maxBudget === 50, 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': !(minBudget === 10 && maxBudget === 50)}">
                         $10 - $50
                     </button>
                     <button type="button" @click="setPreset(50, 100)" 
                         class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 50 && maxBudget === 100, 'text-gray-700 hover:bg-gray-50': !(minBudget === 50 && maxBudget === 100)}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 50 && maxBudget === 100, 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': !(minBudget === 50 && maxBudget === 100)}">
                         $50 - $100
                     </button>
                     <button type="button" @click="setPreset(100, 200)"  
                         class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 100 && maxBudget === 200, 'text-gray-700 hover:bg-gray-50': !(minBudget === 100 && maxBudget === 200)}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 100 && maxBudget === 200, 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': !(minBudget === 100 && maxBudget === 200)}">
                         $100 - $200
                     </button>
                     <button type="button" @click="setPreset(200, 500)" 
                         class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 200 && maxBudget === 500, 'text-gray-700 hover:bg-gray-50': !(minBudget === 200 && maxBudget === 500)}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 200 && maxBudget === 500, 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': !(minBudget === 200 && maxBudget === 500)}">
                         $200 - $500
                     </button>
                     <button type="button" @click="setPreset(500, null)" 
                         class="group px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 500 && maxBudget === null, 'text-gray-700 hover:bg-gray-50': !(minBudget === 500 && maxBudget === null)}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': minBudget === 500 && maxBudget === null, 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': !(minBudget === 500 && maxBudget === null)}">
                         $500+
                     </button>
                 </div>
@@ -265,22 +265,22 @@
                 <!-- Manual Input -->
                 <div class="flex items-center space-x-2 mt-4">
                     <div class="w-1/2">
-                        <label class="block text-xs text-gray-500 mb-1">Min ($)</label>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Min ($)</label>
                         <input type="number" 
                                x-model="minBudget"
                                @change="applyChanges()"
                                min="0"
                                placeholder="Any" 
-                               class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                               class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-primary focus:border-primary" />
                     </div>
                     <div class="w-1/2">
-                        <label class="block text-xs text-gray-500 mb-1">Max ($)</label>
+                        <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max ($)</label>
                         <input type="number" 
                                x-model="maxBudget"
                                @change="applyChanges()"
                                min="0"
                                placeholder="Any" 
-                               class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
+                               class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-primary focus:border-primary" />
                     </div>
                 </div>
             </div>
@@ -393,7 +393,7 @@
                 });
             ">
             <button type="button" @click="open = !open"
-                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 mr-2 text-primary">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
@@ -410,24 +410,24 @@
             <div x-show="open" x-transition class="mt-2 space-y-4 px-2 pt-2 pb-4">
                 <!-- Current Selection Display -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm font-medium text-gray-700" x-text="getRelativeDateDescription()"></span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="getRelativeDateDescription()"></span>
                 </div>
                 
                 <!-- Preset Buttons -->
                 <div class="flex space-x-2">
                     <button type="button" @click="setPreset('next7days')" 
                         class="group flex-1 px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next7days', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'next7days'}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next7days', 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': selectedPreset !== 'next7days'}">
                         Next 7 days
                     </button>
                     <button type="button" @click="setPreset('next30days')" 
                         class="group flex-1 px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next30days', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'next30days'}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next30days', 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': selectedPreset !== 'next30days'}">
                         Next 30 days
                     </button>
                     <button type="button" @click="setPreset('next3months')" 
                         class="group flex-1 px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next3months', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'next3months'}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'next3months', 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': selectedPreset !== 'next3months'}">
                         Next 3 months
                     </button>
                 </div>
@@ -436,7 +436,7 @@
                 <div class="mt-2">
                     <button type="button" @click="setPreset('upcoming')" 
                         class="group w-full px-3 py-2 text-xs font-medium bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'upcoming', 'text-gray-700 hover:bg-gray-50': selectedPreset !== 'upcoming'}">
+                        :class="{'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg': selectedPreset === 'upcoming', 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white/90 dark:bg-gray-800/90 border-gray-200/50 dark:border-gray-600/50': selectedPreset !== 'upcoming'}">
                         Upcoming (all)
                     </button>
                 </div>
@@ -444,21 +444,21 @@
                 <!-- Custom Date Range Selection -->
                 <div x-show="selectedPreset === 'custom' || selectedPreset === '' || deadlineStart || deadlineEnd">
                     <p class="text-xs text-gray-500 mb-2 font-medium">
-                        <button type="button" @click="setPreset('custom')" class="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-200">
+                        <button type="button" @click="setPreset('custom')" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-all duration-200">
                             Custom Date Range
                         </button>
                     </p>
                     
                     <div class="space-y-2">
                         <div class="sm:flex-1">
-                            <label class="block text-xs text-gray-500 mb-1">Start Date:</label>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date:</label>
                             <input type="date" 
                                    x-model="deadlineStart"
                                    @change="applyChanges()"
                                    class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" />
                         </div>
                         <div class="sm:flex-1">
-                            <label class="block text-xs text-gray-500 mb-1">End Date:</label>
+                            <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Date:</label>
                             <input type="date" 
                                    x-model="deadlineEnd"
                                    @change="applyChanges()"
@@ -485,7 +485,7 @@
         <!-- Collaboration Type Dropdown -->
         <div x-data="{ open: {{ !empty($selected_collaboration_types) ? 'true' : 'false' }} }">
             <button type="button" @click="open = !open"
-                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                class="flex items-center justify-between w-full px-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <span class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-primary">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.94-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.06-3.17M12 12.75a5.995 5.995 0 015.06 3.17M12 12.75A5.995 5.995 0 016.94 15.92m5.06-3.17c.045-.147.083-.296.098-.445l.015-.15H12a5.97 5.97 0 01-1.074.084m1.074-.084L12 12.75m0 0l-.074.042a5.971 5.971 0 00-1.141-.096m1.141.096c-.045.147-.083.295-.098.445L12 12.75m0 0l.074-.042a5.971 5.971 0 011.141.096m-1.141-.096a1.62 1.62 0 01-.55.062m.55-.062a1.62 1.62 0 00-.55.062m0 0a5.995 5.995 0 01-5.06-3.17M12 3c2.755 0 5.197.845 7.126 2.28M12 3c-2.755 0-5.197.845-7.126 2.28m14.252 0l.016.006a4.977 4.977 0 01-.767 5.665 4.98 4.98 0 01-7.1 0 4.977 4.977 0 01-.767-5.665l.016-.006M12 3c-3.866 0-7 3.134-7 7 0 1.708.613 3.28 1.616 4.53M12 3c3.866 0 7 3.134 7 7 0 1.708-.613 3.28-1.616 4.53" />
@@ -503,10 +503,10 @@
                 x-transition:enter-start="transform opacity-0 scale-95"
                 x-transition:enter-end="transform opacity-100 scale-100" class="mt-2 space-y-1 pl-2">
                 @foreach($availableCollaborationTypes as $collabType)
-                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100">
+                <label class="flex items-center py-1 px-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
                     <input type="checkbox" wire:model.live="selected_collaboration_types" value="{{ $collabType }}"
-                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span class="ml-2 text-sm text-gray-700">{{ $collabType }}</span>
+                        class="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" />
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $collabType }}</span>
                 </label>
                 @endforeach
             </div>

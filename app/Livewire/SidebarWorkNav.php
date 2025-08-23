@@ -23,9 +23,12 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        // Count active projects (excluding client management projects)
+        // Count active projects (excluding contest and client management projects)
         $projectsCount = Project::where('user_id', $user->id)
-            ->where('workflow_type', '!=', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereNotIn('workflow_type', [
+                Project::WORKFLOW_TYPE_CONTEST,
+                Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+            ])
             ->whereIn('status', [
                 Project::STATUS_UNPUBLISHED,
                 Project::STATUS_OPEN,
@@ -33,23 +36,40 @@ class SidebarWorkNav extends Component
             ])
             ->count();
 
-        // Count active pitches
+        // Count active pitches (excluding contest and client management pitches)
         $pitchesCount = Pitch::where('user_id', $user->id)
             ->whereIn('status', [
                 Pitch::STATUS_PENDING, Pitch::STATUS_IN_PROGRESS, Pitch::STATUS_READY_FOR_REVIEW,
                 Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_AWAITING_ACCEPTANCE,
                 Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, Pitch::STATUS_APPROVED,
             ])
+            ->whereHas('project', function ($query) {
+                $query->whereNotIn('workflow_type', [
+                    Project::WORKFLOW_TYPE_CONTEST,
+                    Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+                ]);
+            })
             ->count();
 
-        // Count contest entries
-        $contestsCount = Pitch::where('user_id', $user->id)
+        // Count contest entries (pitches) and contest projects (created by user)
+        $contestPitchesCount = Pitch::where('user_id', $user->id)
             ->whereIn('status', [
                 Pitch::STATUS_CONTEST_ENTRY,
                 Pitch::STATUS_CONTEST_WINNER,
                 Pitch::STATUS_CONTEST_RUNNER_UP,
             ])
             ->count();
+
+        $contestProjectsCount = Project::where('user_id', $user->id)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CONTEST)
+            ->whereIn('status', [
+                Project::STATUS_UNPUBLISHED,
+                Project::STATUS_OPEN,
+                Project::STATUS_IN_PROGRESS,
+            ])
+            ->count();
+
+        $contestsCount = $contestPitchesCount + $contestProjectsCount;
 
         // Count client projects (where user is the producer working on client projects)
         $clientProjectsCount = Project::where('user_id', $user->id)
@@ -81,7 +101,10 @@ class SidebarWorkNav extends Component
         $user = Auth::user();
 
         return Project::where('user_id', $user->id)
-            ->where('workflow_type', '!=', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereNotIn('workflow_type', [
+                Project::WORKFLOW_TYPE_CONTEST,
+                Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+            ])
             ->whereIn('status', [
                 Project::STATUS_UNPUBLISHED,
                 Project::STATUS_OPEN,
@@ -110,6 +133,12 @@ class SidebarWorkNav extends Component
                 Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
                 Pitch::STATUS_APPROVED,
             ])
+            ->whereHas('project', function ($query) {
+                $query->whereNotIn('workflow_type', [
+                    Project::WORKFLOW_TYPE_CONTEST,
+                    Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+                ]);
+            })
             ->with('project')
             ->orderBy('updated_at', 'desc')
             ->take($limit)
@@ -124,16 +153,56 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        return Pitch::where('user_id', $user->id)
+        // Get contest pitches (entries by this user)
+        $contestPitches = Pitch::where('user_id', $user->id)
             ->whereIn('status', [
                 Pitch::STATUS_CONTEST_ENTRY,
                 Pitch::STATUS_CONTEST_WINNER,
                 Pitch::STATUS_CONTEST_RUNNER_UP,
             ])
             ->with('project')
-            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(function ($pitch) {
+                return (object) [
+                    'type' => 'pitch',
+                    'id' => $pitch->id,
+                    'name' => $pitch->project->name ?? 'Untitled Contest',
+                    'route_name' => 'projects.pitches.show',
+                    'route_params' => [$pitch->project, $pitch],
+                    'updated_at' => $pitch->updated_at,
+                    'status' => $pitch->status,
+                    'project' => $pitch->project,
+                ];
+            });
+
+        // Get contest projects (created by this user)
+        $contestProjects = Project::where('user_id', $user->id)
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CONTEST)
+            ->whereIn('status', [
+                Project::STATUS_UNPUBLISHED,
+                Project::STATUS_OPEN,
+                Project::STATUS_IN_PROGRESS,
+            ])
+            ->get()
+            ->map(function ($project) {
+                return (object) [
+                    'type' => 'project',
+                    'id' => $project->id,
+                    'name' => $project->name ?? 'Untitled Contest',
+                    'route_name' => 'projects.manage',
+                    'route_params' => [$project],
+                    'updated_at' => $project->updated_at,
+                    'status' => $project->status,
+                    'project' => $project,
+                ];
+            });
+
+        // Combine and sort by updated_at, then take the limit
+        return $contestPitches
+            ->concat($contestProjects)
+            ->sortByDesc('updated_at')
             ->take($limit)
-            ->get();
+            ->values();
     }
 
     public function getRecentClientProjects($limit = 5)

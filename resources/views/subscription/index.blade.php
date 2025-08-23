@@ -568,28 +568,29 @@
 
                 <!-- Upgrade Options for Free Users -->
                 @if($user->isFreePlan())
-                <flux:card x-data="{ billingPeriod: 'monthly' }">
-                    <flux:heading size="xl" class="mb-6 text-center">Upgrade Your Plan</flux:heading>
-                    
-                    <!-- Billing Period Toggle -->
-                    <div class="flex justify-center mb-8">
+                <flux:card>
+                    <div x-data="{ selectedBillingPeriod: 'monthly' }">
+                        <flux:heading size="xl" class="mb-6 text-center">Upgrade Your Plan</flux:heading>
+                        
+                        <!-- Billing Period Toggle -->
+                        <div class="flex justify-center mb-8">
                         <div class="bg-gray-100 dark:bg-gray-800 rounded-xl p-2">
                             <div class="flex relative">
-                                <flux:button 
-                                    @click="billingPeriod = 'monthly'"
-                                    variant="ghost"
-                                    size="sm"
-                                    :class="billingPeriod === 'monthly' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400'">
+                                <button 
+                                    @click="selectedBillingPeriod = 'monthly'"
+                                    type="button"
+                                    class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                                    :class="selectedBillingPeriod === 'monthly' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'">
                                     Monthly Billing
-                                </flux:button>
-                                <flux:button 
-                                    @click="billingPeriod = 'yearly'"
-                                    variant="ghost"
-                                    size="sm"
-                                    :class="billingPeriod === 'yearly' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400'">
+                                </button>
+                                <button 
+                                    @click="selectedBillingPeriod = 'yearly'"
+                                    type="button"
+                                    class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center"
+                                    :class="selectedBillingPeriod === 'yearly' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'">
                                     <span>Yearly Billing</span>
-                                    <flux:badge color="green" size="xs" class="ml-2">Save 17%</flux:badge>
-                                </flux:button>
+                                    <span class="ml-2 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">Save 17%</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -604,12 +605,12 @@
                                 </flux:heading>
                                 <div class="mt-4">
                                     <!-- Monthly Pricing -->
-                                    <div x-show="billingPeriod === 'monthly'" x-transition>
+                                    <div x-show="selectedBillingPeriod === 'monthly'" x-transition>
                                         <flux:heading size="xl" class="text-gray-900 dark:text-gray-100">$6.99</flux:heading>
                                         <flux:text class="text-gray-500 dark:text-gray-400">/month</flux:text>
                                     </div>
                                     <!-- Yearly Pricing -->
-                                    <div x-show="billingPeriod === 'yearly'" x-transition>
+                                    <div x-show="selectedBillingPeriod === 'yearly'" x-transition>
                                         <flux:heading size="xl" class="text-gray-900 dark:text-gray-100">$69.99</flux:heading>
                                         <flux:text class="text-gray-500 dark:text-gray-400">/year</flux:text>
                                         <div class="mt-2">
@@ -651,7 +652,7 @@
                                     @csrf
                                     <input type="hidden" name="plan" value="pro">
                                     <input type="hidden" name="tier" value="artist">
-                                    <input type="hidden" name="billing_period" x-model="billingPeriod">
+                                    <input type="hidden" name="billing_period" x-model="selectedBillingPeriod">
                                     <flux:button type="submit" variant="primary" class="w-full justify-center">
                                         Upgrade to Pro Artist
                                     </flux:button>
@@ -668,12 +669,12 @@
                                 </flux:heading>
                                 <div class="mt-4">
                                     <!-- Monthly Pricing -->
-                                    <div x-show="billingPeriod === 'monthly'" x-transition>
+                                    <div x-show="selectedBillingPeriod === 'monthly'" x-transition>
                                         <flux:heading size="xl" class="text-gray-900 dark:text-gray-100">$9.99</flux:heading>
                                         <flux:text class="text-gray-500 dark:text-gray-400">/month</flux:text>
                                     </div>
                                     <!-- Yearly Pricing -->
-                                    <div x-show="billingPeriod === 'yearly'" x-transition>
+                                    <div x-show="selectedBillingPeriod === 'yearly'" x-transition>
                                         <flux:heading size="xl" class="text-gray-900 dark:text-gray-100">$99.99</flux:heading>
                                         <flux:text class="text-gray-500 dark:text-gray-400">/year</flux:text>
                                         <div class="mt-2">
@@ -715,7 +716,7 @@
                                     @csrf
                                     <input type="hidden" name="plan" value="pro">
                                     <input type="hidden" name="tier" value="engineer">
-                                    <input type="hidden" name="billing_period" x-model="billingPeriod">
+                                    <input type="hidden" name="billing_period" x-model="selectedBillingPeriod">
                                     <flux:button type="submit" variant="primary" class="w-full justify-center bg-purple-600 hover:bg-purple-700">
                                         Upgrade to Pro Engineer
                                     </flux:button>
@@ -724,11 +725,12 @@
                         </flux:card>
                     </div>
                     
-                    <!-- Feature Comparison Link -->
-                    <div class="mt-6 text-center">
-                        <flux:button href="{{ route('pricing') }}" variant="ghost" icon="arrow-right">
-                            View complete feature comparison
-                        </flux:button>
+                        <!-- Feature Comparison Link -->
+                        <div class="mt-6 text-center">
+                            <flux:button href="{{ route('pricing') }}" variant="ghost" icon="arrow-right">
+                                View complete feature comparison
+                            </flux:button>
+                        </div>
                     </div>
                 </flux:card>
                 @endif

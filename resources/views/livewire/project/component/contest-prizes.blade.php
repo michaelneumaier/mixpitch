@@ -1,26 +1,28 @@
+@props(['workflowColors' => [], 'semanticColors' => []])
+
 <div class="relative">
     <!-- Background Effects -->
-    <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-50/30 via-yellow-50/20 to-orange-50/30"></div>
-    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-amber-400/10 blur-xl"></div>
-    <div class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-yellow-400/10 blur-lg"></div>
+    <div class="absolute inset-0 rounded-2xl {{ $workflowColors['bg'] ?? 'bg-gradient-to-br from-amber-50/30 via-yellow-50/20 to-orange-50/30 dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-orange-950/30' }}"></div>
+    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-amber-400/10 dark:bg-amber-600/10 blur-xl"></div>
+    <div class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-yellow-400/10 dark:bg-yellow-600/10 blur-lg"></div>
 
     <!-- Content -->
-    <div class="relative rounded-2xl border border-white/20 bg-white/95 p-6 shadow-xl backdrop-blur-md">
+    <div class="relative rounded-2xl border {{ $workflowColors['border'] ?? 'border-white/20 dark:border-gray-700/20' }} bg-white/95 dark:bg-gray-900/95 p-6 shadow-xl backdrop-blur-md">
         <div class="mb-6 flex items-center justify-between">
             <div class="flex items-center">
-                <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600">
+                <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br {{ $workflowColors['icon'] ?? 'from-amber-500 to-yellow-600' }}">
                     <i class="fas fa-trophy text-lg text-white"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-3 mb-1">
-                        <h3 class="text-lg font-bold text-amber-800">Contest Prizes</h3>
+                        <h3 class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-amber-800 dark:text-amber-200' }}">Contest Prizes</h3>
                         <x-contest.payment-status-badge :project="$project" compact="true" />
                     </div>
-                    <p class="text-sm text-amber-600">Rewards and incentives for winners</p>
+                    <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-amber-600 dark:text-amber-400' }}">Rewards and incentives for winners</p>
                 </div>
             </div>
             <a href="{{ route('projects.edit', $project) }}"
-                class="inline-flex items-center rounded-lg bg-amber-100 px-3 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-200">
+                class="inline-flex items-center rounded-lg {{ $workflowColors['accent_bg'] ?? 'bg-amber-100 dark:bg-amber-900' }} px-3 py-2 text-sm font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-800 dark:text-amber-200' }} transition-colors hover:bg-amber-200 dark:hover:bg-amber-800">
                 <i class="fas fa-edit mr-2"></i>
                 Edit Prizes
             </a>
@@ -28,20 +30,20 @@
 
         @if ($project->hasPrizes())
             <!-- New Contest Prize System -->
-            <div class="rounded-xl border border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-yellow-50/80 p-4 backdrop-blur-sm">
+            <div class="rounded-xl border {{ $workflowColors['accent_border'] ?? 'border-amber-200/50 dark:border-amber-700/50' }} {{ $workflowColors['accent_bg'] ?? 'bg-gradient-to-br from-amber-50/80 to-yellow-50/80 dark:from-amber-950/80 dark:to-yellow-950/80' }} p-4 backdrop-blur-sm">
                 <!-- Prize Summary Stats -->
                 <div class="mb-4 grid grid-cols-2 gap-3">
-                    <div class="rounded-lg border border-amber-200/30 bg-white/60 p-3 text-center backdrop-blur-sm">
-                        <div class="text-lg font-bold text-amber-900">
+                    <div class="rounded-lg border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} bg-white/60 dark:bg-gray-800/60 p-3 text-center backdrop-blur-sm">
+                        <div class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }}">
                             ${{ number_format($project->getTotalPrizeBudget()) }}
                         </div>
-                        <div class="text-xs text-amber-700">Total Cash Prizes</div>
+                        <div class="text-xs {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Total Cash Prizes</div>
                     </div>
-                    <div class="rounded-lg border border-amber-200/30 bg-white/60 p-3 text-center backdrop-blur-sm">
-                        <div class="text-lg font-bold text-amber-900">
+                    <div class="rounded-lg border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} bg-white/60 dark:bg-gray-800/60 p-3 text-center backdrop-blur-sm">
+                        <div class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }}">
                             ${{ number_format($project->getTotalPrizeValue()) }}
                         </div>
-                        <div class="text-xs text-amber-700">Total Prize Value</div>
+                        <div class="text-xs {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Total Prize Value</div>
                     </div>
                 </div>
 

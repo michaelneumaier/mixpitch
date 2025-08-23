@@ -1,6 +1,6 @@
 <x-layouts.app-sidebar>
 
-<div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+<div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
     <div class="mx-auto px-2 md:py-2">
         <div class="max-w-7xl mx-auto">
             <!-- Enhanced Dashboard Header -->
@@ -29,7 +29,7 @@
                 <flux:card class="mb-2 bg-white/50">
                     <!-- Top Row: Title + Primary Actions -->
                     <div class="flex items-center justify-between gap-3 mb-3">
-                        <flux:heading size="lg" class="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-gray-100 dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+                        <flux:heading size="xl" class="bg-gradient-to-r from-gray-900 to-purple-800 dark:from-blue-200 dark:to-purple-200 bg-clip-text text-transparent">
                             Dashboard
                         </flux:heading>
                         

@@ -1,6 +1,6 @@
 <x-layouts.app-sidebar>
 
-<div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+<div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
     <div class="mx-auto px-2 md:py-2">
         <div class="mx-auto">
             <!-- Project Header Component -->
@@ -23,7 +23,7 @@
                     @endif
 
                     <!-- Description Section -->
-                    <flux:card class="mb-4">
+                    <flux:card class="mb-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                         <div class="flex items-center gap-3 mb-4">
                             <div class="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-sm">
                                 <flux:icon name="document-text" class="text-white" size="lg" />
@@ -31,7 +31,7 @@
                             <flux:heading size="lg" class="text-slate-800 dark:text-slate-200">Project Description</flux:heading>
                         </div>
 
-                        <div class="prose prose-lg prose-gray max-w-none">
+                        <div class="prose prose-lg prose-gray dark:prose-invert max-w-none">
                             <flux:text class="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                                 {{ $project->description }}
                             </flux:text>
@@ -40,7 +40,7 @@
 
                     <!-- Collaboration Types -->
                     @if($project->collaboration_type && count(array_filter($project->collaboration_type)) > 0)
-                        <flux:card class="mb-4">
+                        <flux:card class="mb-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                             <div class="flex items-center gap-3 mb-4">
                                 <div class="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-sm">
                                     <flux:icon name="hand-raised" class="text-white" size="lg" />
@@ -95,7 +95,7 @@
 
                     <!-- Additional Notes -->
                     @if ($project->notes)
-                        <flux:card class="mb-4">
+                        <flux:card class="mb-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                             <div class="flex items-center gap-3 mb-4">
                                 <div class="p-2 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg shadow-sm">
                                     <flux:icon name="clipboard-document-list" class="text-white" size="lg" />
@@ -112,7 +112,7 @@
                     @endif
 
                     <!-- Project Files -->
-                    <flux:card class="mb-4">
+                    <flux:card class="mb-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg shadow-sm">
@@ -131,7 +131,7 @@
                                 <div class="mb-4">
                                     <flux:icon name="folder-open" class="mx-auto text-slate-400 dark:text-slate-500" size="2xl" />
                                 </div>
-                                <flux:heading size="lg" class="mb-2">No Files Yet</flux:heading>
+                                <flux:heading size="lg" class="mb-2 text-slate-800 dark:text-slate-200">No Files Yet</flux:heading>
                                 <flux:text class="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                                     No files have been uploaded for this project. Files will appear here once the project owner uploads reference tracks or materials.
                                 </flux:text>
@@ -148,7 +148,7 @@
 
                                         <!-- File Info -->
                                         <div class="flex-1 min-w-0">
-                                            <flux:heading size="sm" class="truncate mb-1" :title="$file->file_name">
+                                            <flux:heading size="sm" class="truncate mb-1 text-slate-900 dark:text-slate-100" :title="$file->file_name">
                                                 {{ $file->file_name }}
                                             </flux:heading>
                                             <div class="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
@@ -185,7 +185,7 @@
                     <x-project.payout-status :project="$project" />
 
                     <!-- Project Stats -->
-                    <flux:card class="mb-4">
+                    <flux:card class="mb-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                         <div class="flex items-center gap-3 mb-4">
                             <div class="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg shadow-sm">
                                 <flux:icon name="chart-bar" class="text-white" size="sm" />

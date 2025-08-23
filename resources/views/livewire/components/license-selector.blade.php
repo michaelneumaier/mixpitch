@@ -1,8 +1,8 @@
 <div class="license-selector-component">
     <!-- Header Section -->
     <div class="mb-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">License Terms</h3>
-        <p class="text-sm text-gray-600">Choose how others can use your project work</p>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">License Terms</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Choose how others can use your project work</p>
     </div>
 
     <!-- License Agreement Toggle -->
@@ -10,10 +10,10 @@
         <label class="flex items-center space-x-3">
             <input type="checkbox" 
                    wire:model.live="requiresAgreement"
-                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                   class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700">
             <div>
-                <span class="text-sm font-medium text-gray-900">Require license agreement</span>
-                <p class="text-xs text-gray-500">Contributors must agree to terms before participating</p>
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Require license agreement</span>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Contributors must agree to terms before participating</p>
             </div>
         </label>
     </div>
@@ -22,7 +22,7 @@
         <!-- Your Templates Section -->
         @if($userTemplates->count() > 0)
             <div class="mb-8">
-                <h4 class="text-md font-medium text-gray-900 mb-4">Your License Templates</h4>
+                <h4 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-4">Your License Templates</h4>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @foreach($userTemplates as $template)
@@ -33,17 +33,17 @@
                                        value="{{ $template->id }}"
                                        class="sr-only">
                                 
-                                <div class="border rounded-lg p-4 transition-all duration-200 hover:shadow-md {{ $selectedTemplateId == $template->id ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300' }}">
+                                <div class="border rounded-lg p-4 transition-all duration-200 hover:shadow-md {{ $selectedTemplateId == $template->id ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950 ring-2 ring-indigo-200 dark:ring-indigo-700' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800' }}">
                                     <!-- Template Header -->
                                     <div class="flex justify-between items-start mb-3">
                                         <div class="flex-1">
-                                            <h5 class="font-medium text-gray-900 flex items-center">
+                                            <h5 class="font-medium text-gray-900 dark:text-gray-100 flex items-center">
                                                 {{ $template->name }}
                                                 @if($template->is_default)
-                                                    <span class="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Default</span>
+                                                    <span class="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-200 px-2 py-1 rounded-full">Default</span>
                                                 @endif
                                             </h5>
-                                            <p class="text-xs text-gray-500 mt-1">{{ $template->category_name }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $template->category_name }}</p>
                                         </div>
                                         
                                         @if($selectedTemplateId == $template->id)
@@ -56,7 +56,7 @@
                                     </div>
                                     
                                     <!-- Template Description -->
-                                    <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ $template->description }}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">{{ $template->description }}</p>
                                     
                                     <!-- Key Terms Preview -->
                                     <div class="flex flex-wrap gap-1 mb-3">
@@ -78,11 +78,11 @@
                                     </div>
                                     
                                     <!-- Template Actions -->
-                                    <div class="flex justify-between items-center text-xs text-gray-500">
+                                    <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                                         <span>Used {{ $template->getUsageCount() }} times</span>
                                         <button type="button" 
                                                 wire:click="previewTemplate({{ $template->id }})"
-                                                class="text-indigo-600 hover:text-indigo-800">
+                                                class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200">
                                             Preview Full Terms
                                         </button>
                                     </div>
@@ -96,14 +96,14 @@
 
         <!-- Custom License Option -->
         <div class="mb-6">
-            <div class="border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 hover:border-gray-400 hover:bg-gray-50">
-                <div class="text-gray-400 mb-2">
+            <div class="border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-gray-900">
+                <div class="text-gray-400 dark:text-gray-500 mb-2">
                     <svg class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
                 </div>
-                <h5 class="font-medium text-gray-900 mb-1">Create Custom License</h5>
-                <p class="text-sm text-gray-600 mb-4">Build your own terms from scratch</p>
+                <h5 class="font-medium text-gray-900 dark:text-gray-100 mb-1">Create Custom License</h5>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Build your own terms from scratch</p>
                 
                 @if($this->canUserCreateTemplates)
                     <button type="button" 
@@ -127,48 +127,48 @@
 
         <!-- Success Message for Template Creation -->
         @if(session()->has('template-created'))
-            <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="mb-6 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
                 <div class="flex items-center">
-                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                    <span class="text-green-800 font-medium">{{ session('template-created') }}</span>
+                    <i class="fas fa-check-circle text-green-600 dark:text-green-400 mr-2"></i>
+                    <span class="text-green-800 dark:text-green-200 font-medium">{{ session('template-created') }}</span>
                 </div>
             </div>
         @endif
 
         <!-- Error Message -->
         @if(session()->has('error'))
-            <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="mb-6 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
                 <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-600 mr-2"></i>
-                    <span class="text-red-800 font-medium">{{ session('error') }}</span>
+                    <i class="fas fa-exclamation-circle text-red-600 dark:text-red-400 mr-2"></i>
+                    <span class="text-red-800 dark:text-red-200 font-medium">{{ session('error') }}</span>
                 </div>
             </div>
         @endif
 
         <!-- License Notes -->
         <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 License Notes (Optional)
             </label>
             <textarea wire:model.live="licenseNotes"
                       rows="3"
                       placeholder="Add any additional notes or clarifications about the license terms..."
-                      class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-            <p class="text-xs text-gray-500 mt-1">These notes will be included with the license agreement</p>
+                      class="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"></textarea>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">These notes will be included with the license agreement</p>
         </div>
 
         <!-- Subscription Limit Warning -->
         @if(!$this->canUserCreateTemplates)
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div class="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
                 <div class="flex">
                     <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <svg class="h-5 w-5 text-yellow-400 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                     </div>
                     <div class="ml-3">
-                        <h3 class="text-sm font-medium text-yellow-800">Template Limit Reached</h3>
-                        <p class="text-sm text-yellow-700 mt-1">
+                        <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Template Limit Reached</h3>
+                        <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
                             You've reached your license template limit. 
                             <a href="{{ route('subscription.index') }}" class="font-medium underline">Upgrade to Pro</a> 
                             for unlimited templates.
@@ -193,11 +193,11 @@
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
                 
                 <!-- Modal panel -->
-                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-lg font-medium text-gray-900">{{ $currentPreviewTemplate->name }}</h3>
-                            <button type="button" wire:click="closePreview" class="text-gray-400 hover:text-gray-600">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ $currentPreviewTemplate->name }}</h3>
+                            <button type="button" wire:click="closePreview" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
@@ -205,18 +205,18 @@
                         </div>
                         
                         <div class="mb-4">
-                            <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{{ $currentPreviewTemplate->category_name }}</span>
+                            <span class="inline-block bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded-full">{{ $currentPreviewTemplate->category_name }}</span>
                             @if($currentPreviewTemplate->use_case)
-                                <span class="inline-block bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full ml-1">{{ $currentPreviewTemplate->use_case_name }}</span>
+                                <span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-200 text-xs px-2 py-1 rounded-full ml-1">{{ $currentPreviewTemplate->use_case_name }}</span>
                             @endif
                         </div>
                         
                         <div class="max-h-96 overflow-y-auto">
-                            <div class="text-sm text-gray-700 whitespace-pre-line border rounded-lg p-4 bg-gray-50">
+                            <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
                                 @if($currentPreviewTemplate->content)
                                     {{ $currentPreviewTemplate->content }}
                                 @else
-                                    <div class="text-gray-500 italic">No license content available for this template.</div>
+                                    <div class="text-gray-500 dark:text-gray-400 italic">No license content available for this template.</div>
                                 @endif
                             </div>
                             
@@ -224,13 +224,13 @@
                         </div>
                     </div>
                     
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                         <button type="button" wire:click="selectTemplate({{ $currentPreviewTemplate->id }})" 
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
                             Use This Template
                         </button>
                         <button type="button" wire:click="closePreview" 
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                             Close
                         </button>
                     </div>
@@ -244,7 +244,7 @@
 @if($showCreateModal)
     @teleport('body')
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="relative bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-white/20 dark:border-gray-700/20 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 <!-- Modal Background Effects -->
                 <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-50/30 via-purple-50/20 to-blue-50/30 rounded-t-2xl"></div>
                 <div class="absolute top-4 left-4 w-16 h-16 bg-indigo-400/10 rounded-full blur-lg"></div>

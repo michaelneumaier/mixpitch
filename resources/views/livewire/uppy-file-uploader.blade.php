@@ -363,12 +363,22 @@
             min-height: 160px !important;
         }
 
+        /* Dark mode support for drag drop area */
+        .dark .uppy-DragDrop-inner {
+            border-color: #4b5563 !important;
+            background: #1f2937 !important;
+        }
+
         .uppy-DragDrop-label {
             font-family: inherit !important;
             font-size: 1rem !important;
             font-weight: 500 !important;
             color: #374151 !important;
             line-height: 1.5 !important;
+        }
+
+        .dark .uppy-DragDrop-label {
+            color: #f9fafb !important;
         }
 
         .uppy-DragDrop-note {
@@ -379,10 +389,20 @@
             line-height: 1.4 !important;
         }
 
+        .dark .uppy-DragDrop-note {
+            color: #d1d5db !important;
+        }
+
         .uppy-DragDrop-inner:hover,
         .uppy-is-drag-over .uppy-DragDrop-inner {
             border-color: #3b82f6 !important;
             background: #eff6ff !important;
+        }
+
+        .dark .uppy-DragDrop-inner:hover,
+        .dark .uppy-is-drag-over .uppy-DragDrop-inner {
+            border-color: #60a5fa !important;
+            background: #1e3a8a !important;
         }
 
         /* Simple StatusBar styling */
@@ -392,6 +412,11 @@
             border: 1px solid #e5e7eb !important;
             font-family: inherit !important;
             margin-top: 1rem !important;
+        }
+
+        .dark .uppy-StatusBar {
+            background: #374151 !important;
+            border-color: #4b5563 !important;
         }
 
         .uppy-StatusBar-content {
@@ -409,8 +434,16 @@
             font-weight: 500 !important;
         }
 
+        .dark .uppy-StatusBar-statusPrimary {
+            color: #f9fafb !important;
+        }
+
         .uppy-StatusBar-statusSecondary {
             color: #6b7280 !important;
+        }
+
+        .dark .uppy-StatusBar-statusSecondary {
+            color: #d1d5db !important;
         }
 
         /* Simple ProgressBar styling */
@@ -419,6 +452,10 @@
             border-radius: 0.25rem !important;
             overflow: hidden !important;
             height: 6px !important;
+        }
+
+        .dark .uppy-ProgressBar {
+            background: #4b5563 !important;
         }
 
         .uppy-ProgressBar-fill {

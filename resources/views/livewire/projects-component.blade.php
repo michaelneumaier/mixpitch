@@ -1,8 +1,8 @@
-<div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+<div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
     <div class="mx-auto px-2 md:py-2">
         <div class="max-w-7xl mx-auto">
             <!-- Compact Dashboard Header -->
-            <flux:card class="mb-2 bg-white/50">
+            <flux:card class="mb-2 bg-white/50 dark:bg-gray-800/50">
                 <div class="flex items-center justify-between gap-3 mb-3">
                     <flux:heading size="lg" class="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-gray-100 dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
                         Discover Projects
@@ -32,12 +32,12 @@
                     <!-- Mobile Filter Toggle -->
                     <div class="lg:hidden mb-4">
                         <button @click="mobileFiltersOpen = !mobileFiltersOpen" 
-                                class="w-full flex items-center justify-between p-3 bg-white border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                class="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                             <div class="flex items-center gap-3">
-                                <flux:icon name="funnel" size="sm" />
-                                <span class="font-medium">Filters</span>
+                                <flux:icon name="funnel" size="sm" class="text-gray-600 dark:text-gray-300" />
+                                <span class="font-medium text-gray-900 dark:text-gray-100">Filters</span>
                             </div>
-                            <flux:icon name="chevron-down" size="sm" :class="mobileFiltersOpen ? 'rotate-180' : ''" class="transition-transform" />
+                            <flux:icon name="chevron-down" size="sm" :class="mobileFiltersOpen ? 'rotate-180' : ''" class="transition-transform text-gray-600 dark:text-gray-300" />
                         </button>
                     </div>
 
@@ -53,7 +53,7 @@
                                         <flux:heading size="lg" class="text-slate-800 dark:text-slate-200">Filter Projects</flux:heading>
                                     </div>
                                     <!-- Mobile Close Button -->
-                                    <button @click="mobileFiltersOpen = false" class="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                    <button @click="mobileFiltersOpen = false" class="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300">
                                         <flux:icon name="x-mark" size="sm" />
                                     </button>
                                 </div>
@@ -97,7 +97,7 @@
 
                     <!-- Active Filters Summary -->
                     @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes) || $min_budget || $max_budget || $deadline_start || $deadline_end || !empty($selected_collaboration_types))
-                    <flux:card class="mt-4">
+                    <flux:card class="mt-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="p-1.5 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg shadow-sm">
                                 <flux:icon name="funnel" class="text-white" size="xs" />
@@ -106,8 +106,8 @@
                         </div>
                         <div class="space-y-2 mb-4">
                             @if($search)
-                            <div class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                                <flux:text size="xs" class="font-medium">Search: "{{ $search }}"</flux:text>
+                            <div class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-600">
+                                <flux:text size="xs" class="font-medium text-gray-800 dark:text-gray-200">Search: "{{ $search }}"</flux:text>
                                 <flux:button wire:click="$set('search', '')" icon="x-mark" variant="ghost" size="xs" />
                             </div>
                             @endif
@@ -145,20 +145,20 @@
                                 </flux:select>
 
                                 <!-- View Toggle -->
-                                <div class="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                <div class="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
                                     <flux:button wire:click="$set('viewMode', 'card')"
                                                :variant="$viewMode === 'card' ? 'primary' : 'ghost'"
                                                icon="squares-2x2"
                                                size="sm"
                                                class="rounded-none">
-                                        <span class="hidden sm:inline ml-1">Cards</span>
+                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">Cards</span>
                                     </flux:button>
                                     <flux:button wire:click="$set('viewMode', 'list')"
                                                :variant="$viewMode === 'list' ? 'primary' : 'ghost'"
                                                icon="list-bullet"
                                                size="sm"
                                                class="rounded-none border-l border-slate-200 dark:border-slate-700">
-                                        <span class="hidden sm:inline ml-1">List</span>
+                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">List</span>
                                     </flux:button>
                                 </div>
                             </div>
@@ -168,7 +168,7 @@
                     <!-- Results Header -->
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <flux:heading size="xl" class="mb-1">
+                            <flux:heading size="xl" class="mb-1 text-gray-900 dark:text-gray-100">
                                 @if($search)
                                     Search Results for "{{ $search }}"
                                 @else
@@ -195,11 +195,11 @@
                         @endif
                         @empty
                             <div class="col-span-full">
-                                <flux:card class="text-center py-12">
+                                <flux:card class="text-center py-12 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                                     <div class="mb-4">
                                         <flux:icon name="magnifying-glass" class="mx-auto text-slate-400 dark:text-slate-500" size="2xl" />
                                     </div>
-                                    <flux:heading size="lg" class="mb-2">No projects found</flux:heading>
+                                    <flux:heading size="lg" class="mb-2 text-gray-900 dark:text-gray-100">No projects found</flux:heading>
                                     <flux:text class="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
                                         @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes))
                                             Try adjusting your search criteria or filters to find more projects.
@@ -229,8 +229,10 @@
 
                     <!-- Pagination -->
                     @if($projects->hasPages())
-                    <flux:card>
-                        {{ $projects->links() }}
+                    <flux:card class="bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
+                        <div class="text-gray-900 dark:text-gray-100">
+                            {{ $projects->links() }}
+                        </div>
                     </flux:card>
                     @endif
 

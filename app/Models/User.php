@@ -558,6 +558,10 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         $periods = config('subscription.billing_periods', []);
 
+        if (empty($this->billing_period)) {
+            return 'Monthly'; // Default fallback
+        }
+
         return $periods[$this->billing_period]['name'] ?? ucfirst($this->billing_period);
     }
 

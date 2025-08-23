@@ -152,7 +152,7 @@
                             <flux:icon name="credit-card" class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                             <flux:heading size="lg" class="mb-2">No Payment Methods</flux:heading>
                             <flux:text class="text-gray-600 dark:text-gray-400 mb-4">You don't have any payment methods yet.</flux:text>
-                            <flux:text size="sm" class="text-gray-500 dark:text-gray-500">Add a credit or debit card to make payments.</flux:text>
+                            <flux:text size="sm" class="text-gray-500 dark:text-gray-400">Add a credit or debit card to make payments.</flux:text>
                         </div>
                     @endforelse
                 </div>

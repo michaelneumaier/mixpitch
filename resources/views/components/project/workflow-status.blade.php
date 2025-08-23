@@ -1,4 +1,4 @@
-@props(['project'])
+@props(['project', 'workflowColors' => [], 'semanticColors' => []])
 
 @php
     // Determine current focus based on project status and workflow type

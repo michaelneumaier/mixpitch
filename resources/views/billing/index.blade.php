@@ -112,8 +112,8 @@
                         <div class="flex items-center">
                             <flux:icon name="exclamation-triangle" class="w-6 h-6 mr-3" />
                             <div>
-                                <h4 class="font-semibold mb-1">No Payment Method</h4>
-                                <p>Add a payment method to start making payments and manage your billing.</p>
+                                <h4 class="font-semibold mb-1 text-gray-900 dark:text-gray-100">No Payment Method</h4>
+                                <p class="text-gray-700 dark:text-gray-300">Add a payment method to start making payments and manage your billing.</p>
                             </div>
                         </div>
                     </flux:callout>

@@ -1,4 +1,4 @@
-@props(['pitch', 'showActions' => true, 'compact' => false])
+@props(['pitch', 'showActions' => true, 'compact' => false, 'workflowColors' => [], 'semanticColors' => []])
 
 @php
     use Illuminate\Support\Str;
@@ -171,31 +171,31 @@
     }
 @endphp
 
-<div class="bg-gradient-to-br from-yellow-50/95 to-amber-50/90 backdrop-blur-sm border border-yellow-200/50 rounded-2xl shadow-lg overflow-hidden">
+<div class="bg-gradient-to-br {{ $workflowColors['bg'] ?? 'from-yellow-50/95 to-amber-50/90 dark:from-yellow-950/95 dark:to-amber-950/90' }} backdrop-blur-sm border {{ $workflowColors['border'] ?? 'border-yellow-200/50 dark:border-yellow-700/50' }} rounded-2xl shadow-lg overflow-hidden">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-yellow-100/80 to-amber-100/80 border-b border-yellow-200/30 p-6">
+    <div class="bg-gradient-to-r {{ $workflowColors['accent_bg'] ?? 'from-yellow-100/80 to-amber-100/80 dark:from-yellow-900/80 dark:to-amber-900/80' }} border-b {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-yellow-700/30' }} p-6">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-lg font-bold text-yellow-900 flex items-center">
-                    <i class="fas fa-trophy text-yellow-600 mr-3"></i>
+                <h3 class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-yellow-900 dark:text-yellow-100' }} flex items-center">
+                    <i class="fas fa-trophy {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }} mr-3"></i>
                     Contest Entry Progress
                 </h3>
-                <p class="text-sm text-yellow-700 mt-1">{{ $statusMessage }}</p>
+                <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-yellow-700 dark:text-yellow-300' }} mt-1">{{ $statusMessage }}</p>
             </div>
             <div class="text-right">
-                <div class="text-2xl font-bold text-yellow-600">{{ $progressPercentage }}%</div>
-                <div class="text-xs text-yellow-500">Complete</div>
+                <div class="text-2xl font-bold {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }}">{{ $progressPercentage }}%</div>
+                <div class="text-xs {{ $workflowColors['text_muted'] ?? 'text-yellow-500 dark:text-yellow-400' }}">Complete</div>
             </div>
         </div>
 
         <!-- Progress Bar -->
         <div class="mt-4">
-            <div class="flex justify-between text-xs text-yellow-600 mb-2">
+            <div class="flex justify-between text-xs {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }} mb-2">
                 <span>Progress</span>
                 <span>{{ $workflowStages[$currentStage]['label'] ?? 'Unknown' }}</span>
             </div>
-            <div class="w-full bg-yellow-200/50 rounded-full h-2">
-                <div class="bg-gradient-to-r from-yellow-500 to-amber-600 h-2 rounded-full transition-all duration-500"
+            <div class="w-full bg-yellow-200/50 dark:bg-yellow-800/50 rounded-full h-2">
+                <div class="bg-gradient-to-r {{ $workflowColors['icon'] ?? 'from-yellow-500 to-amber-600' }} h-2 rounded-full transition-all duration-500"
                      style="width: {{ $progressPercentage }}%"></div>
             </div>
         </div>
@@ -213,10 +213,10 @@
                     $isCompleted = $progressPercentage >= ($workflowStages[$stage]['progress'] ?? 0);
                     $stageIcon = $workflowStages[$stage]['icon'] ?? 'fa-circle';
                 @endphp
-                <div class="flex flex-col items-center {{ $isActive ? 'text-yellow-600' : 'text-yellow-400' }}">
+                <div class="flex flex-col items-center {{ $isActive ? $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' : $workflowColors['text_muted'] ?? 'text-yellow-400 dark:text-yellow-500' }}">
                     <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center mb-1 transition-all duration-300
-                        {{ $isCompleted ? 'bg-yellow-600 border-yellow-600 text-white' : 'border-yellow-300 text-yellow-400' }}
-                        {{ $isActive ? 'ring-2 ring-yellow-300 ring-offset-2' : '' }}">
+                        {{ $isCompleted ? ($workflowColors['icon'] ?? 'bg-yellow-600 border-yellow-600') . ' text-white' : ($workflowColors['accent_border'] ?? 'border-yellow-300 dark:border-yellow-600') . ' ' . ($workflowColors['text_muted'] ?? 'text-yellow-400 dark:text-yellow-500') }}
+                        {{ $isActive ? 'ring-2 ring-yellow-300 dark:ring-yellow-600 ring-offset-2 dark:ring-offset-gray-900' : '' }}">
                         <i class="fas {{ $stageIcon }} text-xs"></i>
                     </div>
                     <span class="text-center leading-tight max-w-16">{{ $workflowStages[$stage]['label'] ?? ucfirst($stage) }}</span>
@@ -229,34 +229,34 @@
     <div class="p-6 space-y-6">
         <!-- Status-Specific Messages -->
         @if($showDecision)
-            <div class="p-4 rounded-xl border border-yellow-200/50 
-                {{ $decisionType === 'winner' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 
-                   ($decisionType === 'runner_up' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' : 
-                    'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200') }}">
+            <div class="p-4 rounded-xl border 
+                {{ $decisionType === 'winner' ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-700' : 
+                   ($decisionType === 'runner_up' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-700' : 
+                    'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900 dark:to-slate-900 border-gray-200 dark:border-gray-700') }}">
                 <div class="flex items-start">
                     <div class="flex-shrink-0 mr-3">
                         @if($decisionType === 'winner')
-                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-trophy text-green-600"></i>
+                            <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                                <i class="fas fa-trophy text-green-600 dark:text-green-400"></i>
                             </div>
                         @elseif($decisionType === 'runner_up')
-                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-medal text-blue-600"></i>
+                            <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                <i class="fas fa-medal text-blue-600 dark:text-blue-400"></i>
                             </div>
                         @else
-                            <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-flag-checkered text-gray-600"></i>
+                            <div class="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                                <i class="fas fa-flag-checkered text-gray-600 dark:text-gray-400"></i>
                             </div>
                         @endif
                     </div>
                     <div class="flex-1">
-                        <p class="font-medium {{ $decisionType === 'winner' ? 'text-green-800' : 
-                                                 ($decisionType === 'runner_up' ? 'text-blue-800' : 'text-gray-800') }}">
+                        <p class="font-medium {{ $decisionType === 'winner' ? 'text-green-800 dark:text-green-200' : 
+                                                 ($decisionType === 'runner_up' ? 'text-blue-800 dark:text-blue-200' : 'text-gray-800 dark:text-gray-200') }}">
                             {{ $decisionMessage }}
                         </p>
                         @if($pitch->rank)
-                            <p class="text-sm mt-1 {{ $decisionType === 'winner' ? 'text-green-600' : 
-                                                     ($decisionType === 'runner_up' ? 'text-blue-600' : 'text-gray-600') }}">
+                            <p class="text-sm mt-1 {{ $decisionType === 'winner' ? 'text-green-600 dark:text-green-400' : 
+                                                     ($decisionType === 'runner_up' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400') }}">
                                 Final Ranking: #{{ $pitch->rank }}
                             </p>
                         @endif
@@ -267,16 +267,16 @@
 
         <!-- Stripe Connect Setup Notification for Winners -->
         @if($needsStripeConnect && $hasWonPrize && $prizeAmount > 0)
-            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 border border-purple-200 dark:border-purple-700 rounded-xl p-4">
                 <div class="flex items-start">
                     <div class="flex-shrink-0 mr-3">
-                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-dollar-sign text-purple-600"></i>
+                        <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                            <i class="fas fa-dollar-sign text-purple-600 dark:text-purple-400"></i>
                         </div>
                     </div>
                     <div class="flex-1">
-                        <h4 class="font-medium text-purple-800 mb-2">Prize Payout Setup Required</h4>
-                        <p class="text-sm text-purple-700 mb-3">
+                        <h4 class="font-medium text-purple-800 dark:text-purple-200 mb-2">Prize Payout Setup Required</h4>
+                        <p class="text-sm text-purple-700 dark:text-purple-300 mb-3">
                             Congratulations on winning ${{ number_format($prizeAmount, 2) }}! To receive your prize payout, you need to set up your Stripe Connect account for receiving payments.
                         </p>
                         <div class="flex flex-wrap gap-3">
@@ -285,7 +285,7 @@
                                 <i class="fas fa-cog mr-2"></i>
                                 Set Up Prize Payouts
                             </a>
-                            <div class="text-xs text-purple-600 flex items-center">
+                            <div class="text-xs text-purple-600 dark:text-purple-400 flex items-center">
                                 <i class="fas fa-info-circle mr-1"></i>
                                 This is different from your billing payment methods
                             </div>
@@ -294,16 +294,16 @@
                 </div>
             </div>
         @elseif($hasWonPrize && $prizeAmount > 0 && !$needsStripeConnect)
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-700 rounded-xl p-4">
                 <div class="flex items-start">
                     <div class="flex-shrink-0 mr-3">
-                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check-circle text-green-600"></i>
+                        <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600 dark:text-green-400"></i>
                         </div>
                     </div>
                     <div class="flex-1">
-                        <h4 class="font-medium text-green-800 mb-2">Prize Payout Ready</h4>
-                        <p class="text-sm text-green-700">
+                        <h4 class="font-medium text-green-800 dark:text-green-200 mb-2">Prize Payout Ready</h4>
+                        <p class="text-sm text-green-700 dark:text-green-300">
                             Your Stripe Connect account is set up and ready to receive your ${{ number_format($prizeAmount, 2) }} prize payout. You'll receive the funds after the contest owner processes the payment.
                         </p>
                     </div>
@@ -312,29 +312,29 @@
         @endif
 
         <!-- Contextual Guidance -->
-        <div class="bg-yellow-50/50 border border-yellow-200/30 rounded-xl p-4">
-            <h4 class="font-medium text-yellow-800 mb-2 flex items-center">
-                <i class="fas fa-lightbulb mr-2 text-yellow-600"></i>
+        <div class="{{ $workflowColors['accent_bg'] ?? 'bg-yellow-50/50 dark:bg-yellow-950/50' }} border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-yellow-700/30' }} rounded-xl p-4">
+            <h4 class="font-medium {{ $workflowColors['text_primary'] ?? 'text-yellow-800 dark:text-yellow-200' }} mb-2 flex items-center">
+                <i class="fas fa-lightbulb mr-2 {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }}"></i>
                 What's Next?
             </h4>
-            <p class="text-sm text-yellow-700">{{ $contextualGuidance }}</p>
+            <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-yellow-700 dark:text-yellow-300' }}">{{ $contextualGuidance }}</p>
         </div>
 
         <!-- Contest Timeline -->
         @if($project->submission_deadline)
-            <div class="bg-white/60 border border-yellow-200/30 rounded-xl p-4">
-                <h4 class="font-medium text-yellow-800 mb-3 flex items-center">
-                    <i class="fas fa-calendar-alt mr-2 text-yellow-600"></i>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-yellow-700/30' }} rounded-xl p-4">
+                <h4 class="font-medium {{ $workflowColors['text_primary'] ?? 'text-yellow-800 dark:text-yellow-200' }} mb-3 flex items-center">
+                    <i class="fas fa-calendar-alt mr-2 {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }}"></i>
                     Contest Timeline
                 </h4>
                 <div class="space-y-2 text-sm">
                     <div class="flex items-center justify-between">
-                        <span class="text-yellow-700">Contest Deadline:</span>
-                        <span class="font-medium text-yellow-900"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y g:i A" /></span>
+                        <span class="{{ $workflowColors['text_secondary'] ?? 'text-yellow-700 dark:text-yellow-300' }}">Contest Deadline:</span>
+                        <span class="font-medium {{ $workflowColors['text_primary'] ?? 'text-yellow-900 dark:text-yellow-100' }}"><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y g:i A" /></span>
                     </div>
                     <div class="flex items-center justify-between">
-                        <span class="text-yellow-700">Time Remaining:</span>
-                        <span class="font-medium {{ $contestEnded ? 'text-red-600' : 'text-yellow-900' }}">
+                        <span class="{{ $workflowColors['text_secondary'] ?? 'text-yellow-700 dark:text-yellow-300' }}">Time Remaining:</span>
+                        <span class="font-medium {{ $contestEnded ? ($semanticColors['danger']['text'] ?? 'text-red-600 dark:text-red-400') : ($workflowColors['text_primary'] ?? 'text-yellow-900 dark:text-yellow-100') }}">
                             @if($contestEnded)
                                 Contest Ended
                             @else
@@ -344,8 +344,8 @@
                     </div>
                     @if($pitch->submitted_at)
                         <div class="flex items-center justify-between">
-                            <span class="text-yellow-700">Your Submission:</span>
-                            <span class="font-medium text-green-600"><x-datetime :date="$pitch->submitted_at" format="M d, Y g:i A" /></span>
+                            <span class="{{ $workflowColors['text_secondary'] ?? 'text-yellow-700 dark:text-yellow-300' }}">Your Submission:</span>
+                            <span class="font-medium {{ $semanticColors['success']['text'] ?? 'text-green-600 dark:text-green-400' }}"><x-datetime :date="$pitch->submitted_at" format="M d, Y g:i A" /></span>
                         </div>
                     @endif
                 </div>
@@ -354,27 +354,27 @@
 
         <!-- Entry Metrics -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white/60 border border-yellow-200/30 rounded-xl p-3 text-center">
-                <div class="text-lg font-bold text-yellow-600">{{ $totalFiles }}</div>
-                <div class="text-xs text-yellow-500">Files Uploaded</div>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-yellow-700/30' }} rounded-xl p-3 text-center">
+                <div class="text-lg font-bold {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }}">{{ $totalFiles }}</div>
+                <div class="text-xs {{ $workflowColors['text_muted'] ?? 'text-yellow-500 dark:text-yellow-400' }}">Files Uploaded</div>
             </div>
-            <div class="bg-white/60 border border-yellow-200/30 rounded-xl p-3 text-center">
-                <div class="text-lg font-bold text-yellow-600">{{ \App\Models\Pitch::formatBytes($storageUsed) }}</div>
-                <div class="text-xs text-yellow-500">Storage Used</div>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-yellow-700/30' }} rounded-xl p-3 text-center">
+                <div class="text-lg font-bold {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }}">{{ \App\Models\Pitch::formatBytes($storageUsed) }}</div>
+                <div class="text-xs {{ $workflowColors['text_muted'] ?? 'text-yellow-500 dark:text-yellow-400' }}">Storage Used</div>
             </div>
-            <div class="bg-white/60 border border-yellow-200/30 rounded-xl p-3 text-center">
-                <div class="text-lg font-bold text-yellow-600">{{ $totalEntries }}</div>
-                <div class="text-xs text-yellow-500">Total Entries</div>
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-yellow-700/30' }} rounded-xl p-3 text-center">
+                <div class="text-lg font-bold {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }}">{{ $totalEntries }}</div>
+                <div class="text-xs {{ $workflowColors['text_muted'] ?? 'text-yellow-500 dark:text-yellow-400' }}">Total Entries</div>
             </div>
-            <div class="bg-white/60 border border-yellow-200/30 rounded-xl p-3 text-center">
-                <div class="text-lg font-bold text-yellow-600">
+            <div class="bg-white/60 dark:bg-gray-800/60 border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-yellow-700/30' }} rounded-xl p-3 text-center">
+                <div class="text-lg font-bold {{ $workflowColors['icon'] ?? 'text-yellow-600 dark:text-yellow-400' }}">
                     @if($pitch->submitted_at)
-                        <i class="fas fa-check-circle text-green-500"></i>
+                        <i class="fas fa-check-circle {{ $semanticColors['success']['icon'] ?? 'text-green-500 dark:text-green-400' }}"></i>
                     @else
-                        <i class="fas fa-clock text-amber-500"></i>
+                        <i class="fas fa-clock {{ $semanticColors['warning']['icon'] ?? 'text-amber-500 dark:text-amber-400' }}"></i>
                     @endif
                 </div>
-                <div class="text-xs text-yellow-500">
+                <div class="text-xs {{ $workflowColors['text_muted'] ?? 'text-yellow-500 dark:text-yellow-400' }}">
                     {{ $pitch->submitted_at ? 'Submitted' : 'Draft' }}
                 </div>
             </div>
@@ -384,20 +384,20 @@
         @if($showActions && !$compact && auth()->check() && auth()->id() === $pitch->user_id)
             @if($currentStage === 'entry_created')
                 <div class="text-center">
-                    <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-yellow-600 to-amber-600 text-white rounded-xl font-medium">
+                    <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r {{ $workflowColors['icon'] ?? 'from-yellow-600 to-amber-600' }} text-white rounded-xl font-medium">
                         <i class="fas fa-download mr-2"></i>Download Project Files & Start Creating
                     </div>
                 </div>
             @elseif($currentStage === 'working' && !$pitch->submitted_at)
                 <div class="text-center">
-                    <p class="text-sm text-yellow-700 mb-3">Upload your contest entry files and submit when ready</p>
-                    <div class="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-xl font-medium">
+                    <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-yellow-700 dark:text-yellow-300' }} mb-3">Upload your contest entry files and submit when ready</p>
+                    <div class="inline-flex items-center px-4 py-2 {{ $workflowColors['accent_bg'] ?? 'bg-yellow-100 dark:bg-yellow-900' }} {{ $workflowColors['text_primary'] ?? 'text-yellow-800 dark:text-yellow-200' }} rounded-xl font-medium">
                         <i class="fas fa-upload mr-2"></i>Continue Working on Entry
                     </div>
                 </div>
             @elseif($currentStage === 'submitted')
                 <div class="text-center">
-                    <div class="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-xl font-medium">
+                    <div class="inline-flex items-center px-4 py-2 {{ $semanticColors['success']['bg'] ?? 'bg-green-100 dark:bg-green-900' }} {{ $semanticColors['success']['text'] ?? 'text-green-800 dark:text-green-200' }} rounded-xl font-medium">
                         <i class="fas fa-check-circle mr-2"></i>Entry Successfully Submitted
                     </div>
                 </div>
@@ -406,16 +406,16 @@
 
         <!-- Time in Status Warning -->
         @if($showWarning && $timeInStatus)
-            <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div class="{{ $semanticColors['danger']['bg'] ?? 'bg-red-50 dark:bg-red-950' }} border {{ $semanticColors['danger']['border'] ?? 'border-red-200 dark:border-red-700' }} rounded-xl p-4">
                 <div class="flex items-start">
                     <div class="flex-shrink-0 mr-3">
-                        <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        <div class="w-8 h-8 {{ $semanticColors['danger']['bg'] ?? 'bg-red-100 dark:bg-red-900' }} rounded-full flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle {{ $semanticColors['danger']['icon'] ?? 'text-red-600 dark:text-red-400' }}"></i>
                         </div>
                     </div>
                     <div class="flex-1">
-                        <p class="font-medium text-red-800">Action Needed</p>
-                        <p class="text-sm text-red-600 mt-1">
+                        <p class="font-medium {{ $semanticColors['danger']['text'] ?? 'text-red-800 dark:text-red-200' }}">Action Needed</p>
+                        <p class="text-sm {{ $semanticColors['danger']['icon'] ?? 'text-red-600 dark:text-red-400' }} mt-1">
                             @if($currentStage === 'working')
                                 Contest deadline is approaching! Make sure to submit your entry soon.
                             @elseif($currentStage === 'judging')

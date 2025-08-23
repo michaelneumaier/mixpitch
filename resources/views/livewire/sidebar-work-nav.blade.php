@@ -1,8 +1,10 @@
 <div x-data="{
     expandedSection: @js(
-        request()->routeIs('projects.manage') ? 'projects' : 
+        request()->routeIs('projects.manage') && optional(request()->route('project'))->workflow_type === 'contest' ? 'contests' :
+        (request()->routeIs('projects.manage') ? 'projects' : 
         (request()->routeIs('projects.manage-client') ? 'client' : 
-        (request()->routeIs('projects.pitches.show') ? 'pitches' : 'none'))
+        (request()->routeIs('projects.pitches.show') && optional(optional(request()->route('pitch'))->project)->workflow_type === 'contest' ? 'contests' :
+        (request()->routeIs('projects.pitches.show') ? 'pitches' : 'none'))))
     ),
     toggleSection(section) {
         this.expandedSection = this.expandedSection === section ? 'none' : section;
@@ -37,7 +39,7 @@
         @foreach($projects as $project)
         <a href="{{ route('projects.manage', $project) }}" 
            class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('project')?->id == $project->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}">
-            <span class="truncate">{{ $project->name ?? 'Untitled' }}</span>
+            <span class="block truncate max-w-full overflow-hidden">{{ $project->name ?? 'Untitled' }}</span>
         </a>
         @endforeach
         
@@ -70,7 +72,7 @@
         @foreach($pitches as $pitch)
         <a href="{{ route('projects.pitches.show', [$pitch->project, $pitch]) }}" 
            class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('pitch')?->id == $pitch->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}">
-            <span class="truncate">{{ $pitch->project->name ?? 'Untitled Project' }}</span>
+            <span class="block truncate max-w-full overflow-hidden">{{ $pitch->project->name ?? 'Untitled Project' }}</span>
         </a>
         @endforeach
         
@@ -101,9 +103,18 @@
     <!-- Collapsible Content -->
     <div x-show="expandedSection === 'contests'" x-transition x-cloak class="ml-4 mt-1 space-y-1">
         @foreach($contests as $contest)
-        <a href="{{ route('projects.manage', $contest->project) }}" 
-           class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('pitch')?->id == $contest->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}">
-            <span class="truncate">{{ $contest->project->name ?? 'Untitled Contest' }}</span>
+        <a href="{{ route($contest->route_name, $contest->route_params) }}" 
+           class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ 
+               ($contest->type === 'project' && request()->route('project')?->id == $contest->id) || 
+               ($contest->type === 'pitch' && request()->route('pitch')?->id == $contest->id) ? 
+               'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' 
+           }}">
+            <span class="block truncate max-w-full overflow-hidden">
+                {{ $contest->name }}
+                @if($contest->type === 'pitch')
+                    <span class="text-xs text-gray-500 dark:text-gray-400">(Entry)</span>
+                @endif
+            </span>
         </a>
         @endforeach
         
@@ -136,7 +147,7 @@
         @foreach($clientProjects as $clientProject)
         <a href="{{ route('projects.manage-client', $clientProject) }}" 
            class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('project')?->id == $clientProject->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}">
-            <span class="truncate">{{ $clientProject->name ?? 'Untitled' }}</span>
+            <span class="block truncate max-w-full overflow-hidden">{{ $clientProject->name ?? 'Untitled' }}</span>
         </a>
         @endforeach
         

@@ -1,33 +1,35 @@
+@props(['workflowColors' => [], 'semanticColors' => []])
+
 <div class="space-y-6">
     {{-- Contest Judging Header --}}
-    <div class="bg-gradient-to-br from-yellow-50/90 to-amber-50/90 backdrop-blur-sm border border-yellow-200/50 rounded-2xl shadow-lg overflow-hidden">
-        <div class="p-6 bg-gradient-to-r from-yellow-100/80 to-amber-100/80 backdrop-blur-sm border-b border-yellow-200/50">
+    <div class="bg-gradient-to-br {{ $workflowColors['bg'] ?? 'from-yellow-50/90 to-amber-50/90' }} backdrop-blur-sm border {{ $workflowColors['border'] ?? 'border-yellow-200/50' }} rounded-2xl shadow-lg overflow-hidden">
+        <div class="p-6 bg-gradient-to-r {{ $workflowColors['accent_bg'] ?? 'from-yellow-100/80 to-amber-100/80' }} backdrop-blur-sm border-b {{ $workflowColors['accent_border'] ?? 'border-yellow-200/50' }}">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-xl mr-4 shadow-lg">
+                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-r {{ $workflowColors['icon'] ?? 'from-yellow-400 to-amber-500' }} rounded-xl mr-4 shadow-lg">
                         <i class="fas fa-gavel text-white text-xl"></i>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-bold text-gray-900">Contest Judging</h3>
-                        <p class="text-gray-600 text-sm">Judge contest entries and finalize results</p>
+                        <h3 class="text-2xl font-bold {{ $workflowColors['text_primary'] ?? 'text-gray-900' }}">Contest Judging</h3>
+                        <p class="{{ $workflowColors['text_secondary'] ?? 'text-gray-600' }} text-sm">Judge contest entries and finalize results</p>
                     </div>
                 </div>
                 
                 {{-- Status Badge --}}
                 @if($isFinalized)
-                    <div class="flex items-center px-4 py-2 bg-green-100 border border-green-200 rounded-xl">
-                        <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                        <span class="font-semibold text-green-800">Judging Finalized</span>
+                    <div class="flex items-center px-4 py-2 {{ $semanticColors['success']['bg'] ?? 'bg-green-100 dark:bg-green-900' }} border {{ $semanticColors['success']['border'] ?? 'border-green-200 dark:border-green-800' }} rounded-xl">
+                        <i class="fas fa-check-circle {{ $semanticColors['success']['icon'] ?? 'text-green-600 dark:text-green-400' }} mr-2"></i>
+                        <span class="font-semibold {{ $semanticColors['success']['text'] ?? 'text-green-800 dark:text-green-200' }}">Judging Finalized</span>
                     </div>
                 @elseif($canFinalize)
-                    <div class="flex items-center px-4 py-2 bg-blue-100 border border-blue-200 rounded-xl">
-                        <i class="fas fa-clock text-blue-600 mr-2"></i>
-                        <span class="font-semibold text-blue-800">Ready to Finalize</span>
+                    <div class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-xl">
+                        <i class="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
+                        <span class="font-semibold text-blue-800 dark:text-blue-200">Ready to Finalize</span>
                     </div>
                 @else
-                    <div class="flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl">
-                        <i class="fas fa-hourglass-half text-gray-600 mr-2"></i>
-                        <span class="font-semibold text-gray-800">Judging in Progress</span>
+                    <div class="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                        <i class="fas fa-hourglass-half text-gray-600 dark:text-gray-400 mr-2"></i>
+                        <span class="font-semibold text-gray-800 dark:text-gray-200">Judging in Progress</span>
                     </div>
                 @endif
             </div>
@@ -36,25 +38,25 @@
         {{-- Contest Info --}}
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="text-center p-4 bg-white/50 rounded-xl border border-yellow-200/30">
-                    <div class="text-2xl font-bold text-gray-900">{{ $contestEntries->count() }}</div>
-                    <div class="text-sm text-gray-600">Total Entries</div>
+                <div class="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-gray-700/30' }}">
+                    <div class="text-2xl font-bold {{ $workflowColors['text_primary'] ?? 'text-gray-900 dark:text-gray-100' }}">{{ $contestEntries->count() }}</div>
+                    <div class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-gray-600 dark:text-gray-400' }}">Total Entries</div>
                 </div>
-                <div class="text-center p-4 bg-white/50 rounded-xl border border-yellow-200/30">
-                    <div class="text-2xl font-bold text-gray-900">
+                <div class="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-gray-700/30' }}">
+                    <div class="text-2xl font-bold {{ $workflowColors['text_primary'] ?? 'text-gray-900 dark:text-gray-100' }}">
                         {{ $contestResult && $contestResult->hasWinners() ? count(array_filter([$contestResult->first_place_pitch_id, $contestResult->second_place_pitch_id, $contestResult->third_place_pitch_id])) + count($contestResult->runner_up_pitch_ids ?? []) : 0 }}
                     </div>
-                    <div class="text-sm text-gray-600">Placed Entries</div>
+                    <div class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-gray-600 dark:text-gray-400' }}">Placed Entries</div>
                 </div>
-                <div class="text-center p-4 bg-white/50 rounded-xl border border-yellow-200/30">
-                    <div class="text-2xl font-bold text-gray-900">
+                <div class="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl border {{ $workflowColors['accent_border'] ?? 'border-yellow-200/30 dark:border-gray-700/30' }}">
+                    <div class="text-2xl font-bold {{ $workflowColors['text_primary'] ?? 'text-gray-900 dark:text-gray-100' }}">
                         @if($project->submission_deadline)
                             <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M j, Y" />
                         @else
                             No Deadline
                         @endif
                     </div>
-                    <div class="text-sm text-gray-600">Submission Deadline</div>
+                    <div class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-gray-600 dark:text-gray-400' }}">Submission Deadline</div>
                 </div>
             </div>
         </div>
@@ -62,9 +64,9 @@
 
     {{-- Winners Summary (if judging is finalized) --}}
     @if($isFinalized && $winnersSummary)
-        <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
-            <h4 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-trophy text-yellow-500 mr-2"></i>
+        <div class="bg-gradient-to-br {{ $semanticColors['success']['bg'] ?? 'from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950' }} border {{ $semanticColors['success']['border'] ?? 'border-green-200 dark:border-green-800' }} rounded-2xl p-6">
+            <h4 class="text-xl font-bold {{ $workflowColors['text_primary'] ?? 'text-gray-900 dark:text-gray-100' }} mb-4 flex items-center">
+                <i class="fas fa-trophy text-yellow-500 dark:text-yellow-400 mr-2"></i>
                 Contest Results
             </h4>
             
@@ -74,31 +76,31 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {{-- 1st Place --}}
                         @if($winnersSummary['first_place'])
-                            <div class="bg-gradient-to-br from-yellow-100 to-amber-100 border-2 border-yellow-300 rounded-xl p-4 text-center">
+                            <div class="bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900 dark:to-amber-900 border-2 border-yellow-300 dark:border-yellow-700 rounded-xl p-4 text-center">
                                 <div class="text-3xl mb-2">🥇</div>
-                                <div class="font-bold text-lg text-gray-900">1st Place</div>
-                                <div class="text-gray-700">{{ $winnersSummary['first_place']->user->name }}</div>
-                                <div class="text-sm text-gray-600 mt-1">{{ $winnersSummary['first_place']->title ?: 'Contest Entry' }}</div>
+                                <div class="font-bold text-lg text-gray-900 dark:text-gray-100">1st Place</div>
+                                <div class="text-gray-700 dark:text-gray-300">{{ $winnersSummary['first_place']->user->name }}</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $winnersSummary['first_place']->title ?: 'Contest Entry' }}</div>
                             </div>
                         @endif
 
                         {{-- 2nd Place --}}
                         @if($winnersSummary['second_place'])
-                            <div class="bg-gradient-to-br from-gray-100 to-slate-100 border-2 border-gray-300 rounded-xl p-4 text-center">
+                            <div class="bg-gradient-to-br from-gray-100 to-slate-100 dark:from-gray-800 dark:to-slate-800 border-2 border-gray-300 dark:border-gray-600 rounded-xl p-4 text-center">
                                 <div class="text-3xl mb-2">🥈</div>
-                                <div class="font-bold text-lg text-gray-900">2nd Place</div>
-                                <div class="text-gray-700">{{ $winnersSummary['second_place']->user->name }}</div>
-                                <div class="text-sm text-gray-600 mt-1">{{ $winnersSummary['second_place']->title ?: 'Contest Entry' }}</div>
+                                <div class="font-bold text-lg text-gray-900 dark:text-gray-100">2nd Place</div>
+                                <div class="text-gray-700 dark:text-gray-300">{{ $winnersSummary['second_place']->user->name }}</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $winnersSummary['second_place']->title ?: 'Contest Entry' }}</div>
                             </div>
                         @endif
 
                         {{-- 3rd Place --}}
                         @if($winnersSummary['third_place'])
-                            <div class="bg-gradient-to-br from-orange-100 to-amber-100 border-2 border-orange-300 rounded-xl p-4 text-center">
+                            <div class="bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900 dark:to-amber-900 border-2 border-orange-300 dark:border-orange-700 rounded-xl p-4 text-center">
                                 <div class="text-3xl mb-2">🥉</div>
-                                <div class="font-bold text-lg text-gray-900">3rd Place</div>
-                                <div class="text-gray-700">{{ $winnersSummary['third_place']->user->name }}</div>
-                                <div class="text-sm text-gray-600 mt-1">{{ $winnersSummary['third_place']->title ?: 'Contest Entry' }}</div>
+                                <div class="font-bold text-lg text-gray-900 dark:text-gray-100">3rd Place</div>
+                                <div class="text-gray-700 dark:text-gray-300">{{ $winnersSummary['third_place']->user->name }}</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $winnersSummary['third_place']->title ?: 'Contest Entry' }}</div>
                             </div>
                         @endif
                     </div>
@@ -106,16 +108,16 @@
 
                 {{-- Runner-ups --}}
                 @if(!empty($winnersSummary['runner_ups']))
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
-                        <h5 class="font-bold text-gray-900 mb-3 flex items-center">
-                            <i class="fas fa-medal text-blue-500 mr-2"></i>
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                        <h5 class="font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                            <i class="fas fa-medal text-blue-500 dark:text-blue-400 mr-2"></i>
                             Runner-ups
                         </h5>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             @foreach($winnersSummary['runner_ups'] as $runnerUp)
-                                <div class="bg-white/80 border border-blue-200 rounded-lg p-3 text-center">
-                                    <div class="font-semibold text-gray-900">{{ $runnerUp->user->name }}</div>
-                                    <div class="text-sm text-gray-600">{{ $runnerUp->title ?: 'Contest Entry' }}</div>
+                                <div class="bg-white/80 dark:bg-gray-800/80 border border-blue-200 dark:border-blue-700 rounded-lg p-3 text-center">
+                                    <div class="font-semibold text-gray-900 dark:text-gray-100">{{ $runnerUp->user->name }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">{{ $runnerUp->title ?: 'Contest Entry' }}</div>
                                 </div>
                             @endforeach
                         </div>
@@ -126,25 +128,25 @@
     @endif
 
     {{-- Contest Entries Section --}}
-    <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+    <div class="relative bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border {{ $workflowColors['border'] ?? 'border-white/20 dark:border-gray-700/20' }} rounded-2xl shadow-xl overflow-hidden">
         <!-- Background Effects -->
-        <div class="absolute inset-0 bg-gradient-to-br from-purple-50/30 via-blue-50/20 to-indigo-50/30"></div>
-        <div class="absolute top-4 right-4 w-20 h-20 bg-purple-400/10 rounded-full blur-xl"></div>
-        <div class="absolute bottom-4 left-4 w-16 h-16 bg-blue-400/10 rounded-full blur-lg"></div>
+        <div class="absolute inset-0 {{ $workflowColors['bg'] ?? 'bg-gradient-to-br from-purple-50/30 via-blue-50/20 to-indigo-50/30 dark:from-purple-950/30 dark:via-blue-950/20 dark:to-indigo-950/30' }}"></div>
+        <div class="absolute top-4 right-4 w-20 h-20 bg-purple-400/10 dark:bg-purple-600/10 rounded-full blur-xl"></div>
+        <div class="absolute bottom-4 left-4 w-16 h-16 bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-lg"></div>
         
         <!-- Header -->
-        <div class="relative bg-gradient-to-r from-purple-100/80 to-indigo-100/80 backdrop-blur-sm border-b border-purple-200/50 p-6">
+        <div class="relative {{ $workflowColors['accent_bg'] ?? 'bg-gradient-to-r from-purple-100/80 to-indigo-100/80 dark:from-purple-900/80 dark:to-indigo-900/80' }} backdrop-blur-sm border-b {{ $workflowColors['accent_border'] ?? 'border-purple-200/50 dark:border-purple-700/50' }} p-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4">
+                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br {{ $workflowColors['icon'] ?? 'from-purple-500 to-indigo-600' }} rounded-xl mr-4">
                         <i class="fas fa-trophy text-white text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent">
+                        <h3 class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-purple-700 dark:text-purple-300' }}">
                             Contest Entries
                         </h3>
                         <div class="flex items-center gap-3">
-                            <p class="text-sm text-purple-600 font-medium">{{ $contestEntries->count() }} {{ Str::plural('entry', $contestEntries->count()) }} submitted</p>
+                            <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-purple-600 dark:text-purple-400' }} font-medium">{{ $contestEntries->count() }} {{ Str::plural('entry', $contestEntries->count()) }} submitted</p>
                             <x-contest.payment-status-badge :project="$project" compact="true" />
                         </div>
                     </div>
@@ -154,7 +156,7 @@
                 @if($canFinalize && !$isFinalized)
                     <button 
                         wire:click="openFinalizeModal"
-                        class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        class="px-6 py-2 bg-gradient-to-r {{ $semanticColors['success']['accent'] ?? 'from-green-600 to-emerald-600' }} hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                         <i class="fas fa-flag-checkered mr-2"></i>
                         Finalize Judging
@@ -168,11 +170,11 @@
             @if($contestEntries->isEmpty())
                 <!-- Empty State -->
                 <div class="text-center py-16">
-                    <div class="mx-auto w-24 h-24 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-                        <i class="fas fa-trophy text-4xl text-purple-500"></i>
+                    <div class="mx-auto w-24 h-24 {{ $workflowColors['accent_bg'] ?? 'bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900 dark:to-indigo-900' }} rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <i class="fas fa-trophy text-4xl {{ $workflowColors['icon'] ?? 'text-purple-500 dark:text-purple-400' }}"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-3">No Entries Yet</h3>
-                    <p class="text-gray-600 max-w-md mx-auto leading-relaxed">
+                    <h3 class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-gray-800 dark:text-gray-200' }} mb-3">No Entries Yet</h3>
+                    <p class="{{ $workflowColors['text_secondary'] ?? 'text-gray-600 dark:text-gray-400' }} max-w-md mx-auto leading-relaxed">
                         Contest entries will appear here as producers submit their work.
                     </p>
                 </div>
