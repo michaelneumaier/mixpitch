@@ -3,4 +3,5 @@ auth.json
 .env
 .env.dusk.local
 public/hot
+public/webfonts
 .kiro/

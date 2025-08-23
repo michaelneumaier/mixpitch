@@ -3,7 +3,9 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "npm run copy-fonts && vite build",
+        "postinstall": "npm run copy-fonts",
+        "copy-fonts": "mkdir -p public/webfonts && cp -r node_modules/@fortawesome/fontawesome-free/webfonts/* public/webfonts/"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",

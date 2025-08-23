@@ -129,7 +129,8 @@ class UserProfileEdit extends Component
         $this->website = $user->website;
         $this->tipjar_link = $user->tipjar_link;
         $this->social_links = $user->social_links ?? [];
-        $this->username_locked = $user->username_locked;
+        // Username is only locked if it's already set AND the user has locked it
+        $this->username_locked = $user->username_locked && !empty($user->username);
         $this->profile_completed = $user->profile_completed ?? false;
 
         // Load user's tags from taggables relationship
@@ -207,6 +208,8 @@ class UserProfileEdit extends Component
 
     public function save()
     {
+        \Log::info('UserProfileEdit::save() called');
+        
         $this->validate();
 
         $user = auth()->user();

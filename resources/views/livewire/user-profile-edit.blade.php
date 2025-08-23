@@ -1,5 +1,5 @@
 <div>
-    <flux:card class="mb-2 bg-white/50">
+    <flux:card class="mb-2 bg-white/50 dark:bg-gray-800/50 border border-slate-200 dark:border-slate-700">
         <div class="">
 
             <!-- Profile Form Header -->
@@ -11,7 +11,7 @@
                             class="mb-2 bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent dark:from-gray-100 dark:via-blue-300 dark:to-purple-300">
                             Portfolio Profile
                         </flux:heading>
-                        <flux:subheading class="mb-4">Customize your profile to showcase your work and talents
+                        <flux:subheading class="mb-4 text-slate-600 dark:text-slate-400">Customize your profile to showcase your work and talents
                         </flux:subheading>
 
                         <!-- Portfolio Management Button -->
@@ -25,7 +25,7 @@
 
                     <!-- Profile Completion Indicator -->
                     <div class="flex-shrink-0">
-                        <div class="rounded-lg border border-gray-200 p-6 dark:border-gray-700">
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
                             <div class="text-center">
                                 <div class="relative inline-flex items-center justify-center">
                                     <!-- Circular Progress Ring -->
@@ -47,7 +47,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-3">
-                                    <flux:text size="sm" class="font-medium">Profile Complete</flux:text>
+                                    <flux:text size="sm" class="font-medium text-gray-900 dark:text-gray-100">Profile Complete</flux:text>
                                     @if ($profile_completion_percentage < 70)
                                         <flux:badge color="amber" size="sm" icon="exclamation-triangle"
                                             class="mt-1">
@@ -91,9 +91,11 @@
                 </div>
             </div>
 
-            <form wire:submit.prevent="save" name="profile-edit-form" id="profile-edit-form" class="space-y-8">
+            <form wire:submit.prevent="save" name="profile-edit-form" id="profile-edit-form" class="space-y-8" 
+                @submit="console.log('Form is submitting...')"
+                x-data>
                 <!-- Profile Photo Section -->
-                <flux:card class="mb-4 md:mb-8">
+                <flux:card class="mb-4 md:mb-8 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                     <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
                         <!-- Profile Photo Display -->
                         <div class="flex-shrink-0">
@@ -123,10 +125,10 @@
 
                         <!-- Photo Controls -->
                         <div class="flex-1">
-                            <flux:heading size="lg" class="mb-2">
+                            <flux:heading size="lg" class="mb-2 text-slate-800 dark:text-slate-200">
                                 Profile Photo
                             </flux:heading>
-                            <flux:subheading class="mb-4">Upload a professional photo to represent your brand
+                            <flux:subheading class="mb-4 text-slate-600 dark:text-slate-400">Upload a professional photo to represent your brand
                             </flux:subheading>
 
                             <div class="space-y-3">
@@ -171,7 +173,7 @@
                 </flux:card>
 
                 <!-- Basic Profile Info -->
-                <flux:card class="space-y-6">
+                <flux:card class="space-y-6 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                     <div class="mb-6 flex items-center gap-3">
                         <div class="rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 p-2 shadow-md">
                             <flux:icon name="user" class="text-white" size="lg" />
@@ -210,7 +212,7 @@
                                 @
                             </span>
                             <flux:input wire:model="username" placeholder="username"
-                                class="rounded-l-none border-l-0" {{ $username_locked ? 'disabled' : '' }} />
+                                class="rounded-l-none border-l-0" :disabled="$username_locked" />
                         </div>
                         <flux:description>Your profile URL: {{ config('app.url') }}/{{ '@' . ($username ?: 'username') }}
                         </flux:description>
@@ -250,12 +252,12 @@
                     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                         <!-- Location -->
                         <div class="space-y-2">
-                            <label for="location" class="block text-sm font-semibold text-gray-700">
+                            <label for="location" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                                 Location
                             </label>
                             <div class="relative">
                                 <input type="text" wire:model="location" id="location"
-                                    class="w-full rounded-xl border border-gray-200/50 bg-white/90 px-4 py-3 placeholder-gray-400 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                                    class="w-full rounded-xl border border-gray-200/50 dark:border-gray-600/50 bg-white/90 dark:bg-gray-800/90 px-4 py-3 placeholder-gray-400 dark:placeholder-gray-500 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-gray-100"
                                     placeholder="e.g. Los Angeles, CA">
                                 <div
                                     class="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 transition-opacity duration-200 focus-within:opacity-100">
@@ -271,7 +273,7 @@
 
                         <!-- Timezone -->
                         <div class="space-y-2">
-                            <label for="timezone" class="block text-sm font-semibold text-gray-700">
+                            <label for="timezone" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                                 <div class="flex items-center">
                                     <div
                                         class="mr-2 flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600 p-1.5 shadow-md">
@@ -282,7 +284,7 @@
                             </label>
                             <div class="relative">
                                 <select wire:model="timezone" id="timezone"
-                                    class="w-full rounded-xl border border-gray-200/50 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
+                                    class="w-full rounded-xl border border-gray-200/50 dark:border-gray-600/50 bg-white/90 dark:bg-gray-800/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-indigo-500/20 text-gray-900 dark:text-gray-100">
                                     @foreach ($this->getTimezoneOptions() as $tz => $label)
                                         <option value="{{ $tz }}">{{ $label }}</option>
                                     @endforeach
@@ -292,7 +294,7 @@
                                 </div>
                             </div>
                             <p
-                                class="rounded-lg border border-indigo-200/50 bg-indigo-50/80 px-3 py-2 text-xs text-gray-500 backdrop-blur-sm">
+                                class="rounded-lg border border-indigo-200/50 dark:border-indigo-700/50 bg-indigo-50/80 dark:bg-indigo-900/80 px-3 py-2 text-xs text-gray-500 dark:text-gray-400 backdrop-blur-sm">
                                 <i class="fas fa-info-circle mr-1"></i>
                                 All project deadlines and times will be shown in your timezone
                             </p>
@@ -306,19 +308,19 @@
 
                         <!-- Website -->
                         <div class="space-y-2">
-                            <label for="website" class="block text-sm font-semibold text-gray-700">
+                            <label for="website" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                                 Website
                             </label>
                             <div class="relative">
                                 <input type="text" wire:model="website" id="website"
-                                    class="w-full rounded-xl border border-gray-200/50 bg-white/90 px-4 py-3 placeholder-gray-400 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                                    class="w-full rounded-xl border border-gray-200/50 dark:border-gray-600/50 bg-white/90 dark:bg-gray-800/90 px-4 py-3 placeholder-gray-400 dark:placeholder-gray-500 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-gray-100"
                                     placeholder="yourwebsite.com">
                                 <div
                                     class="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 transition-opacity duration-200 focus-within:opacity-100">
                                 </div>
                             </div>
                             <p
-                                class="rounded-lg border border-gray-200/50 bg-gray-50/80 px-3 py-2 text-xs text-gray-500 backdrop-blur-sm">
+                                class="rounded-lg border border-gray-200/50 dark:border-gray-600/50 bg-gray-50/80 dark:bg-gray-700/80 px-3 py-2 text-xs text-gray-500 dark:text-gray-400 backdrop-blur-sm">
                                 <i class="fas fa-info-circle mr-1"></i>
                                 Your personal website or portfolio URL (https:// will be added automatically)
                             </p>
@@ -333,13 +335,13 @@
 
                     <!-- Tipjar Link -->
                     <div class="space-y-2">
-                        <label for="tipjar_link" class="block text-sm font-semibold text-gray-700">
+                        <label for="tipjar_link" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                             Tip Jar Link
-                            <span class="text-xs font-normal text-gray-500">(Optional)</span>
+                            <span class="text-xs font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
                         </label>
                         <div class="relative">
                             <input type="text" wire:model="tipjar_link" id="tipjar_link"
-                                class="w-full rounded-xl border border-gray-200/50 bg-white/90 px-4 py-3 placeholder-gray-400 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                                class="w-full rounded-xl border border-gray-200/50 dark:border-gray-600/50 bg-white/90 dark:bg-gray-800/90 px-4 py-3 placeholder-gray-400 dark:placeholder-gray-500 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-gray-100"
                                 placeholder="paypal.me/yourusername">
                             <div
                                 class="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 transition-opacity duration-200 focus-within:opacity-100">
@@ -359,12 +361,11 @@
                         @enderror
                     </div>
                 </flux:card>
-            </form>
         </div>
     </flux:card>
 
     <!-- Enhanced Professional Skills / Tags -->
-    <flux:card class="mb-4 bg-white/50">
+    <flux:card class="mb-4 bg-white/50 dark:bg-gray-800/50 border border-slate-200 dark:border-slate-700">
         <div class="mb-6 flex items-center gap-3">
             <div class="rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600 p-2 shadow-md">
                 <flux:icon name="tag" class="text-white" size="lg" />
@@ -403,7 +404,7 @@
                             <flux:icon name="cog-6-tooth" class="text-white" size="sm" />
                         </div>
                         <div>
-                            <span class="font-semibold text-gray-700">Skills & Abilities</span>
+                            <span class="font-semibold text-gray-700 dark:text-gray-300">Skills & Abilities</span>
                             <flux:description class="text-xs">Production, Mixing, Mastering, etc.</flux:description>
                         </div>
                     </flux:label>
@@ -441,7 +442,7 @@
                             <flux:icon name="microphone" class="text-white" size="sm" />
                         </div>
                         <div>
-                            <span class="font-semibold text-gray-700">Equipment & Tools</span>
+                            <span class="font-semibold text-gray-700 dark:text-gray-300">Equipment & Tools</span>
                             <flux:description class="text-xs">DAWs, Instruments, Hardware, etc.</flux:description>
                         </div>
                     </flux:label>
@@ -479,7 +480,7 @@
                             <flux:icon name="star" class="text-white" size="sm" />
                         </div>
                         <div>
-                            <span class="font-semibold text-gray-700">Specialties & Genres</span>
+                            <span class="font-semibold text-gray-700 dark:text-gray-300">Specialties & Genres</span>
                             <flux:description class="text-xs">Genres, Vocal Tuning, etc.</flux:description>
                         </div>
                     </flux:label>
@@ -514,7 +515,7 @@
     </flux:card>
 
     <!-- Enhanced Social Media Links -->
-    <flux:card class="mb-4 bg-white/50">
+    <flux:card class="mb-4 bg-white/50 dark:bg-gray-800/50 border border-slate-200 dark:border-slate-700">
         <div class="mb-6 flex items-center gap-3">
             <div class="rounded-lg bg-gradient-to-r from-pink-500 to-blue-600 p-2 shadow-md">
                 <flux:icon name="share" class="text-white" size="lg" />
@@ -625,7 +626,7 @@
     </flux:card>
 
     <!-- Enhanced Notification Settings -->
-    <flux:card class="mb-4 bg-white/50" x-data="{ notificationsExpanded: false }">
+    <flux:card class="mb-4 bg-white/50 dark:bg-gray-800/50 border border-slate-200 dark:border-slate-700" x-data="{ notificationsExpanded: false }">
         <!-- Collapsible Header -->
         <div class="flex cursor-pointer items-center justify-between"
             @click="notificationsExpanded = !notificationsExpanded">
@@ -672,7 +673,7 @@
                     overwhelmed.</flux:callout.text>
             </flux:callout>
 
-            <div class="rounded-xl border border-white/40 bg-white/60 p-4 backdrop-blur-sm">
+            <div class="rounded-xl border border-white/40 dark:border-gray-600/40 bg-white/60 dark:bg-gray-800/60 p-4 backdrop-blur-sm">
                 <livewire:user.notification-preferences />
             </div>
         </div>
@@ -683,11 +684,11 @@
         <!-- Background Effects -->
         <div class="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-50/30 to-purple-50/30 blur-sm"></div>
 
-        <div class="relative rounded-2xl border border-white/30 bg-white/80 p-2 shadow-lg backdrop-blur-sm md:p-6">
+        <div class="relative rounded-2xl border border-white/30 dark:border-gray-600/30 bg-white/80 dark:bg-gray-800/80 p-2 shadow-lg backdrop-blur-sm md:p-6">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <!-- Save Status Info -->
                 <div class="flex-1">
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
                         <i class="fas fa-info-circle mr-2 text-blue-500"></i>
                         Your changes will be saved automatically and reflected across your profile immediately.
                     </p>
@@ -703,6 +704,7 @@
             </div>
         </div>
     </div>
+    </form>
 
     @push('scripts')
         <script>
@@ -866,10 +868,20 @@
                 transition: all 0.2s ease;
             }
 
+            .dark .choices__inner {
+                background-color: rgba(31, 41, 55, 0.9);
+                border-color: rgba(75, 85, 99, 0.5);
+                color: #f9fafb;
+            }
+
             .choices.is-focused .choices__inner {
                 border-color: rgba(59, 130, 246, 0.5);
                 box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
                 background-color: rgba(255, 255, 255, 0.95);
+            }
+
+            .dark .choices.is-focused .choices__inner {
+                background-color: rgba(31, 41, 55, 0.95);
             }
 
             .choices__list--multiple .choices__item {
@@ -936,6 +948,12 @@
                 z-index: 1000;
             }
 
+            .dark .choices__list--dropdown {
+                background-color: rgba(31, 41, 55, 0.95);
+                border-color: rgba(75, 85, 99, 0.5);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            }
+
             .choices.is-open .choices__list--dropdown {
                 visibility: visible;
             }
@@ -946,6 +964,10 @@
                 font-size: 14px;
                 padding: 12px 16px;
                 transition: all 0.2s ease;
+            }
+
+            .dark .choices__list--dropdown .choices__item {
+                color: #f9fafb;
             }
 
             .choices__list--dropdown .choices__item:hover,
@@ -964,6 +986,10 @@
                 max-width: 100%;
                 outline: 0;
                 padding: 4px 0;
+            }
+
+            .dark .choices__input {
+                color: #f9fafb;
             }
 
             .choices__placeholder {
