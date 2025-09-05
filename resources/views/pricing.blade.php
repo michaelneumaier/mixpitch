@@ -1,5 +1,4 @@
-<x-layouts.app-sidebar title="Pricing Plans - Choose Your MixPitch Experience">
-<x-public-nav-header />
+<x-layouts.marketing title="Pricing Plans - Choose Your MixPitch Experience">
 <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
     <div class="container mx-auto px-2 md:px-4 py-8 md:py-16">
         <div class="max-w-7xl mx-auto">
@@ -356,4 +355,4 @@
     }
 </style>
 @endpush
-</x-layouts.app-sidebar>
+</x-layouts.marketing>

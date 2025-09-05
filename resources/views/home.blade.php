@@ -1,5 +1,4 @@
-<x-layouts.app-sidebar title="MixPitch - Where Artists & Audio Professionals Connect" description="Connect with skilled audio professionals to transform your music or find exciting projects to showcase your mixing and mastering talents.">
-<x-public-nav-header />
+<x-layouts.marketing title="MixPitch - Where Artists & Audio Professionals Connect" description="Connect with skilled audio professionals to transform your music or find exciting projects to showcase your mixing and mastering talents.">
 <x-home.hero />
 <x-home.your-journey />
 {{-- <x-home.statistics /> --}}
@@ -7,10 +6,9 @@
 {{-- <x-home.testimonials /> --}}
 <x-home.faq />
 <x-home.cta />
-</x-layouts.app-sidebar>
+</x-layouts.marketing>
 
 @push('scripts')
-<script src="{{ asset('js/hero.js') }}"></script>
 <script>
     document.addEventListener('alpine:init', () => {
         // Role toggle functionality

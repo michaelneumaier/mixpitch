@@ -68,23 +68,21 @@
             display: none;  /* Safari and Chrome */
         }
 
-        /* Allow notifications to overflow from sidebar */
-        flux\\:sidebar {
-            overflow: visible !important;
-        }
-        
-        [data-flux-sidebar] {
-            overflow: visible !important;
-        }
 
-        /* Ensure sidebar content doesn't overflow horizontally */
+        /* Ensure sidebar nav items text truncates properly */
         [data-flux-sidebar] .space-y-1 a {
             min-width: 0;
+            overflow: hidden;
         }
         
         [data-flux-sidebar] .space-y-1 a span {
             min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
+        
+        
     </style>
 
 </head>
@@ -93,12 +91,12 @@
     <flux:sidebar sticky stashable class="bg-gradient-to-br from-blue-50/70 via-purple-50/70 to-pink-50/70 dark:from-gray-900/80 dark:via-slate-900/80 dark:to-gray-900/80 backdrop-blur-lg border-r border-gray-200 dark:border-gray-700">
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="top" />
 
-        <div class="relative flex items-center justify-between pl-4 py-3 overflow-visible">
+        <div class="relative flex items-center justify-between pl-4 py-3">
             <flux:brand href="{{ url('/') }}" logo="{{ asset('logo.png') }}" class="!p-0" />
             
             @auth
             <!-- Always visible notifications -->
-            <div class="relative z-50 overflow-visible">
+            <div>
                 <livewire:notification-list />
             </div>
             @endauth
@@ -302,6 +300,7 @@
 
     <!-- Global Modals - Positioned at root level for proper z-index behavior -->
     <x-pitch-action-modals />
+    
     
     @fluxScripts
     

@@ -1,4 +1,5 @@
-document.addEventListener('DOMContentLoaded', function () {
+// Wait for both DOMContentLoaded and Alpine initialization
+function initHeroComponents() {
     // Enhanced Role Toggle Functionality
     const artistToggle = document.getElementById('artist-toggle');
     const producerToggle = document.getElementById('producer-toggle');
@@ -318,4 +319,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         animateGradient();
     }
+}
+
+// Initialize when DOM is ready and after a slight delay for Flux components
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeroComponents);
+} else {
+    // DOM is already loaded
+    initHeroComponents();
+}
+
+// Also initialize after Alpine and Flux components are ready
+document.addEventListener('alpine:init', function() {
+    setTimeout(initHeroComponents, 100);
 }); 

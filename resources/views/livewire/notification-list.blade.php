@@ -1,22 +1,11 @@
-<div class="relative" x-data="{ open: @entangle('showDropdown') }">
+<flux:dropdown wire:model="showDropdown" position="bottom" align="start">
     {{-- Notification Bell with Count --}}
-    <button @click="open = !open" class="flex items-center text-gray-600 hover:text-blue-600 focus:outline-none transition-all duration-200 p-2 rounded-xl hover:bg-blue-50/50">
+    <flux:button variant="ghost" class="flex items-center text-gray-600 hover:text-blue-600 focus:outline-none transition-all duration-200 p-2 rounded-xl hover:bg-blue-50/50 !bg-transparent">
         <livewire:notification-count />
-    </button>
+    </flux:button>
 
     {{-- Notification Dropdown --}}
-    <div
-        x-show="open"
-        @click.away="open = false"
-        class="absolute left-0 top-full mt-2 w-80 md:w-96 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-[9999]"
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 transform scale-95 translate-y-2"
-        x-transition:enter-end="opacity-100 transform scale-100 translate-y-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 transform scale-100 translate-y-0"
-        x-transition:leave-end="opacity-0 transform scale-95 translate-y-2"
-        style="display: none;"
-    >
+    <flux:popover class="w-80 md:w-96 max-w-[calc(100vw-2rem)] p-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
         <div class="flex flex-col">
             <!-- Header -->
             <div class="px-6 py-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 backdrop-blur-sm border-b border-gray-200 dark:border-gray-600">
@@ -151,5 +140,5 @@
             </div>
             @endif
         </div>
-    </div>
-</div>
+    </flux:popover>
+</flux:dropdown>
