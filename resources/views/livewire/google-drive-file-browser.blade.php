@@ -164,13 +164,16 @@
 
     <!-- Import Confirmation Modal -->
     @if($showImportModal && !empty($selectedFile))
-        <flux:modal name="importModal" :show="$showImportModal">
-            <flux:modal.header>
-                Import File from Google Drive
-            </flux:modal.header>
-            
-            <flux:modal.body>
-                <div class="space-y-4">
+        <flux:modal :show="$showImportModal" max-width="md">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-slate-900 dark:text-slate-100">
+                        Import File from Google Drive
+                    </h3>
+                    <flux:button wire:click="closeImportModal" variant="ghost" size="sm" icon="x-mark" />
+                </div>
+                
+                <div class="space-y-4 mb-6">
                     <div class="flex items-center space-x-3">
                         <div class="flex-shrink-0">
                             <div class="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -194,19 +197,19 @@
                         </p>
                     </div>
                 </div>
-            </flux:modal.body>
-            
-            <flux:modal.footer>
-                <flux:button wire:click="closeImportModal" variant="ghost">
-                    Cancel
-                </flux:button>
-                <flux:button wire:click="importSelectedFile" variant="primary" :disabled="$isLoading">
-                    @if($isLoading)
-                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                    @endif
-                    Import File
-                </flux:button>
-            </flux:modal.footer>
+                
+                <div class="flex justify-end space-x-3">
+                    <flux:button wire:click="closeImportModal" variant="ghost">
+                        Cancel
+                    </flux:button>
+                    <flux:button wire:click="importSelectedFile" variant="primary" :disabled="$isLoading">
+                        @if($isLoading)
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                        @endif
+                        Import File
+                    </flux:button>
+                </div>
+            </div>
         </flux:modal>
     @endif
 </div>
