@@ -1,5 +1,5 @@
 <div>
-    <flux:modal show max-width="4xl" @close="closeModal">
+    <flux:modal show max-width="4xl" @close="$dispatch('close-modal')">
         <div class="p-6">
             @if(!$isConnected)
                 <!-- Connection Required State -->
