@@ -7,6 +7,7 @@ use App\Services\FileManagementService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Masmerise\Toaster\Toaster;
 
@@ -60,6 +61,34 @@ class UppyFileUploader extends Component
             'allow_multiple' => $this->allowMultiple,
             'settings' => $this->uploadSettings,
         ]);
+    }
+
+    /**
+     * Listen for file uploads from any source (including Google Drive)
+     */
+    #[On('filesUploaded')]
+    public function handleFilesUploaded($eventData): void
+    {
+        // Check if this event is for our model
+        if (isset($eventData['model_type']) && isset($eventData['model_id'])) {
+            if ($eventData['model_type'] === get_class($this->model) && $eventData['model_id'] == $this->model->id) {
+
+                $source = $eventData['source'] ?? 'uppy';
+
+                // Only show messages for non-Google Drive sources (Google Drive shows its own)
+                if ($source !== 'google_drive') {
+                    $count = $eventData['count'] ?? 1;
+                    $message = $count === 1
+                        ? 'File uploaded successfully!'
+                        : "{$count} files uploaded successfully!";
+
+                    Toaster::success($message);
+                }
+
+                // Dispatch refresh event to parent components
+                $this->dispatch('refreshFiles');
+            }
+        }
     }
 
     /**

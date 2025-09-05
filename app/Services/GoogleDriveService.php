@@ -10,10 +10,9 @@ use Google\Client as GoogleClient;
 use Google\Service\Drive as GoogleDrive;
 use Google\Service\Drive\DriveFile;
 use Google\Service\Exception as GoogleServiceException;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -21,8 +20,11 @@ use Illuminate\Support\Str;
 class GoogleDriveService
 {
     protected ?GoogleClient $client = null;
+
     protected ?GoogleDrive $driveService = null;
+
     protected FileValidationService $fileValidationService;
+
     protected UserStorageService $userStorageService;
 
     public function __construct(
@@ -42,7 +44,7 @@ class GoogleDriveService
             return;
         }
 
-        $this->client = new GoogleClient();
+        $this->client = new GoogleClient;
         $this->client->setClientId(config('googledrive.oauth.client_id'));
         $this->client->setClientSecret(config('googledrive.oauth.client_secret'));
         $this->client->setRedirectUri(url(config('googledrive.oauth.redirect_uri')));
@@ -59,7 +61,16 @@ class GoogleDriveService
     public function getAuthUrl(): string
     {
         $this->initializeClient();
+
         return $this->client->createAuthUrl();
+    }
+
+    /**
+     * Get Google OAuth authorization URL for a specific user
+     */
+    public function getAuthorizationUrl(User $user): string
+    {
+        return $this->getAuthUrl();
     }
 
     /**
@@ -70,7 +81,7 @@ class GoogleDriveService
     public function handleCallback(string $code, User $user): void
     {
         $this->initializeClient();
-        
+
         try {
             $token = $this->client->fetchAccessTokenWithAuthCode($code);
 
@@ -106,7 +117,7 @@ class GoogleDriveService
      */
     protected function getTokens(User $user): array
     {
-        if (!$user->google_drive_tokens) {
+        if (! $user->google_drive_tokens) {
             throw new GoogleDriveAuthException('User has not connected Google Drive');
         }
 
@@ -129,13 +140,13 @@ class GoogleDriveService
     protected function setupClientForUser(User $user): void
     {
         $this->initializeClient();
-        
+
         $tokens = $this->getTokens($user);
         $this->client->setAccessToken($tokens);
 
         // Check if token needs refresh
         if ($this->client->isAccessTokenExpired()) {
-            if (!$this->client->getRefreshToken()) {
+            if (! $this->client->getRefreshToken()) {
                 throw new GoogleDriveAuthException('Refresh token not available. User needs to re-authorize.');
             }
 
@@ -165,19 +176,20 @@ class GoogleDriveService
     public function listFiles(
         User $user,
         ?string $folderId = null,
+        ?string $searchQuery = null,
         ?int $pageSize = null,
         ?string $pageToken = null
     ): array {
         $this->setupClientForUser($user);
 
         $pageSize = $pageSize ?? config('googledrive.ui.files_per_page', 50);
-        
+
         try {
-            $query = $this->buildFileQuery($folderId);
+            $query = $this->buildFileQuery($folderId, $searchQuery);
             $parameters = [
                 'q' => $query,
                 'pageSize' => $pageSize,
-                'fields' => 'nextPageToken, files(id, name, mimeType, size, modifiedTime, thumbnailLink, webViewLink)',
+                'fields' => 'nextPageToken, files(id, name, mimeType, size, modifiedTime, thumbnailLink, webViewLink, parents)',
                 'orderBy' => 'modifiedTime desc',
             ];
 
@@ -187,8 +199,17 @@ class GoogleDriveService
 
             $results = $this->driveService->files->listFiles($parameters);
 
+            // Build breadcrumbs if we're in a specific folder
+            $breadcrumbs = [];
+            if ($folderId && $folderId !== 'root') {
+                $breadcrumbs = $this->buildBreadcrumbs($folderId);
+            } else {
+                $breadcrumbs = [['id' => 'root', 'name' => 'My Drive']];
+            }
+
             return [
                 'files' => $this->formatFiles($results->getFiles()),
+                'breadcrumbs' => $breadcrumbs,
                 'nextPageToken' => $results->getNextPageToken(),
             ];
         } catch (GoogleServiceException $e) {
@@ -204,21 +225,28 @@ class GoogleDriveService
     /**
      * Build query for file listing based on configuration
      */
-    protected function buildFileQuery(?string $folderId): string
+    protected function buildFileQuery(?string $folderId, ?string $searchQuery = null): string
     {
         $conditions = [];
 
-        // Filter by parent folder
-        if ($folderId) {
-            $conditions[] = "'{$folderId}' in parents";
+        // If search query provided, search globally instead of limiting to folder
+        if ($searchQuery) {
+            $conditions[] = "name contains '{$searchQuery}'";
         } else {
-            $conditions[] = "'root' in parents";
+            // Filter by parent folder
+            if ($folderId) {
+                $conditions[] = "'{$folderId}' in parents";
+            } else {
+                $conditions[] = "'root' in parents";
+            }
         }
 
-        // Filter by allowed mime types
+        // Filter by allowed mime types (including folders for navigation)
         $allowedTypes = config('googledrive.file_handling.allowed_mime_types', []);
-        if (!empty($allowedTypes)) {
-            $mimeConditions = array_map(fn($type) => "mimeType='{$type}'", $allowedTypes);
+        if (! empty($allowedTypes)) {
+            $mimeConditions = array_map(fn ($type) => "mimeType='{$type}'", $allowedTypes);
+            // Always include folders for navigation
+            $mimeConditions[] = "mimeType='application/vnd.google-apps.folder'";
             $conditions[] = '('.implode(' or ', $mimeConditions).')';
         }
 
@@ -226,6 +254,49 @@ class GoogleDriveService
         $conditions[] = 'trashed=false';
 
         return implode(' and ', $conditions);
+    }
+
+    /**
+     * Build breadcrumb navigation for folder path
+     */
+    protected function buildBreadcrumbs(string $folderId): array
+    {
+        $breadcrumbs = [];
+        $currentFolderId = $folderId;
+
+        try {
+            // Build path from current folder back to root
+            while ($currentFolderId && $currentFolderId !== 'root') {
+                $folder = $this->driveService->files->get($currentFolderId, [
+                    'fields' => 'id, name, parents',
+                ]);
+
+                array_unshift($breadcrumbs, [
+                    'id' => $folder->getId(),
+                    'name' => $folder->getName(),
+                ]);
+
+                // Get parent folder
+                $parents = $folder->getParents();
+                $currentFolderId = $parents ? $parents[0] : null;
+            }
+
+            // Add root folder at the beginning
+            array_unshift($breadcrumbs, ['id' => 'root', 'name' => 'My Drive']);
+
+        } catch (GoogleServiceException $e) {
+            Log::warning('Failed to build breadcrumbs', [
+                'folder_id' => $folderId,
+                'error' => $e->getMessage(),
+            ]);
+            // Fallback to just showing current folder
+            $breadcrumbs = [
+                ['id' => 'root', 'name' => 'My Drive'],
+                ['id' => $folderId, 'name' => 'Current Folder'],
+            ];
+        }
+
+        return $breadcrumbs;
     }
 
     /**
@@ -261,7 +332,7 @@ class GoogleDriveService
      */
     protected function formatFileSize(?string $size): string
     {
-        if (!$size) {
+        if (! $size) {
             return 'Unknown';
         }
 
@@ -284,7 +355,7 @@ class GoogleDriveService
         try {
             // Get file metadata first
             $file = $this->driveService->files->get($fileId, ['fields' => 'id, name, size, mimeType']);
-            
+
             // Validate file
             $this->validateFileForDownload($user, $file);
 
@@ -295,7 +366,7 @@ class GoogleDriveService
             // Store file locally
             $fileName = $this->generateUniqueFileName($file->getName());
             $path = 'google-drive-imports/'.$user->id.'/'.$fileName;
-            
+
             Storage::put($path, $content);
 
             Log::info('Google Drive file downloaded successfully', [
@@ -339,7 +410,7 @@ class GoogleDriveService
 
         // Check mime type
         $allowedTypes = config('googledrive.file_handling.allowed_mime_types');
-        if (!empty($allowedTypes) && !in_array($file->getMimeType(), $allowedTypes)) {
+        if (! empty($allowedTypes) && ! in_array($file->getMimeType(), $allowedTypes)) {
             throw new GoogleDriveFileException('File type not supported');
         }
 
@@ -357,7 +428,7 @@ class GoogleDriveService
     {
         $extension = pathinfo($originalName, PATHINFO_EXTENSION);
         $baseName = pathinfo($originalName, PATHINFO_FILENAME);
-        
+
         return $baseName.'_'.Str::random(8).'.'.$extension;
     }
 
@@ -397,7 +468,7 @@ class GoogleDriveService
      */
     public function isConnected(User $user): bool
     {
-        return !is_null($user->google_drive_tokens);
+        return ! is_null($user->google_drive_tokens);
     }
 
     /**
@@ -405,7 +476,7 @@ class GoogleDriveService
      */
     public function getConnectionStatus(User $user): array
     {
-        if (!$this->isConnected($user)) {
+        if (! $this->isConnected($user)) {
             return [
                 'connected' => false,
                 'connected_at' => null,
@@ -415,6 +486,7 @@ class GoogleDriveService
 
         try {
             $this->setupClientForUser($user);
+
             return [
                 'connected' => true,
                 'connected_at' => $user->google_drive_connected_at,
@@ -427,6 +499,167 @@ class GoogleDriveService
                 'needs_reauth' => true,
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Import a Google Drive file directly to a Project or Pitch model
+     *
+     * @param  string  $fileId  Google Drive file ID
+     * @param  Model  $model  Project or Pitch model to attach the file to
+     * @return array Result with success status and file info
+     *
+     * @throws GoogleDriveAuthException|GoogleDriveFileException
+     */
+    public function importFileToModel(User $user, string $fileId, Model $model): array
+    {
+        try {
+            $this->setupClientForUser($user);
+
+            // Get file metadata first
+            $file = $this->driveService->files->get($fileId, [
+                'fields' => 'id,name,mimeType,size,parents',
+            ]);
+
+            // Validate file can be imported to this model type
+            if (! $this->canImportToModel($model, $file->getMimeType())) {
+                throw new GoogleDriveFileException('File type not allowed for this model');
+            }
+
+            // Check file size limits based on model context
+            $maxSize = $this->getMaxFileSizeForModel($model);
+            if ($file->getSize() && $file->getSize() > $maxSize) {
+                throw new GoogleDriveFileException("File too large. Maximum size is {$this->formatFileSize($maxSize)}");
+            }
+
+            // Download file content
+            $response = $this->driveService->files->get($fileId, ['alt' => 'media']);
+            $content = $response->getBody()->getContents();
+
+            // Generate unique filename
+            $originalName = $file->getName();
+            $uniqueName = $this->generateUniqueFileName($originalName);
+
+            // Store file in appropriate S3 path
+            $s3Key = $this->generateS3KeyForModel($model, $uniqueName);
+            Storage::disk('s3')->put($s3Key, $content, [
+                'visibility' => 'public',
+                'Content-Type' => $file->getMimeType(),
+            ]);
+
+            // Create file record using FileManagementService
+            $fileManagementService = app(\App\Services\FileManagementService::class);
+
+            if ($model instanceof \App\Models\Project) {
+                $fileRecord = $fileManagementService->createProjectFileFromS3(
+                    $model,
+                    $s3Key,
+                    $originalName,
+                    $file->getSize() ?? 0,
+                    $file->getMimeType(),
+                    $user
+                );
+            } elseif ($model instanceof \App\Models\Pitch) {
+                $fileRecord = $fileManagementService->createPitchFileFromS3(
+                    $model,
+                    $s3Key,
+                    $originalName,
+                    $file->getSize() ?? 0,
+                    $file->getMimeType(),
+                    $user
+                );
+            } else {
+                throw new GoogleDriveFileException('Unsupported model type for file import');
+            }
+
+            Log::info('File imported from Google Drive successfully', [
+                'user_id' => $user->id,
+                'file_id' => $fileId,
+                'original_name' => $originalName,
+                'unique_name' => $uniqueName,
+                's3_key' => $s3Key,
+                'model_type' => get_class($model),
+                'model_id' => $model->id,
+                'file_record_id' => $fileRecord->id,
+            ]);
+
+            return [
+                'success' => true,
+                'file_record' => $fileRecord,
+                'original_name' => $originalName,
+                'size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+            ];
+
+        } catch (GoogleServiceException $e) {
+            Log::error('Failed to import Google Drive file', [
+                'user_id' => $user->id,
+                'file_id' => $fileId,
+                'model_type' => get_class($model),
+                'model_id' => $model->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to import file: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Check if file can be imported to the given model type
+     */
+    protected function canImportToModel(Model $model, string $mimeType): bool
+    {
+        // Get context-specific allowed mime types
+        if ($model instanceof \App\Models\Project) {
+            $context = \App\Models\FileUploadSetting::CONTEXT_PROJECTS;
+        } elseif ($model instanceof \App\Models\Pitch) {
+            $context = \App\Models\FileUploadSetting::CONTEXT_PITCHES;
+        } else {
+            return false;
+        }
+
+        // Check against upload settings
+        $allowedTypes = config('googledrive.file_handling.allowed_mime_types', []);
+
+        return in_array($mimeType, $allowedTypes) ||
+               str_starts_with($mimeType, 'audio/') ||
+               str_starts_with($mimeType, 'image/') ||
+               $mimeType === 'application/pdf';
+    }
+
+    /**
+     * Get maximum file size for the given model type
+     */
+    protected function getMaxFileSizeForModel(Model $model): int
+    {
+        if ($model instanceof \App\Models\Project) {
+            $context = \App\Models\FileUploadSetting::CONTEXT_PROJECTS;
+        } elseif ($model instanceof \App\Models\Pitch) {
+            $context = \App\Models\FileUploadSetting::CONTEXT_PITCHES;
+        } else {
+            $context = \App\Models\FileUploadSetting::CONTEXT_GLOBAL;
+        }
+
+        $settings = \App\Models\FileUploadSetting::getSettings($context);
+        $maxSizeMB = $settings[\App\Models\FileUploadSetting::MAX_FILE_SIZE_MB] ?? 200;
+
+        return $maxSizeMB * 1024 * 1024; // Convert MB to bytes
+    }
+
+    /**
+     * Generate S3 key for model-specific file storage
+     */
+    protected function generateS3KeyForModel(Model $model, string $filename): string
+    {
+        if ($model instanceof \App\Models\Project) {
+            return "projects/{$model->id}/files/{$filename}";
+        } elseif ($model instanceof \App\Models\Pitch) {
+            return "pitches/{$model->id}/files/{$filename}";
+        } else {
+            return "uploads/{$filename}";
         }
     }
 }
