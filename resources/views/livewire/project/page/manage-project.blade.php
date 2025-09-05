@@ -296,21 +296,14 @@
 
                                     <!-- File Uploader Component -->
                                     <div x-show="showUploader" x-transition class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
-                                        <flux:card>
-                                            <div class="flex items-center gap-3 mb-4">
-                                                <flux:icon.cloud-arrow-up class="w-6 h-6 {{ $workflowColors['icon'] }}" />
-                                                <div>
-                                                    <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">Upload New Files</flux:heading>
-                                                    <flux:subheading class="{{ $workflowColors['text_muted'] }}">
-                                                        Upload audio, PDFs, or images to share with {{ $project->isContest() ? 'contest participants' : 'collaborators' }}
-                                                    </flux:subheading>
-                                                </div>
-                                            </div>
-                                            
-                                            @if($this->canUploadFiles)
-                                                <livewire:uppy-file-uploader :model="$project"
-                                                    wire:key="enhanced-project-uploader-{{ $project->id }}" />
-                                            @else
+                                        @if($this->canUploadFiles)
+                                            <x-file-management.upload-section 
+                                                :model="$project"
+                                                title="Upload New Files"
+                                                :description="'Upload audio, PDFs, or images to share with ' . ($project->isContest() ? 'contest participants' : 'collaborators')"
+                                            />
+                                        @else
+                                            <flux:card>
                                                 <div class="text-center py-8">
                                                     <flux:icon.folder-open class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
                                                     <p class="text-gray-500 dark:text-gray-400 mb-2">File uploads are not available for this project.</p>
@@ -318,8 +311,8 @@
                                                         <p class="text-sm text-gray-400 dark:text-gray-500">Project is completed - no additional files can be uploaded.</p>
                                                     @endif
                                                 </div>
-                                            @endif
-                                        </flux:card>
+                                            </flux:card>
+                                        @endif
                                     </div>
 
                                     <!-- Files List Section -->

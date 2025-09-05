@@ -175,7 +175,7 @@ class GoogleDriveUploadModal extends Component
         }
     }
 
-    public function render(): string
+    public function render()
     {
         return view('livewire.google-drive-upload-modal');
     }

@@ -19,7 +19,6 @@
                     <div class="space-y-3">
                         <flux:button 
                             variant="primary" 
-                            size="lg"
                             wire:click="connectGoogleDrive"
                             class="flex items-center gap-3"
                         >
