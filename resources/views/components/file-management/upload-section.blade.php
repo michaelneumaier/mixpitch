@@ -1,6 +1,6 @@
 @props(['model', 'title' => 'Upload New Files', 'description' => 'Upload audio, PDFs, or images'])
 
-<div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden mb-6" x-data="{ showGoogleDriveModal: false }" @close-modal.window="showGoogleDriveModal = false">
+<div class="bg-white rounded-lg border border-base-300 shadow-sm overflow-hidden mb-6">
     <div class="p-4 border-b border-base-200 bg-base-100/50">
         <div class="flex items-center justify-between">
             <div>
@@ -10,7 +10,7 @@
             <flux:button 
                 variant="outline" 
                 size="sm"
-                @click="showGoogleDriveModal = true; console.log('Google Drive button clicked', showGoogleDriveModal)"
+                x-on:click="$flux.modal('google-drive-modal').show()"
                 class="flex items-center gap-2 text-sm"
             >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -28,10 +28,8 @@
     </div>
 
     <!-- Google Drive Upload Modal -->
-    <div x-show="showGoogleDriveModal" x-transition style="display: none;">
-        <livewire:google-drive-upload-modal 
-            :model="$model" 
-            wire:key="'gdrive-modal-' . $model->id"
-        />
-    </div>
+    <livewire:google-drive-upload-modal 
+        :model="$model" 
+        wire:key="'gdrive-modal-' . $model->id"
+    />
 </div> 

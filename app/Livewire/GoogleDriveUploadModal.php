@@ -155,7 +155,8 @@ class GoogleDriveUploadModal extends Component
                     'source' => 'google_drive',
                 ]);
 
-                $this->closeModal();
+                $this->js('$flux.modal("google-drive-modal").close()');
+                $this->dispatch('close-modal');
             } else {
                 throw new \Exception($result['error'] ?? 'Import failed');
             }

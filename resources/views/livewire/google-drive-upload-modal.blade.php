@@ -1,5 +1,5 @@
 <div>
-    <flux:modal show max-width="4xl" @close="$dispatch('close-modal')">
+    <flux:modal name="google-drive-modal" max-width="4xl">
         <div class="p-6">
             @if(!$isConnected)
                 <!-- Connection Required State -->
@@ -30,9 +30,11 @@
                             </svg>
                             Connect Google Drive
                         </flux:button>
-                        <flux:button variant="outline" wire:click="closeModal">
-                            Cancel
-                        </flux:button>
+                        <flux:modal.close>
+                            <flux:button variant="outline">
+                                Cancel
+                            </flux:button>
+                        </flux:modal.close>
                     </div>
                 </div>
             @else
@@ -41,11 +43,13 @@
                     <!-- Header -->
                     <div class="flex items-center justify-between border-b pb-4">
                         <h3 class="text-lg font-semibold text-gray-900">Import from Google Drive</h3>
-                        <flux:button variant="outline" size="sm" wire:click="closeModal">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </flux:button>
+                        <flux:modal.close>
+                            <flux:button variant="outline" size="sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </flux:button>
+                        </flux:modal.close>
                     </div>
 
                     <!-- Search Bar -->
@@ -169,9 +173,11 @@
                                 Selected: <strong>{{ $selectedFile['name'] }}</strong>
                             </div>
                             <div class="space-x-2">
-                                <flux:button variant="outline" wire:click="closeModal">
-                                    Cancel
-                                </flux:button>
+                                <flux:modal.close>
+                                    <flux:button variant="outline">
+                                        Cancel
+                                    </flux:button>
+                                </flux:modal.close>
                                 <flux:button 
                                     variant="primary" 
                                     wire:click="importSelectedFile"
