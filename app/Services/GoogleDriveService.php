@@ -45,7 +45,7 @@ class GoogleDriveService
         $this->client = new GoogleClient();
         $this->client->setClientId(config('googledrive.oauth.client_id'));
         $this->client->setClientSecret(config('googledrive.oauth.client_secret'));
-        $this->client->setRedirectUri(config('googledrive.oauth.redirect_uri'));
+        $this->client->setRedirectUri(url(config('googledrive.oauth.redirect_uri')));
         $this->client->setScopes(config('googledrive.oauth.scopes'));
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');

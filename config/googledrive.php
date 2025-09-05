@@ -14,7 +14,7 @@ return [
     'oauth' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect_uri' => env('GOOGLE_DRIVE_REDIRECT_URI', '/integrations/google-drive/callback'),
+        'redirect_uri' => '/integrations/google-drive/callback',
         'scopes' => [
             'https://www.googleapis.com/auth/drive.file',
             'https://www.googleapis.com/auth/drive.readonly',
