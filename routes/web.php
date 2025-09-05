@@ -41,6 +41,7 @@ use App\Livewire\EditProject;
 use App\Http\Controllers\LicenseSignatureController;
 use App\Http\Controllers\StripeConnectController;
 use App\Http\Controllers\ContestPrizePaymentController;
+use App\Http\Controllers\GoogleDriveIntegrationController;
 
 
 /*
@@ -415,6 +416,17 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('stripe/connect')->name(
     Route::get('/dashboard', [StripeConnectController::class, 'dashboard'])->name('dashboard');
     Route::get('/status', [StripeConnectController::class, 'accountStatus'])->name('status');
     Route::get('/eligibility', [StripeConnectController::class, 'payoutEligibility'])->name('eligibility');
+});
+
+// Google Drive Integration Routes
+Route::middleware(['auth:sanctum', 'verified'])->prefix('integrations/google-drive')->name('integrations.google-drive.')->group(function () {
+    Route::get('/setup', [GoogleDriveIntegrationController::class, 'setup'])->name('setup');
+    Route::get('/connect', [GoogleDriveIntegrationController::class, 'connect'])->name('connect');
+    Route::get('/callback', [GoogleDriveIntegrationController::class, 'callback'])->name('callback');
+    Route::post('/disconnect', [GoogleDriveIntegrationController::class, 'disconnect'])->name('disconnect');
+    Route::get('/status', [GoogleDriveIntegrationController::class, 'status'])->name('status');
+    Route::get('/browse', [GoogleDriveIntegrationController::class, 'browse'])->name('browse');
+    Route::post('/import', [GoogleDriveIntegrationController::class, 'importFile'])->name('import');
 });
 
 // Payout Management Routes

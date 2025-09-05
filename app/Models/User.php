@@ -107,6 +107,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'brand_text',
         'invite_email_subject',
         'invite_email_body',
+        // Google Drive integration fields
+        'google_drive_tokens',
+        'google_drive_connected_at',
     ];
 
     /**
@@ -119,6 +122,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'remember_token',
         'two_factor_recovery_codes',
         'two_factor_secret',
+        'google_drive_tokens',
     ];
 
     /**
@@ -136,6 +140,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'monthly_pitch_reset_date' => 'date',
         'is_admin' => 'boolean',
         'timezone' => 'string',
+        'google_drive_connected_at' => 'datetime',
     ];
 
     /**
@@ -1402,4 +1407,32 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     //         'role_id'
     //     );
     // }
+
+    /**
+     * Check if user has Google Drive connected
+     */
+    public function hasGoogleDriveConnected(): bool
+    {
+        return !is_null($this->google_drive_tokens);
+    }
+
+    /**
+     * Get Google Drive connection status
+     */
+    public function googleDriveConnectionStatus(): string
+    {
+        if (!$this->hasGoogleDriveConnected()) {
+            return 'disconnected';
+        }
+
+        return 'connected';
+    }
+
+    /**
+     * Get when Google Drive was connected
+     */
+    public function googleDriveConnectedSince(): ?\Carbon\Carbon
+    {
+        return $this->google_drive_connected_at;
+    }
 }
