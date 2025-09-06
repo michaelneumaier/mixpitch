@@ -489,6 +489,14 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     }
 
     /**
+     * Get the Google Drive backups for the user.
+     */
+    public function googleDriveBackups(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(GoogleDriveBackup::class);
+    }
+
+    /**
      * Get all tags for this user.
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphToMany

@@ -1,0 +1,20 @@
+{
+  "name": "mixpitch",
+  "version": "1.0.1",
+  "description": "MixPitch Zapier Integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "zapier test"
+  },
+  "dependencies": {
+    "zapier-platform-core": "17.7.0"
+  },
+  "devDependencies": {
+    "should": "13.2.3",
+    "mocha": "10.2.0",
+    "zapier-platform-cli": "17.7.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

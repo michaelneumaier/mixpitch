@@ -43,10 +43,14 @@ class GoogleDriveBackupModal extends Component
 
     public bool $creatingFolder = false;
 
+    // Mobile tab state
+    public string $activeTab = 'files';
+
     protected GoogleDriveService $googleDriveService;
 
     protected $rules = [
         'newFolderName' => 'required|string|min:1|max:100',
+        'activeTab' => 'required|string|in:files,destination',
     ];
 
     public function boot(GoogleDriveService $googleDriveService): void
@@ -109,6 +113,7 @@ class GoogleDriveBackupModal extends Component
         $this->currentFolder = 'root';
         $this->breadcrumbs = [];
         $this->selectedFiles = array_column($this->filesToBackup, 'id');
+        $this->activeTab = 'files';
         $this->dispatch('close-modal');
     }
 
@@ -342,6 +347,18 @@ class GoogleDriveBackupModal extends Component
         } finally {
             $this->creatingFolder = false;
         }
+    }
+
+    public function switchTab(string $tab): void
+    {
+        if (in_array($tab, ['files', 'destination'])) {
+            $this->activeTab = $tab;
+        }
+    }
+
+    public function continueToDestination(): void
+    {
+        $this->activeTab = 'destination';
     }
 
     public function render()

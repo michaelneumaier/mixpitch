@@ -41,4 +41,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/presigned-upload/generate', [\App\Http\Controllers\Api\PresignedUploadController::class, 'generatePresignedUrl'])
         ->middleware('upload.validate:auto');
     Route::post('/presigned-upload/complete', [\App\Http\Controllers\Api\PresignedUploadController::class, 'completeUpload']);
+
+    // Zapier API key management routes
+    Route::prefix('zapier-keys')->group(function () {
+        Route::post('/generate', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'generate']);
+        Route::delete('/revoke', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'revoke']);
+        Route::get('/status', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'status']);
+    });
+});
+
+// Zapier integration routes (authenticated with Zapier-specific token abilities)
+Route::middleware(['auth:sanctum'])->prefix('zapier')->group(function () {
+    // Authentication test endpoint
+    Route::get('/auth/test', [\App\Http\Controllers\Api\Zapier\ZapierApiKeyController::class, 'test']);
+
+    // Trigger endpoints
+    Route::get('/triggers/clients/new', [\App\Http\Controllers\Api\Zapier\NewClientTrigger::class, 'poll']);
+
+    // Action endpoints  
+    Route::post('/actions/clients/create', [\App\Http\Controllers\Api\Zapier\CreateClientAction::class, 'create']);
 });

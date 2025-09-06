@@ -1048,6 +1048,24 @@ Route::middleware('auth')->group(function () {
     Route::post('/license/sign/{signature}', [LicenseSignatureController::class, 'sign'])->name('license.sign.submit');
 });
 
+// Zapier integration setup (for development/testing)
+Route::middleware('auth')->get('/zapier/setup', function () {
+    return view('zapier-setup');
+})->name('zapier.setup');
+
+Route::middleware('auth')->post('/zapier/generate-key', function () {
+    $user = auth()->user();
+    
+    // Revoke existing Zapier tokens
+    $user->tokens()->where('name', 'Zapier Integration')->delete();
+    
+    // Create new token
+    $token = $user->createToken('Zapier Integration', ['zapier-client-management']);
+    
+    return redirect()->route('zapier.setup', ['generated' => true])
+        ->with('api_key', $token->plainTextToken);
+})->name('zapier.generate-key');
+
 // Test route for debugging template approval
 Route::get('/test-approve/{template}', function (App\Models\LicenseTemplate $template) {
     $template->update([

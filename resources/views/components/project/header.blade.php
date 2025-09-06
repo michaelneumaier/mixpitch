@@ -231,6 +231,13 @@
                                 </flux:menu.item>
                             </flux:modal.trigger>
 
+                            <!-- Backup History -->
+                            <flux:modal.trigger name="backupHistory">
+                                <flux:menu.item icon="clock">
+                                    Backup History
+                                </flux:menu.item>
+                            </flux:modal.trigger>
+
                             
                             <flux:menu.separator />
                             

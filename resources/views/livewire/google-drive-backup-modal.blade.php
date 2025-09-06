@@ -36,13 +36,64 @@
         @else
             <!-- Connected State - Backup Interface -->
             <div class="flex flex-col max-h-[80vh]">
+                <!-- Mobile Tab Navigation (hidden on desktop) -->
+                <div class="md:hidden border-b border-gray-200">
+                    <nav class="flex" role="tablist">
+                        <button 
+                            wire:click="switchTab('files')"
+                            class="flex-1 px-4 py-3 text-sm font-medium text-center transition-colors duration-200 {{ $activeTab === 'files' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}"
+                            role="tab"
+                            aria-selected="{{ $activeTab === 'files' ? 'true' : 'false' }}"
+                        >
+                            <div class="flex items-center justify-center gap-2">
+                                <span class="flex items-center justify-center w-5 h-5 text-xs font-semibold rounded-full {{ $activeTab === 'files' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600' }}">1</span>
+                                <span>Select Files</span>
+                                @if(count($selectedFiles) > 0)
+                                    <span class="ml-1 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                        {{ count($selectedFiles) }}
+                                    </span>
+                                @endif
+                            </div>
+                        </button>
+                        <button 
+                            wire:click="switchTab('destination')"
+                            class="flex-1 px-4 py-3 text-sm font-medium text-center transition-colors duration-200 {{ $activeTab === 'destination' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}"
+                            role="tab"
+                            aria-selected="{{ $activeTab === 'destination' ? 'true' : 'false' }}"
+                        >
+                            <div class="flex items-center justify-center gap-2">
+                                <span class="flex items-center justify-center w-5 h-5 text-xs font-semibold rounded-full {{ $activeTab === 'destination' ? 'bg-blue-600 text-white' : ($selectedFolder ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600') }}">
+                                    @if($selectedFolder && $activeTab !== 'destination')
+                                        ✓
+                                    @else
+                                        2
+                                    @endif
+                                </span>
+                                <span>Destination</span>
+                            </div>
+                        </button>
+                    </nav>
+                </div>
+
                 <!-- Main Content Area -->
-                <div class="flex flex-1 min-h-0">
+                <div class="md:flex flex-1 min-h-0">
                     <!-- Left Side - Files to Backup -->
-                    <div class="w-1/2 border-r border-gray-200 flex flex-col">
+                    <div class="w-full md:w-1/2 md:border-r border-gray-200 flex flex-col {{ $activeTab === 'files' ? '' : 'hidden md:flex' }}">
                         <div class="p-6 border-b bg-gray-50 flex-shrink-0">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Files to Backup</h3>
-                            <p class="text-sm text-gray-600">Select files to backup to Google Drive</p>
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold text-gray-900">Files to Backup</h3>
+                                <!-- Continue Button (mobile only) -->
+                                <flux:button 
+                                    wire:click="continueToDestination"
+                                    variant="primary" 
+                                    size="sm"
+                                    class="md:hidden"
+                                    :disabled="empty($selectedFiles)"
+                                >
+                                    Continue
+                                </flux:button>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-4">Select files to backup to Google Drive</p>
                             
                             <!-- File Selection Controls -->
                             <div class="flex items-center gap-2 mt-4">
@@ -122,7 +173,7 @@
                     </div>
 
                     <!-- Right Side - Google Drive Folder Browser -->
-                    <div class="w-1/2 flex flex-col">
+                    <div class="w-full md:w-1/2 flex flex-col {{ $activeTab === 'destination' ? '' : 'hidden md:flex' }}">
                         <div class="p-6 border-b bg-gray-50 flex-shrink-0">
                             <div class="flex items-center justify-between mb-2">
                                 <h3 class="text-lg font-semibold text-gray-900">Select Backup Destination</h3>
@@ -304,20 +355,24 @@
                 </div>
 
                 <!-- Footer Actions -->
-                <div class="border-t bg-gray-50 px-6 py-4 flex-shrink-0">
-                    <div class="flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
+                <div class="border-t bg-gray-50 px-4 md:px-6 py-4 flex-shrink-0">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <!-- Destination Info -->
+                    <div class="text-sm text-gray-600 min-w-0">
                         @if($selectedFolder)
                             <span class="flex items-center gap-2">
-                                <flux:icon name="folder" class="w-4 h-4 text-blue-600" />
-                                Destination: <strong>{{ $selectedFolder['name'] }}</strong>
+                                <flux:icon name="folder" class="w-4 h-4 text-blue-600 flex-shrink-0" />
+                                <span class="truncate">
+                                    Destination: <strong class="text-gray-900">{{ $selectedFolder['name'] }}</strong>
+                                </span>
                             </span>
                         @else
                             <span class="text-gray-500">No destination folder selected</span>
                         @endif
                     </div>
                     
-                    <div class="flex items-center space-x-3">
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-3 flex-shrink-0">
                         <flux:modal.close>
                             <flux:button variant="outline">
                                 Cancel
@@ -338,10 +393,12 @@
                                     <span>Backing up...</span>
                                 @else
                                     <flux:icon name="cloud-arrow-up" class="w-4 h-4" />
-                                    <span>Backup to Google Drive</span>
+                                    <span class="hidden sm:inline">Backup to Google Drive</span>
+                                    <span class="sm:hidden">Backup</span>
                                 @endif
                             </div>
                         </flux:button>
+                    </div>
                     </div>
                 </div>
             </div>

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\GoogleDrive\GoogleDriveAuthException;
 use App\Exceptions\GoogleDrive\GoogleDriveFileException;
 use App\Exceptions\GoogleDrive\GoogleDriveQuotaException;
+use App\Models\GoogleDriveBackup;
 use App\Models\User;
 use Google\Client as GoogleClient;
 use Google\Service\Drive as GoogleDrive;
@@ -676,6 +677,8 @@ class GoogleDriveService
      */
     public function backupFileToGoogleDrive(User $user, int $fileId, string $fileType, string $destinationFolderId): array
     {
+        $backupRecord = null;
+        
         try {
             $this->setupClientForUser($user);
 
@@ -702,6 +705,36 @@ class GoogleDriveService
             // Get the file content from S3
             $fileContent = Storage::disk('s3')->get($storagePath);
 
+            // Get destination folder info
+            $destinationFolderName = $this->getFolderName($destinationFolderId);
+            
+            // Determine project context
+            $project = null;
+            $projectName = null;
+            if ($fileType === 'project_file') {
+                $project = $fileRecord->project;
+                $projectName = $project ? $project->title : null;
+            } elseif ($fileType === 'pitch_file' && $fileRecord->pitch) {
+                $project = $fileRecord->pitch->project;
+                $projectName = $project ? $project->title : null;
+            }
+
+            // Create backup record
+            $backupRecord = GoogleDriveBackup::create([
+                'user_id' => $user->id,
+                'file_id' => $fileId,
+                'file_type' => $fileType === 'project_file' ? \App\Models\ProjectFile::class : \App\Models\PitchFile::class,
+                'original_file_name' => $fileRecord->file_name,
+                'file_size' => $fileRecord->size,
+                'mime_type' => $fileRecord->mime_type,
+                'file_hash' => GoogleDriveBackup::generateFileHash($fileContent),
+                'google_drive_folder_id' => $destinationFolderId,
+                'google_drive_folder_name' => $destinationFolderName,
+                'project_id' => $project ? $project->id : null,
+                'project_name' => $projectName,
+                'status' => 'pending',
+            ]);
+
             // Create Google Drive file
             $driveFile = new DriveFile;
             $driveFile->setName($fileRecord->file_name);
@@ -718,6 +751,9 @@ class GoogleDriveService
                 ]
             );
 
+            // Mark backup as completed
+            $backupRecord->markAsCompleted($result->getId());
+
             Log::info('File backed up to Google Drive successfully', [
                 'user_id' => $user->id,
                 'file_id' => $fileId,
@@ -725,6 +761,7 @@ class GoogleDriveService
                 'file_name' => $fileRecord->file_name,
                 'google_drive_file_id' => $result->getId(),
                 'destination_folder_id' => $destinationFolderId,
+                'backup_record_id' => $backupRecord->id,
             ]);
 
             return [
@@ -732,32 +769,47 @@ class GoogleDriveService
                 'google_drive_file_id' => $result->getId(),
                 'file_name' => $fileRecord->file_name,
                 'size' => $fileRecord->size,
+                'backup_record_id' => $backupRecord->id,
             ];
 
         } catch (GoogleServiceException $e) {
+            // Mark backup as failed
+            if ($backupRecord) {
+                $backupRecord->markAsFailed('Google Drive API error: ' . $e->getMessage());
+            }
+
             Log::error('Failed to backup file to Google Drive', [
                 'user_id' => $user->id,
                 'file_id' => $fileId,
                 'file_type' => $fileType,
                 'destination_folder_id' => $destinationFolderId,
+                'backup_record_id' => $backupRecord ? $backupRecord->id : null,
                 'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
                 'error' => 'Failed to backup file: '.$e->getMessage(),
+                'backup_record_id' => $backupRecord ? $backupRecord->id : null,
             ];
         } catch (\Exception $e) {
+            // Mark backup as failed
+            if ($backupRecord) {
+                $backupRecord->markAsFailed('Unexpected error: ' . $e->getMessage());
+            }
+
             Log::error('Unexpected error during Google Drive backup', [
                 'user_id' => $user->id,
                 'file_id' => $fileId,
                 'file_type' => $fileType,
+                'backup_record_id' => $backupRecord ? $backupRecord->id : null,
                 'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
                 'error' => 'An unexpected error occurred: '.$e->getMessage(),
+                'backup_record_id' => $backupRecord ? $backupRecord->id : null,
             ];
         }
     }
@@ -886,5 +938,80 @@ class GoogleDriveService
 
             return $results;
         }
+    }
+
+    /**
+     * Get folder name by folder ID
+     */
+    protected function getFolderName(string $folderId): string
+    {
+        if ($folderId === 'root') {
+            return 'My Drive';
+        }
+
+        try {
+            $folder = $this->driveService->files->get($folderId, [
+                'fields' => 'name'
+            ]);
+            return $folder->getName();
+        } catch (GoogleServiceException $e) {
+            Log::warning('Failed to get folder name for ID: ' . $folderId, [
+                'error' => $e->getMessage()
+            ]);
+            return 'Unknown Folder';
+        }
+    }
+
+    /**
+     * Get backup history for a user
+     */
+    public function getBackupHistory(User $user, int $limit = 50): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        return GoogleDriveBackup::forUser($user)
+            ->with(['project', 'file'])
+            ->latest()
+            ->paginate($limit);
+    }
+
+    /**
+     * Get backup history for a specific project
+     */
+    public function getProjectBackupHistory(\App\Models\Project $project, int $limit = 50): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        return GoogleDriveBackup::forProject($project)
+            ->with(['user', 'file'])
+            ->latest()
+            ->paginate($limit);
+    }
+
+    /**
+     * Get backup statistics for a user
+     */
+    public function getBackupStats(User $user): array
+    {
+        $backups = GoogleDriveBackup::forUser($user);
+        
+        return [
+            'total_backups' => $backups->count(),
+            'successful_backups' => $backups->completed()->count(),
+            'failed_backups' => $backups->failed()->count(),
+            'pending_backups' => $backups->where('status', 'pending')->count(),
+            'total_size_backed_up' => $backups->completed()->sum('file_size'),
+            'latest_backup' => $backups->latest()->first()?->backed_up_at,
+        ];
+    }
+
+    /**
+     * Check if a file has been backed up recently (within 24 hours)
+     */
+    public function isFileRecentlyBackedUp(int $fileId, string $fileType): bool
+    {
+        $fileClass = $fileType === 'project_file' ? \App\Models\ProjectFile::class : \App\Models\PitchFile::class;
+        
+        return GoogleDriveBackup::where('file_id', $fileId)
+            ->where('file_type', $fileClass)
+            ->where('status', 'completed')
+            ->where('backed_up_at', '>', now()->subDay())
+            ->exists();
     }
 }

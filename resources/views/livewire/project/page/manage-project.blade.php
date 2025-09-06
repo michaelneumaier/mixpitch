@@ -597,6 +597,9 @@
         
         <!-- Google Drive Backup Modal -->
         @livewire('google-drive-backup-modal', ['model' => $project], key('google-drive-backup-' . $project->id))
+        
+        <!-- Google Drive Backup History Modal -->
+        @livewire('google-drive-backup-history-modal', ['model' => $project, 'viewType' => 'project'], key('google-drive-backup-history-' . $project->id))
         </div>
     </div>
 
