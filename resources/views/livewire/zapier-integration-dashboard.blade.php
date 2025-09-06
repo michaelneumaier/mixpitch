@@ -55,7 +55,7 @@
         @else
             <!-- API Key Management -->
             <flux:card class="bg-white/50 backdrop-blur-lg">
-                <div class="flex items-center justify-between lg:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                <div class="flex items-center justify-between border-b border-gray-200/50 dark:border-gray-700/50">
                     <div>
                         <flux:heading size="lg">API Key Management</flux:heading>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -132,7 +132,7 @@
             <!-- Usage Statistics -->
             @if($usageStats)
             <flux:card class="bg-white/50 backdrop-blur-lg">
-                <div class="p-4 lg:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                <div class="border-b border-gray-200/50 dark:border-gray-700/50">
                     <div class="flex items-center justify-between">
                         <div>
                             <flux:heading size="lg">Usage Analytics</flux:heading>
@@ -200,13 +200,13 @@
             <!-- Rate Limits -->
             @if($quotaStatus)
             <flux:card class="bg-white/50 backdrop-blur-lg">
-                <div class="p-4 lg:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                <div class="border-b border-gray-200/50 dark:border-gray-700/50">
                     <flux:heading size="lg">Rate Limits & Quotas</flux:heading>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Current usage against your <flux:badge size="sm" color="indigo">{{ ucfirst($quotaStatus['subscription_plan']) }}</flux:badge> plan limits
                     </p>
                 </div>
-                <div class="p-4 lg:p-6 space-y-6">
+                <div class="space-y-6">
                     @foreach(['per_minute' => 'Per Minute', 'per_hour' => 'Per Hour', 'per_day' => 'Per Day'] as $period => $label)
                     <div class="space-y-3">
                         <div class="flex justify-between items-center">
@@ -269,13 +269,13 @@
             <!-- Webhook Stats -->
             @if($webhookStats)
             <flux:card class="bg-white/50 backdrop-blur-lg">
-                <div class="p-4 lg:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                <div class="border-b border-gray-200/50 dark:border-gray-700/50">
                     <flux:heading size="lg">Webhook Statistics</flux:heading>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Real-time webhook usage and performance
                     </p>
                 </div>
-                <div class="p-4 lg:p-6">
+                <div class="">
                     <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
                         <flux:card class="text-center">
                             <flux:heading size="sm" class="text-gray-500 dark:text-gray-400">Total Webhooks</flux:heading>
