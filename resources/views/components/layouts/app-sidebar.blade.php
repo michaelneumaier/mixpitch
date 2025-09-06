@@ -204,6 +204,10 @@
                     Billing & Payments
                 </flux:menu.item>
 
+                <flux:menu.item icon="puzzle-piece" href="{{ route('integrations.zapier') }}">
+                    Integrations
+                </flux:menu.item>
+
                 @if(Auth::user()->hasRole('producer') || Auth::user()->hasRole('admin'))
                 <flux:menu.item icon="paint-brush" href="{{ route('settings.branding.edit') }}">
                     Branding Settings

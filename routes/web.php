@@ -95,6 +95,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('projects.manage-client')
         ->middleware('auth');
 
+    // Zapier Integration Dashboard
+    Route::get('/integrations/zapier', \App\Livewire\ZapierIntegrationDashboard::class)
+        ->name('integrations.zapier')
+        ->middleware('auth');
+
     Route::delete('projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.deleteFile');
 
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
