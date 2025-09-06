@@ -293,7 +293,7 @@ class GoogleDriveBackupModal extends Component
         }
     }
 
-    public function showCreateFolderForm(): void
+    public function toggleCreateFolderForm(): void
     {
         $this->showCreateFolderForm = true;
         $this->newFolderName = '';

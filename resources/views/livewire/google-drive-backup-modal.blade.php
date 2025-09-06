@@ -127,7 +127,7 @@
                             <div class="flex items-center justify-between mb-2">
                                 <h3 class="text-lg font-semibold text-gray-900">Select Backup Destination</h3>
                                 <flux:button 
-                                    wire:click="showCreateFolderForm"
+                                    wire:click="toggleCreateFolderForm"
                                     variant="outline" 
                                     size="sm"
                                     icon="folder-plus"
