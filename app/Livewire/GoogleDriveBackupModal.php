@@ -36,7 +36,18 @@ class GoogleDriveBackupModal extends Component
     // Breadcrumb navigation
     public array $breadcrumbs = [];
 
+    // Folder creation
+    public bool $showCreateFolderForm = false;
+
+    public string $newFolderName = '';
+
+    public bool $creatingFolder = false;
+
     protected GoogleDriveService $googleDriveService;
+
+    protected $rules = [
+        'newFolderName' => 'required|string|min:1|max:100',
+    ];
 
     public function boot(GoogleDriveService $googleDriveService): void
     {
@@ -279,6 +290,57 @@ class GoogleDriveBackupModal extends Component
             Toaster::error('Failed to backup files: '.$e->getMessage());
         } finally {
             $this->backingUp = false;
+        }
+    }
+
+    public function showCreateFolderForm(): void
+    {
+        $this->showCreateFolderForm = true;
+        $this->newFolderName = '';
+    }
+
+    public function cancelCreateFolder(): void
+    {
+        $this->showCreateFolderForm = false;
+        $this->newFolderName = '';
+        $this->resetErrorBag('newFolderName');
+    }
+
+    public function createFolder(): void
+    {
+        $this->validate(['newFolderName' => $this->rules['newFolderName']]);
+
+        $this->creatingFolder = true;
+
+        try {
+            $result = $this->googleDriveService->createFolder(
+                Auth::user(),
+                $this->newFolderName,
+                $this->currentFolder
+            );
+
+            if ($result['success']) {
+                Toaster::success("Folder '{$this->newFolderName}' created successfully!");
+
+                // Reset form
+                $this->cancelCreateFolder();
+
+                // Reload folders to show the new one
+                $this->loadFolders();
+            } else {
+                throw new \Exception($result['error']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to create folder in Google Drive', [
+                'user_id' => Auth::id(),
+                'folder_name' => $this->newFolderName,
+                'parent_folder_id' => $this->currentFolder,
+                'error' => $e->getMessage(),
+            ]);
+
+            Toaster::error('Failed to create folder: '.$e->getMessage());
+        } finally {
+            $this->creatingFolder = false;
         }
     }
 

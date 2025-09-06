@@ -35,15 +35,17 @@
             </div>
         @else
             <!-- Connected State - Backup Interface -->
-            <div class="h-[800px] flex">
-                <!-- Left Side - Files to Backup -->
-                <div class="w-1/2 border-r border-gray-200 flex flex-col">
-                    <div class="p-6 border-b bg-gray-50">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Files to Backup</h3>
-                        <p class="text-sm text-gray-600">Select files to backup to Google Drive</p>
-                        
-                        <!-- File Selection Controls -->
-                        <div class="flex items-center gap-2 mt-4">
+            <div class="flex flex-col max-h-[80vh]">
+                <!-- Main Content Area -->
+                <div class="flex flex-1 min-h-0">
+                    <!-- Left Side - Files to Backup -->
+                    <div class="w-1/2 border-r border-gray-200 flex flex-col">
+                        <div class="p-6 border-b bg-gray-50 flex-shrink-0">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Files to Backup</h3>
+                            <p class="text-sm text-gray-600">Select files to backup to Google Drive</p>
+                            
+                            <!-- File Selection Controls -->
+                            <div class="flex items-center gap-2 mt-4">
                             <flux:button 
                                 wire:click="selectAllFiles" 
                                 variant="outline" 
@@ -58,14 +60,14 @@
                             >
                                 Deselect All
                             </flux:button>
-                            <span class="text-xs text-gray-500 ml-2">
-                                {{ count($selectedFiles) }} of {{ count($filesToBackup) }} selected
-                            </span>
+                                <span class="text-xs text-gray-500 ml-2">
+                                    {{ count($selectedFiles) }} of {{ count($filesToBackup) }} selected
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Files List -->
-                    <div class="flex-1 overflow-y-auto">
+                        
+                        <!-- Files List -->
+                        <div class="flex-1 overflow-y-auto min-h-0">
                         @if(count($filesToBackup) === 0)
                             <div class="flex flex-col items-center justify-center h-full p-8">
                                 <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
@@ -116,31 +118,85 @@
                                 </div>
                             </div>
                         @endif
-                    </div>
-                </div>
-
-                <!-- Right Side - Google Drive Folder Browser -->
-                <div class="w-1/2 flex flex-col">
-                    <div class="p-6 border-b bg-gray-50">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Select Backup Destination</h3>
-                        <p class="text-sm text-gray-600 mb-4">Choose a folder in your Google Drive</p>
-                        
-                        <!-- Search Bar -->
-                        <div class="relative">
-                            <flux:input 
-                                wire:model.live.debounce.500ms="searchQuery"
-                                placeholder="Search folders..."
-                                class="pl-10 text-sm"
-                            />
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <flux:icon name="magnifying-glass" class="w-4 h-4 text-gray-400" />
-                            </div>
                         </div>
                     </div>
 
-                    <!-- Breadcrumbs -->
-                    @if(count($breadcrumbs) > 0)
-                        <div class="px-6 py-3 bg-white border-b">
+                    <!-- Right Side - Google Drive Folder Browser -->
+                    <div class="w-1/2 flex flex-col">
+                        <div class="p-6 border-b bg-gray-50 flex-shrink-0">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold text-gray-900">Select Backup Destination</h3>
+                                <flux:button 
+                                    wire:click="showCreateFolderForm"
+                                    variant="outline" 
+                                    size="sm"
+                                    icon="folder-plus"
+                                    :disabled="$showCreateFolderForm"
+                                >
+                                    New Folder
+                                </flux:button>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-4">Choose a folder in your Google Drive</p>
+                            
+                            <!-- Create Folder Form -->
+                            @if($showCreateFolderForm)
+                                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <flux:icon name="folder-plus" class="w-4 h-4 text-blue-600" />
+                                        <span class="text-sm font-medium text-blue-900">Create New Folder</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <flux:field class="flex-1">
+                                            <flux:input 
+                                                wire:model="newFolderName"
+                                                placeholder="Folder name..."
+                                                size="sm"
+                                                wire:keydown.enter="createFolder"
+                                            />
+                                            <flux:error name="newFolderName" />
+                                        </flux:field>
+                                        <flux:button 
+                                            wire:click="createFolder"
+                                            variant="primary" 
+                                            size="sm"
+                                            :disabled="$creatingFolder || empty($newFolderName)"
+                                        >
+                                            @if($creatingFolder)
+                                                <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            @else
+                                                Create
+                                            @endif
+                                        </flux:button>
+                                        <flux:button 
+                                            wire:click="cancelCreateFolder"
+                                            variant="ghost" 
+                                            size="sm"
+                                        >
+                                            Cancel
+                                        </flux:button>
+                                    </div>
+                                </div>
+                            @endif
+                            
+                            <!-- Search Bar -->
+                            <div class="relative">
+                                <flux:input 
+                                    wire:model.live.debounce.500ms="searchQuery"
+                                    placeholder="Search folders..."
+                                    class="pl-10 text-sm"
+                                />
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <flux:icon name="magnifying-glass" class="w-4 h-4 text-gray-400" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Breadcrumbs -->
+                        @if(count($breadcrumbs) > 0)
+                            <div class="px-6 py-3 bg-white border-b flex-shrink-0">
                             <nav class="flex items-center space-x-1 text-sm" aria-label="Breadcrumb">
                                 @foreach($breadcrumbs as $index => $crumb)
                                     @if($index > 0)
@@ -168,11 +224,11 @@
                                     Use This Folder
                                 </flux:button>
                             </nav>
-                        </div>
-                    @endif
+                            </div>
+                        @endif
 
-                    <!-- Folders List -->
-                    <div class="flex-1 overflow-y-auto bg-white">
+                        <!-- Folders List -->
+                        <div class="flex-1 overflow-y-auto bg-white min-h-0">
                         @if($loading)
                             <div class="flex flex-col items-center justify-center h-full p-8">
                                 <div class="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
@@ -243,13 +299,13 @@
                                 </div>
                             </div>
                         @endif
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Footer Actions -->
-            <div class="border-t bg-gray-50 px-6 py-4">
-                <div class="flex items-center justify-between">
+                <!-- Footer Actions -->
+                <div class="border-t bg-gray-50 px-6 py-4 flex-shrink-0">
+                    <div class="flex items-center justify-between">
                     <div class="text-sm text-gray-600">
                         @if($selectedFolder)
                             <span class="flex items-center gap-2">
