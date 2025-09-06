@@ -2,7 +2,7 @@ const testAuth = async (z, bundle) => {
   // Call the auth test endpoint to verify the API key works
   const response = await z.request({
     method: 'GET',
-    url: 'http://mixpitch.test/api/zapier/auth/test',
+    url: 'https://mixpitch.com/api/zapier/auth/test',
   });
   
   if (response.status !== 200) {

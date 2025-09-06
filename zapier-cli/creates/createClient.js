@@ -1,6 +1,6 @@
 const perform = async (z, bundle) => {
   const response = await z.request({
-    url: 'http://mixpitch.test/api/zapier/actions/clients/create',
+    url: 'https://mixpitch.com/api/zapier/actions/clients/create',
     method: 'POST',
     body: JSON.stringify(bundle.inputData),
     headers: {

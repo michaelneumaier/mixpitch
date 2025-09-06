@@ -1,6 +1,6 @@
 const perform = async (z, bundle) => {
   const response = await z.request({
-    url: 'http://mixpitch.test/api/zapier/triggers/clients/new',
+    url: 'https://mixpitch.com/api/zapier/triggers/clients/new',
     method: 'GET',
     params: {
       since: bundle.meta.timestamp || new Date(Date.now() - 15 * 60 * 1000).toISOString()

@@ -1,6 +1,6 @@
 {
   "name": "mixpitch",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MixPitch Zapier Integration",
   "main": "index.js",
   "scripts": {
