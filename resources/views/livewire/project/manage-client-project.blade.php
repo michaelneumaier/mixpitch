@@ -333,11 +333,6 @@
 
                 <div>
 
-                <!-- Storage Indicator -->
-                <x-file-management.storage-indicator 
-                    :storageUsedPercentage="$storageUsedPercentage"
-                    :storageLimitMessage="$storageLimitMessage"
-                    :storageRemaining="$this->formatFileSize($storageRemaining)" />
 
                 <!-- Client Reference Files Section -->
                 <div class="{{ $semanticColors['success']['bg'] }} border {{ $semanticColors['success']['border'] }} rounded-lg mb-6">
@@ -954,6 +949,9 @@
         </div>
     </div>
     @endif
+
+    <!-- Google Drive Backup Modal -->
+    @livewire('google-drive-backup-modal', ['model' => $project], key('google-drive-backup-' . $project->id))
 
     <!-- JavaScript for File Annotations -->
     <script>

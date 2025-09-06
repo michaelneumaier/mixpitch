@@ -38,13 +38,6 @@ class ManageProject extends Component
 
     public $audioUrl;
 
-    // Storage tracking
-    public $storageUsedPercentage = 0;
-
-    public $storageLimitMessage = '';
-
-    public $storageRemaining = 0;
-
     // Removed: public bool $showDeleteModal = false; - Now using Flux modal events
 
     public $fileToDelete = null;
@@ -206,21 +199,6 @@ class ManageProject extends Component
         // Preview track logic
         $this->checkPreviewTrackStatus();
 
-        // Use try-catch to prevent potential hangs from storage methods
-        try {
-            $this->updateStorageInfo();
-        } catch (\Exception $e) {
-            // Log error but don't fail the component initialization
-            Log::error('Error updating storage info in ManageProject mount', [
-                'project_id' => $this->project->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            // Set default values to prevent UI issues
-            $this->storageUsedPercentage = 0;
-            $this->storageLimitMessage = '100% available';
-            $this->storageRemaining = 104857600; // 100MB default
-        }
     }
 
     /**
@@ -241,64 +219,11 @@ class ManageProject extends Component
     }
 
     /**
-     * Update displayed storage information.
-     */
-    protected function updateStorageInfo()
-    {
-        // Use user-based storage instead of project-based storage
-        $user = $this->project->user;
-        $userStorageService = app(\App\Services\UserStorageService::class);
-
-        // Use caching for expensive calculations
-        $cacheKey = "user_{$user->id}_storage_info";
-        $cacheTTL = 120; // Cache for 2 minutes
-
-        $storageInfo = cache()->remember($cacheKey, $cacheTTL, function () use ($user, $userStorageService) {
-            return [
-                'percentage' => $userStorageService->getUserStoragePercentage($user),
-                'message' => $userStorageService->getStorageLimitMessage($user),
-                'remaining' => $userStorageService->getUserStorageRemaining($user),
-            ];
-        });
-
-        $this->storageUsedPercentage = $storageInfo['percentage'];
-        $this->storageLimitMessage = $storageInfo['message'];
-        $this->storageRemaining = $storageInfo['remaining'];
-    }
-
-    /**
-     * Clear the storage info cache when files change
-     */
-    protected function clearStorageCache()
-    {
-        $user = $this->project->user;
-        $cacheKey = "user_{$user->id}_storage_info";
-        cache()->forget($cacheKey);
-    }
-
-    /**
      * Refresh component data after file uploads.
      */
     public function refreshProjectData()
     {
         $this->project->refresh(); // Refresh the project model
-        $this->clearStorageCache(); // Clear cache before updating
-
-        // Use try-catch to prevent potential hangs from storage methods
-        try {
-            $this->updateStorageInfo(); // Update storage display
-        } catch (\Exception $e) {
-            // Log error but don't fail
-            Log::error('Error updating storage info in refreshProjectData', [
-                'project_id' => $this->project->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            // Set default values
-            $this->storageUsedPercentage = 0;
-            $this->storageLimitMessage = '100% available';
-            $this->storageRemaining = 104857600; // 100MB default
-        }
     }
 
     /**
@@ -499,31 +424,9 @@ class ManageProject extends Component
                 'user_total_storage_used' => $this->project->user->total_storage_used,
             ]);
 
-            // Clear the storage cache
-            $this->clearStorageCache();
-            Log::debug('Storage cache cleared');
-
-            // Force a direct recalculation of storage info without caching
-            $user = $this->project->user;
-            $userStorageService = app(\App\Services\UserStorageService::class);
-            $forcedStorageInfo = [
-                'percentage' => $userStorageService->getUserStoragePercentage($user),
-                'message' => $userStorageService->getStorageLimitMessage($user),
-                'remaining' => $userStorageService->getUserStorageRemaining($user),
-            ];
-
-            Log::debug('Forced storage recalculation', $forcedStorageInfo);
-
-            // Manually set the properties with the forced values
-            $this->storageUsedPercentage = $forcedStorageInfo['percentage'];
-            $this->storageLimitMessage = $forcedStorageInfo['message'];
-            $this->storageRemaining = $forcedStorageInfo['remaining'];
-
-            // Update the info through normal method too
-            $this->updateStorageInfo();
-
             Toaster::success("File '{$projectFile->file_name}' deleted successfully.");
             $this->dispatch('file-deleted'); // Notify UI to refresh file list
+            $this->dispatch('storageUpdated'); // Notify sidebar to update storage info
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('File not found for deletion', ['file_id' => $idToDelete]);
@@ -875,13 +778,9 @@ class ManageProject extends Component
     }
 
     /**
-     * Format bytes to human readable format
-     *
-     * @param  int  $bytes
-     * @param  int  $precision
-     * @return string
+     * Format file size for display
      */
-    public function formatFileSize($bytes, $precision = 2)
+    public function formatFileSize(int $bytes, int $precision = 2): string
     {
         if ($bytes === null || $bytes <= 0) {
             return '0 bytes';

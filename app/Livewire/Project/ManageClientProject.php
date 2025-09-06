@@ -22,13 +22,6 @@ class ManageClientProject extends Component
 
     public Pitch $pitch;
 
-    // Storage tracking
-    public $storageUsedPercentage = 0;
-
-    public $storageLimitMessage = '';
-
-    public $storageRemaining = 0;
-
     // File management
     public $showDeleteModal = false;
 
@@ -121,7 +114,6 @@ class ManageClientProject extends Component
             ->with(['files', 'events.user'])
             ->firstOrFail();
 
-        $this->updateStorageInfo();
         $this->loadStatusFeedback();
         $this->checkResubmissionEligibility();
 
@@ -132,20 +124,6 @@ class ManageClientProject extends Component
     public function render()
     {
         return view('livewire.project.manage-client-project')->layout('components.layouts.app-sidebar');
-    }
-
-    /**
-     * Update storage information for the view
-     */
-    protected function updateStorageInfo()
-    {
-        // Use user-based storage instead of pitch-based storage
-        $user = $this->pitch->user;
-        $userStorageService = app(\App\Services\UserStorageService::class);
-
-        $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
-        $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
-        $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
     }
 
     /**
@@ -201,7 +179,6 @@ class ManageClientProject extends Component
     public function refreshData()
     {
         $this->pitch->refresh();
-        $this->updateStorageInfo();
         $this->checkResubmissionEligibility(); // Check if new files enable resubmission
     }
 
@@ -361,7 +338,6 @@ class ManageClientProject extends Component
             $fileManagementService->deletePitchFile($file);
 
             Toaster::success("File '{$file->file_name}' deleted successfully.");
-            $this->updateStorageInfo();
             $this->cancelDeleteFile();
 
         } catch (FileDeletionException $e) {
@@ -691,20 +667,6 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Format file size for display
-     */
-    public function formatFileSize($bytes, $precision = 2)
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
-            $bytes /= 1024;
-        }
-
-        return round($bytes, $precision).' '.$units[$i];
-    }
-
-    /**
      * Get client-uploaded files (project files)
      */
     public function getClientFilesProperty()
@@ -917,7 +879,6 @@ class ManageClientProject extends Component
 
             $fileName = $file->file_name;
             $fileService->deleteProjectFile($file);
-            $this->updateStorageInfo();
 
             Toaster::success("Client file '{$fileName}' deleted successfully.");
             $this->cancelDeleteClientFile();
@@ -991,5 +952,23 @@ class ManageClientProject extends Component
         return $this->producerFiles->filter(function ($file) {
             return in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']);
         });
+    }
+
+    /**
+     * Format file size for display
+     */
+    public function formatFileSize(int $bytes, int $precision = 2): string
+    {
+        if ($bytes === null || $bytes <= 0) {
+            return '0 bytes';
+        }
+
+        $units = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= (1 << (10 * $pow));
+
+        return round($bytes, $precision).' '.$units[$pow];
     }
 }

@@ -42,13 +42,6 @@ class ManagePitch extends Component
 
     public $licensingAgreement = 'exclusive';
 
-    // Storage tracking
-    public $storageUsedPercentage = 0;
-
-    public $storageLimitMessage = '';
-
-    public $storageRemaining = 0;
-
     // File management access flag
     public $canManageFiles = false;
 
@@ -89,9 +82,6 @@ class ManagePitch extends Component
     public function mount(Pitch $pitch)
     {
         $this->pitch = $pitch;
-
-        // Initialize storage information
-        $this->updateStorageInfo();
 
         $this->pitch->refresh(); // Ensure latest data is loaded
 
@@ -142,7 +132,6 @@ class ManagePitch extends Component
     public function refreshPitchData()
     {
         $this->pitch->refresh(); // Refresh the pitch model relation
-        $this->updateStorageInfo(); // Update storage display
         // Reload files specifically if needed, though refresh() might cover it
         // $this->pitch->load('files');
         // You might need to refresh other derived properties if necessary
@@ -175,8 +164,8 @@ class ManagePitch extends Component
             $deleted = $fileManagementService->deletePitchFile($pitchFile, Auth::user());
 
             Toaster::success("File '{$pitchFile->file_name}' deleted successfully.");
-            $this->updateStorageInfo();
             $this->dispatch('file-deleted');
+            $this->dispatch('storageUpdated'); // Notify sidebar to update storage info
 
         } catch (FileDeletionException $e) {
             Log::warning('Pitch file deletion failed via Livewire', ['file_id' => $fileId, 'error' => $e->getMessage()]);
@@ -263,8 +252,8 @@ class ManagePitch extends Component
 
             if ($deleted) {
                 Toaster::success("File '{$fileName}' deleted successfully.");
-                $this->updateStorageInfo();
                 $this->dispatch('file-deleted');
+                $this->dispatch('storageUpdated'); // Notify sidebar to update storage info
                 $this->pitch->refresh();
             } else {
                 Toaster::error("Failed to delete file '{$fileName}'.");
@@ -455,20 +444,6 @@ class ManagePitch extends Component
     }
 
     /**
-     * Update storage information for the view
-     */
-    protected function updateStorageInfo()
-    {
-        // Use user-based storage instead of pitch-based storage
-        $user = $this->pitch->user;
-        $userStorageService = app(\App\Services\UserStorageService::class);
-
-        $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
-        $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
-        $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
-    }
-
-    /**
      * Fetch the latest feedback message (revision or denial) from events.
      */
     protected function getLatestStatusFeedback(): ?string
@@ -540,14 +515,6 @@ class ManagePitch extends Component
         Log::debug('ManagePitch: Extracted feedback message.', ['pitch_id' => $this->pitch->id, 'message' => $message]);
 
         return ! empty($message) ? $message : null;
-    }
-
-    /**
-     * Helper method to format file sizes, delegates to the model.
-     */
-    public function formatFileSize(int $bytes, int $precision = 2): string
-    {
-        return Pitch::formatBytes($bytes, $precision);
     }
 
     /**

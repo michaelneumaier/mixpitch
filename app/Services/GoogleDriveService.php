@@ -662,4 +662,217 @@ class GoogleDriveService
             return "uploads/{$filename}";
         }
     }
+
+    /**
+     * Backup a file from MixPitch to Google Drive
+     *
+     * @param  User  $user  User performing the backup
+     * @param  int  $fileId  ID of the file to backup
+     * @param  string  $fileType  Type of file (project_file or pitch_file)
+     * @param  string  $destinationFolderId  Google Drive folder ID to upload to
+     * @return array Result with success status and details
+     *
+     * @throws GoogleDriveAuthException|GoogleDriveFileException
+     */
+    public function backupFileToGoogleDrive(User $user, int $fileId, string $fileType, string $destinationFolderId): array
+    {
+        try {
+            $this->setupClientForUser($user);
+
+            // Get the file record based on type
+            if ($fileType === 'project_file') {
+                $fileRecord = \App\Models\ProjectFile::findOrFail($fileId);
+                $fileContent = Storage::disk('s3')->get($fileRecord->s3_key);
+            } elseif ($fileType === 'pitch_file') {
+                $fileRecord = \App\Models\PitchFile::findOrFail($fileId);
+                $fileContent = Storage::disk('s3')->get($fileRecord->s3_key);
+            } else {
+                throw new GoogleDriveFileException('Unsupported file type for backup');
+            }
+
+            // Create Google Drive file
+            $driveFile = new DriveFile;
+            $driveFile->setName($fileRecord->file_name);
+            $driveFile->setParents([$destinationFolderId]);
+            $driveFile->setMimeType($fileRecord->mime_type);
+
+            // Upload file to Google Drive
+            $result = $this->driveService->files->create(
+                $driveFile,
+                [
+                    'data' => $fileContent,
+                    'mimeType' => $fileRecord->mime_type,
+                    'uploadType' => 'multipart',
+                ]
+            );
+
+            Log::info('File backed up to Google Drive successfully', [
+                'user_id' => $user->id,
+                'file_id' => $fileId,
+                'file_type' => $fileType,
+                'file_name' => $fileRecord->file_name,
+                'google_drive_file_id' => $result->getId(),
+                'destination_folder_id' => $destinationFolderId,
+            ]);
+
+            return [
+                'success' => true,
+                'google_drive_file_id' => $result->getId(),
+                'file_name' => $fileRecord->file_name,
+                'size' => $fileRecord->size,
+            ];
+
+        } catch (GoogleServiceException $e) {
+            Log::error('Failed to backup file to Google Drive', [
+                'user_id' => $user->id,
+                'file_id' => $fileId,
+                'file_type' => $fileType,
+                'destination_folder_id' => $destinationFolderId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to backup file: '.$e->getMessage(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during Google Drive backup', [
+                'user_id' => $user->id,
+                'file_id' => $fileId,
+                'file_type' => $fileType,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'An unexpected error occurred: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Create a folder in Google Drive
+     *
+     * @param  User  $user  User creating the folder
+     * @param  string  $folderName  Name of the folder to create
+     * @param  string  $parentFolderId  Parent folder ID (default: 'root')
+     * @return array Result with success status and folder details
+     *
+     * @throws GoogleDriveAuthException|GoogleDriveFileException
+     */
+    public function createFolder(User $user, string $folderName, string $parentFolderId = 'root'): array
+    {
+        try {
+            $this->setupClientForUser($user);
+
+            $driveFile = new DriveFile;
+            $driveFile->setName($folderName);
+            $driveFile->setParents([$parentFolderId]);
+            $driveFile->setMimeType('application/vnd.google-apps.folder');
+
+            $result = $this->driveService->files->create($driveFile);
+
+            Log::info('Folder created in Google Drive', [
+                'user_id' => $user->id,
+                'folder_name' => $folderName,
+                'parent_folder_id' => $parentFolderId,
+                'created_folder_id' => $result->getId(),
+            ]);
+
+            return [
+                'success' => true,
+                'folder_id' => $result->getId(),
+                'folder_name' => $folderName,
+            ];
+
+        } catch (GoogleServiceException $e) {
+            Log::error('Failed to create folder in Google Drive', [
+                'user_id' => $user->id,
+                'folder_name' => $folderName,
+                'parent_folder_id' => $parentFolderId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to create folder: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Backup multiple files to Google Drive in a batch operation
+     *
+     * @param  User  $user  User performing the backup
+     * @param  array  $files  Array of files to backup [['id' => int, 'type' => string], ...]
+     * @param  string  $destinationFolderId  Google Drive folder ID to upload to
+     * @param  string|null  $projectFolderName  Optional project folder name to create
+     * @return array Result with success/failure counts and details
+     */
+    public function batchBackupFiles(User $user, array $files, string $destinationFolderId, ?string $projectFolderName = null): array
+    {
+        $results = [
+            'success_count' => 0,
+            'failure_count' => 0,
+            'total_count' => count($files),
+            'errors' => [],
+            'project_folder_id' => null,
+        ];
+
+        try {
+            // Optionally create a project-specific folder
+            $targetFolderId = $destinationFolderId;
+            if ($projectFolderName) {
+                $folderResult = $this->createFolder($user, $projectFolderName, $destinationFolderId);
+                if ($folderResult['success']) {
+                    $targetFolderId = $folderResult['folder_id'];
+                    $results['project_folder_id'] = $targetFolderId;
+                } else {
+                    $results['errors'][] = "Failed to create project folder: {$folderResult['error']}";
+                }
+            }
+
+            // Backup each file
+            foreach ($files as $file) {
+                try {
+                    $backupResult = $this->backupFileToGoogleDrive(
+                        $user,
+                        $file['id'],
+                        $file['type'],
+                        $targetFolderId
+                    );
+
+                    if ($backupResult['success']) {
+                        $results['success_count']++;
+                    } else {
+                        $results['failure_count']++;
+                        $results['errors'][] = $backupResult['error'];
+                    }
+                } catch (\Exception $e) {
+                    $results['failure_count']++;
+                    $results['errors'][] = "Failed to backup file ID {$file['id']}: {$e->getMessage()}";
+                }
+            }
+
+            Log::info('Batch backup completed', [
+                'user_id' => $user->id,
+                'success_count' => $results['success_count'],
+                'failure_count' => $results['failure_count'],
+                'total_count' => $results['total_count'],
+            ]);
+
+            return $results;
+
+        } catch (\Exception $e) {
+            Log::error('Batch backup failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $results['failure_count'] = $results['total_count'];
+            $results['errors'][] = 'Batch backup failed: '.$e->getMessage();
+
+            return $results;
+        }
+    }
 }

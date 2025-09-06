@@ -174,21 +174,6 @@
         </div>
 
         <div class="p-6 space-y-6">
-            {{-- Storage Usage Display --}}
-            <div class="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4 shadow-sm">
-                <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-bold text-blue-800">Storage Used: {{ $storageLimitMessage }}</span>
-                    <span class="text-xs text-blue-600 bg-blue-100/50 px-2 py-1 rounded-lg">{{ $this->formatFileSize($storageRemaining) }} remaining</span>
-                </div>
-                <div class="w-full bg-blue-200/50 rounded-full h-3 overflow-hidden">
-                    <div class="h-3 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? 'bg-gradient-to-r from-red-500 to-red-600' : ($storageUsedPercentage > 70 ? 'bg-gradient-to-r from-amber-500 to-yellow-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600') }}"
-                        style="width: {{ $storageUsedPercentage }}%"></div>
-                </div>
-                <div class="mt-2 flex items-center text-xs text-blue-600">
-                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                    Storage based on your subscription plan. Maximum file size: 200MB.
-                </div>
-            </div>
 
             {{-- File Upload Section --}}
             @if(!$pitch->submitted_at)

@@ -140,6 +140,11 @@
 
         <flux:spacer />
 
+        <!-- Storage Indicator -->
+        @auth
+        <livewire:sidebar-storage-indicator />
+        @endauth
+
         <!-- Dark Mode Toggle -->
         <div class="px-2 pb-2" 
              x-data="{ 

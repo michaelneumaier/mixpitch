@@ -264,35 +264,6 @@
                                         </flux:button>
                                     </div>
 
-                                    <!-- Storage Usage Indicator -->
-                                    <div class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
-                                        <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                                            <div class="flex items-center gap-3 mb-4">
-                                                <flux:icon.server variant="solid" class="w-6 h-6 {{ $workflowColors['icon'] }}" />
-                                                <div>
-                                                    <div class="text-sm font-semibold {{ $workflowColors['text_primary'] }}">
-                                                        Storage Used: {{ $storageLimitMessage }}
-                                                    </div>
-                                                    <div class="text-xs {{ $workflowColors['text_muted'] }}">
-                                                        {{ $this->formatFileSize($storageRemaining) }} remaining
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Progress Bar -->
-                                            <div class="mb-3">
-                                                <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                                    <div class="h-2 rounded-full transition-all duration-500 {{ $storageUsedPercentage > 90 ? $semanticColors['danger']['accent'] : ($storageUsedPercentage > 70 ? $semanticColors['warning']['accent'] : $workflowColors['icon']) }}"
-                                                        style="width: {{ $storageUsedPercentage }}%"></div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                                                <flux:icon.information-circle class="w-3 h-3" />
-                                                <span>Maximum file size: 200MB. Storage based on your subscription plan.</span>
-                                            </div>
-                                        </div>
-                                    </div>
 
                                     <!-- File Uploader Component -->
                                     <div x-show="showUploader" x-transition class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
@@ -623,6 +594,9 @@
         
         <!-- Complete Pitch Modal -->
         @livewire('project.complete-pitch-modal',[] , key('complete-pitch-modal'))
+        
+        <!-- Google Drive Backup Modal -->
+        @livewire('google-drive-backup-modal', ['model' => $project], key('google-drive-backup-' . $project->id))
         </div>
     </div>
 

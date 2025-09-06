@@ -24,13 +24,6 @@ class ManageContestPitch extends Component
 
     public Project $project;
 
-    // Storage tracking
-    public $storageUsedPercentage = 0;
-
-    public $storageLimitMessage = '';
-
-    public $storageRemaining = 0;
-
     // Contest-specific storage limit (100MB)
     const CONTEST_STORAGE_LIMIT = 100 * 1024 * 1024; // 100MB in bytes
 
@@ -58,24 +51,6 @@ class ManageContestPitch extends Component
 
         // Authorization check
         $this->authorize('update', $this->pitch);
-
-        $this->updateStorageInfo();
-    }
-
-    public function updateStorageInfo()
-    {
-        // Use user-based storage instead of contest-specific limit
-        $user = $this->pitch->user;
-        $userStorageService = app(\App\Services\UserStorageService::class);
-
-        $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
-        $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
-        $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
-    }
-
-    public function formatFileSize($bytes)
-    {
-        return Pitch::formatBytes($bytes);
     }
 
     public function confirmDeleteFile($fileId)
@@ -106,10 +81,8 @@ class ManageContestPitch extends Component
             // Delete the file using FileManagementService
             app(FileManagementService::class)->deletePitchFile($file);
 
-            // Update storage tracking (handled automatically by FileManagementService)
-            $this->updateStorageInfo();
-
             Toaster::success("File '{$fileName}' deleted successfully.");
+            $this->dispatch('storageUpdated'); // Notify sidebar to update storage info
 
         } catch (\Exception $e) {
             Log::error('Error deleting contest entry file', [
@@ -256,7 +229,6 @@ class ManageContestPitch extends Component
     {
         // Reload the pitch model completely from the database to ensure fresh storage data
         $this->pitch = Pitch::with('files')->find($this->pitch->id);
-        $this->updateStorageInfo();
     }
 
     /**
@@ -269,16 +241,10 @@ class ManageContestPitch extends Component
 
     public function render()
     {
-        // Always recalculate storage info to ensure fresh values
-        $this->updateStorageInfo();
-
         $files = $this->pitch->files()->orderBy('created_at', 'desc')->paginate(10);
 
         return view('livewire.pitch.component.manage-contest-pitch', [
             'files' => $files,
-            'storageUsedPercentage' => $this->storageUsedPercentage,
-            'storageLimitMessage' => $this->storageLimitMessage,
-            'storageRemaining' => $this->storageRemaining,
         ]);
     }
 }

@@ -223,6 +223,13 @@
                                     {{ ($autoAllowAccess ?? $project->auto_allow_access) ? 'Disable' : 'Enable' }} Auto-Approve
                                 </flux:menu.item>
                             @endif
+                            
+                            <!-- Sync Options -->
+                            <flux:modal.trigger name="syncOptions">
+                                <flux:menu.item icon="cloud">
+                                    Sync Options
+                                </flux:menu.item>
+                            </flux:modal.trigger>
 
                             
                             <flux:menu.separator />
