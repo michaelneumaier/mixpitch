@@ -682,13 +682,25 @@ class GoogleDriveService
             // Get the file record based on type
             if ($fileType === 'project_file') {
                 $fileRecord = \App\Models\ProjectFile::findOrFail($fileId);
-                $fileContent = Storage::disk('s3')->get($fileRecord->s3_key);
             } elseif ($fileType === 'pitch_file') {
                 $fileRecord = \App\Models\PitchFile::findOrFail($fileId);
-                $fileContent = Storage::disk('s3')->get($fileRecord->s3_key);
             } else {
                 throw new GoogleDriveFileException('Unsupported file type for backup');
             }
+
+            // Validate that the file has a storage path
+            $storagePath = $fileRecord->storage_path ?? $fileRecord->file_path;
+            if (empty($storagePath)) {
+                throw new GoogleDriveFileException("File '{$fileRecord->file_name}' does not have a valid storage location");
+            }
+
+            // Check if the file exists in S3
+            if (! Storage::disk('s3')->exists($storagePath)) {
+                throw new GoogleDriveFileException("File '{$fileRecord->file_name}' not found in storage at: {$storagePath}");
+            }
+
+            // Get the file content from S3
+            $fileContent = Storage::disk('s3')->get($storagePath);
 
             // Create Google Drive file
             $driveFile = new DriveFile;
