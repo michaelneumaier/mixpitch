@@ -148,7 +148,7 @@
                                     <div class="flex gap-2">
                                         <flux:field class="flex-1">
                                             <flux:input 
-                                                wire:model="newFolderName"
+                                                wire:model.live="newFolderName"
                                                 placeholder="Folder name..."
                                                 size="sm"
                                                 wire:keydown.enter="createFolder"
@@ -159,7 +159,7 @@
                                             wire:click="createFolder"
                                             variant="primary" 
                                             size="sm"
-                                            :disabled="$creatingFolder || empty($newFolderName)"
+                                            :disabled="$creatingFolder || !$newFolderName"
                                         >
                                             @if($creatingFolder)
                                                 <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
