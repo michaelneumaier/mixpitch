@@ -147,6 +147,12 @@ class GlobalAudioPlayer extends Component
      */
     public function playProjectFile($projectFileId)
     {
+        \Log::info('GlobalAudioPlayer playProjectFile called', [
+            'project_file_id' => $projectFileId,
+            'user_id' => Auth::id(),
+            'is_authenticated' => Auth::check()
+        ]);
+        
         if (! is_numeric($projectFileId)) {
             return;
         }

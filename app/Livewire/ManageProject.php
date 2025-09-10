@@ -491,6 +491,15 @@ class ManageProject extends Component
         try {
             $file = ProjectFile::findOrFail($fileId);
 
+            \Log::info('ManageProject playProjectFile debug', [
+                'file_id' => $fileId,
+                'file_project_id' => $file->project_id,
+                'component_project_id' => $this->project->id,
+                'user_id' => auth()->id(),
+                'project_user_id' => $this->project->user_id,
+                'match' => $file->project_id === $this->project->id
+            ]);
+
             // Verify the file belongs to this project
             if ($file->project_id !== $this->project->id) {
                 throw new AuthorizationException('File does not belong to this project.');
