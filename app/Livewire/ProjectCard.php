@@ -12,7 +12,7 @@ class ProjectCard extends Component
 
     public function cardClickRoute()
     {
-        return redirect()->route('projects.show', $this->project);
+        return $this->redirect(route('projects.show', $this->project), navigate: true);
     }
 
     public function render()

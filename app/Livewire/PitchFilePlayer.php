@@ -39,8 +39,11 @@ class PitchFilePlayer extends Component
 
     // Client mode properties
     public $clientMode = false;
+
     public $clientEmail = '';
+
     public $showResolved = false;
+
     public $resolvedCount = 0;
 
     protected $listeners = [
@@ -57,7 +60,7 @@ class PitchFilePlayer extends Component
         $this->isInCard = $isInCard;
         $this->clientMode = $clientMode;
         $this->clientEmail = $clientEmail;
-        
+
         $this->loadComments();
 
         // Initialize duration from the file's stored duration if available
@@ -79,7 +82,7 @@ class PitchFilePlayer extends Component
         }
 
         // Filter resolved comments if not showing them (client mode)
-        if ($this->clientMode && !$this->showResolved) {
+        if ($this->clientMode && ! $this->showResolved) {
             $baseQuery->where('resolved', false);
         }
 
@@ -125,7 +128,7 @@ class PitchFilePlayer extends Component
     public function reinitializePlayer()
     {
         // Dispatch a browser event to reinitialize the player JavaScript
-        $this->dispatch('reinitialize-player-' . $this->file->id);
+        $this->dispatch('reinitialize-player-'.$this->file->id);
     }
 
     public function seekTo($timestamp)
@@ -152,7 +155,7 @@ class PitchFilePlayer extends Component
 
         $comment = new PitchFileComment;
         $comment->pitch_file_id = $this->file->id;
-        
+
         if ($this->clientMode) {
             // Client comment
             $comment->user_id = null;
@@ -163,7 +166,7 @@ class PitchFilePlayer extends Component
             $comment->user_id = Auth::id();
             $comment->is_client_comment = false;
         }
-        
+
         $comment->comment = $this->newComment;
         $comment->timestamp = $this->commentTimestamp;
         $comment->resolved = false;
@@ -209,7 +212,7 @@ class PitchFilePlayer extends Component
 
         // Check permissions: logged-in user owns comment/pitch OR client mode with matching email
         $canResolve = false;
-        
+
         if ($this->clientMode) {
             // In client mode, allow if it's a client comment with matching email OR producer comment
             $canResolve = ($comment->is_client_comment && $comment->client_email === $this->clientEmail)
@@ -351,7 +354,7 @@ class PitchFilePlayer extends Component
         $reply->pitch_file_id = $this->file->id;
         $reply->parent_id = $this->replyToCommentId;
         $reply->comment = $this->replyText;
-        
+
         if ($this->clientMode) {
             // Client reply
             $reply->user_id = null;
@@ -416,7 +419,7 @@ class PitchFilePlayer extends Component
     // Client-specific methods
     public function toggleShowResolved()
     {
-        $this->showResolved = !$this->showResolved;
+        $this->showResolved = ! $this->showResolved;
         $this->loadComments();
     }
 
@@ -439,6 +442,18 @@ class PitchFilePlayer extends Component
             'can_resolve' => true,
             'can_reply' => true,
         ];
+    }
+
+    /**
+     * Play this file in the global audio player
+     */
+    public function playInGlobalPlayer()
+    {
+        $this->dispatch('playPitchFile',
+            pitchFileId: $this->file->id,
+            clientMode: $this->clientMode,
+            clientEmail: $this->clientEmail
+        );
     }
 
     public function render()

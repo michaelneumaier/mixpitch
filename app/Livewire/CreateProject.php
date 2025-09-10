@@ -922,7 +922,7 @@ class CreateProject extends Component
                 if (! auth()->user()->canCreateProject()) {
                     Toaster::error('You have reached your project limit. Upgrade to Pro for unlimited projects.');
 
-                    return redirect()->route('subscription.index');
+                    return $this->redirect(route('subscription.index'), navigate: true);
                 }
             }
 
@@ -1080,7 +1080,7 @@ class CreateProject extends Component
             $this->markAsSaved();
 
             // Redirect to the project management page
-            return redirect()->route('projects.manage', $project->slug);
+            return $this->redirect(route('projects.manage', $project->slug), navigate: true);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Re-throw validation exceptions so they can be caught by Livewire

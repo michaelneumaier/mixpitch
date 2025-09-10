@@ -24,7 +24,7 @@
 
     <!-- Main Hero Content -->
     <div class="relative z-10 flex items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto text-center">
+        <div class="mx-auto text-center">
             <!-- Animated Badge -->
             <div class="mt-2 mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-sm font-medium">

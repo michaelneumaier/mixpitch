@@ -102,7 +102,7 @@
                             <flux:icon name="pencil" class="w-4 h-4 mr-2" />
                             Update Payment Method
                         </flux:button>
-                        <flux:button href="{{ route('billing.payment-methods') }}" variant="outline">
+                        <flux:button href="{{ route('billing.payment-methods') }}" wire:navigate variant="outline">
                             <flux:icon name="credit-card" class="w-4 h-4 mr-2" />
                             Manage All Methods
                         </flux:button>
@@ -122,7 +122,7 @@
                             <flux:icon name="plus" class="w-4 h-4 mr-2" />
                             Add Payment Method
                         </flux:button>
-                        <flux:button href="{{ route('billing.payment-methods') }}" variant="outline">
+                        <flux:button href="{{ route('billing.payment-methods') }}" wire:navigate variant="outline">
                             <flux:icon name="credit-card" class="w-4 h-4 mr-2" />
                             Manage Payment Methods
                         </flux:button>
@@ -283,18 +283,18 @@
                         
                         <div class="flex flex-col sm:flex-row gap-3 mt-6">
                             @if($accountStatus['status'] === 'not_created' || $accountStatus['status'] === 'incomplete' || $accountStatus['status'] === 'action_required')
-                                <flux:button href="{{ route('stripe.connect.setup') }}" variant="primary">
+                                <flux:button href="{{ route('stripe.connect.setup') }}" wire:navigate variant="primary">
                                     <flux:icon name="building-office" class="w-4 h-4 mr-2" />
                                     {{ $accountStatus['status'] === 'not_created' ? 'Set Up Stripe Connect' : 'Complete Setup' }}
                                 </flux:button>
                             @elseif($accountStatus['status'] === 'active')
-                                <flux:button href="{{ route('stripe.connect.dashboard') }}" variant="outline">
+                                <flux:button href="{{ route('stripe.connect.dashboard') }}" wire:navigate variant="outline">
                                     <flux:icon name="arrow-top-right-on-square" class="w-4 h-4 mr-2" />
                                     Manage Account
                                 </flux:button>
                             @endif
                             
-                            <flux:button href="{{ route('stripe.connect.setup') }}" variant="ghost">
+                            <flux:button href="{{ route('stripe.connect.setup') }}" wire:navigate variant="ghost">
                                 <flux:icon name="information-circle" class="w-4 h-4 mr-2" />
                                 View Details
                             </flux:button>
@@ -313,7 +313,7 @@
                         <flux:heading size="lg">Billing History</flux:heading>
                     </div>
                     @if(count($invoices) > 0)
-                        <flux:button href="{{ route('billing.invoices') }}" variant="outline" size="sm">
+                        <flux:button href="{{ route('billing.invoices') }}" wire:navigate variant="outline" size="sm">
                             <flux:icon name="arrow-right" class="w-4 h-4 mr-2" />
                             View All
                         </flux:button>
@@ -378,11 +378,11 @@
                                     </flux:table.cell>
                                     <flux:table.cell>
                                         <div class="flex items-center gap-2">
-                                            <flux:button href="{{ route('billing.invoice.show', $invoice->id) }}" variant="outline" size="xs">
+                                            <flux:button href="{{ route('billing.invoice.show', $invoice->id) }}" wire:navigate variant="outline" size="xs">
                                                 <flux:icon name="eye" class="w-3 h-3 mr-1" />
                                                 View
                                             </flux:button>
-                                            <flux:button href="{{ route('billing.invoice.download', $invoice->id) }}" variant="ghost" size="xs">
+                                            <flux:button href="{{ route('billing.invoice.download', $invoice->id) }}" wire:navigate variant="ghost" size="xs">
                                                 <flux:icon name="arrow-down-tray" class="w-3 h-3 mr-1" />
                                                 Download
                                             </flux:button>
@@ -539,7 +539,7 @@
                         </flux:card>
                     @endif
                     
-                    <flux:button href="{{ route('billing.portal') }}" variant="primary">
+                    <flux:button href="{{ route('billing.portal') }}" wire:navigate variant="primary">
                         <flux:icon name="arrow-top-right-on-square" class="w-4 h-4 mr-2" />
                         Access Billing Portal
                         <flux:icon name="arrow-right" class="w-4 h-4 ml-2" />

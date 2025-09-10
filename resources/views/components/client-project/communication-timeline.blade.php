@@ -1,4 +1,4 @@
-@props(['component', 'conversationItems'])
+@props(['component', 'conversationItems', 'workflowColors' => [], 'semanticColors' => []])
 
 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
     <div class="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -15,15 +15,15 @@
     
     <div class="space-y-4 max-h-96 overflow-y-auto">
         @forelse($conversationItems as $item)
-        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 {{ $component->getEventBorderColor($item) }} border-l-4">
+        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 {{ $this->getEventBorderColor($item) }} border-l-4">
             <div class="flex items-start justify-between">
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-lg flex items-center justify-center {{ $component->getEventBgColor($item) }}">
-                            <i class="{{ $component->getEventIcon($item) }} text-white text-sm"></i>
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center {{ $this->getEventBgColor($item) }}">
+                            <i class="{{ $this->getEventIcon($item) }} text-white text-sm"></i>
                         </div>
                         <div class="flex-1">
-                            <flux:text weight="semibold" class="text-gray-900 dark:text-gray-100">{{ $component->getEventTitle($item) }}</flux:text>
+                            <flux:text weight="semibold" class="text-gray-900 dark:text-gray-100">{{ $this->getEventTitle($item) }}</flux:text>
                             <div class="flex items-center gap-2 mt-1">
                                 @if($item['user'])
                                 <flux:text size="xs" class="text-gray-600 dark:text-gray-400 font-medium">

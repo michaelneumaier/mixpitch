@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import laravel, { refreshPaths } from 'laravel-vite-plugin';
+import { readFileSync } from 'fs';
+import { homedir } from 'os';
 
 export default defineConfig({
     plugins: [
@@ -19,6 +21,13 @@ export default defineConfig({
             ,
         }),
     ],
+    server: {
+        https: {
+            key: readFileSync(`${homedir()}/.config/valet/Certificates/mixpitch.test.key`),
+            cert: readFileSync(`${homedir()}/.config/valet/Certificates/mixpitch.test.crt`),
+        },
+        host: 'mixpitch.test',
+    },
     build: {
         rollupOptions: {
             external: [],

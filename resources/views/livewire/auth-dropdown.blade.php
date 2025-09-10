@@ -272,6 +272,7 @@ use Filament\Panel;
                 <!-- Menu Items -->
                 <div class="py-2">
                     <a href="{{ route('dashboard') }}"
+                       wire:navigate
                         class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
                         <svg class="mr-3 h-5 w-5 text-gray-500 group-hover:text-green-500 transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
@@ -281,7 +282,7 @@ use Filament\Panel;
                         Dashboard
                     </a>
 
-                    <a href="{{ route('profile.edit') }}" class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
+                    <a href="{{ route('profile.edit') }}" wire:navigate class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
                         <svg class="mr-3 h-5 w-5 text-gray-500 group-hover:text-purple-500 transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -292,7 +293,7 @@ use Filament\Panel;
                         Account Settings
                     </a>
 
-                    <a href="{{ route('billing') }}" class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
+                    <a href="{{ route('billing') }}" wire:navigate class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
                         <svg class="mr-3 h-5 w-5 text-gray-500 group-hover:text-blue-500 transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -302,7 +303,7 @@ use Filament\Panel;
                     </a>
 
                     @if(Auth::user()->hasRole('producer') || Auth::user()->hasRole('admin'))
-                    <a href="{{ route('settings.branding.edit') }}" class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
+                    <a href="{{ route('settings.branding.edit') }}" wire:navigate class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
                         <svg class="mr-3 h-5 w-5 text-gray-500 group-hover:text-indigo-500 transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-6l1.586-1.586a2 2 0 012.828 0L22 10m-6 10H8a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2z" />
                         </svg>
@@ -312,6 +313,7 @@ use Filament\Panel;
 
                     @if(Auth::user()->username)
                     <a href="{{ route('profile.username', ['username' => '@' . Auth::user()->username]) }}"
+                       wire:navigate
                         class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
                         <svg class="mr-3 h-5 w-5 text-gray-500 group-hover:text-indigo-500 transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
@@ -322,6 +324,7 @@ use Filament\Panel;
                     </a>
                     @else
                     <a href="{{ route('profile.edit') }}"
+                       wire:navigate
                         class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
                         <svg class="mr-3 h-5 w-5 text-gray-500 group-hover:text-orange-500 transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
@@ -334,6 +337,7 @@ use Filament\Panel;
 
                     @if(Auth::check() && Auth::user()->canAccessPanel(Panel::make()))
                     <a href="{{ route('filament.admin.pages.dashboard') }}"
+                       wire:navigate
                         class="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 hover:backdrop-blur-md transition-all duration-300" role="menuitem">
                         <svg class="mr-3 h-5 w-5 text-gray-500 group-hover:text-indigo-500 transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">

@@ -77,6 +77,14 @@
                     
                     {{-- Enhanced controls for dedicated view --}}
                     <div class="flex space-x-3 items-center">
+                        <!-- Play in Global Player Button -->
+                        <button wire:click="playInGlobalPlayer" 
+                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                            <i class="fas fa-play mr-2"></i>
+                            <span class="hidden sm:inline">Play Globally</span>
+                            <span class="sm:hidden">Global</span>
+                        </button>
+                        
                         <!-- Download Button -->
                         <!-- <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
                            class="inline-flex items-center px-3 sm:px-2 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">

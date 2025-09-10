@@ -2,7 +2,7 @@
 
 <div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
     <div class="mx-auto px-2 md:py-2">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
             <!-- Enhanced Dashboard Header -->
             <div class="relative mb-2 lg:mb-8">
                 <!-- Subscription Alerts (if any) -->
@@ -35,7 +35,7 @@
                         
                         <!-- Primary Actions -->
                         <div class="flex items-center gap-2">
-                            <flux:button href="{{ route('projects.create') }}" icon="plus" variant="filled" size="xs" >
+                            <flux:button href="{{ route('projects.create') }}" wire:navigate icon="plus" variant="filled" size="xs" >
                                 Create
                             </flux:button>
                         </div>
@@ -65,16 +65,16 @@
                         <!-- Action Buttons Row -->
                         <div class="flex items-center justify-center gap-2">
                             @if($subscription['plan'] === 'free')
-                                <flux:button href="{{ route('subscription.index') }}" icon="arrow-up" variant="filled" size="xs" class="!bg-gradient-to-r !from-blue-600 !to-purple-600 !hover:from-blue-700 !hover:to-purple-700 !text-white flex-1">
+                                <flux:button href="{{ route('subscription.index') }}" wire:navigate icon="arrow-up" variant="filled" size="xs" class="!bg-gradient-to-r !from-blue-600 !to-purple-600 !hover:from-blue-700 !hover:to-purple-700 !text-white flex-1">
                                     Upgrade to Pro
                                 </flux:button>
                             @else
-                                <flux:button href="{{ route('subscription.index') }}" icon="cog-6-tooth" variant="outline" size="xs" class="flex-1">
+                                <flux:button href="{{ route('subscription.index') }}" wire:navigate icon="cog-6-tooth" variant="outline" size="xs" class="flex-1">
                                     Manage Plan
                                 </flux:button>
                             @endif
                             
-                            <flux:button href="{{ route('subscription.index') }}" variant="ghost" size="xs">
+                            <flux:button href="{{ route('subscription.index') }}" wire:navigate variant="ghost" size="xs">
                                 Details
                             </flux:button>
                         </div>
@@ -122,16 +122,16 @@
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-2">
                             @if($subscription['plan'] === 'free')
-                                <flux:button href="{{ route('subscription.index') }}" icon="arrow-up" variant="filled" size="xs" class="!bg-gradient-to-r !from-blue-600 !to-purple-600 !hover:from-blue-700 !hover:to-purple-700 !text-white">
+                                <flux:button href="{{ route('subscription.index') }}" wire:navigate icon="arrow-up" variant="filled" size="xs" class="!bg-gradient-to-r !from-blue-600 !to-purple-600 !hover:from-blue-700 !hover:to-purple-700 !text-white">
                                     Upgrade to Pro
                                 </flux:button>
                             @else
-                                <flux:button href="{{ route('subscription.index') }}" icon="cog-6-tooth" variant="outline" size="xs">
+                                <flux:button href="{{ route('subscription.index') }}" wire:navigate icon="cog-6-tooth" variant="outline" size="xs">
                                     Manage Plan
                                 </flux:button>
                             @endif
                             
-                            <flux:button href="{{ route('subscription.index') }}" variant="ghost" size="xs">
+                            <flux:button href="{{ route('subscription.index') }}" wire:navigate variant="ghost" size="xs">
                                 Details
                             </flux:button>
                         </div>
@@ -228,7 +228,7 @@
                                 <flux:subheading class="text-slate-600 dark:text-slate-400">Your recent payment history</flux:subheading>
                             </div>
                         </div>
-                        <flux:button href="{{ route('payouts.index') }}" icon="arrow-top-right-on-square" variant="ghost" size="sm" class="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
+                        <flux:button href="{{ route('payouts.index') }}" wire:navigate icon="arrow-top-right-on-square" variant="ghost" size="sm" class="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
                     </div>
 
                     <div class="space-y-3">
@@ -275,7 +275,7 @@
                     <flux:separator class="my-4" />
                     
                     <div class="flex items-center justify-center">
-                        <flux:button href="{{ route('payouts.index') }}" icon="arrow-right" variant="outline" size="sm" class="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                        <flux:button href="{{ route('payouts.index') }}" wire:navigate icon="arrow-right" variant="outline" size="sm" class="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
                             View All Payouts
                         </flux:button>
                     </div>
@@ -306,10 +306,10 @@
                                 </flux:callout.text>
                                 
                                 <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-                                    <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary">
+                                    <flux:button href="{{ route('projects.create') }}" wire:navigate icon="plus" variant="primary">
                                         Create Project
                                     </flux:button>
-                                    <flux:button href="{{ route('projects.index') }}" icon="magnifying-glass" variant="outline">
+                                    <flux:button href="{{ route('projects.index') }}" wire:navigate icon="magnifying-glass" variant="outline">
                                         Browse Projects
                                     </flux:button>
                                 </div>

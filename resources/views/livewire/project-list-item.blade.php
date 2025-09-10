@@ -33,7 +33,14 @@
             <!-- Preview Track Player -->
             @if($project->hasPreviewTrack())
                 <div class="absolute bottom-3 left-3">
-                    @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isInCard' => true])
+                    @livewire('audio-player', [
+                        'audioUrl' => $project->previewTrackPath(), 
+                        'isInCard' => true,
+                        'trackTitle' => $project->project_title . ' - Preview',
+                        'trackArtist' => $project->user->name ?? 'Unknown Artist',
+                        'projectTitle' => $project->project_title,
+                        'fileId' => $project->id
+                    ])
                 </div>
             @endif
         </div>
@@ -46,7 +53,7 @@
                     <!-- Project Title and Creator -->
                     <div class="flex-1 mb-3 lg:mb-0 lg:pr-6">
                         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mb-2">
-                            <a href="{{ route('projects.show', $project) }}" class="hover:underline">
+                            <a href="{{ route('projects.show', $project) }}" wire:navigate class="hover:underline">
                                 {{ $project->name }}
                             </a>
                         </h3>
@@ -185,6 +192,7 @@
                     <div class="flex items-center space-x-3">
                         <!-- View Project Button -->
                         <a href="{{ route('projects.show', $project) }}" 
+                           wire:navigate
                            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors">
                             <i class="fas fa-eye mr-2"></i>View Project
                         </a>
@@ -192,6 +200,7 @@
                         <!-- Additional Actions for Owner -->
                         @if(auth()->check() && $project->user_id === auth()->id())
                             <a href="{{ route('projects.manage', $project) }}" 
+                               wire:navigate
                                class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 text-white text-sm font-medium rounded-md transition-colors">
                                 <i class="fas fa-cog mr-2"></i>Manage
                             </a>

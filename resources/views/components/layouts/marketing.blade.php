@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name', 'Mix Pitch') }}</title>
     
+    {{-- PWA Meta Tags --}}
+    <x-pwa-meta />
+    
     <!-- SEO Meta Tags -->
     @isset($description)
         <meta name="description" content="{{ $description }}">
@@ -62,7 +65,7 @@
 <body class="font-sans antialiased bg-gray-50 dark:bg-gray-900">
     <!-- Marketing Navigation Header -->
     <nav class="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <div class="flex items-center">
@@ -76,13 +79,13 @@
                     <a href="{{ url('/') }}" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->is('/') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Home
                     </a>
-                    <a href="{{ route('projects.index') }}" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('projects.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                    <a href="{{ route('projects.index') }}" wire:navigate class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('projects.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Projects
                     </a>
-                    <a href="{{ route('pricing') }}" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('pricing') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                    <a href="{{ route('pricing') }}" wire:navigate class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('pricing') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Pricing
                     </a>
-                    <a href="{{ route('about') }}" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('about') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                    <a href="{{ route('about') }}" wire:navigate class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('about') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         About
                     </a>
                 </div>
@@ -130,13 +133,13 @@
                             
                             <div x-show="open" @click.away="open = false" x-cloak
                                  class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
-                                <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <a href="{{ route('dashboard') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                     Dashboard
                                 </a>
-                                <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <a href="{{ route('profile.edit') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                     Account Settings
                                 </a>
-                                <a href="{{ route('billing') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <a href="{{ route('billing') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                     Billing
                                 </a>
                                 <div class="border-t border-gray-200 dark:border-gray-600"></div>
@@ -164,13 +167,13 @@
                     <a href="{{ url('/') }}" class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->is('/') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Home
                     </a>
-                    <a href="{{ route('projects.index') }}" class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('projects.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                    <a href="{{ route('projects.index') }}" wire:navigate class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('projects.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Projects
                     </a>
-                    <a href="{{ route('pricing') }}" class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('pricing') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                    <a href="{{ route('pricing') }}" wire:navigate class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('pricing') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Pricing
                     </a>
-                    <a href="{{ route('about') }}" class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('about') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                    <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('about') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         About
                     </a>
                     
@@ -199,7 +202,7 @@
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <!-- Company Info -->
                 <div class="col-span-1 md:col-span-2">
@@ -213,9 +216,9 @@
                 <div>
                     <h3 class="font-semibold mb-4">Platform</h3>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="{{ route('projects.index') }}" class="hover:text-white transition-colors">Browse Projects</a></li>
-                        <li><a href="{{ route('pricing') }}" class="hover:text-white transition-colors">Pricing</a></li>
-                        <li><a href="{{ route('about') }}" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="{{ route('projects.index') }}" wire:navigate class="hover:text-white transition-colors">Browse Projects</a></li>
+                        <li><a href="{{ route('pricing') }}" wire:navigate class="hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="{{ route('about') }}" wire:navigate class="hover:text-white transition-colors">About Us</a></li>
                     </ul>
                 </div>
 

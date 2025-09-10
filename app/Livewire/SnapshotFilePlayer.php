@@ -51,6 +51,18 @@ class SnapshotFilePlayer extends Component
         ]);
     }
 
+    /**
+     * Play this snapshot file in the global audio player
+     */
+    public function playInGlobalPlayer()
+    {
+        $this->dispatch('playPitchFile',
+            pitchFileId: $this->file->id,
+            clientMode: false,
+            clientEmail: ''
+        );
+    }
+
     public function render()
     {
         return view('livewire.snapshot-file-player');

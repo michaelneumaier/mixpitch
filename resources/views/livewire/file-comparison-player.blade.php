@@ -81,6 +81,12 @@
                         <div>Duration: {{ gmdate('i:s', $leftMetadata['duration']) }}</div>
                         <div>Size: {{ $leftFile->formatted_size }}</div>
                     </div>
+                    <div class="mt-3">
+                        <button wire:click="playLeftInGlobalPlayer" 
+                                class="inline-flex items-center px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md font-medium">
+                            <i class="fas fa-external-link-alt mr-1"></i> Play in Global Player
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Left File Player -->
@@ -110,6 +116,12 @@
                     <div class="grid grid-cols-2 gap-2 text-xs text-green-600">
                         <div>Duration: {{ gmdate('i:s', $rightMetadata['duration']) }}</div>
                         <div>Size: {{ $rightFile->formatted_size }}</div>
+                    </div>
+                    <div class="mt-3">
+                        <button wire:click="playRightInGlobalPlayer" 
+                                class="inline-flex items-center px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md font-medium">
+                            <i class="fas fa-external-link-alt mr-1"></i> Play in Global Player
+                        </button>
                     </div>
                 </div>
                 

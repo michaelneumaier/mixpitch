@@ -51,7 +51,14 @@
         <!-- Preview Track Player -->
         @if($project->hasPreviewTrack())
             <div class="absolute bottom-3 right-3" onclick="event.stopPropagation();">
-                @livewire('audio-player', ['audioUrl' => $project->previewTrackPath(), 'isInCard' => true])
+                @livewire('audio-player', [
+                    'audioUrl' => $project->previewTrackPath(), 
+                    'isInCard' => true,
+                    'trackTitle' => $project->project_title . ' - Preview',
+                    'trackArtist' => $project->user->name ?? 'Unknown Artist',
+                    'projectTitle' => $project->project_title,
+                    'fileId' => $project->id
+                ])
             </div>
         @endif
     </div>
@@ -177,6 +184,7 @@
             
             <!-- Manage Button -->
             <a href="{{ route('projects.manage', $project) }}" 
+               wire:navigate
                class="block w-full text-center bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors">
                 <i class="fas fa-cog mr-2"></i>Manage Project
             </a>

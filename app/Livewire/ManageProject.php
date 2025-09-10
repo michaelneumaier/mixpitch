@@ -82,7 +82,7 @@ class ManageProject extends Component
     {
         // Redirect client management projects to dedicated page
         if ($project->isClientManagement()) {
-            return redirect()->route('projects.manage-client', $project);
+            return $this->redirect(route('projects.manage-client', $project), navigate: true);
         }
 
         try {
@@ -484,6 +484,39 @@ class ManageProject extends Component
     }
 
     /**
+     * Play a project file in the global audio player.
+     */
+    public function playProjectFile($fileId)
+    {
+        try {
+            $file = ProjectFile::findOrFail($fileId);
+
+            // Verify the file belongs to this project
+            if ($file->project_id !== $this->project->id) {
+                throw new AuthorizationException('File does not belong to this project.');
+            }
+
+            // Check if it's an audio file
+            if (! $file->isAudioFile()) {
+                Toaster::error('This file is not an audio file.');
+
+                return;
+            }
+
+            // Dispatch event to play in global player
+            $this->dispatch('playProjectFile', projectFileId: $file->id);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Toaster::error('File not found.');
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to play this file.');
+        } catch (\Exception $e) {
+            Log::error('Error playing project file', ['file_id' => $fileId, 'error' => $e->getMessage()]);
+            Toaster::error('Could not play file: '.$e->getMessage());
+        }
+    }
+
+    /**
      * Resend the client invitation email with a new signed URL.
      */
     public function resendClientInvite(NotificationService $notificationService)
@@ -841,7 +874,7 @@ class ManageProject extends Component
             Toaster::success("Project '{$projectTitle}' deleted successfully.");
 
             // Redirect to projects list
-            return redirect()->route('projects.index');
+            return $this->redirect(route('projects.index'), navigate: true);
 
         } catch (\Exception $e) {
             Log::error('Error deleting project', [

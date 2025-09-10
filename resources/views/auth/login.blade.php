@@ -86,7 +86,7 @@
                         </label>
 
                         @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">
+                        <a href="{{ route('password.request') }}" wire:navigate class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">
                             Forgot password?
                         </a>
                         @endif
@@ -131,7 +131,7 @@
                 <div class="text-center pt-4 border-t border-gray-100 dark:border-gray-700">
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         Don't have an account?
-                        <a href="{{ route('register') }}" class="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors">
+                        <a href="{{ route('register') }}" wire:navigate class="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors">
                             Create one now
                         </a>
                     </p>

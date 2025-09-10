@@ -32,12 +32,19 @@
             </div>
         </div>
         <div class="flex items-center space-x-2">
+            <button wire:click="playInGlobalPlayer" 
+                    class="btn btn-xs bg-purple-600 hover:bg-purple-700 text-white"
+                    title="Play in Global Player">
+                <i class="fas fa-play mr-1"></i> Global
+            </button>
             <a href="{{ route('pitch-files.show', $file) }}"
+               wire:navigate
                 class="btn btn-xs bg-blue-500 hover:bg-blue-700 text-white">
                 <i class="fas fa-eye mr-1"></i> View
             </a>
             @if($showDownloadButton)
             <a href="{{ route('download.pitch-file', $file->uuid) }}"
+               wire:navigate
                 class="btn btn-xs bg-green-500 hover:bg-green-700 text-white">
                 <i class="fas fa-download mr-1"></i> Download
             </a>

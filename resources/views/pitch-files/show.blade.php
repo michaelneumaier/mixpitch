@@ -3,21 +3,13 @@
 <x-layouts.app-sidebar>
 <!-- Background Effects Container -->
 <div class="relative min-h-screen bg-gradient-to-br from-purple-50/30 via-white to-indigo-50/30">
-    <!-- Floating Blur Circles for Audio Theme -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-20 left-10 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl"></div>
-        <div class="absolute bottom-20 right-10 w-24 h-24 bg-indigo-400/20 rounded-full blur-xl"></div>
-        <div class="absolute top-1/2 left-1/4 w-16 h-16 bg-pink-400/15 rounded-full blur-xl"></div>
-        <div class="absolute bottom-1/3 left-3/4 w-20 h-20 bg-blue-400/15 rounded-full blur-xl"></div>
-    </div>
-
     <!-- Main Container -->
     <div class="relative container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex justify-center">
             <div class="w-full lg:w-4/5 2xl:w-3/4">
                 
                 <!-- Enhanced Breadcrumb Navigation -->
-                <div class="mb-8">
+                <div class="mb-2">
                     <nav class="bg-gradient-to-r from-gray-50/80 to-purple-50/80 backdrop-blur-sm border border-gray-200/50 rounded-xl p-4 shadow-lg">
                         <div class="flex items-center space-x-2 text-sm">
                             <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($file->pitch) }}" class="text-purple-600 hover:text-purple-800 transition-colors font-medium">
@@ -53,6 +45,7 @@
                                 <!-- Download Button -->
                                 @can('downloadFile', $file)
                                     <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
+                                       wire:navigate
                                        class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
                                         <i class="fas fa-download mr-2"></i> Download
                                     </a>

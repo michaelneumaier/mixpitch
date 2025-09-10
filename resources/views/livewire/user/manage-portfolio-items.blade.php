@@ -1,6 +1,6 @@
 <div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
     <div class="mx-auto px-2 md:py-2">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
 
             <!-- Compact Dashboard Header -->
             <flux:card class="mb-2 bg-white/50">

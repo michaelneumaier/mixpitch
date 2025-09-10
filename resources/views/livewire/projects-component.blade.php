@@ -1,6 +1,6 @@
 <div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
     <div class="mx-auto px-2 md:py-2">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
             <!-- Compact Dashboard Header -->
             <flux:card class="mb-2 bg-white/50 dark:bg-gray-800/50">
                 <div class="flex items-center justify-between gap-3 mb-3">

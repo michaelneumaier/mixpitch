@@ -82,7 +82,7 @@
 <div>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div class="container mx-auto px-2 py-2">
-            <div class="mx-auto max-w-7xl">
+            <div class="mx-auto">
                 <div class="flex justify-center">
                     <div class="w-full">
                         <!-- Enhanced Project Header -->

@@ -1,6 +1,6 @@
 <!-- Statistics Component with Animated Counters -->
 <div class="py-16 bg-base-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
             <h2 class="text-3xl md:text-4xl font-bold mb-4">Growing Community of <span class="text-primary">Music
                     Creators</span></h2>

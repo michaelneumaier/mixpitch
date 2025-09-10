@@ -1,6 +1,6 @@
 <div>
 <div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen p-2">
-    <div class="max-w-7xl mx-auto space-y-6">
+    <div class="mx-auto space-y-6">
         <!-- Header -->
         <flux:card class="mb-2 bg-white/50 backdrop-blur-lg">
             <div class="flex items-center justify-between">

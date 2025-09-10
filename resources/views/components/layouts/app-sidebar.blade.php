@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Mix Pitch') }}</title>
     
+    {{-- PWA Meta Tags --}}
+    <x-pwa-meta />
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600&display=swap" rel="stylesheet" />
@@ -103,21 +106,21 @@
         </div>
 
         <flux:navlist variant="outline">
-            <flux:navlist.item icon="home" href="{{ route('projects.index') }}" :current="request()->routeIs('projects.*')">
+            <flux:navlist.item wire:navigate icon="home" href="{{ route('projects.index') }}" :current="request()->routeIs('projects.*')">
                 Projects
             </flux:navlist.item>
 
             @auth
-            <flux:navlist.item icon="squares-2x2" href="{{ route('dashboard') }}" :current="request()->routeIs('dashboard')">
+            <flux:navlist.item wire:navigate wire:navigate icon="squares-2x2" href="{{ route('dashboard') }}" :current="request()->routeIs('dashboard')">
                 Dashboard
             </flux:navlist.item>
 
-            <flux:navlist.item icon="users" href="{{ route('producer.client-management') }}" :current="request()->routeIs('producer.client-management')">
+            <flux:navlist.item wire:navigate icon="users" href="{{ route('producer.client-management') }}" :current="request()->routeIs('producer.client-management')">
                 Client Management
             </flux:navlist.item>
 
             @if(Auth::check() && Auth::user()->canAccessPanel(\Filament\Panel::make()))
-            <flux:navlist.item icon="cog-6-tooth" href="{{ route('filament.admin.pages.dashboard') }}">
+            <flux:navlist.item wire:navigate icon="cog-6-tooth" href="{{ route('filament.admin.pages.dashboard') }}">
                 Admin Dashboard
             </flux:navlist.item>
             @endif
@@ -191,25 +194,25 @@
 
             <flux:menu>
                 @if(Auth::user()->username)
-                <flux:menu.item icon="user" href="{{ route('profile.username', ['username' => '@' . Auth::user()->username]) }}">
+                <flux:menu.item icon="user" href="{{ route('profile.username', ['username' => '@' . Auth::user()->username]) }}" wire:navigate>
                     Public Profile
                 </flux:menu.item>
                 @endif
                 
-                <flux:menu.item icon="adjustments-horizontal" href="{{ route('profile.edit') }}">
+                <flux:menu.item icon="adjustments-horizontal" href="{{ route('profile.edit') }}" wire:navigate>
                     Account Settings
                 </flux:menu.item>
                 
-                <flux:menu.item icon="credit-card" href="{{ route('billing') }}">
+                <flux:menu.item icon="credit-card" href="{{ route('billing') }}" wire:navigate>
                     Billing & Payments
                 </flux:menu.item>
 
-                <flux:menu.item icon="puzzle-piece" href="{{ route('integrations.zapier') }}">
+                <flux:menu.item icon="puzzle-piece" href="{{ route('integrations.zapier') }}" wire:navigate>
                     Integrations
                 </flux:menu.item>
 
                 @if(Auth::user()->hasRole('producer') || Auth::user()->hasRole('admin'))
-                <flux:menu.item icon="paint-brush" href="{{ route('settings.branding.edit') }}">
+                <flux:menu.item icon="paint-brush" href="{{ route('settings.branding.edit') }}" wire:navigate>
                     Branding Settings
                 </flux:menu.item>
                 @endif
@@ -226,7 +229,7 @@
         </flux:dropdown>
         @else
         <div class="space-y-2 p-4">
-            <flux:button href="{{ route('login') }}" variant="ghost" size="sm" class="w-full">
+            <flux:button href="{{ route('login') }}" wire:navigate variant="ghost" size="sm" class="w-full">
                 Log in
             </flux:button>
             <flux:button href="{{ route('register') }}" variant="primary" size="sm" class="w-full">
@@ -310,15 +313,20 @@
     <!-- Global Modals - Positioned at root level for proper z-index behavior -->
     <x-pitch-action-modals />
     
+    <!-- Global Audio Player -->
+    
+    @auth
+    @persist('global-audio-player')
+        @livewire('global-audio-player')
+    @endpersist
+    @endauth
     
     @fluxScripts
     
     <!-- Dark mode fix - runs after all other scripts -->
     <script>
-        console.log('=== MIXPITCH DARK MODE (AFTER FLUX) ===');
         
         function applyDarkMode(isDark) {
-            console.log('Applying dark mode:', isDark);
             
             if (isDark) {
                 document.documentElement.classList.add('dark');
@@ -332,7 +340,6 @@
                 sessionStorage.setItem('mixpitch_theme', themeValue);
                 localStorage.setItem('theme', themeValue);
                 window.mixpitchTheme = themeValue;
-                console.log('Stored theme:', themeValue);
             } catch (e) {
                 console.error('Storage failed:', e);
             }
@@ -342,22 +349,17 @@
             // Check sessionStorage first (most reliable)
             let saved = sessionStorage.getItem('mixpitch_theme');
             if (saved) {
-                console.log('Found saved theme:', saved);
                 return saved;
             }
             
             // Fallback to system preference
             const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            console.log('Using system preference:', systemDark);
             return systemDark ? 'dark' : 'light';
         }
         
         function toggleTheme() {
-            console.log('=== TOGGLE CALLED ===');
             const currentIsDark = document.documentElement.classList.contains('dark');
             const newIsDark = !currentIsDark;
-            
-            console.log('Toggle:', currentIsDark, '→', newIsDark);
             applyDarkMode(newIsDark);
             
             // Update Alpine component
@@ -369,7 +371,6 @@
         // Override Flux's theme application with our stored preference
         function applyStoredTheme() {
             const savedTheme = getCurrentTheme();
-            console.log('Applying stored theme on load:', savedTheme);
             applyDarkMode(savedTheme === 'dark');
         }
         
@@ -380,8 +381,6 @@
         
         // Make toggle function global
         window.toggleDarkMode = toggleTheme;
-        
-        console.log('=== DARK MODE READY ===');
     </script>
 </body>
 </html>

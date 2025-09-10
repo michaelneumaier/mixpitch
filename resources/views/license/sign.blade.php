@@ -168,6 +168,7 @@
                     <!-- Action Buttons -->
                     <div class="flex items-center justify-between pt-6">
                         <a href="{{ route('projects.show', $signature->project) }}" 
+                           wire:navigate
                            class="inline-flex items-center px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors">
                             <i class="fas fa-arrow-left mr-2"></i>
                             Back to Project

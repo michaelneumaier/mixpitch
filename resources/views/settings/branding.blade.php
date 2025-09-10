@@ -11,7 +11,7 @@
                     </flux:heading>
                     
                     <div class="flex items-center gap-2">
-                        <flux:button href="{{ route('producer.client-management') }}" icon="arrow-left" variant="ghost" size="xs">
+                        <flux:button href="{{ route('producer.client-management') }}" wire:navigate icon="arrow-left" variant="ghost" size="xs">
                             Client Management
                         </flux:button>
                     </div>
@@ -113,7 +113,7 @@
 
                     <!-- Form Actions -->
                     <div class="flex items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-                        <flux:button href="{{ route('producer.client-management') }}" variant="ghost">
+                        <flux:button href="{{ route('producer.client-management') }}" wire:navigate variant="ghost">
                             Cancel
                         </flux:button>
                         <flux:button type="submit" icon="check" variant="primary">

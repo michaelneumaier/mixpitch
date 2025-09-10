@@ -505,7 +505,7 @@
     @if($showMarketplace)
         @teleport('body')
             <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" wire:click="closeMarketplace()">
-            <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-y-auto" wire:click.stop>
+            <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto" wire:click.stop>
                 <div class="p-6 sm:p-8">
                     <!-- Marketplace Header -->
                     <div class="flex items-center justify-between mb-6">

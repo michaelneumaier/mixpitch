@@ -10,7 +10,7 @@
         </svg>
                 </div>
 
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="relative z-10 mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <!-- Main Footer Content -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             
@@ -63,7 +63,7 @@
                 </h3>
                 <ul class="space-y-3">
                     <li>
-                        <a href="{{ route('about') }}" class="group flex items-center text-white/80 hover:text-white transition-colors duration-300">
+                        <a href="{{ route('about') }}" wire:navigate class="group flex items-center text-white/80 hover:text-white transition-colors duration-300">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-3 text-blue-400 group-hover:text-blue-300 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -71,7 +71,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('projects.index') }}" class="group flex items-center text-white/80 hover:text-white transition-colors duration-300">
+                        <a href="{{ route('projects.index') }}" wire:navigate class="group flex items-center text-white/80 hover:text-white transition-colors duration-300">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-3 text-purple-400 group-hover:text-purple-300 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
@@ -79,7 +79,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('pricing') }}" class="group flex items-center text-white/80 hover:text-white transition-colors duration-300">
+                        <a href="{{ route('pricing') }}" wire:navigate class="group flex items-center text-white/80 hover:text-white transition-colors duration-300">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-3 text-pink-400 group-hover:text-pink-300 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                             </svg>

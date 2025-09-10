@@ -83,7 +83,7 @@
 
 <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
     <div class="container mx-auto px-2 py-2">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
             <style>
                 /* Custom breakpoint for extra small screens */
                 @media (min-width: 475px) {
@@ -334,6 +334,11 @@
                                                         </div>
                                                     </div>
                                                     <div class="flex items-center gap-2">
+                                                        @if ($file->isAudioFile())
+                                                            <flux:button wire:click="playProjectFile({{ $file->id }})" variant="ghost" size="xs" icon="play">
+                                                            </flux:button>
+                                                        @endif
+
                                                         @if ($file->id != $project->preview_track)
                                                             <flux:button wire:click="togglePreviewTrack({{ $file->id }})" variant="ghost" size="xs" icon="star">
                                                             </flux:button>
@@ -484,6 +489,7 @@
                                         <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">Assigned Producer:
                                             @if ($project->targetProducer->username)
                                                 <a href="{{ route('profile.username', $project->targetProducer->username) }}"
+                                                   wire:navigate
                                                     class="text-primary font-semibold hover:underline">
                                                     {{ $project->targetProducer->name }}
                                                 </a>

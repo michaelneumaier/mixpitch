@@ -1,48 +1,39 @@
 <?php
 
+use App\Http\Controllers\AboutController;
+use App\Http\Controllers\CustomUppyS3MultipartController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PitchController;
 use App\Http\Controllers\PitchFileController;
-use App\Http\Controllers\AboutController;
 use App\Http\Controllers\PricingController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\UserProfileController;
 use App\Livewire\CreateProject;
 use App\Livewire\ManageProject;
 use App\Livewire\Pitch\Snapshot\ShowSnapshot;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
-use App\Livewire\LivewireViewFactory;
-use App\Http\Controllers\Admin\StatsController;
-use App\Http\Controllers\Billing\BillingController;
-use App\Http\Controllers\CustomUppyS3MultipartController;
-use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 // Custom S3 multipart upload route (override package route)
 Route::post('/s3/multipart', [CustomUppyS3MultipartController::class, 'createMultipartUpload'])
     ->name('s3.multipart.create.custom')
     ->middleware('auth');
-use App\Http\Controllers\PitchSnapshotController;
-use App\Http\Controllers\PitchStatusController;
-use App\Livewire\User\ManagePortfolioItems;
 use App\Http\Controllers\AudioFileController;
-use App\Http\Controllers\ClientPortalController;
-use App\Http\Controllers\ClientImportController;
 use App\Http\Controllers\BrandingSettingsController;
-use App\Http\Controllers\Producer\ServicePackageController;
-use App\Http\Controllers\PublicServicePackageController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\ContestJudgingController;
-use App\Http\Controllers\SubscriptionController;
-use App\Livewire\EditProject;
-use App\Http\Controllers\LicenseSignatureController;
-use App\Http\Controllers\StripeConnectController;
+use App\Http\Controllers\ClientImportController;
+use App\Http\Controllers\ClientPortalController;
 use App\Http\Controllers\ContestPrizePaymentController;
 use App\Http\Controllers\GoogleDriveIntegrationController;
-
+use App\Http\Controllers\LicenseSignatureController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PitchSnapshotController;
+use App\Http\Controllers\Producer\ServicePackageController;
+use App\Http\Controllers\PublicServicePackageController;
+use App\Http\Controllers\StripeConnectController;
+use App\Livewire\User\ManagePortfolioItems;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,7 +63,6 @@ Route::middleware([
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
 Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
 
-
 Route::middleware(['auth'])->group(function () {
     // Project creation routes with subscription protection
     Route::middleware(['subscription:create_project'])->group(function () {
@@ -80,16 +70,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/projects/upload', [ProjectController::class, 'createProject'])->name('projects.upload');
         Route::get('/create-project', CreateProject::class)->name('projects.create');
     });
-    
+
     // Other project management routes (no subscription check needed)
     Route::get('/projects/{project}/step2', [ProjectController::class, 'createStep2'])->name('projects.createStep2');
     Route::post('/projects/{project}/step2', [ProjectController::class, 'storeStep2'])->name('projects.storeStep2');
-    //Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
+    // Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
 
     Route::get('/edit-project/{project}', CreateProject::class)->name('projects.edit');
     Route::get('/manage-project/{project}', ManageProject::class)->name('projects.manage');
-    
+
     // Client Management dedicated route
     Route::get('/manage-client-project/{project}', \App\Livewire\Project\ManageClientProject::class)
         ->name('projects.manage-client')
@@ -140,6 +130,17 @@ Route::middleware(['auth'])->group(function () {
         ->name('pitch-files.download')
         ->middleware(['auth', 'pitch.file.access']);
 
+    // Universal Audio Player routes
+    Route::get('/audio/pitch/{file:uuid}', [App\Http\Controllers\UniversalAudioController::class, 'showPitchFile'])
+        ->name('audio.pitch-file.show')
+        ->middleware('auth');
+    Route::get('/audio/project/{file}', [App\Http\Controllers\UniversalAudioController::class, 'showProjectFile'])
+        ->name('audio.project-file.show')
+        ->middleware('auth');
+    Route::get('/audio', [App\Http\Controllers\UniversalAudioController::class, 'show'])
+        ->name('audio.show')
+        ->middleware('auth');
+
     // Email testing routes
     Route::get('/email/test', [App\Http\Controllers\EmailController::class, 'showTestForm'])->name('email.test');
     Route::post('/email/test', [App\Http\Controllers\EmailController::class, 'sendTest'])->name('email.test.send');
@@ -147,10 +148,10 @@ Route::middleware(['auth'])->group(function () {
     // Payment routes (DEPRECATED - Use project-based routes below)
     // Route::get('/pitches/{pitch}/payment/overview', [App\Http\Controllers\PitchPaymentController::class, 'overview'])
     //     ->name('pitches.payment.overview');
-    // 
+    //
     // Route::post('/pitches/{pitch}/payment/process', [App\Http\Controllers\PitchPaymentController::class, 'process'])
     //     ->name('pitches.payment.process');
-    // 
+    //
     // Route::get('/pitches/{pitch}/payment/receipt', [App\Http\Controllers\PitchPaymentController::class, 'receipt'])
     //     ->name('pitches.payment.receipt');
 
@@ -158,19 +159,19 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['subscription:create_pitch'])->group(function () {
         Route::get('/projects/{project}/pitches/create', [App\Http\Controllers\PitchController::class, 'create'])
             ->name('projects.pitches.create');
-            
+
         // Store a pitch for a project
         Route::post('/projects/{project}/pitches', [App\Http\Controllers\PitchController::class, 'store'])
             ->name('projects.pitches.store');
     });
-        
+
     // Add new routes with the new URL pattern
     Route::get('/projects/{project}/pitches/{pitch}', [App\Http\Controllers\PitchController::class, 'showProjectPitch'])
         ->name('projects.pitches.show');
-        
+
     Route::get('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}', App\Livewire\Pitch\Snapshot\ShowSnapshot::class)
         ->name('projects.pitches.snapshots.show');
-        
+
     Route::get('/projects/{project}/pitches/{pitch}/edit', [App\Http\Controllers\PitchController::class, 'editProjectPitch'])
         ->name('projects.pitches.edit');
 
@@ -181,19 +182,19 @@ Route::middleware(['auth'])->group(function () {
     // Add the missing route for changing pitch status with project context
     Route::post('/projects/{project:slug}/pitches/{pitch:slug}/change-status', [App\Http\Controllers\PitchController::class, 'changeStatus'])
         ->name('projects.pitches.change-status');
-        
+
     Route::get('/projects/{project}/pitches/{pitch}/payment', [App\Http\Controllers\PitchController::class, 'showProjectPitchPayment'])
         ->name('projects.pitches.payment');
-        
+
     Route::get('/projects/{project}/pitches/{pitch}/payment/overview', [App\Http\Controllers\PitchPaymentController::class, 'projectPitchOverview'])
         ->name('projects.pitches.payment.overview');
-        
+
     Route::post('/projects/{project}/pitches/{pitch}/payment/process', [App\Http\Controllers\PitchPaymentController::class, 'projectPitchProcess'])
         ->name('projects.pitches.payment.process');
-        
+
     Route::get('/projects/{project}/pitches/{pitch}/payment/receipt', [App\Http\Controllers\PitchPaymentController::class, 'projectPitchReceipt'])
         ->name('projects.pitches.payment.receipt');
-    
+
     // Special route for pitch deletion with project context
     Route::get('/projects/{project}/pitches/{pitch}/delete-confirmed', [App\Http\Controllers\PitchController::class, 'destroyConfirmed'])
         ->name('projects.pitches.destroyConfirmed');
@@ -202,11 +203,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/pitch/{pitch}/snapshots/{snapshot}/approve', [PitchSnapshotController::class, 'approve'])
         ->name('pitch.approveSnapshot')
         ->middleware('auth');
-    
+
     Route::post('/pitch/{pitch}/snapshots/{snapshot}/request-changes', [PitchSnapshotController::class, 'requestChanges'])
         ->name('pitch.requestChanges')
         ->middleware('auth');
-    
+
     Route::post('/pitch/{pitch}/snapshots/{snapshot}/deny', [PitchSnapshotController::class, 'deny'])
         ->name('pitch.denySnapshot')
         ->middleware('auth');
@@ -215,11 +216,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/approve', [PitchSnapshotController::class, 'approve'])
         ->name('projects.pitches.approve-snapshot')
         ->middleware('auth');
-        
+
     Route::post('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/deny', [PitchSnapshotController::class, 'deny'])
         ->name('projects.pitches.deny-snapshot')
         ->middleware('auth');
-        
+
     Route::post('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/request-changes', [PitchSnapshotController::class, 'requestChanges'])
         ->name('projects.pitches.request-changes')
         ->middleware('auth');
@@ -282,22 +283,22 @@ Route::middleware(['auth'])->group(function () {
     // <<< END PHASE 6: CONTEST JUDGING ROUTES >>>
 
     // <<< CONTEST PRIZE PAYMENT ROUTES >>>
-    
+
     // Contest prize payment overview
     Route::get('/projects/{project}/contest/prizes/payment', [ContestPrizePaymentController::class, 'overview'])
         ->name('contest.prizes.overview')
         ->middleware('auth');
-    
+
     // Process contest prize payments
     Route::post('/projects/{project}/contest/prizes/payment', [ContestPrizePaymentController::class, 'process'])
         ->name('contest.prizes.process')
         ->middleware('auth');
-    
+
     // Process individual contest prize payment
     Route::post('/projects/{project}/contest/prizes/{prize}/payment', [ContestPrizePaymentController::class, 'processIndividual'])
         ->name('contest.prizes.process.individual')
         ->middleware('auth');
-    
+
     // Contest prize payment receipt
     Route::get('/projects/{project}/contest/prizes/receipt', [ContestPrizePaymentController::class, 'receipt'])
         ->name('contest.prizes.receipt')
@@ -306,14 +307,14 @@ Route::middleware(['auth'])->group(function () {
     // <<< END CONTEST PRIZE PAYMENT ROUTES >>>
 
     // Special fallback routes to debug 404 errors
-    Route::get('/pitch/{pitch}/snapshots/{snapshot}/{action}', function($pitch, $snapshot, $action) {
+    Route::get('/pitch/{pitch}/snapshots/{snapshot}/{action}', function ($pitch, $snapshot, $action) {
         $validActions = ['approve', 'deny', 'request-changes'];
         $postUrl = "/pitch/{$pitch}/snapshots/{$snapshot}/{$action}";
-        
-        if (!in_array($action, $validActions)) {
-            abort(404, "Invalid action: {$action}. Valid actions are: " . implode(', ', $validActions));
+
+        if (! in_array($action, $validActions)) {
+            abort(404, "Invalid action: {$action}. Valid actions are: ".implode(', ', $validActions));
         }
-        
+
         // Build a debug response with helpful information
         return response()->view('error.debug-post-route', [
             'message' => "The route {$postUrl} must be accessed via POST, not GET",
@@ -322,23 +323,23 @@ Route::middleware(['auth'])->group(function () {
                 'routeParameters' => [
                     'pitch' => $pitch,
                     'snapshot' => $snapshot,
-                    'action' => $action
+                    'action' => $action,
                 ],
                 'expectedPostUrl' => $postUrl,
                 'validActions' => $validActions,
-                'note' => 'Please use the buttons/forms in the application to perform this action.'
-            ]
+                'note' => 'Please use the buttons/forms in the application to perform this action.',
+            ],
         ], 405);
     })->where('action', '(approve|deny|request-changes)');
-    
-    Route::get('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/{action}', function($project, $pitch, $snapshot, $action) {
+
+    Route::get('/projects/{project}/pitches/{pitch}/snapshots/{snapshot}/{action}', function ($project, $pitch, $snapshot, $action) {
         $validActions = ['approve', 'deny', 'request-changes'];
         $postUrl = "/projects/{$project}/pitches/{$pitch}/snapshots/{$snapshot}/{$action}";
-        
-        if (!in_array($action, $validActions)) {
-            abort(404, "Invalid action: {$action}. Valid actions are: " . implode(', ', $validActions));
+
+        if (! in_array($action, $validActions)) {
+            abort(404, "Invalid action: {$action}. Valid actions are: ".implode(', ', $validActions));
         }
-        
+
         // Build a debug response with helpful information
         return response()->view('error.debug-post-route', [
             'message' => "The route {$postUrl} must be accessed via POST, not GET",
@@ -348,12 +349,12 @@ Route::middleware(['auth'])->group(function () {
                     'project' => $project,
                     'pitch' => $pitch,
                     'snapshot' => $snapshot,
-                    'action' => $action
+                    'action' => $action,
                 ],
                 'expectedPostUrl' => $postUrl,
                 'validActions' => $validActions,
-                'note' => 'Please use the buttons/forms in the application to perform this action.'
-            ]
+                'note' => 'Please use the buttons/forms in the application to perform this action.',
+            ],
         ], 405);
     })->where('action', '(approve|deny|request-changes)');
 
@@ -384,14 +385,14 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('billing')->name('billin
     Route::get('/portal', [App\Http\Controllers\Billing\BillingController::class, 'customerPortal'])->name('portal');
     Route::get('/checkout', [App\Http\Controllers\Billing\BillingController::class, 'checkout'])->name('checkout');
     Route::get('/payment-methods', [App\Http\Controllers\Billing\BillingController::class, 'managePaymentMethods'])->name('payment-methods');
-    
+
     // New invoice routes
     Route::get('/invoices', [App\Http\Controllers\Billing\BillingController::class, 'invoices'])->name('invoices');
     Route::get('/invoices/{invoice}', [App\Http\Controllers\Billing\BillingController::class, 'showInvoice'])->name('invoice.show');
-    
+
     // Diagnostic route for troubleshooting
     Route::get('/diagnostic', [App\Http\Controllers\Billing\BillingController::class, 'diagnosticInvoices'])->name('diagnostic');
-    
+
     // Debug route for testing invoice creation
     Route::get('/test-invoice', [App\Http\Controllers\Billing\BillingController::class, 'testInvoiceCreation'])->name('test.invoice');
 });
@@ -460,7 +461,7 @@ Route::prefix('refunds')->name('refunds.')->group(function () {
 });
 
 // Debug route for subscription testing (remove in production)
-Route::get('/debug/subscription/{user}', function(\App\Models\User $user) {
+Route::get('/debug/subscription/{user}', function (\App\Models\User $user) {
     return [
         'user_id' => $user->id,
         'email' => $user->email,
@@ -478,8 +479,9 @@ Route::get('/debug/subscription/{user}', function(\App\Models\User $user) {
 })->middleware('auth');
 
 // Test route to verify webhook endpoint accessibility (remove in production)
-Route::post('/debug/webhook-test', function() {
+Route::post('/debug/webhook-test', function () {
     \Log::info('Webhook test endpoint reached successfully');
+
     return response()->json(['status' => 'success', 'message' => 'Webhook endpoint is accessible']);
 });
 
@@ -495,28 +497,28 @@ Route::get('/email/verify', function () {
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     try {
         $user = $request->user();
-        
+
         // Check if already verified
         if ($user->hasVerifiedEmail()) {
             return redirect('/dashboard')->with('message', 'Email already verified!');
         }
-        
+
         $request->fulfill();
-        
+
         // Fire the verified event manually for OAuth users who might need it
         event(new Verified($user));
-        
+
         return redirect('/dashboard')->with('verified', true);
     } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
         // Handle signature mismatch or expired links
         return redirect()->route('verification.notice')
             ->with('error', 'This verification link is invalid or has expired. Please request a new one.');
     } catch (\Exception $e) {
-        \Log::error('Email verification failed: ' . $e->getMessage(), [
+        \Log::error('Email verification failed: '.$e->getMessage(), [
             'user_id' => auth()->id(),
-            'url' => request()->fullUrl()
+            'url' => request()->fullUrl(),
         ]);
-        
+
         return redirect()->route('verification.notice')
             ->with('error', 'Something went wrong with email verification. Please try again.');
     }
@@ -524,35 +526,37 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
 
 Route::post('/email/verification-notification', function (Request $request) {
     $user = $request->user();
-    
+
     // If user already verified (like OAuth users), just redirect them
     if ($user->hasVerifiedEmail()) {
         return redirect('/dashboard')->with('message', 'Your email is already verified!');
     }
-    
+
     $user->sendEmailVerificationNotification();
+
     return back()->with('message', 'Verification link sent!');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 // Add a route for OAuth users who might get confused about verification
 Route::get('/auth/verify-oauth', function () {
     $user = auth()->user();
-    
-    if (!$user) {
+
+    if (! $user) {
         return redirect()->route('login');
     }
-    
+
     // If user has OAuth provider and isn't verified, auto-verify them
-    if ($user->provider && !$user->hasVerifiedEmail()) {
+    if ($user->provider && ! $user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
-        return redirect('/dashboard')->with('message', 'Your email has been verified via ' . ucfirst($user->provider) . '!');
+
+        return redirect('/dashboard')->with('message', 'Your email has been verified via '.ucfirst($user->provider).'!');
     }
-    
+
     // If already verified, redirect to dashboard
     if ($user->hasVerifiedEmail()) {
         return redirect('/dashboard');
     }
-    
+
     // Otherwise, send them to normal verification
     return redirect()->route('verification.notice');
 })->middleware('auth')->name('auth.verify-oauth');
@@ -560,6 +564,18 @@ Route::get('/auth/verify-oauth', function () {
 // About and Pricing Pages
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+
+// PWA Routes
+Route::get('/offline', function () {
+    return view('offline');
+})->name('offline');
+
+Route::get('/pwa/manifest', [App\Http\Controllers\PWAController::class, 'manifest'])->name('pwa.manifest');
+Route::get('/pwa/status', [App\Http\Controllers\PWAController::class, 'status'])->name('pwa.status');
+Route::get('/browserconfig.xml', [App\Http\Controllers\PWAController::class, 'browserconfig'])->name('pwa.browserconfig');
+Route::get('/pwa/offline-urls', [App\Http\Controllers\PWAController::class, 'offlineUrls'])->name('pwa.offline-urls');
+Route::post('/pwa/install-event', [App\Http\Controllers\PWAController::class, 'installEvent'])->name('pwa.install-event');
+Route::delete('/pwa/cache', [App\Http\Controllers\PWAController::class, 'clearCache'])->middleware('auth')->name('pwa.clear-cache');
 
 // Audio Processor Test Routes
 Route::get('/test-audio-processor', [App\Http\Controllers\TestAudioProcessorController::class, 'index'])->middleware('auth');
@@ -574,12 +590,12 @@ Route::get('/test-lambda-direct', function () {
         if (empty($lambdaUrl)) {
             return response()->json([
                 'success' => false,
-                'error' => 'Lambda URL is not configured'
+                'error' => 'Lambda URL is not configured',
             ]);
         }
 
         // Append /waveform if it's not already there
-        if (!str_ends_with($lambdaUrl, '/waveform')) {
+        if (! str_ends_with($lambdaUrl, '/waveform')) {
             $lambdaUrl .= '/waveform';
         }
 
@@ -587,7 +603,7 @@ Route::get('/test-lambda-direct', function () {
         $getResponse = \Illuminate\Support\Facades\Http::timeout(10)
             ->withOptions([
                 'debug' => true,
-                'verify' => false
+                'verify' => false,
             ])
             ->get($lambdaUrl);
 
@@ -595,10 +611,10 @@ Route::get('/test-lambda-direct', function () {
         $postResponse = \Illuminate\Support\Facades\Http::timeout(10)
             ->withOptions([
                 'debug' => true,
-                'verify' => false
+                'verify' => false,
             ])
             ->post($lambdaUrl, [
-                'test' => true
+                'test' => true,
             ]);
 
         return response()->json([
@@ -606,13 +622,13 @@ Route::get('/test-lambda-direct', function () {
             'get_status' => $getResponse->status(),
             'get_body' => $getResponse->body(),
             'post_status' => $postResponse->status(),
-            'post_body' => $postResponse->body()
+            'post_body' => $postResponse->body(),
         ]);
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
             'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+            'trace' => $e->getTraceAsString(),
         ]);
     }
 })->middleware('auth');
@@ -627,10 +643,10 @@ Route::get('/test-lambda-with-file/{file_id?}', function ($fileId = null) {
             // Get the first audio file
             $file = \App\Models\PitchFile::whereRaw("LOWER(file_path) LIKE '%.mp3' OR LOWER(file_path) LIKE '%.wav'")->first();
 
-            if (!$file) {
+            if (! $file) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'No audio files found'
+                    'error' => 'No audio files found',
                 ]);
             }
         }
@@ -641,7 +657,7 @@ Route::get('/test-lambda-with-file/{file_id?}', function ($fileId = null) {
         if (empty($fileUrl)) {
             return response()->json([
                 'success' => false,
-                'error' => 'Could not generate S3 URL for file'
+                'error' => 'Could not generate S3 URL for file',
             ]);
         }
 
@@ -654,12 +670,12 @@ Route::get('/test-lambda-with-file/{file_id?}', function ($fileId = null) {
         if (empty($lambdaUrl)) {
             return response()->json([
                 'success' => false,
-                'error' => 'Lambda URL is not configured'
+                'error' => 'Lambda URL is not configured',
             ]);
         }
 
         // Append /waveform if it's not already there
-        if (!str_ends_with($lambdaUrl, '/waveform')) {
+        if (! str_ends_with($lambdaUrl, '/waveform')) {
             $lambdaUrl .= '/waveform';
         }
 
@@ -669,35 +685,35 @@ Route::get('/test-lambda-with-file/{file_id?}', function ($fileId = null) {
         $response1 = \Illuminate\Support\Facades\Http::timeout(60)
             ->withOptions([
                 'debug' => true,
-                'verify' => false
+                'verify' => false,
             ])
             ->post($lambdaUrl, [
                 'file_url' => $encodedFileUrl,
-                'peaks_count' => 200
+                'peaks_count' => 200,
             ]);
 
         // Try with JSON content type
         $response2 = \Illuminate\Support\Facades\Http::timeout(60)
             ->withOptions([
                 'debug' => true,
-                'verify' => false
+                'verify' => false,
             ])
             ->withHeaders([
                 'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
+                'Accept' => 'application/json',
             ])
             ->post($lambdaUrl, [
                 'file_url' => $encodedFileUrl,
-                'peaks_count' => 200
+                'peaks_count' => 200,
             ]);
 
         // Try with URL encoded as query param
         $response3 = \Illuminate\Support\Facades\Http::timeout(60)
             ->withOptions([
                 'debug' => true,
-                'verify' => false
+                'verify' => false,
             ])
-            ->post($lambdaUrl . '?file_url=' . urlencode($encodedFileUrl) . '&peaks_count=200');
+            ->post($lambdaUrl.'?file_url='.urlencode($encodedFileUrl).'&peaks_count=200');
 
         return response()->json([
             'file_id' => $file->id,
@@ -708,22 +724,22 @@ Route::get('/test-lambda-with-file/{file_id?}', function ($fileId = null) {
             'lambda_url' => $lambdaUrl,
             'regular_request' => [
                 'status' => $response1->status(),
-                'body' => $response1->body()
+                'body' => $response1->body(),
             ],
             'json_request' => [
                 'status' => $response2->status(),
-                'body' => $response2->body()
+                'body' => $response2->body(),
             ],
             'url_params_request' => [
                 'status' => $response3->status(),
-                'body' => $response3->body()
-            ]
+                'body' => $response3->body(),
+            ],
         ]);
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
             'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+            'trace' => $e->getTraceAsString(),
         ]);
     }
 })->middleware('auth');
@@ -738,10 +754,10 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
             // Get the first audio file
             $file = \App\Models\PitchFile::whereRaw("LOWER(file_path) LIKE '%.mp3' OR LOWER(file_path) LIKE '%.wav'")->first();
 
-            if (!$file) {
+            if (! $file) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'No audio files found'
+                    'error' => 'No audio files found',
                 ]);
             }
         }
@@ -752,7 +768,7 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
         if (empty($originalUrl)) {
             return response()->json([
                 'success' => false,
-                'error' => 'Could not generate S3 URL for file'
+                'error' => 'Could not generate S3 URL for file',
             ]);
         }
 
@@ -769,7 +785,7 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
             'spaces_to_percent20' => str_replace(' ', '%20', $originalUrl),
             'lowercase' => strtolower($safeUrl),
             'no_query_params' => preg_replace('/\?.*/', '', $safeUrl),
-            'escaped_quotes' => str_replace('"', '\"', $safeUrl)
+            'escaped_quotes' => str_replace('"', '\"', $safeUrl),
         ];
 
         // Get Lambda URL
@@ -778,12 +794,12 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
         if (empty($lambdaUrl)) {
             return response()->json([
                 'success' => false,
-                'error' => 'Lambda URL is not configured'
+                'error' => 'Lambda URL is not configured',
             ]);
         }
 
         // Append /waveform if it's not already there
-        if (!str_ends_with($lambdaUrl, '/waveform')) {
+        if (! str_ends_with($lambdaUrl, '/waveform')) {
             $lambdaUrl .= '/waveform';
         }
 
@@ -795,22 +811,22 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
                 // Send request with this URL variation
                 $response = \Illuminate\Support\Facades\Http::timeout(30)
                     ->withOptions([
-                        'verify' => false
+                        'verify' => false,
                     ])
                     ->withHeaders([
                         'Content-Type' => 'application/json',
-                        'Accept' => 'application/json'
+                        'Accept' => 'application/json',
                     ])
                     ->post($lambdaUrl, [
                         'file_url' => $url,
-                        'peaks_count' => 200
+                        'peaks_count' => 200,
                     ]);
 
                 $results[$type] = [
                     'status' => $response->status(),
                     'success' => $response->successful(),
                     'url' => $url,
-                    'response_excerpt' => substr($response->body(), 0, 200) . (strlen($response->body()) > 200 ? '...' : '')
+                    'response_excerpt' => substr($response->body(), 0, 200).(strlen($response->body()) > 200 ? '...' : ''),
                 ];
 
                 // If successful, mark this one
@@ -822,7 +838,7 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
                     'status' => 'exception',
                     'success' => false,
                     'url' => $url,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
             }
         }
@@ -832,13 +848,13 @@ Route::get('/test-lambda-url-formats/{file_id?}', function ($fileId = null) {
             'file_name' => $file->file_name,
             'file_path' => $file->file_path,
             'file_url_variations' => $results,
-            'lambda_url' => $lambdaUrl
+            'lambda_url' => $lambdaUrl,
         ]);
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
             'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+            'trace' => $e->getTraceAsString(),
         ]);
     }
 })->middleware('auth');
@@ -856,19 +872,19 @@ Route::get('/test-s3', function () {
         $files = Storage::disk('s3')->files('test-directory');
 
         // Try to create a small test file
-        $result = Storage::disk('s3')->put('test-file-' . time() . '.txt', 'Hello S3 Test');
+        $result = Storage::disk('s3')->put('test-file-'.time().'.txt', 'Hello S3 Test');
 
         return [
             'connection' => 'success',
             'can_list_files' => true,
             'can_write_file' => $result,
-            'files_found' => count($files)
+            'files_found' => count($files),
         ];
     } catch (\Exception $e) {
         return [
             'connection' => 'failed',
             'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+            'trace' => $e->getTraceAsString(),
         ];
     }
 });
@@ -896,10 +912,10 @@ Route::get('/check-s3-config', function () {
 // Admin Billing Routes
 Route::middleware(['auth:sanctum', 'verified', 'can:manage_billing'])->prefix('admin/billing')->name('filament.admin.resources.users.')->group(function () {
     Route::post('/{record}/create-stripe-customer', [App\Http\Controllers\Billing\AdminBillingController::class, 'createStripeCustomer'])->name('create-stripe-customer');
-    Route::get('/stats', function() {
+    Route::get('/stats', function () {
         return response()->json([
             'success' => true,
-            'stats' => \App\Filament\Plugins\Billing\Widgets\RevenueOverviewWidget::getOverviewStats()
+            'stats' => \App\Filament\Plugins\Billing\Widgets\RevenueOverviewWidget::getOverviewStats(),
         ]);
     })->name('stats');
 });
@@ -964,12 +980,10 @@ Route::get('/projects/{project}/portal/preview', [ClientPortalController::class,
     ->name('client.portal.preview')
     ->middleware('auth');
 
-
 // Client Portal Snapshot Navigation - NEW
 Route::get('/projects/{project:id}/portal/snapshot/{snapshot}', [ClientPortalController::class, 'showSnapshot'])
     ->name('client.portal.snapshot')
     ->middleware(['signed_or_client']);
-
 
 // Client ACTION routes (need signed middleware)
 Route::post('/client-portal/project/{project:id}/comments', [ClientPortalController::class, 'storeComment'])
@@ -1060,13 +1074,13 @@ Route::middleware('auth')->get('/zapier/setup', function () {
 
 Route::middleware('auth')->post('/zapier/generate-key', function () {
     $user = auth()->user();
-    
+
     // Revoke existing Zapier tokens
     $user->tokens()->where('name', 'Zapier Integration')->delete();
-    
+
     // Create new token
     $token = $user->createToken('Zapier Integration', ['zapier-client-management']);
-    
+
     return redirect()->route('zapier.setup', ['generated' => true])
         ->with('api_key', $token->plainTextToken);
 })->name('zapier.generate-key');
@@ -1080,7 +1094,7 @@ Route::get('/test-approve/{template}', function (App\Models\LicenseTemplate $tem
         'approved_at' => now(),
         'rejection_reason' => null,
     ]);
-    
+
     return response()->json([
         'success' => true,
         'template_id' => $template->id,

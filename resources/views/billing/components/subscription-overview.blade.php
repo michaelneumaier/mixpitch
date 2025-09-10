@@ -85,10 +85,10 @@
             <!-- Quick Actions -->
             <div class="flex flex-col sm:flex-row lg:flex-col gap-3">
                 @if($user->isFreePlan())
-                    <flux:button href="{{ route('pricing') }}" variant="primary" icon="rocket-launch">
+                    <flux:button href="{{ route('pricing') }}" wire:navigate variant="primary" icon="rocket-launch">
                         Upgrade to Pro
                     </flux:button>
-                    <flux:button href="{{ route('subscription.index') }}" variant="outline" icon="cog-6-tooth">
+                    <flux:button href="{{ route('subscription.index') }}" wire:navigate variant="outline" icon="cog-6-tooth">
                         View Plans
                     </flux:button>
                 @elseif($onGracePeriod)
@@ -98,14 +98,14 @@
                             Resume Subscription
                         </flux:button>
                     </form>
-                    <flux:button href="{{ route('subscription.index') }}" variant="outline" icon="cog-6-tooth">
+                    <flux:button href="{{ route('subscription.index') }}" wire:navigate variant="outline" icon="cog-6-tooth">
                         Manage Plan
                     </flux:button>
                 @else
-                    <flux:button href="{{ route('subscription.index') }}" variant="primary" icon="cog-6-tooth">
+                    <flux:button href="{{ route('subscription.index') }}" wire:navigate variant="primary" icon="cog-6-tooth">
                         Manage Subscription
                     </flux:button>
-                    <flux:button href="{{ route('billing.portal') }}" variant="outline" icon="arrow-top-right-on-square">
+                    <flux:button href="{{ route('billing.portal') }}" wire:navigate variant="outline" icon="arrow-top-right-on-square">
                         Billing Portal
                     </flux:button>
                 @endif

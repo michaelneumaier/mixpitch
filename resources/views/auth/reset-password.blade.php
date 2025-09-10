@@ -98,7 +98,7 @@
                 <div class="text-center pt-4 border-t border-gray-100">
                     <p class="text-sm text-gray-600">
                         Remember your password?
-                        <a href="{{ route('login') }}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                        <a href="{{ route('login') }}" wire:navigate class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
                             Back to sign in
                         </a>
                     </p>

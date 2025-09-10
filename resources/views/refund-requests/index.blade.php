@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
@@ -13,7 +13,7 @@
                     <p class="mt-2 text-gray-600">Manage client refund requests for your projects</p>
                 </div>
                 <div class="flex space-x-4">
-                    <a href="{{ route('payouts.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <a href="{{ route('payouts.index') }}" wire:navigate class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                         </svg>
@@ -205,12 +205,12 @@
                                 </div>
                                 
                                 <div class="ml-4 flex-shrink-0 flex space-x-2">
-                                    <a href="{{ route('refund-requests.show', $refund) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                                    <a href="{{ route('refund-requests.show', $refund) }}" wire:navigate class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
                                         {{ $refund->status === 'requested' ? 'Respond' : 'View Details' }}
                                     </a>
                                     
                                     @if($refund->pitch->project)
-                                        <a href="{{ route('projects.show', $refund->pitch->project) }}" class="text-gray-600 hover:text-gray-900 text-sm font-medium">
+                                        <a href="{{ route('projects.show', $refund->pitch->project) }}" wire:navigate class="text-gray-600 hover:text-gray-900 text-sm font-medium">
                                             View Project
                                         </a>
                                     @endif
@@ -233,7 +233,7 @@
                     <p class="mt-1 text-sm text-gray-500">
                         @if(request()->hasAny(['status', 'date_from']))
                             Try adjusting your filters or 
-                            <a href="{{ route('refund-requests.index') }}" class="text-indigo-600 hover:text-indigo-500">clear all filters</a>.
+                            <a href="{{ route('refund-requests.index') }}" wire:navigate class="text-indigo-600 hover:text-indigo-500">clear all filters</a>.
                         @else
                             You haven't received any refund requests yet.
                         @endif

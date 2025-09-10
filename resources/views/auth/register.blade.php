@@ -142,7 +142,7 @@
 
                     <!-- Already have account link -->
                     <div class="text-center">
-                        <a href="{{ route('login') }}" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">
+                        <a href="{{ route('login') }}" wire:navigate class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">
                             Already have an account? Sign in
                         </a>
                     </div>

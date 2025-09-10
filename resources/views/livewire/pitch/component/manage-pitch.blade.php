@@ -82,6 +82,7 @@
                                     </div>
                                 </div>
                                 <a href="{{ route('projects.download', $project) }}"
+                                   wire:navigate
                                    class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
                                     <i class="fas fa-download mr-2"></i>Download All
                                 </a>
@@ -196,6 +197,7 @@
                     <h3 class="text-lg font-bold text-gray-800">Pitch Status: {{ $pitch->readable_status }}</h3>
                 </div>
                 <a href="{{ route('projects.pitches.show', ['project' => $project, 'pitch' => $pitch]) }}" 
+                   wire:navigate
                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-cog mr-2"></i>Manage Pitch Details & Files
                 </a>
@@ -316,6 +318,7 @@
                         <div class="mt-4">
                             @if($pitch->currentSnapshot)
                             <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitch->currentSnapshot->id]) }}"
+                               wire:navigate
                                 class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
                                 <i class="fas fa-eye mr-2"></i>View Denied Snapshot
                             </a>
@@ -367,6 +370,7 @@
                         <div class="mt-4">
                             @if($latestSnapshot)
                                 <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $latestSnapshot->id]) }}"
+                                   wire:navigate
                                     class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
                                     <i class="fas fa-eye mr-2"></i>View Snapshot Details
                                 </a>
@@ -481,6 +485,7 @@
                                             <i class="fas fa-code-branch text-purple-600 text-sm"></i>
                                         </div>
                                         <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
+                                           wire:navigate
                                             class="font-bold text-purple-800 hover:text-purple-600 transition-colors">
                                             Version {{ $snapshot->snapshot_data['version'] ?? 1 }}
                                         </a>
@@ -508,6 +513,7 @@
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
+                                           wire:navigate
                                         class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-md text-xs">
                                         <i class="fas fa-eye mr-1"></i>View
                                     </a>
@@ -607,7 +613,8 @@
                                         @endif
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <a href="{{ route('pitch-files.show', $file) }}" 
+                                        <a href="{{ route('pitch-files.show', $file) }}"
+                                           wire:navigate 
                                            class="font-bold truncate text-purple-900 hover:text-purple-600 transition-colors duration-200 block" 
                                            title="{{ $file->file_name }}">{{ $file->file_name }}</a>
                                         <div class="flex items-center text-xs text-purple-600 mt-1">
@@ -619,6 +626,7 @@
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <a href="{{ route('pitch-files.show', $file) }}"
+                                           wire:navigate
                                        class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-600 rounded-lg transition-all duration-200 hover:scale-105"
                                        title="View file details">
                                         <i class="fas fa-eye text-sm"></i>

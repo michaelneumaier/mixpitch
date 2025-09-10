@@ -25,7 +25,7 @@ class SidebarStorageIndicator extends Component
         $this->updateStorageInfo();
     }
 
-    protected function updateStorageInfo(): void
+    public function updateStorageInfo(): void
     {
         if (! Auth::check()) {
             return;

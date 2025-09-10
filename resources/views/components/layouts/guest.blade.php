@@ -7,6 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'MixPitch') }} - Authentication</title>
+    
+    {{-- PWA Meta Tags --}}
+    <x-pwa-meta />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

@@ -97,7 +97,7 @@
     </x-slot>
 
     <div class="py-12" x-data="contestJudging()">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="mx-auto sm:px-6 lg:px-8">
             <!-- Contest Status -->
             <div class="mb-8">
                 @if($isFinalized)

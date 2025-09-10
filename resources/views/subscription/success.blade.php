@@ -69,13 +69,13 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="{{ route('dashboard') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    <a href="{{ route('dashboard') }}" wire:navigate class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
                         Go to Dashboard
                     </a>
-                    <a href="{{ route('projects.create') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    <a href="{{ route('projects.create') }}" wire:navigate class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
                         Create Your First Project
                     </a>
-                    <a href="{{ route('subscription.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    <a href="{{ route('subscription.index') }}" wire:navigate class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
                         Manage Subscription
                     </a>
                 </div>
@@ -85,7 +85,7 @@
                     <p class="text-sm text-gray-600">
                         <strong>Receipt:</strong> A receipt has been sent to your email address. 
                         You can also manage your subscription and download invoices from your 
-                        <a href="{{ route('billing') }}" class="text-blue-600 hover:text-blue-800 underline">billing dashboard</a>.
+                        <a href="{{ route('billing') }}" wire:navigate class="text-blue-600 hover:text-blue-800 underline">billing dashboard</a>.
                     </p>
                 </div>
             </div>

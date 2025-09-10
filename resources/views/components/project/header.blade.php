@@ -81,7 +81,8 @@
             ];
         } elseif ($userPitch) {
             $primaryAction = [
-                'url' => route('pitches.show', $userPitch),
+                'url' => route('projects.pitches.show', [$userPitch->project, $userPitch]),
+                'navigate' => true,
                 'label' => 'View My Pitch',
                 'variant' => 'outline'
             ];
@@ -129,6 +130,7 @@
                         {{ $project->name }}
                     @else
                         <a href="{{ route('projects.show', $project) }}" 
+                           wire:navigate
                            class="hover:text-blue-600 transition-colors duration-200">
                             {{ $project->name }}
                         </a>
@@ -171,9 +173,15 @@
                                     </flux:menu.item>
                                 </flux:modal.trigger>
                             @else
-                                <flux:menu.item href="{{ $primaryAction['url'] }}" icon="{{ $statusConfig['icon'] }}">
-                                    {{ $primaryAction['label'] }}
-                                </flux:menu.item>
+                                @if(isset($primaryAction['navigate']) && $primaryAction['navigate'])
+                                    <flux:menu.item href="{{ $primaryAction['url'] }}" wire:navigate icon="{{ $statusConfig['icon'] }}">
+                                        {{ $primaryAction['label'] }}
+                                    </flux:menu.item>
+                                @else
+                                    <flux:menu.item href="{{ $primaryAction['url'] }}" icon="{{ $statusConfig['icon'] }}">
+                                        {{ $primaryAction['label'] }}
+                                    </flux:menu.item>
+                                @endif
                             @endif
                             <flux:menu.separator />
                         @endif
@@ -191,14 +199,14 @@
                                 </flux:menu.item>
                             @else
                                 <!-- Standard Project Actions -->
-                                <flux:menu.item href="{{ route('projects.show', $project) }}" icon="eye">
+                                <flux:menu.item href="{{ route('projects.show', $project) }}" wire:navigate icon="eye">
                                     View Public
                                 </flux:menu.item>
                             @endif
                             
                             <!-- Edit/Settings -->
                             @if($showEditButton)
-                                <flux:menu.item href="{{ route('projects.edit', $project) }}" icon="cog-6-tooth">
+                                <flux:menu.item href="{{ route('projects.edit', $project) }}" wire:navigate icon="cog-6-tooth">
                                     Project Settings
                                 </flux:menu.item>
                             @endif
@@ -258,14 +266,14 @@
                             @if($project->isContest() && auth()->check() && auth()->user()->can('judgeContest', $project))
                                 <flux:menu.separator />
                                 @if($project->isJudgingFinalized())
-                                    <flux:menu.item href="{{ route('projects.contest.results', $project) }}" icon="trophy">
+                                    <flux:menu.item href="{{ route('projects.contest.results', $project) }}" wire:navigate icon="trophy">
                                         View Results
                                     </flux:menu.item>
-                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="scale">
+                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" wire:navigate icon="scale">
                                         Judging Dashboard
                                     </flux:menu.item>
                                 @else
-                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" icon="scale">
+                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" wire:navigate icon="scale">
                                         Judge Contest
                                     </flux:menu.item>
                                 @endif
@@ -278,12 +286,12 @@
                             </flux:menu.item>
                         @else
                             <!-- Non-manage context actions -->
-                            <flux:menu.item href="{{ route('projects.manage', $project) }}" icon="cog-6-tooth">
+                            <flux:menu.item href="{{ route('projects.manage', $project) }}" wire:navigate icon="cog-6-tooth">
                                 Manage Project
                             </flux:menu.item>
                             
                             @if($showEditButton)
-                                <flux:menu.item href="{{ route('projects.edit', $project) }}" icon="pencil">
+                                <flux:menu.item href="{{ route('projects.edit', $project) }}" wire:navigate icon="pencil">
                                     Edit Details
                                 </flux:menu.item>
                             @endif

@@ -1,7 +1,7 @@
 <x-layouts.marketing title="Pricing Plans - Choose Your MixPitch Experience">
 <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
     <div class="container mx-auto px-2 md:px-4 py-8 md:py-16">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
             <!-- Header Section -->
             <div class="text-center mb-8 md:mb-16">
                 <h1 class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
@@ -32,7 +32,7 @@
                         @endif
                     </div>
                     <div class="mt-2">
-                        <a href="{{ route('subscription.index') }}" class="text-sm text-green-600 hover:text-green-800 underline">
+                        <a href="{{ route('subscription.index') }}" wire:navigate class="text-sm text-green-600 hover:text-green-800 underline">
                             Manage your subscription
                         </a>
                     </div>
@@ -141,12 +141,12 @@
                                     </div>
                                 </div>
                             @else
-                                <a href="{{ route('subscription.index') }}" class="block w-full {{ $plan['plan_tier'] === 'artist' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700' }} text-white py-3 px-6 rounded-lg font-semibold text-center transition-colors duration-200">
+                                <a href="{{ route('subscription.index') }}" wire:navigate class="block w-full {{ $plan['plan_tier'] === 'artist' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700' }} text-white py-3 px-6 rounded-lg font-semibold text-center transition-colors duration-200">
                                     Manage Subscription
                                 </a>
                             @endif
                         @else
-                            <a href="{{ route('register') }}" class="block w-full {{ $plan['plan_name'] === 'free' ? 'bg-gray-600 hover:bg-gray-700' : ($plan['plan_tier'] === 'artist' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700') }} text-white py-3 px-6 rounded-lg font-semibold text-center transition-colors duration-200">
+                            <a href="{{ route('register') }}" wire:navigate class="block w-full {{ $plan['plan_name'] === 'free' ? 'bg-gray-600 hover:bg-gray-700' : ($plan['plan_tier'] === 'artist' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700') }} text-white py-3 px-6 rounded-lg font-semibold text-center transition-colors duration-200">
                                 Get Started
                             </a>
                         @endauth

@@ -24,7 +24,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Upload & Continue</button>
-                <a href="{{ route('clients.import.sample') }}" class="px-4 py-2 bg-gray-100 text-gray-800 rounded border">Download sample CSV</a>
+                <a href="{{ route('clients.import.sample') }}" wire:navigate class="px-4 py-2 bg-gray-100 text-gray-800 rounded border">Download sample CSV</a>
             </div>
         </form>
 

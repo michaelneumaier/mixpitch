@@ -143,4 +143,31 @@ class ProjectFile extends Model
     {
         return $this->belongsTo(Project::class);
     }
+
+    /**
+     * Check if file is an audio file
+     */
+    public function isAudioFile(): bool
+    {
+        if (! $this->mime_type) {
+            return false;
+        }
+
+        $audioMimes = [
+            'audio/mpeg',
+            'audio/mp3',
+            'audio/wav',
+            'audio/wave',
+            'audio/x-wav',
+            'audio/ogg',
+            'audio/aac',
+            'audio/m4a',
+            'audio/mp4',
+            'audio/flac',
+            'audio/x-flac',
+            'audio/webm',
+        ];
+
+        return in_array($this->mime_type, $audioMimes);
+    }
 }

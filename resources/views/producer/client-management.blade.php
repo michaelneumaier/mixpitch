@@ -2,7 +2,7 @@
 
 <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
     <div class="container mx-auto px-2 py-2">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
             <!-- Client Management Header -->
             <flux:card class="mb-2">
                 <!-- Main Header -->
@@ -25,6 +25,7 @@
                     <div class="flex-shrink-0">
                         <flux:button 
                             href="{{ route('projects.create') }}?workflow_type=client_management" 
+                            wire:navigate
                             variant="primary" 
                             size="base"
                             icon="plus">
@@ -41,6 +42,7 @@
                     <div class="flex flex-wrap items-center gap-3">
                         <flux:button 
                             href="{{ route('clients.import.index') }}" 
+                            wire:navigate
                             variant="ghost" 
                             size="sm"
                             icon="arrow-up-tray">
@@ -49,6 +51,7 @@
                         
                         <flux:button 
                             href="{{ route('settings.branding.edit') }}" 
+                            wire:navigate
                             variant="ghost" 
                             size="sm"
                             icon="paint-brush">

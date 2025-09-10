@@ -12,7 +12,8 @@
     <div class="container mx-auto p-4 lg:p-8 relative z-10">
         <!-- Breadcrumb Navigation -->
         <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
-            <a href="{{ route('producer.client-management') }}" 
+            <a href="{{ route('producer.client-management') }}"
+               wire:navigate 
                class="hover:text-blue-600 transition-colors duration-200 flex items-center">
                 <i class="fas fa-chart-line mr-2"></i>
                 Client Management

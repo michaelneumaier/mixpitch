@@ -9,7 +9,7 @@
     </div>
 
     <div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30 py-4 md:py-12">
-        <div class="max-w-7xl mx-auto px-2 lg:px-8">
+        <div class="mx-auto px-2 lg:px-8">
 
             <!-- Enhanced Hero Section -->
             <div class="relative bg-white/95 backdrop-blur-sm border border-white/20 rounded-3xl shadow-2xl overflow-hidden mb-16">

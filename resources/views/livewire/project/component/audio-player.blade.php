@@ -7,12 +7,19 @@
     </div>
     <div wire:ignore id="{{ $identifier }}" class="flex-grow align-middle"></div>
     @elseif($this->isInCard)
-    <div id="play-button-{{ $identifier }}" @click="playing = !playing" x-on:clear-track.window="playing = false"
-        x-on:pause-all-tracks.window="if ($event.detail !== '{{$identifier}}') {playing=false}"
-        class="bg-statusOpen/80 hover:bg-statusOpen backdrop-blur-sm p-3 focus:outline-none rounded-bl-xl rounded-tr-xl text-primary border-statusOpen border-l-4 border-b-4 flex items-center">
-        <i x-show="!playing" class="fas fa-play"></i>
-        <i x-show="playing" class="fas fa-pause"></i>
-        <audio id="card-button-{{$identifier}}" src="{{$audioUrl}}" preload="none"></audio>
+    <div class="flex">
+        <div id="play-button-{{ $identifier }}" @click="playing = !playing" x-on:clear-track.window="playing = false"
+            x-on:pause-all-tracks.window="if ($event.detail !== '{{$identifier}}') {playing=false}"
+            class="bg-statusOpen/80 hover:bg-statusOpen backdrop-blur-sm p-3 focus:outline-none rounded-bl-xl text-primary border-statusOpen border-l-4 border-b-4 flex items-center">
+            <i x-show="!playing" class="fas fa-play"></i>
+            <i x-show="playing" class="fas fa-pause"></i>
+            <audio id="card-button-{{$identifier}}" src="{{$audioUrl}}" preload="none"></audio>
+        </div>
+        <button wire:click="playInGlobalPlayer" 
+                class="bg-purple-600/80 hover:bg-purple-700 backdrop-blur-sm p-2 focus:outline-none rounded-tr-xl text-white border-purple-600 border-r-4 border-b-4 flex items-center"
+                title="Play in Global Player">
+            <i class="fas fa-external-link-alt text-xs"></i>
+        </button>
     </div>
     @else
     <div id="play-button-{{ $identifier }}" @click="playing = !playing" x-on:clear-track.window="playing = false"

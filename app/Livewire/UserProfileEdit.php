@@ -278,7 +278,7 @@ class UserProfileEdit extends Component
 
             Toaster::success('Profile updated successfully!');
 
-            return redirect()->route('profile.edit');
+            return $this->redirect(route('profile.edit'), navigate: true);
         } catch (\Exception $e) {
             Toaster::error('An error occurred while updating your profile. Please try again.');
         }

@@ -163,11 +163,11 @@
         <flux:card>
             <div class="p-6">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <flux:button href="{{ route('billing') }}" variant="ghost" icon="arrow-left">
+                    <flux:button href="{{ route('billing') }}" wire:navigate variant="ghost" icon="arrow-left">
                         Back to Billing
                     </flux:button>
                     
-                    <flux:button href="{{ route('billing.portal') }}" variant="primary" icon="arrow-top-right-on-square">
+                    <flux:button href="{{ route('billing.portal') }}" wire:navigate variant="primary" icon="arrow-top-right-on-square">
                         Stripe Billing Portal
                     </flux:button>
                 </div>
