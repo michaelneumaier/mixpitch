@@ -151,14 +151,23 @@ class GlobalAudioPlayer extends Component
             return;
         }
 
-        $projectFile = ProjectFile::find((int) $projectFileId);
+        $projectFile = ProjectFile::with('project')->find((int) $projectFileId);
 
         if (! $projectFile) {
+            \Log::warning('ProjectFile not found for playProjectFile', [
+                'project_file_id' => $projectFileId
+            ]);
             return;
         }
 
         // Check permissions
         if (! Auth::check() || ! Auth::user()->can('view', $projectFile)) {
+            \Log::warning('Authorization failed for playProjectFile', [
+                'user_id' => Auth::id(),
+                'project_file_id' => $projectFileId,
+                'project_id' => $projectFile->project_id,
+                'auth_check' => Auth::check()
+            ]);
             return;
         }
 

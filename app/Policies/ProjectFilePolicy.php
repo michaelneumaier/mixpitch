@@ -13,6 +13,15 @@ class ProjectFilePolicy
      */
     public function view(User $user, ProjectFile $projectFile): bool
     {
+        \Log::info('ProjectFile authorization check', [
+            'user_id' => $user->id,
+            'project_file_id' => $projectFile->id,
+            'project_id' => $projectFile->project_id,
+            'project_user_id' => $projectFile->project?->user_id,
+            'project_loaded' => $projectFile->relationLoaded('project'),
+            'auth_result' => $user->id === $projectFile->project?->user_id
+        ]);
+        
         // Only the project owner (producer) can view project files in the management interface
         return $user->id === $projectFile->project->user_id;
     }
