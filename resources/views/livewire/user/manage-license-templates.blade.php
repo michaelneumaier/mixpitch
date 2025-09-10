@@ -11,48 +11,34 @@
         </div>
     @endif
 
-    <!-- Template Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <flux:card>
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md">
-                    <flux:icon name="document-text" class="text-white" size="sm" />
-                </div>
-                <div>
-                    <flux:subheading size="xs">Your Templates</flux:subheading>
-                    <flux:heading size="lg">{{ $userTemplates->count() }}</flux:heading>
-                </div>
-            </div>
-        </flux:card>
-        
-        <flux:card>
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md">
-                    <flux:icon name="star" class="text-white" size="sm" />
-                </div>
-                <div class="flex-1 min-w-0">
-                    <flux:subheading size="xs">Default Template</flux:subheading>
-                    @php $defaultTemplate = $userTemplates->where('is_default', true)->first(); @endphp
-                    @if($defaultTemplate)
-                        <flux:heading size="sm" class="truncate">{{ $defaultTemplate->name }}</flux:heading>
-                    @else
-                        <flux:subheading class="text-gray-500 dark:text-gray-400">None set</flux:subheading>
-                    @endif
-                </div>
-            </div>
-        </flux:card>
-        
-        <flux:card>
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg shadow-md">
-                    <flux:icon name="chart-bar" class="text-white" size="sm" />
-                </div>
-                <div>
-                    <flux:subheading size="xs">Active</flux:subheading>
-                    <flux:heading size="lg">{{ $userTemplates->where('is_active', true)->count() }}</flux:heading>
-                </div>
-            </div>
-        </flux:card>
+    <!-- Stats + Actions Row -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+        <!-- Template Stats (compact) -->
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+            @php $defaultTemplate = $userTemplates->where('is_default', true)->first(); @endphp
+            <flux:badge icon="document-text" size="sm" color="zinc">
+                {{ $userTemplates->count() }} Templates
+            </flux:badge>
+            <flux:badge icon="chart-bar" size="sm" color="blue">
+                {{ $userTemplates->where('is_active', true)->count() }} Active
+            </flux:badge>
+            <flux:badge icon="star" size="sm" :color="$defaultTemplate ? 'emerald' : 'zinc'" class="max-w-[200px] truncate">
+                {{ $defaultTemplate ? $defaultTemplate->name : 'No default' }}
+            </flux:badge>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+            <flux:button wire:click="openMarketplace()" icon="building-storefront" variant="outline">
+                Browse Marketplace
+            </flux:button>
+            @if($canCreateMore)
+                <flux:button wire:click="createTemplate()" icon="plus" variant="filled">
+                    <span class="sm:hidden">Create</span>
+                    <span class="hidden sm:inline">Create Template</span>
+                </flux:button>
+            @endif
+        </div>
     </div>
 
     <!-- Usage Limit Notice -->
@@ -72,17 +58,7 @@
         </flux:card>
     @endif
 
-    <!-- Action Buttons -->
-    <div class="flex flex-col sm:flex-row gap-3">
-        <flux:button wire:click="openMarketplace()" icon="building-storefront" variant="outline">
-            Browse Marketplace
-        </flux:button>
-        @if($canCreateMore)
-            <flux:button wire:click="createTemplate()" icon="plus" variant="filled">
-                Create Template
-            </flux:button>
-        @endif
-    </div>
+    
 
     @if($userTemplates->count() > 0)
         <!-- Templates Grid -->
@@ -188,7 +164,7 @@
         </div>
     @else
         <!-- Empty State -->
-        <div class="text-center py-8">
+        <div class="text-center">
             <flux:card class="bg-gray-50/50 dark:bg-gray-800/50">
                 <div class="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                     <flux:icon name="document-text" size="lg" class="text-gray-400 dark:text-gray-500" />

@@ -85,6 +85,11 @@
             white-space: nowrap;
         }
         
+        /* Reserve bottom space for the global player; controlled by a CSS var on <body> */
+        .main-content {
+            padding-bottom: var(--global-audio-player-offset, 0px);
+        }
+        
         
     </style>
 
@@ -229,7 +234,7 @@
         </flux:dropdown>
         @else
         <div class="space-y-2 p-4">
-            <flux:button href="{{ route('login') }}" wire:navigate variant="ghost" size="sm" class="w-full">
+            <flux:button href="{{ route('login') }}" variant="ghost" size="sm" class="w-full">
                 Log in
             </flux:button>
             <flux:button href="{{ route('register') }}" variant="primary" size="sm" class="w-full">
@@ -253,7 +258,7 @@
         @endif
 
         <!-- Page Content -->
-        <main>
+        <main class="main-content">
             {{ $slot ?? '' }}
             @yield('content')
         </main>

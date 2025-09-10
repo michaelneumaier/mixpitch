@@ -1,6 +1,7 @@
 <div>
 {{-- Global Audio Player Component --}}
 <div x-data="globalAudioPlayer()" 
+     x-effect="updateBodyPadding()"
      x-show="$store.audioPlayer.isVisible && $store.audioPlayer._initialized"
      x-transition:enter="transition ease-out duration-300" 
      x-transition:enter-start="transform translate-y-full opacity-0" 
@@ -13,7 +14,8 @@
      :class="{
          'left-0 lg:left-64': document.querySelector('[data-flux-sidebar]') && window.innerWidth >= 1024,
          'left-0': !document.querySelector('[data-flux-sidebar]') || window.innerWidth < 1024
-     }">
+     }"
+     id="global-audio-player">
     
     {{-- Mini Player --}}
     <div x-show="$store.audioPlayer.showMiniPlayer && !$store.audioPlayer.showFullPlayer" class="px-4 py-3">
@@ -58,8 +60,7 @@
                 {{-- Play/Pause Button --}}
                 <button @click="togglePlaybackWithPersistentAudio()" 
                         class="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl">
-                    <i x-show="$store.audioPlayer.isPlaying" class="fas fa-pause text-sm"></i>
-                    <i x-show="!$store.audioPlayer.isPlaying" class="fas fa-play text-sm ml-0.5"></i>
+                    <i class="fas text-sm" :class="[$store.audioPlayer.isPlaying ? 'fa-pause' : 'fa-play', !$store.audioPlayer.isPlaying ? 'ml-0.5' : '']"></i>
                 </button>
                 
                 {{-- Next Track --}}
@@ -272,8 +273,7 @@
                     
                     <button @click="togglePlaybackWithPersistentAudio()" 
                             class="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
-                        <i x-show="$store.audioPlayer.isPlaying" class="fas fa-pause text-lg"></i>
-                        <i x-show="!$store.audioPlayer.isPlaying" class="fas fa-play text-lg ml-1"></i>
+                        <i class="fas text-lg" :class="[$store.audioPlayer.isPlaying ? 'fa-pause' : 'fa-play', !$store.audioPlayer.isPlaying ? 'ml-1' : '']"></i>
                     </button>
                     
                     <button wire:click="nextTrack" 
@@ -898,14 +898,17 @@ Alpine.data('globalAudioPlayer', () => ({
         },
         
         updateBodyPadding() {
-            // Add bottom padding to body when player is visible to prevent content overlap
+            // Primary: CSS variable drives padding; persists across wire:navigate/PWA
             const isVisible = this.$store.audioPlayer.isVisible && this.$store.audioPlayer.showMiniPlayer;
-            const playerHeight = isVisible ? 120 : 0; // Approximate height of mini player
-                        
-            // Also update main content area if it has specific classes
-            const mainContent = document.querySelector('main') || document.querySelector('.main-content');
-            if (mainContent) {
-                mainContent.style.paddingBottom = `${playerHeight}px`;
+            const offset = isVisible ? '120px' : '0px';
+            document.body.style.setProperty('--global-audio-player-offset', offset);
+            document.documentElement.style.setProperty('--global-audio-player-offset', offset);
+
+            // Optional fallback via class (harmless if left)
+            if (isVisible) {
+                document.body.classList.add('global-audio-player-active');
+            } else {
+                document.body.classList.remove('global-audio-player-active');
             }
         },
         
@@ -952,10 +955,14 @@ Alpine.data('globalAudioPlayer', () => ({
                 // Sync initial state from Livewire to Alpine store
                 this.syncFromLivewire();
                 
+                // Apply padding immediately if player is already visible (important for navigation)
+                this.updateBodyPadding();
+                
                 // Listen for Livewire events - simplified for persist
                 this.$wire.$on('startPersistentAudio', (event) => {
                     console.log('Starting audio for track:', event.track);
                     if (event.track) {
+
                         // Call handlePlayTrack and then explicitly start playback
                         this.$wire.handlePlayTrack(event.track).then(() => {
                             // After track is set up, start playback
@@ -983,6 +990,12 @@ Alpine.data('globalAudioPlayer', () => ({
                 });
             });
             
+            // Re-apply padding after Livewire navigate morphs the DOM
+            window.addEventListener('livewire:navigated', () => {
+                // Delay slightly to ensure new markup is in place
+                setTimeout(() => this.updateBodyPadding(), 0);
+            });
+            
             // Setup keyboard shortcuts
             this.setupKeyboardShortcuts();
             
@@ -992,8 +1005,7 @@ Alpine.data('globalAudioPlayer', () => ({
             // Monitor sidebar state changes
             this.monitorSidebarState();
             
-            // Navigation persistence is now handled by persist directive
-            // this.setupNavigationListeners(); // Removed - not needed with persist
+            // Navigation listeners removed - using simpler CSS approach
             
             // Watch for Livewire property changes and sync to store
             this.$wire.$watch('currentTrack', (value) => {
@@ -1319,13 +1331,11 @@ Alpine.data('globalAudioPlayer', () => ({
             
             // Mark as initialized after first sync
             store._initialized = true;
+            
+            // Apply padding after sync to ensure proper spacing
+            this.updateBodyPadding();
         },
 
-        // setupNavigationListeners removed - persist directive handles navigation persistence
-
-        // State persistence methods removed - persist directive handles this automatically
-
-        // Service Worker state saving removed - persist directive handles this
 }));
 </script>
 @endscript
@@ -1457,5 +1467,6 @@ Alpine.data('globalAudioPlayer', () => ({
     50% { opacity: 0.6; }
     100% { opacity: 1; }
 }
+
 </style>
 </div>

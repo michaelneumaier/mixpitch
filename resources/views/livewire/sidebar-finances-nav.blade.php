@@ -2,7 +2,7 @@
     @if($producerData && (Auth::user()->hasRole('producer') || Auth::user()->hasRole('admin')))
     <flux:navlist.group heading="Finances" expandable :expanded="false" icon="currency-dollar">
         <!-- Earnings -->
-        <flux:navlist.item icon="banknotes" href="{{ route('payouts.index') }}">
+        <flux:navlist.item icon="banknotes" href="{{ route('payouts.index') }}" wire:navigate>
             <div class="flex items-center justify-between w-full">
                 <span>Earnings</span>
                 <flux:badge size="sm" color="emerald">${{ number_format($producerData['earnings']['total'] ?? 0, 0) }}</flux:badge>
@@ -10,7 +10,7 @@
         </flux:navlist.item>
 
         <!-- Payout Status -->
-        <flux:navlist.item icon="credit-card" href="{{ route('stripe.connect.setup') }}">
+        <flux:navlist.item icon="credit-card" href="{{ route('stripe.connect.setup') }}" wire:navigate>
             <div class="flex items-center justify-between w-full">
                 <span>Payouts</span>
                 @if(($producerData['stripe_connect']['can_receive_payouts'] ?? false))
@@ -24,7 +24,7 @@
         </flux:navlist.item>
 
         <!-- Client Projects -->
-        <flux:navlist.item icon="users" href="{{ route('producer.client-management') }}">
+        <flux:navlist.item icon="users" href="{{ route('producer.client-management') }}" wire:navigate>
             <div class="flex items-center justify-between w-full">
                 <span>Clients</span>
                 @if(($producerData['client_management']['total_projects'] ?? 0) > 0)

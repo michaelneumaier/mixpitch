@@ -4,7 +4,7 @@
     <div class="mx-auto px-2 md:py-2">
         <div class="mx-auto">
             <!-- Enhanced Dashboard Header -->
-            <div class="relative mb-2 lg:mb-8">
+            <div class="relative mb-2">
                 <!-- Subscription Alerts (if any) -->
                 @if(isset($subscription) && !empty($subscription['alerts']))
                     @foreach($subscription['alerts'] as $alert)
@@ -16,7 +16,7 @@
                             <div class="flex items-center justify-between">
                                 <flux:callout.text>{{ $alert['message'] }}</flux:callout.text>
                                 @if($alert['level'] === 'error')
-                                    <flux:callout.link href="{{ route('subscription.index') }}">
+                                    <flux:callout.link href="{{ route('subscription.index') }}" wire:navigate>
                                         Upgrade Now
                                     </flux:callout.link>
                                 @endif
@@ -453,7 +453,7 @@
                                             }
                                         @endphp
                                         
-                                        <flux:table.row x-show="filter === 'all' || filter === '{{ $itemType }}'" class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" @click="window.location.href = '{{ $itemUrl }}'">
+                                        <flux:table.row x-show="filter === 'all' || filter === '{{ $itemType }}'" class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" @click="if (window.Livewire && typeof Livewire.navigate==='function') { Livewire.navigate('{{ $itemUrl }}'); } else { window.location.href='{{ $itemUrl }}'; }">
                                             <flux:table.cell>
                                                 <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ $itemType === 'project' ? 'bg-blue-100 dark:bg-blue-900/30' : ($itemType === 'pitch' ? 'bg-indigo-100 dark:bg-indigo-900/30' : ($itemType === 'order' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-purple-100 dark:bg-purple-900/30')) }}">
                                                     <i class="fas {{ $itemIcon }} text-xs {{ $itemType === 'project' ? 'text-blue-600 dark:text-blue-400' : ($itemType === 'pitch' ? 'text-indigo-600 dark:text-indigo-400' : ($itemType === 'order' ? 'text-green-600 dark:text-green-400' : 'text-purple-600 dark:text-purple-400')) }}"></i>
@@ -525,7 +525,7 @@
                     </div>
                     
                     <!-- License Templates Component -->
-                    <livewire:user.manage-license-templates />
+                    <livewire:user.manage-license-templates embedded-mode="true" />
                 </flux:card>
             </div>
         </div>

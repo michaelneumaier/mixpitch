@@ -27,7 +27,133 @@
             </flux:card>
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <!-- Filters Sidebar -->
+
+
+                <!-- Main Content Area -->
+                <div class="lg:col-span-3 space-y-4">
+                    <!-- Search and View Controls -->
+                    <flux:card>
+                    
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <!-- Search Bar -->
+                            <div class="flex-1 sm:max-w-md">
+                                <flux:input wire:model.live.debounce.300ms="search" 
+                                           type="text" 
+                                           placeholder="Search projects..." 
+                                           icon="magnifying-glass" />
+                            </div>
+
+                            <!-- Sort and View Controls -->
+                            <div class="flex items-center gap-3">
+                                <!-- Sort Dropdown -->
+                                <flux:select wire:model.live="sortBy" class="w-full sm:w-auto">
+                                    <option value="latest">Latest</option>
+                                    <option value="oldest">Oldest</option>
+                                    <option value="budget_high_low">Budget: High to Low</option>
+                                    <option value="budget_low_high">Budget: Low to High</option>
+                                    <option value="deadline">Deadline</option>
+                                </flux:select>
+
+                                <!-- View Toggle -->
+                                <div class="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                                    <flux:button wire:click="$set('viewMode', 'card')"
+                                               :variant="$viewMode === 'card' ? 'primary' : 'ghost'"
+                                               icon="squares-2x2"
+                                               size="sm"
+                                               class="rounded-none">
+                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">Cards</span>
+                                    </flux:button>
+                                    <flux:button wire:click="$set('viewMode', 'list')"
+                                               :variant="$viewMode === 'list' ? 'primary' : 'ghost'"
+                                               icon="list-bullet"
+                                               size="sm"
+                                               class="rounded-none border-l border-slate-200 dark:border-slate-700">
+                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">List</span>
+                                    </flux:button>
+                                </div>
+                            </div>
+                        </div>
+                    </flux:card>
+
+                    <!-- Results Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <flux:heading size="xl" class="mb-1 text-gray-900 dark:text-gray-100">
+                                @if($search)
+                                    Search Results for "{{ $search }}"
+                                @endif
+                            </flux:heading>
+                            <flux:text size="sm" class="text-slate-600 dark:text-slate-400 font-medium">
+                                {{ $projects->total() }} {{ Str::plural('project', $projects->total()) }} found
+                            </flux:text>
+                        </div>
+                    </div>
+
+                    <!-- Projects Grid/List -->
+                    <div class="{{ $viewMode === 'card' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4' }}">
+                        @forelse($projects as $project)
+                        @if($viewMode === 'card')
+                                <div>
+                        @livewire('project-card', ['project' => $project], key('card-'.$project->id))
+                                </div>
+                        @else
+                                <div>
+                        @livewire('project-list-item', ['project' => $project], key('list-'.$project->id))
+                                </div>
+                        @endif
+                        @empty
+                            <div class="col-span-full">
+                                <flux:card class="text-center py-12 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
+                                    <div class="mb-4">
+                                        <flux:icon name="magnifying-glass" class="mx-auto text-slate-400 dark:text-slate-500" size="2xl" />
+                                    </div>
+                                    <flux:heading size="lg" class="mb-2 text-gray-900 dark:text-gray-100">No projects found</flux:heading>
+                                    <flux:text class="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
+                                        @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes))
+                                            Try adjusting your search criteria or filters to find more projects.
+                                        @else
+                                            Be the first to create a project and start collaborating!
+                                        @endif
+                                    </flux:text>
+                                    @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes))
+                                        <flux:button wire:click="clearFilters" icon="x-mark" variant="primary">
+                                            Clear All Filters
+                                        </flux:button>
+                                    @else
+                                        @auth
+                                        <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary">
+                                            Create First Project
+                                        </flux:button>
+                                        @else
+                                        <flux:button href="{{ route('login') }}" icon="arrow-right-end-on-rectangle" variant="primary">
+                                            Log In to Create Project
+                                        </flux:button>
+                                        @endauth
+                                    @endif
+                                </flux:card>
+                            </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Pagination -->
+                    @if($projects->hasPages())
+                    <flux:card class="bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
+                        <div class="text-gray-900 dark:text-gray-100">
+                            {{ $projects->links() }}
+                        </div>
+                    </flux:card>
+                    @endif
+
+                    <!-- Load More for Infinite Scroll (if implemented) -->
+                    <div wire:loading.delay class="text-center py-8">
+                        <div class="inline-flex items-center gap-3 px-6 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <flux:icon name="arrow-path" class="animate-spin text-blue-600 dark:text-blue-400" />
+                            <flux:text class="text-blue-700 dark:text-blue-300 font-medium">Loading more projects...</flux:text>
+                        </div>
+                    </div>
+                </div>
+
+                                <!-- Filters Sidebar -->
                 <div class="lg:col-span-1" x-data="{ mobileFiltersOpen: false }">
                     <!-- Mobile Filter Toggle -->
                     <div class="lg:hidden mb-4">
@@ -117,132 +243,6 @@
                         </flux:button>
                     </flux:card>
                     @endif
-                </div>
-
-                <!-- Main Content Area -->
-                <div class="lg:col-span-3 space-y-4">
-                    <!-- Search and View Controls -->
-                    <flux:card>
-                    
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <!-- Search Bar -->
-                            <div class="flex-1 sm:max-w-md">
-                                <flux:input wire:model.live.debounce.300ms="search" 
-                                           type="text" 
-                                           placeholder="Search projects..." 
-                                           icon="magnifying-glass" />
-                            </div>
-
-                            <!-- Sort and View Controls -->
-                            <div class="flex items-center gap-3">
-                                <!-- Sort Dropdown -->
-                                <flux:select wire:model.live="sortBy" class="w-full sm:w-auto">
-                                    <option value="latest">Latest</option>
-                                    <option value="oldest">Oldest</option>
-                                    <option value="budget_high_low">Budget: High to Low</option>
-                                    <option value="budget_low_high">Budget: Low to High</option>
-                                    <option value="deadline">Deadline</option>
-                                </flux:select>
-
-                                <!-- View Toggle -->
-                                <div class="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
-                                    <flux:button wire:click="$set('viewMode', 'card')"
-                                               :variant="$viewMode === 'card' ? 'primary' : 'ghost'"
-                                               icon="squares-2x2"
-                                               size="sm"
-                                               class="rounded-none">
-                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">Cards</span>
-                                    </flux:button>
-                                    <flux:button wire:click="$set('viewMode', 'list')"
-                                               :variant="$viewMode === 'list' ? 'primary' : 'ghost'"
-                                               icon="list-bullet"
-                                               size="sm"
-                                               class="rounded-none border-l border-slate-200 dark:border-slate-700">
-                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">List</span>
-                                    </flux:button>
-                                </div>
-                            </div>
-                        </div>
-                    </flux:card>
-
-                    <!-- Results Header -->
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <flux:heading size="xl" class="mb-1 text-gray-900 dark:text-gray-100">
-                                @if($search)
-                                    Search Results for "{{ $search }}"
-                                @else
-                                    Available Projects
-                                @endif
-                            </flux:heading>
-                            <flux:text size="sm" class="text-slate-600 dark:text-slate-400 font-medium">
-                                {{ $projects->total() }} {{ Str::plural('project', $projects->total()) }} found
-                            </flux:text>
-                        </div>
-                    </div>
-
-                    <!-- Projects Grid/List -->
-                    <div class="{{ $viewMode === 'card' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4' }}">
-                        @forelse($projects as $project)
-                        @if($viewMode === 'card')
-                                <div>
-                        @livewire('project-card', ['project' => $project], key('card-'.$project->id))
-                                </div>
-                        @else
-                                <div>
-                        @livewire('project-list-item', ['project' => $project], key('list-'.$project->id))
-                                </div>
-                        @endif
-                        @empty
-                            <div class="col-span-full">
-                                <flux:card class="text-center py-12 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
-                                    <div class="mb-4">
-                                        <flux:icon name="magnifying-glass" class="mx-auto text-slate-400 dark:text-slate-500" size="2xl" />
-                                    </div>
-                                    <flux:heading size="lg" class="mb-2 text-gray-900 dark:text-gray-100">No projects found</flux:heading>
-                                    <flux:text class="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
-                                        @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes))
-                                            Try adjusting your search criteria or filters to find more projects.
-                                        @else
-                                            Be the first to create a project and start collaborating!
-                                        @endif
-                                    </flux:text>
-                                    @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes))
-                                        <flux:button wire:click="clearFilters" icon="x-mark" variant="primary">
-                                            Clear All Filters
-                                        </flux:button>
-                                    @else
-                                        @auth
-                                        <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary">
-                                            Create First Project
-                                        </flux:button>
-                                        @else
-                                        <flux:button href="{{ route('login') }}" icon="arrow-right-end-on-rectangle" variant="primary">
-                                            Log In to Create Project
-                                        </flux:button>
-                                        @endauth
-                                    @endif
-                                </flux:card>
-                            </div>
-                        @endforelse
-                    </div>
-
-                    <!-- Pagination -->
-                    @if($projects->hasPages())
-                    <flux:card class="bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
-                        <div class="text-gray-900 dark:text-gray-100">
-                            {{ $projects->links() }}
-                        </div>
-                    </flux:card>
-                    @endif
-
-                    <!-- Load More for Infinite Scroll (if implemented) -->
-                    <div wire:loading.delay class="text-center py-8">
-                        <div class="inline-flex items-center gap-3 px-6 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <flux:icon name="arrow-path" class="animate-spin text-blue-600 dark:text-blue-400" />
-                            <flux:text class="text-blue-700 dark:text-blue-300 font-medium">Loading more projects...</flux:text>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
