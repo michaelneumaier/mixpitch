@@ -500,8 +500,8 @@ class ManageProject extends Component
                 'match' => $file->project_id === $this->project->id
             ]);
 
-            // Verify the file belongs to this project
-            if ($file->project_id !== $this->project->id) {
+            // Verify the file belongs to this project (use loose comparison to handle type differences)
+            if ($file->project_id != $this->project->id) {
                 throw new AuthorizationException('File does not belong to this project.');
             }
 
