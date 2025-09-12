@@ -26,7 +26,7 @@
                 @endif
 
                 <!-- Compact Dashboard Header -->
-                <flux:card class="mb-2 bg-white/50">
+                <flux:card class="p-4 lg:p-6 xl:p-8 mb-2 bg-white/50">
                     <!-- Top Row: Title + Primary Actions -->
                     <div class="flex items-center justify-between gap-3 mb-3">
                         <flux:heading size="xl" class="bg-gradient-to-r from-gray-900 to-purple-800 dark:from-blue-200 dark:to-purple-200 bg-clip-text text-transparent">
@@ -317,9 +317,10 @@
                         </div>
                     @else
                         <!-- Work Items Table -->
-                            <flux:table>
+                        <div class="overflow-x-hidden sm:overflow-visible">
+                            <flux:table class="table-fixed">
                                 <flux:table.columns>
-                                    <flux:table.column class="w-12">
+                                    <flux:table.column class="w-10">
 
                                     <!-- Filter Dropdown -->
                                             <div>
@@ -352,13 +353,13 @@
                                                 </flux:dropdown>
                                             </div>
                                     </flux:table.column>
-                                    <flux:table.column>Name</flux:table.column>
-                                    <flux:table.column>
+                                    <flux:table.column class="w-auto">Name</flux:table.column>
+                                    <flux:table.column class="hidden sm:table-cell">
                                         <div class="flex items-center justify-between">
                                             <span>Type</span>
                                         </div>
                                     </flux:table.column>
-                                    <flux:table.column>Status</flux:table.column>
+                                    <flux:table.column class="w-24 sm:w-auto">Status</flux:table.column>
                                     <flux:table.column class="hidden sm:table-cell">Amount</flux:table.column>
                                     <flux:table.column class="hidden md:table-cell">Deadline</flux:table.column>
                                     <flux:table.column class="hidden lg:table-cell">Updated</flux:table.column>
@@ -459,22 +460,41 @@
                                                     <i class="fas {{ $itemIcon }} text-xs {{ $itemType === 'project' ? 'text-blue-600 dark:text-blue-400' : ($itemType === 'pitch' ? 'text-indigo-600 dark:text-indigo-400' : ($itemType === 'order' ? 'text-green-600 dark:text-green-400' : 'text-purple-600 dark:text-purple-400')) }}"></i>
                                                 </div>
                                             </flux:table.cell>
-                                            <flux:table.cell>
-                                                <div>
-                                                    <div class="font-medium text-gray-900 dark:text-gray-100">{{ Str::limit($itemName, 40) }}</div>
+                                            <flux:table.cell class="max-w-0 w-full">
+                                                <div class="min-w-0">
+                                                    <div class="font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                        {{ $itemName }}
+                                                    </div>
                                                     @if ($itemType === 'pitch' && $item->project)
-                                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $item->project->readableWorkflowTypeAttribute }}</div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                                            {{ $item->project->readableWorkflowTypeAttribute }}
+                                                        </div>
                                                     @endif
                                                 </div>
                                             </flux:table.cell>
-                                            <flux:table.cell>
+                                            <flux:table.cell class="hidden sm:table-cell">
                                                 <flux:badge size="sm" color="{{ $itemBadgeColor }}" class="capitalize">
                                                     {{ Str::title(str_replace('_', ' ', $itemType)) }}
                                                 </flux:badge>
                                             </flux:table.cell>
                                             <flux:table.cell>
-                                                <flux:badge size="sm" color="{{ $itemBadgeColor }}" variant="outline" class="capitalize">
-                                                    {{ Str::title(str_replace('_', ' ', $itemStatus)) }}
+                                                @php
+                                                    $fullStatus = Str::title(str_replace('_', ' ', $itemStatus));
+                                                    $mobileStatus = match($itemStatus) {
+                                                        'ready_for_review' => 'Review',
+                                                        'in_progress' => 'In Prog',
+                                                        'revisions_requested' => 'Revisions',
+                                                        'client_revisions_requested' => 'Revisions',
+                                                        'contest_winner' => 'Winner',
+                                                        'contest_runner_up' => 'Runner Up',
+                                                        'contest_not_selected' => 'Not Sel.',
+                                                        'contest_entry' => 'Entry',
+                                                        default => strlen($fullStatus) > 8 ? Str::limit($fullStatus, 8, '') : $fullStatus
+                                                    };
+                                                @endphp
+                                                <flux:badge size="sm" color="{{ $itemBadgeColor }}" variant="outline" class="capitalize whitespace-nowrap">
+                                                    <span class="sm:hidden">{{ $mobileStatus }}</span>
+                                                    <span class="hidden sm:inline">{{ $fullStatus }}</span>
                                                 </flux:badge>
                                             </flux:table.cell>
                                             <flux:table.cell class="hidden sm:table-cell">
@@ -504,6 +524,7 @@
                                     @endforeach
                                 </flux:table.rows>
                             </flux:table>
+                        </div>
                     @endif
                 </flux:card>
             </div>

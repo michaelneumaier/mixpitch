@@ -1,11 +1,11 @@
 @props(['model', 'title' => 'Upload New Files', 'description' => 'Upload audio, PDFs, or images'])
 
-<div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+<div class="bg-white rounded-lg shadow-sm overflow-hidden">
     <div class="p-4">
-        <div class="flex items-center justify-between">
+        <div class="flex-row md:flex items-center justify-between">
             <div>
                 <h5 class="font-medium text-base">{{ $title }}</h5>
-                <p class="text-xs text-gray-500 mt-1">{{ $description }}</p>
+                <p class="hidden md:block text-xs text-gray-500 mt-1">{{ $description }}</p>
             </div>
             <flux:button 
                 variant="outline" 

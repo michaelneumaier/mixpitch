@@ -10,7 +10,7 @@ $classes = Flux::classes()
     ->add('shadow-sm')
     ->add('transition-all duration-300')
     ->add(match ($size) {
-        default => '[:where(&)]:p-6 [:where(&)]:rounded-2xl',
+        default => '[:where(&)]:p-4 lg:p-6 xl:p-8 [:where(&)]:rounded-2xl',
         'sm' => '[:where(&)]:p-4 [:where(&)]:rounded-xl',
     })
     ;

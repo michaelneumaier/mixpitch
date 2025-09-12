@@ -111,7 +111,7 @@
 @endphp
 
 <!-- Simplified Project Header -->
-<flux:card class="mb-2">
+<flux:card class="p-4 lg:p-6 xl:p-8 mb-2">
     <!-- Main Header Content -->
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <!-- Project Identity -->

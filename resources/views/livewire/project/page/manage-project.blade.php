@@ -82,7 +82,7 @@
 <div>
 
 <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
-    <div class="container mx-auto px-2 py-2">
+    <div class="mx-auto px-2 py-2">
         <div class="mx-auto">
             <style>
                 /* Custom breakpoint for extra small screens */
@@ -142,16 +142,18 @@
                 /* Responsive track items on very small screens */
                 @media (max-width: 380px) {
                     .track-item {
-                        flex-direction: column;
-                        align-items: flex-start;
+                        flex-direction: row;
+                        align-items: center;
+                        gap: 0.5rem;
+                    }
+
+                    .track-item .track-info {
+                        flex: 1;
+                        min-width: 0;
                     }
 
                     .track-item .track-actions {
-                        margin-top: 0.5rem;
-                        margin-left: 2.5rem;
-                        width: 100%;
-                        display: flex;
-                        justify-content: flex-start;
+                        flex-shrink: 0;
                     }
                 }
 
@@ -252,7 +254,7 @@
                                                 <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
                                                     {{ $project->isContest() ? 'Contest Files' : 'Project Files' }}
                                                 </flux:heading>
-                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                                                <flux:subheading class="hidden md:block {{ $workflowColors['text_muted'] }}">
                                                     Upload and manage {{ $project->isContest() ? 'contest' : 'project' }} resources
                                                 </flux:subheading>
                                             </div>
@@ -266,7 +268,7 @@
 
 
                                     <!-- File Uploader Component -->
-                                    <div x-show="showUploader" x-transition class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
+                                    <div x-show="showUploader" x-transition class="mb-2">
                                         @if($this->canUploadFiles)
                                             <x-file-management.upload-section 
                                                 :model="$project"
@@ -287,11 +289,10 @@
                                     </div>
 
                                     <!-- Files List Section -->
-                                    <flux:card>
-                                        <div class="flex items-center gap-3 mb-6">
+                                        <div class="flex items-center gap-3 mb-2">
                                             <flux:icon.folder variant="solid" class="w-6 h-6 {{ $workflowColors['icon'] }}" />
-                                            <div>
-                                                <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">
+                                            <div class="flex items-center justify-between w-full">
+                                                <flux:heading size="base" class="!mb-0 {{ $workflowColors['text_primary'] }}">
                                                     Files ({{ $project->files->count() }})
                                                 </flux:heading>
                                                 @if ($project->files->count() > 0)
@@ -304,22 +305,22 @@
 
                                         <div class="divide-y divide-gray-200 dark:divide-gray-700">
                                             @forelse($project->files as $file)
-                                                <div class="track-item @if (isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif group flex items-center justify-between py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                                                    <div class="flex flex-1 items-center overflow-hidden pr-4">
-                                                        <div class="{{ $file->id == $project->preview_track ? $workflowColors['icon'] . ' bg-white text-current' : $workflowColors['accent_bg'] . ' ' . $workflowColors['icon'] }} mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
-                                                            <flux:icon.musical-note class="w-5 h-5" />
-                                                        </div>
+                                                <div class="track-item @if (isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif group flex items-center justify-between py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
+                                                    <div class="track-info flex flex-1 items-center overflow-hidden pr-4">
+                                                        @if ($file->isAudioFile())
+                                                            <button wire:click="playProjectFile({{ $file->id }})" class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['icon'] }} mx-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg hover:bg-opacity-80 transition-colors cursor-pointer">
+                                                                <flux:icon.play class=" w-5 h-5" />
+                                                            </button>
+                                                        @else
+                                                            <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['icon'] }} mx-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
+                                                                <flux:icon.musical-note class="w-5 h-5" />
+                                                            </div>
+                                                        @endif
                                                         <div class="min-w-0 flex-1">
-                                                            <div class="flex items-center gap-2 mb-1">
-                                                                <span class="truncate font-semibold text-gray-900 dark:text-gray-100">
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
                                                                     {{ $file->file_name }}
                                                                 </span>
-                                                                @if ($file->id == $project->preview_track)
-                                                                    <flux:badge variant="primary" size="xs">
-                                                                        <flux:icon.star class="w-3 h-3 mr-1" />
-                                                                        Preview
-                                                                    </flux:badge>
-                                                                @endif
                                                             </div>
                                                             <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                                                                 <div class="flex items-center gap-1">
@@ -333,25 +334,19 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="flex items-center gap-2">
-                                                        @if ($file->isAudioFile())
-                                                            <flux:button wire:click="playProjectFile({{ $file->id }})" variant="ghost" size="xs" icon="play">
+                                                    <div class="track-actions flex items-center">
+                                                        <flux:dropdown>
+                                                            <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
                                                             </flux:button>
-                                                        @endif
-
-                                                        @if ($file->id != $project->preview_track)
-                                                            <flux:button wire:click="togglePreviewTrack({{ $file->id }})" variant="ghost" size="xs" icon="star">
-                                                            </flux:button>
-                                                        @else
-                                                            <flux:button wire:click="clearPreviewTrack" variant="primary" size="xs" icon="star">
-                                                            </flux:button>
-                                                        @endif
-
-                                                        <flux:button wire:click="getDownloadUrl({{ $file->id }})" variant="ghost" size="xs" icon="arrow-down-tray">
-                                                        </flux:button>
-
-                                                        <flux:button wire:click="confirmDeleteFile({{ $file->id }})" variant="ghost" size="xs" icon="trash">
-                                                        </flux:button>
+                                                            <flux:menu>
+                                                                <flux:menu.item wire:click="getDownloadUrl({{ $file->id }})" icon="arrow-down-tray">
+                                                                    Download
+                                                                </flux:menu.item>
+                                                                <flux:menu.item wire:click="confirmDeleteFile({{ $file->id }})" variant="danger" icon="trash">
+                                                                    Delete
+                                                                </flux:menu.item>
+                                                            </flux:menu>
+                                                        </flux:dropdown>
                                                     </div>
                                                 </div>
                                             @empty
@@ -364,7 +359,6 @@
                                                 </div>
                                             @endforelse
                                         </div>
-                                    </flux:card>
                                 </flux:card>
                             @endif
 

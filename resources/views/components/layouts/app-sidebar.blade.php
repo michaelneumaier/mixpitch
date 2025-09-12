@@ -99,7 +99,7 @@
     <flux:sidebar sticky stashable class="bg-gradient-to-br from-blue-50/70 via-purple-50/70 to-pink-50/70 dark:from-gray-900/80 dark:via-slate-900/80 dark:to-gray-900/80 backdrop-blur-lg border-r border-gray-200 dark:border-gray-700">
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="top" />
 
-        <div class="relative flex items-center justify-between pl-4 py-3">
+        <div class="relative flex items-center justify-between pl-4 py-3 max-lg:hidden">
             <flux:brand href="{{ url('/') }}" logo="{{ asset('logo.png') }}" class="!p-0" />
             
             @auth
@@ -245,10 +245,20 @@
     </flux:sidebar>
 
     <flux:main>
-        <flux:header class="lg:hidden">
+        <flux:header class="lg:hidden flex items-center px-4 py-3 bg-gradient-to-br from-blue-50/70 via-purple-50/70 to-pink-50/70 dark:from-gray-900/80 dark:via-slate-900/80 dark:to-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" />
             
-            <flux:spacer />
+            <!-- Logo for mobile -->
+            <div class="flex-1 flex justify-center">
+                <flux:brand href="{{ url('/') }}" logo="{{ asset('logo.png') }}" class="!p-0" />
+            </div>
+            
+            @auth
+            <!-- Notifications for mobile -->
+            <div>
+                <livewire:notification-list />
+            </div>
+            @endauth
         </flux:header>
 
         @if (isset($header))
