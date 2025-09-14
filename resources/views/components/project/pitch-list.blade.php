@@ -714,19 +714,19 @@
                     </div>
                 </div>
             @endif
+        @empty
+            <!-- Clean Empty State -->
+            <div
+                class="border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl border bg-white/60 p-6 text-center dark:bg-gray-800/60">
+                <div class="flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
+                    <flux:icon.paper-airplane class="h-5 w-5" />
+                    <span class="text-sm font-medium">No pitches submitted yet</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    Pitch submissions will appear here for review once producers respond to your project.
+                </p>
+            </div>
+            @endforelse
         </div>
     </div>
-@empty
-    <!-- Clean Empty State -->
-    <div
-        class="border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-200/30 dark:border-{{ $project->workflow_type === 'contest' ? 'amber' : ($project->workflow_type === 'direct_hire' ? 'green' : ($project->workflow_type === 'client_management' ? 'purple' : 'blue')) }}-700/30 rounded-xl border bg-white/60 p-6 text-center dark:bg-gray-800/60">
-        <div class="flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
-            <flux:icon.paper-airplane class="h-5 w-5" />
-            <span class="text-sm font-medium">No pitches submitted yet</span>
-        </div>
-        <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
-            Pitch submissions will appear here for review once producers respond to your project.
-        </p>
-    </div>
-    @endforelse
 </flux:card>
