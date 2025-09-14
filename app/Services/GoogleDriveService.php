@@ -170,6 +170,85 @@ class GoogleDriveService
     }
 
     /**
+     * Execute a Google Drive operation with automatic token retry
+     *
+     * @param  User  $user  User to execute operation for
+     * @param  callable  $operation  Callback containing the Google Drive API operation
+     * @return mixed Result of the operation
+     *
+     * @throws GoogleDriveAuthException|GoogleDriveFileException
+     */
+    protected function executeWithTokenRetry(User $user, callable $operation)
+    {
+        try {
+            // First attempt - setup client and execute operation
+            $this->setupClientForUser($user);
+
+            return $operation();
+        } catch (GoogleServiceException $e) {
+            // Check if this is an authentication error that might be resolved by token refresh
+            if ($this->isAuthenticationError($e)) {
+                Log::info('Google Drive authentication error detected, attempting token refresh and retry', [
+                    'user_id' => $user->id,
+                    'error_message' => $e->getMessage(),
+                    'error_code' => $e->getCode(),
+                ]);
+
+                try {
+                    // Force token refresh by clearing current token and re-setting up client
+                    $this->client = null;
+                    $this->driveService = null;
+                    $this->setupClientForUser($user);
+
+                    // Retry the operation
+                    return $operation();
+                } catch (GoogleServiceException $retryException) {
+                    Log::error('Google Drive operation failed after token refresh retry', [
+                        'user_id' => $user->id,
+                        'original_error' => $e->getMessage(),
+                        'retry_error' => $retryException->getMessage(),
+                    ]);
+                    throw $retryException;
+                }
+            } else {
+                // Not an authentication error, re-throw immediately
+                throw $e;
+            }
+        }
+    }
+
+    /**
+     * Check if the exception is an authentication error that might be resolved by token refresh
+     */
+    protected function isAuthenticationError(GoogleServiceException $e): bool
+    {
+        $errorMessage = strtolower($e->getMessage());
+        $errorCode = $e->getCode();
+
+        // Check for common authentication error patterns
+        $authErrorPatterns = [
+            'token has been expired or revoked',
+            'invalid credentials',
+            'access denied',
+            'unauthorized',
+            'authentication required',
+        ];
+
+        foreach ($authErrorPatterns as $pattern) {
+            if (str_contains($errorMessage, $pattern)) {
+                return true;
+            }
+        }
+
+        // HTTP 401 Unauthorized
+        if ($errorCode === 401) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * List files in user's Google Drive
      *
      * @throws GoogleDriveAuthException|GoogleDriveFileException
@@ -181,11 +260,9 @@ class GoogleDriveService
         ?int $pageSize = null,
         ?string $pageToken = null
     ): array {
-        $this->setupClientForUser($user);
-
         $pageSize = $pageSize ?? config('googledrive.ui.files_per_page', 50);
 
-        try {
+        return $this->executeWithTokenRetry($user, function () use ($folderId, $searchQuery, $pageSize, $pageToken) {
             $query = $this->buildFileQuery($folderId, $searchQuery);
             $parameters = [
                 'q' => $query,
@@ -213,14 +290,7 @@ class GoogleDriveService
                 'breadcrumbs' => $breadcrumbs,
                 'nextPageToken' => $results->getNextPageToken(),
             ];
-        } catch (GoogleServiceException $e) {
-            Log::error('Failed to list Google Drive files', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'folder_id' => $folderId,
-            ]);
-            throw new GoogleDriveFileException('Failed to list Google Drive files: '.$e->getMessage());
-        }
+        });
     }
 
     /**
@@ -351,9 +421,7 @@ class GoogleDriveService
      */
     public function downloadFile(User $user, string $fileId): array
     {
-        $this->setupClientForUser($user);
-
-        try {
+        return $this->executeWithTokenRetry($user, function () use ($user, $fileId) {
             // Get file metadata first
             $file = $this->driveService->files->get($fileId, ['fields' => 'id, name, size, mimeType']);
 
@@ -385,15 +453,7 @@ class GoogleDriveService
                 'localPath' => $path,
                 'temporaryUrl' => Storage::temporaryUrl($path, now()->addHours(1)),
             ];
-
-        } catch (GoogleServiceException $e) {
-            Log::error('Failed to download Google Drive file', [
-                'user_id' => $user->id,
-                'file_id' => $fileId,
-                'error' => $e->getMessage(),
-            ]);
-            throw new GoogleDriveFileException('Failed to download file: '.$e->getMessage());
-        }
+        });
     }
 
     /**
@@ -515,83 +575,82 @@ class GoogleDriveService
     public function importFileToModel(User $user, string $fileId, Model $model): array
     {
         try {
-            $this->setupClientForUser($user);
+            return $this->executeWithTokenRetry($user, function () use ($user, $fileId, $model) {
+                // Get file metadata first
+                $file = $this->driveService->files->get($fileId, [
+                    'fields' => 'id,name,mimeType,size,parents',
+                ]);
 
-            // Get file metadata first
-            $file = $this->driveService->files->get($fileId, [
-                'fields' => 'id,name,mimeType,size,parents',
-            ]);
+                // Validate file can be imported to this model type
+                if (! $this->canImportToModel($model, $file->getMimeType())) {
+                    throw new GoogleDriveFileException('File type not allowed for this model');
+                }
 
-            // Validate file can be imported to this model type
-            if (! $this->canImportToModel($model, $file->getMimeType())) {
-                throw new GoogleDriveFileException('File type not allowed for this model');
-            }
+                // Check file size limits based on model context
+                $maxSize = $this->getMaxFileSizeForModel($model);
+                if ($file->getSize() && $file->getSize() > $maxSize) {
+                    throw new GoogleDriveFileException("File too large. Maximum size is {$this->formatFileSize($maxSize)}");
+                }
 
-            // Check file size limits based on model context
-            $maxSize = $this->getMaxFileSizeForModel($model);
-            if ($file->getSize() && $file->getSize() > $maxSize) {
-                throw new GoogleDriveFileException("File too large. Maximum size is {$this->formatFileSize($maxSize)}");
-            }
+                // Download file content
+                $response = $this->driveService->files->get($fileId, ['alt' => 'media']);
+                $content = $response->getBody()->getContents();
 
-            // Download file content
-            $response = $this->driveService->files->get($fileId, ['alt' => 'media']);
-            $content = $response->getBody()->getContents();
+                // Generate unique filename
+                $originalName = $file->getName();
+                $uniqueName = $this->generateUniqueFileName($originalName);
 
-            // Generate unique filename
-            $originalName = $file->getName();
-            $uniqueName = $this->generateUniqueFileName($originalName);
+                // Store file in appropriate S3 path
+                $s3Key = $this->generateS3KeyForModel($model, $uniqueName);
+                Storage::disk('s3')->put($s3Key, $content, [
+                    'visibility' => 'public',
+                    'Content-Type' => $file->getMimeType(),
+                ]);
 
-            // Store file in appropriate S3 path
-            $s3Key = $this->generateS3KeyForModel($model, $uniqueName);
-            Storage::disk('s3')->put($s3Key, $content, [
-                'visibility' => 'public',
-                'Content-Type' => $file->getMimeType(),
-            ]);
+                // Create file record using FileManagementService
+                $fileManagementService = app(\App\Services\FileManagementService::class);
 
-            // Create file record using FileManagementService
-            $fileManagementService = app(\App\Services\FileManagementService::class);
+                if ($model instanceof \App\Models\Project) {
+                    $fileRecord = $fileManagementService->createProjectFileFromS3(
+                        $model,
+                        $s3Key,
+                        $originalName,
+                        $file->getSize() ?? 0,
+                        $file->getMimeType(),
+                        $user
+                    );
+                } elseif ($model instanceof \App\Models\Pitch) {
+                    $fileRecord = $fileManagementService->createPitchFileFromS3(
+                        $model,
+                        $s3Key,
+                        $originalName,
+                        $file->getSize() ?? 0,
+                        $file->getMimeType(),
+                        $user
+                    );
+                } else {
+                    throw new GoogleDriveFileException('Unsupported model type for file import');
+                }
 
-            if ($model instanceof \App\Models\Project) {
-                $fileRecord = $fileManagementService->createProjectFileFromS3(
-                    $model,
-                    $s3Key,
-                    $originalName,
-                    $file->getSize() ?? 0,
-                    $file->getMimeType(),
-                    $user
-                );
-            } elseif ($model instanceof \App\Models\Pitch) {
-                $fileRecord = $fileManagementService->createPitchFileFromS3(
-                    $model,
-                    $s3Key,
-                    $originalName,
-                    $file->getSize() ?? 0,
-                    $file->getMimeType(),
-                    $user
-                );
-            } else {
-                throw new GoogleDriveFileException('Unsupported model type for file import');
-            }
+                Log::info('File imported from Google Drive successfully', [
+                    'user_id' => $user->id,
+                    'file_id' => $fileId,
+                    'original_name' => $originalName,
+                    'unique_name' => $uniqueName,
+                    's3_key' => $s3Key,
+                    'model_type' => get_class($model),
+                    'model_id' => $model->id,
+                    'file_record_id' => $fileRecord->id,
+                ]);
 
-            Log::info('File imported from Google Drive successfully', [
-                'user_id' => $user->id,
-                'file_id' => $fileId,
-                'original_name' => $originalName,
-                'unique_name' => $uniqueName,
-                's3_key' => $s3Key,
-                'model_type' => get_class($model),
-                'model_id' => $model->id,
-                'file_record_id' => $fileRecord->id,
-            ]);
-
-            return [
-                'success' => true,
-                'file_record' => $fileRecord,
-                'original_name' => $originalName,
-                'size' => $file->getSize(),
-                'mime_type' => $file->getMimeType(),
-            ];
-
+                return [
+                    'success' => true,
+                    'file_record' => $fileRecord,
+                    'original_name' => $originalName,
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                ];
+            });
         } catch (GoogleServiceException $e) {
             Log::error('Failed to import Google Drive file', [
                 'user_id' => $user->id,
@@ -604,6 +663,19 @@ class GoogleDriveService
             return [
                 'success' => false,
                 'error' => 'Failed to import file: '.$e->getMessage(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Unexpected error importing Google Drive file', [
+                'user_id' => $user->id,
+                'file_id' => $fileId,
+                'model_type' => get_class($model),
+                'model_id' => $model->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'An unexpected error occurred: '.$e->getMessage(),
             ];
         }
     }
@@ -678,10 +750,8 @@ class GoogleDriveService
     public function backupFileToGoogleDrive(User $user, int $fileId, string $fileType, string $destinationFolderId): array
     {
         $backupRecord = null;
-        
-        try {
-            $this->setupClientForUser($user);
 
+        try {
             // Get the file record based on type
             if ($fileType === 'project_file') {
                 $fileRecord = \App\Models\ProjectFile::findOrFail($fileId);
@@ -705,9 +775,11 @@ class GoogleDriveService
             // Get the file content from S3
             $fileContent = Storage::disk('s3')->get($storagePath);
 
-            // Get destination folder info
-            $destinationFolderName = $this->getFolderName($destinationFolderId);
-            
+            // Get destination folder info (uses Google Drive API, so wrap it)
+            $destinationFolderName = $this->executeWithTokenRetry($user, function () use ($destinationFolderId) {
+                return $this->getFolderName($destinationFolderId);
+            });
+
             // Determine project context
             $project = null;
             $projectName = null;
@@ -735,21 +807,24 @@ class GoogleDriveService
                 'status' => 'pending',
             ]);
 
-            // Create Google Drive file
-            $driveFile = new DriveFile;
-            $driveFile->setName($fileRecord->file_name);
-            $driveFile->setParents([$destinationFolderId]);
-            $driveFile->setMimeType($fileRecord->mime_type);
+            // Upload file to Google Drive (wrap the Google Drive API call)
+            $result = $this->executeWithTokenRetry($user, function () use ($fileRecord, $destinationFolderId, $fileContent) {
+                // Create Google Drive file
+                $driveFile = new DriveFile;
+                $driveFile->setName($fileRecord->file_name);
+                $driveFile->setParents([$destinationFolderId]);
+                $driveFile->setMimeType($fileRecord->mime_type);
 
-            // Upload file to Google Drive
-            $result = $this->driveService->files->create(
-                $driveFile,
-                [
-                    'data' => $fileContent,
-                    'mimeType' => $fileRecord->mime_type,
-                    'uploadType' => 'multipart',
-                ]
-            );
+                // Upload file to Google Drive
+                return $this->driveService->files->create(
+                    $driveFile,
+                    [
+                        'data' => $fileContent,
+                        'mimeType' => $fileRecord->mime_type,
+                        'uploadType' => 'multipart',
+                    ]
+                );
+            });
 
             // Mark backup as completed
             $backupRecord->markAsCompleted($result->getId());
@@ -775,7 +850,7 @@ class GoogleDriveService
         } catch (GoogleServiceException $e) {
             // Mark backup as failed
             if ($backupRecord) {
-                $backupRecord->markAsFailed('Google Drive API error: ' . $e->getMessage());
+                $backupRecord->markAsFailed('Google Drive API error: '.$e->getMessage());
             }
 
             Log::error('Failed to backup file to Google Drive', [
@@ -795,7 +870,7 @@ class GoogleDriveService
         } catch (\Exception $e) {
             // Mark backup as failed
             if ($backupRecord) {
-                $backupRecord->markAsFailed('Unexpected error: ' . $e->getMessage());
+                $backupRecord->markAsFailed('Unexpected error: '.$e->getMessage());
             }
 
             Log::error('Unexpected error during Google Drive backup', [
@@ -827,14 +902,14 @@ class GoogleDriveService
     public function createFolder(User $user, string $folderName, string $parentFolderId = 'root'): array
     {
         try {
-            $this->setupClientForUser($user);
+            $result = $this->executeWithTokenRetry($user, function () use ($folderName, $parentFolderId) {
+                $driveFile = new DriveFile;
+                $driveFile->setName($folderName);
+                $driveFile->setParents([$parentFolderId]);
+                $driveFile->setMimeType('application/vnd.google-apps.folder');
 
-            $driveFile = new DriveFile;
-            $driveFile->setName($folderName);
-            $driveFile->setParents([$parentFolderId]);
-            $driveFile->setMimeType('application/vnd.google-apps.folder');
-
-            $result = $this->driveService->files->create($driveFile);
+                return $this->driveService->files->create($driveFile);
+            });
 
             Log::info('Folder created in Google Drive', [
                 'user_id' => $user->id,
@@ -951,13 +1026,15 @@ class GoogleDriveService
 
         try {
             $folder = $this->driveService->files->get($folderId, [
-                'fields' => 'name'
+                'fields' => 'name',
             ]);
+
             return $folder->getName();
         } catch (GoogleServiceException $e) {
-            Log::warning('Failed to get folder name for ID: ' . $folderId, [
-                'error' => $e->getMessage()
+            Log::warning('Failed to get folder name for ID: '.$folderId, [
+                'error' => $e->getMessage(),
             ]);
+
             return 'Unknown Folder';
         }
     }
@@ -990,7 +1067,7 @@ class GoogleDriveService
     public function getBackupStats(User $user): array
     {
         $backups = GoogleDriveBackup::forUser($user);
-        
+
         return [
             'total_backups' => $backups->count(),
             'successful_backups' => $backups->completed()->count(),
@@ -1007,7 +1084,7 @@ class GoogleDriveService
     public function isFileRecentlyBackedUp(int $fileId, string $fileType): bool
     {
         $fileClass = $fileType === 'project_file' ? \App\Models\ProjectFile::class : \App\Models\PitchFile::class;
-        
+
         return GoogleDriveBackup::where('file_id', $fileId)
             ->where('file_type', $fileClass)
             ->where('status', 'completed')
