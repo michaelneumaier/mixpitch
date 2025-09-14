@@ -155,16 +155,53 @@ class GoogleDriveService
                 $newTokens = $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
 
                 if (isset($newTokens['error'])) {
-                    throw new GoogleDriveAuthException('Token refresh failed: '.$newTokens['error_description'] ?? $newTokens['error']);
+                    // Check if this is a refresh token expiration/revocation
+                    $errorMsg = $newTokens['error_description'] ?? $newTokens['error'];
+                    if (str_contains(strtolower($errorMsg), 'token has been expired or revoked') || 
+                        str_contains(strtolower($errorMsg), 'invalid_grant')) {
+                        Log::warning('Google Drive refresh token expired, clearing stored tokens', [
+                            'user_id' => $user->id,
+                            'error' => $errorMsg,
+                        ]);
+                        
+                        // Clear the stored tokens since they're no longer valid
+                        $user->google_drive_tokens = null;
+                        $user->google_drive_connected_at = null;
+                        $user->save();
+                        
+                        throw new GoogleDriveAuthException('Google Drive connection has expired. Please reconnect your Google Drive account.');
+                    }
+                    
+                    throw new GoogleDriveAuthException('Token refresh failed: '.$errorMsg);
                 }
 
                 $this->storeTokens($user, $newTokens);
             } catch (GoogleServiceException $e) {
+                $errorMsg = $e->getMessage();
+                
+                // Check if this is a refresh token expiration/revocation at the Google API level
+                if (str_contains(strtolower($errorMsg), 'token has been expired or revoked') || 
+                    str_contains(strtolower($errorMsg), 'invalid_grant') ||
+                    $e->getCode() === 400) {
+                    Log::warning('Google Drive refresh token expired (API level), clearing stored tokens', [
+                        'user_id' => $user->id,
+                        'error' => $errorMsg,
+                        'code' => $e->getCode(),
+                    ]);
+                    
+                    // Clear the stored tokens since they're no longer valid
+                    $user->google_drive_tokens = null;
+                    $user->google_drive_connected_at = null;
+                    $user->save();
+                    
+                    throw new GoogleDriveAuthException('Google Drive connection has expired. Please reconnect your Google Drive account.');
+                }
+                
                 Log::error('Google Drive token refresh failed', [
                     'user_id' => $user->id,
-                    'error' => $e->getMessage(),
+                    'error' => $errorMsg,
                 ]);
-                throw new GoogleDriveAuthException('Failed to refresh Google Drive token: '.$e->getMessage());
+                throw new GoogleDriveAuthException('Failed to refresh Google Drive token: '.$errorMsg);
             }
         }
     }

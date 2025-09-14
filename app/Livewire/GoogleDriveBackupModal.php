@@ -159,6 +159,15 @@ class GoogleDriveBackupModal extends Component
 
             $this->breadcrumbs = $result['breadcrumbs'];
 
+        } catch (\App\Exceptions\GoogleDrive\GoogleDriveAuthException $e) {
+            Log::warning('Google Drive authentication failed during folder loading', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            // Update connection status and show reconnection message
+            $this->checkConnectionStatus();
+            Toaster::error('Your Google Drive connection has expired. Please reconnect to continue.');
         } catch (\Exception $e) {
             Log::error('Failed to load Google Drive folders', [
                 'error' => $e->getMessage(),
@@ -283,6 +292,15 @@ class GoogleDriveBackupModal extends Component
                 $this->dispatch('close-modal');
             }
 
+        } catch (\App\Exceptions\GoogleDrive\GoogleDriveAuthException $e) {
+            Log::warning('Google Drive authentication failed during backup', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            // Update connection status and show reconnection message
+            $this->checkConnectionStatus();
+            Toaster::error('Your Google Drive connection has expired. Please reconnect to continue.');
         } catch (\Exception $e) {
             Log::error('Failed to backup files to Google Drive', [
                 'error' => $e->getMessage(),
@@ -335,6 +353,15 @@ class GoogleDriveBackupModal extends Component
             } else {
                 throw new \Exception($result['error']);
             }
+        } catch (\App\Exceptions\GoogleDrive\GoogleDriveAuthException $e) {
+            Log::warning('Google Drive authentication failed during folder creation', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            // Update connection status and show reconnection message
+            $this->checkConnectionStatus();
+            Toaster::error('Your Google Drive connection has expired. Please reconnect to continue.');
         } catch (\Exception $e) {
             Log::error('Failed to create folder in Google Drive', [
                 'user_id' => Auth::id(),
