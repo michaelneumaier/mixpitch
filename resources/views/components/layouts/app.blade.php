@@ -127,14 +127,12 @@
     <!-- Global Modals - Positioned at root level for proper z-index behavior -->
     <x-pitch-action-modals />
     
-    <!-- Persistent audio system removed - @persist on global-audio-player handles this -->
     @auth
         @livewire('global-audio-player')
     @endauth
     
     @fluxScripts
     
-    <!-- Persistent audio controller removed - @persist directive handles persistence -->
 </body>
 
 </html>
