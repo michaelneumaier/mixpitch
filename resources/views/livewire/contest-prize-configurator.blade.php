@@ -1,5 +1,5 @@
-<div class="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-amber-200 rounded-xl p-6 shadow-lg">
-    <div class="flex items-center justify-between mb-6">
+<div class="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-amber-200 rounded-xl p-2 md:p-6 shadow-lg">
+    <div class="flex flex-col md:flex-row items-center justify-between mb-6">
         <h3 class="text-2xl font-bold text-amber-800 flex items-center">
             <i class="fas fa-trophy text-amber-600 mr-3 text-3xl"></i>
             Contest Prize Configuration
@@ -29,9 +29,9 @@
     @endif
 
     {{-- Prize Configuration for Each Placement --}}
-    <div class="space-y-6">
+    <div class="space-y-2 md:space-y-6">
         @foreach(['1st', '2nd', '3rd', 'runner_up'] as $placement)
-            <div class="bg-white border-2 border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="bg-white border-2 border-gray-200 rounded-lg p-2 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                 {{-- Placement Header --}}
                 <div class="flex items-center justify-between mb-4">
                     <h4 class="text-xl font-semibold text-gray-800 flex items-center">
@@ -48,13 +48,13 @@
 
                 {{-- Prize Configuration Based on Type --}}
                 @if($prizes[$placement]['type'] === 'cash')
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-2 md:p-4">
                         <h5 class="font-medium text-green-800 mb-3 flex items-center">
                             <i class="fas fa-dollar-sign mr-2"></i>
                             Cash Prize Configuration
                         </h5>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-green-700 mb-2">Currency</label>
                                 <select wire:model="prizes.{{ $placement }}.currency" 
@@ -94,13 +94,13 @@
                     </div>
 
                 @elseif($prizes[$placement]['type'] === 'other')
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 md:p-4">
                         <h5 class="font-medium text-blue-800 mb-3 flex items-center">
                             <i class="fas fa-gift mr-2"></i>
                             Other Prize Configuration
                         </h5>
                         
-                        <div class="space-y-4">
+                        <div class="space-y-2 md:space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-blue-700 mb-2">Prize Title <span class="text-red-500">*</span></label>
                                 <input type="text" 
@@ -147,7 +147,7 @@
                     </div>
 
                 @else
-                    <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-2 md:p-8 text-center">
                         <i class="fas fa-trophy text-gray-400 text-4xl mb-3"></i>
                         <p class="text-gray-500 font-medium">No prize configured for this placement</p>
                         <p class="text-gray-400 text-sm">Select a prize type above to get started</p>
@@ -158,13 +158,13 @@
     </div>
 
     {{-- Prize Summary Section --}}
-    <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+    <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-2 md:p-6">
         <h4 class="font-bold text-lg text-blue-800 mb-4 flex items-center">
             <i class="fas fa-chart-bar mr-2"></i>
             Prize Summary
         </h4>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 mb-4">
             <div class="bg-white rounded-lg p-4 text-center border border-blue-200">
                 <div class="text-2xl font-bold text-green-600">${{ number_format($this->getTotalCashPrizes(), 2) }}</div>
                 <div class="text-sm text-green-700">Total Cash Prizes</div>
@@ -184,7 +184,7 @@
 
         {{-- Preview of Configured Prizes --}}
         @if($counts['total'] > 0)
-            <div class="bg-white rounded-lg p-4 border border-blue-200">
+            <div class="bg-white rounded-lg p-2 md:p-4 border border-blue-200">
                 <h5 class="font-medium text-blue-800 mb-3">Prize Breakdown:</h5>
                 <div class="space-y-2">
                     @foreach(['1st', '2nd', '3rd', 'runner_up'] as $placement)
@@ -209,7 +209,7 @@
     </div>
 
     {{-- Action Buttons --}}
-    <div class="flex justify-end space-x-4 mt-8">
+    <div class="flex justify-end space-x-2 md:space-x-4 mt-8">
         <button type="button" 
                 wire:click="resetPrizes"
                 class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center">
@@ -219,7 +219,7 @@
         
         <button type="button" 
                 wire:click="savePrizes"
-                class="px-8 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors duration-200 flex items-center shadow-lg">
+                class="px-4 md:px-8 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors duration-200 flex items-center shadow-lg">
             <i class="fas fa-save mr-2"></i>
             @if($project)
                 Save Prize Configuration

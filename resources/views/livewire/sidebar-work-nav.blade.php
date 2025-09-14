@@ -12,25 +12,25 @@
 }">
 @if($counts['total'] > 0)
 <!-- My Work Heading -->
-<div class="px-2 mb-2">
+<div class="px-3 mb-2 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
     <a href="{{ route('dashboard') }}" wire:navigate class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-        <flux:icon name="briefcase" size="xs" />
+        <flux:icon name="briefcase" class="size-4" />
         My Work
     </a>
 </div>
 
 <!-- Projects Section -->
 @if($counts['projects'] > 0)
-<div class="mb-2">
+<div>
     <!-- Custom Header -->
     <div class="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
          x-on:click="toggleSection('projects')">
         <span class="flex items-center gap-2">
-            <flux:icon name="folder" size="sm" class="text-gray-500 dark:text-gray-400" />
+            <flux:icon name="folder" class="size-4 text-gray-500 dark:text-gray-400" />
             Projects
             <flux:badge size="sm" color="blue">{{ $counts['projects'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" size="sm" class="text-gray-400 transition-transform duration-200" 
+        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
                    x-bind:class="{ 'rotate-180': expandedSection === 'projects' }" />
     </div>
     
@@ -54,16 +54,16 @@
 
 <!-- Pitches Section -->
 @if($counts['pitches'] > 0)
-<div class="mb-2">
+<div>
     <!-- Custom Header -->
     <div class="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
          x-on:click="toggleSection('pitches')">
         <span class="flex items-center gap-2">
-            <flux:icon name="paper-airplane" size="sm" class="text-gray-500 dark:text-gray-400" />
+            <flux:icon name="paper-airplane" class="size-4 text-gray-500 dark:text-gray-400" />
             Pitches
             <flux:badge size="sm" color="indigo">{{ $counts['pitches'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" size="sm" class="text-gray-400 transition-transform duration-200" 
+        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
                    x-bind:class="{ 'rotate-180': expandedSection === 'pitches' }" />
     </div>
     
@@ -87,16 +87,16 @@
 
 <!-- Contests Section -->
 @if($counts['contests'] > 0)
-<div class="mb-2">
+<div>
     <!-- Custom Header -->
     <div class="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
          x-on:click="toggleSection('contests')">
         <span class="flex items-center gap-2">
-            <flux:icon name="trophy" size="sm" class="text-gray-500 dark:text-gray-400" />
+            <flux:icon name="trophy" class="size-4 text-gray-500 dark:text-gray-400" />
             Contests
             <flux:badge size="sm" color="yellow">{{ $counts['contests'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" size="sm" class="text-gray-400 transition-transform duration-200" 
+        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
                    x-bind:class="{ 'rotate-180': expandedSection === 'contests' }" />
     </div>
     
@@ -129,16 +129,16 @@
 
 <!-- Client Projects Section -->
 @if($counts['client_projects'] > 0)
-<div class="mb-2">
+<div>
     <!-- Custom Header -->
     <div class="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors" 
          x-on:click="toggleSection('client')">
         <span class="flex items-center gap-2">
-            <flux:icon name="users" size="sm" class="text-gray-500 dark:text-gray-400" />
+            <flux:icon name="users" class="size-4 text-gray-500 dark:text-gray-400" />
             Client Work
             <flux:badge size="sm" color="purple">{{ $counts['client_projects'] }}</flux:badge>
         </span>
-        <flux:icon name="chevron-down" size="sm" class="text-gray-400 transition-transform duration-200" 
+        <flux:icon name="chevron-down" class="size-4 text-gray-400 transition-transform duration-200" 
                    x-bind:class="{ 'rotate-180': expandedSection === 'client' }" />
     </div>
     

@@ -82,7 +82,7 @@
 <div>
 
 <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
-    <div class="mx-auto px-2 py-2">
+    <div class="mx-auto p-2">
         <div class="mx-auto">
             <style>
                 /* Custom breakpoint for extra small screens */

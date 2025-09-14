@@ -1,5 +1,5 @@
 <div class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
-    <div class="mx-auto px-2 md:py-2">
+    <div class="mx-auto p-2">
         <div class="mx-auto">
             <!-- Compact Dashboard Header -->
             <flux:card class="mb-2 bg-white/50 dark:bg-gray-800/50">
@@ -46,30 +46,32 @@
                             <!-- Sort and View Controls -->
                             <div class="flex items-center gap-3">
                                 <!-- Sort Dropdown -->
-                                <flux:select wire:model.live="sortBy" class="w-full sm:w-auto">
-                                    <option value="latest">Latest</option>
-                                    <option value="oldest">Oldest</option>
-                                    <option value="budget_high_low">Budget: High to Low</option>
-                                    <option value="budget_low_high">Budget: Low to High</option>
-                                    <option value="deadline">Deadline</option>
-                                </flux:select>
+                                <div class="flex-grow">
+                                    <flux:select wire:model.live="sortBy" class="w-auto md:w-full">
+                                        <option value="latest">Latest</option>
+                                        <option value="oldest">Oldest</option>
+                                        <option value="budget_high_low">Budget: High to Low</option>
+                                        <option value="budget_low_high">Budget: Low to High</option>
+                                        <option value="deadline">Deadline</option>
+                                    </flux:select>
+                                </div>
 
                                 <!-- View Toggle -->
-                                <div class="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
-                                    <flux:button wire:click="$set('viewMode', 'card')"
-                                               :variant="$viewMode === 'card' ? 'primary' : 'ghost'"
-                                               icon="squares-2x2"
-                                               size="sm"
-                                               class="rounded-none">
-                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">Cards</span>
-                                    </flux:button>
-                                    <flux:button wire:click="$set('viewMode', 'list')"
-                                               :variant="$viewMode === 'list' ? 'primary' : 'ghost'"
-                                               icon="list-bullet"
-                                               size="sm"
-                                               class="rounded-none border-l border-slate-200 dark:border-slate-700">
-                                        <span class="hidden sm:inline ml-1 text-gray-900 dark:text-gray-100">List</span>
-                                    </flux:button>
+                                <div class="flex-shrink-0">
+                                    <div class="flex border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                                        <flux:button wire:click="$set('viewMode', 'card')"
+                                                   :variant="$viewMode === 'card' ? 'primary' : 'ghost'"
+                                                   icon="squares-2x2"
+                                                   size="sm"
+                                                   class="rounded-none px-2 sm:px-3">
+                                        </flux:button>
+                                        <flux:button wire:click="$set('viewMode', 'list')"
+                                                   :variant="$viewMode === 'list' ? 'primary' : 'ghost'"
+                                                   icon="list-bullet"
+                                                   size="sm"
+                                                   class="rounded-none border-l border-slate-200 dark:border-slate-700 px-2 sm:px-3">
+                                        </flux:button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

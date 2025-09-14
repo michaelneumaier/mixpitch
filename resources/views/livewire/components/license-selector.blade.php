@@ -108,7 +108,7 @@
                 @if($this->canUserCreateTemplates)
                     <button type="button" 
                             wire:click="createTemplate"
-                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 hover:scale-105 shadow-lg">
+                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg">
                         <i class="fas fa-plus mr-2"></i>
                         Create New Template
                     </button>

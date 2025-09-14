@@ -250,7 +250,7 @@
                             <!-- Mobile-optimized layout -->
                             <div class="sm:hidden">
                                 <!-- Top row: Avatar, Name, Status -->
-                                <div class="flex items-center gap-3 mb-3">
+                                <div class="mb-3 flex items-center gap-3">
                                     <div class="relative flex-shrink-0">
                                         <flux:avatar size="sm" src="{{ $pitch->user->profile_photo_url }}"
                                             alt="{{ $pitch->user->name }}" />
@@ -258,11 +258,11 @@
                                             class="{{ $statusColors['accent'] }} absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-gray-800">
                                         </div>
                                     </div>
-                                    <div class="flex-1 min-w-0">
+                                    <div class="min-w-0 flex-1">
                                         <a href="{{ route('profile.show', $pitch->user->id) }}" wire:navigate
-                                            class="hover:{{ $gradientClasses['text_muted'] }} truncate text-base font-bold text-gray-900 transition-colors dark:text-gray-100 block">{{ $pitch->user->name }}</a>
+                                            class="hover:{{ $gradientClasses['text_muted'] }} block truncate text-base font-bold text-gray-900 transition-colors dark:text-gray-100">{{ $pitch->user->name }}</a>
                                     </div>
-                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                    <div class="flex flex-shrink-0 items-center gap-2">
                                         @if ($pitch->status === 'completed')
                                             <flux:badge color="green" size="sm">
                                                 <flux:icon.trophy class="mr-1 h-3 w-3" />Completed
@@ -276,7 +276,8 @@
                                 </div>
                                 <!-- Bottom section: Full-width meta info -->
                                 <div class="space-y-2">
-                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <div
+                                        class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-700 dark:text-gray-300">
                                         <div class="flex items-center gap-1.5">
                                             <flux:icon.calendar class="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                             {{ $pitch->created_at->format('M j, Y') }}
@@ -308,20 +309,22 @@
                                     {{-- Enhanced Rating Display --}}
                                     @if ($pitch->status === 'completed' && $pitch->getCompletionRating())
                                         <div class="flex items-center">
-                                            <div class="flex items-center rounded-lg border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-800 dark:bg-orange-950">
+                                            <div
+                                                class="flex items-center rounded-lg border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-800 dark:bg-orange-950">
                                                 <div class="mr-2 flex items-center">
                                                     @for ($i = 1; $i <= 5; $i++)
                                                         <flux:icon.star
                                                             class="{{ $i <= $pitch->getCompletionRating() ? 'text-orange-500' : 'text-gray-300 dark:text-gray-600' }} h-3 w-3" />
                                                     @endfor
                                                 </div>
-                                                <span class="text-sm font-bold text-orange-800 dark:text-orange-200">{{ number_format($pitch->getCompletionRating(), 1) }}</span>
+                                                <span
+                                                    class="text-sm font-bold text-orange-800 dark:text-orange-200">{{ number_format($pitch->getCompletionRating(), 1) }}</span>
                                             </div>
                                         </div>
                                     @endif
                                 </div>
                             </div>
-                            
+
                             <!-- Desktop layout (unchanged) -->
                             <div class="hidden sm:block">
                                 <div class="flex items-start gap-3">
@@ -335,8 +338,9 @@
                                     <div class="min-w-0 flex-1">
                                         <div class="min-w-0 flex-1">
                                             <div class="mb-1 flex items-center justify-between gap-4">
-                                                <div class="flex items-center gap-2 min-w-0">
-                                                    <a href="{{ route('profile.show', $pitch->user->id) }}" wire:navigate
+                                                <div class="flex min-w-0 items-center gap-2">
+                                                    <a href="{{ route('profile.show', $pitch->user->id) }}"
+                                                        wire:navigate
                                                         class="hover:{{ $gradientClasses['text_muted'] }} truncate text-base font-bold text-gray-900 transition-colors dark:text-gray-100">{{ $pitch->user->name }}</a>
                                                     @if ($pitch->status === 'completed')
                                                         <flux:badge color="green" size="sm">
@@ -345,7 +349,7 @@
                                                     @endif
                                                 </div>
                                                 <!-- Desktop Action Buttons inline with name -->
-                                                <div class="flex items-center gap-2 flex-shrink-0">
+                                                <div class="flex flex-shrink-0 items-center gap-2">
                                                     @if (
                                                         ($pitch->status === \App\Models\Pitch::STATUS_APPROVED && !$hasCompletedPitch) ||
                                                             (auth()->id() === $project->user_id && $pitch->status === \App\Models\Pitch::STATUS_COMPLETED) ||
@@ -361,7 +365,6 @@
                                                                 ])) ||
                                                             ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
                                                                 $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED))
-                                                        
                                                         @if ($pitch->status === \App\Models\Pitch::STATUS_APPROVED && !$hasCompletedPitch)
                                                             <livewire:pitch.component.complete-pitch :key="'complete-pitch-desktop-' . $pitch->id"
                                                                 :pitch="$pitch" />
@@ -402,70 +405,70 @@
                                                                     \App\Models\Pitch::STATUS_DENIED,
                                                                     \App\Models\Pitch::STATUS_COMPLETED,
                                                                 ]))
-                                                            <x-update-pitch-status :pitch="$pitch" :status="$pitch->status" />
+                                                            <x-update-pitch-status :pitch="$pitch"
+                                                                :status="$pitch->status" />
                                                         @endif
                                                     @endif
                                                 </div>
                                             </div>
-                                                <div
-                                                    class="flex flex-col gap-1 text-sm text-gray-700 sm:flex-row sm:items-center sm:gap-3 dark:text-gray-300">
-                                                    <div class="flex items-center gap-1.5">
-                                                        <flux:icon.calendar
-                                                            class="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                                        Pitched {{ $pitch->created_at->format('M j, Y') }}
-                                                    </div>
-                                                    <div class="flex items-center gap-1.5">
-                                                        <flux:icon.clock class="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                                        {{ $pitch->created_at->diffForHumans() }}
-                                                    </div>
-                                                    {{-- License Agreement Status --}}
-                                                    @php
-                                                        $hasLicenseAgreement =
-                                                            $project->requiresLicenseAgreement() &&
-                                                            $project
-                                                                ->licenseSignatures()
-                                                                ->where('user_id', $pitch->user_id)
-                                                                ->where('status', 'active')
-                                                                ->exists();
-                                                    @endphp
-                                                    @if ($project->requiresLicenseAgreement())
-                                                        <div class="flex items-center">
-                                                            @if ($hasLicenseAgreement)
-                                                                <flux:badge color="green" size="sm">
-                                                                    <flux:icon.shield-check class="mr-1.5 h-3 w-3" />
-                                                                    License Agreed
-                                                                </flux:badge>
-                                                            @else
-                                                                <flux:badge color="amber" size="sm">
-                                                                    <flux:icon.shield-exclamation class="mr-1.5 h-3 w-3" />
-                                                                    License Pending
-                                                                </flux:badge>
-                                                            @endif
-                                                        </div>
-                                                    @endif
-                                                    <div class="flex items-center">
-                                                        <flux:badge color="{{ $statusColors['badge'] }}" size="sm">
-                                                            {{ $pitch->readable_status }}
-                                                        </flux:badge>
-                                                    </div>
+                                            <div
+                                                class="flex flex-col gap-1 text-sm text-gray-700 sm:flex-row sm:items-center sm:gap-3 dark:text-gray-300">
+                                                <div class="flex items-center gap-1.5">
+                                                    <flux:icon.calendar
+                                                        class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                                    Pitched {{ $pitch->created_at->format('M j, Y') }}
                                                 </div>
-                                                {{-- Enhanced Rating Display --}}
-                                                @if ($pitch->status === 'completed' && $pitch->getCompletionRating())
-                                                    <div class="mt-2 flex items-center">
-                                                        <div
-                                                            class="flex items-center rounded-lg border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-800 dark:bg-orange-950">
-                                                            <div class="mr-2 flex items-center">
-                                                                @for ($i = 1; $i <= 5; $i++)
-                                                                    <flux:icon.star
-                                                                        class="{{ $i <= $pitch->getCompletionRating() ? 'text-orange-500' : 'text-gray-300 dark:text-gray-600' }} h-3 w-3" />
-                                                                @endfor
-                                                            </div>
-                                                            <span
-                                                                class="text-sm font-bold text-orange-800 dark:text-orange-200">{{ number_format($pitch->getCompletionRating(), 1) }}</span>
-                                                        </div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <flux:icon.clock class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                                    {{ $pitch->created_at->diffForHumans() }}
+                                                </div>
+                                                {{-- License Agreement Status --}}
+                                                @php
+                                                    $hasLicenseAgreement =
+                                                        $project->requiresLicenseAgreement() &&
+                                                        $project
+                                                            ->licenseSignatures()
+                                                            ->where('user_id', $pitch->user_id)
+                                                            ->where('status', 'active')
+                                                            ->exists();
+                                                @endphp
+                                                @if ($project->requiresLicenseAgreement())
+                                                    <div class="flex items-center">
+                                                        @if ($hasLicenseAgreement)
+                                                            <flux:badge color="green" size="sm">
+                                                                <flux:icon.shield-check class="mr-1.5 h-3 w-3" />
+                                                                License Agreed
+                                                            </flux:badge>
+                                                        @else
+                                                            <flux:badge color="amber" size="sm">
+                                                                <flux:icon.shield-exclamation class="mr-1.5 h-3 w-3" />
+                                                                License Pending
+                                                            </flux:badge>
+                                                        @endif
                                                     </div>
                                                 @endif
+                                                <div class="flex items-center">
+                                                    <flux:badge color="{{ $statusColors['badge'] }}" size="sm">
+                                                        {{ $pitch->readable_status }}
+                                                    </flux:badge>
+                                                </div>
                                             </div>
+                                            {{-- Enhanced Rating Display --}}
+                                            @if ($pitch->status === 'completed' && $pitch->getCompletionRating())
+                                                <div class="mt-2 flex items-center">
+                                                    <div
+                                                        class="flex items-center rounded-lg border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-800 dark:bg-orange-950">
+                                                        <div class="mr-2 flex items-center">
+                                                            @for ($i = 1; $i <= 5; $i++)
+                                                                <flux:icon.star
+                                                                    class="{{ $i <= $pitch->getCompletionRating() ? 'text-orange-500' : 'text-gray-300 dark:text-gray-600' }} h-3 w-3" />
+                                                            @endfor
+                                                        </div>
+                                                        <span
+                                                            class="text-sm font-bold text-orange-800 dark:text-orange-200">{{ number_format($pitch->getCompletionRating(), 1) }}</span>
+                                                    </div>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -490,77 +493,78 @@
                                     ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
                                         $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED))
                                 <div class="px-4 pb-4">
-                                <div class="flex flex-col gap-3">
-                                    <!-- Action Buttons Row -->
-                                    <div class="flex flex-col gap-3 sm:flex-row sm:justify-end sm:gap-2">
-                                        @if ($pitch->status === \App\Models\Pitch::STATUS_APPROVED && !$hasCompletedPitch)
-                                            <livewire:pitch.component.complete-pitch :key="'complete-pitch-' . $pitch->id"
-                                                :pitch="$pitch" />
-                                        @endif
+                                    <div class="flex flex-col gap-3">
+                                        <!-- Action Buttons Row -->
+                                        <div class="flex flex-col gap-3 sm:flex-row sm:justify-end sm:gap-2">
+                                            @if ($pitch->status === \App\Models\Pitch::STATUS_APPROVED && !$hasCompletedPitch)
+                                                <livewire:pitch.component.complete-pitch :key="'complete-pitch-' . $pitch->id"
+                                                    :pitch="$pitch" />
+                                            @endif
 
-                                        <!-- Enhanced Payment Component for Completed Pitches -->
-                                        @if (auth()->id() === $project->user_id &&
-                                                $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
-                                                (empty($pitch->payment_status) ||
-                                                    $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ||
-                                                    $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
-                                            <flux:button
-                                                href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project, 'pitch' => $pitch]) }}"
-                                                wire:navigate variant="primary" size="sm"
-                                                class="min-h-[44px] w-full sm:min-h-[32px] sm:w-auto"
-                                                icon="credit-card">
-                                                <span class="hidden sm:inline">Process Payment</span>
-                                                <span class="sm:hidden">Payment</span>
-                                            </flux:button>
-                                        @elseif(auth()->id() === $project->user_id &&
-                                                $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
-                                                in_array($pitch->payment_status, [
-                                                    \App\Models\Pitch::PAYMENT_STATUS_PAID,
-                                                    \App\Models\Pitch::PAYMENT_STATUS_PROCESSING,
-                                                ]))
-                                            <flux:button
-                                                href="{{ route('projects.pitches.payment.receipt', ['project' => $pitch->project, 'pitch' => $pitch]) }}"
-                                                wire:navigate variant="filled" size="sm"
-                                                class="min-h-[44px] w-full sm:min-h-[32px] sm:w-auto" icon="document">
-                                                <span class="hidden sm:inline">View Receipt</span>
-                                                <span class="sm:hidden">Receipt</span>
-                                            </flux:button>
-                                        @endif
+                                            <!-- Enhanced Payment Component for Completed Pitches -->
+                                            @if (auth()->id() === $project->user_id &&
+                                                    $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
+                                                    (empty($pitch->payment_status) ||
+                                                        $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ||
+                                                        $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED))
+                                                <flux:button
+                                                    href="{{ route('projects.pitches.payment.overview', ['project' => $pitch->project, 'pitch' => $pitch]) }}"
+                                                    wire:navigate variant="primary" size="sm"
+                                                    class="min-h-[44px] w-full sm:min-h-[32px] sm:w-auto"
+                                                    icon="credit-card">
+                                                    <span class="hidden sm:inline">Process Payment</span>
+                                                    <span class="sm:hidden">Payment</span>
+                                                </flux:button>
+                                            @elseif(auth()->id() === $project->user_id &&
+                                                    $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
+                                                    in_array($pitch->payment_status, [
+                                                        \App\Models\Pitch::PAYMENT_STATUS_PAID,
+                                                        \App\Models\Pitch::PAYMENT_STATUS_PROCESSING,
+                                                    ]))
+                                                <flux:button
+                                                    href="{{ route('projects.pitches.payment.receipt', ['project' => $pitch->project, 'pitch' => $pitch]) }}"
+                                                    wire:navigate variant="filled" size="sm"
+                                                    class="min-h-[44px] w-full sm:min-h-[32px] sm:w-auto"
+                                                    icon="document">
+                                                    <span class="hidden sm:inline">View Receipt</span>
+                                                    <span class="sm:hidden">Receipt</span>
+                                                </flux:button>
+                                            @endif
 
-                                        @if (auth()->id() === $project->user_id &&
-                                                in_array($pitch->status, [
-                                                    \App\Models\Pitch::STATUS_PENDING,
-                                                    \App\Models\Pitch::STATUS_IN_PROGRESS,
-                                                    \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
-                                                    \App\Models\Pitch::STATUS_APPROVED,
-                                                    \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
-                                                    \App\Models\Pitch::STATUS_DENIED,
-                                                    \App\Models\Pitch::STATUS_COMPLETED,
-                                                ]))
-                                            <x-update-pitch-status :pitch="$pitch" :status="$pitch->status" />
+                                            @if (auth()->id() === $project->user_id &&
+                                                    in_array($pitch->status, [
+                                                        \App\Models\Pitch::STATUS_PENDING,
+                                                        \App\Models\Pitch::STATUS_IN_PROGRESS,
+                                                        \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+                                                        \App\Models\Pitch::STATUS_APPROVED,
+                                                        \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
+                                                        \App\Models\Pitch::STATUS_DENIED,
+                                                        \App\Models\Pitch::STATUS_COMPLETED,
+                                                    ]))
+                                                <x-update-pitch-status :pitch="$pitch" :status="$pitch->status" />
+                                            @endif
+                                        </div>
+
+                                        <!-- Payment Status Row (if applicable) -->
+                                        @if (
+                                            $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
+                                                $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED)
+                                            <div
+                                                class="w-fit rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+                                                <div class="flex items-center gap-2 text-xs">
+                                                    <flux:icon.credit-card
+                                                        class="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                                                    <span class="font-medium text-gray-600 dark:text-gray-300">Payment
+                                                        Status:</span>
+                                                    <flux:badge
+                                                        color="{{ $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'green' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'amber' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'blue' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'red' : 'gray'))) }}"
+                                                        size="sm">
+                                                        {{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }}
+                                                    </flux:badge>
+                                                </div>
+                                            </div>
                                         @endif
                                     </div>
-
-                                    <!-- Payment Status Row (if applicable) -->
-                                    @if (
-                                        $pitch->status === \App\Models\Pitch::STATUS_COMPLETED &&
-                                            $pitch->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED)
-                                        <div
-                                            class="w-fit rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
-                                            <div class="flex items-center gap-2 text-xs">
-                                                <flux:icon.credit-card
-                                                    class="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                                                <span class="font-medium text-gray-600 dark:text-gray-300">Payment
-                                                    Status:</span>
-                                                <flux:badge
-                                                    color="{{ $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'green' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'amber' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'blue' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'red' : 'gray'))) }}"
-                                                    size="sm">
-                                                    {{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }}
-                                                </flux:badge>
-                                            </div>
-                                        </div>
-                                    @endif
-                                </div>
                                 </div>
                             @endif
                         </div>
@@ -574,8 +578,7 @@
                                     <div
                                         class="w-fit rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
                                         <div class="flex items-center gap-2 text-xs">
-                                            <flux:icon.credit-card
-                                                class="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                                            <flux:icon.credit-card class="h-4 w-4 text-gray-600 dark:text-gray-300" />
                                             <span class="font-medium text-gray-600 dark:text-gray-300">Payment
                                                 Status:</span>
                                             <flux:badge

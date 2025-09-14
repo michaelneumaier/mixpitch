@@ -81,7 +81,7 @@
 
 <div>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div class="container mx-auto px-2 py-2">
+        <div class="container mx-auto p-2">
             <div class="mx-auto">
                 <div class="flex justify-center">
                     <div class="w-full">
@@ -204,8 +204,7 @@
                                                 <flux:icon.document-check class="mr-1" />
                                                 Approvals: {{ $approvedFiles }} / {{ $totalFiles }}
                                             </flux:badge>
-                                            <flux:button wire:click="toggleSplitForm" variant="outline" size="sm">
-                                                <flux:icon.calculator class="mr-1" />
+                                            <flux:button wire:click="toggleSplitForm" variant="outline" size="sm" icon="calculator">
                                                 Split budget
                                             </flux:button>
                                         </div>

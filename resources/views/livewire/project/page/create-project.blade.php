@@ -83,12 +83,12 @@
     ];
 @endphp
 
-<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900" 
+<div class="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900" 
      x-data="createProjectWizard()"
      x-init="init()">
     
-    <div class="container mx-auto p-2">
-        <div class="max-w-6xl mx-auto">
+    <div class="mx-auto p-2">
+        <div class="mx-auto">
 
         @if($useWizard && !$isEdit)
                 {{-- Modern Wizard Mode --}}
@@ -105,7 +105,7 @@
                     </div>
 
                     <!-- Enhanced Progress Steps -->
-                    <div class="relative">
+                    <div class="relative max-w-4xl mx-auto">
                         <!-- Progress Line -->
                         <div class="absolute top-10 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
                         <div class="absolute top-10 left-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500" 
@@ -154,19 +154,20 @@
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
                         @if($currentStep === 1)
                             {{-- Step 1: Project Type & Workflow Selection --}}
-                        <div class="p-8 lg:p-10">
+                        <div class="p-2 lg:p-10">
                             <div class="text-center mb-8">
                                 <flux:heading size="xl" class="font-bold">Choose Your Collaboration Type</flux:heading>
                                 <flux:text class="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                                     Each workflow is designed for different collaboration needs. Select the one that best matches your project goals.
                                 </flux:text>
                             </div>
-
+                            <div class="max-w-4xl mx-auto">
                             <x-wizard.workflow-type-selector 
                                 :workflowTypes="$this->workflowTypes"
                                 :selectedType="$workflow_type"
                                 wireModel="workflow_type"
                             />
+                            </div>
 
                             @error('workflow_type')
                             <div class="mt-4">
@@ -179,7 +180,7 @@
 
                         @elseif($currentStep === 2)
                             {{-- Step 2: Basic Project Details --}}
-                        <div class="p-8 lg:p-10">
+                            <div class="p-2 lg:p-10">
                             <div class="text-center mb-8">
                                 <flux:heading size="xl" class="font-bold">{{ $this->step2Content['title'] }}</flux:heading>
                                 <flux:text class="mt-3 text-gray-600 dark:text-gray-400">{{ $this->step2Content['subtitle'] }}</flux:text>
@@ -225,8 +226,11 @@
                                                 :required="$workflow_type !== \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT"
                                             />
                                         </div>
+                                    </div>
 
-                                        <!-- Genre -->
+                                    <!-- Right Column -->
+                                <div class="space-y-6">
+                                     <!-- Genre -->
                                     <flux:field>
                                         <flux:label>
                                                 Genre 
@@ -244,10 +248,6 @@
                                         </flux:select>
                                         <flux:error name="form.genre" />
                                     </flux:field>
-                                    </div>
-
-                                    <!-- Right Column -->
-                                <div class="space-y-6">
                                         <!-- Description -->
                                     <flux:field>
                                         <flux:label>
@@ -277,32 +277,32 @@
                                     </flux:text>
                                 </div>
                                 
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <flux:checkbox.group variant="pills" class="flex flex-wrap gap-3 [&_label]:cursor-pointer [&_*]:select-none">
                                     <flux:checkbox 
                                         wire:model="form.collaborationTypeMixing"
-                                        label="Mixing"
-                                        description="Audio mixing services" />
+                                        value="mixing"
+                                        label="Mixing" />
                                     <flux:checkbox 
                                         wire:model="form.collaborationTypeMastering"
-                                        label="Mastering"
-                                        description="Audio mastering services" />
+                                        value="mastering"
+                                        label="Mastering" />
                                     <flux:checkbox 
                                         wire:model="form.collaborationTypeProduction"
-                                        label="Production"
-                                        description="Music production" />
+                                        value="production"
+                                        label="Production" />
                                     <flux:checkbox 
                                         wire:model="form.collaborationTypeSongwriting"
-                                        label="Songwriting"
-                                        description="Songwriting collaboration" />
+                                        value="songwriting"
+                                        label="Songwriting" />
                                     <flux:checkbox 
                                         wire:model="form.collaborationTypeVocalTuning"
-                                        label="Vocal Tuning"
-                                        description="Vocal tuning services" />
+                                        value="vocal-tuning"
+                                        label="Vocal Tuning" />
                                     <flux:checkbox 
                                         wire:model="form.collaborationTypeAudioEditing"
-                                        label="Audio Editing"
-                                        description="Audio editing services" />
-                                </div>
+                                        value="audio-editing"
+                                        label="Audio Editing" />
+                                </flux:checkbox.group>
                                 @error('collaboration_type')
                                 <div class="mt-4">
                                     <flux:error>{{ $message }}</flux:error>
@@ -316,7 +316,7 @@
 
                         @elseif($currentStep === 3)
                             {{-- Step 3: Workflow-Specific Configuration --}}
-                        <div class="space-y-6">
+                        <div class="p-2 lg:p-10 space-y-6">
                             <div class="text-center">
                                 <flux:heading size="xl" class="mb-2">Configure Your {{ $this->currentWorkflowConfig['name'] ?? 'Project' }}</flux:heading>
                                 <flux:text class="text-gray-600 dark:text-gray-400">
@@ -324,7 +324,7 @@
                                 </flux:text>
                                 </div>
 
-                            <div class="max-w-2xl mx-auto space-y-6">
+                            <div class="max-w-4xl mx-auto space-y-6">
                                         @if($workflow_type !== \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT && 
                                             $workflow_type !== \App\Models\Project::WORKFLOW_TYPE_CONTEST)
                                     <!-- Budget Selector -->
@@ -706,32 +706,32 @@
                                 Collaboration Types
                             </flux:heading>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <flux:checkbox.group variant="pills" class="flex flex-wrap gap-3 [&_label]:cursor-pointer [&_*]:select-none">
                                 <flux:checkbox 
                                     wire:model="form.collaborationTypeMixing"
-                                    label="Mixing"
-                                    description="Audio mixing services" />
+                                    value="mixing"
+                                    label="Mixing" />
                                 <flux:checkbox 
                                     wire:model="form.collaborationTypeMastering"
-                                    label="Mastering"
-                                    description="Audio mastering services" />
+                                    value="mastering"
+                                    label="Mastering" />
                                 <flux:checkbox 
                                     wire:model="form.collaborationTypeProduction"
-                                    label="Production"
-                                    description="Music production" />
+                                    value="production"
+                                    label="Production" />
                                 <flux:checkbox 
                                     wire:model="form.collaborationTypeSongwriting"
-                                    label="Songwriting"
-                                    description="Songwriting collaboration" />
+                                    value="songwriting"
+                                    label="Songwriting" />
                                 <flux:checkbox 
                                     wire:model="form.collaborationTypeVocalTuning"
-                                    label="Vocal Tuning"
-                                    description="Vocal tuning services" />
+                                    value="vocal-tuning"
+                                    label="Vocal Tuning" />
                                 <flux:checkbox 
                                     wire:model="form.collaborationTypeAudioEditing"
-                                    label="Audio Editing"
-                                    description="Audio editing services" />
-                                    </div>
+                                    value="audio-editing"
+                                    label="Audio Editing" />
+                            </flux:checkbox.group>
                                 </div>
 
                                 @if($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)

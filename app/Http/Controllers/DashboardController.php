@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
 use App\Models\Pitch;
 use App\Models\Project;
-use App\Models\ServicePackage;
 use App\Models\User;
 use App\Services\UserStorageService;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -21,26 +18,6 @@ class DashboardController extends Controller
 
         // Phase 3: Enhance producer dashboard with earnings and analytics
         $producerData = $this->getProducerAnalytics($user);
-
-        $workItems = new Collection;
-
-        // Define active statuses (adjust as needed)
-        $activeProjectStatuses = [
-            Project::STATUS_UNPUBLISHED, // Users should see their own unpublished projects
-            Project::STATUS_OPEN,
-            Project::STATUS_IN_PROGRESS,
-            Project::STATUS_COMPLETED,
-        ]; // Include all project statuses for user's own projects
-        $activePitchStatuses = [
-            Pitch::STATUS_PENDING, Pitch::STATUS_IN_PROGRESS, Pitch::STATUS_READY_FOR_REVIEW,
-            Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_CONTEST_ENTRY, Pitch::STATUS_AWAITING_ACCEPTANCE,
-            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, Pitch::STATUS_APPROVED, Pitch::STATUS_COMPLETED,
-            Pitch::STATUS_CONTEST_WINNER, Pitch::STATUS_CONTEST_RUNNER_UP,
-        ];
-        $activeOrderStatuses = [
-            Order::STATUS_PENDING_REQUIREMENTS, Order::STATUS_IN_PROGRESS, Order::STATUS_NEEDS_CLARIFICATION,
-            Order::STATUS_READY_FOR_REVIEW, Order::STATUS_REVISIONS_REQUESTED,
-        ];
 
         // --- Subscription Information ---
         $subscriptionData = [
@@ -122,76 +99,6 @@ class DashboardController extends Controller
             }
         }
 
-        // --- Fetch Items Where User is the Owner/Client ---
-        $ownedProjects = Project::where('user_id', $user->id)
-            ->whereIn('status', $activeProjectStatuses) // Now includes completed projects
-            ->with(['user', 'targetProducer', 'pitches']) // Eager load pitches to check for client management
-            ->latest('updated_at')
-            ->get();
-
-        // Filter out client management projects that have corresponding pitches
-        // For client management, the pitch provides more detailed status info
-        $filteredProjects = $ownedProjects->filter(function ($project) use ($user) {
-            if ($project->isClientManagement()) {
-                // For client management projects, only show the project if there's no corresponding pitch
-                // This handles edge cases where the pitch creation might have failed
-                $hasPitch = $project->pitches()->where('user_id', $user->id)->exists();
-
-                return ! $hasPitch;
-            }
-
-            // Show all non-client-management projects normally
-            return true;
-        });
-
-        $workItems = $this->mergeWithTypeKeys($workItems, $filteredProjects);
-
-        $ordersAsClient = Order::where('client_user_id', $user->id)
-            ->whereIn('status', $activeOrderStatuses)
-            ->with(['client', 'producer', 'servicePackage']) // Eager load relevant relations
-            ->latest('updated_at')
-            ->get();
-        $workItems = $this->mergeWithTypeKeys($workItems, $ordersAsClient);
-
-        // --- Fetch Client Management Projects Where User is the Client ---
-        $clientProjects = Project::where(function ($query) use ($user) {
-            $query->where('client_user_id', $user->id)
-                  ->orWhere('client_email', $user->email);
-        })
-            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
-            ->whereIn('status', $activeProjectStatuses)
-            ->with(['pitches' => function ($q) {
-                $q->with(['user', 'files']);
-            }])
-            ->latest('updated_at')
-            ->get();
-        $workItems = $this->mergeWithTypeKeys($workItems, $clientProjects);
-
-        // --- Fetch Items Where User is the Producer/Assignee ---
-        $assignedPitches = Pitch::where('user_id', $user->id)
-            ->whereIn('status', $activePitchStatuses)
-            ->with(['project', 'project.user', 'user']) // Eager load relevant relations
-            ->latest('updated_at')
-            ->get();
-        $workItems = $this->mergeWithTypeKeys($workItems, $assignedPitches);
-
-        $ordersAsProducer = Order::where('producer_user_id', $user->id)
-            ->whereIn('status', $activeOrderStatuses)
-            ->with(['client', 'producer', 'servicePackage']) // Eager load relevant relations
-            ->latest('updated_at')
-            ->get();
-        $workItems = $this->mergeWithTypeKeys($workItems, $ordersAsProducer);
-
-        // --- Fetch Producer's Service Packages (if applicable) ---
-        // Assuming producers might want to see their packages on the dashboard
-        // Add role check if needed: if ($user->hasRole('producer')) { ... }
-        $managedServices = ServicePackage::where('user_id', $user->id)
-            // ->where('status', ...) // Optionally filter by status
-            ->with('user') // Eager load relevant relations
-            ->latest('updated_at')
-            ->get();
-        $workItems = $this->mergeWithTypeKeys($workItems, $managedServices);
-
         // --- Storage Information ---
         $userStorageService = app(UserStorageService::class);
         $storageInfo = [
@@ -201,50 +108,14 @@ class DashboardController extends Controller
             'remaining_gb' => round($userStorageService->getUserStorageRemaining($user) / (1024 ** 3), 2),
         ];
 
-        // Sort all collected work items by last update time
-        $sortedWorkItems = $workItems->sortByDesc('updated_at');
-
-        // Pass the sorted, combined collection and subscription data to the view
+        // Pass subscription data to the view
         return view('dashboard', [
-            'workItems' => $sortedWorkItems,
             'subscription' => $subscriptionData,
             'producerData' => $producerData,
             'storage_info' => $storageInfo,
         ]);
     }
 
-    /**
-     * Merge collections using type+id as keys to prevent collisions
-     * when merging collections of different model types.
-     *
-     * @param  Collection  $target  The target collection
-     * @param  Collection  $source  The source collection to merge in
-     * @return Collection The resulting merged collection
-     */
-    private function mergeWithTypeKeys(Collection $target, Collection $source): Collection
-    {
-        $newCollection = new Collection;
-
-        // First add all existing items from target with custom keys
-        foreach ($target as $item) {
-            $modelType = class_basename(get_class($item));
-            $customKey = $modelType.'-'.$item->id;
-            $newCollection->put($customKey, $item);
-        }
-
-        // Then add all items from source with custom keys
-        foreach ($source as $item) {
-            $modelType = class_basename(get_class($item));
-            $customKey = $modelType.'-'.$item->id;
-            $newCollection->put($customKey, $item);
-        }
-
-        return $newCollection;
-    }
-
-    /**
-     * Phase 2: Dedicated dashboard for client users.
-     */
     private function clientDashboard($user)
     {
         // Get all projects associated with this client
@@ -374,15 +245,21 @@ class DashboardController extends Controller
                 return $project->pitches->sum(function ($pitch) {
                     $base = $pitch->payment_status === Pitch::PAYMENT_STATUS_PAID ? ($pitch->payment_amount ?? 0) : 0;
                     $milestones = method_exists($pitch, 'milestones') ? $pitch->milestones->where('payment_status', Pitch::PAYMENT_STATUS_PAID)->sum('amount') : 0;
+
                     return $base + $milestones;
                 });
             }),
             'milestone_adoption_rate' => (function () use ($clientProjects) {
                 $totalCM = $clientProjects->count();
-                if ($totalCM === 0) return 0;
+                if ($totalCM === 0) {
+                    return 0;
+                }
                 $withMilestones = $clientProjects->sum(function ($project) {
-                    return $project->pitches->filter(function ($p) { return method_exists($p, 'milestones') && $p->milestones->count() > 0; })->count() > 0 ? 1 : 0;
+                    return $project->pitches->filter(function ($p) {
+                        return method_exists($p, 'milestones') && $p->milestones->count() > 0;
+                    })->count() > 0 ? 1 : 0;
                 });
+
                 return round(($withMilestones / $totalCM) * 100, 1);
             })(),
         ];
@@ -442,7 +319,7 @@ class DashboardController extends Controller
     public function clientManagement()
     {
         $user = Auth::user();
-        
+
         // Client management is now available to all registered users
         return view('producer.client-management');
     }
@@ -453,12 +330,12 @@ class DashboardController extends Controller
     public function clientDetail(\App\Models\Client $client)
     {
         $user = Auth::user();
-        
+
         // Ensure the client belongs to the current user
         if ($client->user_id !== $user->id) {
             abort(403, 'Access denied. You can only view your own clients.');
         }
-        
+
         return view('producer.client-detail', compact('client'));
     }
 }

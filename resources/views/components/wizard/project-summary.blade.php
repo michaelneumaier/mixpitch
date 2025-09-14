@@ -18,7 +18,7 @@
             <!-- Enhanced Quick Stats Grid -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                 <!-- Workflow (Now First) -->
-                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
                             <flux:icon name="{{ $workflowConfig['icon'] ?? 'cog' }}" class="w-4 h-4 text-white" />
@@ -29,7 +29,7 @@
                 </div>
                 
                 <!-- Project Type (Now Second) -->
-                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
                             <flux:icon name="squares-2x2" class="w-4 h-4 text-white" />
@@ -40,7 +40,7 @@
                 </div>
                 
                 <!-- Budget (Now Third) -->
-                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
                             <flux:icon name="currency-dollar" class="w-4 h-4 text-white" />
@@ -57,7 +57,7 @@
                 </div>
                 
                 <!-- Deadline (Now Fourth) -->
-                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                <div class="bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl p-4 text-center shadow-lg hover:shadow-xl">
                     <div class="flex items-center justify-center mb-2">
                         <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg p-2 w-8 h-8 flex items-center justify-center shadow-md">
                             <flux:icon name="calendar" class="w-4 h-4 text-white" />

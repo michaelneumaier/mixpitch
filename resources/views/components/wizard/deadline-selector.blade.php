@@ -17,6 +17,16 @@
             init() {
                 // Set initial preset based on current deadline
                 this.selectedPreset = this.customDate ? 'custom' : 'none';
+                
+                // Watch for external changes to form.deadline from Livewire
+                this.$watch('$wire.form.deadline', value => {
+                    this.customDate = value || '';
+                    if (value && this.selectedPreset !== 'custom') {
+                        this.selectedPreset = 'custom';
+                    } else if (!value && this.selectedPreset !== 'none') {
+                        this.selectedPreset = 'none';
+                    }
+                });
             },
             
             setPreset(preset) {
@@ -32,19 +42,22 @@
                     case 'week':
                         const nextWeek = new Date(today);
                         nextWeek.setDate(today.getDate() + 7);
-                        this.customDate = nextWeek.toISOString().split('T')[0];
+                        nextWeek.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+                        this.customDate = nextWeek.toISOString().slice(0, 16); // Format for datetime-local
                         $wire.set('form.deadline', this.customDate);
                         break;
                     case 'month':
                         const nextMonth = new Date(today);
                         nextMonth.setMonth(today.getMonth() + 1);
-                        this.customDate = nextMonth.toISOString().split('T')[0];
+                        nextMonth.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+                        this.customDate = nextMonth.toISOString().slice(0, 16); // Format for datetime-local
                         $wire.set('form.deadline', this.customDate);
                         break;
                     case '3months':
                         const next3Months = new Date(today);
                         next3Months.setMonth(today.getMonth() + 3);
-                        this.customDate = next3Months.toISOString().split('T')[0];
+                        next3Months.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+                        this.customDate = next3Months.toISOString().slice(0, 16); // Format for datetime-local
                         $wire.set('form.deadline', this.customDate);
                         break;
                     case 'custom':
@@ -151,7 +164,8 @@
                     <input type="datetime-local" 
                            x-model="customDate"
                            @change="updateCustomDate()"
-                           :min="new Date().toISOString().split('T')[0]"
+                           :min="new Date().toISOString().slice(0, 16)"
+                           wire:model="form.deadline"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                 </div>
             </div>

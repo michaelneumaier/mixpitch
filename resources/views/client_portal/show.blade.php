@@ -650,6 +650,9 @@
                                 <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-white">
                                     <div class="min-w-0">
                                         <div class="font-medium text-gray-900 truncate">{{ $m->name }}</div>
+                                        @if($m->description)
+                                        <div class="text-sm text-gray-600 truncate">{{ $m->description }}</div>
+                                        @endif
                                         <div class="text-xs text-gray-600 mt-0.5 flex items-center gap-2">
                                             <span>Status: {{ ucfirst($m->status) }}</span>
                                             @if($m->amount > 0)

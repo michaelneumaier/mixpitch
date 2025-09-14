@@ -110,8 +110,63 @@
     }
 @endphp
 
-<!-- Simplified Project Header -->
-<flux:card class="p-4 lg:p-6 xl:p-8 mb-2">
+<!-- Enhanced Project Header with Image Support -->
+<flux:card class="mb-2">
+    <!-- Project Image Section (only show if image exists OR if user owns project) -->
+    @if($project->image_path || ($context === 'manage' && $project->user_id === auth()->id()))
+        <div class="mb-6">
+            @if($project->image_path)
+                <!-- Project has image - show with edit overlay for owners -->
+                <div class="relative group">
+                    <div class="relative w-full h-48 lg:h-64 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
+                        <img src="{{ $project->imageUrl }}" 
+                             alt="{{ $project->name }}" 
+                             class="w-full h-full object-cover">
+                        
+                        <!-- Edit Overlay for project owners -->
+                        @if($context === 'manage' && $project->user_id === auth()->id())
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                <div class="flex gap-3">
+                                    <flux:button 
+                                        wire:click="showImageUpload" 
+                                        variant="filled" 
+                                        size="sm" 
+                                        icon="camera"
+                                        class="bg-white/20 backdrop-blur-sm hover:bg-white/30 border-white/30"
+                                    >
+                                        Change Image
+                                    </flux:button>
+                                    <flux:button 
+                                        wire:click="removeProjectImage" 
+                                        variant="outline" 
+                                        size="sm" 
+                                        icon="trash"
+                                        class="bg-white/20 backdrop-blur-sm hover:bg-red-500/30 text-white border-white/30 hover:border-red-300"
+                                    >
+                                        Remove
+                                    </flux:button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @else
+                <!-- No image but user owns project - show compact outlined add image option -->
+                @if($context === 'manage' && $project->user_id === auth()->id())
+                    <div class="mb-4">
+                        <div class="relative w-full h-12 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors duration-200 group cursor-pointer"
+                             wire:click="showImageUpload">
+                            <div class="absolute inset-0 flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                                <flux:icon name="photo" class="w-4 h-4 mr-2" />
+                                <span class="text-sm font-medium">Add Project Image</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @endif
+        </div>
+    @endif
+
     <!-- Main Header Content -->
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <!-- Project Identity -->
@@ -354,17 +409,3 @@
     </div>
 </flux:card>
 
-<!-- Legacy Image Modal Support for Existing Features -->
-@if($project->image_path && $context === 'manage')
-    <!-- Simplified image display option -->
-    <div class="mb-4" x-data="{ showImage: false }">
-        <flux:button @click="showImage = !showImage" variant="ghost" size="sm" class="mb-2">
-            <flux:icon name="photo" class="w-4 h-4 mr-2" />
-            {{ $project->image_path ? 'Show Project Image' : 'Add Project Image' }}
-        </flux:button>
-        
-        <div x-show="showImage" x-transition class="rounded-lg overflow-hidden">
-            <img src="{{ $project->imageUrl }}" alt="{{ $project->name }}" class="w-full max-h-64 object-cover">
-        </div>
-    </div>
-@endif 

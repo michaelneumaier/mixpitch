@@ -139,7 +139,7 @@
         </flux:navlist>
 
         <!-- Finances Section (with visual separation) -->
-        <div class="mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+        <div class="pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
             <flux:navlist variant="outline">
                 <livewire:sidebar-finances-nav />
             </flux:navlist>
