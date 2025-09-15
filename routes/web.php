@@ -27,6 +27,7 @@ use App\Http\Controllers\ClientImportController;
 use App\Http\Controllers\ClientPortalController;
 use App\Http\Controllers\ContestPrizePaymentController;
 use App\Http\Controllers\GoogleDriveIntegrationController;
+use App\Http\Controllers\IntegrationsController;
 use App\Http\Controllers\LicenseSignatureController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PitchSnapshotController;
@@ -85,9 +86,14 @@ Route::middleware(['auth'])->group(function () {
         ->name('projects.manage-client')
         ->middleware('auth');
 
+    // Main Integrations Dashboard
+    Route::get('/integrations', [IntegrationsController::class, 'index'])
+        ->name('integrations.index')
+        ->middleware('auth');
+
     // Zapier Integration Dashboard
     Route::get('/integrations/zapier', \App\Livewire\ZapierIntegrationDashboard::class)
-        ->name('integrations.zapier')
+        ->name('integrations.zapier.dashboard')
         ->middleware('auth');
 
     Route::delete('projects/{project}/files/{file}', [ProjectController::class, 'deleteFile'])->name('projects.deleteFile');

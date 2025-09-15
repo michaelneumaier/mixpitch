@@ -212,7 +212,7 @@
                     Billing & Payments
                 </flux:menu.item>
 
-                <flux:menu.item icon="puzzle-piece" href="{{ route('integrations.zapier') }}" wire:navigate>
+                <flux:menu.item icon="puzzle-piece" href="{{ route('integrations.index') }}" wire:navigate>
                     Integrations
                 </flux:menu.item>
 
