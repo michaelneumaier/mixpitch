@@ -20,11 +20,9 @@ class GoogleDriveFileBrowser extends Component
     public bool $isLoading = false;
     public bool $showImportModal = false;
     public array $selectedFile = [];
-    public ?string $currentFolderId = null;
-    public ?string $nextPageToken = null;
-    public bool $hasMoreFiles = false;
+    public string $currentFolder = 'root';
     public string $searchQuery = '';
-    public int $filesPerPage = 20;
+    public array $breadcrumbs = [];
 
     protected GoogleDriveService $googleDriveService;
 
@@ -55,7 +53,7 @@ class GoogleDriveFileBrowser extends Component
         }
     }
 
-    public function loadFiles($resetPagination = true)
+    public function loadFiles()
     {
         if (!$this->connectionStatus['connected']) {
             return;
@@ -64,23 +62,14 @@ class GoogleDriveFileBrowser extends Component
         $this->isLoading = true;
 
         try {
-            $pageToken = $resetPagination ? null : $this->nextPageToken;
-            
             $result = $this->googleDriveService->listFiles(
                 Auth::user(),
-                $this->currentFolderId,
-                $this->filesPerPage,
-                $pageToken
+                $this->currentFolder,
+                $this->searchQuery
             );
 
-            if ($resetPagination) {
-                $this->files = $result['files'];
-            } else {
-                $this->files = array_merge($this->files, $result['files']);
-            }
-
-            $this->nextPageToken = $result['nextPageToken'] ?? null;
-            $this->hasMoreFiles = !is_null($this->nextPageToken);
+            $this->files = $result['files'];
+            $this->breadcrumbs = $result['breadcrumbs'];
 
         } catch (GoogleDriveAuthException $e) {
             $this->connectionStatus['connected'] = false;
@@ -95,35 +84,26 @@ class GoogleDriveFileBrowser extends Component
         }
     }
 
-    public function loadMoreFiles()
-    {
-        if ($this->hasMoreFiles && !$this->isLoading) {
-            $this->loadFiles(false);
-        }
-    }
-
     public function refreshFiles()
     {
-        $this->nextPageToken = null;
-        $this->hasMoreFiles = false;
         $this->loadFiles();
     }
 
-    public function navigateToFolder(?string $folderId = null)
+    public function navigateToFolder(string $folderId)
     {
-        $this->currentFolderId = $folderId;
-        $this->nextPageToken = null;
-        $this->hasMoreFiles = false;
+        $this->currentFolder = $folderId;
+        $this->searchQuery = '';
         $this->loadFiles();
+    }
+
+    public function selectFile(array $file)
+    {
+        $this->selectedFile = $file;
     }
 
     public function selectFileForImport(array $file)
     {
-        if (!$file['isAudio']) {
-            Toaster::warning('Only audio files can be imported.');
-            return;
-        }
-
+        // For the setup page, we can allow any file type for demonstration
         $this->selectedFile = $file;
         $this->showImportModal = true;
     }
@@ -183,23 +163,14 @@ class GoogleDriveFileBrowser extends Component
 
     public function updatedSearchQuery()
     {
-        // Note: Google Drive API doesn't easily support search without complex query building
-        // For now, we'll do client-side filtering
-        // In a production app, you might want to implement server-side search
-        $this->filterFiles();
+        $this->currentFolder = 'root';
+        $this->loadFiles();
     }
 
-    protected function filterFiles()
+    public function searchFiles()
     {
-        if (empty($this->searchQuery)) {
-            $this->loadFiles();
-            return;
-        }
-
-        // Simple client-side filtering
-        $this->files = array_filter($this->files, function ($file) {
-            return str_contains(strtolower($file['name']), strtolower($this->searchQuery));
-        });
+        $this->currentFolder = 'root';
+        $this->loadFiles();
     }
 
     public function getConnectionUrl()
