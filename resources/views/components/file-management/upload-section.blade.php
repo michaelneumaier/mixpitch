@@ -24,7 +24,27 @@
         </div>
     </div>
     <div class="p-4">
-        <livewire:uppy-file-uploader :model="$model" wire:key="'uppy-uploader-' . $model->id" />
+        <div 
+            x-data="{
+                meta: {
+                    modelType: '{{ addslashes(get_class($model)) }}',
+                    modelId: {{ $model->id }},
+                    context: '{{ $model instanceof \App\Models\Project ? 'projects' : ($model instanceof \App\Models\Pitch ? 'pitches' : 'global') }}',
+                    modelLabel: '{{ $model instanceof \App\Models\Project ? 'Project' : ($model instanceof \App\Models\Pitch ? 'Pitch' : 'Global') }}',
+                }
+            }"
+            x-on:dragover.prevent
+            x-on:dragenter.prevent="window.GlobalUploader?.setActiveTarget(meta)"
+            x-on:drop.prevent="(e) => { const files = Array.from(e.dataTransfer.files || []); if (files.length) { window.GlobalUploader?.addFiles(files, meta); } }"
+            class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+            @click="window.GlobalUploader?.openFileDialog(meta)"
+        >
+            <div class="flex flex-col items-center gap-2">
+                <flux:icon.arrow-up-tray />
+                <div class="text-sm text-gray-700">Drag & drop files here or click to select</div>
+                <div class="text-xs text-gray-500">Files will upload immediately and appear in the global uploader</div>
+            </div>
+        </div>
     </div>
 
     <!-- Google Drive Upload Modal -->

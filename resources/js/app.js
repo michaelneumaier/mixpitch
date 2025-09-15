@@ -2,6 +2,7 @@ import './bootstrap';
 import '../../vendor/masmerise/livewire-toaster/resources/js';
 import './uppy-config';
 import './global-audio-manager';
+import './global-upload-manager';
 
 // Load Stripe handler if available
 try {

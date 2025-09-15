@@ -16,10 +16,10 @@
             </flux:card>
 
             <!-- Integrations Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 @foreach($integrations as $key => $integration)
                     <flux:card class="bg-white/50 backdrop-blur-lg hover:shadow-lg transition-all duration-200">
-                        <div class="p-6">
+                        <div>
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center space-x-3">
                                     @if($integration['icon'] === 'zapier')

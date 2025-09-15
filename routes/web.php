@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
-// Custom S3 multipart upload route (override package route)
+// Custom S3 multipart upload route (override package route for create only)
 Route::post('/s3/multipart', [CustomUppyS3MultipartController::class, 'createMultipartUpload'])
     ->name('s3.multipart.create.custom')
     ->middleware('auth');

@@ -176,6 +176,21 @@
                          style="min-height: 32px;">
                     </div>
                     
+                    {{-- Persistent audio element for streaming support --}}
+                    <audio wire:ignore
+                           id="persistent-audio-element" 
+                           preload="metadata"
+                           crossorigin="anonymous"
+                           style="display: none;">
+                    </audio>
+                    
+                    {{-- Persistent waveform container (hidden, used by audio manager) --}}
+                    <div wire:ignore
+                         id="persistent-waveform-container"
+                         style="display: none;">
+                        <div id="global-waveform-persistent"></div>
+                    </div>
+                    
                     {{-- Fallback progress bar if waveform not loaded --}}
                     <div x-show="!$store.audioPlayer.currentTrack || !$store.audioPlayer.currentTrack.waveform_data"
                          class="w-full bg-gray-200 rounded-full h-1 cursor-pointer hover:h-1.5 transition-all duration-150"

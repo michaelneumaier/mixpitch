@@ -27,6 +27,12 @@
     <link href="{{ asset('css/homepage.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/star-rating.css') }}">
     <script src="https://unpkg.com/wavesurfer.js"></script>
+    <script type="module">
+        // Import MediaElement plugin for streaming support
+        // Note: WaveSurfer v7+ doesn't have a separate MediaElement plugin
+        // We'll implement streaming using the audio element directly
+        window.WaveSurferMediaElement = true; // Flag to indicate we want streaming
+    </script>
 
     @livewireStyles
 

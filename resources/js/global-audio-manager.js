@@ -130,31 +130,28 @@ class GlobalAudioManager {
     initializePersistentContainer() {
         // Ensure the persistent container exists and is properly set up
         const persistentContainer = document.getElementById('persistent-waveform-container');
-        const persistentAudio = document.getElementById('persistent-audio-element');
+        let persistentAudio = document.getElementById('persistent-audio-element');
 
         if (!persistentContainer) {
-            console.warn('Global Audio Manager: Persistent waveform container not found in DOM');
             return;
         }
 
         if (!persistentAudio) {
-            console.warn('Global Audio Manager: Persistent audio element not found in DOM');
-            return;
+            // Create the audio element if it doesn't exist
+            persistentAudio = document.createElement('audio');
+            persistentAudio.id = 'persistent-audio-element';
+            persistentAudio.style.display = 'none';
+            document.body.appendChild(persistentAudio);
         }
 
         // Set up persistent audio element with proper attributes
-        persistentAudio.preload = 'auto';
+        persistentAudio.preload = 'metadata';
         persistentAudio.crossOrigin = 'anonymous';
 
         // Try to initialize WaveSurfer with persistent container if possible
         if (!this.isInitialized) {
-            const success = this.initializeWaveSurfer('#global-waveform-persistent');
-            if (success) {
-                console.log('Global Audio Manager: Successfully initialized with persistent container');
-            }
+            this.initializeWaveSurfer('#global-waveform-persistent');
         }
-
-        console.log('Global Audio Manager: Persistent container initialized');
     }
 
     initializeWaveSurfer(container = null) {
@@ -162,11 +159,9 @@ class GlobalAudioManager {
         if (this.waveSurfer) {
             // Check if we need to switch containers
             if (container && container !== this.currentContainer) {
-                console.log('Global Audio Manager: Switching WaveSurfer container from', this.currentContainer, 'to', container);
                 return this.switchContainer(container);
             }
             // WaveSurfer already exists and no container switch needed
-            console.log('Global Audio Manager: WaveSurfer already initialized, skipping');
             return true;
         }
 
@@ -175,12 +170,10 @@ class GlobalAudioManager {
 
         // If primary container not found, try fallback
         if (!containerElement && containerSelector !== this.config.fallbackContainer) {
-            console.warn('Global Audio Manager: Primary container not found, trying fallback');
             containerElement = document.querySelector(this.config.fallbackContainer);
         }
 
         if (!containerElement) {
-            console.warn('Global Audio Manager: No suitable container found, deferring initialization');
             return false;
         }
 
@@ -188,6 +181,9 @@ class GlobalAudioManager {
             // Store current container for future reference
             this.currentContainer = containerSelector;
 
+            // Get the persistent audio element
+            const audioElement = document.getElementById('persistent-audio-element');
+            
             // Adjust config based on container type
             const isFullPlayer = containerSelector.includes('full');
             const config = {
@@ -200,8 +196,36 @@ class GlobalAudioManager {
                 barGap: isFullPlayer ? 2 : 1
             };
 
-            this.waveSurfer = WaveSurfer.create(config);
-            console.log('Global Audio Manager: WaveSurfer created with persistent container:', containerSelector);
+            // Ensure audio element exists
+            if (!audioElement) {
+                audioElement = document.getElementById('persistent-audio-element');
+                if (!audioElement) {
+                    // Create it if it still doesn't exist
+                    audioElement = document.createElement('audio');
+                    audioElement.id = 'persistent-audio-element';
+                    audioElement.style.display = 'none';
+                    document.body.appendChild(audioElement);
+                }
+            }
+
+            // Force MediaElement usage for streaming
+            const shouldUseMediaElement = true;
+            
+            // Check if we should use media element for streaming
+            if (shouldUseMediaElement && audioElement) {
+                // Configure audio element for streaming
+                audioElement.preload = 'metadata';
+                audioElement.crossOrigin = 'anonymous';
+                
+                // Pass the audio element to WaveSurfer - it should use MediaElement automatically
+                config.media = audioElement;
+                
+                this.waveSurfer = WaveSurfer.create(config);
+                this.usingMediaElement = true;
+            } else {
+                this.waveSurfer = WaveSurfer.create(config);
+                this.usingMediaElement = false;
+            }
 
             // Set up WaveSurfer event listeners using shared method
             this.setupWaveSurferEvents();
@@ -210,20 +234,17 @@ class GlobalAudioManager {
             return true;
 
         } catch (error) {
-            console.error('Global Audio Manager: Failed to initialize WaveSurfer:', error);
             return false;
         }
     }
 
     switchContainer(newContainerSelector) {
         if (!this.waveSurfer) {
-            console.warn('Global Audio Manager: No WaveSurfer instance to switch');
             return false;
         }
 
         const newContainerElement = document.querySelector(newContainerSelector);
         if (!newContainerElement) {
-            console.warn('Global Audio Manager: New container not found:', newContainerSelector);
             return false;
         }
 
@@ -233,10 +254,8 @@ class GlobalAudioManager {
             const currentPosition = this.playbackState.currentPosition;
             const currentTrack = this.currentTrack;
 
-            console.log('Global Audio Manager: Switching container while preserving playback');
-
             // Get current audio element to preserve audio state
-            const audioElement = this.waveSurfer.getMediaElement ? this.waveSurfer.getMediaElement() : null;
+            const audioElement = this.waveSurfer.getMediaElement ? this.waveSurfer.getMediaElement() : document.getElementById('persistent-audio-element');
 
             // Create new WaveSurfer in new container without destroying audio
             const isFullPlayer = newContainerSelector.includes('full');
@@ -247,12 +266,19 @@ class GlobalAudioManager {
                 waveColor: isFullPlayer ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.3)',
                 progressColor: isFullPlayer ? 'rgba(139, 92, 246, 0.9)' : 'rgba(139, 92, 246, 0.8)',
                 barWidth: isFullPlayer ? 3 : 2,
-                barGap: isFullPlayer ? 2 : 1,
-                media: audioElement // Reuse existing audio element if possible
+                barGap: isFullPlayer ? 2 : 1
             };
 
             // Destroy old visualization but keep audio playing
             const oldWaveSurfer = this.waveSurfer;
+            
+            // If using MediaElement, pass the audio element
+            if (this.usingMediaElement && audioElement) {
+                config.media = audioElement;
+            } else if (audioElement) {
+                config.media = audioElement; // Fallback for regular mode
+            }
+            
             this.waveSurfer = WaveSurfer.create(config);
 
             // Update current container reference
@@ -263,8 +289,6 @@ class GlobalAudioManager {
 
             // If we had a track and it was playing, maintain that state
             if (currentTrack && audioElement) {
-                console.log('Global Audio Manager: Maintaining audio continuity during container switch');
-
                 // The audio element should continue playing seamlessly
                 // Update the new WaveSurfer's state to match
                 this.waveSurfer.on('ready', () => {
@@ -288,83 +312,150 @@ class GlobalAudioManager {
             return true;
 
         } catch (error) {
-            console.error('Global Audio Manager: Failed to switch container:', error);
             return false;
         }
+    }
+
+    setupAudioElementEvents(audioElement) {
+        if (!audioElement) return;
+        
+        // Remove existing listeners to avoid duplicates
+        audioElement.removeEventListener('play', this.audioElementPlayHandler);
+        audioElement.removeEventListener('pause', this.audioElementPauseHandler);
+        audioElement.removeEventListener('ended', this.audioElementEndedHandler);
+        audioElement.removeEventListener('timeupdate', this.audioElementTimeUpdateHandler);
+        audioElement.removeEventListener('seeking', this.audioElementSeekingHandler);
+        
+        // Create bound handlers
+        this.audioElementPlayHandler = () => {
+            this.playbackState.isPlaying = true;
+            if (this.alpineStore) {
+                this.alpineStore.updatePlaybackState(true);
+            }
+            this.updateLivewireComponent('playbackStarted');
+            this.updateMediaSessionPlaybackState('playing');
+        };
+        
+        this.audioElementPauseHandler = () => {
+            this.playbackState.isPlaying = false;
+            if (this.alpineStore) {
+                this.alpineStore.updatePlaybackState(false);
+            }
+            this.updateLivewireComponent('playbackPaused');
+            this.updateMediaSessionPlaybackState('paused');
+        };
+        
+        this.audioElementEndedHandler = () => {
+            this.playbackState.isPlaying = false;
+            this.playbackState.currentPosition = 0;
+            this.updateLivewireComponent('trackEnded');
+            this.updateMediaSessionPlaybackState('none');
+        };
+        
+        this.audioElementTimeUpdateHandler = () => {
+            this.playbackState.currentPosition = audioElement.currentTime;
+            this.throttlePositionUpdate();
+            
+            // Handle A-B loop
+            if (this.loopState.enabled && this.loopState.start !== null && this.loopState.end !== null) {
+                if (this.playbackState.currentPosition >= this.loopState.end) {
+                    audioElement.currentTime = this.loopState.start;
+                }
+            }
+        };
+        
+        this.audioElementSeekingHandler = () => {
+            this.playbackState.currentPosition = audioElement.currentTime;
+            if (this.alpineStore) {
+                this.alpineStore.currentPosition = this.playbackState.currentPosition;
+            }
+            this.callLivewireMethod('updatePosition', this.playbackState.currentPosition);
+        };
+        
+        // Add event listeners
+        audioElement.addEventListener('play', this.audioElementPlayHandler);
+        audioElement.addEventListener('pause', this.audioElementPauseHandler);
+        audioElement.addEventListener('ended', this.audioElementEndedHandler);
+        audioElement.addEventListener('timeupdate', this.audioElementTimeUpdateHandler);
+        audioElement.addEventListener('seeking', this.audioElementSeekingHandler);
     }
 
     setupWaveSurferEvents() {
         if (!this.waveSurfer) return;
 
-        // Set up WaveSurfer event listeners (same as in initializeWaveSurfer)
-        this.waveSurfer.on('ready', () => {
-            this.playbackState.duration = this.waveSurfer.getDuration();
+        // Only set up WaveSurfer events if NOT using MediaElement
+        // MediaElement events are handled by setupAudioElementEvents
+        if (!this.usingMediaElement) {
+            
+            // Set up WaveSurfer event listeners (same as in initializeWaveSurfer)
+            this.waveSurfer.on('ready', () => {
+                this.playbackState.duration = this.waveSurfer.getDuration();
 
-            if (this.alpineStore) {
-                this.alpineStore.duration = this.playbackState.duration;
-                this.alpineStore.clearLoading();
-            }
-
-            this.callLivewireMethod('updateDuration', this.playbackState.duration);
-            this.updateLivewireComponent('waveformReady');
-        });
-
-        this.waveSurfer.on('play', () => {
-            this.playbackState.isPlaying = true;
-
-            if (this.alpineStore) {
-                this.alpineStore.updatePlaybackState(true);
-            }
-
-            this.updateLivewireComponent('playbackStarted');
-            this.updateMediaSessionPlaybackState('playing');
-        });
-
-        this.waveSurfer.on('pause', () => {
-            this.playbackState.isPlaying = false;
-
-            if (this.alpineStore) {
-                this.alpineStore.updatePlaybackState(false);
-            }
-
-            this.updateLivewireComponent('playbackPaused');
-            this.updateMediaSessionPlaybackState('paused');
-        });
-
-        this.waveSurfer.on('finish', () => {
-            this.playbackState.isPlaying = false;
-            this.playbackState.currentPosition = 0;
-            this.updateLivewireComponent('trackEnded');
-            this.updateMediaSessionPlaybackState('none');
-        });
-
-        this.waveSurfer.on('audioprocess', () => {
-            this.playbackState.currentPosition = this.waveSurfer.getCurrentTime();
-            this.throttlePositionUpdate();
-
-            // Handle A-B loop
-            if (this.loopState.enabled && this.loopState.start !== null && this.loopState.end !== null) {
-                if (this.playbackState.currentPosition >= this.loopState.end) {
-                    this.seekTo(this.loopState.start);
+                if (this.alpineStore) {
+                    this.alpineStore.duration = this.playbackState.duration;
+                    this.alpineStore.clearLoading();
                 }
-            }
-        });
 
-        this.waveSurfer.on('seek', () => {
-            this.playbackState.currentPosition = this.waveSurfer.getCurrentTime();
+                this.callLivewireMethod('updateDuration', this.playbackState.duration);
+                this.updateLivewireComponent('waveformReady');
+            });
 
-            if (this.alpineStore) {
-                this.alpineStore.currentPosition = this.playbackState.currentPosition;
-            }
+            this.waveSurfer.on('play', () => {
+                this.playbackState.isPlaying = true;
 
-            this.callLivewireMethod('updatePosition', this.playbackState.currentPosition);
-            // this.saveAudioState(); // Removed - persist handles this
-        });
+                if (this.alpineStore) {
+                    this.alpineStore.updatePlaybackState(true);
+                }
+
+                this.updateLivewireComponent('playbackStarted');
+                this.updateMediaSessionPlaybackState('playing');
+            });
+
+            this.waveSurfer.on('pause', () => {
+                this.playbackState.isPlaying = false;
+
+                if (this.alpineStore) {
+                    this.alpineStore.updatePlaybackState(false);
+                }
+
+                this.updateLivewireComponent('playbackPaused');
+                this.updateMediaSessionPlaybackState('paused');
+            });
+
+            this.waveSurfer.on('finish', () => {
+                this.playbackState.isPlaying = false;
+                this.playbackState.currentPosition = 0;
+                this.updateLivewireComponent('trackEnded');
+                this.updateMediaSessionPlaybackState('none');
+            });
+
+            this.waveSurfer.on('audioprocess', () => {
+                this.playbackState.currentPosition = this.waveSurfer.getCurrentTime();
+                this.throttlePositionUpdate();
+
+                // Handle A-B loop
+                if (this.loopState.enabled && this.loopState.start !== null && this.loopState.end !== null) {
+                    if (this.playbackState.currentPosition >= this.loopState.end) {
+                        this.seekTo(this.loopState.start);
+                    }
+                }
+            });
+
+            this.waveSurfer.on('seek', () => {
+                this.playbackState.currentPosition = this.waveSurfer.getCurrentTime();
+
+                if (this.alpineStore) {
+                    this.alpineStore.currentPosition = this.playbackState.currentPosition;
+                }
+
+                this.callLivewireMethod('updatePosition', this.playbackState.currentPosition);
+                // this.saveAudioState(); // Removed - persist handles this
+            });
+        }
     }
 
     loadTrack(track) {
         if (!track || !track.url) {
-            console.error('Global Audio Manager: Invalid track data provided', track);
             return;
         }
 
@@ -377,7 +468,6 @@ class GlobalAudioManager {
 
         // Initialize WaveSurfer if not already done
         if (!this.isInitialized && !this.initializeWaveSurfer()) {
-            console.error('Global Audio Manager: Could not initialize WaveSurfer for track loading');
             if (this.alpineStore) {
                 this.alpineStore.clearLoading();
             }
@@ -386,7 +476,39 @@ class GlobalAudioManager {
 
         // Load the audio file
         try {
-            this.waveSurfer.load(track.url);
+            // If using MediaElement, set the source directly on the audio element only
+            if (this.usingMediaElement) {
+                const audioElement = document.getElementById('persistent-audio-element');
+                if (audioElement) {
+                    // Set source for streaming - this triggers the browser's native streaming
+                    audioElement.src = track.url;
+                    
+                    // Force WaveSurfer to use this audio element without downloading again
+                    if (this.waveSurfer.setMediaElement && typeof this.waveSurfer.setMediaElement === 'function') {
+                        this.waveSurfer.setMediaElement(audioElement);
+                    }
+                    
+                    // Set up audio element event listeners for MediaElement backend
+                    this.setupAudioElementEvents(audioElement);
+                    
+                    // Wait for metadata to load to get duration
+                    audioElement.addEventListener('loadedmetadata', () => {
+                        this.playbackState.duration = audioElement.duration || 0;
+                        if (this.alpineStore) {
+                            this.alpineStore.duration = this.playbackState.duration;
+                            this.alpineStore.clearLoading();
+                        }
+                        this.callLivewireMethod('updateDuration', this.playbackState.duration);
+                        this.updateLivewireComponent('waveformReady');
+                    }, { once: true });
+                    
+                } else {
+                    this.waveSurfer.load(track.url);
+                }
+            } else {
+                // Standard WebAudio loading
+                this.waveSurfer.load(track.url);
+            }
 
             // Update Media Session metadata
             this.updateMediaSessionMetadata(track);
@@ -395,7 +517,6 @@ class GlobalAudioManager {
             this.saveCurrentTrack(track);
 
         } catch (error) {
-            console.error('Global Audio Manager: Failed to load track:', error);
             if (this.alpineStore) {
                 this.alpineStore.clearLoading();
             }
@@ -403,29 +524,54 @@ class GlobalAudioManager {
     }
 
     play() {
-        if (!this.waveSurfer) {
-            console.warn('Global Audio Manager: No WaveSurfer instance available for play');
-            return;
-        }
+        if (this.usingMediaElement) {
+            // Use the audio element directly for MediaElement backend
+            const audioElement = document.getElementById('persistent-audio-element');
+            if (audioElement) {
+                try {
+                    audioElement.play();
+                    this.pauseAllOtherPlayers();
+                } catch (error) {
+                    // Silently handle autoplay restrictions
+                }
+            }
+        } else {
+            // Use WaveSurfer for WebAudio backend
+            if (!this.waveSurfer) {
+                return;
+            }
 
-        try {
-            this.waveSurfer.play();
-            this.pauseAllOtherPlayers();
-        } catch (error) {
-            console.error('Global Audio Manager: Failed to play:', error);
+            try {
+                this.waveSurfer.play();
+                this.pauseAllOtherPlayers();
+            } catch (error) {
+                // Silently handle play errors
+            }
         }
     }
 
     pause() {
-        if (!this.waveSurfer) {
-            console.warn('Global Audio Manager: No WaveSurfer instance available for pause');
-            return;
-        }
+        if (this.usingMediaElement) {
+            // Use the audio element directly for MediaElement backend
+            const audioElement = document.getElementById('persistent-audio-element');
+            if (audioElement) {
+                try {
+                    audioElement.pause();
+                } catch (error) {
+                    // Silently handle pause errors
+                }
+            }
+        } else {
+            // Use WaveSurfer for WebAudio backend
+            if (!this.waveSurfer) {
+                return;
+            }
 
-        try {
-            this.waveSurfer.pause();
-        } catch (error) {
-            console.error('Global Audio Manager: Failed to pause:', error);
+            try {
+                this.waveSurfer.pause();
+            } catch (error) {
+                // Silently handle pause errors
+            }
         }
     }
 
@@ -440,36 +586,63 @@ class GlobalAudioManager {
             this.playbackState.isPlaying = false;
             this.updateMediaSessionPlaybackState('none');
         } catch (error) {
-            console.error('Global Audio Manager: Failed to stop:', error);
+            // Silently handle stop errors
         }
     }
 
     seekTo(time) {
-        if (!this.waveSurfer) {
-            return;
-        }
-
-        try {
-            const duration = this.waveSurfer.getDuration();
-            if (duration > 0) {
-                const seekPosition = time / duration;
-                this.waveSurfer.seekTo(seekPosition);
+        if (this.usingMediaElement) {
+            // Use the audio element directly for MediaElement backend
+            const audioElement = document.getElementById('persistent-audio-element');
+            if (audioElement && !isNaN(time) && time >= 0) {
+                try {
+                    audioElement.currentTime = time;
+                } catch (error) {
+                    // Silently handle seek errors
+                }
             }
-        } catch (error) {
-            console.error('Global Audio Manager: Failed to seek:', error);
+        } else {
+            // Use WaveSurfer for WebAudio backend
+            if (!this.waveSurfer) {
+                return;
+            }
+
+            try {
+                const duration = this.waveSurfer.getDuration();
+                if (duration > 0) {
+                    const seekPosition = time / duration;
+                    this.waveSurfer.seekTo(seekPosition);
+                }
+            } catch (error) {
+                // Silently handle seek errors
+            }
         }
     }
 
     setVolume(volume) {
-        if (!this.waveSurfer) {
-            return;
-        }
+        if (this.usingMediaElement) {
+            // Use the audio element directly for MediaElement backend
+            const audioElement = document.getElementById('persistent-audio-element');
+            if (audioElement) {
+                try {
+                    audioElement.volume = volume;
+                    this.playbackState.volume = volume;
+                } catch (error) {
+                    // Silently handle volume errors
+                }
+            }
+        } else {
+            // Use WaveSurfer for WebAudio backend
+            if (!this.waveSurfer) {
+                return;
+            }
 
-        try {
-            this.waveSurfer.setVolume(volume);
-            this.playbackState.volume = volume;
-        } catch (error) {
-            console.error('Global Audio Manager: Failed to set volume:', error);
+            try {
+                this.waveSurfer.setVolume(volume);
+                this.playbackState.volume = volume;
+            } catch (error) {
+                // Silently handle volume errors
+            }
         }
     }
 
@@ -480,30 +653,44 @@ class GlobalAudioManager {
 
         try {
             this.waveSurfer.setPlaybackRate(rate);
-            console.log('Global Audio Manager: Playback rate set to', rate);
         } catch (error) {
-            console.error('Global Audio Manager: Failed to set playback rate:', error);
+            // Silently handle playback rate errors
         }
     }
 
     setMute(muted) {
-        if (!this.waveSurfer) {
-            return;
-        }
+        if (this.usingMediaElement) {
+            // Use the audio element directly for MediaElement backend
+            const audioElement = document.getElementById('persistent-audio-element');
+            if (audioElement) {
+                try {
+                    audioElement.muted = muted;
+                    this.playbackState.isMuted = muted;
+                } catch (error) {
+                    // Silently handle mute errors
+                }
+            }
+        } else {
+            // Use WaveSurfer for WebAudio backend
+            if (!this.waveSurfer) {
+                return;
+            }
 
-        try {
-            this.waveSurfer.setMute(muted);
-            this.playbackState.isMuted = muted;
-        } catch (error) {
-            console.error('Global Audio Manager: Failed to set mute:', error);
+            try {
+                this.waveSurfer.setMute(muted);
+                this.playbackState.isMuted = muted;
+            } catch (error) {
+                // Silently handle mute errors
+            }
         }
     }
 
     // Pause all other audio players on the page
     pauseAllOtherPlayers() {
-        // Pause native HTML5 audio elements
+        // Pause native HTML5 audio elements, but skip our persistent audio element
+        const persistentAudio = document.getElementById('persistent-audio-element');
         document.querySelectorAll('audio').forEach(audio => {
-            if (!audio.paused) {
+            if (audio !== persistentAudio && !audio.paused) {
                 audio.pause();
             }
         });
@@ -562,7 +749,7 @@ class GlobalAudioManager {
                 ]
             });
         } catch (error) {
-            console.error('Global Audio Manager: Failed to update media session metadata:', error);
+            // Silently handle metadata errors
         }
     }
 
@@ -591,7 +778,7 @@ class GlobalAudioManager {
                 }
             }
         } catch (error) {
-            console.error('Global Audio Manager: Failed to update media session playback state:', error);
+            // Silently handle playback state errors
         }
     }
 
@@ -618,7 +805,7 @@ class GlobalAudioManager {
         try {
             sessionStorage.setItem('global-audio-current-track', JSON.stringify(track));
         } catch (error) {
-            console.warn('Global Audio Manager: Could not save current track to session storage');
+            // Silently handle storage errors
         }
     }
 
@@ -639,7 +826,7 @@ class GlobalAudioManager {
 
             sessionStorage.setItem('global-audio-playback-state', JSON.stringify(state));
         } catch (error) {
-            console.warn('Global Audio Manager: Could not save playback state');
+            // Silently handle storage errors
         }
     }
 
@@ -679,7 +866,6 @@ class GlobalAudioManager {
             }
 
         } catch (error) {
-            console.warn('Global Audio Manager: Could not restore playback state');
             sessionStorage.removeItem('global-audio-playback-state');
         }
     }
@@ -693,20 +879,18 @@ class GlobalAudioManager {
                 Livewire.dispatch(method);
             }
         } catch (error) {
-            console.error(`Global Audio Manager: Failed to call Livewire method ${method}:`, error);
+            // Silently handle Livewire errors
         }
     }
 
     // Register the Livewire component for direct method calls
     registerLivewireComponent(component) {
         this.livewireComponent = component;
-        console.log('Global Audio Manager: Livewire component registered');
     }
 
     // Register the Alpine.js store for direct updates
     registerAlpineStore(store) {
         this.alpineStore = store;
-        console.log('Global Audio Manager: Alpine store registered');
     }
 
     // Throttle position updates to avoid excessive calls
@@ -738,11 +922,9 @@ class GlobalAudioManager {
             }
 
             // Fallback to event dispatch if direct call fails
-            console.warn(`Global Audio Manager: No registered component available, falling back to event dispatch for ${method}`);
             this.updateLivewireComponent(method, data);
 
         } catch (error) {
-            console.error(`Global Audio Manager: Failed to call Livewire method ${method} directly:`, error);
             // Fallback to event dispatch
             this.updateLivewireComponent(method, data);
         }
@@ -767,8 +949,6 @@ class GlobalAudioManager {
             this.loopState.start = start;
             this.loopState.end = end;
             this.loopState.enabled = true;
-
-            console.log('Global Audio Manager: A-B loop set', { start, end });
         }
     }
 
@@ -776,8 +956,6 @@ class GlobalAudioManager {
         this.loopState.enabled = false;
         this.loopState.start = null;
         this.loopState.end = null;
-
-        console.log('Global Audio Manager: A-B loop cleared');
     }
 
     getLoopState() {
@@ -791,8 +969,6 @@ class GlobalAudioManager {
             navigator.serviceWorker.addEventListener('message', event => {
                 this.handleServiceWorkerMessage(event);
             });
-
-            console.log('Global Audio Manager: Service worker communication initialized');
         }
     }
 
@@ -801,16 +977,13 @@ class GlobalAudioManager {
 
         switch (type) {
             case 'AUDIO_STATE_RESTORED':
-                console.log('Global Audio Manager: Restored audio state from service worker');
                 this.applyRestoredState(payload);
                 break;
 
             case 'AUDIO_STATE_NOT_FOUND':
-                console.log('Global Audio Manager: No saved audio state found');
                 break;
 
             case 'AUDIO_STATE_ERROR':
-                console.error('Global Audio Manager: Error restoring audio state:', payload);
                 break;
         }
     }
@@ -837,7 +1010,7 @@ class GlobalAudioManager {
             }, [messageChannel.port2]);
 
         } catch (error) {
-            console.error('Global Audio Manager: Failed to restore audio state:', error);
+            // Silently handle restoration errors
         }
     }
 
@@ -886,9 +1059,9 @@ class GlobalAudioManager {
                 payload: url
             });
 
-            console.log('Global Audio Manager: Requested audio preload:', url);
+            // Audio preload requested
         } catch (error) {
-            console.error('Global Audio Manager: Failed to request audio preload:', error);
+            // Silently handle preload errors
         }
     }
 
@@ -912,7 +1085,6 @@ class GlobalAudioManager {
     // Enhanced play method that uses persistent audio for autoplay restrictions
     playWithFallback() {
         if (!this.waveSurfer) {
-            console.warn('Global Audio Manager: No WaveSurfer instance available for play');
             return;
         }
 
@@ -923,17 +1095,13 @@ class GlobalAudioManager {
             if (playPromise && typeof playPromise.then === 'function') {
                 playPromise.catch(error => {
                     if (error.name === 'NotAllowedError') {
-                        console.log('Global Audio Manager: Autoplay blocked, using persistent audio fallback');
                         this.usePersistentAudioFallback();
-                    } else {
-                        console.error('Global Audio Manager: Failed to play:', error);
                     }
                 });
             }
 
             this.pauseAllOtherPlayers();
         } catch (error) {
-            console.error('Global Audio Manager: Failed to play:', error);
             // Try fallback
             this.usePersistentAudioFallback();
         }
@@ -957,7 +1125,6 @@ class GlobalAudioManager {
 
             // Play the persistent audio
             persistentAudio.play().then(() => {
-                console.log('Global Audio Manager: Using persistent audio element for playback');
                 this.playbackState.isPlaying = true;
 
                 // Update stores
@@ -968,11 +1135,11 @@ class GlobalAudioManager {
                 // Set up event listeners for persistent audio
                 this.setupPersistentAudioEvents(persistentAudio);
             }).catch(error => {
-                console.error('Global Audio Manager: Persistent audio fallback also failed:', error);
+                // Silently handle persistent audio errors
             });
 
         } catch (error) {
-            console.error('Global Audio Manager: Failed to use persistent audio fallback:', error);
+            // Silently handle fallback errors
         }
     }
 
