@@ -81,97 +81,149 @@ function initHeroComponents() {
         });
     }
 
-    // Enhanced Audio Visualizer with WebGL-like effects
+    // High-Performance Audio Visualizer
     const audioVisualizer = document.getElementById('audio-visualizer');
 
     if (audioVisualizer) {
-        console.log('Hero.js: Audio visualizer element found, initializing canvas...');
+        console.log('Hero.js: Audio visualizer element found, initializing optimized canvas...');
+        
+        // Main display canvas
         const canvas = document.createElement('canvas');
         canvas.width = audioVisualizer.offsetWidth;
         canvas.height = audioVisualizer.offsetHeight;
         audioVisualizer.appendChild(canvas);
-
+        
+        // Off-screen buffer canvas for optimized rendering
+        const bufferCanvas = document.createElement('canvas');
+        bufferCanvas.width = canvas.width;
+        bufferCanvas.height = canvas.height;
+        
         const ctx = canvas.getContext('2d');
+        const bufferCtx = bufferCanvas.getContext('2d');
+        
+        // Enable hardware acceleration
+        canvas.style.willChange = 'transform';
+        
         let animationId;
         let lastFrameTime = 0;
-        const targetFPS = 30; // Reduced from 60 for better performance
+        const targetFPS = 30;
         const frameInterval = 1000 / targetFPS;
 
         // Optimized visualizer configuration
         const config = {
-            barCount: Math.min(60, Math.floor(canvas.width / 12)), // Reduced bar count
+            barCount: Math.min(60, Math.floor(canvas.width / 12)),
             colors: [
                 { r: 59, g: 130, b: 246 },   // Blue
                 { r: 147, g: 51, b: 234 },   // Purple
                 { r: 236, g: 72, b: 153 },   // Pink
             ],
-            waveSpeed: 0.015, // Slightly slower for smoother animation
+            waveSpeed: 0.015,
             amplitude: 0.7
         };
 
-        function drawEnhancedVisualizer(currentTime) {
+        // Pre-compute expensive values for performance
+        const barWidth = Math.max(4, canvas.width / config.barCount);
+        const barSpacing = 3;
+        const barStep = barWidth + barSpacing;
+        
+        // Pre-cached color strings for better performance
+        const colorCache = config.colors.map(color => ({
+            normal: `rgba(${color.r}, ${color.g}, ${color.b}, 0.7)`,
+            glow: `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`,
+            ...color
+        }));
+
+        // Sine wave lookup table for ultra-fast calculations
+        const LOOKUP_SIZE = 1024;
+        const sineTable = new Float32Array(LOOKUP_SIZE);
+        for (let i = 0; i < LOOKUP_SIZE; i++) {
+            sineTable[i] = Math.sin((i / LOOKUP_SIZE) * Math.PI * 2);
+        }
+
+        // Fast sine lookup function
+        function fastSin(angle) {
+            const index = Math.floor(((angle % (Math.PI * 2)) / (Math.PI * 2)) * LOOKUP_SIZE) % LOOKUP_SIZE;
+            return sineTable[index];
+        }
+
+        function drawOptimizedVisualizer(currentTime) {
             // Frame rate limiting
             if (currentTime - lastFrameTime < frameInterval) {
-                animationId = requestAnimationFrame(drawEnhancedVisualizer);
+                animationId = requestAnimationFrame(drawOptimizedVisualizer);
                 return;
             }
             lastFrameTime = currentTime;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             const time = currentTime / 1000;
-            const barWidth = Math.max(4, canvas.width / config.barCount);
-            const barSpacing = 3;
 
+            // Clear buffer canvas completely each frame for smooth animation
+            bufferCtx.clearRect(0, 0, bufferCanvas.width, bufferCanvas.height);
+
+            // Batch all shadow operations for better performance
+            const shadowBars = [];
+            
             for (let i = 0; i < config.barCount; i++) {
-                // Simplified wave calculation for better performance
-                const wave1 = Math.sin(time * 1.8 + i * 0.12) * 0.5 + 0.5;
-                const wave2 = Math.sin(time * 1.2 + i * 0.18) * 0.3 + 0.3;
+                // Ultra-fast wave calculation using lookup table
+                const wave1Index = ((time * 1.8 + i * 0.12) % (Math.PI * 2));
+                const wave2Index = ((time * 1.2 + i * 0.18) % (Math.PI * 2));
+                
+                const wave1 = fastSin(wave1Index) * 0.5 + 0.5;
+                const wave2 = fastSin(wave2Index) * 0.3 + 0.3;
 
-                const combinedWave = (wave1 + wave2) / 2; // Reduced from 3 waves to 2
+                const combinedWave = (wave1 + wave2) * 0.5;
                 const barHeight = combinedWave * canvas.height * config.amplitude;
 
-                // Simplified color calculation
-                const colorIndex = (i / config.barCount + time * 0.08) % 1;
-                const colorArrayIndex = Math.floor(colorIndex * config.colors.length);
-                const color = config.colors[colorArrayIndex];
+                // Pre-calculated color index for performance
+                const colorIndex = Math.floor(((i / config.barCount + time * 0.08) % 1) * colorCache.length);
+                const colorData = colorCache[colorIndex];
 
-                // Use solid colors instead of gradients for better performance
-                ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.7)`;
-                ctx.fillRect(
-                    i * (barWidth + barSpacing),
-                    canvas.height - barHeight,
-                    barWidth,
-                    barHeight
-                );
+                const x = i * barStep;
+                const y = canvas.height - barHeight;
 
-                // Simplified glow effect (only for every 3rd bar)
+                // Draw main bar
+                bufferCtx.fillStyle = colorData.normal;
+                bufferCtx.fillRect(x, y, barWidth, barHeight);
+
+                // Collect shadow bars for batch processing
                 if (i % 3 === 0) {
-                    ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`;
-                    ctx.shadowBlur = 8;
-                    ctx.fillRect(
-                        i * (barWidth + barSpacing),
-                        canvas.height - barHeight,
-                        barWidth,
-                        barHeight
-                    );
-                    ctx.shadowBlur = 0;
+                    shadowBars.push({ x, y, width: barWidth, height: barHeight, color: colorData.glow });
                 }
             }
 
-            animationId = requestAnimationFrame(drawEnhancedVisualizer);
+            // Batch process all shadow effects for optimal performance
+            if (shadowBars.length > 0) {
+                bufferCtx.shadowBlur = 8;
+                shadowBars.forEach(bar => {
+                    bufferCtx.shadowColor = bar.color;
+                    bufferCtx.fillStyle = bar.color;
+                    bufferCtx.fillRect(bar.x, bar.y, bar.width, bar.height);
+                });
+                bufferCtx.shadowBlur = 0;
+            }
+
+            // Copy buffer to main canvas for display
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bufferCanvas, 0, 0);
+
+            animationId = requestAnimationFrame(drawOptimizedVisualizer);
         }
 
-        drawEnhancedVisualizer(performance.now());
+        drawOptimizedVisualizer(performance.now());
 
-        // Optimized resize handler with debouncing
+        // Optimized resize handler with buffer canvas updates
         let resizeTimeout;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                canvas.width = audioVisualizer.offsetWidth;
-                canvas.height = audioVisualizer.offsetHeight;
-                config.barCount = Math.min(60, Math.floor(canvas.width / 12));
+                const newWidth = audioVisualizer.offsetWidth;
+                const newHeight = audioVisualizer.offsetHeight;
+                
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                bufferCanvas.width = newWidth;
+                bufferCanvas.height = newHeight;
+                
+                config.barCount = Math.min(60, Math.floor(newWidth / 12));
             }, 250);
         });
     }
@@ -309,7 +361,7 @@ function initHeroComponents() {
         } else {
             // Resume animations when tab becomes visible
             if (audioVisualizer) {
-                drawEnhancedVisualizer(performance.now());
+                drawOptimizedVisualizer(performance.now());
             }
         }
     });

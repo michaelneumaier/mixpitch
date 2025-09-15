@@ -46,8 +46,8 @@
                             <div>Unleash</div>
                         </div>
                         <div class="text-left">
-                            <div>Musicians.</div>
-                            <div>Mixers.</div>
+                            <div class="bg-blue-300 bg-clip-text text-transparent">Musicians.</div>
+                            <div class="bg-pink-300 bg-clip-text text-transparent">Mixers.</div>
                             <div class="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x pb-2">Creativity.</div>
                         </div>
                     </div>

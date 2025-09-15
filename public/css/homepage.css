@@ -358,6 +358,21 @@
     .wave {
         animation: none;
     }
+    
+    /* Disable canvas animations for reduced motion */
+    #audio-visualizer canvas,
+    #particles-container canvas {
+        opacity: 0.1;
+    }
+}
+
+/* Canvas GPU acceleration and performance optimizations */
+#audio-visualizer canvas,
+#particles-container canvas {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
 }
 
 /* Dark Mode Support */
