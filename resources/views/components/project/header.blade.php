@@ -76,14 +76,14 @@
         if (!$userPitch && $project->status === 'open' && $canPitch) {
             $primaryAction = [
                 'url' => "javascript:openPitchTermsModal()",
-                'label' => 'Submit Pitch',
+                'label' => 'Start Pitch',
                 'variant' => 'primary'
             ];
         } elseif ($userPitch) {
             $primaryAction = [
                 'url' => route('projects.pitches.show', [$userPitch->project, $userPitch]),
                 'navigate' => true,
-                'label' => 'View My Pitch',
+                'label' => 'Manage Pitch',
                 'variant' => 'outline'
             ];
         }
@@ -206,153 +206,201 @@
             </div>
         </div>
         
-        <!-- Actions Dropdown -->
+        <!-- Actions Section -->
         @if($showActions)
             <div class="flex-shrink-0">
-                <flux:dropdown position="bottom" align="end">
-                    <flux:button variant="primary" size="base" icon="chevron-down" class="w-full sm:w-auto font-semibold">
-                        Manage
-                    </flux:button>
-                    
-                    <flux:menu>
-                        <!-- Primary Action (if exists) -->
-                        @if($primaryAction)
-                            @if(isset($primaryAction['action']))
-                                <flux:menu.item wire:click="publish" icon="{{ $statusConfig['icon'] }}">
-                                    {{ $primaryAction['label'] }}
-                                </flux:menu.item>
-                            @elseif(isset($primaryAction['type']) && $primaryAction['type'] === 'modal')
-                                <flux:modal.trigger name="{{ $primaryAction['modal'] }}">
-                                    <flux:menu.item icon="share">
+                @if($project->user_id === auth()->id())
+                    <!-- Project Owner: Show Manage Dropdown -->
+                    <flux:dropdown position="bottom" align="end">
+                        <flux:button variant="primary" size="base" icon="chevron-down" class="w-full sm:w-auto font-semibold">
+                            Manage
+                        </flux:button>
+                        
+                        <flux:menu>
+                            <!-- Primary Action (if exists) -->
+                            @if($primaryAction)
+                                @if(isset($primaryAction['action']))
+                                    <flux:menu.item wire:click="publish" icon="{{ $statusConfig['icon'] }}">
                                         {{ $primaryAction['label'] }}
+                                    </flux:menu.item>
+                                @elseif(isset($primaryAction['type']) && $primaryAction['type'] === 'modal')
+                                    <flux:modal.trigger name="{{ $primaryAction['modal'] }}">
+                                        <flux:menu.item icon="share">
+                                            {{ $primaryAction['label'] }}
+                                        </flux:menu.item>
+                                    </flux:modal.trigger>
+                                @else
+                                    @if(isset($primaryAction['navigate']) && $primaryAction['navigate'])
+                                        <flux:menu.item href="{{ $primaryAction['url'] }}" wire:navigate icon="{{ $statusConfig['icon'] }}">
+                                            {{ $primaryAction['label'] }}
+                                        </flux:menu.item>
+                                    @else
+                                        <flux:menu.item href="{{ $primaryAction['url'] }}" icon="{{ $statusConfig['icon'] }}">
+                                            {{ $primaryAction['label'] }}
+                                        </flux:menu.item>
+                                    @endif
+                                @endif
+                                <flux:menu.separator />
+                            @endif
+                            
+                            <!-- Standard Actions -->
+                            @if($context === 'manage')
+                                @if($project->isClientManagement())
+                                    <!-- Client Management Specific Actions -->
+                                    <flux:menu.item wire:click="previewClientPortal" icon="eye">
+                                        Preview Client Portal
+                                    </flux:menu.item>
+                                    
+                                    <flux:menu.item wire:click="resendClientInvite" icon="envelope">
+                                        Resend Client Invite
+                                    </flux:menu.item>
+                                @else
+                                    <!-- Standard Project Actions -->
+                                    <flux:menu.item href="{{ route('projects.show', $project) }}" wire:navigate icon="eye">
+                                        View Public
+                                    </flux:menu.item>
+                                @endif
+                                
+                                <!-- Edit/Settings -->
+                                @if($showEditButton)
+                                    <flux:menu.item href="{{ route('projects.edit', $project) }}" wire:navigate icon="cog-6-tooth">
+                                        Project Settings
+                                    </flux:menu.item>
+                                @endif
+                                
+                                
+                                <!-- Reddit Integration (Not for Client Management) -->
+                                @if(!$project->isClientManagement())
+                                    @if($project->hasBeenPostedToReddit())
+                                        <flux:menu.item href="{{ $project->getRedditUrl() }}" target="_blank" icon="arrow-top-right-on-square">
+                                            View on Reddit
+                                        </flux:menu.item>
+                                    @elseif($project->is_published)
+                                        <flux:menu.item wire:click="postToReddit" icon="globe-alt">
+                                            Post to r/MixPitch
+                                        </flux:menu.item>
+                                    @endif
+                                @endif
+                                
+                                <!-- Auto-Allow Access Toggle (for Standard/Contest projects) -->
+                                @if(!$project->isClientManagement() && !$project->isDirectHire())
+                                    <flux:menu.item wire:click="$toggle('autoAllowAccess')" icon="{{ $autoAllowAccess ?? $project->auto_allow_access ? 'check-circle' : 'x-circle' }}">
+                                        {{ ($autoAllowAccess ?? $project->auto_allow_access) ? 'Disable' : 'Enable' }} Auto-Approve
+                                    </flux:menu.item>
+                                @endif
+                                
+                                <!-- Sync Options -->
+                                <flux:modal.trigger name="syncOptions">
+                                    <flux:menu.item icon="cloud">
+                                        Sync Options
                                     </flux:menu.item>
                                 </flux:modal.trigger>
-                            @else
-                                @if(isset($primaryAction['navigate']) && $primaryAction['navigate'])
-                                    <flux:menu.item href="{{ $primaryAction['url'] }}" wire:navigate icon="{{ $statusConfig['icon'] }}">
-                                        {{ $primaryAction['label'] }}
+
+                                <!-- Backup History -->
+                                <flux:modal.trigger name="backupHistory">
+                                    <flux:menu.item icon="clock">
+                                        Backup History
                                     </flux:menu.item>
-                                @else
-                                    <flux:menu.item href="{{ $primaryAction['url'] }}" icon="{{ $statusConfig['icon'] }}">
-                                        {{ $primaryAction['label'] }}
-                                    </flux:menu.item>
+                                </flux:modal.trigger>
+
+                                
+                                <flux:menu.separator />
+                                
+                                <!-- Publish/Unpublish Toggle (Not for Client Management) -->
+                                @if($project->user_id === auth()->id() && !$project->isClientManagement())
+                                    @if($project->is_published)
+                                        <flux:menu.item wire:click="unpublish" icon="eye-slash">
+                                            Unpublish Project
+                                        </flux:menu.item>
+                                    @elseif($project->status !== 'unpublished')
+                                        <flux:menu.item wire:click="publish" icon="globe-alt">
+                                            Publish Project
+                                        </flux:menu.item>
+                                    @endif
                                 @endif
-                            @endif
-                            <flux:menu.separator />
-                        @endif
-                        
-                        <!-- Standard Actions -->
-                        @if($context === 'manage')
-                            @if($project->isClientManagement())
-                                <!-- Client Management Specific Actions -->
-                                <flux:menu.item wire:click="previewClientPortal" icon="eye">
-                                    Preview Client Portal
+                                
+                                <!-- Additional Management Actions -->
+                                @if($project->isContest() && auth()->check() && auth()->user()->can('judgeContest', $project))
+                                    <flux:menu.separator />
+                                    @if($project->isJudgingFinalized())
+                                        <flux:menu.item href="{{ route('projects.contest.results', $project) }}" wire:navigate icon="trophy">
+                                            View Results
+                                        </flux:menu.item>
+                                        <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" wire:navigate icon="scale">
+                                            Judging Dashboard
+                                        </flux:menu.item>
+                                    @else
+                                        <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" wire:navigate icon="scale">
+                                            Judge Contest
+                                        </flux:menu.item>
+                                    @endif
+                                @endif
+                                
+                                <!-- Danger Zone -->
+                                <flux:menu.separator />
+                                <flux:menu.item wire:click="confirmDeleteProject" icon="trash" class="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                    Delete Project
+                                </flux:menu.item>
+                            @else
+                                <!-- Non-manage context actions -->
+                                <flux:menu.item href="{{ route('projects.manage', $project) }}" wire:navigate icon="cog-6-tooth">
+                                    Manage Project
                                 </flux:menu.item>
                                 
-                                <flux:menu.item wire:click="resendClientInvite" icon="envelope">
-                                    Resend Client Invite
-                                </flux:menu.item>
-                            @else
-                                <!-- Standard Project Actions -->
-                                <flux:menu.item href="{{ route('projects.show', $project) }}" wire:navigate icon="eye">
-                                    View Public
-                                </flux:menu.item>
-                            @endif
-                            
-                            <!-- Edit/Settings -->
-                            @if($showEditButton)
-                                <flux:menu.item href="{{ route('projects.edit', $project) }}" wire:navigate icon="cog-6-tooth">
-                                    Project Settings
-                                </flux:menu.item>
-                            @endif
-                            
-                            
-                            <!-- Reddit Integration (Not for Client Management) -->
-                            @if(!$project->isClientManagement())
-                                @if($project->hasBeenPostedToReddit())
-                                    <flux:menu.item href="{{ $project->getRedditUrl() }}" target="_blank" icon="arrow-top-right-on-square">
-                                        View on Reddit
-                                    </flux:menu.item>
-                                @elseif($project->is_published)
-                                    <flux:menu.item wire:click="postToReddit" icon="globe-alt">
-                                        Post to r/MixPitch
+                                @if($showEditButton)
+                                    <flux:menu.item href="{{ route('projects.edit', $project) }}" wire:navigate icon="pencil">
+                                        Edit Details
                                     </flux:menu.item>
                                 @endif
                             @endif
-                            
-                            <!-- Auto-Allow Access Toggle (for Standard/Contest projects) -->
-                            @if(!$project->isClientManagement() && !$project->isDirectHire())
-                                <flux:menu.item wire:click="$toggle('autoAllowAccess')" icon="{{ $autoAllowAccess ?? $project->auto_allow_access ? 'check-circle' : 'x-circle' }}">
-                                    {{ ($autoAllowAccess ?? $project->auto_allow_access) ? 'Disable' : 'Enable' }} Auto-Approve
-                                </flux:menu.item>
-                            @endif
-                            
-                            <!-- Sync Options -->
-                            <flux:modal.trigger name="syncOptions">
-                                <flux:menu.item icon="cloud">
-                                    Sync Options
-                                </flux:menu.item>
+                        </flux:menu>
+                    </flux:dropdown>
+                @else
+                    <!-- Non-Owner: Show Single Action Button -->
+                    @if($primaryAction)
+                        @if(isset($primaryAction['action']))
+                            <flux:button 
+                                wire:click="publish" 
+                                variant="{{ $primaryAction['variant'] }}" 
+                                size="base" 
+                                class="w-full sm:w-auto font-semibold"
+                            >
+                                {{ $primaryAction['label'] }}
+                            </flux:button>
+                        @elseif(isset($primaryAction['type']) && $primaryAction['type'] === 'modal')
+                            <flux:modal.trigger name="{{ $primaryAction['modal'] }}">
+                                <flux:button 
+                                    variant="{{ $primaryAction['variant'] }}" 
+                                    size="base" 
+                                    class="w-full sm:w-auto font-semibold"
+                                >
+                                    {{ $primaryAction['label'] }}
+                                </flux:button>
                             </flux:modal.trigger>
-
-                            <!-- Backup History -->
-                            <flux:modal.trigger name="backupHistory">
-                                <flux:menu.item icon="clock">
-                                    Backup History
-                                </flux:menu.item>
-                            </flux:modal.trigger>
-
-                            
-                            <flux:menu.separator />
-                            
-                            <!-- Publish/Unpublish Toggle (Not for Client Management) -->
-                            @if($project->user_id === auth()->id() && !$project->isClientManagement())
-                                @if($project->is_published)
-                                    <flux:menu.item wire:click="unpublish" icon="eye-slash">
-                                        Unpublish Project
-                                    </flux:menu.item>
-                                @elseif($project->status !== 'unpublished')
-                                    <flux:menu.item wire:click="publish" icon="globe-alt">
-                                        Publish Project
-                                    </flux:menu.item>
-                                @endif
-                            @endif
-                            
-                            <!-- Additional Management Actions -->
-                            @if($project->isContest() && auth()->check() && auth()->user()->can('judgeContest', $project))
-                                <flux:menu.separator />
-                                @if($project->isJudgingFinalized())
-                                    <flux:menu.item href="{{ route('projects.contest.results', $project) }}" wire:navigate icon="trophy">
-                                        View Results
-                                    </flux:menu.item>
-                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" wire:navigate icon="scale">
-                                        Judging Dashboard
-                                    </flux:menu.item>
-                                @else
-                                    <flux:menu.item href="{{ route('projects.contest.judging', $project) }}" wire:navigate icon="scale">
-                                        Judge Contest
-                                    </flux:menu.item>
-                                @endif
-                            @endif
-                            
-                            <!-- Danger Zone -->
-                            <flux:menu.separator />
-                            <flux:menu.item wire:click="confirmDeleteProject" icon="trash" class="text-red-600 hover:text-red-700 hover:bg-red-50">
-                                Delete Project
-                            </flux:menu.item>
                         @else
-                            <!-- Non-manage context actions -->
-                            <flux:menu.item href="{{ route('projects.manage', $project) }}" wire:navigate icon="cog-6-tooth">
-                                Manage Project
-                            </flux:menu.item>
-                            
-                            @if($showEditButton)
-                                <flux:menu.item href="{{ route('projects.edit', $project) }}" wire:navigate icon="pencil">
-                                    Edit Details
-                                </flux:menu.item>
+                            @if(isset($primaryAction['navigate']) && $primaryAction['navigate'])
+                                <flux:button 
+                                    href="{{ $primaryAction['url'] }}" 
+                                    wire:navigate 
+                                    variant="{{ $primaryAction['variant'] }}" 
+                                    size="base" 
+                                    class="w-full sm:w-auto font-semibold"
+                                >
+                                    {{ $primaryAction['label'] }}
+                                </flux:button>
+                            @else
+                                <flux:button 
+                                    href="{{ $primaryAction['url'] }}" 
+                                    variant="{{ $primaryAction['variant'] }}" 
+                                    size="base" 
+                                    class="w-full sm:w-auto font-semibold"
+                                >
+                                    {{ $primaryAction['label'] }}
+                                </flux:button>
                             @endif
                         @endif
-                    </flux:menu>
-                </flux:dropdown>
+                    @endif
+                @endif
             </div>
         @endif
     </div>

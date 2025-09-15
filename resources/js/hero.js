@@ -1,5 +1,8 @@
 // Wait for both DOMContentLoaded and Alpine initialization
 function initHeroComponents() {
+    console.log('Hero.js: Initializing hero components...');
+    
+    try {
     // Enhanced Role Toggle Functionality
     const artistToggle = document.getElementById('artist-toggle');
     const producerToggle = document.getElementById('producer-toggle');
@@ -8,6 +11,7 @@ function initHeroComponents() {
     const producerContent = document.getElementById('producer-content');
 
     if (artistToggle && producerToggle && toggleIndicator) {
+        console.log('Hero.js: Role toggle elements found, setting up toggle functionality...');
         // Set initial toggle state with improved sizing
         const updateToggleIndicator = () => {
             const activeToggle = document.querySelector('.role-toggle-btn.active');
@@ -69,12 +73,19 @@ function initHeroComponents() {
                 switchToRole(producerToggle, artistToggle, producerContent, artistContent);
             }
         });
+    } else {
+        console.warn('Hero.js: Role toggle elements not found:', {
+            artistToggle: !!artistToggle,
+            producerToggle: !!producerToggle,
+            toggleIndicator: !!toggleIndicator
+        });
     }
 
     // Enhanced Audio Visualizer with WebGL-like effects
     const audioVisualizer = document.getElementById('audio-visualizer');
 
     if (audioVisualizer) {
+        console.log('Hero.js: Audio visualizer element found, initializing canvas...');
         const canvas = document.createElement('canvas');
         canvas.width = audioVisualizer.offsetWidth;
         canvas.height = audioVisualizer.offsetHeight;
@@ -319,17 +330,32 @@ function initHeroComponents() {
 
         animateGradient();
     }
+    
+    console.log('Hero.js: Hero components initialization completed successfully');
+    
+    } catch (error) {
+        console.error('Hero.js: Error during initialization:', error);
+        console.error('Hero.js: Stack trace:', error.stack);
+    }
 }
 
 // Initialize when DOM is ready and after a slight delay for Flux components
+console.log('Hero.js: Script loaded, document.readyState:', document.readyState);
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initHeroComponents);
+    console.log('Hero.js: Waiting for DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Hero.js: DOMContentLoaded event fired');
+        initHeroComponents();
+    });
 } else {
+    console.log('Hero.js: DOM already loaded, initializing immediately');
     // DOM is already loaded
     initHeroComponents();
 }
 
 // Also initialize after Alpine and Flux components are ready
 document.addEventListener('alpine:init', function() {
+    console.log('Hero.js: Alpine initialized, initializing hero components with delay...');
     setTimeout(initHeroComponents, 100);
 }); 

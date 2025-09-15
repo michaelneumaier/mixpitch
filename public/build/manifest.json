@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-cd50af89.css",
+    "file": "assets/app-2e69b8be.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-d86400f2.css",
+    "file": "assets/theme-3cc190f5.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -29,5 +29,10 @@
     "isDynamicEntry": true,
     "isEntry": true,
     "src": "resources/js/filament/billing/stripe-handler.js"
+  },
+  "resources/js/hero.js": {
+    "file": "assets/hero-06dc904a.js",
+    "isEntry": true,
+    "src": "resources/js/hero.js"
   }
 }

@@ -216,28 +216,4 @@
     </div>
 </div>
 
-<script>
-    // Inline hero script
-    (function() {
-        function initHero() {
-            const artistToggle = document.getElementById('artist-toggle');
-            const producerToggle = document.getElementById('producer-toggle');
-            
-            if (!artistToggle || !producerToggle) {
-                setTimeout(initHero, 100);
-                return;
-            }
-            
-            // Load the full hero.js functionality
-            const script = document.createElement('script');
-            script.src = '{{ asset("js/hero.js") }}';
-            document.body.appendChild(script);
-        }
-        
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initHero);
-        } else {
-            initHero();
-        }
-    })();
-</script>
+@vite('resources/js/hero.js')
