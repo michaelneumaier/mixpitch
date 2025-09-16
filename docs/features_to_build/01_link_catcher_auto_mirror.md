@@ -4,6 +4,11 @@
 
 Transform the client portal upload experience by adding URL-based file import functionality. This feature allows clients to paste sharing links (WeTransfer, Google Drive, Dropbox, etc.) instead of re-uploading files, solving the common problem of expired links and providing automatic mirroring into MixPitch's storage.
 
+Key technical direction:
+- Direct-to-S3 multipart uploads for imports (no buffering full files on app servers)
+- WeTransfer-first support (no official API), with other providers leveraging official APIs in later phases
+- Robust security (SSRF protections, redirect validation), private broadcasting for progress, and DB portability
+
 ## UX/UI Implementation
 
 ### Client Portal Integration
@@ -111,8 +116,8 @@ Schema::create('link_imports', function (Blueprint $table) {
     $table->string('source_url', 2000);
     $table->string('source_domain');
     $table->json('detected_files'); // Array of file metadata from link analysis
-    $table->json('imported_files')->nullable(); // Array of successfully imported ProjectFile IDs
-    $table->enum('status', ['pending', 'analyzing', 'importing', 'completed', 'failed']);
+    $table->json('imported_files')->nullable(); // Optional cache of successfully imported ProjectFile IDs (can be derived)
+    $table->string('status'); // Use string for portability across DB drivers
     $table->text('error_message')->nullable();
     $table->json('metadata')->nullable(); // Additional info like file counts, sizes, etc.
     $table->timestamp('started_at')->nullable();
@@ -134,13 +139,11 @@ Schema::create('imported_files', function (Blueprint $table) {
     $table->foreignId('project_file_id')->constrained()->onDelete('cascade');
     $table->string('source_filename');
     $table->string('source_url', 2000);
-    $table->string('checksum', 64); // SHA-256 hash for deduplication
     $table->bigInteger('size_bytes');
     $table->string('mime_type');
     $table->timestamp('imported_at');
     $table->timestamps();
     
-    $table->index('checksum');
     $table->index(['link_import_id', 'imported_at']);
 });
 ```
@@ -150,8 +153,7 @@ Schema::create('imported_files', function (Blueprint $table) {
 ```php
 Schema::table('project_files', function (Blueprint $table) {
     $table->string('import_source')->nullable()->after('metadata'); // 'upload', 'link_import', 'email_attachment'
-    $table->string('source_checksum', 64)->nullable()->after('import_source');
-    $table->index(['source_checksum', 'import_source']);
+    // No checksum tracking needed when uploading directly to S3
 });
 ```
 
@@ -185,10 +187,13 @@ class LinkImportService
     
     public function createImport(Project $project, string $url, $user): LinkImport
     {
+        // Authorization
+        abort_unless($user->can('update', $project), 403);
+
         $this->validateUrl($url);
         $this->checkRateLimits($project, $user);
         
-        $domain = parse_url($url, PHP_URL_HOST);
+        $domain = strtolower(parse_url($url, PHP_URL_HOST) ?? '');
         
         $import = LinkImport::create([
             'project_id' => $project->id,
@@ -215,36 +220,28 @@ class LinkImportService
             throw new ValidationException($validator);
         }
         
-        $domain = parse_url($url, PHP_URL_HOST);
-        $allowedDomains = config('linkimport.allowed_domains', [
-            'wetransfer.com',
-            'we.tl',
-            'drive.google.com',
-            'dropbox.com',
-            'db.tt',
-            '1drv.ms',
-            'onedrive.live.com',
-        ]);
-        
-        if (!in_array($domain, $allowedDomains)) {
-            throw new ValidationException(
-                Validator::make([], []),
-                ['url' => ['Domain not supported. Supported: ' . implode(', ', $allowedDomains)]]
-            );
+        $host = strtolower(parse_url($url, PHP_URL_HOST) ?? '');
+        $allowedDomains = (array) config('linkimport.allowed_domains', []);
+        $isAllowed = collect($allowedDomains)->contains(fn ($d) => str_ends_with($host, $d));
+        if (!$isAllowed) {
+            throw ValidationException::withMessages([
+                'url' => ['Domain not supported. Supported: ' . implode(', ', $allowedDomains)],
+            ]);
         }
     }
     
     protected function checkRateLimits(Project $project, $user): void
     {
+        $limits = config('linkimport.rate_limits');
+
         // Check per-project rate limits
         $recentImports = LinkImport::where('project_id', $project->id)
             ->where('created_at', '>', now()->subHour())
             ->count();
             
-        if ($recentImports >= 5) {
-            throw new ValidationException(
-                Validator::make([], []),
-                ['url' => ['Too many imports for this project. Please wait before importing more links.']]
+        if ($recentImports >= ($limits['per_project_per_hour'] ?? 5)) {
+            throw ValidationException::withMessages([
+                'url' => ['Too many imports for this project. Please wait before importing more links.']],
             );
         }
         
@@ -253,10 +250,9 @@ class LinkImportService
             ->where('created_at', '>', now()->subHour())
             ->count();
             
-        if ($userImports >= 10) {
-            throw new ValidationException(
-                Validator::make([], []),
-                ['url' => ['Too many imports. Please wait before importing more links.']]
+        if ($userImports >= ($limits['per_user_per_hour'] ?? 10)) {
+            throw ValidationException::withMessages([
+                'url' => ['Too many imports. Please wait before importing more links.']],
             );
         }
     }
@@ -376,7 +372,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
-class ProcessLinkImport implements ShouldQueue
+class ProcessLinkImport implements ShouldQueue, \Illuminate\Contracts\Queue\ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     
@@ -387,6 +383,11 @@ class ProcessLinkImport implements ShouldQueue
         protected LinkImport $linkImport
     ) {}
     
+    public function uniqueId(): string
+    {
+        return 'link-import:' . $this->linkImport->id;
+    }
+
     public function handle(
         LinkAnalysisService $analysisService,
         FileManagementService $fileService,
@@ -401,10 +402,14 @@ class ProcessLinkImport implements ShouldQueue
             // Step 1: Analyze the link to get file metadata
             $files = $analysisService->analyzeLink($this->linkImport->source_url);
             
+            $meta = $this->linkImport->metadata ?? [];
+            $meta['progress'] = ['completed' => 0, 'total' => count($files), 'current_file' => ''];
             $this->linkImport->update([
                 'detected_files' => $files,
+                'metadata' => $meta,
                 'status' => 'importing',
             ]);
+            event(new \App\Events\LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
             
             // Step 2: Download and import each file
             $importedFiles = [];
@@ -415,13 +420,14 @@ class ProcessLinkImport implements ShouldQueue
                     $importedFiles[] = $projectFile->id;
                     
                     // Update progress
-                    $this->linkImport->update([
-                        'metadata->progress' => [
-                            'completed' => count($importedFiles),
-                            'total' => count($files),
-                            'current_file' => $fileInfo['filename'] ?? 'Unknown'
-                        ]
-                    ]);
+                    $meta = $this->linkImport->metadata ?? [];
+                    $meta['progress'] = [
+                        'completed' => count($importedFiles),
+                        'total' => count($files),
+                        'current_file' => $fileInfo['filename'] ?? 'Unknown',
+                    ];
+                    $this->linkImport->update(['metadata' => $meta]);
+                    event(new \App\Events\LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
                     
                 } catch (\Exception $e) {
                     Log::error('Failed to import file from link', [
@@ -440,7 +446,7 @@ class ProcessLinkImport implements ShouldQueue
             ]);
             
             // Dispatch event for UI updates
-            event(new \App\Events\LinkImportCompleted($this->linkImport));
+            event(new \App\Events\LinkImportCompleted($this->linkImport->id, $this->linkImport->project_id));
             
         } catch (\Exception $e) {
             $this->linkImport->update([
@@ -463,82 +469,104 @@ class ProcessLinkImport implements ShouldQueue
         FileManagementService $fileService,
         FileSecurityService $securityService
     ): \App\Models\ProjectFile {
-        
-        // Generate download URL (implementation depends on service)
+        // 1) Generate a direct download URL from provider (follows redirects with validation)
         $downloadUrl = $this->generateDownloadUrl($fileInfo);
-        
-        // Download file content
-        $response = Http::timeout(300)->get($downloadUrl);
-        
-        if (!$response->successful()) {
-            throw new \Exception('Failed to download file: ' . $fileInfo['filename']);
+
+        // 2) Preflight: try to get size via HEAD
+        $head = Http::timeout(15)->withHeaders([
+            'User-Agent' => 'MixPitch-LinkImporter/1.0',
+        ])->head($downloadUrl);
+        $size = (int) $head->header('Content-Length', 0);
+
+        // 3) Initialize multipart upload and generate presigned part URLs
+        $multipart = $fileService->initiateMultipartUpload(
+            project: $this->linkImport->project,
+            filename: (string) ($fileInfo['filename'] ?? 'file'),
+            mimeType: (string) ($fileInfo['mime_type'] ?? 'application/octet-stream'),
+            sizeBytes: $size,
+            metadata: [
+                'import_source' => 'link_import',
+                'source_url' => $this->linkImport->source_url,
+            ],
+        );
+
+        // 4) Ask edge worker to fetch remote and PUT parts to S3 using presigned URLs
+        $workerResponse = Http::timeout(1800)->asJson()->post(
+            config('linkimport.remote_fetch_worker.endpoint'),
+            [
+                'sourceUrl' => $downloadUrl,
+                'parts' => $multipart['parts'], // [{url, number, size}]
+                'chunkSize' => $multipart['chunk_size'],
+                'maxRedirects' => config('linkimport.security.max_redirects', 3),
+                'allowedHosts' => config('linkimport.allowed_domains'),
+            ]
+        );
+
+        if (!$workerResponse->successful()) {
+            throw new \RuntimeException('Remote fetch worker failed to upload parts.');
         }
-        
-        $content = $response->body();
-        $checksum = hash('sha256', $content);
-        
-        // Check for duplicates
-        $existingFile = $this->linkImport->project->projectFiles()
-            ->where('source_checksum', $checksum)
-            ->first();
-            
-        if ($existingFile) {
-            Log::info('Skipping duplicate file', [
-                'filename' => $fileInfo['filename'],
-                'checksum' => $checksum,
-                'existing_file_id' => $existingFile->id
-            ]);
-            return $existingFile;
-        }
-        
-        // Security scan
-        $securityService->scanContent($content, $fileInfo['mime_type']);
-        
-        // Create temporary file
-        $tempPath = tempnam(sys_get_temp_dir(), 'link_import_');
-        file_put_contents($tempPath, $content);
-        
-        try {
-            // Use existing file management service
-            $projectFile = $fileService->storeProjectFile(
-                $this->linkImport->project,
-                $tempPath,
-                $fileInfo['filename'],
-                $this->linkImport->user,
-                [
-                    'import_source' => 'link_import',
-                    'source_checksum' => $checksum,
-                    'source_url' => $this->linkImport->source_url,
-                ]
-            );
-            
-            // Create import record
-            \App\Models\ImportedFile::create([
-                'link_import_id' => $this->linkImport->id,
-                'project_file_id' => $projectFile->id,
-                'source_filename' => $fileInfo['filename'],
-                'source_url' => $downloadUrl,
-                'checksum' => $checksum,
-                'size_bytes' => strlen($content),
-                'mime_type' => $fileInfo['mime_type'],
-                'imported_at' => now(),
-            ]);
-            
-            return $projectFile;
-            
-        } finally {
-            @unlink($tempPath);
-        }
+
+        $result = $workerResponse->json(); // { etags: [{part, etag}] }
+
+        // 5) Complete multipart upload
+        $completed = $fileService->completeMultipartUpload(
+            $multipart['upload_id'],
+            $result['etags'] ?? []
+        );
+
+        // 6) Create project file record and imported file record
+        $projectFile = $fileService->finalizeStoredObject(
+            project: $this->linkImport->project,
+            s3Key: $completed['key'],
+            originalFilename: (string) ($fileInfo['filename'] ?? 'file'),
+            user: $this->linkImport->user,
+            metadata: [
+                'import_source' => 'link_import',
+                'source_url' => $this->linkImport->source_url,
+            ],
+        );
+
+        \App\Models\ImportedFile::create([
+            'link_import_id' => $this->linkImport->id,
+            'project_file_id' => $projectFile->id,
+            'source_filename' => (string) ($fileInfo['filename'] ?? 'file'),
+            'source_url' => $downloadUrl,
+            'size_bytes' => (int) ($size ?: ($completed['size'] ?? 0)),
+            'mime_type' => (string) ($fileInfo['mime_type'] ?? 'application/octet-stream'),
+            'imported_at' => now(),
+        ]);
+
+        // 7) Trigger async scan of the S3 object
+        $securityService->scanS3ObjectAsync($completed['key']);
+
+        return $projectFile;
     }
     
     protected function generateDownloadUrl(array $fileInfo): string
     {
-        // Implementation depends on the service
-        // This would extract actual download URLs from the sharing service
-        // Each service has different mechanisms for this
-        
+        // Implementation depends on the service. For WeTransfer, resolve final redirected URL
+        // and validate the final host is still in the allowed list.
         throw new \Exception('Download URL generation not implemented for this service');
     }
+}
+```
+
+### Remote Fetch Worker (Edge)
+
+We will offload the remote file download and multipart part uploads to an edge worker (e.g., Cloudflare Worker) to avoid routing large payloads through the app servers. The backend prepares presigned part URLs and the worker streams the source to S3 directly.
+
+High-level worker flow:
+
+```javascript
+// Cloudflare Worker (pseudo)
+export default {
+  async fetch(req) {
+    const { sourceUrl, parts, chunkSize, maxRedirects, allowedHosts } = await req.json();
+    // 1) Validate source host matches allowedHosts (suffix check)
+    // 2) Fetch source with streaming, limited redirects
+    // 3) Slice stream into chunks, PUT to parts[i].url, collect ETags
+    // 4) Return { etags: [{part, etag}] }
+  }
 }
 ```
 
@@ -662,32 +690,51 @@ class LinkImporter extends Component
 }
 ```
 
+## Broadcasting & Authorization
+
+```php
+// routes/channels.php
+Broadcast::channel('project.{projectId}', function ($user, $projectId) {
+    $project = \App\Models\Project::find($projectId);
+    return $project && $user->can('view', $project);
+});
+
+// App\Events\LinkImportUpdated implements ShouldBroadcast
+public function broadcastOn(): array
+{
+    return [new PrivateChannel('project.' . $this->projectId)];
+}
+
+// Event payload example
+public function broadcastWith(): array
+{
+    return ['import_id' => $this->importId];
+}
+```
+
 ## Security & Abuse Prevention
 
 ### File Security Service Integration
 
 ```php
-// Extend existing FileSecurityService
+// Extend existing FileSecurityService to support scanning by S3 object key
 
-public function scanImportedContent(string $content, string $mimeType): void
+public function scanS3ObjectAsync(string $s3Key): void
 {
-    // ClamAV integration for malware scanning
-    if (config('filesecurity.clamav_enabled')) {
-        $this->scanWithClamAV($content);
-    }
-    
-    // File type validation
-    $detectedType = $this->detectMimeType($content);
-    if (!$this->isAllowedMimeType($detectedType)) {
-        throw new SecurityException('File type not allowed: ' . $detectedType);
-    }
-    
-    // Size validation
-    if (strlen($content) > config('filesecurity.max_import_size', 500 * 1024 * 1024)) {
-        throw new SecurityException('File too large for import');
-    }
+    // Option A: dispatch a queued job that downloads and scans in an isolated worker
+    // Option B: trigger Lambda / external scanner subscribed to S3 events
+}
+
+public function detectMimeTypeFromObject(string $s3Key): string
+{
+    // Use S3 headObject or stream + finfo to detect
 }
 ```
+
+Additional protections:
+- Enforce strict allowlist and re-validate the final host after redirects.
+- Limit redirects and timeouts, set explicit User-Agent.
+- Avoid logging sensitive tokens in source URLs.
 
 ### Rate Limiting Configuration
 
@@ -714,6 +761,7 @@ return [
     'security' => [
         'max_file_size' => 500 * 1024 * 1024, // 500MB
         'scan_with_clamav' => env('LINK_IMPORT_SCAN_ENABLED', true),
+        'max_redirects' => 3,
         'allowed_mime_types' => [
             'audio/mpeg',
             'audio/wav',
@@ -724,6 +772,13 @@ return [
             'image/jpeg',
             'image/png',
         ],
+    ],
+
+    // Remote fetch worker (edge) config
+    'remote_fetch_worker' => [
+        'endpoint' => env('LINK_IMPORT_WORKER_URL', 'https://worker.example.com/fetch'),
+        'chunk_size' => 5 * 1024 * 1024, // 5MB parts by default
+        'presign_ttl' => 900, // seconds
     ],
 ];
 ```
@@ -757,6 +812,8 @@ class LinkImportTest extends TestCase
             'wetransfer.com/*' => Http::response('mock html content', 200),
         ]);
         
+        \Illuminate\Support\Facades\Queue::fake();
+
         $service = app(LinkImportService::class);
         $import = $service->createImport(
             $project,
@@ -772,6 +829,8 @@ class LinkImportTest extends TestCase
             'source_domain' => 'wetransfer.com',
             'status' => 'pending',
         ]);
+
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\ProcessLinkImport::class);
     }
     
     public function test_rejects_unsupported_domains()
@@ -885,34 +944,36 @@ class LinkImporterTest extends TestCase
 ## Implementation Steps
 
 ### Phase 1: Foundation (Week 1)
-1. Create database migrations for `link_imports` and `imported_files` tables
-2. Implement basic `LinkImportService` with validation and rate limiting
-3. Create `LinkAnalysisService` with WeTransfer support as MVP
-4. Set up configuration file with security settings
+1. Create database migrations for `link_imports` and `imported_files` tables (portable types, indexes)
+2. Implement basic `LinkImportService` with validation, authorization, and rate limiting (from config)
+3. Create `LinkAnalysisService` with WeTransfer-first link analysis (public links only)
+4. Add `config/linkimport.php` with security, worker, and rate-limit settings
+5. Add private broadcast channel auth in `routes/channels.php`
 
 ### Phase 2: Core Functionality (Week 2)  
-1. Implement `ProcessLinkImport` queue job
-2. Add file deduplication logic using checksums
-3. Integrate with existing `FileManagementService` and `FileSecurityService`
-4. Create audit logging for all import activities
+1. Implement `ProcessLinkImport` job with unique guard and progress broadcasting
+2. Implement edge Remote Fetch Worker to stream source → S3 via presigned multipart
+3. Update `FileManagementService` to init/complete multipart and finalize objects
+4. Finalize S3 multipart uploads and persist `ImportedFile` records
+5. Create audit logging for import activities
 
 ### Phase 3: UI Implementation (Week 3)
 1. Create `LinkImporter` Livewire component
 2. Implement tabbed interface in client portal
-3. Add real-time progress tracking with WebSocket events
+3. Add real-time progress tracking with WebSocket events (`LinkImportUpdated`/`Completed`)
 4. Style with Flux UI components following UX guidelines
 
 ### Phase 4: Additional Services (Week 4)
-1. Add Google Drive link support (with OAuth for private files)
-2. Add Dropbox link support  
-3. Add OneDrive link support
-4. Implement comprehensive error handling and retry logic
+1. Add Google Drive support via API (with OAuth for private files)
+2. Add Dropbox support via API  
+3. Add OneDrive support via API
+4. Implement comprehensive error handling and retry logic (per-file)
 
 ### Phase 5: Testing & Security (Week 5)
-1. Write comprehensive test suite (Feature, Unit, Livewire)
-2. Security audit and penetration testing
-3. Performance optimization for large file imports
-4. Documentation and deployment preparation
+1. Write comprehensive test suite (Feature, Unit, Livewire), including broadcasting and worker coordination
+2. Security audit and SSRF validation; confirm provider ToS compliance
+3. Performance optimization (part size tuning, worker concurrency)
+4. Documentation and deployment preparation for worker and config
 
 ## Monitoring & Analytics
 
@@ -920,12 +981,10 @@ class LinkImporterTest extends TestCase
 - Track success rates by domain
 - Monitor average import times
 - Alert on failed imports
-- Track file deduplication effectiveness
 
 ### Usage Analytics
 - Most popular sharing services
 - Peak import times
-- Storage saved through deduplication
 - User adoption rates
 
 This comprehensive implementation provides a secure, user-friendly way for clients to import files from popular sharing services while maintaining MixPitch's high standards for file management and security.

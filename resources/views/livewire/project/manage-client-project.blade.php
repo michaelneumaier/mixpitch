@@ -79,6 +79,7 @@
     ];
 @endphp
 
+<x-draggable-upload-page :model="$pitch" title="Manage Client Project: {{ $project->title }}">
 <div>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div class="container mx-auto p-2">
@@ -1310,3 +1311,4 @@
         </script>
     </div>
 </div>
+</x-draggable-upload-page>

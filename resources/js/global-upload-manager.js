@@ -24,6 +24,19 @@ const GlobalUploadManager = (() => {
             const aggregate = computeAggregate(state.queue);
             // Send a cloned array so Alpine reactivity reliably detects changes
             const clonedQueue = state.queue.map(item => ({ ...item }));
+            
+            // Debug: Check for duplicate IDs
+            const ids = clonedQueue.map(item => item.id);
+            const uniqueIds = [...new Set(ids)];
+            if (ids.length !== uniqueIds.length) {
+                console.warn('Duplicate IDs detected in upload queue:', ids);
+                // Remove duplicates by keeping the last occurrence of each ID
+                const deduplicatedQueue = clonedQueue.filter((item, index, arr) => 
+                    arr.findIndex(i => i.id === item.id) === index
+                );
+                clonedQueue.splice(0, clonedQueue.length, ...deduplicatedQueue);
+            }
+            
             window.dispatchEvent(new CustomEvent('global-uploader:update', {
                 detail: {
                     queue: clonedQueue,
@@ -122,7 +135,34 @@ const GlobalUploadManager = (() => {
                 });
 
             state.uppy.on('file-added', (file) => {
-                state.queue.push({ id: file.id, name: file.name, size: file.size, meta: file.meta, progress: 0, status: 'queued' });
+                // Ensure file has a unique ID
+                if (!file.id) {
+                    file.id = `uppy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    console.warn('File missing ID, generated:', file.id);
+                }
+                
+                // Check if file already exists in queue
+                const existingIndex = state.queue.findIndex(item => item.id === file.id);
+                if (existingIndex >= 0) {
+                    console.warn('File already in queue, updating:', file.id);
+                    state.queue[existingIndex] = { 
+                        id: file.id, 
+                        name: file.name, 
+                        size: file.size, 
+                        meta: file.meta, 
+                        progress: 0, 
+                        status: 'queued' 
+                    };
+                } else {
+                    state.queue.push({ 
+                        id: file.id, 
+                        name: file.name, 
+                        size: file.size, 
+                        meta: file.meta, 
+                        progress: 0, 
+                        status: 'queued' 
+                    });
+                }
                 broadcast();
             });
 
@@ -317,6 +357,102 @@ const GlobalUploadManager = (() => {
                 window.removeEventListener('offline', onOffline);
                 window.addEventListener('online', onOnline);
                 window.addEventListener('offline', onOffline);
+            },
+            
+            // Enhanced methods for drag & drop integration
+            enableGlobalDragDrop(defaultMeta) {
+                if (window.GlobalDragDrop) {
+                    window.GlobalDragDrop.enablePageDragDrop(defaultMeta);
+                }
+            },
+            
+            disableGlobalDragDrop() {
+                if (window.GlobalDragDrop) {
+                    window.GlobalDragDrop.disablePageDragDrop();
+                }
+            },
+            
+            registerDropZone(element, meta) {
+                if (window.GlobalDragDrop) {
+                    window.GlobalDragDrop.registerDropZone(element, meta);
+                }
+            },
+            
+            unregisterDropZone(element) {
+                if (window.GlobalDragDrop) {
+                    window.GlobalDragDrop.unregisterDropZone(element);
+                }
+            },
+            
+            // Enhanced file validation
+            validateFiles(files, meta) {
+                const allowedTypes = ['audio/*', 'application/pdf', 'image/*', 'application/zip'];
+                const validFiles = [];
+                const invalidFiles = [];
+                
+                files.forEach(file => {
+                    const isValid = allowedTypes.some(type => {
+                        if (type.endsWith('/*')) {
+                            return file.type.startsWith(type.slice(0, -1));
+                        }
+                        return file.type === type;
+                    });
+                    
+                    if (isValid) {
+                        validFiles.push(file);
+                    } else {
+                        invalidFiles.push(file);
+                    }
+                });
+                
+                if (invalidFiles.length > 0) {
+                    const fileNames = invalidFiles.map(f => f.name).join(', ');
+                    try { 
+                        window.dispatchEvent(new CustomEvent('toaster:error', { 
+                            detail: { 
+                                message: `Invalid file types: ${fileNames}. Only audio, PDF, image, and ZIP files are allowed.` 
+                            } 
+                        })); 
+                    } catch (e) { }
+                }
+                
+                return validFiles;
+            },
+            
+            // Enhanced addFiles with validation
+            addValidatedFiles(files, meta) {
+                const validFiles = this.validateFiles(files, meta);
+                if (validFiles.length > 0) {
+                    this.addFiles(validFiles, meta);
+                    
+                    try { 
+                        window.dispatchEvent(new CustomEvent('toaster:success', { 
+                            detail: { 
+                                message: `${validFiles.length} file${validFiles.length > 1 ? 's' : ''} added to upload queue` 
+                            } 
+                        })); 
+                    } catch (e) { }
+                }
+                
+                return validFiles.length;
+            },
+            
+            // Get upload statistics
+            getUploadStats() {
+                const totalFiles = state.queue.length;
+                const completedFiles = state.queue.filter(item => item.status === 'complete').length;
+                const uploadingFiles = state.queue.filter(item => item.status === 'uploading').length;
+                const queuedFiles = state.queue.filter(item => item.status === 'queued').length;
+                const errorFiles = state.queue.filter(item => item.status === 'error').length;
+                
+                return {
+                    total: totalFiles,
+                    completed: completedFiles,
+                    uploading: uploadingFiles,
+                    queued: queuedFiles,
+                    errors: errorFiles,
+                    isPaused: state.isPaused
+                };
             },
         };
     }

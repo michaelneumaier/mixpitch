@@ -79,6 +79,7 @@
     ];
 @endphp
 
+<x-draggable-upload-page :model="$project" title="Manage Project: {{ $project->title }}">
 <div>
 
 <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -646,3 +647,4 @@
 
 
 </div>
+</x-draggable-upload-page>

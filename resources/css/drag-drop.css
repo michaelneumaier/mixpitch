@@ -1,0 +1,461 @@
+/**
+ * Global Drag & Drop Styles for MixPitch
+ * Provides comprehensive styling for drag and drop operations across the platform
+ */
+
+/* =============================================================================
+   Global Overlay Styles
+   ============================================================================= */
+
+.global-drag-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-out;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.global-drag-overlay.show {
+    display: flex;
+}
+
+.global-drag-overlay-content {
+    text-align: center;
+    padding: 3rem 2rem;
+    border: 3px dashed #60a5fa;
+    border-radius: 1.5rem;
+    background: rgba(59, 130, 246, 0.1);
+    min-width: 350px;
+    max-width: 500px;
+    transition: all 0.3s ease-out;
+    transform: scale(0.9);
+    opacity: 0;
+    animation: scaleIn 0.3s ease-out 0.1s forwards;
+}
+
+.global-drag-overlay.drag-over .global-drag-overlay-content {
+    border-color: #34d399;
+    background: rgba(52, 211, 153, 0.15);
+    transform: scale(1.05);
+    box-shadow:
+        0 20px 40px rgba(52, 211, 153, 0.3),
+        0 0 0 1px rgba(52, 211, 153, 0.2);
+}
+
+.global-drag-overlay-icon {
+    margin-bottom: 1.5rem;
+    transform: translateY(10px);
+    opacity: 0;
+    animation: floatUp 0.4s ease-out 0.2s forwards;
+}
+
+.global-drag-overlay.drag-over .global-drag-overlay-icon svg {
+    color: #34d399;
+    transform: scale(1.2);
+    filter: drop-shadow(0 4px 8px rgba(52, 211, 153, 0.3));
+}
+
+.global-drag-overlay-text {
+    transform: translateY(10px);
+    opacity: 0;
+    animation: floatUp 0.4s ease-out 0.3s forwards;
+}
+
+/* =============================================================================
+   Drop Zone Styles
+   ============================================================================= */
+
+.drag-drop-zone {
+    position: relative;
+    transition: all 0.2s ease-out;
+    border-radius: 0.75rem;
+}
+
+.drag-drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    z-index: -1;
+}
+
+/* Prevent pseudo-element from attaching to table rows to avoid layout/hover anomalies */
+tr.drag-drop-zone::before,
+.dashboard-drop-zone::before {
+    content: none !important;
+}
+
+.drag-drop-zone.drag-drop-active {
+    background-color: rgba(59, 130, 246, 0.08);
+    border-color: #60a5fa;
+    transform: scale(1.02);
+    box-shadow:
+        0 8px 25px rgba(59, 130, 246, 0.15),
+        0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.drag-drop-zone.drag-drop-active::before {
+    opacity: 1;
+}
+
+.drag-drop-zone:hover {
+    background-color: rgba(59, 130, 246, 0.03);
+    transform: translateY(-1px);
+}
+
+/* =============================================================================
+   Sidebar Item Drop Zones
+   ============================================================================= */
+
+.sidebar-drop-zone {
+    transition: all 0.2s ease-out;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-drop-zone::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s ease-out;
+}
+
+.sidebar-drop-zone.drag-drop-active {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #60a5fa;
+    padding-left: 0.75rem;
+    margin-left: -0.75rem;
+    transform: translateX(4px);
+}
+
+.sidebar-drop-zone.drag-drop-active::after {
+    left: 100%;
+}
+
+/* =============================================================================
+   Dashboard Item Drop Zones
+   ============================================================================= */
+
+.dashboard-drop-zone {
+    transition: all 0.2s ease-out;
+    border-radius: 0.75rem;
+    position: relative;
+}
+
+.dashboard-drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    z-index: -1;
+}
+
+.dashboard-drop-zone.drag-drop-active {
+    transform: scale(1.02) translateY(-2px);
+    box-shadow:
+        0 12px 30px rgba(59, 130, 246, 0.2),
+        0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.dashboard-drop-zone.drag-drop-active::before {
+    opacity: 1;
+}
+
+/* =============================================================================
+   Upload Progress Indicators
+   ============================================================================= */
+
+.upload-progress-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 0 0 0.75rem 0.75rem;
+    overflow: hidden;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #60a5fa, #3b82f6);
+    transition: width 0.3s ease-out;
+    position: relative;
+}
+
+.upload-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+/* =============================================================================
+   Loading States and Feedback
+   ============================================================================= */
+
+.drag-loading {
+    position: relative;
+}
+
+.drag-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+    backdrop-filter: blur(2px);
+    z-index: 10;
+}
+
+.drag-success {
+    animation: successPulse 0.6s ease-out;
+    border-color: #10b981 !important;
+    background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+.drag-error {
+    animation: errorShake 0.6s ease-out;
+    border-color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* =============================================================================
+   Page-Level Drag States
+   ============================================================================= */
+
+body.dragging {
+    user-select: none;
+    overflow: hidden;
+}
+
+body.dragging * {
+    pointer-events: none;
+}
+
+body.dragging .global-drag-overlay,
+body.dragging .drag-drop-zone,
+body.dragging .sidebar-drop-zone,
+body.dragging .dashboard-drop-zone {
+    pointer-events: auto;
+}
+
+.dragging-over-page {
+    background-color: rgba(59, 130, 246, 0.02);
+}
+
+/* =============================================================================
+   Mobile Optimizations
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .global-drag-overlay-content {
+        min-width: 280px;
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+    }
+
+    .global-drag-overlay-content h3 {
+        font-size: 1.25rem;
+    }
+
+    .global-drag-overlay-content p {
+        font-size: 0.875rem;
+    }
+
+    .drag-drop-zone.drag-drop-active {
+        transform: scale(1.01);
+    }
+
+    .dashboard-drop-zone.drag-drop-active {
+        transform: scale(1.01) translateY(-1px);
+    }
+}
+
+/* =============================================================================
+   Dark Mode Support
+   ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .global-drag-overlay {
+        background: rgba(0, 0, 0, 0.9);
+    }
+
+    .global-drag-overlay-content {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: #3b82f6;
+    }
+
+    .global-drag-overlay.drag-over .global-drag-overlay-content {
+        background: rgba(52, 211, 153, 0.2);
+        border-color: #10b981;
+    }
+
+    .drag-drop-zone.drag-drop-active {
+        background-color: rgba(59, 130, 246, 0.12);
+        border-color: #3b82f6;
+    }
+
+    .sidebar-drop-zone.drag-drop-active {
+        background: rgba(59, 130, 246, 0.15);
+        border-left-color: #3b82f6;
+    }
+
+    .dashboard-drop-zone.drag-drop-active {
+        box-shadow:
+            0 12px 30px rgba(59, 130, 246, 0.3),
+            0 0 0 2px rgba(59, 130, 246, 0.4);
+    }
+}
+
+/* =============================================================================
+   Animations
+   ============================================================================= */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes floatUp {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes successPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes errorShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* =============================================================================
+   Accessibility
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .global-drag-overlay,
+    .global-drag-overlay-content,
+    .drag-drop-zone,
+    .sidebar-drop-zone,
+    .dashboard-drop-zone,
+    .upload-progress-bar {
+        transition: none;
+        animation: none;
+    }
+
+    .global-drag-overlay-icon,
+    .global-drag-overlay-text {
+        animation: none;
+        transform: none;
+        opacity: 1;
+    }
+}
+
+/* Focus states for keyboard navigation */
+.drag-drop-zone:focus-visible,
+.sidebar-drop-zone:focus-visible,
+.dashboard-drop-zone:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .global-drag-overlay-content {
+        border-width: 4px;
+        border-color: currentColor;
+    }
+
+    .drag-drop-zone.drag-drop-active,
+    .sidebar-drop-zone.drag-drop-active,
+    .dashboard-drop-zone.drag-drop-active {
+        outline: 3px solid currentColor;
+        outline-offset: 2px;
+    }
+}

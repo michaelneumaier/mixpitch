@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-8850d0b0.css",
+    "file": "assets/app-c192a29e.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-aead4fbe.css",
+    "file": "assets/theme-182ee43b.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -20,7 +20,7 @@
     "dynamicImports": [
       "resources/js/filament/billing/stripe-handler.js"
     ],
-    "file": "assets/app-32c3ac0b.js",
+    "file": "assets/app-c28632eb.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   },
@@ -29,6 +29,11 @@
     "isDynamicEntry": true,
     "isEntry": true,
     "src": "resources/js/filament/billing/stripe-handler.js"
+  },
+  "resources/js/global-drag-drop-manager.js": {
+    "file": "assets/global-drag-drop-manager-8e1e8590.js",
+    "isEntry": true,
+    "src": "resources/js/global-drag-drop-manager.js"
   },
   "resources/js/hero.js": {
     "file": "assets/hero-d7e26c1a.js",

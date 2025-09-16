@@ -345,6 +345,11 @@
     @endpersist
     @endauth
     
+    <!-- Global Drag & Drop Manager -->
+    @once
+        @vite('resources/js/global-drag-drop-manager.js')
+    @endonce
+    
     @fluxScripts
     
     <!-- Dark mode fix - runs after all other scripts -->

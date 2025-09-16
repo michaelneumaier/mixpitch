@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/css/filament/admin/theme.css',
                 'resources/js/app.js',
                 'resources/js/hero.js',
+                'resources/js/global-drag-drop-manager.js',
                 'resources/js/filament/billing/stripe-handler.js',
             ],
             refresh: false
