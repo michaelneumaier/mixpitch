@@ -1,8 +1,6 @@
-@if(Auth::check())
-<div wire:poll.30s="updateStorageInfo">
+<div wire:poll.60s="updateStorageInfo">
     <x-file-management.storage-indicator-minimal 
         :storageUsedPercentage="$storageUsedPercentage"
         :storageLimitMessage="$storageLimitMessage"
         :storageRemaining="$this->formatFileSize($storageRemaining)" />
 </div>
-@endif

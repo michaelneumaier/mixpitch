@@ -290,76 +290,19 @@
                                     </div>
 
                                     <!-- Files List Section -->
-                                        <div class="flex items-center gap-3 mb-2">
-                                            <flux:icon.folder variant="solid" class="w-6 h-6 {{ $workflowColors['icon'] }}" />
-                                            <div class="flex items-center justify-between w-full">
-                                                <flux:heading size="base" class="!mb-0 {{ $workflowColors['text_primary'] }}">
-                                                    Files ({{ $project->files->count() }})
-                                                </flux:heading>
-                                                @if ($project->files->count() > 0)
-                                                    <flux:subheading class="{{ $workflowColors['text_muted'] }}">
-                                                        Total: {{ $this->formatFileSize($project->files->sum('size')) }}
-                                                    </flux:subheading>
-                                                @endif
-                                            </div>
-                                        </div>
-
-                                        <div class="divide-y divide-gray-200 dark:divide-gray-700">
-                                            @forelse($project->files as $file)
-                                                <div class="track-item @if (isset($newlyUploadedFileIds) && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif group flex items-center justify-between py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
-                                                    <div class="track-info flex flex-1 items-center overflow-hidden pr-4">
-                                                        @if ($file->isAudioFile())
-                                                            <button wire:click="playProjectFile({{ $file->id }})" class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['icon'] }} mx-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg hover:bg-opacity-80 transition-colors cursor-pointer">
-                                                                <flux:icon.play class=" w-5 h-5" />
-                                                            </button>
-                                                        @else
-                                                            <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['icon'] }} mx-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
-                                                                <flux:icon.musical-note class="w-5 h-5" />
-                                                            </div>
-                                                        @endif
-                                                        <div class="min-w-0 flex-1">
-                                                            <div class="flex items-center gap-2">
-                                                                <span class="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
-                                                                    {{ $file->file_name }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                                                                <div class="flex items-center gap-1">
-                                                                    <flux:icon.calendar class="w-3 h-3" />
-                                                                    <span>{{ $file->created_at->format('M d, Y') }}</span>
-                                                                </div>
-                                                                <div class="flex items-center gap-1">
-                                                                    <flux:icon.scale class="w-3 h-3" />
-                                                                    <span>{{ $file->formatted_size }}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="track-actions flex items-center">
-                                                        <flux:dropdown>
-                                                            <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
-                                                            </flux:button>
-                                                            <flux:menu>
-                                                                <flux:menu.item wire:click="getDownloadUrl({{ $file->id }})" icon="arrow-down-tray">
-                                                                    Download
-                                                                </flux:menu.item>
-                                                                <flux:menu.item wire:click="confirmDeleteFile({{ $file->id }})" variant="danger" icon="trash">
-                                                                    Delete
-                                                                </flux:menu.item>
-                                                            </flux:menu>
-                                                        </flux:dropdown>
-                                                    </div>
-                                                </div>
-                                            @empty
-                                                <div class="p-8 text-center">
-                                                    <flux:icon.folder-open class="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                                                    <flux:heading size="lg" class="text-gray-800 dark:text-gray-200 mb-2">No files uploaded yet</flux:heading>
-                                                    <flux:subheading class="text-gray-600 dark:text-gray-400">
-                                                        Upload files to share with {{ $project->isContest() ? 'contest participants' : 'collaborators' }}
-                                                    </flux:subheading>
-                                                </div>
-                                            @endforelse
-                                        </div>
+                                    @livewire('components.file-list', [
+                                        'files' => $project->files,
+                                        'colorScheme' => $workflowColors,
+                                        'modelType' => 'project',
+                                        'modelId' => $project->id,
+                                        'playMethod' => 'playProjectFile',
+                                        'downloadMethod' => 'getDownloadUrl',
+                                        'deleteMethod' => 'confirmDeleteFile',
+                                        'enableBulkActions' => true,
+                                        'bulkActions' => ['delete', 'download'],
+                                        'emptyStateSubMessage' => 'Upload files to share with ' . ($project->isContest() ? 'contest participants' : 'collaborators'),
+                                        'newlyUploadedFileIds' => $newlyUploadedFileIds ?? []
+                                    ], key('file-list-' . $project->id))
                                 </flux:card>
                             @endif
 
@@ -542,6 +485,53 @@
                     <flux:button wire:click="deleteFile" variant="danger" icon="trash" wire:loading.attr="disabled" wire:target="deleteFile">
                         <span wire:loading.remove wire:target="deleteFile">Delete File</span>
                         <span wire:loading wire:target="deleteFile">Deleting...</span>
+                    </flux:button>
+                </div>
+            </div>
+        </flux:modal>
+
+        {{-- Bulk File Delete Confirmation Modal --}}
+        <flux:modal name="bulk-delete-files" class="max-w-md">
+            <div class="space-y-6">
+                <div class="flex items-center gap-3">
+                    <flux:icon.exclamation-triangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                    <flux:heading size="lg">Confirm Bulk File Deletion</flux:heading>
+                </div>
+                
+                <div class="space-y-4">
+                    <flux:subheading class="text-gray-600 dark:text-gray-400">
+                        Are you sure you want to delete {{ count($filesToDelete ?? []) }} selected file{{ count($filesToDelete ?? []) !== 1 ? 's' : '' }}? This action cannot be undone.
+                    </flux:subheading>
+                    
+                    @if(isset($filesToDelete) && count($filesToDelete) > 0)
+                        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                            <div class="text-sm text-red-800 dark:text-red-200 font-medium mb-2">Files to be deleted:</div>
+                            <div class="max-h-32 overflow-y-auto space-y-1">
+                                @foreach($filesToDelete as $fileId)
+                                    @php
+                                        $file = $project->files->firstWhere('id', $fileId);
+                                    @endphp
+                                    @if($file)
+                                        <div class="text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+                                            <flux:icon.document class="w-4 h-4 flex-shrink-0" />
+                                            <span class="truncate">{{ $file->file_name }}</span>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4">
+                    <flux:modal.close>
+                        <flux:button variant="ghost" wire:click="cancelBulkDeleteFiles">
+                            Cancel
+                        </flux:button>
+                    </flux:modal.close>
+                    <flux:button wire:click="bulkDeleteFiles" variant="danger" icon="trash" wire:loading.attr="disabled" wire:target="bulkDeleteFiles">
+                        <span wire:loading.remove wire:target="bulkDeleteFiles">Delete {{ count($filesToDelete ?? []) }} File{{ count($filesToDelete ?? []) !== 1 ? 's' : '' }}</span>
+                        <span wire:loading wire:target="bulkDeleteFiles">Deleting...</span>
                     </flux:button>
                 </div>
             </div>

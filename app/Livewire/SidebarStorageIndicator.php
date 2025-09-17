@@ -15,7 +15,7 @@ class SidebarStorageIndicator extends Component
     public $storageRemaining = 0;
 
     protected $listeners = [
-        'filesUploaded' => 'updateStorageInfo',
+        'storageChanged' => 'updateStorageInfo',
         'fileDeleted' => 'updateStorageInfo',
         'storageUpdated' => 'updateStorageInfo',
     ];
@@ -31,12 +31,21 @@ class SidebarStorageIndicator extends Component
             return;
         }
 
-        $user = Auth::user();
-        $userStorageService = app(UserStorageService::class);
+        try {
+            $user = Auth::user();
+            $userStorageService = app(UserStorageService::class);
 
-        $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
-        $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
-        $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
+            $this->storageUsedPercentage = $userStorageService->getUserStoragePercentage($user);
+            $this->storageLimitMessage = $userStorageService->getStorageLimitMessage($user);
+            $this->storageRemaining = $userStorageService->getUserStorageRemaining($user);
+        } catch (\Throwable $e) {
+            // Silently handle errors to avoid breaking the UI
+            // Log the error for debugging but don't propagate it
+            \Log::error('Storage indicator update failed', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+            ]);
+        }
     }
 
     public function render()

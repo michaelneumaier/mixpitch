@@ -52,6 +52,9 @@ class GlobalFileUploader extends Component
                 'source' => 'global_uploader',
             ]);
 
+            // Simple separate event for storage updates
+            $this->dispatch('storageChanged');
+
             $message = count($payload) === 1 ? 'File uploaded successfully!' : count($payload).' files uploaded successfully!';
             Toaster::success($message);
         } catch (\Throwable $e) {

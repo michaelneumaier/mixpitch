@@ -427,7 +427,7 @@
                                                                         {{ $this->formatFileSize($file->size) }} •
                                                                         Uploaded
                                                                         {{ $file->created_at->diffForHumans() }}
-                                                                        @if (isset($file->metadata) && json_decode($file->metadata)?->uploaded_by_client)
+                                                                        @if (!empty($file->metadata) && (($file->metadata['uploaded_by_client'] ?? false) === true))
                                                                             • <span class="font-medium">Client
                                                                                 Upload</span>
                                                                         @endif
@@ -465,6 +465,22 @@
                                                     portal.</flux:text>
                                             </div>
                                         @endif
+
+                                        <!-- Link Import Section -->
+                                        <div class="mt-6 border-t border-green-200 pt-6 dark:border-green-800">
+                                            <div class="flex items-center justify-between mb-4">
+                                                <div>
+                                                    <flux:heading size="sm" class="{{ $semanticColors['success']['text'] }}">
+                                                        Import from Link
+                                                    </flux:heading>
+                                                    <flux:text size="xs" class="{{ $semanticColors['success']['icon'] }}">
+                                                        Import files from WeTransfer, Google Drive, Dropbox, or OneDrive
+                                                    </flux:text>
+                                                </div>
+                                            </div>
+                                            
+                                            @livewire('link-importer', ['project' => $project], key('link-importer-' . $project->id))
+                                        </div>
                                     </flux:card>
 
                                     <!-- Producer Deliverables Section -->

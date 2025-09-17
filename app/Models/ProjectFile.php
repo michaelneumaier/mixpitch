@@ -25,6 +25,13 @@ class ProjectFile extends Model
         'metadata',
     ];
 
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'metadata' => 'array',
+    ];
+
     public function formatBytes($bytes, $precision = 2)
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];

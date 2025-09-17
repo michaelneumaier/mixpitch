@@ -1,6 +1,7 @@
 auth.json
 /public/index.php
 .env
+.env.testing
 .env.dusk.local
 public/hot
 public/webfonts

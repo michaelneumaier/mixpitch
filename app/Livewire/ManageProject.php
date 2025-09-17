@@ -42,6 +42,8 @@ class ManageProject extends Component
 
     public $fileToDelete = null;
 
+    public array $filesToDelete = [];
+
     public bool $isDeleting = false;
 
     public $showDeleteConfirmation = false;
@@ -75,6 +77,9 @@ class ManageProject extends Component
     protected $listeners = [
         'filesUploaded' => 'refreshProjectData',
         'checkRedditStatus' => 'checkRedditStatus',
+        'fileAction' => 'handleFileAction',
+        'bulkFileAction' => 'handleBulkFileAction',
+        'fileListRefreshRequested' => 'refreshProjectData',
         // Keep existing listeners if any
     ];
 
@@ -497,7 +502,7 @@ class ManageProject extends Component
                 'component_project_id' => $this->project->id,
                 'user_id' => auth()->id(),
                 'project_user_id' => $this->project->user_id,
-                'match' => $file->project_id === $this->project->id
+                'match' => $file->project_id === $this->project->id,
             ]);
 
             // Verify the file belongs to this project (use loose comparison to handle type differences)
@@ -522,6 +527,249 @@ class ManageProject extends Component
         } catch (\Exception $e) {
             Log::error('Error playing project file', ['file_id' => $fileId, 'error' => $e->getMessage()]);
             Toaster::error('Could not play file: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Handle file actions dispatched from the FileList component
+     */
+    public function handleFileAction($data)
+    {
+        $action = $data['action'] ?? null;
+        $fileId = $data['fileId'] ?? null;
+        $modelType = $data['modelType'] ?? null;
+        $modelId = $data['modelId'] ?? null;
+
+        if (! $action || ! $fileId) {
+            return;
+        }
+
+        // Route the action to the appropriate method
+        switch ($action) {
+            case 'playProjectFile':
+                $this->playProjectFile($fileId);
+                break;
+            case 'getDownloadUrl':
+                $this->getDownloadUrl($fileId);
+                break;
+            case 'confirmDeleteFile':
+                $this->confirmDeleteFile($fileId);
+                break;
+            default:
+                // For any other action, try to call it directly if it exists
+                if (method_exists($this, $action)) {
+                    $this->$action($fileId);
+                }
+                break;
+        }
+    }
+
+    /**
+     * Handle bulk file actions dispatched from the FileList component
+     */
+    public function handleBulkFileAction($data)
+    {
+        $action = $data['action'] ?? null;
+        $fileIds = $data['fileIds'] ?? [];
+        $modelType = $data['modelType'] ?? null;
+        $modelId = $data['modelId'] ?? null;
+
+        if (! $action || empty($fileIds)) {
+            return;
+        }
+
+        // Route the action to the appropriate method
+        switch ($action) {
+            case 'confirmBulkDeleteFiles':
+                $this->confirmBulkDeleteFiles($fileIds);
+                break;
+            case 'bulkDeleteFiles':
+                $this->bulkDeleteFiles($fileIds);
+                break;
+            case 'bulkDownloadFiles':
+                $this->bulkDownloadFiles($fileIds);
+                break;
+            default:
+                // For any other action, try to call it directly if it exists
+                if (method_exists($this, $action)) {
+                    $this->$action($fileIds);
+                }
+                break;
+        }
+    }
+
+    /**
+     * Confirm bulk deletion of files
+     */
+    public function confirmBulkDeleteFiles(array $fileIds)
+    {
+        // Get files and validate they belong to this project
+        $projectFiles = ProjectFile::whereIn('id', $fileIds)
+            ->where('project_id', $this->project->id)
+            ->get();
+
+        if ($projectFiles->isEmpty()) {
+            Toaster::error('No valid files found for deletion.');
+
+            return;
+        }
+
+        // Check authorization for each file
+        try {
+            foreach ($projectFiles as $file) {
+                $this->authorize('delete', $file);
+            }
+
+            // Store file IDs for confirmation
+            $this->filesToDelete = $fileIds;
+            $this->dispatch('modal-show', name: 'bulk-delete-files');
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to delete these files.');
+        }
+    }
+
+    /**
+     * Cancel bulk file deletion
+     */
+    public function cancelBulkDeleteFiles()
+    {
+        $this->filesToDelete = [];
+        $this->dispatch('modal-close', name: 'bulk-delete-files');
+    }
+
+    /**
+     * Bulk delete project files
+     */
+    public function bulkDeleteFiles(?array $fileIds = null)
+    {
+        try {
+            // Use provided fileIds or fall back to filesToDelete property
+            $idsToDelete = $fileIds ?? $this->filesToDelete;
+
+            if (empty($idsToDelete)) {
+                Toaster::error('No files selected for deletion.');
+
+                return;
+            }
+
+            // Get files and validate they belong to this project
+            $projectFiles = ProjectFile::whereIn('id', $idsToDelete)
+                ->where('project_id', $this->project->id)
+                ->get();
+
+            if ($projectFiles->isEmpty()) {
+                Toaster::error('No valid files found for deletion.');
+
+                return;
+            }
+
+            // Check authorization for each file
+            foreach ($projectFiles as $file) {
+                $this->authorize('delete', $file);
+            }
+
+            // Get file management service
+            $fileManagementService = $this->getFileService();
+            $deletedCount = 0;
+            $errors = [];
+
+            // Delete each file
+            foreach ($projectFiles as $file) {
+                try {
+                    $fileManagementService->deleteProjectFile($file);
+                    $deletedCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to delete {$file->file_name}: ".$e->getMessage();
+                    Log::error('Bulk delete file error', [
+                        'file_id' => $file->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // Refresh project data
+            $this->refreshProjectData();
+
+            // Provide feedback
+            if ($deletedCount > 0) {
+                $message = $deletedCount === 1
+                    ? 'File deleted successfully.'
+                    : "{$deletedCount} files deleted successfully.";
+                Toaster::success($message);
+            }
+
+            if (! empty($errors)) {
+                foreach ($errors as $error) {
+                    Toaster::error($error);
+                }
+            }
+
+            // Close modal and clear selection
+            $this->dispatch('modal-close', name: 'bulk-delete-files');
+            $this->filesToDelete = [];
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to delete these files.');
+        } catch (\Exception $e) {
+            Log::error('Bulk file deletion error', [
+                'file_ids' => $idsToDelete ?? [],
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('An error occurred while deleting files.');
+        } finally {
+            // Ensure cleanup happens regardless of success/failure
+            $this->dispatch('modal-close', name: 'bulk-delete-files');
+            $this->filesToDelete = [];
+        }
+    }
+
+    /**
+     * Bulk download project files
+     */
+    public function bulkDownloadFiles(array $fileIds)
+    {
+        try {
+            // Get files and validate they belong to this project
+            $projectFiles = ProjectFile::whereIn('id', $fileIds)
+                ->where('project_id', $this->project->id)
+                ->get();
+
+            if ($projectFiles->isEmpty()) {
+                Toaster::error('No valid files found for download.');
+
+                return;
+            }
+
+            // Check authorization for each file
+            foreach ($projectFiles as $file) {
+                $this->authorize('download', $file);
+            }
+
+            if ($projectFiles->count() === 1) {
+                // Single file download - use existing method
+                $this->getDownloadUrl($projectFiles->first()->id);
+            } else {
+                // Multiple files - trigger ZIP download
+                $this->dispatch('bulkDownloadFiles', [
+                    'fileIds' => $fileIds,
+                    'projectId' => $this->project->id,
+                    'projectTitle' => $this->project->title,
+                ]);
+
+                Toaster::info('Preparing download archive...');
+            }
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to download these files.');
+        } catch (\Exception $e) {
+            Log::error('Bulk file download error', [
+                'file_ids' => $fileIds,
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('An error occurred while preparing downloads.');
         }
     }
 

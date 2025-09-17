@@ -78,6 +78,7 @@ class ManageClientProject extends Component
         'filesUploaded' => '$refresh',
         'fileDeleted' => '$refresh',
         'milestonesUpdated' => '$refresh',
+        'refreshClientFiles' => '$refresh',
     ];
 
     protected $rules = [
