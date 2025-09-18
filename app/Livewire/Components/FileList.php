@@ -68,6 +68,21 @@ class FileList extends Component
 
     public string $bulkDownloadMethod = 'bulkDownloadFiles';
 
+    // Comment support
+    public bool $showComments = false;
+
+    public ?Collection $commentsData = null;
+
+    public string $commentsMethod = 'handleCommentAction';
+
+    public array $fileCommentResponse = [];
+
+    public array $newFileComment = [];
+
+    public bool $enableCommentCreation = false;
+
+    public ?int $commentToDelete = null;
+
     public function mount(
         ?Collection $files = null,
         string $modelType = 'project',
@@ -91,7 +106,11 @@ class FileList extends Component
         bool $enableBulkActions = false,
         array $bulkActions = ['delete', 'download'],
         string $bulkDeleteMethod = 'bulkDeleteFiles',
-        string $bulkDownloadMethod = 'bulkDownloadFiles'
+        string $bulkDownloadMethod = 'bulkDownloadFiles',
+        bool $showComments = false,
+        ?Collection $commentsData = null,
+        string $commentsMethod = 'handleCommentAction',
+        bool $enableCommentCreation = false
     ) {
         $this->files = $files ?? collect();
         $this->modelType = $modelType;
@@ -116,6 +135,10 @@ class FileList extends Component
         $this->bulkActions = $bulkActions;
         $this->bulkDeleteMethod = $bulkDeleteMethod;
         $this->bulkDownloadMethod = $bulkDownloadMethod;
+        $this->showComments = $showComments;
+        $this->commentsData = $commentsData ?? collect();
+        $this->commentsMethod = $commentsMethod;
+        $this->enableCommentCreation = $enableCommentCreation;
     }
 
     /**
@@ -455,12 +478,8 @@ class FileList extends Component
                 // Clear selection when files are refreshed
                 $this->clearSelection();
 
-                // Dispatch to parent to reload files
-                $this->dispatch('fileListRefreshRequested', [
-                    'modelType' => $this->modelType,
-                    'modelId' => $this->modelId,
-                    'source' => $eventData['source'] ?? 'unknown',
-                ]);
+                // Reload the files directly
+                $this->reloadFiles();
             }
         }
     }
@@ -474,11 +493,27 @@ class FileList extends Component
         // Clear selection when files are refreshed
         $this->clearSelection();
 
-        $this->dispatch('fileListRefreshRequested', [
-            'modelType' => $this->modelType,
-            'modelId' => $this->modelId,
-            'source' => 'manual_refresh',
-        ]);
+        // Reload the files directly
+        $this->reloadFiles();
+    }
+
+    /**
+     * Reload files from the database
+     */
+    protected function reloadFiles(): void
+    {
+        $modelClass = match ($this->modelType) {
+            'project' => \App\Models\Project::class,
+            'pitch' => \App\Models\Pitch::class,
+            default => null,
+        };
+
+        if ($modelClass && $this->modelId) {
+            $model = $modelClass::find($this->modelId);
+            if ($model) {
+                $this->files = $model->files()->orderBy('created_at', 'desc')->get();
+            }
+        }
     }
 
     /**
@@ -506,11 +541,139 @@ class FileList extends Component
         // Clear selection when files are deleted
         $this->clearSelection();
 
-        $this->dispatch('fileListRefreshRequested', [
+        // Reload the files directly
+        $this->reloadFiles();
+    }
+
+    /**
+     * Handle comment updates
+     */
+    #[On('commentsUpdated')]
+    public function handleCommentsUpdated(): void
+    {
+        // The parent component will refresh, which will update our commentsData
+        // No need to do anything here as the parent will re-render this component
+    }
+
+    /**
+     * Get comments for a specific file
+     */
+    public function getFileComments(int $fileId): Collection
+    {
+        if (! $this->showComments || ! $this->commentsData) {
+            return collect();
+        }
+
+        return $this->commentsData->filter(function ($comment) use ($fileId) {
+            return isset($comment->metadata['file_id']) && (int) $comment->metadata['file_id'] === (int) $fileId;
+        })->sortByDesc('created_at')->values(); // Sort newest first, values() resets array keys
+    }
+
+    /**
+     * Get comment count for a specific file
+     */
+    public function getFileCommentCount(int $fileId): int
+    {
+        return $this->getFileComments($fileId)->count();
+    }
+
+    /**
+     * Mark a file comment as resolved
+     */
+    public function markFileCommentResolved(int $commentId): void
+    {
+        $this->dispatch('commentAction', [
+            'action' => 'markFileCommentResolved',
+            'commentId' => $commentId,
             'modelType' => $this->modelType,
             'modelId' => $this->modelId,
-            'source' => 'file_deleted',
         ]);
+    }
+
+    /**
+     * Respond to a file comment
+     */
+    public function respondToFileComment(int $commentId): void
+    {
+        $response = $this->fileCommentResponse[$commentId] ?? '';
+
+        if (empty(trim($response))) {
+            return;
+        }
+
+        $this->dispatch('commentAction', [
+            'action' => 'respondToFileComment',
+            'commentId' => $commentId,
+            'response' => $response,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+
+        // Clear the response after sending
+        $this->fileCommentResponse[$commentId] = '';
+    }
+
+    /**
+     * Create a new comment on a file
+     */
+    public function createFileComment(int $fileId): void
+    {
+        $comment = trim($this->newFileComment[$fileId] ?? '');
+
+        if (empty($comment)) {
+            return;
+        }
+
+        $this->dispatch('commentAction', [
+            'action' => 'createFileComment',
+            'fileId' => $fileId,
+            'comment' => $comment,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+
+        // Clear the comment after sending
+        $this->newFileComment[$fileId] = '';
+    }
+
+    /**
+     * Confirm deletion of a comment
+     */
+    public function confirmDeleteComment(int $commentId): void
+    {
+        $this->commentToDelete = $commentId;
+        $this->dispatch('modal-show', name: 'delete-comment');
+    }
+
+    /**
+     * Cancel comment deletion
+     */
+    public function cancelDeleteComment(): void
+    {
+        $this->commentToDelete = null;
+        $this->dispatch('modal-close', name: 'delete-comment');
+    }
+
+    /**
+     * Delete a comment
+     */
+    public function deleteComment(): void
+    {
+        if (!$this->commentToDelete) {
+            return;
+        }
+
+        $this->dispatch('commentAction', [
+            'action' => 'deleteFileComment',
+            'commentId' => $this->commentToDelete,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+
+        $this->commentToDelete = null;
+        
+        // Close the modal after successful deletion
+        $this->dispatch('modal-close', name: 'delete-comment');
     }
 
     public function render()

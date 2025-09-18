@@ -536,9 +536,9 @@ class ClientManagementDashboard extends Component
                 ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
         })
             ->whereIn('status', [
-            Pitch::STATUS_PENDING,
-            Pitch::STATUS_IN_PROGRESS,
-        ])->count();
+                Pitch::STATUS_PENDING,
+                Pitch::STATUS_IN_PROGRESS,
+            ])->count();
 
         $review = Pitch::whereHas('project', function ($q) use ($userId) {
             $q->where('user_id', $userId)
@@ -552,9 +552,9 @@ class ClientManagementDashboard extends Component
                 ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT);
         })
             ->whereIn('status', [
-            Pitch::STATUS_APPROVED,
-            Pitch::STATUS_COMPLETED,
-        ])->count();
+                Pitch::STATUS_APPROVED,
+                Pitch::STATUS_COMPLETED,
+            ])->count();
 
         return [
             'created' => $totalProjects,

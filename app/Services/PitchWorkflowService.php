@@ -695,7 +695,7 @@ class PitchWorkflowService
 
                     // Filter files that need watermarking (workflow-agnostic)
                     $filesToProcess = $audioFiles->filter(function ($file) {
-                        return $file->shouldBeWatermarked() && !$file->audio_processed;
+                        return $file->shouldBeWatermarked() && ! $file->audio_processed;
                     });
 
                     if ($filesToProcess->isNotEmpty()) {

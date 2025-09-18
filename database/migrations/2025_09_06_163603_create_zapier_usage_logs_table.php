@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('response_time_ms');
             $table->string('user_agent')->nullable();
             $table->timestamp('created_at');
-            
+
             $table->index(['user_id', 'created_at']);
             $table->index(['endpoint', 'created_at']);
         });

@@ -49,12 +49,12 @@ abstract class ZapierApiController extends Controller
     protected function checkZapierToken(): bool
     {
         $user = auth('sanctum')->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         $token = $user->currentAccessToken();
-        if (!$token) {
+        if (! $token) {
             return false;
         }
 
@@ -86,7 +86,7 @@ abstract class ZapierApiController extends Controller
     {
         // Remove sensitive fields
         $sensitiveFields = ['password', 'api_key', 'token', 'secret'];
-        
+
         foreach ($sensitiveFields as $field) {
             unset($data[$field]);
         }
@@ -94,7 +94,7 @@ abstract class ZapierApiController extends Controller
         // Truncate large fields
         foreach ($data as $key => $value) {
             if (is_string($value) && strlen($value) > 1000) {
-                $data[$key] = substr($value, 0, 1000) . '...';
+                $data[$key] = substr($value, 0, 1000).'...';
             }
         }
 

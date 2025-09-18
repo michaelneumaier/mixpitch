@@ -82,7 +82,7 @@
 <x-draggable-upload-page :model="$pitch" title="Manage Client Project: {{ $project->title }}">
 <div>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div class="container mx-auto p-2">
+        <div class="mx-auto p-2">
             <div class="mx-auto">
                 <div class="flex justify-center">
                     <div class="w-full">
@@ -98,11 +98,6 @@
                                         :component="$this" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
                                 </div>
 
-                                <!-- Status-Specific Workflow Actions -->
-                                <div class="mb-2">
-                                    <x-client-management.workflow-actions :pitch="$pitch" :project="$project"
-                                        :component="$this" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
-                                </div>
 
                                 <!-- COMMUNICATION SECTION - Always accessible but positioned based on priority -->
                                 <flux:card class="mb-2">
@@ -395,76 +390,36 @@
                                                 <flux:heading size="base"
                                                     class="{{ $semanticColors['success']['text'] }}">
                                                     Client Reference Files
-                                                    <flux:badge variant="outline" size="sm" class="ml-2">
-                                                        {{ $this->clientFiles->count() }} files
-                                                    </flux:badge>
                                                 </flux:heading>
                                                 <flux:subheading class="{{ $semanticColors['success']['icon'] }}">
-                                                    Files
-                                                    uploaded by your client to provide project requirements, references,
-                                                    or
-                                                    examples</flux:subheading>
+                                                    Files uploaded by your client to provide project requirements, references, or examples</flux:subheading>
                                             </div>
                                         </div>
 
-                                        @if ($this->clientFiles->count() > 0)
-                                            <div class="space-y-4">
-                                                @foreach ($this->clientFiles as $file)
-                                                    <div
-                                                        class="rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
-                                                        <div class="flex items-center justify-between">
-                                                            <div class="flex items-center gap-3">
-                                                                <div
-                                                                    class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400">
-                                                                    <flux:icon name="document" size="sm" />
-                                                                </div>
-                                                                <div class="min-w-0 flex-1">
-                                                                    <flux:text weight="semibold"
-                                                                        class="text-gray-900 dark:text-gray-100">
-                                                                        {{ $file->file_name }}</flux:text>
-                                                                    <flux:text size="xs"
-                                                                        class="text-gray-600 dark:text-gray-400">
-                                                                        {{ $this->formatFileSize($file->size) }} •
-                                                                        Uploaded
-                                                                        {{ $file->created_at->diffForHumans() }}
-                                                                        @if (!empty($file->metadata) && (($file->metadata['uploaded_by_client'] ?? false) === true))
-                                                                            • <span class="font-medium">Client
-                                                                                Upload</span>
-                                                                        @endif
-                                                                    </flux:text>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="flex gap-2">
-                                                                <flux:button
-                                                                    wire:click="downloadClientFile({{ $file->id }})"
-                                                                    variant="outline" size="sm"
-                                                                    icon="arrow-down-tray" class="sm:px-3">
-                                                                    <span class="hidden sm:inline">Download</span>
-                                                                </flux:button>
-                                                                <flux:button
-                                                                    wire:click="confirmDeleteClientFile({{ $file->id }})"
-                                                                    variant="danger" size="sm" icon="trash"
-                                                                    class="sm:px-3">
-                                                                    <span class="hidden sm:inline">Delete</span>
-                                                                </flux:button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <div class="py-8 text-center">
-                                                <div
-                                                    class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                                                    <flux:icon.inbox class="h-8 w-8 text-gray-400" />
-                                                </div>
-                                                <flux:text size="sm" class="text-gray-600 dark:text-gray-400">No
-                                                    client files yet. Your client can upload reference files through
-                                                    their
-                                                    portal.</flux:text>
-                                            </div>
-                                        @endif
+                                        @livewire('components.file-list', [
+                                            'files' => $this->clientFiles,
+                                            'modelType' => 'project',
+                                            'modelId' => $project->id,
+                                            'colorScheme' => [
+                                                'bg' => $semanticColors['success']['bg'],
+                                                'border' => $semanticColors['success']['border'],
+                                                'text_primary' => $semanticColors['success']['text'],
+                                                'text_secondary' => $semanticColors['success']['text'],
+                                                'text_muted' => $semanticColors['success']['icon'],
+                                                'accent_bg' => 'bg-green-100 dark:bg-green-900',
+                                                'accent_border' => $semanticColors['success']['border'],
+                                                'icon' => $semanticColors['success']['icon'],
+                                            ],
+                                            'canPlay' => true,
+                                            'canDownload' => true,
+                                            'canDelete' => true,
+                                            'downloadMethod' => 'downloadClientFile',
+                                            'deleteMethod' => 'confirmDeleteClientFile',
+                                            'emptyStateMessage' => 'No client files yet',
+                                            'emptyStateSubMessage' => 'Your client can upload reference files through their portal',
+                                            'headerIcon' => 'folder-open',
+                                            'emptyIcon' => 'inbox'
+                                        ], key('client-files-list-' . $project->id . '-' . $refreshKey))
 
                                         <!-- Link Import Section -->
                                         <div class="mt-6 border-t border-green-200 pt-6 dark:border-green-800">
@@ -504,253 +459,41 @@
                                             </div>
                                         </div>
 
-                                        <!-- Upload Section is rendered by workflow-actions → upload-work-section; avoid duplicate here -->
+                                        <!-- Upload Section for Producer Deliverables -->
+                                        <div class="mb-6">
+                                            <x-file-management.upload-section 
+                                                :model="$pitch"
+                                                title="Upload Deliverables"
+                                                description="Upload your work files here. These will be visible to your client for review"
+                                            />
+                                        </div>
 
                                         <!-- Producer Files List -->
-                                        @if ($this->producerFiles->count() > 0)
-                                            <div class="mt-4 space-y-4">
-                                                @foreach ($this->producerFiles as $file)
-                                                    <div class="rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
-                                                        x-data="{ showComments: false }">
-                                                        {{-- File Header --}}
-                                                        <div class="p-4">
-                                                            <div class="flex items-center justify-between">
-                                                                <div class="flex items-center gap-3">
-                                                                    <div
-                                                                        class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400">
-                                                                        <flux:icon name="musical-note"
-                                                                            size="sm" />
-                                                                    </div>
-                                                                    <div class="min-w-0 flex-1">
-                                                                        <div class="flex flex-wrap items-center gap-2">
-                                                                            <flux:text weight="semibold"
-                                                                                class="text-gray-900 dark:text-gray-100">
-                                                                                {{ $file->file_name }}</flux:text>
-
-                                                                            @if ($file->client_approval_status === 'approved')
-                                                                                <flux:badge variant="success"
-                                                                                    size="xs">
-                                                                                    <flux:icon name="check-circle"
-                                                                                        size="xs"
-                                                                                        class="mr-1" />
-                                                                                    Approved by client
-                                                                                </flux:badge>
-                                                                            @elseif($file->client_approval_status === 'revision_requested')
-                                                                                <flux:badge variant="warning"
-                                                                                    size="xs">
-                                                                                    <flux:icon name="pencil"
-                                                                                        size="xs"
-                                                                                        class="mr-1" />
-                                                                                    Revision requested
-                                                                                </flux:badge>
-                                                                            @endif
-
-                                                                            {{-- Client Comments Badge --}}
-                                                                            @php($fileComments = $pitch->events()->where('event_type', 'client_file_comment')->where('metadata->file_id', $file->id)->orderBy('created_at', 'desc')->get())
-
-                                                                            @if ($fileComments->count() > 0)
-                                                                                <flux:button
-                                                                                    @click="showComments = !showComments"
-                                                                                    variant="outline" size="xs">
-                                                                                    <flux:icon
-                                                                                        name="chat-bubble-left-ellipsis"
-                                                                                        size="xs"
-                                                                                        class="mr-1" />
-                                                                                    {{ $fileComments->count() }}
-                                                                                    comment{{ $fileComments->count() > 1 ? 's' : '' }}
-                                                                                </flux:button>
-                                                                            @endif
-                                                                        </div>
-                                                                        <flux:text size="xs"
-                                                                            class="mt-1 text-gray-600 dark:text-gray-400">
-                                                                            {{ $this->formatFileSize($file->size) }} •
-                                                                            Uploaded
-                                                                            {{ $file->created_at->diffForHumans() }}
-                                                                            @if ($fileComments->count() > 0)
-                                                                                • <span
-                                                                                    class="font-medium text-blue-600">Client
-                                                                                    feedback available</span>
-                                                                            @endif
-                                                                        </flux:text>
-                                                                    </div>
-                                                                </div>
-
-                                                                {{-- Action Buttons --}}
-                                                                <div class="flex gap-2">
-                                                                    <flux:button
-                                                                        wire:click="downloadFile({{ $file->id }})"
-                                                                        variant="outline" size="sm"
-                                                                        icon="arrow-down-tray" class="sm:px-3">
-                                                                    </flux:button>
-                                                                    @if (in_array($pitch->status, [
-                                                                            \App\Models\Pitch::STATUS_IN_PROGRESS,
-                                                                            \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
-                                                                            \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-                                                                            \App\Models\Pitch::STATUS_DENIED,
-                                                                            \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
-                                                                        ]))
-                                                                        <flux:button
-                                                                            wire:click="confirmDeleteFile({{ $file->id }})"
-                                                                            variant="danger" size="sm"
-                                                                            icon="trash">
-                                                                        </flux:button>
-                                                                    @endif
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {{-- Client File Comments Section --}}
-                                                        @if ($fileComments->count() > 0)
-                                                            <div x-show="showComments" x-collapse
-                                                                class="border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
-                                                                <div class="mb-3">
-                                                                    <flux:text weight="semibold" size="sm"
-                                                                        class="flex items-center text-gray-900 dark:text-gray-100">
-                                                                        <flux:icon name="chat-bubble-left-ellipsis"
-                                                                            class="mr-2 text-blue-600" />
-                                                                        Client Feedback for this File
-                                                                    </flux:text>
-                                                                </div>
-
-                                                                <div class="max-h-48 space-y-3 overflow-y-auto">
-                                                                    @foreach ($fileComments as $comment)
-                                                                        <div
-                                                                            class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                                                            <div
-                                                                                class="mb-2 flex items-start justify-between">
-                                                                                <div class="flex items-center gap-2">
-                                                                                    <div
-                                                                                        class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500">
-                                                                                        <flux:icon name="user"
-                                                                                            size="xs"
-                                                                                            class="text-white" />
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <flux:text weight="medium"
-                                                                                            size="sm"
-                                                                                            class="text-gray-900 dark:text-gray-100">
-                                                                                            {{ $project->client_name ?: 'Client' }}
-                                                                                        </flux:text>
-                                                                                        <flux:text size="xs"
-                                                                                            class="text-gray-600 dark:text-gray-400">
-                                                                                            {{ $comment->created_at->diffForHumans() }}
-                                                                                        </flux:text>
-                                                                                    </div>
-                                                                                </div>
-
-                                                                                @if ($comment->metadata['type'] ?? null === 'revision_request')
-                                                                                    <flux:badge variant="warning"
-                                                                                        size="xs">
-                                                                                        <flux:icon name="pencil"
-                                                                                            size="xs"
-                                                                                            class="mr-1" />Revision
-                                                                                        Request
-                                                                                    </flux:badge>
-                                                                                @elseif($comment->metadata['type'] ?? null === 'approval')
-                                                                                    <flux:badge variant="success"
-                                                                                        size="xs">
-                                                                                        <flux:icon name="check"
-                                                                                            size="xs"
-                                                                                            class="mr-1" />Approved
-                                                                                    </flux:badge>
-                                                                                @endif
-                                                                            </div>
-
-                                                                            <flux:text size="sm"
-                                                                                class="leading-relaxed text-gray-800 dark:text-gray-200">
-                                                                                {{ $comment->comment }}
-                                                                            </flux:text>
-
-                                                                            {{-- Quick Response for Revision Requests --}}
-                                                                            @if (($comment->metadata['type'] ?? null) === 'revision_request' && !($comment->metadata['responded'] ?? false))
-                                                                                <div
-                                                                                    class="mt-3 border-t border-blue-200 pt-3">
-                                                                                    <div class="flex gap-2">
-                                                                                        <button
-                                                                                            wire:click="markFileCommentResolved({{ $comment->id }})"
-                                                                                            class="inline-flex items-center rounded-md bg-green-100 px-3 py-1 text-xs font-medium text-green-800 transition-colors hover:bg-green-200">
-                                                                                            <i
-                                                                                                class="fas fa-check mr-1"></i>Mark
-                                                                                            as Addressed
-                                                                                        </button>
-                                                                                        <button
-                                                                                            @click="showResponse = !showResponse"
-                                                                                            class="inline-flex items-center rounded-md bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200">
-                                                                                            <i
-                                                                                                class="fas fa-reply mr-1"></i>Respond
-                                                                                        </button>
-                                                                                    </div>
-
-                                                                                    <div x-data="{ showResponse: false }"
-                                                                                        x-show="showResponse"
-                                                                                        x-collapse class="mt-3">
-                                                                                        <form
-                                                                                            wire:submit.prevent="respondToFileComment({{ $comment->id }})">
-                                                                                            <textarea wire:model.defer="fileCommentResponse.{{ $comment->id }}" rows="2"
-                                                                                                class="w-full rounded-md border border-blue-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                                                placeholder="Explain how you've addressed this feedback..."></textarea>
-                                                                                            <div
-                                                                                                class="mt-2 flex gap-2">
-                                                                                                <button type="submit"
-                                                                                                    class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">
-                                                                                                    <i
-                                                                                                        class="fas fa-paper-plane mr-1"></i>Send
-                                                                                                    Response
-                                                                                                </button>
-                                                                                                <button type="button"
-                                                                                                    @click="showResponse = false"
-                                                                                                    class="inline-flex items-center rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200">
-                                                                                                    Cancel
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        </form>
-                                                                                    </div>
-                                                                                </div>
-                                                                            @endif
-                                                                        </div>
-                                                                    @endforeach
-                                                                </div>
-
-                                                                <div class="mt-3 border-t border-blue-200 pt-3">
-                                                                    <p class="text-xs text-blue-600">
-                                                                        <i class="fas fa-info-circle mr-1"></i>
-                                                                        This feedback is specific to the
-                                                                        "{{ $file->file_name }}" file.
-                                                                        General project communication should use the
-                                                                        main
-                                                                        message area below.
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        @endif
-
-                                                        {{-- Audio Player for Audio Files --}}
-                                                        @if (in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
-                                                            <div class="border-t border-green-200 bg-white p-3"
-                                                                wire:ignore>
-                                                                @livewire(
-                                                                    'pitch-file-player',
-                                                                    [
-                                                                        'file' => $file,
-                                                                        'isInCard' => true,
-                                                                    ],
-                                                                    key('pitch-player-' . $file->id)
-                                                                )
-                                                            </div>
-                                                        @endif
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <div class="mt-4 py-8 text-center">
-                                                <div
-                                                    class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-green-100 to-emerald-100">
-                                                    <i class="fas fa-cloud-upload-alt text-xl text-green-500"></i>
-                                                </div>
-                                                <p class="text-sm text-green-600">No deliverables uploaded yet. Use the
-                                                    upload area above to add files.</p>
-                                            </div>
-                                        @endif
+                                        @livewire('components.file-list', [
+                                            'files' => $this->producerFiles,
+                                            'modelType' => 'pitch',
+                                            'modelId' => $pitch->id,
+                                            'colorScheme' => $workflowColors,
+                                            'canPlay' => true,
+                                            'canDownload' => true,
+                                            'canDelete' => in_array($pitch->status, [
+                                                \App\Models\Pitch::STATUS_IN_PROGRESS,
+                                                \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
+                                                \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+                                                \App\Models\Pitch::STATUS_DENIED,
+                                                \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+                                            ]),
+                                            'playMethod' => 'playPitchFile',
+                                            'downloadMethod' => 'downloadFile',
+                                            'deleteMethod' => 'confirmDeleteFile',
+                                            'showComments' => true,
+                                            'commentsData' => $this->fileCommentsData,
+                                            'enableCommentCreation' => true,
+                                            'headerIcon' => 'musical-note',
+                                            'emptyStateMessage' => 'No deliverables uploaded yet',
+                                            'emptyStateSubMessage' => 'Use the upload area above to add files',
+                                            'showFileCount' => false,
+                                        ], key('producer-files-list-' . $pitch->id))
                                     </flux:card>
                                 </flux:card>
 
@@ -929,7 +672,7 @@
                                         <div class="flex flex-col gap-3 sm:flex-row">
                                             @if ($this->producerFiles->count() > 0)
                                                 <button wire:click="submitForReview" wire:loading.attr="disabled"
-                                                    class="group relative inline-flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-lg font-bold text-white transition-all duration-200 hover:scale-105 hover:from-purple-700 hover:to-indigo-700 hover:shadow-xl disabled:transform-none disabled:opacity-50">
+                                                    class="group relative inline-flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-lg font-bold text-white duration-200 hover:from-purple-700 hover:to-indigo-700 hover:shadow-xl  disabled:opacity-50">
                                                     <div
                                                         class="absolute inset-0 -translate-x-full -skew-x-12 transform bg-white/20 transition-transform duration-700 group-hover:translate-x-full">
                                                     </div>
@@ -958,7 +701,7 @@
 
                                             <button
                                                 onclick="window.scrollTo({top: document.querySelector('[data-section=producer-deliverables]').offsetTop - 100, behavior: 'smooth'})"
-                                                class="inline-flex flex-1 items-center justify-center rounded-xl border border-purple-300 bg-gradient-to-r from-purple-100 to-indigo-100 px-6 py-4 font-medium text-purple-800 transition-all duration-200 hover:scale-105 hover:from-purple-200 hover:to-indigo-200 hover:shadow-md">
+                                                class="inline-flex flex-1 items-center justify-center rounded-xl border border-purple-300 bg-gradient-to-r from-purple-100 to-indigo-100 px-6 py-4 font-medium text-purple-800 duration-200 hover:from-purple-200 hover:to-indigo-200 hover:shadow-md">
                                                 <i class="fas fa-upload mr-3"></i>Upload More Files
                                             </button>
                                         </div>
@@ -1202,7 +945,7 @@
             <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
                 <button @click="handleFabAction('scrollToRevisionResponse')" @mouseenter="showTooltip = true"
                     @mouseleave="showTooltip = false"
-                    class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-2xl">
+                    class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
                     <i class="fas fa-edit text-lg"></i>
                 </button>
 
@@ -1219,7 +962,7 @@
             <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
                 <button @click="handleFabAction('scrollToCommunication')" @mouseenter="showTooltip = true"
                     @mouseleave="showTooltip = false"
-                    class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-2xl">
+                    class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
                     <i class="fas fa-comment text-lg"></i>
                 </button>
 
@@ -1238,7 +981,7 @@
                 <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
                     <button @click="handleFabAction('scrollToUpload')" @mouseenter="showTooltip = true"
                         @mouseleave="showTooltip = false"
-                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-2xl">
+                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
                         <i class="fas fa-upload text-lg"></i>
                     </button>
 
@@ -1255,7 +998,7 @@
                 <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
                     <button @click="handleFabAction('scrollToSubmit')" @mouseenter="showTooltip = true"
                         @mouseleave="showTooltip = false"
-                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-2xl">
+                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xl duration-300 hover:shadow-2xl">
                         <i class="fas fa-paper-plane text-lg"></i>
                     </button>
 

@@ -27,5 +27,3 @@ class ClientView extends Model
         return $this->belongsTo(User::class);
     }
 }
-
-

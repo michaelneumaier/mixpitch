@@ -150,9 +150,9 @@ class GlobalAudioPlayer extends Component
         \Log::info('GlobalAudioPlayer playProjectFile called', [
             'project_file_id' => $projectFileId,
             'user_id' => Auth::id(),
-            'is_authenticated' => Auth::check()
+            'is_authenticated' => Auth::check(),
         ]);
-        
+
         if (! is_numeric($projectFileId)) {
             return;
         }
@@ -161,8 +161,9 @@ class GlobalAudioPlayer extends Component
 
         if (! $projectFile) {
             \Log::warning('ProjectFile not found for playProjectFile', [
-                'project_file_id' => $projectFileId
+                'project_file_id' => $projectFileId,
             ]);
+
             return;
         }
 
@@ -172,8 +173,9 @@ class GlobalAudioPlayer extends Component
                 'user_id' => Auth::id(),
                 'project_file_id' => $projectFileId,
                 'project_id' => $projectFile->project_id,
-                'auth_check' => Auth::check()
+                'auth_check' => Auth::check(),
             ]);
+
             return;
         }
 

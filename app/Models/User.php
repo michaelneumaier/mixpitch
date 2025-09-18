@@ -755,7 +755,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     /**
      * Get project storage limit for this user in bytes
-     * 
+     *
      * @deprecated Project-based storage limits are deprecated. Use getStorageLimit() for user-based limits.
      */
     public function getProjectStorageLimit(): int
@@ -768,7 +768,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     /**
      * Get project storage limit in GB for this user
-     * 
+     *
      * @deprecated Project-based storage limits are deprecated. Use getStorageLimitGB() for user-based limits.
      */
     public function getStoragePerProjectGB(): float
@@ -779,7 +779,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 
     /**
      * Get project storage limit in bytes (using GB field)
-     * 
+     *
      * @deprecated Project-based storage limits are deprecated. Use getStorageLimit() for user-based limits.
      */
     public function getProjectStorageCapacityBytes(): int
@@ -1421,7 +1421,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      */
     public function hasGoogleDriveConnected(): bool
     {
-        return !is_null($this->google_drive_tokens);
+        return ! is_null($this->google_drive_tokens);
     }
 
     /**
@@ -1429,7 +1429,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      */
     public function googleDriveConnectionStatus(): string
     {
-        if (!$this->hasGoogleDriveConnected()) {
+        if (! $this->hasGoogleDriveConnected()) {
             return 'disconnected';
         }
 

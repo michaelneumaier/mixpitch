@@ -6,7 +6,6 @@ use App\Jobs\ProcessClientImport;
 use App\Models\ClientImportJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientImportController extends Controller
@@ -14,6 +13,7 @@ class ClientImportController extends Controller
     public function index()
     {
         $jobs = ClientImportJob::where('user_id', Auth::id())->latest()->limit(20)->get();
+
         return view('clients.import', compact('jobs'));
     }
 
@@ -48,23 +48,31 @@ class ClientImportController extends Controller
         $rows = [];
         $rowIndex = -1;
         foreach ($spl as $row) {
-            if ($row === [null] || $row === false) { continue; }
+            if ($row === [null] || $row === false) {
+                continue;
+            }
             $rowIndex++;
             if ($rowIndex === 0) {
-                $headers = array_map(fn($h) => (string) $h, $row);
+                $headers = array_map(fn ($h) => (string) $h, $row);
+
                 continue;
             }
             $rows[] = $row;
-            if (count($rows) >= 20) { break; }
+            if (count($rows) >= 20) {
+                break;
+            }
         }
 
         // Suggest mapping by matching known names
-        $targets = ['email','name','company','phone','timezone','tags'];
+        $targets = ['email', 'name', 'company', 'phone', 'timezone', 'tags'];
         $suggested = [];
         foreach ($targets as $target) {
             $suggested[$target] = null;
             foreach ($headers as $i => $h) {
-                if (strtolower(trim($h)) === $target) { $suggested[$target] = $h; break; }
+                if (strtolower(trim($h)) === $target) {
+                    $suggested[$target] = $h;
+                    break;
+                }
             }
         }
 
@@ -101,17 +109,17 @@ class ClientImportController extends Controller
     {
         $headers = ['Content-Type' => 'text/csv', 'Content-Disposition' => 'attachment; filename="sample-clients.csv"'];
         $rows = [
-            ['email','name','company','phone','timezone','tags'],
-            ['client1@example.com','Client One','Acme Inc','+1 555-1111','UTC','vip,new'],
-            ['client2@example.com','Client Two','Beta LLC','+1 555-2222','America/Los_Angeles','repeat'],
+            ['email', 'name', 'company', 'phone', 'timezone', 'tags'],
+            ['client1@example.com', 'Client One', 'Acme Inc', '+1 555-1111', 'UTC', 'vip,new'],
+            ['client2@example.com', 'Client Two', 'Beta LLC', '+1 555-2222', 'America/Los_Angeles', 'repeat'],
         ];
 
-        return response()->stream(function() use ($rows) {
+        return response()->stream(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            foreach ($rows as $row) { fputcsv($out, $row); }
+            foreach ($rows as $row) {
+                fputcsv($out, $row);
+            }
             fclose($out);
         }, 200, $headers);
     }
 }
-
-

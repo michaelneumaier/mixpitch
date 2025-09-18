@@ -10,23 +10,23 @@ class NewClientTrigger extends ZapierApiController
 {
     /**
      * Poll for new clients (Zapier trigger endpoint)
-     * 
+     *
      * GET /api/zapier/triggers/clients/new
      */
     public function poll(Request $request): JsonResponse
     {
-        if (!$this->checkZapierEnabled()) {
+        if (! $this->checkZapierEnabled()) {
             return $this->errorResponse('Zapier integration is not enabled', 403);
         }
 
-        if (!$this->checkZapierToken()) {
+        if (! $this->checkZapierToken()) {
             return $this->errorResponse('Invalid Zapier token', 403);
         }
 
         try {
             // Get 'since' parameter for polling (defaults to 15 minutes ago)
             $since = $request->get('since', now()->subMinutes(15));
-            
+
             // Validate and parse the since parameter
             if (is_string($since)) {
                 try {

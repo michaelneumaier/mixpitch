@@ -11,16 +11,16 @@ class CreateClientAction extends ZapierApiController
 {
     /**
      * Create a new client (Zapier action endpoint)
-     * 
+     *
      * POST /api/zapier/actions/clients/create
      */
     public function create(Request $request): JsonResponse
     {
-        if (!$this->checkZapierEnabled()) {
+        if (! $this->checkZapierEnabled()) {
             return $this->errorResponse('Zapier integration is not enabled', 403);
         }
 
-        if (!$this->checkZapierToken()) {
+        if (! $this->checkZapierToken()) {
             return $this->errorResponse('Invalid Zapier token', 403);
         }
 
@@ -47,7 +47,7 @@ class CreateClientAction extends ZapierApiController
             $client = Client::firstOrCreate(
                 [
                     'user_id' => $request->user()->id,
-                    'email' => $validated['email']
+                    'email' => $validated['email'],
                 ],
                 array_merge($validated, [
                     'status' => Client::STATUS_ACTIVE,
@@ -71,15 +71,15 @@ class CreateClientAction extends ZapierApiController
                 'was_created' => $client->wasRecentlyCreated,
             ];
 
-            $message = $client->wasRecentlyCreated 
-                ? 'Client created successfully' 
+            $message = $client->wasRecentlyCreated
+                ? 'Client created successfully'
                 : 'Client already exists';
 
             return $this->successResponse($responseData, $message);
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Validation failed: ' . implode(', ', array_flatten($e->errors())), 
+                'Validation failed: '.implode(', ', array_flatten($e->errors())),
                 422
             );
         } catch (\Exception $e) {

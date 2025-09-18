@@ -7,10 +7,10 @@ use App\Models\Pitch;
 use App\Models\Project;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
-use Livewire\Component;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Livewire\Component;
 
 class DeliveryPipelineBoard extends Component
 {
@@ -29,10 +29,13 @@ class DeliveryPipelineBoard extends Component
 
     // Quick filters
     public bool $filterClientComments = false;
+
     public bool $filterUnpaidMilestones = false;
+
     public bool $filterRevisionsRequested = false;
+
     public bool $filterHasReminders = false;
-    
+
     // Client filter for individual client pages
     public ?int $clientId = null;
 
@@ -45,9 +48,13 @@ class DeliveryPipelineBoard extends Component
 
     // Reminder modal state
     public bool $showReminderModal = false;
+
     public ?int $reminderProjectId = null;
+
     public ?int $reminderClientId = null;
+
     public string $reminderNote = '';
+
     public ?string $reminderDueAt = null; // HTML datetime-local string
 
     // Configurable recent window for client comments (days)
@@ -81,7 +88,7 @@ class DeliveryPipelineBoard extends Component
                             $q->orderByDesc('created_at');
                         },
                         'events',
-                        'milestones'
+                        'milestones',
                     ]);
                 },
                 'files',
@@ -129,7 +136,7 @@ class DeliveryPipelineBoard extends Component
                 // Add unpaid milestones
                 $unpaidMilestonesAmount = $pitch->relationLoaded('milestones')
                     ? (float) $pitch->milestones
-                        ->filter(fn($m) => (float) $m->amount > 0 && $m->payment_status !== Pitch::PAYMENT_STATUS_PAID)
+                        ->filter(fn ($m) => (float) $m->amount > 0 && $m->payment_status !== Pitch::PAYMENT_STATUS_PAID)
                         ->sum('amount')
                     : (float) $pitch->milestones()
                         ->where('amount', '>', 0)
@@ -157,8 +164,13 @@ class DeliveryPipelineBoard extends Component
                 if ($aOrder !== null && $bOrder !== null) {
                     return $aOrder <=> $bOrder;
                 }
-                if ($aOrder !== null) return -1;
-                if ($bOrder !== null) return 1;
+                if ($aOrder !== null) {
+                    return -1;
+                }
+                if ($bOrder !== null) {
+                    return 1;
+                }
+
                 // Fallback newest first
                 return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
             });
@@ -215,6 +227,7 @@ class DeliveryPipelineBoard extends Component
         // In Progress or Setup
         if ($pitch->status === Pitch::STATUS_IN_PROGRESS) {
             $hasFiles = $pitch->relationLoaded('files') ? $pitch->files->isNotEmpty() : $pitch->files()->exists();
+
             return $hasFiles ? 'in_progress' : 'setup';
         }
 
@@ -313,6 +326,7 @@ class DeliveryPipelineBoard extends Component
         $clientUploads = $project->relationLoaded('files')
             ? $project->files->filter(function ($f) {
                 $meta = (array) ($f->metadata ?? []);
+
                 return ($meta['uploaded_by_client'] ?? false) === true;
             })->count()
             : $project->files()
@@ -361,11 +375,13 @@ class DeliveryPipelineBoard extends Component
         // Make -> Review triggers submit for review if possible
         if ($fromStage === 'make' && $toStage === 'review') {
             $this->submitForReview($projectId);
+
             return;
         }
         // Review -> Make triggers recall
         if ($fromStage === 'review' && $toStage === 'make') {
             $this->returnToInProgress($projectId);
+
             return;
         }
         // Any drag involving Wrap Up or identical groups is treated as reorder only
@@ -387,6 +403,7 @@ class DeliveryPipelineBoard extends Component
         }
         if ($pitch->status !== Pitch::STATUS_PENDING) {
             $this->loadBoard();
+
             return;
         }
 
@@ -421,12 +438,14 @@ class DeliveryPipelineBoard extends Component
         $hasFiles = $pitch->files->isNotEmpty();
         if ($pitch->status !== Pitch::STATUS_IN_PROGRESS || ! $hasFiles) {
             $this->loadBoard();
+
             return;
         }
 
         // Policy check: user must be able to submit for review
         if (! Gate::allows('submitForReview', $pitch)) {
             $this->loadBoard();
+
             return;
         }
 
@@ -458,6 +477,7 @@ class DeliveryPipelineBoard extends Component
         }
         if (! in_array($pitch->status, [Pitch::STATUS_READY_FOR_REVIEW, Pitch::STATUS_PENDING_REVIEW], true)) {
             $this->loadBoard();
+
             return;
         }
 
@@ -540,15 +560,17 @@ class DeliveryPipelineBoard extends Component
                 if ($this->filterHasReminders && ((($card['overdue_reminders'] ?? 0) + ($card['upcoming_reminders'] ?? 0)) <= 0)) {
                     return false;
                 }
+
                 return true;
             }));
         }
+
         return $columns;
     }
 
     public function toggleFilter(string $filterKey): void
     {
-        if (! in_array($filterKey, ['filterClientComments','filterUnpaidMilestones','filterRevisionsRequested','filterHasReminders'], true)) {
+        if (! in_array($filterKey, ['filterClientComments', 'filterUnpaidMilestones', 'filterRevisionsRequested', 'filterHasReminders'], true)) {
             return;
         }
         $this->$filterKey = ! $this->$filterKey;
@@ -650,5 +672,3 @@ class DeliveryPipelineBoard extends Component
         $this->loadBoard();
     }
 }
-
-

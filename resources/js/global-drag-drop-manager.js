@@ -365,7 +365,6 @@ const GlobalDragDropManager = (() => {
                     break;
 
                 default:
-                    console.warn('🚨 Unknown dashboard model type:', meta.modelType);
                     converted.modelType = meta.modelType;
             }
 
@@ -377,15 +376,12 @@ const GlobalDragDropManager = (() => {
         let expandingSections = new Set();
 
         function handleSectionAutoExpand(sectionName, element) {
-            console.log('🚀 handleSectionAutoExpand called:', { sectionName, element });
 
             // Don't start a new timeout if already expanding this section
             if (expandingSections.has(sectionName)) {
-                console.log('⚠️ Section already expanding:', sectionName);
                 return;
             }
 
-            console.log('⏰ Setting up 500ms timer for section:', sectionName);
             expandingSections.add(sectionName);
             element.classList.add('drag-expand-pending');
 
@@ -395,22 +391,17 @@ const GlobalDragDropManager = (() => {
             // Apply simple background change
             element.style.background = '#3b82f6';
 
-            console.log('🎨 Applied direct styles for visual feedback');
-            console.log('🎨 Added drag-expand-pending class. Element classes:', element.className);
 
             const timeout = setTimeout(() => {
-                console.log('🎉 Timer expired! Attempting to expand section:', sectionName);
                 try {
                     // Trigger Alpine.js section expansion
                     const event = new CustomEvent('drag-expand-section', {
                         detail: { section: sectionName },
                         bubbles: true
                     });
-                    console.log('📡 Dispatching custom event:', event);
                     element.dispatchEvent(event);
-                    console.log('✅ Event dispatched successfully');
                 } catch (e) {
-                    console.error('❌ Failed to expand section:', e);
+                    // Failed to expand section
                 }
 
                 // Clean up after successful expansion
@@ -419,7 +410,6 @@ const GlobalDragDropManager = (() => {
 
                 // Restore original background after expansion
                 if (element._originalBackground !== undefined) {
-                    console.log('🔄 Restoring background after section expansion');
                     element.style.background = element._originalBackground;
                     delete element._originalBackground;
                 }
@@ -427,13 +417,10 @@ const GlobalDragDropManager = (() => {
             }, 500); // Reduced to 500ms for faster testing
 
             expandTimeouts.set(sectionName, timeout);
-            console.log('✅ Auto-expand timer set for:', sectionName);
         }
 
         function handleSectionAutoExpandLeave(sectionName, element) {
-            console.log('🚪 handleSectionAutoExpandLeave called:', sectionName);
             if (expandTimeouts.has(sectionName)) {
-                console.log('🛑 Clearing timer and styles for section:', sectionName);
                 clearTimeout(expandTimeouts.get(sectionName));
                 expandTimeouts.delete(sectionName);
                 expandingSections.delete(sectionName);
@@ -441,14 +428,10 @@ const GlobalDragDropManager = (() => {
 
                 // Restore original background when leaving (not when expanding)
                 if (element._originalBackground !== undefined) {
-                    console.log('🔄 Restoring background due to drag leave');
                     element.style.background = element._originalBackground;
                     delete element._originalBackground;
                 }
 
-                console.log('✅ Timer cleared and cleanup done');
-            } else {
-                console.log('ℹ️ No timer to clear for section:', sectionName);
             }
         }
 
@@ -469,32 +452,14 @@ const GlobalDragDropManager = (() => {
                     });
                 }
 
-                // Debug logging
-                console.log('🎯 Drag enter detected:', {
-                    element: element.className,
-                    meta: meta,
-                    expandable: meta.expandable,
-                    section: meta.section
-                });
 
                 state.currentTarget = meta;
                 updateOverlayContext(meta);
 
                 // Handle auto-expand for section headers
                 if (meta.expandable && meta.section) {
-                    console.log('🔄 Starting auto-expand for section:', meta.section);
                     handleSectionAutoExpand(meta.section, element);
-                } else {
-                    console.log('❌ Not expandable:', { expandable: meta.expandable, section: meta.section });
                 }
-
-                // Debug: Log visual feedback state
-                console.log('🎨 Visual state after enter:', {
-                    classes: element.className,
-                    hasExpandPending: element.classList.contains('drag-expand-pending'),
-                    hasActive: element.classList.contains('drag-drop-active'),
-                    hasDisabled: element.classList.contains('drag-drop-disabled')
-                });
 
                 // Check authorization and add appropriate visual feedback
                 if (isUploadAuthorized(meta)) {
@@ -540,7 +505,6 @@ const GlobalDragDropManager = (() => {
 
                     // If clearly outside bounds, clear immediately
                     if (!isInside && !element.contains(e.relatedTarget)) {
-                        console.log('🚪 Immediately leaving section, clearing styles');
                         handleSectionAutoExpandLeave(meta.section, element);
                     } else {
                         // Use a shorter timeout for edge cases
@@ -550,10 +514,7 @@ const GlobalDragDropManager = (() => {
                                 e.clientY >= rect2.top && e.clientY <= rect2.bottom;
 
                             if (!isStillInside && !element.contains(e.relatedTarget)) {
-                                console.log('🚪 Delayed leaving section, clearing styles');
                                 handleSectionAutoExpandLeave(meta.section, element);
-                            } else {
-                                console.log('🔄 Still inside section bounds, keeping timer');
                             }
                         }, 50); // Shorter delay
                     }
@@ -611,7 +572,6 @@ const GlobalDragDropManager = (() => {
 
                         // Only remove active state if we're truly leaving
                         if (!isInside && !isChildTarget) {
-                            console.log('🧹 Cleaning up visual state for element:', element.className);
                             element.classList.remove('drag-drop-active', 'drag-drop-disabled');
 
                             // Only reset target if this was the current target
@@ -619,8 +579,6 @@ const GlobalDragDropManager = (() => {
                                 state.currentTarget = state.defaultMeta;
                                 updateOverlayContext();
                             }
-                        } else {
-                            console.log('🔄 Still inside bounds, keeping visual state');
                         }
                     }, 50); // Slightly longer timeout to be more reliable
                 }
@@ -637,7 +595,6 @@ const GlobalDragDropManager = (() => {
                     if (isUploadAuthorized(meta)) {
                         // Convert dashboard metadata to proper upload format
                         const uploadMeta = convertToUploadMeta(meta);
-                        console.log('🎯 Converting dashboard drop to upload meta:', { original: meta, converted: uploadMeta });
                         window.GlobalUploader.addValidatedFiles(files, uploadMeta);
                     } else {
                         // Show authorization error
@@ -881,15 +838,7 @@ const GlobalDragDropManager = (() => {
                     element = document.querySelector(element);
                 }
                 if (element) {
-                    console.log('📝 Registering drop zone:', {
-                        element: element.className,
-                        meta: meta,
-                        expandable: meta.expandable,
-                        section: meta.section
-                    });
                     setupZoneListeners(element, meta);
-                } else {
-                    console.warn('⚠️ Could not register drop zone - element not found');
                 }
             },
 
@@ -1002,9 +951,4 @@ document.addEventListener('alpine:init', () => {
 // Ensure initialization occurs after DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize the global drag drop system
-    if (window.GlobalDragDrop) {
-        console.log('GlobalDragDrop initialized successfully');
-    } else {
-        console.error('GlobalDragDrop failed to initialize');
-    }
 });

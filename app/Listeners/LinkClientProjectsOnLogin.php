@@ -4,7 +4,6 @@ namespace App\Listeners;
 
 use App\Models\Project;
 use Illuminate\Auth\Events\Login;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
 class LinkClientProjectsOnLogin
@@ -15,7 +14,7 @@ class LinkClientProjectsOnLogin
     public function handle(Login $event): void
     {
         $user = $event->user;
-        
+
         // Check if there are any client management projects with this user's email
         // that aren't already linked to a user account
         $projects = Project::where('client_email', $user->email)
@@ -38,7 +37,7 @@ class LinkClientProjectsOnLogin
                 'user_email' => $user->email,
                 'projects_linked' => $projects->count(),
                 'project_ids' => $projects->pluck('id')->toArray(),
-                'assigned_client_role' => !$user->hasRole(\App\Models\User::ROLE_CLIENT),
+                'assigned_client_role' => ! $user->hasRole(\App\Models\User::ROLE_CLIENT),
             ]);
         }
     }

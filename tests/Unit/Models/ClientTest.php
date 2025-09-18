@@ -13,12 +13,13 @@ class ClientTest extends TestCase
     use RefreshDatabase;
 
     protected User $producer;
+
     protected Client $client;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->producer = User::factory()->create();
         $this->client = Client::factory()->create([
             'user_id' => $this->producer->id,
@@ -78,7 +79,7 @@ class ClientTest extends TestCase
         ]);
 
         $projects = $this->client->projects;
-        
+
         $this->assertCount(2, $projects);
         $this->assertTrue($projects->contains($project1));
         $this->assertTrue($projects->contains($project2));
@@ -100,7 +101,7 @@ class ClientTest extends TestCase
         ]);
 
         $activeProjects = $this->client->activeProjects;
-        
+
         $this->assertCount(1, $activeProjects);
         $this->assertTrue($activeProjects->contains($activeProject));
         $this->assertFalse($activeProjects->contains($completedProject));
@@ -122,7 +123,7 @@ class ClientTest extends TestCase
         ]);
 
         $completedProjects = $this->client->completedProjects;
-        
+
         $this->assertCount(1, $completedProjects);
         $this->assertFalse($completedProjects->contains($activeProject));
         $this->assertTrue($completedProjects->contains($completedProject));
@@ -144,7 +145,7 @@ class ClientTest extends TestCase
         ]);
 
         $latestProject = $this->client->latestProject();
-        
+
         $this->assertEquals($newerProject->id, $latestProject->id);
     }
 
@@ -186,9 +187,9 @@ class ClientTest extends TestCase
     public function can_mark_as_contacted()
     {
         $originalTimestamp = $this->client->last_contacted_at;
-        
+
         $this->client->markAsContacted();
-        
+
         $this->assertNotEquals($originalTimestamp, $this->client->fresh()->last_contacted_at);
         $this->assertTrue($this->client->fresh()->last_contacted_at->isToday());
     }
@@ -219,7 +220,7 @@ class ClientTest extends TestCase
         ]);
 
         $recentClients = Client::recentlyContacted(30)->get();
-        
+
         $this->assertTrue($recentClients->contains($recentClient));
         $this->assertFalse($recentClients->contains($oldClient));
     }
@@ -243,7 +244,7 @@ class ClientTest extends TestCase
         ]);
 
         $needsFollowUp = Client::needsFollowUp(14)->get();
-        
+
         $this->assertTrue($needsFollowUp->contains($needsFollowUpClient));
         $this->assertTrue($needsFollowUp->contains($neverContactedClient));
         $this->assertFalse($needsFollowUp->contains($recentClient));

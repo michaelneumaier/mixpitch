@@ -9,9 +9,13 @@ use Livewire\Component;
 class PitchFileAnnotationSummary extends Component
 {
     public PitchFile $pitchFile;
+
     public array $commentIds = [];
+
     public bool $showResolved = false;
+
     public bool $compact = false;
+
     public bool $showClientComments = false;
 
     public function mount(PitchFile $pitchFile, bool $compact = false, bool $showClientComments = false)
@@ -27,35 +31,35 @@ class PitchFileAnnotationSummary extends Component
         $comments = $this->pitchFile->comments()
             ->with(['user', 'replies.user'])
             ->whereNull('parent_id') // Only top-level comments
-            ->when(!$this->showResolved, fn($q) => $q->where('resolved', false))
-            ->when($this->showClientComments, fn($q) => $q->where('is_client_comment', true))
+            ->when(! $this->showResolved, fn ($q) => $q->where('resolved', false))
+            ->when($this->showClientComments, fn ($q) => $q->where('is_client_comment', true))
             ->orderBy('timestamp')
             ->get();
 
         // Store just the comment IDs for serialization
         $this->commentIds = $comments->pluck('id')->toArray();
     }
-    
+
     public function getGroupedComments()
     {
         if (empty($this->commentIds)) {
             return collect();
         }
-        
+
         $comments = PitchFileComment::with(['user', 'replies.user'])
             ->whereIn('id', $this->commentIds)
             ->orderBy('timestamp')
             ->get();
 
         // Group comments by 30-second intervals
-        return $comments->groupBy(function($comment) {
+        return $comments->groupBy(function ($comment) {
             return floor($comment->timestamp / 30); // Group by 30-second intervals
         });
     }
 
     public function toggleShowResolved()
     {
-        $this->showResolved = !$this->showResolved;
+        $this->showResolved = ! $this->showResolved;
         $this->loadComments();
     }
 
@@ -63,7 +67,7 @@ class PitchFileAnnotationSummary extends Component
     {
         $comment = PitchFileComment::where('pitch_file_id', $this->pitchFile->id)
             ->findOrFail($commentId);
-            
+
         $comment->update(['resolved' => true]);
         $this->loadComments();
     }
@@ -101,13 +105,13 @@ class PitchFileAnnotationSummary extends Component
     {
         $intervals = [];
         $groupedComments = $this->getGroupedComments();
-        
+
         foreach ($groupedComments as $intervalIndex => $comments) {
             $startTime = $intervalIndex * 30;
             $endTime = ($intervalIndex + 1) * 30;
-            
+
             // Convert comments to array format for the view
-            $commentsArray = $comments->map(function($comment) {
+            $commentsArray = $comments->map(function ($comment) {
                 return [
                     'id' => $comment->id,
                     'comment' => $comment->comment,
@@ -117,7 +121,7 @@ class PitchFileAnnotationSummary extends Component
                     'client_email' => $comment->client_email,
                     'user' => $comment->user ? $comment->user->toArray() : null,
                     'created_at' => $comment->created_at,
-                    'replies' => $comment->replies ? $comment->replies->map(function($reply) {
+                    'replies' => $comment->replies ? $comment->replies->map(function ($reply) {
                         return [
                             'id' => $reply->id,
                             'comment' => $reply->comment,
@@ -130,17 +134,17 @@ class PitchFileAnnotationSummary extends Component
                     })->toArray() : [],
                 ];
             })->toArray();
-            
+
             $intervals[] = [
                 'interval' => $intervalIndex,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
-                'time_label' => gmdate('i:s', $startTime) . ' - ' . gmdate('i:s', $endTime),
+                'time_label' => gmdate('i:s', $startTime).' - '.gmdate('i:s', $endTime),
                 'comments' => $commentsArray,
                 'comment_count' => count($commentsArray),
             ];
         }
-        
+
         return $intervals;
     }
 

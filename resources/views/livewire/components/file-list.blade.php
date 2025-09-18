@@ -9,8 +9,8 @@
                        aria-label="Select all files">
                     <input 
                         type="checkbox" 
-                        wire:model.live="allFilesSelected"
                         wire:click="toggleSelectAll"
+                        {{ $this->allFilesSelected ? 'checked' : '' }}
                         class="sr-only"
                         aria-describedby="select-all-description"
                         @if($files->isEmpty()) disabled @endif
@@ -135,11 +135,29 @@
     <!-- Files List -->
     <div class="divide-y divide-gray-200 dark:divide-gray-700">
         @forelse($files as $file)
-            <div class="track-item @if ($showAnimations && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif 
+            <div x-data="{ 
+                     showComments: {{ $this->getFileCommentCount($file->id) > 0 ? 'true' : 'false' }},
+                     fileId: {{ $file->id }},
+                     init() {
+                         // Keep comment section expanded if this file was just commented on
+                         if (window.lastCommentedFileId === this.fileId) {
+                             this.showComments = true;
+                             // Clear the flag after a moment
+                             setTimeout(() => {
+                                 if (window.lastCommentedFileId === this.fileId) {
+                                     window.lastCommentedFileId = null;
+                                 }
+                             }, 100);
+                         }
+                     }
+                 }"
+                 class="track-item @if ($showAnimations && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif 
                         @if($enableBulkActions && $this->isFileSelected($file->id)) {{ $this->resolvedColorScheme['accent_bg'] }} border-l-4 {{ $this->resolvedColorScheme['accent_border'] }} @endif
-                        group flex items-center justify-between py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
+                        group transition-colors duration-200">
                 
-                <!-- Selection Checkbox (if bulk actions enabled) -->
+                <!-- Main File Display Row -->
+                <div class="flex items-center justify-between py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <!-- Selection Checkbox (if bulk actions enabled) -->
                 @if($enableBulkActions)
                     <div class="flex items-center px-2 group-hover:opacity-100 
                                 {{ $this->isFileSelected($file->id) || $isSelectMode ? 'opacity-100' : 'opacity-0' }} 
@@ -201,6 +219,20 @@
                                     <span>{{ isset($file->formatted_size) ? $file->formatted_size : $this->formatFileSize($file->size) }}</span>
                                 </div>
                             @endif
+                            @if ($showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
+                                <div class="flex items-center gap-1">
+                                    <flux:icon.chat-bubble-left-ellipsis class="w-3 h-3" />
+                                    <button 
+                                        @click="showComments = !showComments"
+                                        class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">
+                                        @if ($this->getFileCommentCount($file->id) > 0)
+                                            {{ $this->getFileCommentCount($file->id) }} comment{{ $this->getFileCommentCount($file->id) > 1 ? 's' : '' }}
+                                        @else
+                                            Add comment
+                                        @endif
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -224,6 +256,166 @@
                         </flux:menu>
                     </flux:dropdown>
                 </div>
+                </div>
+
+                <!-- Comments Section -->
+                @if ($showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
+                    <div x-show="showComments" x-collapse
+                         class="border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
+                        <div class="mb-3">
+                            <flux:text weight="semibold" size="sm"
+                                       class="flex items-center text-gray-900 dark:text-gray-100">
+                                <flux:icon name="chat-bubble-left-ellipsis"
+                                           class="mr-2 text-blue-600" />
+                                Comments for this File
+                            </flux:text>
+                        </div>
+                        <div class="max-h-48 space-y-3 overflow-y-auto">
+                            @foreach ($this->getFileComments($file->id) as $comment)
+                                <div class="rounded-lg border p-3 
+                                    @if ($comment->event_type === 'producer_comment')
+                                        border-purple-200 bg-purple-50 dark:border-purple-700 dark:bg-purple-900/20
+                                    @else
+                                        border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800
+                                    @endif">
+                                    <div class="mb-2 flex items-start justify-between">
+                                        <div class="flex items-center gap-2">
+                                            @if ($comment->event_type === 'producer_comment')
+                                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500">
+                                                    <flux:icon name="musical-note" size="xs" class="text-white" />
+                                                </div>
+                                            @else
+                                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500">
+                                                    <flux:icon name="user" size="xs" class="text-white" />
+                                                </div>
+                                            @endif
+                                            <div>
+                                                <flux:text weight="medium" size="sm"
+                                                           class="text-gray-900 dark:text-gray-100">
+                                                    @if ($comment->event_type === 'producer_comment')
+                                                        {{ $comment->metadata['producer_name'] ?? 'Producer' }}
+                                                    @else
+                                                        {{ $comment->metadata['client_name'] ?? 'Client' }}
+                                                    @endif
+                                                </flux:text>
+                                                <flux:text size="xs" class="text-gray-600 dark:text-gray-400">
+                                                    {{ $comment->created_at->diffForHumans() }}
+                                                </flux:text>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-2">
+                                            @if ($comment->metadata['type'] ?? null === 'revision_request')
+                                                <flux:badge variant="warning" size="xs">
+                                                    <flux:icon name="pencil" size="xs" class="mr-1" />Revision Request
+                                                </flux:badge>
+                                            @elseif($comment->metadata['type'] ?? null === 'approval')
+                                                <flux:badge variant="success" size="xs">
+                                                    <flux:icon name="check" size="xs" class="mr-1" />Approved
+                                                </flux:badge>
+                                            @endif
+                                            
+                                            <!-- Delete Comment Button -->
+                                            <button 
+                                                wire:click="confirmDeleteComment({{ $comment->id }})"
+                                                class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
+                                                title="Delete comment">
+                                                <flux:icon name="x-mark" size="xs" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <flux:text size="sm" class="leading-relaxed text-gray-800 dark:text-gray-200">
+                                        {{ $comment->comment }}
+                                    </flux:text>
+
+                                    {{-- Quick Response for Revision Requests --}}
+                                    @if (($comment->metadata['type'] ?? null) === 'revision_request' && !($comment->metadata['responded'] ?? false))
+                                        <div class="mt-3 border-t border-blue-200 pt-3">
+                                            <div class="flex gap-2">
+                                                <button
+                                                    wire:click="markFileCommentResolved({{ $comment->id }})"
+                                                    class="inline-flex items-center rounded-md bg-green-100 px-3 py-1 text-xs font-medium text-green-800 transition-colors hover:bg-green-200">
+                                                    <i class="fas fa-check mr-1"></i>Mark as Addressed
+                                                </button>
+                                                <button
+                                                    @click="showResponse = !showResponse"
+                                                    class="inline-flex items-center rounded-md bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200">
+                                                    <i class="fas fa-reply mr-1"></i>Respond
+                                                </button>
+                                            </div>
+
+                                            <div x-data="{ showResponse: false }"
+                                                 x-show="showResponse"
+                                                 x-collapse class="mt-3">
+                                                <form wire:submit.prevent="respondToFileComment({{ $comment->id }})">
+                                                    <textarea wire:model.defer="fileCommentResponse.{{ $comment->id }}" rows="2"
+                                                              class="w-full rounded-md border border-blue-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                              placeholder="Explain how you've addressed this feedback..."></textarea>
+                                                    <div class="mt-2 flex gap-2">
+                                                        <button type="submit"
+                                                                class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">
+                                                            <i class="fas fa-paper-plane mr-1"></i>Send Response
+                                                        </button>
+                                                        <button type="button"
+                                                                @click="showResponse = false"
+                                                                class="inline-flex items-center rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200">
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Add New Comment Section -->
+                        @if ($enableCommentCreation)
+                            <div class="mt-3 border-t border-blue-200 pt-3">
+                                <form wire:submit.prevent="createFileComment({{ $file->id }})" 
+                                      @submit="window.lastCommentedFileId = {{ $file->id }}">
+                                    <div class="mb-2">
+                                        <label for="newComment{{ $file->id }}" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Add Comment for this File
+                                        </label>
+                                        <textarea 
+                                            wire:model.defer="newFileComment.{{ $file->id }}" 
+                                            id="newComment{{ $file->id }}"
+                                            rows="2"
+                                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm 
+                                                   bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Add your comment about this specific file..."></textarea>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button type="submit"
+                                                class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                                                wire:loading.attr="disabled"
+                                                wire:target="createFileComment({{ $file->id }})"
+                                                @click="window.lastCommentedFileId = {{ $file->id }}">
+                                            <span wire:loading.remove wire:target="createFileComment({{ $file->id }})">
+                                                <i class="fas fa-plus mr-1"></i>Add Comment
+                                            </span>
+                                            <span wire:loading wire:target="createFileComment({{ $file->id }})">
+                                                <i class="fas fa-spinner fa-spin mr-1"></i>Adding...
+                                            </span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        @endif
+
+                        <div class="mt-3 border-t border-blue-200 pt-3">
+                            <p class="text-xs text-blue-600">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                This feedback is specific to the "{{ $file->file_name }}" file.
+                                General project communication should use the main message area below.
+                            </p>
+                        </div>
+                    </div>
+                @endif
             </div>
         @empty
             <!-- Empty State -->
@@ -321,4 +513,30 @@
             </div>
         </div>
     @endif
+
+    <!-- Delete Comment Confirmation Modal -->
+    <flux:modal name="delete-comment" class="max-w-md">
+        <div class="space-y-6">
+            <div class="flex items-center gap-3">
+                <flux:icon.exclamation-triangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                <flux:heading size="lg">Delete Comment</flux:heading>
+            </div>
+            
+            <flux:subheading class="text-gray-600 dark:text-gray-400">
+                Are you sure you want to delete this comment? This action cannot be undone.
+            </flux:subheading>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:modal.close>
+                    <flux:button variant="ghost" wire:click="cancelDeleteComment">
+                        Cancel
+                    </flux:button>
+                </flux:modal.close>
+                <flux:button wire:click="deleteComment" variant="danger" icon="trash" wire:loading.attr="disabled" wire:target="deleteComment">
+                    <span wire:loading.remove wire:target="deleteComment">Delete Comment</span>
+                    <span wire:loading wire:target="deleteComment">Deleting...</span>
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </div>

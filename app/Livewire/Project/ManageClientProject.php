@@ -11,6 +11,7 @@ use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Masmerise\Toaster\Toaster;
 
@@ -49,6 +50,9 @@ class ManageClientProject extends Component
 
     public $showCommunicationTimeline = true;
 
+    // Component refresh control
+    public int $refreshKey = 0;
+
     public $fileListKey;
 
     // Watermarking controls
@@ -79,6 +83,7 @@ class ManageClientProject extends Component
         'fileDeleted' => '$refresh',
         'milestonesUpdated' => '$refresh',
         'refreshClientFiles' => '$refresh',
+        'commentsUpdated' => '$refresh',
     ];
 
     protected $rules = [
@@ -279,6 +284,72 @@ class ManageClientProject extends Component
             $this->redirect($downloadUrl);
         } catch (\Exception $e) {
             Toaster::error('Unable to download file.');
+        }
+    }
+
+    /**
+     * Play a client file (project file) in the global audio player
+     */
+    public function playFile($fileId)
+    {
+        try {
+            $file = $this->project->files()->findOrFail($fileId);
+            $this->authorize('view', $file);
+
+            // Check if it's an audio file
+            if (! $file->isAudioFile()) {
+                Toaster::error('Only audio files can be played.');
+
+                return;
+            }
+
+            // Dispatch event to play in global player
+            $this->dispatch('playProjectFile', projectFileId: $file->id);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Toaster::error('File not found.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to play this file.');
+        } catch (\Exception $e) {
+            Log::error('Error playing client file', [
+                'file_id' => $fileId,
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Could not play file: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Play a pitch file in the global audio player
+     */
+    public function playPitchFile($fileId)
+    {
+        try {
+            $file = $this->pitch->files()->findOrFail($fileId);
+            $this->authorize('view', $file);
+
+            // Check if it's an audio file
+            if (! $file->isAudioFile()) {
+                Toaster::error('Only audio files can be played.');
+
+                return;
+            }
+
+            // Dispatch event to play in global player
+            $this->dispatch('playPitchFile', pitchFileId: $file->id);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Toaster::error('File not found.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to play this file.');
+        } catch (\Exception $e) {
+            Log::error('Error playing pitch file', [
+                'file_id' => $fileId,
+                'pitch_id' => $this->pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Could not play file: '.$e->getMessage());
         }
     }
 
@@ -683,6 +754,39 @@ class ManageClientProject extends Component
         return $this->pitch->files()->with('pitch')->get();
     }
 
+    /**
+     * Get file comments data for the file-list component
+     */
+    public function getFileCommentsDataProperty()
+    {
+        return $this->pitch->events()
+            ->whereIn('event_type', ['client_file_comment', 'producer_comment'])
+            ->where(function ($query) {
+                $query->where('event_type', 'client_file_comment')
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where('event_type', 'producer_comment')
+                            ->whereJsonContains('metadata->comment_type', 'producer_file_comment');
+                    });
+            })
+            ->with('user')
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($event) {
+                // Add client_name to metadata for the component
+                $metadata = $event->metadata ?? [];
+                $metadata['client_name'] = $this->project->client_name ?: 'Client';
+
+                // Add producer name for producer comments
+                if ($event->event_type === 'producer_comment') {
+                    $metadata['producer_name'] = $event->user->name ?? 'Producer';
+                }
+
+                $event->metadata = $metadata;
+
+                return $event;
+            });
+    }
+
     private function getBaseClientBudget(): float
     {
         // Prefer explicit client payment amount on pitch; fallback to project budget
@@ -971,5 +1075,254 @@ class ManageClientProject extends Component
         $bytes /= (1 << (10 * $pow));
 
         return round($bytes, $precision).' '.$units[$pow];
+    }
+
+    // ----- File List Component Event Handlers -----
+
+    /**
+     * Handle file action events from file-list component
+     */
+    #[On('fileAction')]
+    public function handleFileAction($data)
+    {
+        $action = $data['action'];
+        $fileId = $data['fileId'];
+        $modelType = $data['modelType'] ?? null;
+
+        // Route to appropriate handler based on action and model type
+        if ($modelType === 'project') {
+            // Client files (project files)
+            switch ($action) {
+                case 'playFile':
+                    $this->playFile($fileId);
+                    break;
+                case 'downloadClientFile':
+                    $this->downloadClientFile($fileId, app(FileManagementService::class));
+                    break;
+                case 'confirmDeleteClientFile':
+                    $this->confirmDeleteClientFile($fileId);
+                    break;
+            }
+        } elseif ($modelType === 'pitch') {
+            // Producer files (pitch files)
+            switch ($action) {
+                case 'playPitchFile':
+                    $this->playPitchFile($fileId);
+                    break;
+                case 'downloadFile':
+                    $this->downloadFile($fileId, app(FileManagementService::class));
+                    break;
+                case 'confirmDeleteFile':
+                    $this->confirmDeleteFile($fileId);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Handle file list refresh requests from file-list component
+     */
+    #[On('fileListRefreshRequested')]
+    public function handleFileListRefresh($data)
+    {
+        $modelType = $data['modelType'] ?? null;
+        $source = $data['source'] ?? 'unknown';
+
+        // Refresh the appropriate file collection
+        if ($modelType === 'project') {
+            // Refresh client files by re-fetching the property
+            $this->project->load('files');
+        }
+
+        // Log the refresh for debugging if needed
+        Log::info('File list refreshed', [
+            'model_type' => $modelType,
+            'source' => $source,
+            'project_id' => $this->project->id,
+        ]);
+    }
+
+    /**
+     * Handle comment action events from file-list component
+     */
+    #[On('commentAction')]
+    public function handleCommentAction($data)
+    {
+        $action = $data['action'];
+        $commentId = $data['commentId'] ?? null;
+        $response = $data['response'] ?? null;
+        $modelType = $data['modelType'] ?? null;
+
+        switch ($action) {
+            case 'markFileCommentResolved':
+                $this->markFileCommentResolved($commentId);
+                break;
+            case 'respondToFileComment':
+                $this->respondToFileComment($commentId, $response);
+                break;
+            case 'createFileComment':
+                $fileId = $data['fileId'] ?? null;
+                $comment = $data['comment'] ?? null;
+                $this->createFileComment($fileId, $comment);
+                break;
+            case 'deleteFileComment':
+                $this->deleteFileComment($commentId);
+                break;
+        }
+    }
+
+    /**
+     * Mark a file comment as resolved
+     */
+    public function markFileCommentResolved($commentId)
+    {
+        try {
+            $comment = $this->pitch->events()->findOrFail($commentId);
+
+            // Update metadata to mark as responded
+            $metadata = $comment->metadata ?? [];
+            $metadata['responded'] = true;
+            $metadata['response_type'] = 'marked_addressed';
+
+            $comment->update(['metadata' => $metadata]);
+
+            $this->pitch->refresh();
+            Toaster::success('Comment marked as addressed.');
+        } catch (\Exception $e) {
+            Log::error('Failed to mark comment as resolved', [
+                'comment_id' => $commentId,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to mark comment as addressed.');
+        }
+    }
+
+    /**
+     * Respond to a file comment
+     */
+    public function respondToFileComment($commentId, $response)
+    {
+        try {
+            $comment = $this->pitch->events()->findOrFail($commentId);
+
+            // Create a response event
+            $this->pitch->events()->create([
+                'event_type' => 'producer_comment',
+                'comment' => $response,
+                'status' => $this->pitch->status,
+                'created_by' => auth()->id(),
+                'metadata' => [
+                    'response_to_comment_id' => $commentId,
+                    'file_id' => $comment->metadata['file_id'] ?? null,
+                    'comment_type' => 'response_to_client_feedback',
+                    'client_name' => $this->project->client_name,
+                ],
+            ]);
+
+            // Mark original comment as responded
+            $metadata = $comment->metadata ?? [];
+            $metadata['responded'] = true;
+            $metadata['response_type'] = 'text_response';
+            $comment->update(['metadata' => $metadata]);
+
+            $this->pitch->refresh();
+            Toaster::success('Response sent successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to respond to comment', [
+                'comment_id' => $commentId,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to send response.');
+        }
+    }
+
+    /**
+     * Create a new comment on a file
+     */
+    public function createFileComment($fileId, $comment)
+    {
+        if (empty(trim($comment))) {
+            Toaster::error('Comment cannot be empty.');
+
+            return;
+        }
+
+        try {
+            // Verify the file belongs to this pitch
+            $file = $this->pitch->files()->findOrFail($fileId);
+
+            // Create the comment event
+            $this->pitch->events()->create([
+                'event_type' => 'producer_comment',
+                'comment' => trim($comment),
+                'status' => $this->pitch->status,
+                'created_by' => auth()->id(),
+                'metadata' => [
+                    'file_id' => (int) $fileId, // Ensure it's an integer
+                    'comment_type' => 'producer_file_comment',
+                    'client_name' => $this->project->client_name,
+                ],
+            ]);
+
+            $this->pitch->refresh();
+            
+            // Force refresh by clearing cached properties and triggering re-render
+            unset($this->fileCommentsData);
+            
+            Toaster::success('Comment added successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to create file comment', [
+                'file_id' => $fileId,
+                'pitch_id' => $this->pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to add comment.');
+        }
+    }
+
+    /**
+     * Delete a file comment
+     */
+    public function deleteFileComment($commentId)
+    {
+        try {
+            $comment = $this->pitch->events()->findOrFail($commentId);
+            
+            // Store comment info for success message
+            $fileId = $comment->metadata['file_id'] ?? null;
+            
+            // Delete the comment
+            $comment->delete();
+            
+            $this->pitch->refresh();
+            
+            // Force refresh by clearing cached properties
+            unset($this->fileCommentsData);
+            
+            // Dispatch event to update comments display
+            $this->dispatch('commentsUpdated');
+            
+            Toaster::success('Comment deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete file comment', [
+                'comment_id' => $commentId,
+                'pitch_id' => $this->pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to delete comment.');
+        }
+    }
+
+    /**
+     * Handle refresh client files event from link importer
+     */
+    #[On('refreshClientFiles')]
+    public function refreshClientFiles()
+    {
+        // Refresh the project files relationship
+        $this->project->load('files');
+
+        // Increment refresh key to force file-list component to re-render
+        $this->refreshKey++;
     }
 }

@@ -12,20 +12,32 @@ class FeedbackTemplate extends Model
 
     // Category Constants
     const CATEGORY_GENERAL = 'general';
+
     const CATEGORY_MIXING = 'mixing';
+
     const CATEGORY_MASTERING = 'mastering';
+
     const CATEGORY_COMPOSITION = 'composition';
+
     const CATEGORY_ARRANGEMENT = 'arrangement';
+
     const CATEGORY_VOCAL = 'vocal';
+
     const CATEGORY_PRODUCTION = 'production';
 
     // Question Types
     const TYPE_TEXT = 'text';
+
     const TYPE_TEXTAREA = 'textarea';
+
     const TYPE_SELECT = 'select';
+
     const TYPE_RADIO = 'radio';
+
     const TYPE_CHECKBOX = 'checkbox';
+
     const TYPE_RATING = 'rating';
+
     const TYPE_RANGE = 'range';
 
     protected $fillable = [
@@ -101,7 +113,7 @@ class FeedbackTemplate extends Model
     {
         return $query->where(function ($q) use ($userId) {
             $q->where('is_default', true)
-              ->orWhere('user_id', $userId);
+                ->orWhere('user_id', $userId);
         })->active();
     }
 
@@ -151,9 +163,10 @@ class FeedbackTemplate extends Model
     public function validateQuestions(): array
     {
         $errors = [];
-        
-        if (!is_array($this->questions)) {
+
+        if (! is_array($this->questions)) {
             $errors[] = 'Questions must be an array';
+
             return $errors;
         }
 
@@ -171,7 +184,7 @@ class FeedbackTemplate extends Model
     protected function validateQuestion(array $question, int $index): array
     {
         $errors = [];
-        $prefix = "Question " . ($index + 1);
+        $prefix = 'Question '.($index + 1);
 
         // Required fields
         if (empty($question['id'])) {
@@ -180,7 +193,7 @@ class FeedbackTemplate extends Model
 
         if (empty($question['type'])) {
             $errors[] = "{$prefix}: Type is required";
-        } elseif (!in_array($question['type'], array_keys(self::getQuestionTypes()))) {
+        } elseif (! in_array($question['type'], array_keys(self::getQuestionTypes()))) {
             $errors[] = "{$prefix}: Invalid question type";
         }
 
@@ -190,20 +203,20 @@ class FeedbackTemplate extends Model
 
         // Type-specific validation
         if (in_array($question['type'], [self::TYPE_SELECT, self::TYPE_RADIO, self::TYPE_CHECKBOX])) {
-            if (empty($question['options']) || !is_array($question['options'])) {
+            if (empty($question['options']) || ! is_array($question['options'])) {
                 $errors[] = "{$prefix}: Options are required for this question type";
             }
         }
 
         if ($question['type'] === self::TYPE_RATING) {
-            if (!isset($question['max_rating']) || !is_numeric($question['max_rating'])) {
+            if (! isset($question['max_rating']) || ! is_numeric($question['max_rating'])) {
                 $errors[] = "{$prefix}: Max rating is required for rating questions";
             }
         }
 
         if ($question['type'] === self::TYPE_RANGE) {
-            if (!isset($question['min']) || !isset($question['max']) || 
-                !is_numeric($question['min']) || !is_numeric($question['max'])) {
+            if (! isset($question['min']) || ! isset($question['max']) ||
+                ! is_numeric($question['min']) || ! is_numeric($question['max'])) {
                 $errors[] = "{$prefix}: Min and max values are required for range questions";
             }
         }
@@ -231,17 +244,17 @@ class FeedbackTemplate extends Model
             case self::TYPE_CHECKBOX:
                 $question['options'] = [];
                 break;
-                
+
             case self::TYPE_RATING:
                 $question['max_rating'] = 5;
                 break;
-                
+
             case self::TYPE_RANGE:
                 $question['min'] = 0;
                 $question['max'] = 100;
                 $question['step'] = 1;
                 break;
-                
+
             case self::TYPE_TEXTAREA:
                 $question['rows'] = 4;
                 break;
@@ -267,7 +280,7 @@ class FeedbackTemplate extends Model
                         'label' => 'Overall Rating',
                         'required' => true,
                         'max_rating' => 5,
-                        'help_text' => 'Rate the overall quality of this audio'
+                        'help_text' => 'Rate the overall quality of this audio',
                     ],
                     [
                         'id' => 'what_works',
@@ -275,7 +288,7 @@ class FeedbackTemplate extends Model
                         'label' => 'What works well?',
                         'required' => false,
                         'rows' => 3,
-                        'help_text' => 'Describe the positive aspects of this audio'
+                        'help_text' => 'Describe the positive aspects of this audio',
                     ],
                     [
                         'id' => 'improvements',
@@ -283,7 +296,7 @@ class FeedbackTemplate extends Model
                         'label' => 'What could be improved?',
                         'required' => false,
                         'rows' => 3,
-                        'help_text' => 'Suggest areas for improvement'
+                        'help_text' => 'Suggest areas for improvement',
                     ],
                     [
                         'id' => 'urgency',
@@ -291,9 +304,9 @@ class FeedbackTemplate extends Model
                         'label' => 'Revision Priority',
                         'required' => true,
                         'options' => ['Low', 'Medium', 'High', 'Critical'],
-                        'help_text' => 'How urgent are these revisions?'
-                    ]
-                ]
+                        'help_text' => 'How urgent are these revisions?',
+                    ],
+                ],
             ],
             [
                 'name' => 'Mixing Feedback',
@@ -306,7 +319,7 @@ class FeedbackTemplate extends Model
                         'label' => 'Overall Mix Balance',
                         'required' => true,
                         'max_rating' => 5,
-                        'help_text' => 'How well balanced are all the elements?'
+                        'help_text' => 'How well balanced are all the elements?',
                     ],
                     [
                         'id' => 'frequency_balance',
@@ -314,7 +327,7 @@ class FeedbackTemplate extends Model
                         'label' => 'Frequency Balance',
                         'required' => true,
                         'max_rating' => 5,
-                        'help_text' => 'How well balanced are the lows, mids, and highs?'
+                        'help_text' => 'How well balanced are the lows, mids, and highs?',
                     ],
                     [
                         'id' => 'vocal_level',
@@ -322,7 +335,7 @@ class FeedbackTemplate extends Model
                         'label' => 'Vocal Level',
                         'required' => true,
                         'options' => ['Too quiet', 'Perfect', 'Too loud'],
-                        'help_text' => 'How is the vocal level in relation to the mix?'
+                        'help_text' => 'How is the vocal level in relation to the mix?',
                     ],
                     [
                         'id' => 'specific_feedback',
@@ -330,10 +343,10 @@ class FeedbackTemplate extends Model
                         'label' => 'Specific Mix Notes',
                         'required' => false,
                         'rows' => 4,
-                        'help_text' => 'Any specific feedback about instruments, effects, or mix elements'
-                    ]
-                ]
-            ]
+                        'help_text' => 'Any specific feedback about instruments, effects, or mix elements',
+                    ],
+                ],
+            ],
         ];
     }
 

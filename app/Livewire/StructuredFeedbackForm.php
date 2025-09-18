@@ -4,24 +4,32 @@ namespace App\Livewire;
 
 use App\Models\FeedbackTemplate;
 use App\Models\Pitch;
-use App\Models\PitchFileComment;
 use App\Models\PitchFile;
+use App\Models\PitchFileComment;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class StructuredFeedbackForm extends Component
 {
     public ?Pitch $pitch = null;
+
     public ?PitchFile $pitchFile = null;
+
     public ?FeedbackTemplate $template = null;
+
     public string $clientEmail = '';
+
     public bool $isClientUser = false;
-    
+
     // Form state
     public array $responses = [];
+
     public ?int $selectedTemplateId = null;
+
     public array $availableTemplates = [];
+
     public bool $showTemplateSelector = true;
+
     public bool $isSubmitting = false;
 
     // Validation messages
@@ -43,8 +51,8 @@ class StructuredFeedbackForm extends Component
         $this->pitch = $pitch;
         $this->pitchFile = $pitchFile;
         $this->clientEmail = $clientEmail;
-        $this->isClientUser = !Auth::check() && !empty($clientEmail);
-        
+        $this->isClientUser = ! Auth::check() && ! empty($clientEmail);
+
         $this->loadAvailableTemplates();
     }
 
@@ -91,7 +99,7 @@ class StructuredFeedbackForm extends Component
 
     protected function loadTemplate()
     {
-        if (!$this->selectedTemplateId) {
+        if (! $this->selectedTemplateId) {
             return;
         }
 
@@ -142,8 +150,9 @@ class StructuredFeedbackForm extends Component
         $this->isSubmitting = true;
         $this->validateFeedback();
 
-        if (!empty($this->validationErrors)) {
+        if (! empty($this->validationErrors)) {
             $this->isSubmitting = false;
+
             return;
         }
 
@@ -159,7 +168,7 @@ class StructuredFeedbackForm extends Component
             ];
 
             // If no specific pitch file, associate with the pitch's latest file
-            if (!$this->pitchFile && $this->pitch) {
+            if (! $this->pitchFile && $this->pitch) {
                 $latestFile = $this->pitch->files()->latest()->first();
                 if ($latestFile) {
                     $commentData['pitch_file_id'] = $latestFile->id;
@@ -167,6 +176,7 @@ class StructuredFeedbackForm extends Component
                     // No files available for this pitch - skip creating comment
                     $this->validationErrors = ['general' => 'No pitch files available for feedback.'];
                     $this->isSubmitting = false;
+
                     return;
                 }
             }
@@ -184,7 +194,7 @@ class StructuredFeedbackForm extends Component
 
             $this->reset(['responses', 'selectedTemplateId', 'template', 'validationErrors']);
             $this->showTemplateSelector = true;
-            
+
         } catch (\Exception $e) {
             $this->validationErrors = ['general' => 'An error occurred while submitting feedback. Please try again.'];
         }
@@ -196,8 +206,9 @@ class StructuredFeedbackForm extends Component
     {
         $this->validationErrors = [];
 
-        if (!$this->template) {
+        if (! $this->template) {
             $this->validationErrors['template'] = 'No template selected.';
+
             return;
         }
 
@@ -207,7 +218,8 @@ class StructuredFeedbackForm extends Component
 
             if ($question['required'] ?? false) {
                 if ($this->isEmptyResponse($response, $question['type'])) {
-                    $this->validationErrors[$questionId] = "This field is required.";
+                    $this->validationErrors[$questionId] = 'This field is required.';
+
                     continue;
                 }
             }
@@ -221,7 +233,7 @@ class StructuredFeedbackForm extends Component
     {
         switch ($type) {
             case FeedbackTemplate::TYPE_CHECKBOX:
-                return empty($response) || !is_array($response);
+                return empty($response) || ! is_array($response);
             case FeedbackTemplate::TYPE_RATING:
             case FeedbackTemplate::TYPE_RANGE:
                 return $response === null || $response === '';
@@ -251,8 +263,8 @@ class StructuredFeedbackForm extends Component
             case FeedbackTemplate::TYPE_SELECT:
             case FeedbackTemplate::TYPE_RADIO:
                 $options = $question['options'] ?? [];
-                if ($response && !in_array($response, $options)) {
-                    $this->validationErrors[$questionId] = "Invalid option selected.";
+                if ($response && ! in_array($response, $options)) {
+                    $this->validationErrors[$questionId] = 'Invalid option selected.';
                 }
                 break;
 
@@ -260,8 +272,8 @@ class StructuredFeedbackForm extends Component
                 $options = $question['options'] ?? [];
                 if (is_array($response)) {
                     foreach ($response as $value) {
-                        if (!in_array($value, $options)) {
-                            $this->validationErrors[$questionId] = "Invalid option selected.";
+                        if (! in_array($value, $options)) {
+                            $this->validationErrors[$questionId] = 'Invalid option selected.';
                             break;
                         }
                     }
@@ -273,13 +285,13 @@ class StructuredFeedbackForm extends Component
     protected function formatFeedbackContent(): string
     {
         $content = "**Structured Feedback - {$this->template->name}**\n\n";
-        
+
         foreach ($this->template->questions ?? [] as $question) {
             $questionId = $question['id'];
             $response = $this->responses[$questionId] ?? null;
-            
+
             $content .= "**{$question['label']}**\n";
-            $content .= $this->formatResponseForDisplay($response, $question) . "\n\n";
+            $content .= $this->formatResponseForDisplay($response, $question)."\n\n";
         }
 
         return trim($content);
@@ -288,17 +300,19 @@ class StructuredFeedbackForm extends Component
     protected function formatResponseForDisplay($response, array $question): string
     {
         if ($this->isEmptyResponse($response, $question['type'])) {
-            return "*No response*";
+            return '*No response*';
         }
 
         switch ($question['type']) {
             case FeedbackTemplate::TYPE_RATING:
                 $maxRating = $question['max_rating'] ?? 5;
-                return str_repeat('★', (int)$response) . str_repeat('☆', $maxRating - (int)$response) . " ({$response}/{$maxRating})";
+
+                return str_repeat('★', (int) $response).str_repeat('☆', $maxRating - (int) $response)." ({$response}/{$maxRating})";
 
             case FeedbackTemplate::TYPE_RANGE:
                 $min = $question['min'] ?? 0;
                 $max = $question['max'] ?? 100;
+
                 return "{$response} (Range: {$min}-{$max})";
 
             case FeedbackTemplate::TYPE_CHECKBOX:
@@ -311,7 +325,7 @@ class StructuredFeedbackForm extends Component
 
     public function getHasSelectedTemplateProperty(): bool
     {
-        return !$this->showTemplateSelector && $this->template !== null;
+        return ! $this->showTemplateSelector && $this->template !== null;
     }
 
     public function render()

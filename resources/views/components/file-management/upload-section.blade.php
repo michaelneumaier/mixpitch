@@ -1,11 +1,11 @@
 @props(['model', 'title' => 'Upload New Files', 'description' => 'Upload audio, PDFs, or images'])
 
-<div class="bg-white rounded-lg shadow-sm overflow-hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
     <div class="p-4">
         <div class="flex-row md:flex items-center justify-between">
             <div>
-                <h5 class="font-medium text-base">{{ $title }}</h5>
-                <p class="hidden md:block text-xs text-gray-500 mt-1">{{ $description }}</p>
+                <h5 class="font-medium text-base text-gray-900 dark:text-gray-100">{{ $title }}</h5>
+                <p class="hidden md:block text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $description }}</p>
             </div>
             <flux:button 
                 variant="outline" 
@@ -23,7 +23,7 @@
             </flux:button>
         </div>
     </div>
-    <div class="p-4">
+    <div class="p-4 bg-gray-50 dark:bg-gray-700">
         <div 
             x-data="{
                 meta: {
@@ -36,13 +36,13 @@
             x-on:dragover.prevent
             x-on:dragenter.prevent="window.GlobalUploader?.setActiveTarget(meta)"
             x-on:drop.prevent="(e) => { const files = Array.from(e.dataTransfer.files || []); if (files.length) { window.GlobalUploader?.addFiles(files, meta); } }"
-            class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+            class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-6 text-center hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
             @click="window.GlobalUploader?.openFileDialog(meta)"
         >
             <div class="flex flex-col items-center gap-2">
-                <flux:icon.arrow-up-tray />
-                <div class="text-sm text-gray-700">Drag & drop files here or click to select</div>
-                <div class="text-xs text-gray-500">Files will upload immediately and appear in the global uploader</div>
+                <flux:icon.arrow-up-tray class="text-gray-400 dark:text-gray-500" />
+                <div class="text-sm text-gray-700 dark:text-gray-300">Drag & drop files here or click to select</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Files will upload immediately and appear in the global uploader</div>
             </div>
         </div>
     </div>

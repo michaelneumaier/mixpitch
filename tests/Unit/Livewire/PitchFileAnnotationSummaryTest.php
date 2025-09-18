@@ -16,14 +16,17 @@ class PitchFileAnnotationSummaryTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected User $client;
+
     protected Project $project;
+
     protected PitchFile $pitchFile;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -31,14 +34,14 @@ class PitchFileAnnotationSummaryTest extends TestCase
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',
         ]);
-        
+
         // Create a pitch for the client management project
         $pitch = \App\Models\Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $this->user->id,
             'status' => \App\Models\Pitch::STATUS_IN_PROGRESS,
         ]);
-        
+
         $this->pitchFile = PitchFile::factory()->create([
             'pitch_id' => $pitch->id,
             'user_id' => $this->user->id,
@@ -54,8 +57,8 @@ class PitchFileAnnotationSummaryTest extends TestCase
         ]);
 
         $component->assertSet('pitchFile.id', $this->pitchFile->id)
-                 ->assertSet('showResolved', false)
-                 ->assertSet('commentIds', []);
+            ->assertSet('showResolved', false)
+            ->assertSet('commentIds', []);
     }
 
     /** @test */
@@ -94,10 +97,10 @@ class PitchFileAnnotationSummaryTest extends TestCase
         ]);
 
         $groupedComments = $component->instance()->getGroupedComments();
-        
+
         // Should have multiple groups (intervals)
         $this->assertGreaterThan(1, count($groupedComments));
-        
+
         // Check that comments are properly grouped
         $this->assertEquals(3, $groupedComments->flatten(1)->count());
     }
@@ -274,7 +277,7 @@ class PitchFileAnnotationSummaryTest extends TestCase
         $this->assertEquals(2, $allComments->count());
 
         // Check that both types are included
-        $commentTypes = $allComments->map(function($comment) {
+        $commentTypes = $allComments->map(function ($comment) {
             return $comment->isClientComment();
         })->toArray();
         $this->assertContains(false, $commentTypes); // Producer comment
@@ -311,7 +314,7 @@ class PitchFileAnnotationSummaryTest extends TestCase
 
         $groupedComments = $component->instance()->getGroupedComments();
         $parentComments = $groupedComments->flatten(1);
-        
+
         // Should load replies
         $this->assertEquals(1, $parentComments->count()); // Only parent comment in main list
         $firstComment = $parentComments->first();
@@ -352,7 +355,7 @@ class PitchFileAnnotationSummaryTest extends TestCase
         ]);
 
         $allComments = $component->instance()->getGroupedComments()->flatten(1);
-        
+
         // Should be ordered by timestamp
         $timestamps = $allComments->pluck('timestamp')->toArray();
         $this->assertEquals([30.0, 60.0, 90.0], $timestamps);
@@ -412,6 +415,6 @@ class PitchFileAnnotationSummaryTest extends TestCase
 
         // Should dispatch event to seek to timestamp
         $component->call('jumpToTimestamp', 45.0)
-                 ->assertDispatched('seekToPosition');
+            ->assertDispatched('seekToPosition');
     }
 }

@@ -39,10 +39,10 @@ return [
 
     'rate_limits' => [
         'per_minute' => env('ZAPIER_RATE_LIMIT_PER_MINUTE', 60),
-        'per_hour' => env('ZAPIER_RATE_LIMIT_PER_HOUR', 1000), 
+        'per_hour' => env('ZAPIER_RATE_LIMIT_PER_HOUR', 1000),
         'per_day' => env('ZAPIER_RATE_LIMIT_PER_DAY', 10000),
         'per_endpoint_per_minute' => env('ZAPIER_RATE_LIMIT_PER_ENDPOINT_PER_MINUTE', 20),
-        
+
         // Legacy settings for backward compatibility
         'triggers' => env('ZAPIER_TRIGGER_RATE_LIMIT', 100), // per 15 minutes
         'actions' => env('ZAPIER_ACTION_RATE_LIMIT', 60),    // per minute
@@ -80,7 +80,7 @@ return [
 
     'webhook_events' => [
         'client_approved' => 'Client Approved Project',
-        'client_commented' => 'Client Added Comment', 
+        'client_commented' => 'Client Added Comment',
         'client_requested_revisions' => 'Client Requested Revisions',
         'project_created' => 'Project Created',
         'project_completed' => 'Project Completed',

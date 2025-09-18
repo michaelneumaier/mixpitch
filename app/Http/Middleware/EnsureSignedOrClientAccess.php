@@ -45,5 +45,3 @@ class EnsureSignedOrClientAccess
         abort(403, 'Access denied.');
     }
 }
-
-

@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 
 class BrandingSettingsController extends Controller
 {
     public function edit()
     {
         $user = Auth::user();
+
         return view('settings/branding', compact('user'));
     }
 
@@ -30,8 +31,8 @@ class BrandingSettingsController extends Controller
         $user = User::query()->findOrFail(Auth::id());
         $payload = $request->only(['brand_logo_url', 'brand_primary', 'brand_secondary', 'brand_text', 'invite_email_subject', 'invite_email_body']);
         // Ensure colors have leading '#'
-        foreach (['brand_primary','brand_secondary','brand_text'] as $key) {
-            if (!empty($payload[$key]) && $payload[$key][0] !== '#') {
+        foreach (['brand_primary', 'brand_secondary', 'brand_text'] as $key) {
+            if (! empty($payload[$key]) && $payload[$key][0] !== '#') {
                 $payload[$key] = '#'.$payload[$key];
             }
         }
@@ -43,7 +44,7 @@ class BrandingSettingsController extends Controller
         // Handle logo upload (stores public URL)
         if ($request->hasFile('brand_logo_file')) {
             $path = $request->file('brand_logo_file')->store('branding/logos', 'public');
-            $payload['brand_logo_url'] = asset('storage/' . $path);
+            $payload['brand_logo_url'] = asset('storage/'.$path);
         }
 
         $user->update($payload);
@@ -51,5 +52,3 @@ class BrandingSettingsController extends Controller
         return back()->with('success', 'Branding settings saved.');
     }
 }
-
-

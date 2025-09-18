@@ -13,13 +13,14 @@ use App\Services\FileManagementService; // Add Auth facade
 // Added for refactoring
 use App\Services\NotificationService;
 use App\Services\Project\ProjectImageService; // <-- Import FileManagementService
-use App\Services\Project\ProjectManagementService; // <-- Import ProjectImageService
-use Carbon\Carbon;
+use App\Services\Project\ProjectManagementService;
+use Carbon\Carbon; // <-- Import ProjectImageService
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Masmerise\Toaster\Toaster;
@@ -72,16 +73,6 @@ class ManageProject extends Component
     public $submission_deadline = null;
 
     public $judging_deadline = null;
-
-    // Add listener for the new file uploader component
-    protected $listeners = [
-        'filesUploaded' => 'refreshProjectData',
-        'checkRedditStatus' => 'checkRedditStatus',
-        'fileAction' => 'handleFileAction',
-        'bulkFileAction' => 'handleBulkFileAction',
-        'fileListRefreshRequested' => 'refreshProjectData',
-        // Keep existing listeners if any
-    ];
 
     public function mount(Project $project)
     {
@@ -226,9 +217,13 @@ class ManageProject extends Component
     /**
      * Refresh component data after file uploads.
      */
+    #[On('filesUploaded')]
+    #[On('fileListRefreshRequested')]
     public function refreshProjectData()
     {
         $this->project->refresh(); // Refresh the project model
+        $this->project->unsetRelation('files'); // Clear cached relationship
+        $this->project->load('files'); // Refresh the files relationship
     }
 
     /**
@@ -533,6 +528,7 @@ class ManageProject extends Component
     /**
      * Handle file actions dispatched from the FileList component
      */
+    #[On('fileAction')]
     public function handleFileAction($data)
     {
         $action = $data['action'] ?? null;
@@ -567,6 +563,7 @@ class ManageProject extends Component
     /**
      * Handle bulk file actions dispatched from the FileList component
      */
+    #[On('bulkFileAction')]
     public function handleBulkFileAction($data)
     {
         $action = $data['action'] ?? null;
@@ -690,6 +687,11 @@ class ManageProject extends Component
 
             // Refresh project data
             $this->refreshProjectData();
+
+            // Notify FileList component to refresh
+            if ($deletedCount > 0) {
+                $this->dispatch('file-deleted');
+            }
 
             // Provide feedback
             if ($deletedCount > 0) {
@@ -1360,6 +1362,7 @@ class ManageProject extends Component
     /**
      * Check Reddit posting status (called by polling)
      */
+    #[On('checkRedditStatus')]
     public function checkRedditStatus()
     {
         // Refresh the project to get latest data

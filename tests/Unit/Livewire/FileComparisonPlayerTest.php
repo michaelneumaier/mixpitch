@@ -16,16 +16,21 @@ class FileComparisonPlayerTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected PitchFile $leftFile;
+
     protected PitchFile $rightFile;
+
     protected PitchSnapshot $leftSnapshot;
+
     protected PitchSnapshot $rightSnapshot;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -33,14 +38,14 @@ class FileComparisonPlayerTest extends TestCase
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',
         ]);
-        
+
         // Create pitch for the client management project
         $pitch = \App\Models\Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $this->user->id,
             'status' => \App\Models\Pitch::STATUS_IN_PROGRESS,
         ]);
-        
+
         // Create two pitch files for comparison
         $this->leftFile = PitchFile::factory()->create([
             'pitch_id' => $pitch->id,
@@ -50,7 +55,7 @@ class FileComparisonPlayerTest extends TestCase
             'created_at' => now()->subHours(2),
             'updated_at' => now()->subHours(2),
         ]);
-        
+
         $this->rightFile = PitchFile::factory()->create([
             'pitch_id' => $pitch->id,
             'user_id' => $this->user->id,
@@ -59,7 +64,7 @@ class FileComparisonPlayerTest extends TestCase
             'created_at' => now()->subHour(),
             'updated_at' => now()->subHour(),
         ]);
-        
+
         // Create snapshots for version tracking
         $this->leftSnapshot = PitchSnapshot::factory()->create([
             'pitch_id' => $pitch->id,
@@ -72,7 +77,7 @@ class FileComparisonPlayerTest extends TestCase
                 'version' => 1,
             ],
         ]);
-        
+
         $this->rightSnapshot = PitchSnapshot::factory()->create([
             'pitch_id' => $pitch->id,
             'project_id' => $this->project->id,
@@ -95,8 +100,8 @@ class FileComparisonPlayerTest extends TestCase
         ]);
 
         $component->assertSet('leftFile.id', $this->leftFile->id)
-                 ->assertSet('rightFile.id', $this->rightFile->id)
-                 ->assertSet('syncPlayback', true);
+            ->assertSet('rightFile.id', $this->rightFile->id)
+            ->assertSet('syncPlayback', true);
     }
 
     /** @test */
@@ -125,13 +130,13 @@ class FileComparisonPlayerTest extends TestCase
         ]);
 
         $component->assertSet('syncPlayback', true);
-        
+
         $component->call('toggleSync');
-        
+
         $component->assertSet('syncPlayback', false);
-        
+
         $component->call('toggleSync');
-        
+
         $component->assertSet('syncPlayback', true);
     }
 
@@ -166,14 +171,14 @@ class FileComparisonPlayerTest extends TestCase
         ]);
 
         $this->assertTrue(method_exists($component->instance(), 'getFileMetadata'));
-        
+
         $leftMetadata = $component->instance()->getFileMetadata($this->leftFile);
         $rightMetadata = $component->instance()->getFileMetadata($this->rightFile);
 
         $this->assertArrayHasKey('duration', $leftMetadata);
         $this->assertArrayHasKey('file_size', $leftMetadata);
         $this->assertArrayHasKey('created_at', $leftMetadata);
-        
+
         $this->assertEquals(180.0, $leftMetadata['duration']);
         $this->assertEquals(185.0, $rightMetadata['duration']);
     }
@@ -187,13 +192,13 @@ class FileComparisonPlayerTest extends TestCase
         ]);
 
         $this->assertTrue(method_exists($component->instance(), 'getFileDifferences'));
-        
+
         $differences = $component->instance()->getFileDifferences();
 
         $this->assertArrayHasKey('duration_diff', $differences);
         $this->assertArrayHasKey('size_diff', $differences);
         $this->assertArrayHasKey('version_diff', $differences);
-        
+
         $this->assertEquals(5.0, $differences['duration_diff']); // 185 - 180
         $this->assertEquals(1, $differences['version_diff']); // version 2 - version 1
     }
@@ -240,13 +245,13 @@ class FileComparisonPlayerTest extends TestCase
 
         $this->assertTrue(method_exists($component->instance(), 'getLeftComments'));
         $this->assertTrue(method_exists($component->instance(), 'getRightComments'));
-        
+
         $leftComments = $component->instance()->getLeftComments();
         $rightComments = $component->instance()->getRightComments();
 
         $this->assertCount(1, $leftComments);
         $this->assertCount(1, $rightComments);
-        
+
         $this->assertEquals('Left file comment', $leftComments->first()->comment);
         $this->assertEquals('Right file client comment', $rightComments->first()->comment);
     }
@@ -260,7 +265,7 @@ class FileComparisonPlayerTest extends TestCase
         ]);
 
         $component->call('jumpToTimestamp', 60.0, 'both');
-        
+
         // Should dispatch seek events for both players
         $component->assertDispatched('seekToPosition');
     }
@@ -275,7 +280,7 @@ class FileComparisonPlayerTest extends TestCase
 
         $component->call('jumpToTimestamp', 45.0, 'left');
         $component->assertDispatched('seekToPosition');
-        
+
         $component->call('jumpToTimestamp', 75.0, 'right');
         $component->assertDispatched('seekToPosition');
     }
@@ -295,8 +300,8 @@ class FileComparisonPlayerTest extends TestCase
         ]);
 
         $this->expectException(\InvalidArgumentException::class);
-        
-        $component = new FileComparisonPlayer();
+
+        $component = new FileComparisonPlayer;
         $component->mount($this->leftFile, $otherFile);
     }
 
@@ -309,14 +314,14 @@ class FileComparisonPlayerTest extends TestCase
         ]);
 
         $this->assertTrue(method_exists($component->instance(), 'getComparisonSummary'));
-        
+
         $summary = $component->instance()->getComparisonSummary();
 
         $this->assertArrayHasKey('files_compared', $summary);
         $this->assertArrayHasKey('total_duration_change', $summary);
         $this->assertArrayHasKey('version_span', $summary);
         $this->assertArrayHasKey('comment_changes', $summary);
-        
+
         $this->assertEquals(2, $summary['files_compared']);
         $this->assertEquals(5.0, $summary['total_duration_change']);
     }
@@ -331,11 +336,11 @@ class FileComparisonPlayerTest extends TestCase
 
         // Test side-by-side mode (default)
         $component->assertSet('comparisonMode', 'side-by-side');
-        
+
         // Test overlay mode
         $component->call('setComparisonMode', 'overlay');
         $component->assertSet('comparisonMode', 'overlay');
-        
+
         // Test sequential mode
         $component->call('setComparisonMode', 'sequential');
         $component->assertSet('comparisonMode', 'sequential');
@@ -351,7 +356,7 @@ class FileComparisonPlayerTest extends TestCase
 
         $component->call('onPlayerEvent', 'left', 'play', 30.0);
         $component->call('onPlayerEvent', 'right', 'seek', 45.0);
-        
+
         // Component should handle synchronization events
         $this->assertTrue(method_exists($component->instance(), 'onPlayerEvent'));
     }

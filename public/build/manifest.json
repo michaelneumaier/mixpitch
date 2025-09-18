@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-a437187f.css",
+    "file": "assets/app-912fd905.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-69ae45cb.css",
+    "file": "assets/theme-3f57a7b8.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -31,7 +31,7 @@
     "src": "resources/js/filament/billing/stripe-handler.js"
   },
   "resources/js/global-drag-drop-manager.js": {
-    "file": "assets/global-drag-drop-manager-8e1e8590.js",
+    "file": "assets/global-drag-drop-manager-b8fae2e7.js",
     "isEntry": true,
     "src": "resources/js/global-drag-drop-manager.js"
   },

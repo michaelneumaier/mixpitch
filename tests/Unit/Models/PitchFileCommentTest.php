@@ -14,13 +14,15 @@ class PitchFileCommentTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected PitchFile $pitchFile;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -28,7 +30,7 @@ class PitchFileCommentTest extends TestCase
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',
         ]);
-        
+
         $this->pitchFile = PitchFile::factory()->create([
             'pitch_id' => $this->project->pitches()->first()->id,
             'user_id' => $this->user->id,
@@ -241,7 +243,7 @@ class PitchFileCommentTest extends TestCase
     /** @test */
     public function client_comments_are_included_in_fillable_attributes()
     {
-        $comment = new PitchFileComment();
+        $comment = new PitchFileComment;
         $fillable = $comment->getFillable();
 
         $this->assertContains('client_email', $fillable);

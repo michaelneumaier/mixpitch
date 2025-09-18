@@ -15,9 +15,7 @@ class ProcessClientImport implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public int $importJobId)
-    {
-    }
+    public function __construct(public int $importJobId) {}
 
     public function handle(): void
     {
@@ -31,14 +29,20 @@ class ProcessClientImport implements ShouldQueue
 
             $headers = [];
             $rowIndex = -1;
-            $imported = 0; $duplicates = 0; $errors = 0; $total = 0;
+            $imported = 0;
+            $duplicates = 0;
+            $errors = 0;
+            $total = 0;
             $errorSamples = [];
             $mapping = (array) ($job->summary['mapping'] ?? []);
             foreach ($spl as $row) {
-                if ($row === [null] || $row === false) { continue; }
+                if ($row === [null] || $row === false) {
+                    continue;
+                }
                 $rowIndex++;
                 if ($rowIndex === 0) {
-                    $headers = array_map(fn($h) => strtolower(trim((string)$h)), $row);
+                    $headers = array_map(fn ($h) => strtolower(trim((string) $h)), $row);
+
                     continue;
                 }
                 $total++;
@@ -46,31 +50,41 @@ class ProcessClientImport implements ShouldQueue
                 foreach ($headers as $i => $key) {
                     $assoc[$key] = $row[$i] ?? null;
                 }
-                if (!empty($mapping)) {
+                if (! empty($mapping)) {
                     $mapped = [];
                     foreach ($mapping as $target => $headerLabel) {
-                        if (!$headerLabel) { continue; }
-                        $keyLower = strtolower(trim((string)$headerLabel));
+                        if (! $headerLabel) {
+                            continue;
+                        }
+                        $keyLower = strtolower(trim((string) $headerLabel));
                         $mapped[$target] = $assoc[$keyLower] ?? null;
                     }
                     $assoc = array_merge($assoc, $mapped);
                 }
                 try {
-                    $email = strtolower(trim((string)($assoc['email'] ?? '')));
-                    if ($email === '') { $errors++; continue; }
+                    $email = strtolower(trim((string) ($assoc['email'] ?? '')));
+                    if ($email === '') {
+                        $errors++;
+
+                        continue;
+                    }
 
                     $client = Client::firstOrCreate(
                         ['user_id' => $job->user_id, 'email' => $email],
                         [
-                            'name' => trim((string)($assoc['name'] ?? '')) ?: null,
-                            'company' => trim((string)($assoc['company'] ?? '')) ?: null,
-                            'phone' => trim((string)($assoc['phone'] ?? '')) ?: null,
-                            'timezone' => trim((string)($assoc['timezone'] ?? 'UTC')) ?: 'UTC',
-                            'tags' => isset($assoc['tags']) && $assoc['tags'] !== '' ? array_map('trim', explode(',', (string)$assoc['tags'])) : null,
+                            'name' => trim((string) ($assoc['name'] ?? '')) ?: null,
+                            'company' => trim((string) ($assoc['company'] ?? '')) ?: null,
+                            'phone' => trim((string) ($assoc['phone'] ?? '')) ?: null,
+                            'timezone' => trim((string) ($assoc['timezone'] ?? 'UTC')) ?: 'UTC',
+                            'tags' => isset($assoc['tags']) && $assoc['tags'] !== '' ? array_map('trim', explode(',', (string) $assoc['tags'])) : null,
                             'status' => Client::STATUS_ACTIVE,
                         ]
                     );
-                    if ($client->wasRecentlyCreated) { $imported++; } else { $duplicates++; }
+                    if ($client->wasRecentlyCreated) {
+                        $imported++;
+                    } else {
+                        $duplicates++;
+                    }
                 } catch (\Throwable $e) {
                     Log::warning('Client import row failed', ['job' => $job->id, 'error' => $e->getMessage()]);
                     $errors++;
@@ -85,7 +99,7 @@ class ProcessClientImport implements ShouldQueue
 
             $existing = $job->summary ?? [];
             $summaryPayload = array_merge($existing, [
-                'totals' => compact('total','imported','duplicates','errors'),
+                'totals' => compact('total', 'imported', 'duplicates', 'errors'),
                 'errors' => $errorSamples,
             ]);
             $job->update([
@@ -101,5 +115,3 @@ class ProcessClientImport implements ShouldQueue
         }
     }
 }
-
-

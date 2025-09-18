@@ -33,5 +33,3 @@ class PitchMilestone extends Model
         return $this->belongsTo(Pitch::class);
     }
 }
-
-

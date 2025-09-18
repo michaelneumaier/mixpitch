@@ -266,7 +266,7 @@ class SubscriptionLimitResource extends Resource
                     ->label('Display Name')
                     ->searchable()
                     ->sortable()
-                    ->default(fn ($record) => ucfirst($record->plan_name) . ' ' . ucfirst($record->plan_tier)),
+                    ->default(fn ($record) => ucfirst($record->plan_name).' '.ucfirst($record->plan_tier)),
 
                 Tables\Columns\TextColumn::make('plan_name')
                     ->label('Plan')
@@ -329,7 +329,6 @@ class SubscriptionLimitResource extends Resource
                     ->label('Commission')
                     ->formatStateUsing(fn ($state) => $state.'%')
                     ->sortable(),
-
 
                 Tables\Columns\TextColumn::make('reputation_multiplier')
                     ->label('Rep. Multi.')

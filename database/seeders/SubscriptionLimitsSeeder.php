@@ -9,7 +9,7 @@ class SubscriptionLimitsSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * 
+     *
      * @deprecated Use CompleteSubscriptionLimitsSeeder instead for full feature support
      */
     public function run(): void

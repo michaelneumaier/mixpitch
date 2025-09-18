@@ -43,14 +43,12 @@
                 this.$nextTick(() => {
                     if (window.GlobalDragDrop) {
                         window.GlobalDragDrop.enablePageDragDrop(this.dragMeta);
-                        console.log('Drag drop enabled for page with meta:', this.dragMeta);
                     } else {
                         console.warn('GlobalDragDrop not yet available, retrying...');
                         // Retry after a short delay
                         setTimeout(() => {
                             if (window.GlobalDragDrop) {
                                 window.GlobalDragDrop.enablePageDragDrop(this.dragMeta);
-                                console.log('Drag drop enabled for page (delayed) with meta:', this.dragMeta);
                             } else {
                                 console.error('GlobalDragDrop still not available after retry');
                             }
@@ -156,12 +154,6 @@
 
     // Listen for Alpine component initialization to ensure proper setup
     document.addEventListener('alpine:initialized', () => {
-        // Ensure the global drag drop manager is available
-        if (window.GlobalDragDrop) {
-            console.log('GlobalDragDrop is available and ready');
-        } else {
-            console.error('GlobalDragDrop not available. Check if global-drag-drop-manager.js is loaded.');
-        }
     });
 </script>
 @endscript

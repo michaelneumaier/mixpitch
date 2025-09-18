@@ -13,7 +13,7 @@ class ZapierApiKeyController extends ZapierApiController
      */
     public function generate(Request $request): JsonResponse
     {
-        if (!$this->checkZapierEnabled()) {
+        if (! $this->checkZapierEnabled()) {
             return $this->errorResponse('Zapier integration is not enabled', 403);
         }
 
@@ -89,7 +89,7 @@ class ZapierApiKeyController extends ZapierApiController
             ->where('name', config('zapier.api_token_name'))
             ->first();
 
-        if (!$token) {
+        if (! $token) {
             return $this->successResponse([
                 'has_token' => false,
                 'created_at' => null,
@@ -110,11 +110,11 @@ class ZapierApiKeyController extends ZapierApiController
      */
     public function test(Request $request): JsonResponse
     {
-        if (!$this->checkZapierEnabled()) {
+        if (! $this->checkZapierEnabled()) {
             return $this->errorResponse('Zapier integration is not enabled', 403);
         }
 
-        if (!$this->checkZapierToken()) {
+        if (! $this->checkZapierToken()) {
             return $this->errorResponse('Invalid Zapier token', 403);
         }
 

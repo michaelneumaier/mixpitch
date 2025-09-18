@@ -68,14 +68,15 @@ class ClientPortalController extends Controller
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
 
         // Pass enhanced data to view
-            $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
-            return view('client_portal.show', [
+        $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
+
+        return view('client_portal.show', [
             'project' => $project,
             'pitch' => $pitch,
             'snapshotHistory' => $snapshotHistory,
             'currentSnapshot' => $currentSnapshot,
-                'branding' => $branding,
-                'milestones' => $pitch->milestones()->get(),
+            'branding' => $branding,
+            'milestones' => $pitch->milestones()->get(),
         ]);
     }
 
@@ -117,6 +118,7 @@ class ClientPortalController extends Controller
         $currentSnapshot = $snapshot;
 
         $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
+
         return view('client_portal.show', [
             'project' => $project,
             'pitch' => $pitch,
@@ -139,7 +141,7 @@ class ClientPortalController extends Controller
             return $snapshots->map(function ($snapshot, $index) use ($pitch) {
                 // Get files for this snapshot
                 $fileIds = $snapshot->snapshot_data['file_ids'] ?? [];
-                $files = $pitch->files()->whereIn('id', $fileIds)->get()->map(function($file) {
+                $files = $pitch->files()->whereIn('id', $fileIds)->get()->map(function ($file) {
                     return [
                         'id' => $file->id,
                         'file_name' => $file->file_name,
@@ -150,10 +152,10 @@ class ClientPortalController extends Controller
                         'created_at' => $file->created_at,
                         'waveform_peaks' => $file->waveform_peaks,
                         'note' => $file->note,
-                        'uuid' => $file->uuid
+                        'uuid' => $file->uuid,
                     ];
                 });
-                
+
                 return [
                     'id' => $snapshot->id,
                     'version' => $snapshot->snapshot_data['version'] ?? ($index + 1),
@@ -161,14 +163,14 @@ class ClientPortalController extends Controller
                     'status' => $snapshot->status,
                     'file_count' => count($fileIds),
                     'response_to_feedback' => $snapshot->snapshot_data['response_to_feedback'] ?? null,
-                    'files' => $files
+                    'files' => $files,
                 ];
             });
         }
 
         // Fallback: If no snapshots but files exist, create virtual snapshot history
         if ($pitch->files->count() > 0) {
-            $files = $pitch->files->map(function($file) {
+            $files = $pitch->files->map(function ($file) {
                 return [
                     'id' => $file->id,
                     'file_name' => $file->file_name,
@@ -179,10 +181,10 @@ class ClientPortalController extends Controller
                     'created_at' => $file->created_at,
                     'waveform_peaks' => $file->waveform_peaks,
                     'note' => $file->note,
-                    'uuid' => $file->uuid
+                    'uuid' => $file->uuid,
                 ];
             });
-            
+
             return collect([[
                 'id' => 'current',
                 'version' => 1,
@@ -190,7 +192,7 @@ class ClientPortalController extends Controller
                 'status' => 'pending',
                 'file_count' => $pitch->files->count(),
                 'response_to_feedback' => null,
-                'files' => $files
+                'files' => $files,
             ]]);
         }
 
@@ -1026,10 +1028,10 @@ class ClientPortalController extends Controller
             'user_id' => auth()->id(),
             'user_role' => auth()->user()->role ?? 'no_role',
         ]);
-        
+
         // Manually find the project to bypass implicit authorization
         $project = Project::findOrFail($projectId);
-        
+
         // Ensure only the project owner can preview
         if (auth()->id() !== $project->user_id) {
             Log::error('Client portal preview authorization failed', [

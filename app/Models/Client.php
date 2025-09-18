@@ -13,7 +13,9 @@ class Client extends Model
 
     // Status Constants
     const STATUS_ACTIVE = 'active';
+
     const STATUS_INACTIVE = 'inactive';
+
     const STATUS_BLOCKED = 'blocked';
 
     protected $fillable = [
@@ -156,7 +158,7 @@ class Client extends Model
     {
         return $query->where(function ($q) use ($days) {
             $q->whereNull('last_contacted_at')
-              ->orWhere('last_contacted_at', '<', now()->subDays($days));
+                ->orWhere('last_contacted_at', '<', now()->subDays($days));
         });
     }
 
@@ -176,11 +178,12 @@ class Client extends Model
         if ($this->name) {
             $nameParts = explode(' ', trim($this->name));
             if (count($nameParts) >= 2) {
-                return strtoupper(substr($nameParts[0], 0, 1) . substr(end($nameParts), 0, 1));
+                return strtoupper(substr($nameParts[0], 0, 1).substr(end($nameParts), 0, 1));
             }
+
             return strtoupper(substr($this->name, 0, 2));
         }
-        
+
         return strtoupper(substr($this->email, 0, 2));
     }
 
@@ -215,7 +218,7 @@ class Client extends Model
     {
         return [
             self::STATUS_ACTIVE => 'Active',
-            self::STATUS_INACTIVE => 'Inactive', 
+            self::STATUS_INACTIVE => 'Inactive',
             self::STATUS_BLOCKED => 'Blocked',
         ];
     }
@@ -233,7 +236,7 @@ class Client extends Model
      */
     public function getStatusBadgeClassAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_ACTIVE => 'bg-green-100 text-green-800',
             self::STATUS_INACTIVE => 'bg-gray-100 text-gray-800',
             self::STATUS_BLOCKED => 'bg-red-100 text-red-800',

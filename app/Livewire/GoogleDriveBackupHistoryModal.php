@@ -15,8 +15,11 @@ class GoogleDriveBackupHistoryModal extends Component
     use WithPagination;
 
     public ?Model $model = null; // Project or User
+
     public string $viewType = 'user'; // 'user' or 'project'
+
     public array $stats = [];
+
     public string $filterStatus = 'all';
 
     protected $queryString = [
@@ -34,7 +37,7 @@ class GoogleDriveBackupHistoryModal extends Component
     public function loadStats(): void
     {
         $googleDriveService = app(GoogleDriveService::class);
-        
+
         if ($this->viewType === 'project' && $this->model instanceof Project) {
             // Project-specific stats
             $backups = GoogleDriveBackup::forProject($this->model);
@@ -75,9 +78,9 @@ class GoogleDriveBackupHistoryModal extends Component
     public function retryBackup(int $backupId): void
     {
         $backup = GoogleDriveBackup::findOrFail($backupId);
-        
+
         // Only allow retry of failed backups
-        if (!$backup->hasFailed()) {
+        if (! $backup->hasFailed()) {
             return;
         }
 
@@ -93,7 +96,7 @@ class GoogleDriveBackupHistoryModal extends Component
     public function deleteBackupRecord(int $backupId): void
     {
         $backup = GoogleDriveBackup::findOrFail($backupId);
-        
+
         // Only allow deletion by the backup owner
         if ($backup->user_id !== Auth::id()) {
             return;
@@ -105,7 +108,7 @@ class GoogleDriveBackupHistoryModal extends Component
 
     public function getStatusColor(string $status): string
     {
-        return match($status) {
+        return match ($status) {
             'completed' => 'text-green-600 bg-green-50 border-green-200',
             'failed' => 'text-red-600 bg-red-50 border-red-200',
             'pending' => 'text-yellow-600 bg-yellow-50 border-yellow-200',
@@ -116,7 +119,7 @@ class GoogleDriveBackupHistoryModal extends Component
 
     public function getStatusIcon(string $status): string
     {
-        return match($status) {
+        return match ($status) {
             'completed' => 'check-circle',
             'failed' => 'x-circle',
             'pending' => 'clock',
@@ -127,20 +130,20 @@ class GoogleDriveBackupHistoryModal extends Component
 
     public function formatFileSize(?int $bytes): string
     {
-        if (!$bytes) {
+        if (! $bytes) {
             return 'Unknown';
         }
 
         $units = ['B', 'KB', 'MB', 'GB'];
         $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
 
-        return round($bytes / pow(1024, $power), 2) . ' ' . $units[$power];
+        return round($bytes / pow(1024, $power), 2).' '.$units[$power];
     }
 
     public function render()
     {
         return view('livewire.google-drive-backup-history-modal', [
-            'backups' => $this->getBackupsProperty()
+            'backups' => $this->getBackupsProperty(),
         ]);
     }
 }

@@ -17,13 +17,15 @@ class ClientPitchFilePlayerTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected PitchFile $pitchFile;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -31,14 +33,14 @@ class ClientPitchFilePlayerTest extends TestCase
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',
         ]);
-        
+
         // Create a pitch for the client management project
         $pitch = \App\Models\Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $this->user->id,
             'status' => \App\Models\Pitch::STATUS_IN_PROGRESS,
         ]);
-        
+
         $this->pitchFile = PitchFile::factory()->create([
             'pitch_id' => $pitch->id,
             'user_id' => $this->user->id,
@@ -56,8 +58,8 @@ class ClientPitchFilePlayerTest extends TestCase
         ]);
 
         $component->assertSet('clientMode', true)
-                 ->assertSet('clientEmail', 'client@example.com')
-                 ->assertSet('signedAccess', true);
+            ->assertSet('clientEmail', 'client@example.com')
+            ->assertSet('signedAccess', true);
     }
 
     /** @test */
@@ -72,7 +74,7 @@ class ClientPitchFilePlayerTest extends TestCase
             'project_id' => $standardProject->id,
             'user_id' => $this->user->id,
         ]);
-        
+
         $standardPitchFile = PitchFile::factory()->create([
             'pitch_id' => $standardPitch->id,
             'user_id' => $this->user->id,
@@ -83,10 +85,10 @@ class ClientPitchFilePlayerTest extends TestCase
 
         // Test that the component throws exception during instantiation
         $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
-        
+
         // This should throw exception during mount
-        new \App\Livewire\ClientPitchFilePlayer();
-        $component = new \App\Livewire\ClientPitchFilePlayer();
+        new \App\Livewire\ClientPitchFilePlayer;
+        $component = new \App\Livewire\ClientPitchFilePlayer;
         $component->mount($standardPitchFile, $standardProject, true);
     }
 

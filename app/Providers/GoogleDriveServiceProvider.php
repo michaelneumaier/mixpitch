@@ -22,7 +22,7 @@ class GoogleDriveServiceProvider extends ServiceProvider
 
         // Ensure Google Client is available
         $this->app->bind(GoogleClient::class, function () {
-            return new GoogleClient();
+            return new GoogleClient;
         });
     }
 

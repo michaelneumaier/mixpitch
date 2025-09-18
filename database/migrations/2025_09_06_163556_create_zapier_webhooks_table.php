@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('last_triggered_at')->nullable();
             $table->integer('trigger_count')->default(0);
             $table->timestamps();
-            
+
             $table->index(['user_id', 'event_type', 'is_active']);
         });
     }

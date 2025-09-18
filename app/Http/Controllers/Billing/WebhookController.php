@@ -560,7 +560,7 @@ class WebhookController extends CashierWebhookController
             ]);
 
             try {
-                DB::transaction(function () use ($milestoneId, $sessionId, $paymentIntentId, $session) {
+                DB::transaction(function () use ($milestoneId, $sessionId, $paymentIntentId) {
                     $milestone = \App\Models\PitchMilestone::with('pitch')->find($milestoneId);
                     if (! $milestone) {
                         Log::error('Milestone not found for checkout session.', [
@@ -576,6 +576,7 @@ class WebhookController extends CashierWebhookController
                             'session_id' => $sessionId,
                             'milestone_id' => $milestoneId,
                         ]);
+
                         return;
                     }
 

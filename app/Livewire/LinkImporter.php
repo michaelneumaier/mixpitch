@@ -27,6 +27,8 @@ class LinkImporter extends Component
         'currentFile' => '',
     ];
 
+    public int $refreshKey = 0;
+
     public bool $showModal = false;
 
     protected $rules = [
@@ -170,6 +172,47 @@ class LinkImporter extends Component
     }
 
     /**
+     * Poll for import status updates (called by wire:poll).
+     */
+    public function pollImportStatus()
+    {
+        if (! $this->activeImport) {
+            return;
+        }
+
+        // Force a fresh query to ensure we get the latest data
+        $this->activeImport = LinkImport::find($this->activeImport->id);
+
+        if (! $this->activeImport) {
+            return;
+        }
+
+        $this->updateProgress();
+        $this->refreshKey++; // Force component to re-render
+
+        // Check if import is completed
+        if ($this->activeImport->status === LinkImport::STATUS_COMPLETED) {
+            $this->importProgress['active'] = false;
+
+            $count = count($this->activeImport->imported_files ?? []);
+            $fileWord = $count === 1 ? 'file' : 'files';
+            Toaster::success("Import completed! {$count} {$fileWord} added to your project.");
+
+            // Dispatch event to refresh the parent component
+            $this->dispatch('refreshClientFiles');
+
+            $this->activeImport = null;
+        } elseif ($this->activeImport->status === LinkImport::STATUS_FAILED) {
+            $this->importProgress['active'] = false;
+
+            $errorMessage = $this->activeImport->error_message ?? 'Import failed due to an unknown error.';
+            Toaster::error("Import failed: {$errorMessage}");
+
+            $this->activeImport = null;
+        }
+    }
+
+    /**
      * Update the progress tracking data.
      */
     protected function updateProgress()
@@ -198,7 +241,23 @@ class LinkImporter extends Component
             return 0;
         }
 
-        return $this->activeImport->getProgressPercentage();
+        // Calculate progress based on the metadata
+        $metadata = $this->activeImport->metadata ?? [];
+        $progress = $metadata['progress'] ?? [];
+
+        $completed = $progress['completed'] ?? 0;
+        $total = $progress['total'] ?? 0;
+
+        if ($total === 0) {
+            // If we're still analyzing, show some progress
+            if ($this->activeImport->status === LinkImport::STATUS_ANALYZING) {
+                return 10;
+            }
+
+            return 0;
+        }
+
+        return (int) round(($completed / $total) * 100);
     }
 
     /**

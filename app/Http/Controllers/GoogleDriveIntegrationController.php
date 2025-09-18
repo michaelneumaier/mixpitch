@@ -44,7 +44,7 @@ class GoogleDriveIntegrationController extends Controller
     {
         try {
             $authUrl = $this->googleDriveService->getAuthUrl();
-            
+
             Log::info('Google Drive OAuth flow started', [
                 'user_id' => Auth::id(),
             ]);
@@ -67,7 +67,7 @@ class GoogleDriveIntegrationController extends Controller
     public function callback(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        
+
         if ($request->has('error')) {
             Log::warning('Google Drive OAuth callback error', [
                 'user_id' => $user->id,
@@ -79,7 +79,7 @@ class GoogleDriveIntegrationController extends Controller
                 ->with('error', 'Google Drive connection was cancelled or failed.');
         }
 
-        if (!$request->has('code')) {
+        if (! $request->has('code')) {
             return redirect()->route('integrations.google-drive.setup')
                 ->with('error', 'Invalid Google Drive authorization response.');
         }
@@ -93,7 +93,7 @@ class GoogleDriveIntegrationController extends Controller
 
             return redirect()->route('integrations.google-drive.setup')
                 ->with('success', 'Google Drive connected successfully!');
-                
+
         } catch (GoogleDriveAuthException $e) {
             Log::error('Google Drive OAuth callback failed', [
                 'user_id' => $user->id,
@@ -101,7 +101,7 @@ class GoogleDriveIntegrationController extends Controller
             ]);
 
             return redirect()->route('integrations.google-drive.setup')
-                ->with('error', 'Failed to connect Google Drive: ' . $e->getMessage());
+                ->with('error', 'Failed to connect Google Drive: '.$e->getMessage());
         }
     }
 
@@ -121,7 +121,7 @@ class GoogleDriveIntegrationController extends Controller
 
             return redirect()->route('integrations.google-drive.setup')
                 ->with('success', 'Google Drive disconnected successfully.');
-                
+
         } catch (\Exception $e) {
             Log::error('Failed to disconnect Google Drive', [
                 'user_id' => $user->id,
@@ -222,7 +222,7 @@ class GoogleDriveIntegrationController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to import file from Google Drive: ' . $e->getMessage(),
+                'error' => 'Failed to import file from Google Drive: '.$e->getMessage(),
             ], 500);
         }
     }

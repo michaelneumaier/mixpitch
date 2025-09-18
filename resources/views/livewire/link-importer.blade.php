@@ -1,4 +1,4 @@
-<div>
+<div @if($importProgress['active']) wire:poll.1s="pollImportStatus" @endif>
     <!-- Import Button -->
     <flux:button wire:click="showImportModal" variant="outline" icon="link" class="w-full">
         Import from Link
@@ -40,7 +40,15 @@
             <!-- Current File -->
             @if ($importProgress['currentFile'])
                 <flux:text size="sm" class="text-blue-600 dark:text-blue-400">
-                    Currently importing: {{ $importProgress['currentFile'] }}
+                    @if ($activeImport && $activeImport->status === 'analyzing')
+                        Analyzing link and detecting files...
+                    @else
+                        Currently importing: {{ $importProgress['currentFile'] }}
+                    @endif
+                </flux:text>
+            @elseif ($activeImport && $activeImport->status === 'analyzing')
+                <flux:text size="sm" class="text-blue-600 dark:text-blue-400">
+                    Analyzing link and detecting files...
                 </flux:text>
             @endif
 

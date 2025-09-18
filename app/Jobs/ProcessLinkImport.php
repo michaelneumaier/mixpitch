@@ -89,8 +89,8 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
                 'status' => LinkImport::STATUS_IMPORTING,
             ]);
 
-            // Broadcast progress update
-            event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
+            // Broadcast progress update (disabled - using polling instead)
+            // event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
 
             // Step 2: Download and import each file
             $importedFileIds = [];
@@ -103,21 +103,32 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
                         'filename' => $fileInfo['filename'] ?? 'unknown',
                     ]);
 
-                    $projectFile = $this->importSingleFile($fileInfo, $fileService);
-                    $importedFileIds[] = $projectFile->id;
-
-                    // Update progress
+                    // Update status to show we're downloading this file
                     $metadata = $this->linkImport->metadata ?? [];
                     $metadata['progress'] = [
                         'completed' => count($importedFileIds),
                         'total' => count($files),
                         'current_file' => $fileInfo['filename'] ?? 'Unknown',
+                        'stage' => 'downloading',
+                    ];
+                    $this->linkImport->update(['metadata' => $metadata]);
+
+                    $projectFile = $this->importSingleFile($fileInfo, $fileService);
+                    $importedFileIds[] = $projectFile->id;
+
+                    // Update progress after successful import
+                    $metadata = $this->linkImport->metadata ?? [];
+                    $metadata['progress'] = [
+                        'completed' => count($importedFileIds),
+                        'total' => count($files),
+                        'current_file' => $fileInfo['filename'] ?? 'Unknown',
+                        'stage' => 'completed',
                     ];
 
                     $this->linkImport->update(['metadata' => $metadata]);
 
-                    // Broadcast progress update
-                    event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
+                    // Broadcast progress update (disabled - using polling instead)
+                    // event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
 
                 } catch (\Exception $e) {
                     Log::error('Failed to import individual file', [
@@ -149,8 +160,8 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
                 'files_imported' => count($importedFileIds),
             ]);
 
-            // Broadcast completion event
-            event(new LinkImportCompleted($this->linkImport->id, $this->linkImport->project_id));
+            // Broadcast completion event (disabled - using polling instead)
+            // event(new LinkImportCompleted($this->linkImport->id, $this->linkImport->project_id));
 
         } catch (\Exception $e) {
             Log::error('Link import failed', [
@@ -165,8 +176,8 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
                 'completed_at' => now(),
             ]);
 
-            // Still broadcast the failure for UI updates
-            event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
+            // Still broadcast the failure for UI updates (disabled - using polling instead)
+            // event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
 
             throw $e;
         }
@@ -298,7 +309,7 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
         }
 
         // Use the modern WeTransfer download API
-        return $this->downloadWeTransferFileViaModernAPI($transferId, $securityHash, $recipientId, $filename, $mimeType, $fileService);
+        return $this->downloadWeTransferFileViaModernAPI($transferId, $securityHash, $recipientId, $filename, $mimeType, $fileInfo, $fileService);
     }
 
     /**
@@ -323,7 +334,7 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
     /**
      * Download WeTransfer file via modern API.
      */
-    protected function downloadWeTransferFileViaModernAPI(string $transferId, string $securityHash, ?string $recipientId, string $filename, string $mimeType, FileManagementService $fileService): \App\Models\ProjectFile
+    protected function downloadWeTransferFileViaModernAPI(string $transferId, string $securityHash, ?string $recipientId, string $filename, string $mimeType, array $fileInfo, FileManagementService $fileService): \App\Models\ProjectFile
     {
         $timeout = config('linkimport.security.timeout_seconds', 120);
         $userAgent = config('linkimport.processing.user_agent', 'MixPitch-LinkImporter/1.0');
@@ -345,33 +356,74 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
 
             $session = $linkAnalysisService->createWeTransferSession($transferPageUrl);
 
-            // Step 2: Try different API approaches
-            $apiApproaches = [
-                // Approach 1: Try without recipient_id first
-                [
-                    'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/download",
-                    'payload' => [
-                        'intent' => 'entire_transfer',
-                        'security_hash' => $securityHash,
+            // Step 2: Choose API approach based on whether we have individual file ID
+            $fileId = $fileInfo['file_id'] ?? null;
+
+            if ($fileId) {
+                // Individual file download approach (preferred for multi-file transfers)
+                Log::info('Using individual file download approach', [
+                    'filename' => $filename,
+                    'file_id' => $fileId,
+                ]);
+
+                $apiApproaches = [
+                    // Approach 1: Individual file download with file ID
+                    [
+                        'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/files/{$fileId}/download",
+                        'payload' => [
+                            'security_hash' => $securityHash,
+                        ],
                     ],
-                ],
-                // Approach 2: Try with recipient_id if available
-                [
-                    'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/download",
-                    'payload' => [
-                        'intent' => 'entire_transfer',
-                        'security_hash' => $securityHash,
-                        'recipient_id' => $recipientId,
+                    // Approach 2: Individual file download alternative endpoint
+                    [
+                        'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/files/{$fileId}",
+                        'payload' => [
+                            'security_hash' => $securityHash,
+                            'intent' => 'download',
+                        ],
                     ],
-                ],
-                // Approach 3: Try direct file download approach
-                [
-                    'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/files/download",
-                    'payload' => [
-                        'security_hash' => $securityHash,
+                    // Fallback to entire transfer (will download as zip)
+                    [
+                        'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/download",
+                        'payload' => [
+                            'intent' => 'entire_transfer',
+                            'security_hash' => $securityHash,
+                        ],
                     ],
-                ],
-            ];
+                ];
+            } else {
+                // Entire transfer approach (original logic for single files or when no file_id)
+                Log::info('Using entire transfer download approach', [
+                    'filename' => $filename,
+                ]);
+
+                $apiApproaches = [
+                    // Approach 1: Try without recipient_id first
+                    [
+                        'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/download",
+                        'payload' => [
+                            'intent' => 'entire_transfer',
+                            'security_hash' => $securityHash,
+                        ],
+                    ],
+                    // Approach 2: Try with recipient_id if available
+                    [
+                        'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/download",
+                        'payload' => [
+                            'intent' => 'entire_transfer',
+                            'security_hash' => $securityHash,
+                            'recipient_id' => $recipientId,
+                        ],
+                    ],
+                    // Approach 3: Try direct file download approach
+                    [
+                        'url' => "https://wetransfer.com/api/v4/transfers/{$transferId}/files/download",
+                        'payload' => [
+                            'security_hash' => $securityHash,
+                        ],
+                    ],
+                ];
+            }
 
             $directLink = null;
             $lastError = null;
@@ -818,7 +870,7 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
             'completed_at' => now(),
         ]);
 
-        // Broadcast the failure
-        event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
+        // Broadcast the failure (disabled - using polling instead)
+        // event(new LinkImportUpdated($this->linkImport->id, $this->linkImport->project_id));
     }
 }

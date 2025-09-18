@@ -13,11 +13,14 @@ class ClientDetailDashboard extends Component
     use WithPagination;
 
     public Client $client;
+
     public string $view = 'kanban'; // 'kanban' or 'list'
-    
+
     // Search and filtering (client-scoped)
     public string $search = '';
+
     public string $statusFilter = 'all';
+
     public string $sortDirection = 'desc';
 
     protected $queryString = [
@@ -33,7 +36,7 @@ class ClientDetailDashboard extends Component
         if ($client->user_id !== Auth::id()) {
             abort(403, 'Access denied. You can only view your own clients.');
         }
-        
+
         $this->client = $client;
     }
 
@@ -67,8 +70,8 @@ class ClientDetailDashboard extends Component
             }])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('description', 'like', '%' . $this->search . '%');
+                    $q->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('description', 'like', '%'.$this->search.'%');
                 });
             })
             ->when($this->statusFilter !== 'all', function ($query) {

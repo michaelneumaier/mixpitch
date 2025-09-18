@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class GoogleDriveBackup extends Model
 {
@@ -110,7 +110,7 @@ class GoogleDriveBackup extends Model
      */
     public function getFormattedFileSizeAttribute(): string
     {
-        if (!$this->file_size) {
+        if (! $this->file_size) {
             return 'Unknown';
         }
 
@@ -118,7 +118,7 @@ class GoogleDriveBackup extends Model
         $units = ['B', 'KB', 'MB', 'GB'];
         $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
 
-        return round($bytes / pow(1024, $power), 2) . ' ' . $units[$power];
+        return round($bytes / pow(1024, $power), 2).' '.$units[$power];
     }
 
     /**

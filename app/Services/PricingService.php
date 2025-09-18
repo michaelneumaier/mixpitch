@@ -50,36 +50,36 @@ class PricingService
         if ($plan->max_projects_owned === null) {
             $features[] = 'Unlimited Projects';
         } else {
-            $features[] = $plan->max_projects_owned . ' Project' . ($plan->max_projects_owned !== 1 ? 's' : '');
+            $features[] = $plan->max_projects_owned.' Project'.($plan->max_projects_owned !== 1 ? 's' : '');
         }
 
         // Pitches
         if ($plan->max_active_pitches === null) {
             $features[] = 'Unlimited Pitches';
         } else {
-            $features[] = $plan->max_active_pitches . ' Active Pitches';
+            $features[] = $plan->max_active_pitches.' Active Pitches';
         }
 
         // Storage
         if ($plan->total_user_storage_gb) {
-            $features[] = intval($plan->total_user_storage_gb) . 'GB Total Storage';
+            $features[] = intval($plan->total_user_storage_gb).'GB Total Storage';
         }
 
         // Commission
-        $features[] = intval($plan->platform_commission_rate) . '% Commission Rate';
+        $features[] = intval($plan->platform_commission_rate).'% Commission Rate';
 
         // License Templates
         if ($plan->max_license_templates === null) {
             $features[] = 'Unlimited License Templates';
         } elseif ($plan->max_license_templates > 0) {
-            $features[] = $plan->max_license_templates . ' License ' . 
+            $features[] = $plan->max_license_templates.' License '.
                          ($plan->max_license_templates === 1 ? 'Template' : 'Templates');
         } else {
             $features[] = '3 License Presets'; // Default for free plan
         }
 
         // Analytics
-        $analyticsText = match($plan->analytics_level) {
+        $analyticsText = match ($plan->analytics_level) {
             'track' => 'Track-level Analytics',
             'client_earnings' => 'Client & Earnings Analytics',
             default => 'Basic Analytics',
@@ -88,7 +88,7 @@ class PricingService
 
         // Reputation Multiplier (only if > 1)
         if ($plan->reputation_multiplier > 1) {
-            $features[] = $plan->reputation_multiplier . '× Reputation Multiplier';
+            $features[] = $plan->reputation_multiplier.'× Reputation Multiplier';
         }
 
         // Client Portal
@@ -98,7 +98,7 @@ class PricingService
 
         // Challenge Access
         if ($plan->challenge_early_access_hours > 0) {
-            $accessText = $plan->challenge_early_access_hours . 'h Early Challenge Access';
+            $accessText = $plan->challenge_early_access_hours.'h Early Challenge Access';
             if ($plan->has_judge_access) {
                 $accessText .= ' + Judge';
             }
@@ -120,13 +120,13 @@ class PricingService
     protected function getSupportText(SubscriptionLimit $plan): ?string
     {
         $channels = $plan->support_channels ?? [];
-        
+
         if (empty($channels)) {
             return null;
         }
 
         $supportParts = [];
-        
+
         if (in_array('email', $channels) && in_array('chat', $channels)) {
             $supportParts[] = 'Email & Chat Support';
         } elseif (in_array('email', $channels)) {
@@ -135,8 +135,8 @@ class PricingService
             $supportParts[] = 'Forum Support';
         }
 
-        if (!empty($supportParts) && $plan->support_sla_hours) {
-            $supportParts[0] .= ' (' . $plan->support_sla_hours . 'h SLA)';
+        if (! empty($supportParts) && $plan->support_sla_hours) {
+            $supportParts[0] .= ' ('.$plan->support_sla_hours.'h SLA)';
         }
 
         return $supportParts[0] ?? null;
@@ -151,7 +151,7 @@ class PricingService
             return 'Free';
         }
 
-        return ucfirst($plan->plan_name) . ' ' . ucfirst($plan->plan_tier);
+        return ucfirst($plan->plan_name).' '.ucfirst($plan->plan_tier);
     }
 
     /**
@@ -159,7 +159,7 @@ class PricingService
      */
     protected function getDefaultDescription(SubscriptionLimit $plan): string
     {
-        return match($plan->plan_name . '_' . $plan->plan_tier) {
+        return match ($plan->plan_name.'_'.$plan->plan_tier) {
             'free_basic' => 'Perfect for getting started with music collaboration',
             'pro_artist' => 'For professional music creators',
             'pro_engineer' => 'Advanced tools for audio engineers',

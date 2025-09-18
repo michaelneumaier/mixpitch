@@ -250,6 +250,12 @@ class FileManagementService
                     // Don't fail the whole operation for S3 cleanup issues
                 }
 
+                // Clear cached relationships to prevent stale data
+                if ($project) {
+                    $project->refresh();
+                    $project->unsetRelation('files'); // Clear the files relationship cache
+                }
+
                 return true;
             });
         } catch (\Exception $e) {
@@ -291,6 +297,12 @@ class FileManagementService
                         }
                     } catch (\Exception $storageEx) {
                         Log::error('Failed to delete pitch file from S3, but DB record removed', ['path' => $filePath, 'error' => $storageEx->getMessage()]);
+                    }
+
+                    // Clear cached relationships to prevent stale data
+                    if ($pitch) {
+                        $pitch->refresh();
+                        $pitch->unsetRelation('files'); // Clear the files relationship cache
                     }
                 } else {
                     throw new FileDeletionException('Failed to delete file record from database.');
@@ -440,6 +452,9 @@ class FileManagementService
                 $user = $uploader ?? $project->user;
                 $this->userStorageService->incrementUserStorage($user, $fileSize);
 
+                // Clear cached relationships to ensure fresh data
+                $project->unsetRelation('files');
+
                 return $projectFile;
             });
         } catch (\Exception $e) {
@@ -522,6 +537,9 @@ class FileManagementService
                 if (str_starts_with($pitchFile->mime_type, 'audio/')) {
                     dispatch(new \App\Jobs\GenerateAudioWaveform($pitchFile));
                 }
+
+                // Clear cached relationships to ensure fresh data
+                $pitch->unsetRelation('files');
 
                 return $pitchFile;
             });

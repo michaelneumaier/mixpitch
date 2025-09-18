@@ -27,7 +27,7 @@ class SidebarWorkNav extends Component
         $projectsCount = Project::where('user_id', $user->id)
             ->whereNotIn('workflow_type', [
                 Project::WORKFLOW_TYPE_CONTEST,
-                Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+                Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             ])
             ->whereIn('status', [
                 Project::STATUS_UNPUBLISHED,
@@ -46,7 +46,7 @@ class SidebarWorkNav extends Component
             ->whereHas('project', function ($query) {
                 $query->whereNotIn('workflow_type', [
                     Project::WORKFLOW_TYPE_CONTEST,
-                    Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+                    Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
                 ]);
             })
             ->count();
@@ -103,7 +103,7 @@ class SidebarWorkNav extends Component
         return Project::where('user_id', $user->id)
             ->whereNotIn('workflow_type', [
                 Project::WORKFLOW_TYPE_CONTEST,
-                Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+                Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             ])
             ->whereIn('status', [
                 Project::STATUS_UNPUBLISHED,
@@ -136,7 +136,7 @@ class SidebarWorkNav extends Component
             ->whereHas('project', function ($query) {
                 $query->whereNotIn('workflow_type', [
                     Project::WORKFLOW_TYPE_CONTEST,
-                    Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT
+                    Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
                 ]);
             })
             ->with('project')

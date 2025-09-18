@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Project;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class TestProjectSeeder extends Seeder
@@ -15,20 +14,21 @@ class TestProjectSeeder extends Seeder
     public function run(): void
     {
         $user = User::find(1);
-        
-        if (!$user) {
+
+        if (! $user) {
             $this->command->error('User with ID 1 not found. Please ensure user ID 1 exists before running this seeder.');
+
             return;
         }
 
-        $this->command->info('Creating test projects for user: ' . $user->name);
+        $this->command->info('Creating test projects for user: '.$user->name);
 
         // Create 2 Standard Workflow Projects
         $this->createStandardProjects($user);
-        
-        // Create 2 Contest Projects  
+
+        // Create 2 Contest Projects
         $this->createContestProjects($user);
-        
+
         // Create 2 Client Management Projects
         $this->createClientManagementProjects($user);
 

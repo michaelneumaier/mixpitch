@@ -411,17 +411,19 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Get user-friendly message about storage limits
-     * 
+     *
      * @deprecated Pitch-based storage limits are deprecated. Use UserStorageService for user-based limits.
+     *
      * @return string
      */
     public function getStorageLimitMessage()
     {
         if ($this->user) {
             $userStorageService = app(\App\Services\UserStorageService::class);
+
             return $userStorageService->getStorageLimitMessage($this->user);
         }
-        
+
         // Fallback for pitches without users
         $used = self::formatBytes($this->total_storage_used);
         $total = self::formatBytes(self::MAX_STORAGE_BYTES);
@@ -547,8 +549,9 @@ class Pitch extends Model implements HasMedia
 
     /**
      * Get remaining storage capacity in bytes
-     * 
+     *
      * @deprecated Pitch-based storage limits are deprecated. Use UserStorageService for user-based limits.
+     *
      * @return int
      */
     public function getRemainingStorageBytes()
@@ -557,9 +560,10 @@ class Pitch extends Model implements HasMedia
             $userStorageService = app(\App\Services\UserStorageService::class);
             $used = $userStorageService->getUserStorageUsed($this->user);
             $limit = $userStorageService->getUserStorageLimit($this->user);
+
             return max(0, $limit - $used);
         }
-        
+
         // Fallback logic for pitches without users
         // Use contest-specific storage limit for contest entries
         if ($this->status === self::STATUS_CONTEST_ENTRY) {
@@ -616,9 +620,10 @@ class Pitch extends Model implements HasMedia
             $userStorageService = app(\App\Services\UserStorageService::class);
             $used = $userStorageService->getUserStorageUsed($this->user);
             $limit = $userStorageService->getUserStorageLimit($this->user);
+
             return $limit > 0 ? round(($used / $limit) * 100, 2) : 0;
         }
-        
+
         // Fallback logic for pitches without users
         // Use contest-specific storage limit for contest entries
         if ($this->status === self::STATUS_CONTEST_ENTRY) {
@@ -791,7 +796,7 @@ class Pitch extends Model implements HasMedia
         return $this->status === self::STATUS_COMPLETED &&
                in_array($this->payment_status, [
                    self::PAYMENT_STATUS_PAID,
-                   self::PAYMENT_STATUS_NOT_REQUIRED
+                   self::PAYMENT_STATUS_NOT_REQUIRED,
                ]);
     }
 }

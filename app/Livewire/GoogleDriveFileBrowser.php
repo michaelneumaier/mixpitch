@@ -16,12 +16,19 @@ class GoogleDriveFileBrowser extends Component
     use WithPagination;
 
     public array $files = [];
+
     public array $connectionStatus = [];
+
     public bool $isLoading = false;
+
     public bool $showImportModal = false;
+
     public array $selectedFile = [];
+
     public string $currentFolder = 'root';
+
     public string $searchQuery = '';
+
     public array $breadcrumbs = [];
 
     protected GoogleDriveService $googleDriveService;
@@ -55,7 +62,7 @@ class GoogleDriveFileBrowser extends Component
 
     public function loadFiles()
     {
-        if (!$this->connectionStatus['connected']) {
+        if (! $this->connectionStatus['connected']) {
             return;
         }
 
@@ -76,7 +83,7 @@ class GoogleDriveFileBrowser extends Component
             $this->connectionStatus['needs_reauth'] = true;
             Toaster::error('Google Drive authentication expired. Please reconnect your account.');
         } catch (GoogleDriveFileException $e) {
-            Toaster::error('Failed to load Google Drive files: ' . $e->getMessage());
+            Toaster::error('Failed to load Google Drive files: '.$e->getMessage());
         } catch (\Exception $e) {
             Toaster::error('An unexpected error occurred while loading files.');
         } finally {
@@ -123,7 +130,7 @@ class GoogleDriveFileBrowser extends Component
             );
 
             Toaster::success('File imported successfully from Google Drive!');
-            
+
             $this->dispatch('fileImported', [
                 'fileName' => $result['name'],
                 'localPath' => $result['localPath'],
@@ -141,7 +148,7 @@ class GoogleDriveFileBrowser extends Component
         } catch (GoogleDriveQuotaException $e) {
             Toaster::error('Insufficient storage space to import this file.');
         } catch (GoogleDriveFileException $e) {
-            Toaster::error('Failed to import file: ' . $e->getMessage());
+            Toaster::error('Failed to import file: '.$e->getMessage());
         } catch (\Exception $e) {
             Toaster::error('An unexpected error occurred while importing the file.');
         } finally {

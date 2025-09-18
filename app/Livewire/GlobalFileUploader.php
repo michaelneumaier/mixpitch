@@ -42,15 +42,41 @@ class GlobalFileUploader extends Component
         }
 
         try {
+            // Track unique model contexts from uploaded files
+            $modelContexts = [];
+
             foreach ($payload as $fileData) {
                 $this->processUploadedFile($fileData);
+
+                // Extract model context for event dispatch
+                $meta = $fileData['meta'] ?? [];
+                $modelType = $meta['modelType'] ?? null;
+                $modelId = isset($meta['modelId']) ? (int) $meta['modelId'] : null;
+
+                if ($modelType && $modelId) {
+                    $contextKey = $modelType.':'.$modelId;
+                    if (! isset($modelContexts[$contextKey])) {
+                        $modelContexts[$contextKey] = [
+                            'model_type' => $modelType,
+                            'model_id' => $modelId,
+                            'count' => 0,
+                        ];
+                    }
+                    $modelContexts[$contextKey]['count']++;
+                }
             }
 
             $this->completedCount += count($payload);
-            $this->dispatch('filesUploaded', [
-                'count' => count($payload),
-                'source' => 'global_uploader',
-            ]);
+
+            // Dispatch context-specific events for each model that received files
+            foreach ($modelContexts as $context) {
+                $this->dispatch('filesUploaded', [
+                    'count' => $context['count'],
+                    'source' => 'global_uploader',
+                    'model_type' => $context['model_type'],
+                    'model_id' => $context['model_id'],
+                ]);
+            }
 
             // Simple separate event for storage updates
             $this->dispatch('storageChanged');

@@ -125,25 +125,80 @@ class LinkAnalysisService
                     if (isset($props['metadata'])) {
                         $metadata = $props['metadata'];
                         $securityHash = $props['securityHash'] ?? null;
+                        $transferIdFull = $metadata['id'] ?? $transferId;
 
-                        if (isset($metadata['title'])) {
-                            $filename = $metadata['title'];
-                            $files[] = [
-                                'filename' => $filename,
-                                'size' => $metadata['size'] ?? 0,
-                                'mime_type' => $this->guessMimeType($filename),
-                                'file_id' => $metadata['id'] ?? null,
-                                'transfer_id' => $metadata['id'] ?? $transferId, // Use metadata ID as actual transfer ID
-                                'security_hash' => $securityHash,
-                                'recipient_id' => null, // Will be set from URL parsing
-                                'download_url' => null, // Will be generated via API
-                            ];
+                        // Check if this is a multi-file transfer
+                        $filesCount = $metadata['files_count'] ?? 1;
+                        $isMultiFile = $filesCount > 1;
 
-                            Log::debug('Extracted file from WeTransfer metadata', [
-                                'filename' => $filename,
-                                'transfer_id' => $metadata['id'] ?? $transferId,
-                                'security_hash' => $securityHash,
+                        Log::debug('WeTransfer metadata analysis', [
+                            'files_count' => $filesCount,
+                            'is_multi_file' => $isMultiFile,
+                            'transfer_id' => $transferIdFull,
+                            'metadata_keys' => array_keys($metadata),
+                        ]);
+
+                        if ($isMultiFile) {
+                            // For multi-file transfers, we need to fetch individual file details
+                            // The title might just be one file name, not all files
+                            Log::info('Multi-file transfer detected, attempting to fetch individual file details', [
+                                'files_count' => $filesCount,
+                                'title' => $metadata['title'] ?? 'unknown',
                             ]);
+
+                            // Try to get individual file information from the transfer API
+                            $multiFiles = $this->fetchWeTransferFileList($transferIdFull, $securityHash);
+
+                            if (! empty($multiFiles)) {
+                                $files = array_merge($files, $multiFiles);
+                                Log::debug('Successfully fetched multi-file details', [
+                                    'files_found' => count($multiFiles),
+                                ]);
+                            } else {
+                                // Fallback: Create placeholder entries based on files_count
+                                for ($i = 1; $i <= $filesCount; $i++) {
+                                    $placeholderName = $i === 1 && isset($metadata['title'])
+                                        ? $metadata['title']
+                                        : "File_{$i}";
+
+                                    $files[] = [
+                                        'filename' => $placeholderName,
+                                        'size' => $metadata['size'] ?? 0,
+                                        'mime_type' => $this->guessMimeType($placeholderName),
+                                        'file_id' => null, // Will need to be resolved during download
+                                        'transfer_id' => $transferIdFull,
+                                        'security_hash' => $securityHash,
+                                        'recipient_id' => null,
+                                        'download_url' => null,
+                                        'placeholder' => $i > 1, // Mark as placeholder except first file
+                                    ];
+                                }
+
+                                Log::debug('Created placeholder files for multi-file transfer', [
+                                    'files_created' => $filesCount,
+                                ]);
+                            }
+                        } else {
+                            // Single file transfer (existing logic)
+                            if (isset($metadata['title'])) {
+                                $filename = $metadata['title'];
+                                $files[] = [
+                                    'filename' => $filename,
+                                    'size' => $metadata['size'] ?? 0,
+                                    'mime_type' => $this->guessMimeType($filename),
+                                    'file_id' => $metadata['id'] ?? null,
+                                    'transfer_id' => $transferIdFull,
+                                    'security_hash' => $securityHash,
+                                    'recipient_id' => null,
+                                    'download_url' => null,
+                                ];
+
+                                Log::debug('Extracted file from WeTransfer metadata', [
+                                    'filename' => $filename,
+                                    'transfer_id' => $transferIdFull,
+                                    'security_hash' => $securityHash,
+                                ]);
+                            }
                         }
                     }
 
@@ -448,6 +503,164 @@ class LinkAnalysisService
                 'download_url' => null,
             ],
         ];
+    }
+
+    /**
+     * Fetch individual file list from WeTransfer API for multi-file transfers.
+     */
+    protected function fetchWeTransferFileList(string $transferId, ?string $securityHash): array
+    {
+        $files = [];
+        $timeout = config('linkimport.security.timeout_seconds', 60);
+        $userAgent = config('linkimport.processing.user_agent', 'MixPitch-LinkImporter/1.0');
+
+        try {
+            // Try different API endpoints to get file list
+            $apiUrls = [
+                "https://wetransfer.com/api/v4/transfers/{$transferId}",
+                "https://wetransfer.com/api/v4/transfers/{$transferId}/files",
+            ];
+
+            foreach ($apiUrls as $apiUrl) {
+                Log::debug('Attempting to fetch file list from WeTransfer API', [
+                    'api_url' => $apiUrl,
+                    'transfer_id' => $transferId,
+                ]);
+
+                $payload = [];
+                if ($securityHash) {
+                    $payload['security_hash'] = $securityHash;
+                }
+
+                $response = Http::timeout($timeout)
+                    ->withHeaders([
+                        'User-Agent' => $userAgent,
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->get($apiUrl, $payload);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+
+                    Log::debug('WeTransfer API response received', [
+                        'api_url' => $apiUrl,
+                        'response_keys' => array_keys($data ?? []),
+                        'response_data' => $data, // Full response for debugging
+                    ]);
+
+                    // Look for files in various response structures
+                    $fileList = $this->extractFilesFromApiResponse($data, $transferId, $securityHash);
+
+                    if (! empty($fileList)) {
+                        $files = $fileList;
+                        Log::info('Successfully fetched file list from WeTransfer API', [
+                            'api_url' => $apiUrl,
+                            'files_count' => count($files),
+                        ]);
+                        break; // Stop trying other endpoints
+                    }
+                } else {
+                    Log::debug('WeTransfer API request failed', [
+                        'api_url' => $apiUrl,
+                        'status' => $response->status(),
+                        'response' => $response->body(),
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to fetch WeTransfer file list', [
+                'transfer_id' => $transferId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $files;
+    }
+
+    /**
+     * Extract files from WeTransfer API response.
+     */
+    protected function extractFilesFromApiResponse(array $data, string $transferId, ?string $securityHash): array
+    {
+        $files = [];
+
+        // Pattern 1: Response is a direct array of files (e.g., /transfers/{id}/files endpoint)
+        if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+            Log::debug('Processing direct array response from WeTransfer API', [
+                'items_count' => count($data),
+            ]);
+
+            foreach ($data as $file) {
+                if (is_array($file)) {
+                    // Try different possible field names for filename
+                    $filename = $file['name'] ?? $file['filename'] ?? $file['title'] ?? null;
+                    $fileId = $file['id'] ?? $file['file_id'] ?? null;
+                    $size = $file['size'] ?? $file['file_size'] ?? 0;
+
+                    if ($filename) {
+                        $files[] = [
+                            'filename' => $filename,
+                            'size' => $size,
+                            'mime_type' => $this->guessMimeType($filename),
+                            'file_id' => $fileId,
+                            'transfer_id' => $transferId,
+                            'security_hash' => $securityHash,
+                            'recipient_id' => null,
+                            'download_url' => null,
+                        ];
+
+                        Log::debug('Extracted file from API response', [
+                            'filename' => $filename,
+                            'file_id' => $fileId,
+                            'size' => $size,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Pattern 2: Files nested in object
+        if (empty($files) && isset($data['files']) && is_array($data['files'])) {
+            foreach ($data['files'] as $file) {
+                if (is_array($file) && isset($file['name'])) {
+                    $files[] = [
+                        'filename' => $file['name'],
+                        'size' => $file['size'] ?? 0,
+                        'mime_type' => $this->guessMimeType($file['name']),
+                        'file_id' => $file['id'] ?? null,
+                        'transfer_id' => $transferId,
+                        'security_hash' => $securityHash,
+                        'recipient_id' => null,
+                        'download_url' => null,
+                    ];
+                }
+            }
+        }
+
+        // Pattern 3: Nested in transfer object
+        if (empty($files) && isset($data['transfer']['files']) && is_array($data['transfer']['files'])) {
+            foreach ($data['transfer']['files'] as $file) {
+                if (is_array($file) && isset($file['name'])) {
+                    $files[] = [
+                        'filename' => $file['name'],
+                        'size' => $file['size'] ?? 0,
+                        'mime_type' => $this->guessMimeType($file['name']),
+                        'file_id' => $file['id'] ?? null,
+                        'transfer_id' => $transferId,
+                        'security_hash' => $securityHash,
+                        'recipient_id' => null,
+                        'download_url' => null,
+                    ];
+                }
+            }
+        }
+
+        Log::debug('File extraction completed', [
+            'files_extracted' => count($files),
+        ]);
+
+        return $files;
     }
 
     /**
