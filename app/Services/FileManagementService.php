@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\File\FileDeletionException;
 use App\Exceptions\File\FileUploadException;
 use App\Exceptions\File\StorageLimitException;
+use App\Jobs\GenerateFileWaveform;
 use App\Models\FileUploadSetting;
 use App\Models\Pitch;
 use App\Models\PitchFile;
@@ -94,6 +95,17 @@ class FileManagementService
                     'mime_type' => $file->getMimeType(),
                     'metadata' => ! empty($metadata) ? json_encode($metadata) : null, // Store client upload metadata
                 ]);
+
+                // Dispatch waveform generation job for audio files
+                if ($projectFile->isAudioFile()) {
+                    Log::info('Dispatching waveform generation job for project file', [
+                        'project_file_id' => $projectFile->id,
+                        'file_name' => $fileName,
+                        'mime_type' => $file->getMimeType(),
+                    ]);
+
+                    GenerateFileWaveform::dispatch($projectFile);
+                }
 
                 // Atomically update user storage usage instead of project storage
                 $user = $uploader ?? $project->user;

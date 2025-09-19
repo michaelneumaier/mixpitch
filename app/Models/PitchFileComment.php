@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 /**
  * Class PitchFileComment
  *
@@ -77,7 +80,7 @@ class PitchFileComment extends FileComment
     /**
      * Override parent relationship to use PitchFileComment for compatibility
      */
-    public function parent()
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(PitchFileComment::class, 'parent_id');
     }
@@ -85,7 +88,7 @@ class PitchFileComment extends FileComment
     /**
      * Override replies relationship to use PitchFileComment for compatibility
      */
-    public function replies()
+    public function replies(): HasMany
     {
         return $this->hasMany(PitchFileComment::class, 'parent_id')->orderBy('created_at', 'asc');
     }

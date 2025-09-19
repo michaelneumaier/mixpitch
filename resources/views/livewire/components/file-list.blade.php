@@ -203,10 +203,22 @@
                     
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
-                            <span class="truncate text-base font-semibold text-gray-900 dark:text-gray-100"
-                                  id="file-{{ $file->id }}-info">
-                                {{ $file->file_name }}
-                            </span>
+                            @php
+                                $audioPlayerUrl = $this->getUniversalAudioPlayerUrl($file);
+                            @endphp
+                            @if($audioPlayerUrl)
+                                <a href="{{ $audioPlayerUrl }}" 
+                                   class="truncate text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                                   id="file-{{ $file->id }}-info"
+                                   title="Open {{ $file->file_name }} in full audio player">
+                                    {{ $file->file_name }}
+                                </a>
+                            @else
+                                <span class="truncate text-base font-semibold text-gray-900 dark:text-gray-100"
+                                      id="file-{{ $file->id }}-info">
+                                    {{ $file->file_name }}
+                                </span>
+                            @endif
                         </div>
                         <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                             <div class="flex items-center gap-1">

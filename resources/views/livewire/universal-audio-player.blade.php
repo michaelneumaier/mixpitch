@@ -265,7 +265,96 @@
                         class="w-full overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm dark:border-gray-700 dark:from-gray-800 dark:to-slate-800"
                         wire:ignore style="height: 128px; min-height: 128px;">
                         <!-- This will be replaced by WaveSurfer -->
+                        <div class="waveform-marker-overlay"></div>
                     </div>
+
+                    <!-- Comment Markers -->
+                    @if($duration > 0 && count($comments) > 0)
+                        <div class="absolute inset-0 pointer-events-none z-10">
+                            @foreach($comments as $comment)
+                                @php
+                                    $position = ($comment->timestamp / max(0.1, $duration)) * 100;
+                                    $position = min(max($position, 0), 100);
+                                @endphp
+                                <div class="absolute h-full w-1 z-10 cursor-pointer pointer-events-auto group"
+                                     style="left: {{ $position }}%; background: {{ $comment->resolved ? 'linear-gradient(to bottom, #22c55e, #10b981)' : 'linear-gradient(to bottom, #7c3aed, #4f46e5)' }};"
+                                     x-data="{ showTooltip: false }" 
+                                     @mouseenter="showTooltip = true"
+                                     @mouseleave="showTooltip = false"
+                                     @click="$wire.seekTo({{ $comment->timestamp }})">
+                                    
+                                    <!-- Comment Marker -->
+                                    <div class="h-4 w-4 rounded-full -ml-1.5 {{ $comment->resolved ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600' }} border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200">
+                                        <div class="absolute inset-0 rounded-full bg-white/30 animate-pulse"></div>
+                                    </div>
+
+                                    <!-- Comment Tooltip (shows below marker, with replies, guarded size) -->
+                                    <div x-show="showTooltip" x-cloak
+                                        class="absolute top-2 p-3 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-white/20 w-80 max-h-64 overflow-y-auto z-50 {{ $position < 15 ? 'left-0 transform-none' : ($position > 85 ? 'left-auto right-0 transform-none' : 'left-1/2 transform -translate-x-1/2') }}"
+                                        @click.stop>
+                                        <!-- Tooltip Header -->
+                                        <div class="flex items-center mb-2">
+                                            @if($comment->user)
+                                                <img src="{{ $comment->user->profile_photo_url }}"
+                                                    alt="{{ $comment->user->name }}" 
+                                                    class="h-6 w-6 rounded-full border-2 border-purple-200 mr-2">
+                                            @else
+                                                <div class="h-6 w-6 rounded-full border-2 border-blue-200 mr-2 bg-blue-500 flex items-center justify-center">
+                                                    <flux:icon name="user" class="text-white text-xs" />
+                                                </div>
+                                            @endif
+                                            <div class="flex-1">
+                                                <div class="text-sm font-semibold text-gray-900">
+                                                    @if($comment->user)
+                                                        {{ $comment->user->name }}
+                                                    @else
+                                                        {{ $comment->client_email ?? 'Client' }}
+                                                    @endif
+                                                </div>
+                                                <div class="text-xs text-purple-600 font-medium">{{ $comment->formatted_timestamp }}</div>
+                                            </div>
+                                            @if($comment->resolved && $fileType === 'pitch_file')
+                                                <flux:badge color="green" size="xs" icon="check-circle">
+                                                    Resolved
+                                                </flux:badge>
+                                            @endif
+                                        </div>
+                                        <!-- Comment Content -->
+                                        <div class="text-sm text-gray-800 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg p-2">
+                                            {{ \Illuminate\Support\Str::limit($comment->comment, 160) }}
+                                        </div>
+                                        @if($comment->replies && $comment->replies->count() > 0)
+                                            <div class="mt-3">
+                                                <div class="text-xs font-semibold text-gray-500 mb-2">Recent replies</div>
+                                                <div class="space-y-2">
+                                                    @foreach($comment->replies->take(3) as $reply)
+                                                        <div class="rounded-md border border-gray-100 bg-gray-50 p-2">
+                                                            <div class="flex items-center gap-2 mb-1">
+                                                                @if($reply->user)
+                                                                    <img src="{{ $reply->user->profile_photo_url }}" alt="{{ $reply->user->name }}" class="h-4 w-4 rounded-full">
+                                                                    <div class="text-xs font-medium text-gray-700">{{ $reply->user->name }}</div>
+                                                                @else
+                                                                    <div class="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center">
+                                                                        <flux:icon name="user" class="text-white" size="xs" />
+                                                                    </div>
+                                                                    <div class="text-xs font-medium text-gray-700">{{ $reply->client_email ?? 'Client' }}</div>
+                                                                @endif
+                                                                <div class="text-[10px] text-gray-400">{{ $reply->created_at->diffForHumans() }}</div>
+                                                            </div>
+                                                            <div class="text-xs text-gray-700">{{ \Illuminate\Support\Str::limit($reply->comment, 120) }}</div>
+                                                        </div>
+                                                    @endforeach
+                                                    @if($comment->replies->count() > 3)
+                                                        <div class="text-[11px] text-gray-500">+{{ $comment->replies->count() - 3 }} more replies</div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     <!-- Loop markers - positioned as overlay using pointer-events-none -->
                     <div x-show="loopStart !== null || loopEnd !== null"
@@ -298,11 +387,7 @@
                         </div>
                     </div>
 
-                    <!-- Timeline -->
-                    <div id="waveform-timeline-universal-player"
-                        class="timeline-container mb-4 mt-4 hidden h-8 rounded-lg border border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50 dark:border-gray-700 dark:from-gray-800 dark:to-slate-800">
-                        <!-- Timeline markers will be populated by JavaScript -->
-                    </div>
+                <!-- Timeline removed -->
                 </div>
 
                 <!-- Main Controls -->
@@ -312,21 +397,17 @@
                         <!-- Transport Controls -->
                         <div class="flex items-center gap-3">
                             <!-- Previous Track -->
-                            <flux:button variant="outline" size="sm" disabled>
-                                <flux:icon.backward />
-                            </flux:button>
+                            <flux:button variant="outline" size="sm" disabled icon="backward" />
 
                             <!-- Play/Pause -->
                             <flux:button variant="primary"
                                 @click="playerState.isPlaying = !playerState.isPlaying; $dispatch('toggle-playback-universal-player', { playing: playerState.isPlaying })">
-                                <flux:icon.play x-show="!playerState.isPlaying" />
-                                <flux:icon.pause x-show="playerState.isPlaying" />
+                                <flux:icon name="play" x-show="!playerState.isPlaying" />
+                                <flux:icon name="pause" x-show="playerState.isPlaying" />
                             </flux:button>
 
                             <!-- Next Track -->
-                            <flux:button variant="outline" size="sm" disabled>
-                                <flux:icon.forward />
-                            </flux:button>
+                            <flux:button variant="outline" size="sm" disabled icon="forward" />
                         </div>
 
                         <!-- Time Display (Desktop) -->
@@ -339,7 +420,12 @@
 
                     <!-- Time Display (Mobile) -->
                     <div class="flex md:hidden justify-center mb-4">
-                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300 font-mono tabular-nums">
+                            <span x-text="playerState.currentTime">00:00</span> 
+                            <span class="mx-1">/</span>
+                            <span x-text="playerState.totalDuration">00:00</span>
+                        </div>
+                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300 font-mono tabular-nums">
                             <span x-text="playerState.currentTime">00:00</span> 
                             <span class="mx-1">/</span>
                             <span x-text="playerState.totalDuration">00:00</span>
@@ -368,36 +454,32 @@
                             <!-- Loop Toggle -->
                             <flux:button size="xs" x-show="loopStart !== null && loopEnd !== null"
                                 @click="toggleLoop()" x-bind:variant="loopEnabled ? 'filled' : 'ghost'"
-                                title="Toggle A-B loop">
-                                <flux:icon.arrow-path />
-                            </flux:button>
+                                title="Toggle A-B loop" icon="arrow-path" />
 
                             <!-- Clear Loop -->
                             <flux:button size="xs" x-show="loopStart !== null || loopEnd !== null"
-                                @click="clearLoop()" variant="ghost" title="Clear loop">
-                                <flux:icon.x-mark />
-                            </flux:button>
+                                @click="clearLoop()" variant="ghost" title="Clear loop" icon="x-mark" />
                         </div>
 
                         <!-- View & Volume Controls -->
                         <div class="flex items-center gap-3">
                             <!-- Queue Toggle -->
                             <flux:button @click="showQueue = !showQueue" size="sm"
-                                x-bind:variant="showQueue ? 'filled' : 'outline'" title="Toggle queue">
-                                <flux:icon.list-bullet />
+                                x-bind:variant="showQueue ? 'filled' : 'outline'" title="Toggle queue"
+                                icon="list-bullet">
                                 <span class="hidden sm:inline ml-1">Queue</span>
                             </flux:button>
 
                             <!-- Comments Toggle -->
                             <flux:button @click="showComments = !showComments" size="sm"
-                                x-bind:variant="showComments ? 'filled' : 'outline'" title="Toggle comments">
-                                <flux:icon.chat-bubble-left />
+                                x-bind:variant="showComments ? 'filled' : 'outline'" title="Toggle comments"
+                                icon="chat-bubble-left">
                                 <span class="hidden sm:inline ml-1">Comments</span>
                             </flux:button>
 
                             <!-- Volume Control -->
                             <div class="flex items-center gap-2">
-                                <flux:icon.speaker-wave class="text-gray-600 dark:text-gray-400" size="sm" />
+                                <flux:icon name="speaker-wave" class="text-gray-600 dark:text-gray-400" size="sm" />
                                 <input type="range" min="0" max="100" value="80"
                                     class="h-2 w-12 sm:w-16 cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700">
                             </div>
@@ -420,8 +502,7 @@
                             </flux:subheading>
                         </div>
                         <div class="flex gap-2">
-                            <flux:button href="{{ $this->getDownloadUrl() }}" variant="outline" size="sm">
-                                <flux:icon.arrow-down-tray />
+                            <flux:button href="{{ $this->getDownloadUrl() }}" variant="outline" size="sm" icon="arrow-down-tray">
                                 Download
                             </flux:button>
                         </div>
@@ -432,7 +513,7 @@
                 <div x-show="showQueue" x-transition class="mb-2">
                     <flux:card class="p-4">
                         <flux:heading size="lg" class="mb-4 flex items-center gap-2">
-                            <flux:icon.list-bullet class="text-blue-600 dark:text-blue-400" />
+                            <flux:icon name="list-bullet" class="text-blue-600 dark:text-blue-400" />
                             Queue
                         </flux:heading>
 
@@ -440,7 +521,7 @@
                             <div
                                 class="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
                                 <div class="flex items-center gap-3">
-                                    <flux:icon.play class="text-blue-600 dark:text-blue-400" />
+                                    <flux:icon name="play" class="text-blue-600 dark:text-blue-400" />
                                     <span
                                         class="font-medium text-gray-900 dark:text-gray-100">{{ $file->original_filename ?? ($file->filename ?? 'Current File') }}</span>
                                 </div>
@@ -454,19 +535,266 @@
                 <div x-show="showComments" x-transition>
                     <flux:card class="p-4">
                         <flux:heading size="lg" class="mb-4 flex items-center gap-2">
-                            <flux:icon.chat-bubble-left class="text-green-600 dark:text-green-400" />
+                            <flux:icon name="chat-bubble-left" class="text-green-600 dark:text-green-400" />
                             Comments
+                            @if(count($comments) > 0)
+                                <flux:badge size="sm" color="blue">{{ count($comments) }}</flux:badge>
+                            @endif
                         </flux:heading>
 
-                        <div class="space-y-3">
+                        @if($this->canAddComments())
+                            <!-- Add Comment Button -->
+                            <div class="mb-4">
+                                <flux:button
+                                    x-on:click="
+                                        // Determine current playhead from WaveSurfer/Audio
+                                        (() => {
+                                            let ts = 0;
+                                            if (window.globalAudioManager?.usingMediaElement) {
+                                                const a = document.getElementById('persistent-audio-element');
+                                                if (a) ts = a.currentTime || 0;
+                                            } else if (window.globalAudioManager?.waveSurfer?.getCurrentTime) {
+                                                ts = window.globalAudioManager.waveSurfer.getCurrentTime() || 0;
+                                            } else if ($data?.getCurrentPosition) {
+                                                ts = $data.getCurrentPosition();
+                                            }
+                                            $wire.toggleCommentForm(ts);
+                                        })()
+                                    "
+                                    variant="filled" size="sm" icon="plus">
+                                    Add Comment
+                                </flux:button>
+                            </div>
+                        @endif
+
+                        <!-- Add Comment Form -->
+                        @if($showAddCommentForm)
+                            <div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                                <div class="mb-3">
+                                    <flux:heading size="sm">Add Comment at {{ sprintf("%02d:%02d", floor($commentTimestamp / 60), $commentTimestamp % 60) }}</flux:heading>
+                                </div>
+                                
+                                <form wire:submit.prevent="addComment">
+                                    <div class="mb-3">
+                                        <flux:textarea
+                                            wire:model="newComment"
+                                            placeholder="Share your thoughts about this audio..."
+                                            rows="3"
+                                            required />
+                                    </div>
+                                    
+                                    <div class="flex gap-2">
+                                        <flux:button type="submit" variant="filled" size="sm" icon="paper-airplane">
+                                            Add Comment
+                                        </flux:button>
+                                        <flux:button type="button" wire:click="toggleCommentForm" variant="outline" size="sm">
+                                            Cancel
+                                        </flux:button>
+                                    </div>
+                                </form>
+                            </div>
+                        @endif
+
+                        <!-- Comments List -->
+                        @if(count($comments) > 0)
+                            <div class="space-y-4">
+                                @foreach($comments as $comment)
+                                    <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                                        <!-- Comment Header -->
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div class="flex items-center gap-3">
+                                                @if($comment->user)
+                                                    <img src="{{ $comment->user->profile_photo_url }}" 
+                                                         alt="{{ $comment->user->name }}" 
+                                                         class="h-8 w-8 rounded-full">
+                                                    <div>
+                                                        <div class="font-medium text-gray-900 dark:text-gray-100">{{ $comment->user->name }}</div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at->diffForHumans() }}</div>
+                                                    </div>
+                                                @else
+                                                    <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                                        <flux:icon name="user" class="text-white" size="sm" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-medium text-gray-900 dark:text-gray-100">{{ $comment->client_email ?? 'Client' }}</div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at->diffForHumans() }}</div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            
+                                            <!-- Timestamp Badge -->
+                                            <flux:button 
+                                                wire:click="seekTo({{ $comment->timestamp }})" 
+                                                variant="outline" 
+                                                size="xs"
+                                                icon="play">
+                                                {{ $comment->formatted_timestamp }}
+                                            </flux:button>
+                                        </div>
+
+                                        <!-- Comment Content -->
+                                        <div class="mb-3">
+                                            <p class="text-gray-800 dark:text-gray-200 whitespace-pre-line">{{ $comment->comment }}</p>
+                                        </div>
+
+                                        <!-- Resolved Badge (for pitch files only) -->
+                                        @if($fileType === 'pitch_file' && $comment->resolved)
+                                            <div class="mb-3">
+                                                <flux:badge color="green" size="sm" icon="check-circle">
+                                                    Resolved
+                                                </flux:badge>
+                                            </div>
+                                        @endif
+
+                                        <!-- Action Buttons (for pitch files only) -->
+                                        @if($fileType === 'pitch_file' && ($this->canAddComments() || $clientMode))
+                                            <div class="flex gap-2">
+                                                @if($this->canAddComments())
+                                                    <!-- Reply Button -->
+                                                    <flux:button wire:click="toggleReplyForm({{ $comment->id }})" variant="outline" size="xs" icon="arrow-uturn-left">
+                                                        Reply
+                                                    </flux:button>
+
+                                                    <!-- Resolve/Unresolve Button -->
+                                                    @php
+                                                        $canResolve = false;
+                                                        if ($clientMode) {
+                                                            $canResolve = ($comment->is_client_comment && $comment->client_email === $clientEmail) 
+                                                                       || ($comment->user_id === $file->pitch->user_id);
+                                                        } else {
+                                                            $canResolve = Auth::id() === $comment->user_id || Auth::id() === $file->pitch->user_id;
+                                                        }
+                                                    @endphp
+                                                    
+                                                    @if($canResolve)
+                                                        <flux:button 
+                                                            wire:click="toggleResolveComment({{ $comment->id }})" 
+                                                            variant="{{ $comment->resolved ? 'filled' : 'outline' }}" 
+                                                            size="xs"
+                                                            color="{{ $comment->resolved ? 'gray' : 'green' }}"
+                                                            icon="{{ $comment->resolved ? 'arrow-path' : 'check' }}">
+                                                            {{ $comment->resolved ? 'Unresolve' : 'Resolve' }}
+                                                        </flux:button>
+                                                    @endif
+
+                                                    <!-- Delete Button -->
+                                                    @if(Auth::id() === $comment->user_id || Auth::id() === $file->pitch->user_id)
+                                                        <flux:button 
+                                                            wire:click="confirmDelete({{ $comment->id }})" 
+                                                            variant="outline" 
+                                                            size="xs"
+                                                            color="red"
+                                                            icon="trash">
+                                                            Delete
+                                                        </flux:button>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        @endif
+
+                                        <!-- Replies -->
+                                        @if($comment->replies && $comment->replies->count() > 0)
+                                            <div class="mt-4 ml-6 space-y-3 border-l-2 border-gray-200 pl-4 dark:border-gray-700">
+                                                @foreach($comment->replies as $reply)
+                                                    <div class="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-700">
+                                                        <!-- Reply Header -->
+                                                        <div class="flex items-start justify-between mb-2">
+                                                            <div class="flex items-center gap-2">
+                                                                @if($reply->user)
+                                                                    <img src="{{ $reply->user->profile_photo_url }}" 
+                                                                         alt="{{ $reply->user->name }}" 
+                                                                         class="h-6 w-6 rounded-full">
+                                                                    <div>
+                                                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $reply->user->name }}</div>
+                                                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $reply->created_at->diffForHumans() }}</div>
+                                                                    </div>
+                                                                @else
+                                                                    <div class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
+                                                                        <flux:icon name="user" class="text-white" size="xs" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $reply->client_email ?? 'Client' }}</div>
+                                                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $reply->created_at->diffForHumans() }}</div>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                            
+                                                            @if($fileType === 'pitch_file' && (Auth::id() === $reply->user_id || Auth::id() === $file->pitch->user_id))
+                                                                <flux:button 
+                                                                    wire:click="confirmDelete({{ $reply->id }})" 
+                                                                    variant="ghost" 
+                                                                    size="xs"
+                                                                    color="red"
+                                                                    icon="trash" />
+                                                            @endif
+                                                        </div>
+
+                                                        <!-- Reply Content -->
+                                                        <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line">{{ $reply->comment }}</p>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+
+                                        <!-- Reply Form -->
+                                        @if($showReplyForm && $replyToCommentId === $comment->id)
+                                            <div class="mt-4 ml-6 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+                                                <form wire:submit.prevent="submitReply">
+                                                    <div class="mb-3">
+                                                        <flux:textarea
+                                                            wire:model="replyText"
+                                                            placeholder="Write your reply..."
+                                                            rows="2"
+                                                            required />
+                                                    </div>
+                                                    
+                                                    <div class="flex gap-2">
+                                                        <flux:button type="submit" variant="filled" size="xs" icon="paper-airplane">
+                                                            Reply
+                                                        </flux:button>
+                                                        <flux:button type="button" wire:click="toggleReplyForm" variant="outline" size="xs">
+                                                            Cancel
+                                                        </flux:button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <!-- Empty State -->
                             <div class="py-8 text-center">
-                                <flux:icon.chat-bubble-left-ellipsis
+                                <flux:icon name="chat-bubble-left-ellipsis"
                                     class="mx-auto mb-2 text-gray-400 dark:text-gray-500" size="lg" />
                                 <p class="text-gray-600 dark:text-gray-400">No comments yet.</p>
+                                @if($this->canAddComments())
+                                    <flux:button wire:click="toggleCommentForm" variant="outline" size="sm" class="mt-3" icon="plus">
+                                        Add the first comment
+                                    </flux:button>
+                                @endif
                             </div>
-                        </div>
+                        @endif
                     </flux:card>
                 </div>
+
+                <!-- Delete Confirmation Modal -->
+                @if($showDeleteConfirmation)
+                    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white rounded-lg p-6 m-4 max-w-sm w-full">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Delete Comment</h3>
+                            <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete this comment? This action cannot be undone.</p>
+                            <div class="flex justify-end space-x-2">
+                                <flux:button wire:click="cancelDelete" variant="outline" size="sm">
+                                    Cancel
+                                </flux:button>
+                                <flux:button wire:click="deleteComment" variant="filled" size="sm" color="red">
+                                    Delete
+                                </flux:button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </flux:card> <!-- End of main flux:card -->
         </div> <!-- End of universal-audio-player div (x-data) -->
     </div> <!-- End of mx-auto container -->
@@ -477,6 +805,7 @@
         const instanceId = 'universal-player';
         const livewireComponentId = '{{ $this->getId() }}';
         const audioUrl = {!! json_encode($this->getFileUrl()) !!};
+        const storedDurationFromDb = @js($file->duration ?? null);
 
         // Find the container and Alpine component (exactly like pitch-file-player)
         const container = document.getElementById('universal-audio-player');
@@ -513,6 +842,12 @@
             alpineComponent.setCurrentPosition(0);
         }
 
+        // Prefill total duration from DB if available
+        if (storedDurationFromDb && alpineComponent) {
+            alpineComponent.playerState.duration = storedDurationFromDb;
+            alpineComponent.playerState.totalDuration = formatTime(storedDurationFromDb);
+        }
+
         // Initialize globalAudioManager with the universal player container
         if (!window.globalAudioManager) {
             console.error('Global Audio Manager not available');
@@ -532,110 +867,31 @@
         console.log('Initializing WaveSurfer for universal player container:', containerSelector);
         const waveSurferInitialized = window.globalAudioManager.initializeWaveSurfer(containerSelector);
 
-        let wavesurfer;
+        let wavesurfer = window.globalAudioManager.waveSurfer;
         let useGlobalAudioManager = true;
 
-        if (!waveSurferInitialized) {
-            console.error('Failed to initialize WaveSurfer via globalAudioManager');
-            // Fallback: create our own WaveSurfer instance
-            console.log('Creating fallback WaveSurfer instance');
-            useGlobalAudioManager = false;
-
-            if (typeof WaveSurfer === 'undefined') {
-                console.error('WaveSurfer not loaded');
-                return;
-            }
-
-            wavesurfer = WaveSurfer.create({
-                container: containerElement,
-                waveColor: 'rgba(167, 139, 250, 0.3)',
-                progressColor: 'rgba(99, 102, 241, 0.8)',
-                cursorColor: 'rgb(67, 56, 202)',
-                barWidth: 3,
-                barRadius: 1,
-                barGap: 2,
-                responsive: true,
-                height: 120,
-                normalize: true,
-                backend: 'WebAudio',
-                mediaControls: false,
-            });
-
-            // Add event listeners for fallback WaveSurfer instance
-            wavesurfer.on('ready', () => {
-                const duration = wavesurfer.getDuration();
-
-                // Update Alpine state
-                if (alpineComponent) {
-                    alpineComponent.playerState.totalDuration = formatTime(duration);
-                    alpineComponent.playerState.duration = duration;
-                    alpineComponent.playerState.isReady = true;
-                    alpineComponent.playerState.isPlaying = false;
-                }
-
-                console.log('Fallback WaveSurfer ready, duration:', duration);
-
-                // Show waveform and setup timeline
-                const waveformContainer = document.getElementById('waveform-' + instanceId + '-full');
-                if (waveformContainer) {
-                    waveformContainer.classList.add('loaded');
-
-                    // Add marker overlay
-                    let markerOverlay = waveformContainer.querySelector('.waveform-marker-overlay');
-                    if (!markerOverlay) {
-                        markerOverlay = document.createElement('div');
-                        markerOverlay.className = 'waveform-marker-overlay';
-                        markerOverlay.style.cssText = `
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            width: 100%;
-                            height: 100%;
-                            pointer-events: none;
-                            z-index: 1000;
-                        `;
-                        waveformContainer.appendChild(markerOverlay);
-                    }
-                }
-
-                setupTimeline(duration);
-            });
-
-            wavesurfer.on('play', () => {
-                if (alpineComponent) {
-                    alpineComponent.playerState.isPlaying = true;
-                }
-                console.log('Fallback WaveSurfer: Play event fired');
-            });
-
-            wavesurfer.on('pause', () => {
-                if (alpineComponent) {
-                    alpineComponent.playerState.isPlaying = false;
-                }
-                console.log('Fallback WaveSurfer: Pause event fired');
-            });
-
-            wavesurfer.on('audioprocess', () => {
-                const currentTime = wavesurfer.getCurrentTime();
-                if (alpineComponent) {
-                    alpineComponent.playerState.currentTime = formatTime(currentTime);
-                    alpineComponent.setCurrentPosition(currentTime);
-
-                    // Handle A-B loop for fallback
-                    if (alpineComponent.loopEnabled &&
-                        alpineComponent.loopStart !== null &&
-                        alpineComponent.loopEnd !== null &&
-                        currentTime >= alpineComponent.loopEnd) {
-                        wavesurfer.seekTo(alpineComponent.loopStart / wavesurfer.getDuration());
-                    }
-                }
-            });
-        } else {
-            wavesurfer = window.globalAudioManager.waveSurfer;
+        if (!wavesurfer) {
+            console.error('No WaveSurfer instance from GlobalAudioManager');
+            return;
         }
 
         // Store wavesurfer reference
         alpineComponent.wavesurfer = wavesurfer;
+
+        // Make sure we have a valid wavesurfer instance before proceeding
+        console.log('WaveSurfer instance check:', {
+            wavesurfer: wavesurfer,
+            type: typeof wavesurfer,
+            hasDrawBuffer: wavesurfer && typeof wavesurfer.drawBuffer,
+            hasBackend: wavesurfer && typeof wavesurfer.backend,
+            hasOptions: wavesurfer && typeof wavesurfer.options,
+            usingGlobalManager: useGlobalAudioManager
+        });
+        
+        if (!wavesurfer) {
+            console.error('No valid WaveSurfer instance available');
+            return;
+        }
 
         // Format time helper
         function formatTime(seconds) {
@@ -712,6 +968,8 @@
                     }
                 }
 
+                // Draw existing loop markers if any
+                try { if (alpineComponent && typeof alpineComponent.updateLoopMarkers === 'function') { alpineComponent.updateLoopMarkers(); } } catch (e) {}
                 setupTimeline(duration);
             });
 
@@ -720,6 +978,12 @@
                     alpineComponent.playerState.isPlaying = true;
                 }
                 console.log('GlobalAudioManager: Play event fired');
+                
+                // Keep time display in sync using the persistent audio element
+                const audioEl = document.getElementById('persistent-audio-element');
+                if (audioEl && alpineComponent) {
+                    alpineComponent.playerState.currentTime = formatTime(audioEl.currentTime || 0);
+                }
             });
 
             wavesurfer.on('pause', () => {
@@ -727,6 +991,12 @@
                     alpineComponent.playerState.isPlaying = false;
                 }
                 console.log('GlobalAudioManager: Pause event fired');
+                
+                // Ensure current time stays accurate when paused
+                const audioEl = document.getElementById('persistent-audio-element');
+                if (audioEl && alpineComponent) {
+                    alpineComponent.playerState.currentTime = formatTime(audioEl.currentTime || 0);
+                }
             });
 
             wavesurfer.on('audioprocess', () => {
@@ -737,16 +1007,62 @@
                     // A-B loop handled by globalAudioManager
                 }
             });
+
+            // Bind to persistent audio element for reliable time/duration updates with MediaElement backend
+            const audioEl = document.getElementById('persistent-audio-element');
+            if (audioEl) {
+                audioEl.addEventListener('loadedmetadata', () => {
+                    if (!alpineComponent) return;
+                    const dur = audioEl.duration || 0;
+                    alpineComponent.playerState.duration = dur;
+                    alpineComponent.playerState.totalDuration = formatTime(dur);
+                    alpineComponent.playerState.isReady = true;
+                }, { once: true });
+
+                const updateFromAudio = () => {
+                    if (!alpineComponent) return;
+                    const ct = audioEl.currentTime || 0;
+                    alpineComponent.playerState.currentTime = formatTime(ct);
+                    alpineComponent.setCurrentPosition(ct);
+                };
+                audioEl.addEventListener('timeupdate', updateFromAudio);
+                audioEl.addEventListener('seeking', updateFromAudio);
+            }
         }
 
         // Listen for Alpine dispatch events (like pitch-file-player)
         document.addEventListener('toggle-playback-' + instanceId, function(event) {
             try {
+                console.log('Toggle playback event received:', event.detail);
+                
                 if (useGlobalAudioManager) {
+                    console.log('Using Global Audio Manager for playback control');
+                    console.log('Global Audio Manager state:', {
+                        isReady: window.globalAudioManager?.isReady,
+                        currentTrack: window.globalAudioManager?.currentTrack,
+                        waveSurfer: window.globalAudioManager?.waveSurfer,
+                        isPlaying: window.globalAudioManager?.waveSurfer?.isPlaying(),
+                        hasAudioBuffer: window.globalAudioManager?.waveSurfer?.backend?.buffer,
+                        duration: window.globalAudioManager?.waveSurfer?.getDuration(),
+                        currentTime: window.globalAudioManager?.waveSurfer?.getCurrentTime()
+                    });
+                    
                     if (event.detail.playing) {
-                        window.globalAudioManager.play();
+                        console.log('Attempting to play via Global Audio Manager');
+                        try {
+                            const result = window.globalAudioManager.play();
+                            console.log('Play result:', result);
+                        } catch (error) {
+                            console.error('Error calling globalAudioManager.play():', error);
+                        }
                     } else {
-                        window.globalAudioManager.pause();
+                        console.log('Attempting to pause via Global Audio Manager');
+                        try {
+                            const result = window.globalAudioManager.pause();
+                            console.log('Pause result:', result);
+                        } catch (error) {
+                            console.error('Error calling globalAudioManager.pause():', error);
+                        }
                     }
                 } else {
                     // Use local WaveSurfer instance
@@ -765,21 +1081,132 @@
             }
         });
 
-        // Load audio
-        if (useGlobalAudioManager) {
-            // Load audio via globalAudioManager
+        // Check if we have pre-generated waveform data
+        const hasPreGeneratedPeaks = @js($file->waveform_processed && $file->waveform_peaks);
+
+        if (hasPreGeneratedPeaks) {
+            console.log('Using pre-generated waveform data for Universal Audio Player');
+            const peaks = @js($file->waveform_peaks_array);
+            const storedDuration = @js($file->duration ?? null);
+
+            // Debug the peaks data
+            console.log('Peaks data type:', typeof peaks);
+            console.log('Is peaks an array?', Array.isArray(peaks));
+            console.log('Peaks sample:', peaks && peaks.length > 0 ? peaks.slice(0, 10) : peaks);
+
+            if (peaks && Array.isArray(peaks[0])) {
+                // We have min/max peaks format - convert to WaveSurfer format
+                const waveformPeaks = peaks.map(point => point[1]); // Use max peaks for visualization
+                
+                console.log('Converting min/max peaks to WaveSurfer format');
+                console.log('WaveformPeaks sample:', waveformPeaks.slice(0, 10));
+                console.log('WaveformPeaks range:', Math.min(...waveformPeaks), 'to', Math.max(...waveformPeaks));
+
+                // Use duration from database or estimate
+                const estimatedDuration = waveformPeaks.length > 0 ? (waveformPeaks.length / 67) * 60 : 60;
+                const displayDuration = storedDuration || estimatedDuration;
+                
+                console.log('Duration info:', { stored: storedDuration, estimated: estimatedDuration, using: displayDuration });
+                // Single-path: delegate to GlobalAudioManager with peaks
+                const peaksArray = [new Float32Array(waveformPeaks)];
+                const trackData = {
+                    url: audioUrl,
+                    title: '{{ $file->original_filename ?? ($file->filename ?? 'Audio File') }}',
+                    artist: 'Universal Player',
+                    id: '{{ $fileType === 'pitch_file' ? $file->uuid : $file->id }}',
+                    type: '{{ $fileType }}'
+                };
+                window.globalAudioManager.loadTrackWithPeaks(trackData, peaksArray, displayDuration, containerSelector);
+                alpineComponent.wavesurfer = window.globalAudioManager.waveSurfer;
+
+                // Mark container loaded
+                const wf = document.getElementById('waveform-' + instanceId + '-full');
+                if (wf) wf.classList.add('loaded');
+                // Prefill UI duration immediately
+                if (alpineComponent) {
+                    alpineComponent.playerState.duration = displayDuration;
+                    alpineComponent.playerState.totalDuration = formatTime(displayDuration);
+                }
+                return;
+
+            } else if (peaks && Array.isArray(peaks)) {
+                // Single array format - treat as positive peaks only
+                console.log('Converting single array to min/max peaks format');
+                
+                // Convert single array to min/max format (assume negative mirror)
+                const minPeaks = peaks.map(peak => -Math.abs(peak));
+                const maxPeaks = peaks.map(peak => Math.abs(peak));
+                const storedDuration = @js($file->duration ?? null);
+                const estimatedDuration = peaks.length > 0 ? (peaks.length / 67) * 60 : 60;
+                const displayDuration = storedDuration || estimatedDuration;
+
+                const peaksArray = [new Float32Array(maxPeaks)];
+                const trackData = {
+                    url: audioUrl,
+                    title: '{{ $file->original_filename ?? ($file->filename ?? 'Audio File') }}',
+                    artist: 'Universal Player',
+                    id: '{{ $fileType === 'pitch_file' ? $file->uuid : $file->id }}',
+                    type: '{{ $fileType }}'
+                };
+                window.globalAudioManager.loadTrackWithPeaks(trackData, peaksArray, displayDuration, containerSelector);
+                alpineComponent.wavesurfer = window.globalAudioManager.waveSurfer;
+                const wf2 = document.getElementById('waveform-' + instanceId + '-full');
+                if (wf2) wf2.classList.add('loaded');
+                // Prefill UI duration immediately
+                if (alpineComponent) {
+                    alpineComponent.playerState.duration = displayDuration;
+                    alpineComponent.playerState.totalDuration = formatTime(displayDuration);
+                }
+                return;
+            } else {
+                console.warn('Invalid peaks format, falling back to regular load');
+                
+                // Fallback to normal loading
+                const trackData = {
+                    url: audioUrl,
+                    title: '{{ $file->original_filename ?? ($file->filename ?? 'Audio File') }}',
+                    artist: 'Universal Player',
+                    id: '{{ $fileType === 'pitch_file' ? $file->uuid : $file->id }}',
+                    type: '{{ $fileType }}'
+                };
+                window.globalAudioManager.loadTrack(trackData);
+                return;
+            }
+        } else {
+            console.log('No pre-generated waveform data, generating placeholder and loading audio normally');
+            
+            // Estimate duration from DB or use reasonable default
+            const estimatedDuration = storedDurationFromDb || 180; // 3 minutes default
+            
+            // Generate placeholder waveform data
+            const placeholderPeaks = window.globalAudioManager.generatePlaceholderWaveform(estimatedDuration);
+            
+            // Load with placeholder peaks first for immediate visual feedback
             const trackData = {
                 url: audioUrl,
-                title: '{{ $file->original_filename ?? ($file->filename ?? 'Audio File') }}',
+                title: {!! json_encode($file->original_filename ?? ($file->filename ?? 'Audio File')) !!},
                 artist: 'Universal Player',
-                id: '{{ $fileType === 'pitch_file' ? $file->uuid : $file->id }}',
-                type: '{{ $fileType }}'
+                id: {!! json_encode($fileType === 'pitch_file' ? $file->uuid : $file->id) !!},
+                type: {!! json_encode($fileType) !!}
             };
-
-            window.globalAudioManager.loadTrack(trackData);
-        } else {
-            // Load audio directly
-            wavesurfer.load(audioUrl);
+            
+            // Use placeholder peaks with estimated duration
+            window.globalAudioManager.loadTrackWithPeaks(trackData, placeholderPeaks, estimatedDuration, containerSelector);
+            alpineComponent.wavesurfer = window.globalAudioManager.waveSurfer;
+            
+            // Mark container as loaded with placeholder
+            const wf = document.getElementById('waveform-' + instanceId + '-full');
+            if (wf) {
+                wf.classList.add('loaded', 'placeholder-waveform');
+            }
+            
+            // Show duration immediately
+            if (alpineComponent) {
+                alpineComponent.playerState.duration = estimatedDuration;
+                alpineComponent.playerState.totalDuration = formatTime(estimatedDuration);
+            }
+            
+            return;
         }
     }
 </script>
@@ -797,6 +1224,13 @@
         opacity: 1;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
+
+    /* Placeholder waveform styling */
+    #waveform-universal-player-full.placeholder-waveform {
+        opacity: 0.7;
+        background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+    }
+
 
     /* Ensure WaveSurfer canvas doesn't override our markers */
     #waveform-universal-player-full {

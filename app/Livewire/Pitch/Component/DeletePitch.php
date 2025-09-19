@@ -14,10 +14,13 @@ class DeletePitch extends Component
 
     public $deleteConfirmInput = '';
 
+
     public function mount(Pitch $pitch)
     {
         $this->pitch = $pitch;
     }
+
+    protected $listeners = ['confirmDeletePitch' => 'confirmDelete'];
 
     public function confirmDelete()
     {
@@ -28,6 +31,7 @@ class DeletePitch extends Component
     {
         $this->showDeleteConfirmation = false;
         $this->deleteConfirmInput = '';
+        $this->dispatch('closeModal', 'deletePitchModal');
     }
 
     public function deletePitch()

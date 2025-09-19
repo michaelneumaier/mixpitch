@@ -592,6 +592,9 @@ class ManageClientProject extends Component
             $this->pitch->refresh();
 
             Toaster::success('Message sent to client successfully.');
+            
+            // Dispatch event to close the message form
+            $this->dispatch('messageAdded');
 
         } catch (\Exception $e) {
             Log::error('Failed to add producer comment', [
@@ -599,6 +602,35 @@ class ManageClientProject extends Component
                 'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to send message. Please try again.');
+        }
+    }
+
+    /**
+     * Delete a producer comment
+     */
+    public function deleteProducerComment($eventId)
+    {
+        try {
+            $event = $this->pitch->events()->findOrFail($eventId);
+
+            // Verify this is a producer comment and belongs to current user
+            if ($event->event_type !== 'producer_comment' || $event->created_by !== auth()->id()) {
+                Toaster::error('You can only delete your own messages.');
+                return;
+            }
+
+            $event->delete();
+            $this->pitch->refresh();
+
+            Toaster::success('Message deleted successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('Failed to delete producer comment', [
+                'event_id' => $eventId,
+                'pitch_id' => $this->pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to delete message. Please try again.');
         }
     }
 

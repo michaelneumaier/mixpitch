@@ -1,152 +1,120 @@
-@props(['pitch'])
+@props(['pitch', 'workflowColors' => null, 'semanticColors' => null])
 
 @php
     $project = $pitch->project;
     $user = $pitch->user;
+    
+    // If colors not passed, define defaults
+    if (!$workflowColors) {
+        $workflowColors = [
+            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'border' => 'border-gray-200 dark:border-gray-800',
+            'text_primary' => 'text-gray-900 dark:text-gray-100',
+            'text_secondary' => 'text-gray-700 dark:text-gray-300',
+            'text_muted' => 'text-gray-600 dark:text-gray-400',
+            'accent_bg' => 'bg-gray-100 dark:bg-gray-900',
+            'accent_border' => 'border-gray-200 dark:border-gray-800',
+            'icon' => 'text-gray-600 dark:text-gray-400'
+        ];
+    }
 @endphp
 
-<div class="bg-gradient-to-br from-white/95 to-indigo-50/90 backdrop-blur-sm border border-white/50 rounded-2xl p-6 shadow-lg">
-    <div class="flex items-center mb-4">
-        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mr-3">
-            <i class="fas fa-info-circle text-white"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold text-gray-800">Pitch Details</h3>
-            <p class="text-sm text-gray-600">Producer and project info</p>
+<flux:card>
+    <!-- Compact Header -->
+    <div class="mb-4 flex items-center gap-3">
+        <flux:icon.information-circle variant="solid" class="{{ $workflowColors['icon'] }} h-6 w-6" />
+        <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">Pitch Details</flux:heading>
+    </div>
+
+    <!-- Producer Info - Compact -->
+    <div class="mb-4 flex items-center gap-3 {{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} border rounded-lg p-3">
+        <img class="h-8 w-8 rounded-full object-cover border {{ $workflowColors['border'] }}"
+             src="{{ $user->profile_photo_url }}"
+             alt="{{ $user->name }}" />
+        <div class="flex-1 min-w-0">
+            <flux:text class="{{ $workflowColors['text_primary'] }} font-medium truncate">{{ $user->name }}</flux:text>
+            @if($user->username)
+                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }}">@{{ $user->username }}</flux:text>
+            @else
+                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }}">Producer</flux:text>
+            @endif
         </div>
     </div>
 
-    <div class="space-y-4">
-        <!-- Producer Information -->
-        <div class="bg-white/60 backdrop-blur-sm border border-indigo-200/30 rounded-xl p-4">
-            <div class="flex items-center mb-3">
-                <img class="h-10 w-10 rounded-full object-cover mr-3 border-2 border-indigo-200"
-                     src="{{ $user->profile_photo_url }}"
-                     alt="{{ $user->name }}" />
-                <div class="flex-1">
-                    <h4 class="text-sm font-bold text-indigo-900">{{ $user->name }}</h4>
-                    <p class="text-xs text-indigo-600">Producer</p>
-                </div>
-            </div>
-            @if($user->username)
-                <div class="text-xs text-indigo-700">
-                    <i class="fas fa-at mr-1"></i>{{ $user->username }}
-                </div>
-            @endif
-        </div>
-
-        <!-- Project Information -->
+    <!-- Project Details - Single Column Layout -->
+    <div class="space-y-2">
         @if($project->artist_name)
-            <div class="bg-blue-50 border border-blue-200/50 rounded-xl p-4">
-                <div class="flex items-center mb-2">
-                    <i class="fas fa-microphone text-blue-600 mr-2"></i>
-                    <span class="text-xs font-medium text-blue-700 uppercase tracking-wide">Artist</span>
+            <div class="flex items-center gap-2">
+                <flux:icon.microphone class="{{ $workflowColors['icon'] }} h-4 w-4 flex-shrink-0" />
+                <div class="min-w-0 flex-1">
+                    <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} uppercase tracking-wide">Artist</flux:text>
+                    <flux:text size="sm" class="{{ $workflowColors['text_primary'] }} font-medium truncate">{{ $project->artist_name }}</flux:text>
                 </div>
-                <div class="text-sm font-bold text-blue-900">{{ $project->artist_name }}</div>
             </div>
         @endif
-
+        
         @if($project->genre)
-            <div class="bg-purple-50 border border-purple-200/50 rounded-xl p-4">
-                <div class="flex items-center mb-2">
-                    <i class="fas fa-music text-purple-600 mr-2"></i>
-                    <span class="text-xs font-medium text-purple-700 uppercase tracking-wide">Genre</span>
+            <div class="flex items-center gap-2">
+                <flux:icon.musical-note class="{{ $workflowColors['icon'] }} h-4 w-4 flex-shrink-0" />
+                <div class="min-w-0 flex-1">
+                    <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} uppercase tracking-wide">Genre</flux:text>
+                    <flux:text size="sm" class="{{ $workflowColors['text_primary'] }} font-medium truncate">{{ $project->genre }}</flux:text>
                 </div>
-                <div class="text-sm font-bold text-purple-900">{{ $project->genre }}</div>
             </div>
         @endif
 
-        <!-- Project Type -->
-        <div class="bg-green-50 border border-green-200/50 rounded-xl p-4">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-tag text-green-600 mr-2"></i>
-                <span class="text-xs font-medium text-green-700 uppercase tracking-wide">Project Type</span>
+        <div class="flex items-center gap-2">
+            <flux:icon.tag class="{{ $workflowColors['icon'] }} h-4 w-4 flex-shrink-0" />
+            <div class="min-w-0 flex-1">
+                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} uppercase tracking-wide">Type</flux:text>
+                <flux:text size="sm" class="{{ $workflowColors['text_primary'] }} font-medium truncate">{{ ucwords(str_replace('_', ' ', $project->project_type)) }}</flux:text>
             </div>
-            <div class="text-sm font-bold text-green-900">{{ ucwords(str_replace('_', ' ', $project->project_type)) }}</div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <flux:icon.currency-dollar class="{{ $workflowColors['icon'] }} h-4 w-4 flex-shrink-0" />
+            <div class="min-w-0 flex-1">
+                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} uppercase tracking-wide">Budget</flux:text>
+                <flux:text size="sm" class="{{ $workflowColors['text_primary'] }} font-medium">
+                    {{ $project->budget == 0 ? 'Free' : '$'.number_format($project->budget, 0) }}
+                    @if($project->budget > 0)
+                        <span class="font-normal {{ $workflowColors['text_muted'] }}">USD</span>
+                    @endif
+                </flux:text>
+            </div>
         </div>
 
-        <!-- Budget -->
-        <div class="bg-emerald-50 border border-emerald-200/50 rounded-xl p-4">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-money-bill-wave text-emerald-600 mr-2"></i>
-                <span class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Budget</span>
-            </div>
-            <div class="text-sm font-bold text-emerald-900">
-                {{ $project->budget == 0 ? 'Free Project' : '$'.number_format($project->budget, 0) }}
-                @if($project->budget > 0)
-                    <span class="text-xs font-normal text-emerald-700 ml-1">USD</span>
-                @endif
-            </div>
-            @if($project->budget == 0)
-                <div class="text-xs text-emerald-600 mt-1">No payment expected</div>
-            @endif
-        </div>
-
-        <!-- Deadline (if applicable) -->
         @if($project->isContest() ? $project->submission_deadline : $project->deadline)
-            <div class="bg-amber-50 border border-amber-200/50 rounded-xl p-4">
-                <div class="flex items-center mb-2">
-                    <i class="fas fa-calendar-alt text-amber-600 mr-2"></i>
-                    <span class="text-xs font-medium text-amber-700 uppercase tracking-wide">{{ $project->isContest() ? 'Submission Deadline' : 'Deadline' }}</span>
+            <div class="flex items-center gap-2">
+                <flux:icon.calendar class="{{ $workflowColors['icon'] }} h-4 w-4 flex-shrink-0" />
+                <div class="min-w-0 flex-1">
+                    <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} uppercase tracking-wide">
+                        {{ $project->isContest() ? 'Deadline' : 'Deadline' }}
+                    </flux:text>
+                    @php $deadline = $project->isContest() ? $project->submission_deadline : $project->deadline; @endphp
+                    <flux:text size="sm" class="{{ $deadline->isPast() ? 'text-red-600 dark:text-red-400' : $workflowColors['text_primary'] }} font-medium">
+                        {{ $deadline->format('M d, Y') }}
+                        @if($deadline->isPast())
+                            <flux:icon.exclamation-triangle class="inline h-3 w-3 ml-1" />
+                        @endif
+                    </flux:text>
                 </div>
-                @if($project->isContest())
-                    <div class="text-sm font-bold text-amber-900">
-                        <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
-                    </div>
-                    <div class="text-xs text-amber-700 mt-1">
-                        <x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
-                    </div>
-                    @if($project->submission_deadline->isPast())
-                        <div class="text-xs text-red-600 mt-1">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
-                        </div>
-                    @else
-                        <div class="text-xs text-amber-600 mt-1">
-                            <x-datetime :date="$project->submission_deadline" relative="true" />
-                        </div>
-                    @endif
-                @else
-                    <div class="text-sm font-bold text-amber-900">
-                        <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="M d, Y" />
-                    </div>
-                    <div class="text-xs text-amber-700 mt-1">
-                        <x-datetime :date="$project->deadline" :user="$project->user" :convertToViewer="true" format="g:i A T" />
-                    </div>
-                    @if($project->deadline->isPast())
-                        <div class="text-xs text-red-600 mt-1">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
-                        </div>
-                    @else
-                        <div class="text-xs text-amber-600 mt-1">
-                            <x-datetime :date="$project->deadline" relative="true" />
-                        </div>
-                    @endif
-                @endif
             </div>
         @endif
-
-        <!-- Pitch Created Date -->
-        <div class="bg-gray-50 border border-gray-200/50 rounded-xl p-4">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-clock text-gray-600 mr-2"></i>
-                <span class="text-xs font-medium text-gray-700 uppercase tracking-wide">Pitch Created</span>
-            </div>
-            <div class="text-sm font-bold text-gray-900">
-                {{ $pitch->created_at->format('M d, Y') }}
-            </div>
-            <div class="text-xs text-gray-600 mt-1">
-                {{ $pitch->created_at->diffForHumans() }}
+        
+        <div class="flex items-center gap-2">
+            <flux:icon.clock class="{{ $workflowColors['icon'] }} h-4 w-4 flex-shrink-0" />
+            <div class="min-w-0 flex-1">
+                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} uppercase tracking-wide">Created</flux:text>
+                <flux:text size="sm" class="{{ $workflowColors['text_primary'] }} font-medium">{{ $pitch->created_at->format('M d, Y') }}</flux:text>
             </div>
         </div>
 
-        <!-- Collaboration Types (if available) -->
+        <!-- Services/Collaboration Types (if available) - Compact Tags -->
         @if($project->collaboration_type && count(array_filter($project->collaboration_type)) > 0)
-            <div class="bg-indigo-50 border border-indigo-200/50 rounded-xl p-4">
-                <div class="flex items-center mb-3">
-                    <i class="fas fa-handshake text-indigo-600 mr-2"></i>
-                    <span class="text-xs font-medium text-indigo-700 uppercase tracking-wide">Services Needed</span>
-                </div>
-                <div class="flex flex-wrap gap-2">
+            <div class="pt-2 border-t {{ $workflowColors['border'] }}">
+                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} uppercase tracking-wide mb-2 block">Services Needed</flux:text>
+                <div class="flex flex-wrap gap-1">
                     @foreach($project->collaboration_type as $key => $value)
                         @php
                             $collaborationType = '';
@@ -165,13 +133,13 @@
                         @endphp
                         
                         @if($collaborationType)
-                            <span class="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-medium">
+                            <flux:badge size="sm" class="text-xs">
                                 {{ $collaborationType }}
-                            </span>
+                            </flux:badge>
                         @endif
                     @endforeach
                 </div>
             </div>
         @endif
     </div>
-</div> 
+</flux:card>

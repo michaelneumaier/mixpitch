@@ -99,53 +99,9 @@
                                 </div>
 
 
-                                <!-- COMMUNICATION SECTION - Always accessible but positioned based on priority -->
-                                <flux:card class="mb-2">
-                                    <div class="mb-6 flex items-center gap-3">
-                                        <flux:icon.chat-bubble-left-ellipsis variant="solid"
-                                            class="{{ $workflowColors['icon'] }} h-8 w-8" />
-                                        <div>
-                                            <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
-                                                Client Communication</flux:heading>
-                                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Send messages
-                                                and view conversation history</flux:subheading>
-                                        </div>
-                                    </div>
-
-                                    <!-- Send Message Form -->
-                                    <form wire:submit.prevent="addProducerComment">
-                                        <flux:field>
-                                            <flux:label for="newComment">Send Message to Client</flux:label>
-                                            <flux:textarea wire:model.defer="newComment" id="newComment" rows="4"
-                                                placeholder="Share updates, ask questions, or provide additional context..." />
-                                            <flux:error name="newComment" />
-                                        </flux:field>
-
-                                        <div
-                                            class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                            <div
-                                                class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} flex-1 rounded-lg border p-3">
-                                                <div class="flex items-center gap-2">
-                                                    <flux:icon.information-circle
-                                                        class="{{ $semanticColors['success']['icon'] }} h-4 w-4" />
-                                                    <span class="{{ $semanticColors['success']['text'] }} text-sm">This
-                                                        message will be visible to your client and they'll receive an
-                                                        email notification</span>
-                                                </div>
-                                            </div>
-
-                                            <flux:button type="submit" variant="primary" icon="paper-airplane"
-                                                wire:loading.attr="disabled">
-                                                <span wire:loading.remove>Send Message</span>
-                                                <span wire:loading>Sending...</span>
-                                            </flux:button>
-                                        </div>
-                                    </form>
-                                </flux:card>
-
-                                <!-- Communication Timeline -->
+                                <!-- INTEGRATED CLIENT COMMUNICATION HUB -->
                                 <div class="mb-2">
-                                    <x-client-project.communication-timeline :component="$this" :conversationItems="$this->conversationItems"
+                                    <x-client-project.client-communication-hub :component="$this" :project="$project" :conversationItems="$this->conversationItems"
                                         :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
                                 </div>
 
@@ -367,19 +323,6 @@
                                 </flux:card>
 
                                 <!-- File Management Section -->
-                                <flux:card class="mb-2">
-                                    <div class="mb-6 flex items-center gap-3">
-                                        <flux:icon.folder variant="solid"
-                                            class="{{ $workflowColors['icon'] }} h-8 w-8" />
-                                        <div>
-                                            <flux:heading size="lg"
-                                                class="{{ $workflowColors['text_primary'] }}">
-                                                File Management</flux:heading>
-                                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Manage client
-                                                references and your deliverables</flux:subheading>
-                                        </div>
-                                    </div>
-
                                     <!-- Client Reference Files Section -->
                                     <flux:card
                                         class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} mb-6">
@@ -495,7 +438,6 @@
                                             'showFileCount' => false,
                                         ], key('producer-files-list-' . $pitch->id))
                                     </flux:card>
-                                </flux:card>
 
                                 <!-- Response to Feedback Section (if applicable) -->
                                 @if (in_array($pitch->status, [
@@ -718,116 +660,7 @@
                             </div>
                             <!-- Sidebar (1/3 width on large screens) -->
                             <div class="space-y-2 lg:col-span-1">
-                                {{-- Client Management Workflow Information --}}
-                                <flux:card
-                                    class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2 hidden lg:block">
-                                    <div class="mb-6 flex items-center gap-3">
-                                        <flux:icon.users variant="solid"
-                                            class="{{ $workflowColors['icon'] }} h-8 w-8" />
-                                        <div>
-                                            <flux:heading size="lg"
-                                                class="{{ $workflowColors['text_primary'] }}">Client Management
-                                            </flux:heading>
-                                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Private
-                                                client workflow</flux:subheading>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-4">
-                                        <div
-                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-xl border p-4">
-                                            <div class="flex items-start gap-3">
-                                                <flux:icon.shield-check
-                                                    class="{{ $workflowColors['icon'] }} mt-0.5 h-6 w-6 flex-shrink-0" />
-                                                <div>
-                                                    <flux:subheading
-                                                        class="{{ $workflowColors['text_primary'] }} mb-1 font-semibold">
-                                                        Private Workflow</flux:subheading>
-                                                    <p class="{{ $workflowColors['text_secondary'] }} text-sm">
-                                                        Work exclusively with your client through a secure, private
-                                                        workflow.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-xl border p-4">
-                                            <div class="flex items-start gap-3">
-                                                <flux:icon.envelope
-                                                    class="{{ $workflowColors['icon'] }} mt-0.5 h-6 w-6 flex-shrink-0" />
-                                                <div>
-                                                    <flux:subheading
-                                                        class="{{ $workflowColors['text_primary'] }} mb-1 font-semibold">
-                                                        Client Portal</flux:subheading>
-                                                    <p class="{{ $workflowColors['text_secondary'] }} text-sm">
-                                                        Your client reviews and approves work through their
-                                                        dedicated portal.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-xl border p-4">
-                                            <div class="flex items-start gap-3">
-                                                <flux:icon.currency-dollar
-                                                    class="{{ $workflowColors['icon'] }} mt-0.5 h-6 w-6 flex-shrink-0" />
-                                                <div>
-                                                    <flux:subheading
-                                                        class="{{ $workflowColors['text_primary'] }} mb-1 font-semibold">
-                                                        Direct Payment</flux:subheading>
-                                                    <p class="{{ $workflowColors['text_secondary'] }} text-sm">
-                                                        Get paid immediately after client approval with no waiting
-                                                        period.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </flux:card>
-
-                                {{-- Client Information --}}
-                                @if ($project->client_name || $project->client_email)
-                                    <flux:card
-                                        class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2">
-                                        <div class="mb-4 flex items-center gap-3">
-                                            <flux:icon.user-circle variant="solid"
-                                                class="{{ $workflowColors['icon'] }} h-8 w-8" />
-                                            <div>
-                                                <flux:heading size="lg"
-                                                    class="{{ $workflowColors['text_primary'] }}">Client
-                                                    Information</flux:heading>
-                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">
-                                                    Project stakeholder details</flux:subheading>
-                                            </div>
-                                        </div>
-                                        <div class="space-y-3">
-                                            @if ($project->client_name)
-                                                <div
-                                                    class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-                                                    <flux:icon.user class="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                                    <div>
-                                                        <flux:subheading class="font-medium">
-                                                            {{ $project->client_name }}</flux:subheading>
-                                                        <flux:text size="sm"
-                                                            class="text-gray-600 dark:text-gray-400">Client Name
-                                                        </flux:text>
-                                                    </div>
-                                                </div>
-                                            @endif
-                                            @if ($project->client_email)
-                                                <div
-                                                    class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-                                                    <flux:icon.envelope
-                                                        class="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                                    <div>
-                                                        <flux:subheading class="font-medium">
-                                                            {{ $project->client_email }}</flux:subheading>
-                                                        <flux:text size="sm"
-                                                            class="text-gray-600 dark:text-gray-400">Contact Email
-                                                        </flux:text>
-                                                    </div>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </flux:card>
-                                @endif
-
+                                <!-- Sidebar content can be added here if needed -->
                             </div>
                         </div>
                     </div>

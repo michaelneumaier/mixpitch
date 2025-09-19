@@ -1243,9 +1243,9 @@
                 // Get CSRF token - FIXED
                 const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                 
-                // TEMPORARY: Use regular URL for debugging (remove signed URL temporarily)
-                const uploadUrl = '/client-portal/project/{{ $project->id }}/upload';
-                console.log('Upload URL (temporary):', uploadUrl);
+                // Use properly signed URL for client portal uploads
+                const uploadUrl = '{{ URL::signedRoute("client.portal.upload_file", ["project" => $project->id]) }}';
+                console.log('Upload URL:', uploadUrl);
                 console.log('Current timestamp:', new Date().toISOString());
                 console.log('CSRF Token:', token);
                 
@@ -1396,7 +1396,7 @@
                 }
 
                 const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                const deleteUrl = `/client-portal/project/{{ $project->id }}/project-file/${fileId}`;
+                const deleteUrl = '{{ URL::signedRoute("client.portal.delete_project_file", ["project" => $project->id, "projectFile" => "PROJECT_FILE_ID"]) }}'.replace('PROJECT_FILE_ID', fileId);
                 
                 console.log('Delete URL:', deleteUrl);
                 

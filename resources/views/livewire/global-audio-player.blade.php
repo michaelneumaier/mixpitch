@@ -139,8 +139,8 @@
         
         {{-- Progress Bar --}}
         <div class="mt-2 mx-auto">
-            <div class="flex items-center gap-2 text-xs text-gray-500">
-                <span x-text="formatTime($store.audioPlayer.currentPosition)">00:00</span>
+                <div class="flex items-center gap-2 text-xs text-gray-500 font-mono tabular-nums">
+                    <span x-text="formatTime($store.audioPlayer.currentPosition)">00:00</span>
                 
                 <div class="flex-1 relative">
                     {{-- Loop markers for mini player --}}
@@ -174,6 +174,78 @@
                          class="w-full h-8 cursor-pointer hover:opacity-90 transition-opacity duration-150"
                          @click="handleWaveformClick($event)"
                          style="min-height: 32px;">
+                    </div>
+
+                    {{-- Floating Add Comment Button (follows playhead) --}}
+                    <div x-show="$store.audioPlayer.currentTrack && ['pitch_file','project_file'].includes($store.audioPlayer.currentTrack.type) && $store.audioPlayer.duration > 0"
+                         class="absolute -top-4 left-0 transform -translate-x-1/2 z-20 pointer-events-auto"
+                         :style="{ left: (Math.max(0, Math.min(100, ($store.audioPlayer.currentPosition / $store.audioPlayer.duration) * 100))) + '%' , opacity: $store.audioPlayer.isPlaying ? 1 : 0.7 }">
+                        <button type="button"
+                                @click="window.globalAudioManager?.triggerAddCommentAtCurrentPosition()"
+                                class="group w-7 h-7 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center"
+                                title="Add comment at current position">
+                            <i class="fas fa-plus text-xs group-hover:scale-110 transition-transform"></i>
+                        </button>
+                    </div>
+
+                    {{-- Mini Comment Tooltip (inline add) --}}
+                    <div x-data="{ 
+                                ts: null,
+                                tf(s){ if(!s || isNaN(s)) return '00:00'; const m=Math.floor(s/60), r=Math.floor(s%60); return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0'); },
+                                clamp() {
+                                    const container = document.getElementById('global-waveform-full');
+                                    if (!container) return;
+                                    const width = container.getBoundingClientRect().width || 0;
+                                    const dur = $store.audioPlayer.duration || 1;
+                                    const t = (typeof this.ts === 'number' && !isNaN(this.ts)) ? this.ts : ($store.audioPlayer.currentPosition || 0);
+                                    const percent = Math.max(0, Math.min(100, (t / dur) * 100));
+                                    const markerLeftPx = (percent / 100) * width;
+                                    const tooltipWidth = this.$el.offsetWidth || 320;
+                                    const margin = 8;
+                                    // Default centered at marker
+                                    this.$el.style.left = percent + '%';
+                                    this.$el.style.transform = 'translateX(-50%)';
+                                    // Near left edge
+                                    if (markerLeftPx < (tooltipWidth / 2 + margin)) {
+                                        this.$el.style.left = '0px';
+                                        this.$el.style.transform = 'translateX(0)';
+                                    }
+                                    // Near right edge
+                                    else if ((width - markerLeftPx) < (tooltipWidth / 2 + margin)) {
+                                        this.$el.style.left = width + 'px';
+                                        this.$el.style.transform = 'translateX(-100%)';
+                                    }
+                                }
+                            }"
+                         x-show="$wire.showAddCommentForm && $store.audioPlayer.currentTrack && ['pitch_file','project_file'].includes($store.audioPlayer.currentTrack.type) && $store.audioPlayer.duration > 0"
+                         class="absolute -top-28 left-0 z-30"
+                         x-init="window.addEventListener('resize', () => clamp());"
+                         x-effect="if ($wire.showAddCommentForm) { const newTs = (typeof $wire.commentTimestamp === 'number' && !isNaN($wire.commentTimestamp)) ? $wire.commentTimestamp : ($store.audioPlayer.currentPosition || 0); if (ts !== newTs) { ts = newTs; $nextTick(() => clamp()); } } else { ts = null }"
+                         x-cloak>
+                        <div class="w-64 bg-white/95 backdrop-blur-md border border-white/20 rounded-xl shadow-xl p-3">
+                            <div class="flex items-center gap-2 mb-2 text-xs text-gray-600">
+                                <i class="fas fa-clock text-purple-600"></i>
+                                <span x-text="tf(ts)">00:00</span>
+                            </div>
+                            <textarea wire:model="newComment"
+                                      rows="2"
+                                      placeholder="Add your comment..."
+                                      class="w-full px-2 py-2 text-sm text-gray-700 bg-white/90 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400"></textarea>
+                            <div class="flex items-center justify-end gap-2 mt-2">
+                                <button type="button"
+                                        @click="ts = null"
+                                        wire:click="toggleCommentForm"
+                                        class="px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded">
+                                    Cancel
+                                </button>
+                                <button type="button"
+                                        @click="ts = null"
+                                        wire:click="addComment"
+                                        class="px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded shadow">
+                                    Post
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     
                     {{-- Persistent audio element for streaming support --}}
@@ -273,9 +345,11 @@
                     
                     <div wire:ignore 
                          id="global-waveform-full" 
-                         class="w-full mb-6 cursor-pointer hover:opacity-90 transition-opacity duration-150 relative" 
+                         class="w-full mb-6 cursor-pointer hover:opacity-90 transition-opacity duration-150 relative"
                          @click="handleWaveformClick($event, true)"
-                         style="min-height: 120px;">
+                         style="min-height: 120px; height: 120px;">
+                        <!-- Overlay for loop/comment markers -->
+                        <div class="comment-markers-overlay absolute inset-0 pointer-events-none z-10"></div>
                     </div>
                 </div>
                 
@@ -298,7 +372,7 @@
                 </div>
                 
                 {{-- Time Display --}}
-                <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
+                <div class="flex items-center justify-between text-sm text-gray-600 mb-4 font-mono tabular-nums">
                     <span x-text="formatTime($store.audioPlayer.currentPosition)">00:00</span>
                     <span x-text="formatTime($store.audioPlayer.duration)">00:00</span>
                 </div>
@@ -458,8 +532,8 @@
                 </div>
             </div>
             
-            {{-- Comments Section --}}
-            @if($showComments && $currentTrack && $currentTrack['type'] === 'pitch_file')
+                    {{-- Comments Section --}}
+                    @if($showComments && $currentTrack && in_array($currentTrack['type'], ['pitch_file','project_file']))
                 <div class="border-t border-gray-200/50 p-6 max-h-80 overflow-y-auto">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Comments</h3>
                     

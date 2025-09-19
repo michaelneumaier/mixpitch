@@ -24,6 +24,9 @@ class ProjectFile extends Model
         'is_preview_track',
         'metadata',
         'duration',
+        'waveform_peaks',
+        'waveform_processed',
+        'waveform_processed_at',
     ];
 
     /**
@@ -32,6 +35,8 @@ class ProjectFile extends Model
     protected $casts = [
         'metadata' => 'array',
         'duration' => 'float',
+        'waveform_processed' => 'boolean',
+        'waveform_processed_at' => 'datetime',
     ];
 
     public function formatBytes($bytes, $precision = 2)
@@ -159,6 +164,44 @@ class ProjectFile extends Model
     public function comments()
     {
         return $this->morphMany(FileComment::class, 'commentable');
+    }
+
+    /**
+     * Get waveform peaks data as PHP array
+     *
+     * @return array|null
+     */
+    public function getWaveformPeaksArrayAttribute()
+    {
+        if (! $this->waveform_peaks) {
+            return null;
+        }
+
+        return json_decode($this->waveform_peaks, true);
+    }
+
+    /**
+     * Get the original file URL for waveform processing
+     * Similar to PitchFile's getOriginalFileUrl method
+     *
+     * @param  int  $expirationMinutes  Minutes until URL expires (default: 60)
+     * @return string|null
+     */
+    public function getOriginalFileUrl($expirationMinutes = 60)
+    {
+        try {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->file_path,
+                now()->addMinutes($expirationMinutes)
+            );
+        } catch (Exception $e) {
+            \Log::error('Error generating original file URL for waveform processing', [
+                'file_path' => $this->file_path,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**

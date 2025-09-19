@@ -96,13 +96,9 @@ class UniversalAudioPlayer extends Component
         $this->clientMode = $clientMode;
         $this->clientEmail = $clientEmail;
 
-        // Load comments if this is a pitch file
-        if ($fileType === 'pitch_file') {
-            $this->loadComments();
-            $this->showComments = true;
-        } else {
-            $this->showComments = false;
-        }
+        // Load comments for both pitch files and project files
+        $this->loadComments();
+        $this->showComments = true;
 
         // Initialize duration from stored file data
         if ($file->duration > 0) {
@@ -255,19 +251,15 @@ class UniversalAudioPlayer extends Component
     // Comments System (from PitchFilePlayer)
     public function loadComments()
     {
-        if ($this->fileType !== 'pitch_file') {
-            return;
-        }
-
         $baseQuery = $this->file->comments()
             ->whereNull('parent_id')
             ->with(['user', 'replies.user', 'replies.replies.user']);
 
-        if ($this->clientMode) {
+        if ($this->clientMode && $this->fileType === 'pitch_file') {
             $this->resolvedCount = $baseQuery->clone()->where('resolved', true)->count();
         }
 
-        if ($this->clientMode && ! $this->showResolved) {
+        if ($this->clientMode && ! $this->showResolved && $this->fileType === 'pitch_file') {
             $baseQuery->where('resolved', false);
         }
 
@@ -292,11 +284,13 @@ class UniversalAudioPlayer extends Component
         }
     }
 
-    public function toggleCommentForm()
+    public function toggleCommentForm($timestamp = null)
     {
         $this->showAddCommentForm = ! $this->showAddCommentForm;
         if ($this->showAddCommentForm) {
-            $this->commentTimestamp = $this->currentPosition;
+            $this->commentTimestamp = is_numeric($timestamp)
+                ? (float) $timestamp
+                : $this->currentPosition;
         } else {
             $this->newComment = '';
         }
@@ -304,10 +298,6 @@ class UniversalAudioPlayer extends Component
 
     public function addComment()
     {
-        if ($this->fileType !== 'pitch_file') {
-            return;
-        }
-
         $this->validate([
             'newComment' => 'required|string|max:1000',
         ]);
@@ -326,6 +316,89 @@ class UniversalAudioPlayer extends Component
         $this->newComment = '';
         $this->showAddCommentForm = false;
         $this->loadComments();
+    }
+
+    public function toggleReplyForm($commentId = null)
+    {
+        if ($this->replyToCommentId === $commentId) {
+            $this->showReplyForm = false;
+            $this->replyToCommentId = null;
+            $this->replyText = '';
+        } else {
+            $this->showReplyForm = true;
+            $this->replyToCommentId = $commentId;
+            $this->replyText = '';
+        }
+    }
+
+    public function submitReply()
+    {
+        if ($this->fileType !== 'pitch_file') {
+            return;
+        }
+
+        $this->validate([
+            'replyText' => 'required|string|max:1000',
+        ]);
+
+        FileComment::create([
+            'commentable_type' => get_class($this->file),
+            'commentable_id' => $this->file->id,
+            'user_id' => $this->clientMode ? null : Auth::id(),
+            'parent_id' => $this->replyToCommentId,
+            'comment' => $this->replyText,
+            'timestamp' => 0, // Replies don't have timestamps
+            'resolved' => false,
+            'client_email' => $this->clientMode ? $this->clientEmail : null,
+            'is_client_comment' => $this->clientMode,
+        ]);
+
+        $this->replyText = '';
+        $this->showReplyForm = false;
+        $this->replyToCommentId = null;
+        $this->loadComments();
+    }
+
+    public function toggleResolveComment($commentId)
+    {
+        if ($this->fileType !== 'pitch_file') {
+            return;
+        }
+
+        $comment = FileComment::find($commentId);
+        if ($comment && $comment->commentable_id === $this->file->id) {
+            $comment->update(['resolved' => ! $comment->resolved]);
+            $this->loadComments();
+        }
+    }
+
+    public function confirmDelete($commentId)
+    {
+        $this->commentToDelete = $commentId;
+        $this->showDeleteConfirmation = true;
+    }
+
+    public function deleteComment()
+    {
+        if ($this->commentToDelete) {
+            $comment = FileComment::find($this->commentToDelete);
+            if ($comment && $comment->commentable_id === $this->file->id) {
+                // Delete all replies first
+                FileComment::where('parent_id', $comment->id)->delete();
+                // Delete the comment
+                $comment->delete();
+                $this->loadComments();
+            }
+        }
+
+        $this->commentToDelete = null;
+        $this->showDeleteConfirmation = false;
+    }
+
+    public function cancelDelete()
+    {
+        $this->commentToDelete = null;
+        $this->showDeleteConfirmation = false;
     }
 
     // A-B Loop Methods
@@ -495,7 +568,20 @@ class UniversalAudioPlayer extends Component
 
     public function canAddComments()
     {
-        return $this->fileType === 'pitch_file' && Auth::check();
+        if (! Auth::check()) {
+            return false;
+        }
+
+        if ($this->fileType === 'pitch_file') {
+            return true;
+        }
+
+        if ($this->fileType === 'project_file') {
+            // For project files, only the project owner and collaborators can add comments
+            return Auth::id() === $this->file->project->user_id;
+        }
+
+        return false;
     }
 
     public function getDownloadUrl()

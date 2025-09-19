@@ -325,6 +325,32 @@ class FileList extends Component
     }
 
     /**
+     * Get the universal audio player URL for a file
+     */
+    public function getUniversalAudioPlayerUrl($file): ?string
+    {
+        if (!$this->isAudioFile($file)) {
+            return null;
+        }
+
+        // Determine file type based on model type and file properties
+        if ($this->modelType === 'pitch' || (isset($file->pitch_id) && $file->pitch_id)) {
+            // This is a pitch file
+            $fileId = $file->uuid ?? $file->id;
+            return route('audio.pitch-file.show', ['file' => $fileId]);
+        } elseif ($this->modelType === 'project' || (isset($file->project_id) && $file->project_id)) {
+            // This is a project file
+            return route('audio.project-file.show', ['file' => $file->id]);
+        }
+
+        // Fallback to the universal route with query parameters
+        return route('audio.show', [
+            'file_type' => $this->modelType === 'pitch' ? 'pitch_file' : 'project_file',
+            'file_id' => $file->id
+        ]);
+    }
+
+    /**
      * Toggle selection for a specific file
      */
     public function toggleFileSelection(int $fileId): void

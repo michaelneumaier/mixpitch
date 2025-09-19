@@ -15,7 +15,7 @@ return new class extends Migration
             // Add duration column for audio files (nullable as not all project files are audio)
             $table->float('duration')->nullable()->after('mime_type')
                 ->comment('Duration in seconds for audio files');
-            
+
             // Add index for faster queries on audio files with duration
             $table->index(['duration']);
         });
@@ -29,7 +29,7 @@ return new class extends Migration
         Schema::table('project_files', function (Blueprint $table) {
             // Drop the index first
             $table->dropIndex(['duration']);
-            
+
             // Drop the column
             $table->dropColumn('duration');
         });

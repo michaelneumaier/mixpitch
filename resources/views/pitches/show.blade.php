@@ -1,32 +1,97 @@
 <x-layouts.app-sidebar>
-<!-- Background Effects -->
-<div class="fixed inset-0 overflow-hidden pointer-events-none">
-    <div class="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl"></div>
-    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-purple-400/20 to-pink-600/20 rounded-full blur-3xl"></div>
-    <div class="absolute top-1/3 left-1/4 w-64 h-64 bg-gradient-to-r from-blue-300/10 to-purple-300/10 rounded-full blur-2xl"></div>
-    <div class="absolute bottom-1/3 right-1/4 w-48 h-48 bg-gradient-to-l from-purple-300/15 to-pink-300/15 rounded-full blur-xl"></div>
-</div>
 
-<div class="relative min-h-screen bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30">
-    <div class="container mx-auto px-2 sm:px-4 py-6">
-        <!-- Project Header -->
-        <x-project.header 
-            :project="$pitch->project" 
-            :hasPreviewTrack="$pitch->project->hasPreviewTrack()" 
+@php
+    // Unified Color System - Workflow-aware colors
+    $workflowColors = match($pitch->project->workflow_type) {
+        'standard' => [
+            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'border' => 'border-blue-200 dark:border-blue-800',
+            'text_primary' => 'text-blue-900 dark:text-blue-100',
+            'text_secondary' => 'text-blue-700 dark:text-blue-300',
+            'text_muted' => 'text-blue-600 dark:text-blue-400',
+            'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
+            'accent_border' => 'border-blue-200 dark:border-blue-800',
+            'icon' => 'text-blue-600 dark:text-blue-400'
+        ],
+        'contest' => [
+            'bg' => 'bg-orange-50 dark:bg-orange-950',
+            'border' => 'border-orange-200 dark:border-orange-800',
+            'text_primary' => 'text-orange-900 dark:text-orange-100',
+            'text_secondary' => 'text-orange-700 dark:text-orange-300',
+            'text_muted' => 'text-orange-600 dark:text-orange-400',
+            'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
+            'accent_border' => 'border-orange-200 dark:border-orange-800',
+            'icon' => 'text-orange-600 dark:text-orange-400'
+        ],
+        'direct_hire' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text_primary' => 'text-green-900 dark:text-green-100',
+            'text_secondary' => 'text-green-700 dark:text-green-300',
+            'text_muted' => 'text-green-600 dark:text-green-400',
+            'accent_bg' => 'bg-green-100 dark:bg-green-900',
+            'accent_border' => 'border-green-200 dark:border-green-800',
+            'icon' => 'text-green-600 dark:text-green-400'
+        ],
+        'client_management' => [
+            'bg' => 'bg-purple-50 dark:bg-purple-950',
+            'border' => 'border-purple-200 dark:border-purple-800',
+            'text_primary' => 'text-purple-900 dark:text-purple-100',
+            'text_secondary' => 'text-purple-700 dark:text-purple-300',
+            'text_muted' => 'text-purple-600 dark:text-purple-400',
+            'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
+            'accent_border' => 'border-purple-200 dark:border-purple-800',
+            'icon' => 'text-purple-600 dark:text-purple-400'
+        ],
+        default => [
+            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'border' => 'border-gray-200 dark:border-gray-800',
+            'text_primary' => 'text-gray-900 dark:text-gray-100',
+            'text_secondary' => 'text-gray-700 dark:text-gray-300',
+            'text_muted' => 'text-gray-600 dark:text-gray-400',
+            'accent_bg' => 'bg-gray-100 dark:bg-gray-900',
+            'accent_border' => 'border-gray-200 dark:border-gray-800',
+            'icon' => 'text-gray-600 dark:text-gray-400'
+        ]
+    };
+
+    // Semantic colors (always consistent regardless of workflow)
+    $semanticColors = [
+        'success' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text' => 'text-green-800 dark:text-green-200',
+            'icon' => 'text-green-600 dark:text-green-400',
+            'accent' => 'bg-green-600 dark:bg-green-500'
+        ],
+        'warning' => [
+            'bg' => 'bg-amber-50 dark:bg-amber-950',
+            'border' => 'border-amber-200 dark:border-amber-800',
+            'text' => 'text-amber-800 dark:text-amber-200',
+            'icon' => 'text-amber-600 dark:text-amber-400',
+            'accent' => 'bg-amber-500'
+        ],
+        'danger' => [
+            'bg' => 'bg-red-50 dark:bg-red-950',
+            'border' => 'border-red-200 dark:border-red-800',
+            'text' => 'text-red-800 dark:text-red-200',
+            'icon' => 'text-red-600 dark:text-red-400',
+            'accent' => 'bg-red-500'
+        ]
+    ];
+@endphp
+
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="mx-auto px-2 sm:px-4 py-6">
+        <!-- Pitch Header -->
+        <x-pitch.header 
+            :pitch="$pitch"
             context="view"
-            :showEditButton="auth()->check() && $pitch->project->isOwnedByUser(auth()->user())"
-            :userPitch="$pitch"
-            :canPitch="false"
         />
-
-        <!-- Mobile Pitch Stats (visible on mobile/tablet, hidden on desktop) -->
-        <div class="lg:hidden mb-6">
-            <x-pitch.quick-stats-mobile :pitch="$pitch" />
-        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content Area (2/3 width on large screens) -->
-            <div class="lg:col-span-2 space-y-6">
+            <div class="lg:col-span-2 space-y-2">
                 <!-- Pitch Workflow Status -->
                 @if($pitch->project->isContest() && in_array($pitch->status, [
                     \App\Models\Pitch::STATUS_CONTEST_ENTRY,
@@ -34,9 +99,9 @@
                     \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP,
                     \App\Models\Pitch::STATUS_CONTEST_NOT_SELECTED
                 ]))
-                    <x-contest.workflow-status :pitch="$pitch" />
+                    <x-contest.workflow-status :pitch="$pitch" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
                 @else
-                    <x-pitch.workflow-status :pitch="$pitch" />
+                    <x-pitch.workflow-status :pitch="$pitch" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
                 @endif
 
                 <!-- Project Management Section (for pitch owner only) -->
@@ -49,147 +114,128 @@
                 @endif
 
                 <!-- Feedback & Revision History -->
-                <div class="bg-gradient-to-br from-white/95 to-blue-50/90 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl p-6">
+                <flux:card>
                     <livewire:pitch.component.feedback-conversation :pitch="$pitch" />
-                </div>
+                </flux:card>
 
                 <!-- Pitch History Timeline -->
-                <div class="bg-gradient-to-br hidden from-white/95 to-purple-50/90 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl p-6">
-                    <livewire:pitch.component.pitch-history :pitch="$pitch" />
-                </div>
+                @if(false) {{-- Hidden for now --}}
+                    <flux:card>
+                        <livewire:pitch.component.pitch-history :pitch="$pitch" />
+                    </flux:card>
+                @endif
 
                 <!-- Project Files Section -->
-                <div class="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50 rounded-2xl shadow-lg overflow-hidden">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center">
-                                <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-4">
-                                    <i class="fas fa-music text-white text-lg"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-bold text-purple-800">Project Files</h3>
-                                    <p class="text-sm text-purple-600">Audio files and resources</p>
-                                </div>
+                <flux:card>
+                    <div class="mb-6 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <flux:icon.musical-note variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                            <div>
+                                <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Project Files</flux:heading>
+                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Audio files and resources</flux:subheading>
                             </div>
-                            
-                            @if ($pitch->status !== \App\Models\Pitch::STATUS_PENDING && !$pitch->project->files->isEmpty())
-                                <a href="{{ route('projects.download', $pitch->project) }}"
-                                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                    <i class="fas fa-download mr-2"></i>Download All
-                                </a>
-                            @endif
                         </div>
-
-                        @if ($pitch->status === \App\Models\Pitch::STATUS_PENDING)
-                            <div class="bg-gradient-to-br from-amber-50/90 to-orange-50/90 backdrop-blur-sm border border-amber-200/50 rounded-xl p-4">
-                                <div class="flex items-center">
-                                    <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg mr-3">
-                                        <i class="fas fa-lock text-white text-sm"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-sm font-bold text-amber-800">Access Restricted</h4>
-                                        <p class="text-xs text-amber-700">You don't have access to the project files yet.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @elseif($pitch->project->files->isEmpty())
-                            <div class="bg-gradient-to-br from-gray-50/90 to-gray-100/90 backdrop-blur-sm border border-gray-200/50 rounded-xl p-6 text-center">
-                                <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl mx-auto mb-3">
-                                    <i class="fas fa-folder-open text-gray-500 text-lg"></i>
-                                </div>
-                                <h4 class="text-sm font-medium text-gray-600 mb-1">No Files Available</h4>
-                                <p class="text-xs text-gray-500">No files have been uploaded for this project</p>
-                            </div>
-                        @else
-                            <div class="space-y-2">
-                                @foreach ($pitch->project->files as $file)
-                                    <div class="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-purple-200/30 rounded-xl hover:bg-white/80 transition-all duration-200 group">
-                                        <div class="flex items-center flex-1 min-w-0">
-                                            <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg mr-3 group-hover:scale-105 transition-transform duration-200">
-                                                <i class="fas fa-file-audio text-purple-600"></i>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <h4 class="text-sm font-medium text-purple-900 truncate" title="{{ $file->file_name }}">
-                                                    {{ $file->file_name }}
-                                                </h4>
-                                                <p class="text-xs text-purple-600">{{ $file->formatted_size }}</p>
-                                            </div>
-                                        </div>
-                                        <a href="{{ asset('storage/' . $file->file_path) }}"
-                                           download="{{ $file->file_name }}"
-                                           class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-md">
-                                            <i class="fas fa-download mr-1"></i>Download
-                                        </a>
-                                    </div>
-                                @endforeach
-                            </div>
+                        
+                        @if ($pitch->status !== \App\Models\Pitch::STATUS_PENDING && !$pitch->project->files->isEmpty())
+                            <flux:button href="{{ route('projects.download', $pitch->project) }}" variant="primary" icon="arrow-down-tray">
+                                Download All
+                            </flux:button>
                         @endif
                     </div>
-                </div>
+
+                    @if ($pitch->status === \App\Models\Pitch::STATUS_PENDING)
+                        <div class="{{ $semanticColors['warning']['bg'] }} {{ $semanticColors['warning']['border'] }} border rounded-xl p-4">
+                            <div class="flex items-center gap-3">
+                                <flux:icon.lock-closed class="{{ $semanticColors['warning']['icon'] }} h-6 w-6" />
+                                <div>
+                                    <flux:heading size="base" class="{{ $semanticColors['warning']['text'] }}">Access Restricted</flux:heading>
+                                    <flux:text size="sm" class="{{ $semanticColors['warning']['text'] }}">You don't have access to the project files yet.</flux:text>
+                                </div>
+                            </div>
+                        </div>
+                    @elseif($pitch->project->files->isEmpty())
+                        <div class="text-center py-8">
+                            <flux:icon.folder-open class="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                            <flux:heading size="base" class="text-gray-600 dark:text-gray-400 mb-1">No Files Available</flux:heading>
+                            <flux:text class="text-gray-500 dark:text-gray-400">No files have been uploaded for this project</flux:text>
+                        </div>
+                    @else
+                        <div class="space-y-2">
+                            @foreach ($pitch->project->files as $file)
+                                <div class="flex items-center justify-between p-4 {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} border rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors">
+                                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                                        <flux:icon.document class="{{ $workflowColors['icon'] }} h-6 w-6" />
+                                        <div class="flex-1 min-w-0">
+                                            <flux:text class="{{ $workflowColors['text_primary'] }} font-medium truncate">
+                                                {{ $file->file_name }}
+                                            </flux:text>
+                                            <flux:text size="xs" class="{{ $workflowColors['text_muted'] }}">
+                                                {{ $file->formatted_size }}
+                                            </flux:text>
+                                        </div>
+                                    </div>
+                                    <flux:button href="{{ asset('storage/' . $file->file_path) }}" download="{{ $file->file_name }}" variant="ghost" size="sm" icon="arrow-down-tray">
+                                        Download
+                                    </flux:button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </flux:card>
 
                 <!-- Project Description Section -->
-                <div class="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm border border-blue-200/50 rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center mb-4">
-                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mr-4">
-                            <i class="fas fa-align-left text-white text-lg"></i>
-                        </div>
+                <flux:card>
+                    <div class="mb-6 flex items-center gap-3">
+                        <flux:icon.bars-3 variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
                         <div>
-                            <h3 class="text-lg font-bold text-blue-800">Project Description</h3>
-                            <p class="text-sm text-blue-600">Detailed project information</p>
+                            <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Project Description</flux:heading>
+                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Detailed project information</flux:subheading>
                         </div>
                     </div>
-                    <div class="bg-white/60 backdrop-blur-sm border border-blue-200/30 rounded-xl p-4">
-                        <p class="text-blue-900 whitespace-pre-wrap leading-relaxed">{{ $pitch->project->description }}</p>
+                    <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} border rounded-xl p-4">
+                        <flux:text class="{{ $workflowColors['text_primary'] }} whitespace-pre-wrap leading-relaxed">
+                            {{ $pitch->project->description }}
+                        </flux:text>
                     </div>
-                </div>
+                </flux:card>
 
                 <!-- Additional Notes Section -->
                 @if ($pitch->project->notes)
-                    <div class="bg-gradient-to-br from-yellow-50/90 to-amber-50/90 backdrop-blur-sm border border-yellow-200/50 rounded-2xl p-6 shadow-lg">
-                        <div class="flex items-center mb-4">
-                            <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl mr-4">
-                                <i class="fas fa-sticky-note text-white text-lg"></i>
-                            </div>
+                    <flux:card>
+                        <div class="mb-6 flex items-center gap-3">
+                            <flux:icon.document-text variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
                             <div>
-                                <h3 class="text-lg font-bold text-yellow-800">Additional Notes</h3>
-                                <p class="text-sm text-yellow-600">Extra project details</p>
+                                <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Additional Notes</flux:heading>
+                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Extra project details</flux:subheading>
                             </div>
                         </div>
-                        <div class="bg-white/60 backdrop-blur-sm border border-yellow-200/30 rounded-xl p-4">
-                            <p class="text-yellow-900 whitespace-pre-wrap leading-relaxed">{{ $pitch->project->notes }}</p>
+                        <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} border rounded-xl p-4">
+                            <flux:text class="{{ $workflowColors['text_primary'] }} whitespace-pre-wrap leading-relaxed">
+                                {{ $pitch->project->notes }}
+                            </flux:text>
                         </div>
-                    </div>
+                    </flux:card>
                 @endif
 
                 <!-- Admin Actions Section -->
                 @if(Auth::check() && Auth::user()->is_admin)
-                    <div class="relative">
-                        <!-- Background Effects -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-gray-50/30 via-slate-50/20 to-gray-50/30 rounded-2xl"></div>
-                        <div class="absolute top-2 left-2 w-16 h-16 bg-gray-400/10 rounded-full blur-xl"></div>
-                        <div class="absolute bottom-2 right-2 w-12 h-12 bg-slate-400/10 rounded-full blur-lg"></div>
-                        
-                        <!-- Admin Content -->
-                        <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-6">
-                            <div class="flex items-center mb-4">
-                                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-gray-600 to-slate-700 rounded-xl mr-3">
-                                    <i class="fas fa-user-shield text-white"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-bold text-gray-800">Admin Actions</h3>
-                                    <p class="text-sm text-gray-600">Administrative controls</p>
-                                </div>
-                            </div>
-                            <div class="flex flex-wrap gap-3">
-                                <a href="#" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-slate-700 hover:from-gray-700 hover:to-slate-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                    <i class="fas fa-camera mr-2"></i>View All Snapshots
-                                </a>
-                                <a href="#" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                    <i class="fas fa-edit mr-2"></i>Edit Pitch Details
-                                </a>
+                    <flux:card class="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                        <div class="mb-6 flex items-center gap-3">
+                            <flux:icon.shield-check variant="solid" class="h-8 w-8 text-gray-600 dark:text-gray-400" />
+                            <div>
+                                <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">Admin Actions</flux:heading>
+                                <flux:subheading class="text-gray-600 dark:text-gray-400">Administrative controls</flux:subheading>
                             </div>
                         </div>
-                    </div>
+                        <div class="flex flex-wrap gap-3">
+                            <flux:button href="#" variant="outline" icon="camera">
+                                View All Snapshots
+                            </flux:button>
+                            <flux:button href="#" variant="primary" icon="pencil">
+                                Edit Pitch Details
+                            </flux:button>
+                        </div>
+                    </flux:card>
                 @endif
             </div>
 
@@ -200,40 +246,36 @@
 
                 <!-- Pitch Rating (if completed) -->
                 @if($pitch->status === 'completed' && $pitch->getCompletionRating())
-                    <div class="bg-gradient-to-br from-orange-50/90 to-amber-50/90 backdrop-blur-sm border border-orange-200/50 rounded-2xl p-6 shadow-lg">
-                        <div class="flex items-center mb-4">
-                            <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl mr-4">
-                                <i class="fas fa-star text-white text-lg"></i>
-                            </div>
+                    <flux:card class="{{ $semanticColors['warning']['bg'] }} {{ $semanticColors['warning']['border'] }}">
+                        <div class="mb-4 flex items-center gap-3">
+                            <flux:icon.star variant="solid" class="{{ $semanticColors['warning']['icon'] }} h-8 w-8" />
                             <div>
-                                <h3 class="text-lg font-bold text-orange-800">Pitch Rating</h3>
-                                <p class="text-sm text-orange-600">Completion feedback</p>
+                                <flux:heading size="lg" class="{{ $semanticColors['warning']['text'] }}">Pitch Rating</flux:heading>
+                                <flux:subheading class="{{ $semanticColors['warning']['icon'] }}">Completion feedback</flux:subheading>
                             </div>
                         </div>
                         <div class="flex items-center mb-4">
-                            <span class="text-3xl font-bold text-orange-900 flex items-center">
+                            <span class="text-3xl font-bold {{ $semanticColors['warning']['text'] }} flex items-center">
                                 {{ number_format($pitch->getCompletionRating(), 1) }}
-                                <span class="text-orange-500 ml-2 text-2xl">★</span>
+                                <flux:icon.star class="{{ $semanticColors['warning']['icon'] }} h-8 w-8 ml-2" />
                             </span>
-                            <span class="ml-2 text-orange-700">/ 5</span>
+                            <span class="ml-2 {{ $semanticColors['warning']['text'] }}">/ 5</span>
                         </div>
-                        <p class="text-orange-700">
+                        <flux:text class="{{ $semanticColors['warning']['text'] }}">
                             This pitch received a rating of {{ number_format($pitch->getCompletionRating(), 1) }} out of 5 stars upon completion.
-                        </p>
-                    </div>
+                        </flux:text>
+                    </flux:card>
                 @endif
 
-                <!-- Project Metadata -->
-                <x-pitch.metadata :pitch="$pitch" />
-
-                <!-- Pitch Delete Component (for pitch owner only) -->
-                @if(Auth::check() && Auth::id() === $pitch->user_id)
-                    <livewire:pitch.component.delete-pitch :pitch="$pitch" />
-                @endif
             </div>
         </div>
     </div>
 </div>
+
+<!-- Delete Pitch Component for Modal Functionality -->
+@if(auth()->check() && auth()->id() === $pitch->user_id)
+    <livewire:pitch.component.delete-pitch :pitch="$pitch" />
+@endif
 
 </x-layouts.app-sidebar>
 

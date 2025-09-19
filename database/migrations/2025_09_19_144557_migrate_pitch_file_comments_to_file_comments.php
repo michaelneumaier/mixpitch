@@ -32,7 +32,7 @@ return new class extends Migration
                     ]);
                 }
             });
-            
+
             // Reset the auto-increment to start after the last migrated ID
             $maxId = DB::table('file_comments')->max('id');
             if ($maxId) {
@@ -42,7 +42,7 @@ return new class extends Migration
                 }
                 // For MySQL
                 elseif (config('database.default') === 'mysql') {
-                    DB::statement("ALTER TABLE file_comments AUTO_INCREMENT = ?", [$maxId + 1]);
+                    DB::statement('ALTER TABLE file_comments AUTO_INCREMENT = ?', [$maxId + 1]);
                 }
             }
         }

@@ -1,779 +1,780 @@
-@php 
-    use Illuminate\Support\Str; 
+@php
+    use Illuminate\Support\Str;
+
+    // Unified Color System - Workflow-aware colors
+    $workflowColors = match ($project->workflow_type) {
+        'standard' => [
+            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'border' => 'border-blue-200 dark:border-blue-800',
+            'text_primary' => 'text-blue-900 dark:text-blue-100',
+            'text_secondary' => 'text-blue-700 dark:text-blue-300',
+            'text_muted' => 'text-blue-600 dark:text-blue-400',
+            'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
+            'accent_border' => 'border-blue-200 dark:border-blue-800',
+            'icon' => 'text-blue-600 dark:text-blue-400',
+        ],
+        'contest' => [
+            'bg' => 'bg-orange-50 dark:bg-orange-950',
+            'border' => 'border-orange-200 dark:border-orange-800',
+            'text_primary' => 'text-orange-900 dark:text-orange-100',
+            'text_secondary' => 'text-orange-700 dark:text-orange-300',
+            'text_muted' => 'text-orange-600 dark:text-orange-400',
+            'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
+            'accent_border' => 'border-orange-200 dark:border-orange-800',
+            'icon' => 'text-orange-600 dark:text-orange-400',
+        ],
+        'direct_hire' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text_primary' => 'text-green-900 dark:text-green-100',
+            'text_secondary' => 'text-green-700 dark:text-green-300',
+            'text_muted' => 'text-green-600 dark:text-green-400',
+            'accent_bg' => 'bg-green-100 dark:bg-green-900',
+            'accent_border' => 'border-green-200 dark:border-green-800',
+            'icon' => 'text-green-600 dark:text-green-400',
+        ],
+        'client_management' => [
+            'bg' => 'bg-purple-50 dark:bg-purple-950',
+            'border' => 'border-purple-200 dark:border-purple-800',
+            'text_primary' => 'text-purple-900 dark:text-purple-100',
+            'text_secondary' => 'text-purple-700 dark:text-purple-300',
+            'text_muted' => 'text-purple-600 dark:text-purple-400',
+            'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
+            'accent_border' => 'border-purple-200 dark:border-purple-800',
+            'icon' => 'text-purple-600 dark:text-purple-400',
+        ],
+        default => [
+            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'border' => 'border-gray-200 dark:border-gray-800',
+            'text_primary' => 'text-gray-900 dark:text-gray-100',
+            'text_secondary' => 'text-gray-700 dark:text-gray-300',
+            'text_muted' => 'text-gray-600 dark:text-gray-400',
+            'accent_bg' => 'bg-gray-100 dark:bg-gray-900',
+            'accent_border' => 'border-gray-200 dark:border-gray-800',
+            'icon' => 'text-gray-600 dark:text-gray-400',
+        ],
+    };
+
+    // Semantic colors (always consistent regardless of workflow)
+    $semanticColors = [
+        'success' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text' => 'text-green-800 dark:text-green-200',
+            'icon' => 'text-green-600 dark:text-green-400',
+            'accent' => 'bg-green-600 dark:bg-green-500',
+        ],
+        'warning' => [
+            'bg' => 'bg-amber-50 dark:bg-amber-950',
+            'border' => 'border-amber-200 dark:border-amber-800',
+            'text' => 'text-amber-800 dark:text-amber-200',
+            'icon' => 'text-amber-600 dark:text-amber-400',
+            'accent' => 'bg-amber-500',
+        ],
+        'danger' => [
+            'bg' => 'bg-red-50 dark:bg-red-950',
+            'border' => 'border-red-200 dark:border-red-800',
+            'text' => 'text-red-800 dark:text-red-200',
+            'icon' => 'text-red-600 dark:text-red-400',
+            'accent' => 'bg-red-500',
+        ],
+    ];
 @endphp
 
-<!-- Remove container constraint and modernize with glass morphism -->
-<div class="w-full">
-    {{-- Load necessary Font Awesome icons --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<x-draggable-upload-page :model="$pitch" title="Manage Pitch: {{ $project->title }}">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div class="mx-auto">
+            <div class="mx-auto">
+                <div class="flex justify-center">
+                    <div class="w-full">
 
-
-
-    {{-- Contest View --}}
-    @if($project->isContest())
-        <div class="bg-gradient-to-br from-yellow-50/90 to-amber-50/90 backdrop-blur-sm border border-yellow-200/50 rounded-2xl shadow-lg overflow-hidden mb-6">
-            <div class="p-6 bg-gradient-to-r from-yellow-100/80 to-amber-100/80 backdrop-blur-sm border-b border-yellow-200/50">
-                <div class="flex items-center">
-                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl mr-3">
-                        <i class="fas fa-medal text-white"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-yellow-800">Contest Entry Status</h3>
-                </div>
-            </div>
-            <div class="p-6 space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white/60 backdrop-blur-sm border border-yellow-200/30 rounded-xl p-4">
-                        <dt class="text-sm font-medium text-yellow-700 mb-2">Current Status</dt>
-                        <dd class="flex items-center">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $pitch->status === \App\Models\Pitch::STATUS_CONTEST_WINNER ? 'bg-green-100 text-green-800 border border-green-200' : ($pitch->status === \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' : ($pitch->status === \App\Models\Pitch::STATUS_CONTEST_ENTRY ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-gray-100 text-gray-800 border border-gray-200')) }}">
-                                {{ $pitch->readable_status }}
-                            </span>
-                        </dd>
-                    </div>
-                    
-                    @if($pitch->rank && $pitch->rank > 0)
-                        <div class="bg-white/60 backdrop-blur-sm border border-yellow-200/30 rounded-xl p-4">
-                            <dt class="text-sm font-medium text-yellow-700 mb-2">Rank</dt>
-                            <dd class="text-lg font-bold text-yellow-900">{{ $pitch->rank }}</dd>
-                        </div>
-                    @endif
-                </div>
-                
-                @if($pitch->status === \App\Models\Pitch::STATUS_CONTEST_ENTRY)
-                    <!-- Contest Entry Instructions -->
-                    <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl p-4">
-                        <div class="flex items-start">
-                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3 flex-shrink-0">
-                                <i class="fas fa-info-circle text-white text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-bold text-blue-800 mb-2">Contest Entry Instructions</h4>
-                                <ul class="text-sm text-blue-700 space-y-1">
-                                    <li class="flex items-start">
-                                        <i class="fas fa-check mr-2 text-blue-600 mt-0.5 text-xs"></i>
-                                        You have immediate access to download project files and upload your contest entry
-                                    </li>
-                                    <li class="flex items-start">
-                                        <i class="fas fa-check mr-2 text-blue-600 mt-0.5 text-xs"></i>
-                                        Upload your best work - you can update files anytime before the deadline
-                                    </li>
-                                    @if($project->submission_deadline)
-                                        <li class="flex items-start">
-                                            <i class="fas fa-clock mr-2 text-amber-600 mt-0.5 text-xs"></i>
-                                            <span>Contest deadline: <strong><x-datetime :date="$project->submission_deadline" :user="$project->user" :convertToViewer="true" format="M d, Y \a\t H:i T" /></strong></span>
-                                        </li>
-                                    @endif
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Project Files for Contest Entry -->
-                    @if($project->files->count() > 0)
-                        <div class="bg-gradient-to-br from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 rounded-xl p-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center">
-                                    <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg mr-3">
-                                        <i class="fas fa-download text-white text-sm"></i>
-                                    </div>
+                        {{-- Contest View --}}
+                        @if ($project->isContest())
+                            <flux:card class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2">
+                                <div class="mb-6 flex items-center gap-3">
+                                    <flux:icon.trophy variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
                                     <div>
-                                        <h4 class="font-bold text-green-800">Project Files</h4>
-                                        <p class="text-xs text-green-600">Download these files to create your contest entry</p>
+                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                            Contest Entry Status</flux:heading>
+                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Your participation
+                                            in this contest</flux:subheading>
                                     </div>
                                 </div>
-                                <a href="{{ route('projects.download', $project) }}"
-                                   wire:navigate
-                                   class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
-                                    <i class="fas fa-download mr-2"></i>Download All
-                                </a>
-                            </div>
-                            <div class="space-y-2">
-                                @foreach($project->files as $file)
-                                    <div class="flex items-center justify-between p-2 bg-green-50/50 rounded-lg border border-green-200/30">
-                                        <div class="flex items-center">
-                                            <i class="fas fa-file-alt mr-3 text-green-600"></i>
-                                            <span class="text-green-900 font-medium text-sm">{{ $file->file_name }}</span>
-                                        </div>
-                                        <span class="text-xs text-green-600">{{ \App\Models\Pitch::formatBytes($file->size) }}</span>
+                                <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <div
+                                        class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-xl border p-4">
+                                        <flux:subheading class="{{ $workflowColors['text_secondary'] }} mb-2">Current
+                                            Status</flux:subheading>
+                                        <flux:badge
+                                            variant="{{ $pitch->status === \App\Models\Pitch::STATUS_CONTEST_WINNER ? 'success' : ($pitch->status === \App\Models\Pitch::STATUS_CONTEST_RUNNER_UP ? 'warning' : 'primary') }}">
+                                            {{ $pitch->readable_status }}
+                                        </flux:badge>
                                     </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                @else
-                    <!-- Final Contest Results -->
-                    <div class="bg-white/60 backdrop-blur-sm border border-yellow-200/30 rounded-xl p-4">
-                        <dt class="text-sm font-medium text-yellow-700 mb-3">Final Entry Files</dt>
-                        <dd>
-                            @if($pitch->files->count() > 0)
-                                <div class="space-y-2">
-                                    @foreach($pitch->files as $file)
-                                        <div class="flex items-center justify-between p-3 bg-yellow-50/50 rounded-lg border border-yellow-200/30">
-                                            <div class="flex items-center">
-                                                <i class="fas fa-file-alt mr-3 text-yellow-600"></i>
-                                                <span class="text-yellow-900 font-medium">{{ $file->file_name }}</span>
+
+                                    @if ($pitch->rank && $pitch->rank > 0)
+                                        <div
+                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-xl border p-4">
+                                            <flux:subheading class="{{ $workflowColors['text_secondary'] }} mb-2">Rank
+                                            </flux:subheading>
+                                            <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                                {{ $pitch->rank }}</flux:heading>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                @if ($pitch->status === \App\Models\Pitch::STATUS_CONTEST_ENTRY)
+                                    <!-- Contest Entry Instructions -->
+                                    <div
+                                        class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} mb-6 rounded-xl border p-4">
+                                        <div class="flex items-start gap-3">
+                                            <flux:icon.information-circle
+                                                class="{{ $semanticColors['success']['icon'] }} mt-0.5 h-6 w-6 flex-shrink-0" />
+                                            <div class="flex-1">
+                                                <flux:heading size="base"
+                                                    class="{{ $semanticColors['success']['text'] }} mb-2">Contest Entry
+                                                    Instructions</flux:heading>
+                                                <ul class="{{ $semanticColors['success']['text'] }} space-y-2 text-sm">
+                                                    <li class="flex items-start gap-2">
+                                                        <flux:icon.check
+                                                            class="{{ $semanticColors['success']['icon'] }} mt-0.5 h-4 w-4 flex-shrink-0" />
+                                                        <span>You have immediate access to download project files and
+                                                            upload your contest entry</span>
+                                                    </li>
+                                                    <li class="flex items-start gap-2">
+                                                        <flux:icon.check
+                                                            class="{{ $semanticColors['success']['icon'] }} mt-0.5 h-4 w-4 flex-shrink-0" />
+                                                        <span>Upload your best work - you can update files anytime
+                                                            before the deadline</span>
+                                                    </li>
+                                                    @if ($project->submission_deadline)
+                                                        <li class="flex items-start gap-2">
+                                                            <flux:icon.clock
+                                                                class="{{ $semanticColors['warning']['icon'] }} mt-0.5 h-4 w-4 flex-shrink-0" />
+                                                            <span>Contest deadline: <strong><x-datetime
+                                                                        :date="$project->submission_deadline" :user="$project->user"
+                                                                        :convertToViewer="true"
+                                                                        format="M d, Y \a\t H:i T" /></strong></span>
+                                                        </li>
+                                                    @endif
+                                                </ul>
                                             </div>
-                                            <button wire:click="downloadFile({{ $file->id }})"
-                                                class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-600 rounded-lg transition-all duration-200 hover:scale-105">
-                                                <i class="fas fa-download text-sm"></i>
-                                            </button>
                                         </div>
-                                    @endforeach
+                                    </div>
+
+                                    <!-- Project Files for Contest Entry -->
+                                    @if ($project->files->count() > 0)
+                                        <div
+                                            class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} mb-6 rounded-xl border p-4">
+                                            <div class="mb-4 flex items-center justify-between">
+                                                <div class="flex items-center gap-3">
+                                                    <flux:icon.arrow-down-tray variant="solid"
+                                                        class="{{ $semanticColors['success']['icon'] }} h-6 w-6" />
+                                                    <div>
+                                                        <flux:heading size="base"
+                                                            class="{{ $semanticColors['success']['text'] }}">Project
+                                                            Files</flux:heading>
+                                                        <flux:subheading
+                                                            class="{{ $semanticColors['success']['icon'] }}">Download
+                                                            these files to create your contest entry</flux:subheading>
+                                                    </div>
+                                                </div>
+                                                <flux:button href="{{ route('projects.download', $project) }}"
+                                                    variant="primary" icon="arrow-down-tray">
+                                                    Download All
+                                                </flux:button>
+                                            </div>
+                                            <div class="space-y-2">
+                                                @foreach ($project->files as $file)
+                                                    <div
+                                                        class="{{ $semanticColors['success']['accent_bg'] ?? 'bg-green-100' }} {{ $semanticColors['success']['border'] }} flex items-center justify-between rounded-lg border p-3 dark:bg-green-900">
+                                                        <div class="flex items-center gap-3">
+                                                            <flux:icon.document
+                                                                class="{{ $semanticColors['success']['icon'] }} h-4 w-4" />
+                                                            <flux:text size="sm"
+                                                                class="{{ $semanticColors['success']['text'] }} font-medium">
+                                                                {{ $file->file_name }}</flux:text>
+                                                        </div>
+                                                        <flux:text size="xs"
+                                                            class="{{ $semanticColors['success']['icon'] }}">
+                                                            {{ \App\Models\Pitch::formatBytes($file->size) }}
+                                                        </flux:text>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                @else
+                                    <!-- Final Contest Results -->
+                                    <div
+                                        class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} mb-6 rounded-xl border p-4">
+                                        <flux:subheading class="{{ $workflowColors['text_secondary'] }} mb-3">Final
+                                            Entry Files</flux:subheading>
+                                        @if ($pitch->files->count() > 0)
+                                            <div class="space-y-2">
+                                                @foreach ($pitch->files as $file)
+                                                    <div
+                                                        class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} flex items-center justify-between rounded-lg border p-3">
+                                                        <div class="flex items-center gap-3">
+                                                            <flux:icon.document
+                                                                class="{{ $workflowColors['icon'] }} h-4 w-4" />
+                                                            <flux:text
+                                                                class="{{ $workflowColors['text_primary'] }} font-medium">
+                                                                {{ $file->file_name }}</flux:text>
+                                                        </div>
+                                                        <flux:button wire:click="downloadFile({{ $file->id }})"
+                                                            variant="ghost" size="sm" icon="arrow-down-tray" />
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <div class="py-6 text-center">
+                                                <flux:icon.folder
+                                                    class="{{ $workflowColors['icon'] }} mx-auto mb-2 h-12 w-12" />
+                                                <flux:text class="{{ $workflowColors['text_secondary'] }}">No files
+                                                    were submitted with this entry.</flux:text>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </flux:card>
+
+                            {{-- Direct Hire View --}}
+                        @elseif($project->isDirectHire())
+                            <flux:card class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2">
+                                <div class="flex items-center gap-3">
+                                    <flux:icon.check-circle variant="solid"
+                                        class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                    <div>
+                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                            Direct Hire Project</flux:heading>
+                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Status:
+                                            {{ $pitch->readable_status }}</flux:subheading>
+                                    </div>
                                 </div>
-                            @else
-                                <div class="text-center py-4">
-                                    <i class="fas fa-folder-open text-yellow-400 text-2xl mb-2"></i>
-                                    <p class="text-yellow-700">No files were submitted with this entry.</p>
+                            </flux:card>
+                        @elseif($project->isClientManagement())
+                            <flux:card class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2">
+                                <div class="mb-6 flex items-center gap-3">
+                                    <flux:icon.briefcase variant="solid"
+                                        class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                    <div>
+                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
+                                            Client Management Project</flux:heading>
+                                        <div class="mt-2 space-y-1">
+                                            @if ($project->pitches->first())
+                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Status:
+                                                    {{ $project->pitches->first()->readable_status }}</flux:subheading>
+                                            @else
+                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Status: No
+                                                    pitch initiated</flux:subheading>
+                                            @endif
+                                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Client:
+                                                {{ $project->client_name ?: 'N/A' }} ({{ $project->client_email }})
+                                            </flux:subheading>
+
+                                            {{-- Payment Details for Producer --}}
+                                            @if ($pitch->payment_amount > 0)
+                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                                                    Payment Amount: ${{ number_format($pitch->payment_amount, 2) }}
+                                                    {{ $pitch->currency ?? 'USD' }}
+                                                    <flux:badge
+                                                        variant="{{ $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'success' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'warning' : ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'primary' : 'danger')) }}"
+                                                        size="sm" class="ml-2">
+                                                        {{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }}
+                                                    </flux:badge>
+                                                </flux:subheading>
+                                            @else
+                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Payment:
+                                                    Not applicable (Amount is $0)</flux:subheading>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
+                            </flux:card>
+
+                            {{-- Payout Status for Client Management (Producer View) --}}
+                            @if (auth()->check() && auth()->id() === $pitch->user_id)
+                                <x-pitch.payout-status :pitch="$pitch" />
                             @endif
-                        </dd>
-                    </div>
-                @endif
-            </div>
-        </div>
 
-    {{-- Standard/Other Project Type View --}}
-    @elseif($project->isDirectHire())
-        {{-- Direct Hire Specific Header --}}
-        <div class="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-6 mb-6 shadow-lg">
-            <div class="flex items-center mb-4">
-                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-3">
-                    <i class="fas fa-user-check text-white"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold text-purple-800">Direct Hire Project</h2>
-                    <p class="text-sm text-purple-600">Status: {{ $pitch->readable_status }}</p>
-                </div>
-            </div>
-        </div>
+                            {{-- Client Management Pitch Details --}}
+                            <flux:card class="mb-2">
+                                <div class="mb-6 flex items-center justify-between">
+                                    <div>
+                                        <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">Pitch
+                                            Status: {{ $pitch->readable_status }}</flux:heading>
+                                    </div>
+                                    <flux:button
+                                        href="{{ route('projects.pitches.show', ['project' => $project, 'pitch' => $pitch]) }}"
+                                        variant="primary" icon="cog-6-tooth">
+                                        Manage Pitch Details & Files
+                                    </flux:button>
+                                </div>
 
-    @elseif($project->isClientManagement())
-        {{-- Client Management Specific Header --}}
-        <div class="bg-gradient-to-br from-indigo-50/90 to-purple-50/90 backdrop-blur-sm border border-indigo-200/50 rounded-2xl p-6 mb-6 shadow-lg">
-            <div class="flex items-center mb-4">
-                <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl mr-3">
-                    <i class="fas fa-briefcase text-white"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold text-indigo-800">Client Management Project</h2>
-                    <div class="mt-2 space-y-1">
-                        @if($project->pitches->first())
-                            <p class="text-sm text-indigo-600">Status: {{ $project->pitches->first()->readable_status }}</p>
+                                {{-- Display Client Comments/Events --}}
+                                <div
+                                    class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                                    <flux:heading size="base"
+                                        class="mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                                        <flux:icon.clock class="h-5 w-5 text-blue-500" />
+                                        Recent Client Activity
+                                    </flux:heading>
+                                    <div class="space-y-2">
+                                        @forelse($pitch->events->whereIn('event_type', ['client_comment', 'client_revisions_requested', 'client_approved'])->sortByDesc('created_at')->take(5) as $event)
+                                            <div
+                                                class="flex items-start rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-700">
+                                                <div
+                                                    class="mr-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                                                    @if ($event->event_type === 'client_comment')
+                                                        <flux:icon.chat-bubble-left-ellipsis
+                                                            class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                    @elseif($event->event_type === 'client_revisions_requested')
+                                                        <flux:icon.pencil
+                                                            class="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                                    @elseif($event->event_type === 'client_approved')
+                                                        <flux:icon.check
+                                                            class="h-4 w-4 text-green-600 dark:text-green-400" />
+                                                    @endif
+                                                </div>
+                                                <div class="flex-1">
+                                                    <flux:text size="sm"
+                                                        class="font-medium text-gray-800 dark:text-gray-200">
+                                                        @if ($event->event_type === 'client_comment')
+                                                            Client Comment: "{{ Str::limit($event->comment, 50) }}"
+                                                        @elseif($event->event_type === 'client_revisions_requested')
+                                                            Client Requested Revisions:
+                                                            "{{ Str::limit($event->comment, 50) }}"
+                                                        @elseif($event->event_type === 'client_approved')
+                                                            Client Approved Submission
+                                                        @endif
+                                                    </flux:text>
+                                                    <flux:text size="xs"
+                                                        class="mt-1 text-gray-500 dark:text-gray-400">
+                                                        {{ $event->created_at->diffForHumans() }}</flux:text>
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <div class="py-6 text-center">
+                                                <flux:icon.inbox class="mx-auto mb-2 h-12 w-12 text-gray-400" />
+                                                <flux:text class="text-gray-500 dark:text-gray-400">No recent client
+                                                    activity.</flux:text>
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </flux:card>
                         @else
-                            <p class="text-sm text-indigo-600">Status: No pitch initiated</p>
-                        @endif
-                        <p class="text-sm text-indigo-600">Client: {{ $project->client_name ?: 'N/A' }} ({{ $project->client_email }})</p>
-                        
-                        {{-- Payment Details for Producer --}}
-                        @if($pitch->payment_amount > 0)
-                            <p class="text-sm text-indigo-600">
-                                Payment Amount: ${{ number_format($pitch->payment_amount, 2) }} {{ $pitch->currency ?? 'USD' }}
-                                <span class="ml-2 font-medium {{
-                                    $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID ? 'text-green-700' :
-                                    ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PENDING ? 'text-yellow-700' :
-                                    ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING ? 'text-blue-700' :
-                                    ($pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_FAILED ? 'text-red-700' : 'text-gray-700')))
-                                }}">
-                                    ({{ Str::title(str_replace('_', ' ', $pitch->payment_status)) }})
-                                </span>
-                            </p>
-                        @else
-                            <p class="text-sm text-indigo-600">Payment: Not applicable (Amount is $0)</p>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
+                            {{-- Standard Project View --}}
+                            <div class="grid">
+                                <!-- Main Content Area (2/3 width on large screens) -->
+                                <div class="space-y-2">
 
-        {{-- Payout Status for Client Management (Producer View) --}}
-        @if(auth()->check() && auth()->id() === $pitch->user_id)
-            <x-pitch.payout-status :pitch="$pitch" />
-        @endif
+                                    <!-- Main Pitch Management Card -->
+                                    <flux:card class="mb-2">
+                                        <div class="mb-6 flex items-center gap-3">
+                                            <flux:icon.document variant="solid"
+                                                class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                            <div>
+                                                <flux:heading size="lg"
+                                                    class="{{ $workflowColors['text_primary'] }}">Pitch Management
+                                                </flux:heading>
+                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Manage
+                                                    your pitch submission and files</flux:subheading>
+                                            </div>
+                                        </div>
 
-        {{-- Client Management Pitch Details --}}
-        <div class="bg-gradient-to-br from-gray-50/90 to-slate-50/90 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 mb-6 shadow-lg">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h3 class="text-lg font-bold text-gray-800">Pitch Status: {{ $pitch->readable_status }}</h3>
-                </div>
-                <a href="{{ route('projects.pitches.show', ['project' => $project, 'pitch' => $pitch]) }}" 
-                   wire:navigate
-                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                    <i class="fas fa-cog mr-2"></i>Manage Pitch Details & Files
-                </a>
-            </div>
+                                        <!-- Success Message -->
+                                        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)">
+                                            @if ($message = session('message'))
+                                                <div x-show="show"
+                                                    class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} {{ $semanticColors['success']['text'] }} mb-6 rounded-xl border p-4"
+                                                    x-transition>
+                                                    <div class="flex items-center gap-2">
+                                                        <flux:icon.check-circle
+                                                            class="{{ $semanticColors['success']['icon'] }} h-5 w-5" />
+                                                        {{ $message }}
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
 
-            {{-- Display Client Comments/Events --}}
-            <div class="bg-white/60 backdrop-blur-sm border border-gray-200/30 rounded-xl p-4">
-                <h4 class="font-bold text-gray-700 mb-3 flex items-center">
-                    <i class="fas fa-clock mr-2 text-blue-500"></i>Recent Client Activity
-                </h4>
-                <div class="space-y-2">
-                    @forelse($pitch->events->whereIn('event_type', ['client_comment', 'client_revisions_requested', 'client_approved'])->sortByDesc('created_at')->take(5) as $event)
-                        <div class="flex items-start p-3 bg-gray-50/50 rounded-lg border border-gray-200/30">
-                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg mr-3 flex-shrink-0">
-                                @if($event->event_type === 'client_comment')
-                                    <i class="fas fa-comment text-blue-600 text-sm"></i>
-                                @elseif($event->event_type === 'client_revisions_requested')
-                                    <i class="fas fa-edit text-amber-600 text-sm"></i>
-                                @elseif($event->event_type === 'client_approved')
-                                    <i class="fas fa-check text-green-600 text-sm"></i>
+                                        <!-- Status Messages -->
+                                        @if ($pitch->is_inactive || $pitch->status == 'closed')
+                                            <div
+                                                class="mb-6 rounded-xl border-l-4 border-gray-500 bg-gray-50 p-4 dark:bg-gray-800">
+                                                <div class="flex items-center gap-3">
+                                                    <flux:icon.lock-closed
+                                                        class="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                                                    <flux:text class="font-medium text-gray-800 dark:text-gray-200">
+                                                        {{ $pitch->is_inactive ? 'This pitch is now inactive' : 'This pitch has been closed' }}
+                                                    </flux:text>
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        <!-- Denied Pitch Alert Section -->
+                                        @if ($pitch->status == 'denied')
+                                            <flux:card
+                                                class="{{ $semanticColors['danger']['bg'] }} {{ $semanticColors['danger']['border'] }} mb-6">
+                                                <div class="mb-4 flex items-start gap-4">
+                                                    <flux:icon.x-mark variant="solid"
+                                                        class="{{ $semanticColors['danger']['icon'] }} h-8 w-8 flex-shrink-0" />
+                                                    <div class="flex-1">
+                                                        <flux:heading size="lg"
+                                                            class="{{ $semanticColors['danger']['text'] }} mb-2">Your
+                                                            Pitch Has Been Denied</flux:heading>
+                                                        <flux:text size="sm"
+                                                            class="{{ $semanticColors['danger']['text'] }} mb-4">
+                                                            The project owner has reviewed your pitch and has decided
+                                                            not to proceed with it at this time. You
+                                                            can view their feedback below, make changes to your files,
+                                                            and resubmit if appropriate.
+                                                        </flux:text>
+                                                    </div>
+                                                </div>
+
+                                                <!-- For now, let's just add basic functionality back -->
+                                                @if ($snapshots->isNotEmpty() && !empty($statusFeedbackMessage))
+                                                    <div
+                                                        class="{{ $semanticColors['danger']['bg'] }} {{ $semanticColors['danger']['border'] }} rounded-xl border p-4">
+                                                        <flux:heading size="base"
+                                                            class="{{ $semanticColors['danger']['text'] }} mb-2">
+                                                            Feedback from Project Owner</flux:heading>
+                                                        <flux:text size="sm"
+                                                            class="{{ $semanticColors['danger']['text'] }}">
+                                                            {!! nl2br(e($statusFeedbackMessage)) !!}</flux:text>
+                                                    </div>
+                                                @endif
+                                            </flux:card>
+                                        @endif
+
+                                        <!-- Enhanced Revisions Section -->
+                                        @if ($pitch->status == 'revisions_requested')
+                                            <flux:card class="{{ $semanticColors['warning']['bg'] }} {{ $semanticColors['warning']['border'] }} mb-6">
+                                                <div class="mb-4 flex items-start gap-4">
+                                                    <flux:icon.arrow-path variant="solid" class="{{ $semanticColors['warning']['icon'] }} h-8 w-8 flex-shrink-0" />
+                                                    <div class="flex-1">
+                                                        <flux:heading size="lg" class="{{ $semanticColors['warning']['text'] }} mb-2">
+                                                            Revisions Requested
+                                                        </flux:heading>
+                                                        <flux:text size="sm" class="{{ $semanticColors['warning']['text'] }} mb-4">
+                                                            The project owner has reviewed your submission and requested changes. 
+                                                            Please review their feedback below and update your files accordingly.
+                                                        </flux:text>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Feedback from Project Owner -->
+                                                @if($statusFeedbackMessage)
+                                                    <div class="{{ $semanticColors['warning']['bg'] }} border {{ $semanticColors['warning']['border'] }} rounded-xl p-4 mb-4">
+                                                        <flux:heading size="base" class="{{ $semanticColors['warning']['text'] }} mb-2 flex items-center gap-2">
+                                                            <flux:icon.chat-bubble-left-ellipsis class="h-5 w-5" />
+                                                            Feedback from Project Owner
+                                                        </flux:heading>
+                                                        <flux:text size="sm" class="{{ $semanticColors['warning']['text'] }}">
+                                                            {!! nl2br(e($statusFeedbackMessage)) !!}
+                                                        </flux:text>
+                                                    </div>
+                                                @endif
+
+                                                <!-- Response to Feedback Section -->
+                                                <div class="space-y-4">
+                                                    <flux:field>
+                                                        <flux:label for="response-feedback">Your Response (Optional)</flux:label>
+                                                        <flux:textarea 
+                                                            id="response-feedback"
+                                                            wire:model.defer="responseToFeedback" 
+                                                            placeholder="Describe the changes you've made or ask questions about the feedback..."
+                                                            rows="3"
+                                                            class="resize-y"
+                                                        />
+                                                        <flux:description>Let the project owner know how you've addressed their feedback.</flux:description>
+                                                    </flux:field>
+                                                    
+                                                    <div class="flex items-center gap-3">
+                                                        <flux:button wire:click="resubmitPitch" variant="primary" icon="paper-airplane">
+                                                            Resubmit Pitch
+                                                        </flux:button>
+                                                        <flux:text size="sm" class="{{ $semanticColors['warning']['text'] }}">
+                                                            Upload any new files above before resubmitting.
+                                                        </flux:text>
+                                                    </div>
+                                                </div>
+                                            </flux:card>
+                                        @endif
+
+                                        <!-- File Upload Section -->
+                                        @if($this->canUploadFiles)
+                                            <flux:card class="mb-2">
+                                                <div class="mb-6 flex items-center gap-3">
+                                                    <flux:icon.arrow-up-tray variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                                    <div>
+                                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Upload Files</flux:heading>
+                                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Add audio files and documents to your pitch submission</flux:subheading>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- File Upload Component -->
+                                                <x-file-management.upload-section 
+                                                    :model="$pitch"
+                                                    title="Upload New Files"
+                                                    description="Upload audio files, PDFs, or images for your pitch submission"
+                                                />
+                                            </flux:card>
+                                        @endif
+
+                                        <!-- Files List Section -->
+                                        @if($pitch->files->count() > 0 || $this->canUploadFiles)
+                                            <flux:card class="mb-2">
+                                                <div class="mb-6 flex items-center gap-3">
+                                                    <flux:icon.folder variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                                    <div>
+                                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Pitch Files</flux:heading>
+                                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Manage your uploaded files and submissions</flux:subheading>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Files List Component -->
+                                                @livewire('components.file-list', [
+                                                    'files' => $pitch->files,
+                                                    'colorScheme' => $workflowColors,
+                                                    'modelType' => 'pitch',
+                                                    'modelId' => $pitch->id,
+                                                    'playMethod' => 'playPitchFile',
+                                                    'downloadMethod' => 'downloadFile',
+                                                    'deleteMethod' => 'confirmDeleteFile',
+                                                    'canDelete' => $this->canUploadFiles,
+                                                    'bulkActions' => ['download'],
+                                                    'emptyStateMessage' => 'No files uploaded yet',
+                                                    'emptyStateSubMessage' => 'Upload files to complete your pitch submission',
+                                                    'newlyUploadedFileIds' => $newlyUploadedFileIds ?? []
+                                                ], key('pitch-file-list-' . $pitch->id))
+                                            </flux:card>
+                                        @endif
+
+                                        <!-- Submission Controls -->
+                                        @if($pitch->status === 'pending' && $this->canUploadFiles)
+                                            <flux:card class="mb-2">
+                                                <div class="mb-6 flex items-center gap-3">
+                                                    <flux:icon.paper-airplane variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                                    <div>
+                                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Submit for Review</flux:heading>
+                                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Ready to submit your pitch for project owner review</flux:subheading>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Submission Requirements Check -->
+                                                @if($pitch->files->count() > 0)
+                                                    <div class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} border rounded-xl p-4 mb-4">
+                                                        <div class="flex items-center gap-3">
+                                                            <flux:icon.check-circle class="{{ $semanticColors['success']['icon'] }} h-6 w-6" />
+                                                            <div>
+                                                                <flux:text class="{{ $semanticColors['success']['text'] }} font-medium">Ready to Submit</flux:text>
+                                                                <flux:text size="sm" class="{{ $semanticColors['success']['text'] }}">You have uploaded {{ $pitch->files->count() }} file(s) and can now submit for review.</flux:text>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="flex items-center gap-3">
+                                                        <flux:button wire:click="submitForReview" variant="primary" icon="paper-airplane">
+                                                            Submit for Review
+                                                        </flux:button>
+                                                        <flux:text size="sm" class="{{ $workflowColors['text_muted'] }}">
+                                                            Once submitted, you can still upload additional files before the project owner reviews.
+                                                        </flux:text>
+                                                    </div>
+                                                @else
+                                                    <div class="{{ $semanticColors['warning']['bg'] }} {{ $semanticColors['warning']['border'] }} border rounded-xl p-4">
+                                                        <div class="flex items-center gap-3">
+                                                            <flux:icon.exclamation-triangle class="{{ $semanticColors['warning']['icon'] }} h-6 w-6" />
+                                                            <div>
+                                                                <flux:text class="{{ $semanticColors['warning']['text'] }} font-medium">Upload Required</flux:text>
+                                                                <flux:text size="sm" class="{{ $semanticColors['warning']['text'] }}">Please upload at least one file before submitting for review.</flux:text>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            </flux:card>
+                                        @endif
+
+                                        @if(auth()->check() && auth()->id() === $pitch->user_id)
+                                            {{-- Internal Notes Section (Only for Pitch Owner) --}}
+                                            <flux:card class="mb-2">
+                                                <div class="mb-6 flex items-center gap-3">
+                                                    <flux:icon.pencil-square variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                                    <div>
+                                                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Internal Notes</flux:heading>
+                                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">Personal notes and reminders (only visible to you)</flux:subheading>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="space-y-4">
+                                                    <flux:field>
+                                                        <flux:label for="internal-notes">Your Notes</flux:label>
+                                                        <flux:textarea 
+                                                            id="internal-notes"
+                                                            wire:model.defer="internalNotes" 
+                                                            placeholder="Add personal notes, reminders, or thoughts about this pitch..."
+                                                            rows="4"
+                                                            class="resize-y"
+                                                        />
+                                                    </flux:field>
+                                                    
+                                                    <div class="flex items-center gap-3">
+                                                        <flux:button wire:click="saveInternalNotes" variant="outline" icon="bookmark">
+                                                            Save Notes
+                                                        </flux:button>
+                                                        @if(!empty($pitch->internal_notes))
+                                                            <flux:text size="sm" class="{{ $workflowColors['text_muted'] }}">
+                                                                Last updated: {{ $pitch->updated_at->format('M d, Y \a\t H:i') }}
+                                                            </flux:text>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </flux:card>
+                                        @endif
+                                    </flux:card>
+                                </div>
+                            </div>
+
+                            <!-- Sidebar (1/3 width on large screens) -->
+                            <div class="space-y-2 lg:col-span-1">
+                                <!-- Workflow Type Information -->
+                                <flux:card
+                                    class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2 hidden lg:block">
+                                    <div class="mb-6 flex items-center gap-3">
+                                        <flux:icon.users variant="solid"
+                                            class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                        <div>
+                                            <flux:heading size="lg"
+                                                class="{{ $workflowColors['text_primary'] }}">Standard Project
+                                            </flux:heading>
+                                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Open
+                                                collaboration workflow</flux:subheading>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-4">
+                                        <div
+                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-xl border p-4">
+                                            <div class="flex items-start gap-3">
+                                                <flux:icon.users
+                                                    class="{{ $workflowColors['icon'] }} mt-0.5 h-6 w-6 flex-shrink-0" />
+                                                <div>
+                                                    <flux:subheading
+                                                        class="{{ $workflowColors['text_primary'] }} mb-1 font-semibold">
+                                                        Open Collaboration</flux:subheading>
+                                                    <flux:text size="sm"
+                                                        class="{{ $workflowColors['text_secondary'] }}">Submit your
+                                                        pitch for project owner review and approval.</flux:text>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-xl border p-4">
+                                            <div class="flex items-start gap-3">
+                                                <flux:icon.chat-bubble-left-ellipsis
+                                                    class="{{ $workflowColors['icon'] }} mt-0.5 h-6 w-6 flex-shrink-0" />
+                                                <div>
+                                                    <flux:subheading
+                                                        class="{{ $workflowColors['text_primary'] }} mb-1 font-semibold">
+                                                        Direct Communication</flux:subheading>
+                                                    <flux:text size="sm"
+                                                        class="{{ $workflowColors['text_secondary'] }}">Work directly
+                                                        with the project owner throughout the process.</flux:text>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </flux:card>
+                                
+                                <!-- Snapshot History -->
+                                @if($snapshots && $snapshots->count() > 0)
+                                    <flux:card class="mb-2">
+                                        <div class="mb-6 flex items-center gap-3">
+                                            <flux:icon.clock variant="solid" class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                            <div>
+                                                <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Submission History</flux:heading>
+                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Track your pitch submissions and status changes</flux:subheading>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="space-y-3">
+                                            @foreach($snapshots->take(5) as $snapshot)
+                                                <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} border rounded-xl p-4">
+                                                    <div class="flex items-start gap-3">
+                                                        <div class="flex-shrink-0">
+                                                            @if($snapshot->status === 'pending')
+                                                                <flux:icon.clock class="h-6 w-6 text-amber-500" />
+                                                            @elseif($snapshot->status === 'in_progress')
+                                                                <flux:icon.cog-6-tooth class="h-6 w-6 text-blue-500" />
+                                                            @elseif($snapshot->status === 'ready_for_review')
+                                                                <flux:icon.eye class="h-6 w-6 text-purple-500" />
+                                                            @elseif($snapshot->status === 'approved')
+                                                                <flux:icon.check-circle class="h-6 w-6 text-green-500" />
+                                                            @elseif($snapshot->status === 'denied')
+                                                                <flux:icon.x-circle class="h-6 w-6 text-red-500" />
+                                                            @elseif($snapshot->status === 'revisions_requested')
+                                                                <flux:icon.arrow-path class="h-6 w-6 text-orange-500" />
+                                                            @else
+                                                                <flux:icon.document class="h-6 w-6 {{ $workflowColors['icon'] }}" />
+                                                            @endif
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <div class="flex items-center justify-between">
+                                                                <flux:text class="{{ $workflowColors['text_primary'] }} font-medium">{{ ucfirst(str_replace('_', ' ', $snapshot->status)) }}</flux:text>
+                                                                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }}">{{ $snapshot->created_at->format('M d, H:i') }}</flux:text>
+                                                            </div>
+                                                            @if($snapshot->message)
+                                                                <flux:text size="sm" class="{{ $workflowColors['text_secondary'] }} mt-1">{{ Str::limit($snapshot->message, 100) }}</flux:text>
+                                                            @endif
+                                                            @if($snapshot->file_count > 0)
+                                                                <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} mt-1">{{ $snapshot->file_count }} file(s) included</flux:text>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                            
+                                            @if($snapshots->count() > 5)
+                                                <div class="text-center pt-2">
+                                                    <flux:button variant="ghost" size="sm" wire:click="showAllSnapshots">
+                                                        View All {{ $snapshots->count() }} Submissions
+                                                    </flux:button>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </flux:card>
                                 @endif
                             </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-800">
-                                    @if($event->event_type === 'client_comment')
-                                        Client Comment: "{{ Str::limit($event->comment, 50) }}"
-                                    @elseif($event->event_type === 'client_revisions_requested')
-                                        Client Requested Revisions: "{{ Str::limit($event->comment, 50) }}"
-                                    @elseif($event->event_type === 'client_approved')
-                                        Client Approved Submission
-                                    @endif
-                                </div>
-                                <div class="text-xs text-gray-500 mt-1">{{ $event->created_at->diffForHumans() }}</div>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="text-center py-4">
-                            <i class="fas fa-inbox text-gray-400 text-2xl mb-2"></i>
-                            <p class="text-gray-500">No recent client activity.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-
-    @else {{-- This now applies only if NOT Contest, NOT Direct Hire, and NOT Client Management --}}
-
-        <!-- Main Pitch Management Card -->
-        <div class="bg-gradient-to-br from-white/95 to-blue-50/90 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl overflow-hidden mb-6">
-            <div class="p-6">
-                <div class="flex items-center mb-6">
-                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mr-4">
-                        <i class="fas fa-tasks text-white text-lg"></i>
-                    </div>
-                    <h3 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        Pitch Management
-                    </h3>
-                </div>
-
-                <!-- Success Message -->
-                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)">
-                    @if ($message = session('message'))
-                        <div x-show="show" class="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl text-green-800" x-transition>
-                            <div class="flex items-center">
-                                <i class="fas fa-check-circle mr-2 text-green-600"></i>
-                                {{ $message }}
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                <!-- Status Messages -->
-                <div class="mb-6">
-                    <div class="rounded-xl overflow-hidden shadow-sm">
-                        @if($pitch->is_inactive || $pitch->status == 'closed')
-                            <div class="p-4 bg-gradient-to-r from-gray-50 to-slate-50 border-l-4 border-gray-500 rounded-xl">
-                                <div class="flex items-center">
-                                    <i class="fas fa-lock mr-3 text-gray-600"></i>
-                                    <span class="text-gray-800 font-medium">
-                                        {{ $pitch->is_inactive ? 'This pitch is now inactive' : 'This pitch has been closed' }}
-                                    </span>
-                                </div>
-                            </div>
-                        @else
                         @endif
                     </div>
-                </div>
 
+                    {{-- File Delete Confirmation Modal --}}
+                    @if ($showDeleteModal)
+                        <flux:modal name="delete-file" class="max-w-md">
+                            <div class="space-y-6">
+                                <div class="flex items-center gap-3">
+                                    <flux:icon.exclamation-triangle class="h-6 w-6 text-red-600 dark:text-red-400" />
+                                    <flux:heading size="lg">Delete File</flux:heading>
+                                </div>
 
-                <!-- Denied Pitch Alert Section -->
-                @if($pitch->status == 'denied')
-                <div class="mb-6 bg-gradient-to-br from-red-50/90 to-rose-50/90 backdrop-blur-sm border border-red-200/50 rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-start mb-4">
-                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl mr-4 flex-shrink-0">
-                            <i class="fas fa-times-circle text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h4 class="text-lg font-bold text-red-800 mb-2">Your Pitch Has Been Denied</h4>
-                            <p class="text-sm text-red-700 mb-4">
-                                The project owner has reviewed your pitch and has decided not to proceed with it at this time. You
-                                can view their feedback below, make changes to your files, and resubmit if appropriate.
-                            </p>
-                        </div>
-                    </div>
+                                <flux:subheading class="text-gray-600 dark:text-gray-400">
+                                    Are you sure you want to delete this file? This action cannot be undone.
+                                </flux:subheading>
 
-                    @if($snapshots->isNotEmpty())
-                    <div class="bg-white/60 backdrop-blur-sm border border-red-200/30 rounded-xl p-4 mb-4">
-                        <h5 class="font-bold text-red-800 mb-3 flex items-center">
-                            <i class="fas fa-comment-alt mr-2 text-red-600"></i>Feedback from Project Owner
-                        </h5>
-                        <div class="text-sm text-red-900 bg-red-50/50 rounded-lg p-3 border border-red-200/30">
-                            @if (!empty($statusFeedbackMessage))
-                                {!! nl2br(e($statusFeedbackMessage)) !!}
-                            @else
-                                <span class="italic text-red-600">No specific feedback was provided. Please review your pitch and consider making improvements before resubmitting.</span>
-                            @endif
-                        </div>
-                        <div class="mt-4">
-                            @if($pitch->currentSnapshot)
-                            <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $pitch->currentSnapshot->id]) }}"
-                               wire:navigate
-                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                <i class="fas fa-eye mr-2"></i>View Denied Snapshot
-                            </a>
-                            @else
-                            <span class="text-red-500 text-sm italic">No snapshot available</span>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="bg-red-100/50 backdrop-blur-sm border border-red-200/30 rounded-xl p-4">
-                        <div class="flex items-start">
-                            <i class="fas fa-info-circle mr-3 text-red-600 mt-0.5"></i>
-                            <p class="text-sm text-red-800">
-                                To resubmit your pitch, make any necessary changes to your files above, then click the "Resubmit Pitch" button at the bottom of the page.
-                            </p>
-                        </div>
-                    </div>
+                                <div class="flex items-center justify-end gap-3 pt-4">
+                                    <flux:button wire:click="cancelDeleteFile" variant="ghost">
+                                        Cancel
+                                    </flux:button>
+                                    <flux:button wire:click="deleteSelectedFile" variant="danger" icon="trash">
+                                        Delete
+                                    </flux:button>
+                                </div>
+                            </div>
+                        </flux:modal>
                     @endif
-                </div>
-                @endif
-
-                <!-- Revisions Requested Alert Section -->
-                @if($pitch->status == 'revisions_requested')
-                <div class="mb-6 bg-gradient-to-br from-amber-50/90 to-yellow-50/90 backdrop-blur-sm border border-amber-200/50 rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-start mb-4">
-                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl mr-4 flex-shrink-0">
-                            <i class="fas fa-pencil-alt text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h4 class="text-lg font-bold text-amber-800 mb-2">Revisions Have Been Requested</h4>
-                            <p class="text-sm text-amber-700 mb-4">
-                                The project owner has reviewed your pitch and requested some changes. Please review the latest
-                                snapshot and their feedback, then make the necessary revisions and submit your updated pitch for review.
-                            </p>
-                        </div>
-                    </div>
-
-                    @if($snapshots->isNotEmpty())
-                    <div class="bg-white/60 backdrop-blur-sm border border-amber-200/30 rounded-xl p-4 mb-4">
-                        <h5 class="font-bold text-amber-800 mb-3 flex items-center">
-                            <i class="fas fa-comment-alt mr-2 text-amber-600"></i>Feedback from Project Owner
-                        </h5>
-                        <div class="text-sm text-amber-900 bg-amber-50/50 rounded-lg p-3 border border-amber-200/30">
-                            @if (!empty($statusFeedbackMessage))
-                                {!! nl2br(e($statusFeedbackMessage)) !!}
-                            @else
-                                <span class="italic text-amber-600">No specific feedback was provided. Please review the latest snapshot for details.</span>
-                            @endif
-                        </div>
-                        <div class="mt-4">
-                            @if($latestSnapshot)
-                                <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $latestSnapshot->id]) }}"
-                                   wire:navigate
-                                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                                    <i class="fas fa-eye mr-2"></i>View Snapshot Details
-                                </a>
-                            @else
-                                <span class="text-amber-500 text-sm italic">No snapshot available</span>
-                            @endif
-                        </div>
-                    </div>
-                    @endif
-                    
-                    {{-- Revision Response Form --}}
-                    @if($pitch->status === 'revisions_requested')
-                        <div class="bg-white/60 backdrop-blur-sm border border-amber-200/30 rounded-xl p-4">
-                            <h5 class="font-bold text-amber-800 mb-4 flex items-center">
-                                <i class="fas fa-reply mr-2 text-amber-600"></i>Respond to Feedback & Resubmit
-                            </h5>
-                            <div class="mb-4">
-                                <div class="flex items-center justify-between mb-2">
-                                    <label class="text-sm font-medium text-amber-800">Your Response</label>
-                                    <span class="text-xs text-amber-600 flex items-center">
-                                        <i class="fas fa-info-circle mr-1"></i>This message will be visible to the project owner
-                                    </span>
-                                </div>
-                                <div class="bg-amber-50/50 border border-amber-200/30 p-3 rounded-t-xl">
-                                    <p class="text-amber-800 text-xs flex items-center">
-                                        <i class="fas fa-comment-dots mr-2"></i>Your response will appear in the feedback conversation history.
-                                    </p>
-                                </div>
-                                <textarea wire:model.lazy="responseToFeedback" rows="5"
-                                    class="w-full p-3 border border-amber-200/50 rounded-b-xl bg-white/80 backdrop-blur-sm text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
-                                    placeholder="Explain what changes you've made in response to the feedback..."></textarea>
-                            </div>
-
-                            <div class="bg-amber-100/50 backdrop-blur-sm border border-amber-200/30 rounded-xl p-4 mb-4">
-                                <h6 class="text-sm font-bold text-amber-800 mb-2 flex items-center">
-                                    <i class="fas fa-checklist mr-2"></i>Before Resubmitting:
-                                </h6>
-                                <ul class="space-y-1 text-amber-700 text-sm">
-                                    <li class="flex items-start">
-                                        <i class="fas fa-check mr-2 text-amber-600 mt-0.5 text-xs"></i>
-                                        Ensure you have uploaded any necessary new files above.
-                                    </li>
-                                    <li class="flex items-start">
-                                        <i class="fas fa-check mr-2 text-amber-600 mt-0.5 text-xs"></i>
-                                        Explain the changes you made in the response field.
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <button wire:click="submitForReview" wire:loading.attr="disabled"
-                                    class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50">
-                                    <span wire:loading wire:target="submitForReview" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
-                                    <i wire:loading.remove wire:target="submitForReview" class="fas fa-paper-plane mr-2"></i>
-                                    Submit Revisions
-                                </button>
-                                <button
-                                    onclick="window.scrollTo({top: document.querySelector('.tracks-container').offsetTop - 100, behavior: 'smooth'})"
-                                    class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-100 to-yellow-100 hover:from-amber-200 hover:to-yellow-200 text-amber-800 border border-amber-300 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-md">
-                                    <i class="fas fa-upload mr-2"></i>Upload New Files
-                                </button>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-                @endif
-
-                <!-- Completed Pitch Feedback Section -->
-                @if($pitch->status == 'completed' && !empty($pitch->completion_feedback))
-                <div class="mb-6 bg-gradient-to-br from-green-50/90 to-emerald-50/90 backdrop-blur-sm border border-green-200/50 rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-start mb-4">
-                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl mr-4 flex-shrink-0">
-                            <i class="fas fa-trophy text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h4 class="text-lg font-bold text-green-800 mb-2">Completion Feedback</h4>
-                            <p class="text-sm text-green-700 mb-4">
-                                The project owner provided the following feedback when completing your pitch:
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="bg-white/60 backdrop-blur-sm border border-green-200/30 rounded-xl p-4">
-                        <div class="text-sm text-green-900 whitespace-pre-wrap leading-relaxed">
-                            {{ $pitch->completion_feedback }}
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                {{-- Payout Status for Standard Workflow (Producer View) --}}
-                @if(auth()->check() && auth()->id() === $pitch->user_id)
-                    <x-pitch.payout-status :pitch="$pitch" />
-                @endif
-
-                <!-- Submitted Pitches -->
-                @if($snapshots->isNotEmpty())
-                <div class="mb-6">
-                    <div class="flex items-center mb-4">
-                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-3">
-                            <i class="fas fa-history text-white"></i>
-                        </div>
-                        <h4 class="text-lg font-bold text-purple-800">Submission History</h4>
-                    </div>
-                    <div class="space-y-3">
-                        @foreach($snapshots as $snapshot)
-                        <div class="bg-gradient-to-br from-white/90 to-purple-50/50 backdrop-blur-sm border border-purple-200/30 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                                <div class="flex-1 min-w-0 mb-3 sm:mb-0">
-                                    <div class="flex flex-wrap items-center mb-2">
-                                        <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg mr-3">
-                                            <i class="fas fa-code-branch text-purple-600 text-sm"></i>
-                                        </div>
-                                        <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
-                                           wire:navigate
-                                            class="font-bold text-purple-800 hover:text-purple-600 transition-colors">
-                                            Version {{ $snapshot->snapshot_data['version'] ?? 1 }}
-                                        </a>
-                                        <span class="text-xs text-purple-600 ml-3 bg-purple-100/50 px-2 py-1 rounded-lg">
-                                            {{ $snapshot->created_at->format('M d, Y H:i') }}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border {{
-                                            $snapshot->status === 'accepted' ? 'bg-green-100 text-green-800 border-green-200' :
-                                            ($snapshot->status === 'denied' ? 'bg-red-100 text-red-800 border-red-200' :
-                                            ($snapshot->status === 'revisions_requested' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                                            ($snapshot->status === 'revision_addressed' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                                            'bg-blue-100 text-blue-800 border-blue-200')))
-                                        }}">
-                                            {{ match($snapshot->status) {
-                                            'accepted' => 'Accepted',
-                                            'denied' => 'Denied',
-                                            'revisions_requested' => 'Revisions Requested',
-                                            'revision_addressed' => 'Revision Addressed',
-                                            default => ucfirst($snapshot->status)
-                                            } }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $snapshot->id]) }}"
-                                           wire:navigate
-                                        class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-md text-xs">
-                                        <i class="fas fa-eye mr-1"></i>View
-                                    </a>
-                                    <button wire:click="deleteSnapshot({{ $snapshot->id }})"
-                                        wire:confirm="Are you sure you want to delete this version?"
-                                        class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 hover:shadow-md text-xs">
-                                        <i class="fas fa-trash mr-1"></i>Delete
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-                @endif
-
-                <!-- File Management Section -->
-                @if($pitch->status !== \App\Models\Pitch::STATUS_PENDING || $pitch->status === \App\Models\Pitch::STATUS_CONTEST_ENTRY)
-                <div class="mb-6 tracks-container">
-                    <div class="flex items-center mb-4">
-                        <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl mr-3">
-                            <i class="fas fa-file-upload text-white"></i>
-                        </div>
-                        <h4 class="text-lg font-bold text-purple-800">
-                            @if($project->isContest())
-                                Upload Contest Entry Files
-                            @else
-                                Upload Files
-                            @endif
-                        </h4>
-                    </div>
-
-
-                    <!-- File Upload Section -->
-                    <div class="bg-gradient-to-br from-white/95 to-purple-50/50 backdrop-blur-sm border border-purple-200/30 rounded-xl shadow-sm overflow-hidden mb-6">
-                        <div class="p-4 bg-gradient-to-r from-purple-100/60 to-indigo-100/60 backdrop-blur-sm border-b border-purple-200/30">
-                            <div class="flex items-center">
-                                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg mr-3">
-                                    <i class="fas fa-cloud-upload-alt text-white text-sm"></i>
-                                </div>
-                                <div>
-                                    <h5 class="font-bold text-purple-800">Upload New Files</h5>
-                                    <p class="text-xs text-purple-600 mt-1">
-                                        @if($project->isContest())
-                                            Upload your contest entry files - audio, PDFs, or images
-                                        @else
-                                            Upload audio, PDFs, or images to include with your pitch
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            @if($this->canUploadFiles)
-                                <livewire:uppy-file-uploader :model="$pitch" wire:key="'enhanced-pitch-uploader-' . $pitch->id" />
-                            @else
-                                <div class="text-center py-8">
-                                    <p class="text-gray-500 mb-2">File uploads are not available for this pitch.</p>
-                                    @if(in_array($pitch->status, ['completed', 'closed', 'denied', 'contest_winner', 'contest_runner_up', 'contest_not_selected']))
-                                        <p class="text-sm text-gray-400">Pitch is in a final state - no additional files can be uploaded.</p>
-                                    @elseif($pitch->isAcceptedCompletedAndPaid())
-                                        <p class="text-sm text-gray-400">Pitch is completed and paid - no additional files can be uploaded.</p>
-                                    @endif
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- Existing Files List -->
-                    <div class="bg-gradient-to-br from-white/95 to-purple-50/50 backdrop-blur-sm border border-purple-200/30 rounded-xl shadow-sm overflow-hidden">
-                        <div class="p-4 bg-gradient-to-r from-purple-100/60 to-indigo-100/60 backdrop-blur-sm border-b border-purple-200/30 flex justify-between items-center">
-                            <div class="flex items-center">
-                                <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg mr-3">
-                                    <i class="fas fa-folder text-white text-sm"></i>
-                                </div>
-                                <h5 class="font-bold text-purple-800">Pitch Files ({{ $pitch->files->count() }})</h5>
-                            </div>
-                            @if($pitch->files->count() > 0)
-                            <span class="text-xs text-purple-600 bg-purple-100/50 px-2 py-1 rounded-lg">Total: {{ $this->formatFileSize($pitch->files->sum('size')) }}</span>
-                            @endif
-                        </div>
-                        
-                        <div class="divide-y divide-purple-200/30">
-                            @forelse($pitch->files as $file)
-                            <div class="flex items-center justify-between py-4 px-4 hover:bg-purple-50/30 transition-all duration-300 track-item
-                                @if(in_array($file->id, $newlyUploadedFileIds ?? [])) animate-fade-in @endif">
-                                <div class="flex items-center overflow-hidden flex-1 pr-3">
-                                    <div class="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-600 mr-4">
-                                        @if (Str::startsWith($file->mime_type, 'audio/'))
-                                            <i class="fas fa-music"></i>
-                                        @elseif ($file->mime_type == 'application/pdf')
-                                            <i class="fas fa-file-pdf text-red-500"></i>
-                                        @elseif (Str::startsWith($file->mime_type, 'image/'))
-                                            <i class="fas fa-file-image text-blue-500"></i>
-                                        @else
-                                            <i class="fas fa-file-alt"></i>
-                                        @endif
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <a href="{{ route('pitch-files.show', $file) }}"
-                                           wire:navigate 
-                                           class="font-bold truncate text-purple-900 hover:text-purple-600 transition-colors duration-200 block" 
-                                           title="{{ $file->file_name }}">{{ $file->file_name }}</a>
-                                        <div class="flex items-center text-xs text-purple-600 mt-1">
-                                            <span>{{ $file->created_at->format('M d, Y') }}</span>
-                                            <span class="mx-2">•</span>
-                                            <span>{{ $this->formatFileSize($file->size) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <a href="{{ route('pitch-files.show', $file) }}"
-                                           wire:navigate
-                                       class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-600 rounded-lg transition-all duration-200 hover:scale-105"
-                                       title="View file details">
-                                        <i class="fas fa-eye text-sm"></i>
-                                    </a>
-                                    <button wire:click="downloadFile({{ $file->id }})"
-                                        class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-600 rounded-lg transition-all duration-200 hover:scale-105"
-                                        title="Download file">
-                                        <i class="fas fa-download text-sm"></i>
-                                    </button>
-                                    <button wire:click="confirmDeleteFile({{ $file->id }})" 
-                                            class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-red-100 to-rose-100 hover:from-red-200 hover:to-rose-200 text-red-600 rounded-lg transition-all duration-200 hover:scale-105"
-                                            title="Delete file">
-                                        <i class="fas fa-trash text-sm"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            @empty
-                            <div class="p-10 text-center">
-                                <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-2xl mx-auto mb-4">
-                                    <i class="fas fa-folder-open text-purple-400 text-2xl"></i>
-                                </div>
-                                <h6 class="text-lg font-bold text-purple-800 mb-2">No files uploaded yet</h6>
-                                <p class="text-sm text-purple-600">Upload files to include with your pitch</p>
-                            </div>
-                            @endforelse
-                        </div>
-                    </div>
-                </div>
-                @endif
-                {{-- Internal Notes Section --}}
-                @can('update', $pitch)
-                <div x-data="{ open: false }" class="mb-6 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 backdrop-blur-sm border border-blue-200/30 rounded-xl overflow-hidden">
-                    <button @click="open = !open" class="flex justify-between items-center w-full p-4 bg-gradient-to-r from-blue-100/60 to-indigo-100/60 hover:from-blue-100/80 hover:to-indigo-100/80 transition-all duration-200">
-                        <div class="flex items-center">
-                            <div class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mr-3">
-                                <i class="fas fa-sticky-note text-white text-sm"></i>
-                            </div>
-                            <span class="font-bold text-blue-800">Internal Notes (Visible only to you)</span>
-                        </div>
-                        <i class="fas text-blue-600 transition-transform duration-200" :class="{ 'fa-chevron-down': !open, 'fa-chevron-up': open }"></i>
-                    </button>
-                    <div x-show="open" x-collapse class="p-4 bg-white/60 backdrop-blur-sm border-t border-blue-200/30">
-                        <textarea wire:model.debounce.1000ms="internalNotes" rows="4"
-                            class="w-full p-3 border border-blue-200/50 rounded-xl bg-white/80 backdrop-blur-sm text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
-                            placeholder="Add private notes about this pitch..."></textarea>
-                        @error('internalNotes') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                        <div class="mt-3 text-right">
-                            <button wire:click="saveInternalNotes" wire:loading.attr="disabled"
-                                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50">
-                                <span wire:loading wire:target="saveInternalNotes" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
-                                <i wire:loading.remove wire:target="saveInternalNotes" class="fas fa-save mr-2"></i>
-                                Save Notes
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                @endcan
-                <!-- Submit for review button section -->
-                @if(in_array($pitch->status, [
-                    \App\Models\Pitch::STATUS_IN_PROGRESS, 
-                    \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, 
-                    \App\Models\Pitch::STATUS_DENIED
-                ]))
-                <div class="mt-6 bg-gradient-to-br from-green-50/90 to-emerald-50/90 backdrop-blur-sm border border-green-200/50 rounded-xl p-6 shadow-sm">
-                    @error('acceptedTerms')
-                    <div class="mb-4 p-3 bg-red-100/50 border border-red-200 rounded-lg">
-                        <span class="text-red-600 text-sm flex items-center">
-                            <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                        </span>
-                    </div>
-                    @enderror
-                    
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div class="flex items-center">
-                            <input type="checkbox" id="terms" class="w-5 h-5 text-green-600 bg-white border-green-300 rounded focus:ring-green-500 focus:ring-2"
-                                wire:model.defer="acceptedTerms">
-                            <label for="terms" class="ml-3 text-sm text-green-800">
-                                I accept the <a href="/terms" target="_blank" class="text-green-600 hover:text-green-800 underline font-medium">terms and conditions</a>
-                            </label>
-                        </div>
-
-                        <button wire:click="submitForReview" wire:confirm="Are you sure you want to Submit your Pitch?"
-                            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            :disabled="!acceptedTerms">
-                            <i class="fas fa-check mr-2"></i>
-                            {{ $pitch->status == 'denied' || $pitch->status == 'revisions_requested' ? 'Resubmit Pitch' : 'Ready To Submit' }}
-                        </button>
-                    </div>
-                </div>
-                @endif
-
-                <!-- Cancel submission button section -->
-                @if($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW && auth()->id() === $pitch->user_id)
-                <div class="mt-6 bg-gradient-to-br from-red-50/90 to-rose-50/90 backdrop-blur-sm border border-red-200/50 rounded-xl p-6 shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h5 class="font-bold text-red-800 mb-1">Cancel Submission</h5>
-                            <p class="text-sm text-red-600">This will return your pitch to 'In Progress' status</p>
-                        </div>
-                        <button wire:click="cancelPitchSubmission"
-                            wire:confirm="Are you sure you want to cancel your submission? This will return your pitch to 'In Progress' status and delete the current pending snapshot."
-                            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                            <i class="fas fa-times mr-2"></i>
-                            Cancel Submission
-                        </button>
-                    </div>
-                </div>
-                @endif
-            </div>
-        </div>
-    @endif
-
-    {{-- Delete File Modal --}}
-    @if($showDeleteModal)
-    <div class="fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-center justify-center min-h-screen p-4 text-center">
-            {{-- Background overlay --}}
-            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" wire:click="cancelDeleteFile"></div>
-            
-            {{-- Modal panel --}}
-            <div class="relative bg-white/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl transform transition-all max-w-lg w-full">
-                <div class="p-6">
-                    <div class="flex items-start">
-                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-100 to-rose-100 rounded-xl mr-4 flex-shrink-0">
-                            <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-lg font-bold text-gray-900 mb-2">Delete File</h3>
-                            <p class="text-sm text-gray-600">
-                                Are you sure you want to delete this file? This action cannot be undone.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50/80 backdrop-blur-sm px-6 py-4 flex flex-col sm:flex-row gap-3 sm:justify-end rounded-b-2xl">
-                    <button wire:click="cancelDeleteFile" type="button" 
-                            class="inline-flex items-center justify-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                        Cancel
-                    </button>
-                    <button wire:click="deleteSelectedFile" type="button" 
-                            class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                        <i class="fas fa-trash mr-2"></i>Delete
-                    </button>
                 </div>
             </div>
         </div>
     </div>
-    @endif
-</div>
-
+</x-draggable-upload-page>

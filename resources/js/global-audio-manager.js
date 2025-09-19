@@ -29,6 +29,12 @@ class GlobalAudioManager {
             end: null
         };
 
+        // Visualization data (precomputed peaks & known duration)
+        this.visualData = {
+            peaks: null, // Array<Float32Array> or number[] per channel
+            duration: null, // seconds
+        };
+
         // Configuration
         this.config = {
             container: '#global-waveform-persistent', // Use persistent container
@@ -82,7 +88,14 @@ class GlobalAudioManager {
     setupEventListeners() {
         // Listen for Livewire events from GlobalAudioPlayer component
         Livewire.on('globalPlayerTrackChanged', (event) => {
-            this.loadTrack(event.track);
+            const track = event.track;
+            // Try to use precomputed peaks from the track if available
+            const { peaks, duration } = this.extractVisualizationFromTrack(track);
+            if (peaks && peaks.length) {
+                this.loadTrackWithPeaks(track, peaks, duration || track?.duration || null);
+            } else {
+                this.loadTrack(track);
+            }
 
             // Update queue in Alpine store if provided
             if (this.alpineStore && event.queue) {
@@ -157,7 +170,7 @@ class GlobalAudioManager {
         }
     }
 
-    initializeWaveSurfer(container = null) {
+    initializeWaveSurfer(container = null, options = {}) {
         // If WaveSurfer already exists and is playing, don't destroy it
         if (this.waveSurfer) {
             // Check if we need to switch containers
@@ -186,7 +199,7 @@ class GlobalAudioManager {
 
             // Get the persistent audio element
             const audioElement = document.getElementById('persistent-audio-element');
-            
+
             // Adjust config based on container type
             const isFullPlayer = containerSelector.includes('full');
             const config = {
@@ -198,6 +211,27 @@ class GlobalAudioManager {
                 barWidth: isFullPlayer ? 3 : 2,
                 barGap: isFullPlayer ? 2 : 1
             };
+
+            // Accept and store visualization data if provided
+            if (options && (options.peaks || options.duration)) {
+                this.visualData.peaks = options.peaks || this.visualData.peaks;
+                this.visualData.duration = options.duration || this.visualData.duration;
+            }
+
+            // Apply precomputed peaks/duration to the visualization config if available
+            if (this.visualData && (this.visualData.peaks || this.visualData.duration)) {
+                if (this.visualData.peaks) {
+                    // Normalize to array of Float32Array per channel as WaveSurfer expects
+                    const peaks = Array.isArray(this.visualData.peaks) ? this.visualData.peaks : [];
+                    config.peaks = peaks.map(channel => {
+                        if (channel instanceof Float32Array) return channel;
+                        return new Float32Array(channel);
+                    });
+                }
+                if (this.visualData.duration) {
+                    config.duration = this.visualData.duration;
+                }
+            }
 
             // Ensure audio element exists
             if (!audioElement) {
@@ -213,20 +247,27 @@ class GlobalAudioManager {
 
             // Force MediaElement usage for streaming
             const shouldUseMediaElement = true;
-            
+
             // Check if we should use media element for streaming
             if (shouldUseMediaElement && audioElement) {
                 // Configure audio element for streaming
                 audioElement.preload = 'metadata';
                 audioElement.crossOrigin = 'anonymous';
-                
+
                 // Pass the audio element to WaveSurfer - it should use MediaElement automatically
                 config.media = audioElement;
-                
+
                 this.waveSurfer = WaveSurfer.create(config);
+                // Force immediate draw using provided peaks
+                if (config.peaks && this.waveSurfer?.drawBuffer) {
+                    try { this.waveSurfer.drawBuffer(); } catch (_) { }
+                }
                 this.usingMediaElement = true;
             } else {
                 this.waveSurfer = WaveSurfer.create(config);
+                if (config.peaks && this.waveSurfer?.drawBuffer) {
+                    try { this.waveSurfer.drawBuffer(); } catch (_) { }
+                }
                 this.usingMediaElement = false;
             }
 
@@ -272,16 +313,30 @@ class GlobalAudioManager {
                 barGap: isFullPlayer ? 2 : 1
             };
 
+            // Preserve visualization data (peaks/duration) when switching containers
+            if (this.visualData && (this.visualData.peaks || this.visualData.duration)) {
+                if (this.visualData.peaks) {
+                    const peaks = Array.isArray(this.visualData.peaks) ? this.visualData.peaks : [];
+                    config.peaks = peaks.map(channel => {
+                        if (channel instanceof Float32Array) return channel;
+                        return new Float32Array(channel);
+                    });
+                }
+                if (this.visualData.duration) {
+                    config.duration = this.visualData.duration;
+                }
+            }
+
             // Destroy old visualization but keep audio playing
             const oldWaveSurfer = this.waveSurfer;
-            
+
             // If using MediaElement, pass the audio element
             if (this.usingMediaElement && audioElement) {
                 config.media = audioElement;
             } else if (audioElement) {
                 config.media = audioElement; // Fallback for regular mode
             }
-            
+
             this.waveSurfer = WaveSurfer.create(config);
 
             // Update current container reference
@@ -321,14 +376,14 @@ class GlobalAudioManager {
 
     setupAudioElementEvents(audioElement) {
         if (!audioElement) return;
-        
+
         // Remove existing listeners to avoid duplicates
         audioElement.removeEventListener('play', this.audioElementPlayHandler);
         audioElement.removeEventListener('pause', this.audioElementPauseHandler);
         audioElement.removeEventListener('ended', this.audioElementEndedHandler);
         audioElement.removeEventListener('timeupdate', this.audioElementTimeUpdateHandler);
         audioElement.removeEventListener('seeking', this.audioElementSeekingHandler);
-        
+
         // Create bound handlers
         this.audioElementPlayHandler = () => {
             this.playbackState.isPlaying = true;
@@ -338,7 +393,7 @@ class GlobalAudioManager {
             this.updateLivewireComponent('playbackStarted');
             this.updateMediaSessionPlaybackState('playing');
         };
-        
+
         this.audioElementPauseHandler = () => {
             this.playbackState.isPlaying = false;
             if (this.alpineStore) {
@@ -347,18 +402,18 @@ class GlobalAudioManager {
             this.updateLivewireComponent('playbackPaused');
             this.updateMediaSessionPlaybackState('paused');
         };
-        
+
         this.audioElementEndedHandler = () => {
             this.playbackState.isPlaying = false;
             this.playbackState.currentPosition = 0;
             this.updateLivewireComponent('trackEnded');
             this.updateMediaSessionPlaybackState('none');
         };
-        
+
         this.audioElementTimeUpdateHandler = () => {
             this.playbackState.currentPosition = audioElement.currentTime;
             this.throttlePositionUpdate();
-            
+
             // Handle A-B loop
             if (this.loopState.enabled && this.loopState.start !== null && this.loopState.end !== null) {
                 if (this.playbackState.currentPosition >= this.loopState.end) {
@@ -366,7 +421,7 @@ class GlobalAudioManager {
                 }
             }
         };
-        
+
         this.audioElementSeekingHandler = () => {
             this.playbackState.currentPosition = audioElement.currentTime;
             if (this.alpineStore) {
@@ -374,7 +429,7 @@ class GlobalAudioManager {
             }
             this.callLivewireMethod('updatePosition', this.playbackState.currentPosition);
         };
-        
+
         // Add event listeners
         audioElement.addEventListener('play', this.audioElementPlayHandler);
         audioElement.addEventListener('pause', this.audioElementPauseHandler);
@@ -389,7 +444,7 @@ class GlobalAudioManager {
         // Only set up WaveSurfer events if NOT using MediaElement
         // MediaElement events are handled by setupAudioElementEvents
         if (!this.usingMediaElement) {
-            
+
             // Set up WaveSurfer event listeners (same as in initializeWaveSurfer)
             this.waveSurfer.on('ready', () => {
                 this.playbackState.duration = this.waveSurfer.getDuration();
@@ -457,7 +512,7 @@ class GlobalAudioManager {
         }
     }
 
-    loadTrack(track) {
+    loadTrack(track, options = {}) {
         if (!track || !track.url) {
             return;
         }
@@ -468,6 +523,43 @@ class GlobalAudioManager {
         }
 
         this.currentTrack = track;
+
+        // If the caller didn't provide peaks/duration, but track contains them, apply them
+        if (!options?.peaks && (track?.waveform_data || track?.waveform_peaks)) {
+            const extracted = this.extractVisualizationFromTrack(track);
+            if (extracted.peaks && extracted.peaks.length) {
+                this.visualData.peaks = extracted.peaks;
+                this.visualData.duration = extracted.duration || track.duration || this.visualData.duration;
+
+                // Recreate the instance to apply peaks/duration if already initialized
+                if (this.isInitialized) {
+                    const container = this.currentContainer || this.config.container;
+                    try { this.waveSurfer?.destroy(); } catch (_) { }
+                    this.waveSurfer = null;
+                    this.isInitialized = false;
+                    this.initializeWaveSurfer(container, this.visualData);
+                }
+            }
+        }
+
+        // Update visualization data if provided
+        if (options && (options.peaks || options.duration)) {
+            this.visualData.peaks = options.peaks || this.visualData.peaks;
+            this.visualData.duration = options.duration || this.visualData.duration;
+
+            // If an instance exists, recreate it to apply peaks/duration reliably
+            if (this.isInitialized) {
+                const container = this.currentContainer || this.config.container;
+                try {
+                    if (this.waveSurfer) {
+                        this.waveSurfer.destroy();
+                    }
+                } catch (e) { }
+                this.waveSurfer = null;
+                this.isInitialized = false;
+                this.initializeWaveSurfer(container, this.visualData);
+            }
+        }
 
         // Initialize WaveSurfer if not already done
         if (!this.isInitialized && !this.initializeWaveSurfer()) {
@@ -485,15 +577,15 @@ class GlobalAudioManager {
                 if (audioElement) {
                     // Set source for streaming - this triggers the browser's native streaming
                     audioElement.src = track.url;
-                    
+
                     // Force WaveSurfer to use this audio element without downloading again
                     if (this.waveSurfer.setMediaElement && typeof this.waveSurfer.setMediaElement === 'function') {
                         this.waveSurfer.setMediaElement(audioElement);
                     }
-                    
+
                     // Set up audio element event listeners for MediaElement backend
                     this.setupAudioElementEvents(audioElement);
-                    
+
                     // Wait for metadata to load to get duration
                     audioElement.addEventListener('loadedmetadata', () => {
                         this.playbackState.duration = audioElement.duration || 0;
@@ -504,7 +596,7 @@ class GlobalAudioManager {
                         this.callLivewireMethod('updateDuration', this.playbackState.duration);
                         this.updateLivewireComponent('waveformReady');
                     }, { once: true });
-                    
+
                 } else {
                     this.waveSurfer.load(track.url);
                 }
@@ -524,6 +616,107 @@ class GlobalAudioManager {
                 this.alpineStore.clearLoading();
             }
         }
+    }
+
+    // Extract peaks/duration from a track object (supports multiple formats)
+    extractVisualizationFromTrack(track) {
+        try {
+            let peaksSource = track?.waveform_peaks ?? track?.waveform_peaks_array ?? track?.waveform_data ?? null;
+            let duration = track?.duration ?? null;
+            if (!peaksSource) return { peaks: null, duration };
+
+            // Parse JSON string if necessary
+            if (typeof peaksSource === 'string') {
+                try { peaksSource = JSON.parse(peaksSource); } catch (_) { }
+            }
+
+            // If object wrapper with data property
+            if (peaksSource && peaksSource.data && Array.isArray(peaksSource.data)) {
+                peaksSource = peaksSource.data;
+            }
+
+            // Normalize to array of channels as Float32Array
+            if (Array.isArray(peaksSource) && peaksSource.length) {
+                if (Array.isArray(peaksSource[0])) {
+                    // Likely min/max pairs per pixel -> take max as single channel
+                    const maxPeaks = peaksSource.map(p => Array.isArray(p) ? (p[1] ?? 0) : (p ?? 0));
+                    return { peaks: [new Float32Array(maxPeaks)], duration };
+                } else if (typeof peaksSource[0] === 'number') {
+                    // Single channel array of peaks
+                    return { peaks: [new Float32Array(peaksSource)], duration };
+                } else if (peaksSource[0] instanceof Float32Array) {
+                    return { peaks: peaksSource, duration };
+                }
+            }
+
+            return { peaks: null, duration };
+        } catch (_) {
+            return { peaks: null, duration: track?.duration ?? null };
+        }
+    }
+
+    // Generate placeholder waveform data for files without pre-generated peaks
+    generatePlaceholderWaveform(duration = 180) {
+        // Aim for roughly 67 samples per minute (similar to real waveform density)
+        const samplesPerMinute = 67;
+        const totalSamples = Math.floor((duration / 60) * samplesPerMinute);
+        const peaks = new Float32Array(totalSamples);
+        
+        // Generate simple sine wave with random amplitude variations
+        for (let i = 0; i < totalSamples; i++) {
+            // Create base sine wave with varying frequency
+            const baseWave = Math.sin(i * 0.1) * 0.6;
+            // Add some randomness for more realistic appearance
+            const randomVariation = (Math.random() - 0.5) * 0.4;
+            // Combine and normalize to 0-1 range
+            peaks[i] = Math.abs(baseWave + randomVariation);
+        }
+        
+        return [peaks]; // Return as array for WaveSurfer compatibility
+    }
+
+    // Convenience method to load a track with precomputed peaks/duration and optional target container
+    loadTrackWithPeaks(track, peaks, duration, container = null) {
+        this.visualData.peaks = peaks || null;
+        this.visualData.duration = duration || null;
+
+        // Pick a visible container if none provided
+        if (!container) {
+            // Pick a visible container
+            const isVisible = (el) => {
+                if (!el) return false;
+                const st = window.getComputedStyle(el);
+                const r = el.getBoundingClientRect();
+                return st.display !== 'none' && st.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+            };
+            const fullEl = document.querySelector('#global-waveform-full');
+            const miniEl = document.querySelector('#global-waveform');
+            if (isVisible(fullEl)) container = '#global-waveform-full';
+            else if (isVisible(miniEl)) container = '#global-waveform';
+            else if (fullEl) container = '#global-waveform-full';
+            else if (miniEl) container = '#global-waveform';
+        }
+
+        // Ensure WaveSurfer is initialized with visualization data
+        if (!this.isInitialized) {
+            this.initializeWaveSurfer(container || this.currentContainer || this.config.container, this.visualData);
+        } else if (container && container !== this.currentContainer) {
+            this.switchContainer(container);
+        } else {
+            // Recreate to apply peaks if already initialized without them
+            const targetContainer = container || this.currentContainer || this.config.container;
+            try {
+                if (this.waveSurfer) {
+                    this.waveSurfer.destroy();
+                }
+            } catch (e) { }
+            this.waveSurfer = null;
+            this.isInitialized = false;
+            this.initializeWaveSurfer(targetContainer, this.visualData);
+        }
+
+        // Load audio for playback
+        this.loadTrack(track);
     }
 
     play() {
@@ -1087,25 +1280,56 @@ class GlobalAudioManager {
 
     // Enhanced play method that uses persistent audio for autoplay restrictions
     playWithFallback() {
-        if (!this.waveSurfer) {
+        // Prefer direct MediaElement playback when available
+        if (this.usingMediaElement) {
+            const audioElement = document.getElementById('persistent-audio-element');
+            if (!audioElement) return;
+            try {
+                // Ensure src is set before playing
+                if (this.currentTrack && audioElement.src !== this.currentTrack.url) {
+                    audioElement.src = this.currentTrack.url;
+                    // Make sure WaveSurfer is bound to this element
+                    if (this.waveSurfer?.setMediaElement && typeof this.waveSurfer.setMediaElement === 'function') {
+                        this.waveSurfer.setMediaElement(audioElement);
+                    }
+                    this.setupAudioElementEvents(audioElement);
+                }
+
+                // If metadata not loaded yet, wait for it then play
+                if (isNaN(audioElement.duration) || !isFinite(audioElement.duration) || audioElement.duration === 0) {
+                    audioElement.addEventListener('loadedmetadata', () => {
+                        try { audioElement.play(); this.pauseAllOtherPlayers(); } catch (_) { this.usePersistentAudioFallback(); }
+                    }, { once: true });
+                }
+
+                const playPromise = audioElement.play();
+                if (playPromise && typeof playPromise.then === 'function') {
+                    playPromise.catch(() => {
+                        // If blocked, try WaveSurfer or fallback
+                        try {
+                            this.waveSurfer?.play();
+                        } catch (_) {
+                            this.usePersistentAudioFallback();
+                        }
+                    });
+                }
+                this.pauseAllOtherPlayers();
+            } catch (_) {
+                this.usePersistentAudioFallback();
+            }
             return;
         }
 
+        if (!this.waveSurfer) return;
         try {
-            // Try normal WaveSurfer play first
             const playPromise = this.waveSurfer.play();
-
             if (playPromise && typeof playPromise.then === 'function') {
                 playPromise.catch(error => {
-                    if (error.name === 'NotAllowedError') {
-                        this.usePersistentAudioFallback();
-                    }
+                    if (error.name === 'NotAllowedError') this.usePersistentAudioFallback();
                 });
             }
-
             this.pauseAllOtherPlayers();
-        } catch (error) {
-            // Try fallback
+        } catch (_) {
             this.usePersistentAudioFallback();
         }
     }
@@ -1207,12 +1431,12 @@ class GlobalAudioManager {
         comments.forEach(comment => {
             const position = (comment.timestamp / duration) * 100;
             const clampedPosition = Math.min(Math.max(position, 0), 100);
-            
+
             const marker = document.createElement('div');
             marker.className = 'comment-marker absolute h-full w-1 cursor-pointer group';
             marker.style.left = `${clampedPosition}%`;
-            marker.style.background = comment.resolved 
-                ? 'linear-gradient(to bottom, #22c55e, #10b981)' 
+            marker.style.background = comment.resolved
+                ? 'linear-gradient(to bottom, #22c55e, #10b981)'
                 : 'linear-gradient(to bottom, #7c3aed, #4f46e5)';
             marker.style.pointerEvents = 'auto';
             marker.style.zIndex = '10';
@@ -1220,11 +1444,124 @@ class GlobalAudioManager {
             // Create marker dot
             const markerDot = document.createElement('div');
             markerDot.className = `h-4 w-4 rounded-full -ml-1.5 ${comment.resolved ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600'} border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200`;
-            
+
             const pulse = document.createElement('div');
             pulse.className = 'absolute inset-0 rounded-full bg-white/30 animate-pulse';
             markerDot.appendChild(pulse);
             marker.appendChild(markerDot);
+
+            // Tooltip container above the marker (bounded size)
+            const tooltip = document.createElement('div');
+            tooltip.className = 'comment-tooltip hidden absolute mb-2';
+            // Place above the marker head
+            tooltip.style.bottom = '1.75rem';
+            // Position defaults; will be refined based on container width
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translateX(-50%)';
+            tooltip.style.width = '20rem';
+            tooltip.style.maxHeight = '16rem';
+            tooltip.style.overflowY = 'auto';
+            tooltip.style.background = 'rgba(255,255,255,0.95)';
+            tooltip.style.backdropFilter = 'blur(6px)';
+            tooltip.style.border = '1px solid rgba(255,255,255,0.2)';
+            tooltip.style.borderRadius = '0.75rem';
+            tooltip.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
+            tooltip.style.padding = '0.75rem';
+            tooltip.style.zIndex = '50';
+
+            // Tooltip content header
+            const header = document.createElement('div');
+            header.className = 'flex items-center mb-2';
+            const title = document.createElement('div');
+            title.className = 'text-sm font-semibold text-gray-900';
+            title.textContent = comment.user?.name || comment.client_email || 'Client';
+            const ts = document.createElement('div');
+            ts.className = 'ml-2 text-xs text-purple-600 font-medium';
+            ts.textContent = comment.formatted_timestamp || '';
+            header.appendChild(title);
+            header.appendChild(ts);
+            tooltip.appendChild(header);
+
+            // Main comment
+            const body = document.createElement('div');
+            body.className = 'text-sm text-gray-800 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg p-2';
+            body.textContent = (comment.comment || '').slice(0, 160);
+            tooltip.appendChild(body);
+
+            // Replies (up to 3)
+            if (Array.isArray(comment.replies) && comment.replies.length) {
+                const repliesWrap = document.createElement('div');
+                repliesWrap.className = 'mt-3';
+                const repliesTitle = document.createElement('div');
+                repliesTitle.className = 'text-xs font-semibold text-gray-500 mb-2';
+                repliesTitle.textContent = 'Recent replies';
+                repliesWrap.appendChild(repliesTitle);
+
+                const list = document.createElement('div');
+                list.className = 'space-y-2';
+                comment.replies.slice(0, 3).forEach(r => {
+                    const item = document.createElement('div');
+                    item.className = 'rounded-md border border-gray-100 bg-gray-50 p-2';
+                    const head = document.createElement('div');
+                    head.className = 'flex items-center gap-2 mb-1';
+                    const name = document.createElement('div');
+                    name.className = 'text-xs font-medium text-gray-700';
+                    name.textContent = (r.user?.name) || (r.client_email || 'Client');
+                    const when = document.createElement('div');
+                    when.className = 'text-[10px] text-gray-400';
+                    when.textContent = r.created_at_human || '';
+                    head.appendChild(name);
+                    head.appendChild(when);
+                    const text = document.createElement('div');
+                    text.className = 'text-xs text-gray-700';
+                    text.textContent = (r.comment || '').slice(0, 120);
+                    item.appendChild(head);
+                    item.appendChild(text);
+                    list.appendChild(item);
+                });
+                if (comment.replies.length > 3) {
+                    const more = document.createElement('div');
+                    more.className = 'text-[11px] text-gray-500';
+                    more.textContent = `+${comment.replies.length - 3} more replies`;
+                    list.appendChild(more);
+                }
+                repliesWrap.appendChild(list);
+                tooltip.appendChild(repliesWrap);
+            }
+
+            marker.appendChild(tooltip);
+
+            // Hover handlers for tooltip
+            marker.addEventListener('mouseenter', () => {
+                // Edge-aware horizontal placement so it doesn't clip
+                try {
+                    const containerRect = waveformContainer.getBoundingClientRect();
+                    const containerWidth = containerRect.width || waveformContainer.clientWidth || 0;
+                    const markerLeftPx = (clampedPosition / 100) * containerWidth;
+                    const tooltipWidthPx = 320; // 20rem baseline
+                    const margin = 8;
+
+                    // Reset
+                    tooltip.style.right = 'auto';
+                    tooltip.style.left = '50%';
+                    tooltip.style.transform = 'translateX(-50%)';
+
+                    if (markerLeftPx < (tooltipWidthPx / 2 + margin)) {
+                        // Near left edge: align left at marker
+                        tooltip.style.left = '0';
+                        tooltip.style.right = 'auto';
+                        tooltip.style.transform = 'translateX(0)';
+                    } else if ((containerWidth - markerLeftPx) < (tooltipWidthPx / 2 + margin)) {
+                        // Near right edge: align right at marker
+                        tooltip.style.left = 'auto';
+                        tooltip.style.right = '0';
+                        tooltip.style.transform = 'translateX(0)';
+                    }
+                } catch (_) { }
+
+                tooltip.classList.remove('hidden');
+            });
+            marker.addEventListener('mouseleave', () => { tooltip.classList.add('hidden'); });
 
             // Add click handler for seeking
             marker.addEventListener('click', (e) => {
@@ -1244,7 +1581,7 @@ class GlobalAudioManager {
         if (!waveformContainer) {
             waveformContainer = this.getCurrentWaveformContainer();
         }
-        
+
         if (waveformContainer) {
             const markersOverlay = waveformContainer.querySelector('.comment-markers-overlay');
             if (markersOverlay) {
@@ -1254,12 +1591,39 @@ class GlobalAudioManager {
     }
 
     getCurrentWaveformContainer() {
-        // Try persistent container first, then fallback
-        let container = document.querySelector(this.config.container);
-        if (!container) {
-            container = document.querySelector(this.config.fallbackContainer);
+        const isVisible = (el) => {
+            if (!el) return false;
+            const style = window.getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+        };
+
+        // Prefer active container if visible
+        if (this.currentContainer) {
+            const active = typeof this.currentContainer === 'string' ? document.querySelector(this.currentContainer) : this.currentContainer;
+            if (isVisible(active)) return active;
         }
-        return container;
+
+        // Prefer visible full player container
+        let full = document.querySelector('#global-waveform-full');
+        if (isVisible(full)) return full;
+
+        // Then visible mini player container
+        let mini = document.querySelector('#global-waveform');
+        if (isVisible(mini)) return mini;
+
+        // Fallbacks
+        const fallback = document.querySelector(this.config.fallbackContainer);
+        if (fallback) return fallback;
+        const persistent = document.querySelector(this.config.container);
+        return persistent || null;
+    }
+
+    findBestContainerSelector() {
+        const el = this.getCurrentWaveformContainer();
+        if (!el) return this.config.fallbackContainer;
+        if (el.id) return `#${el.id}`;
+        return this.config.fallbackContainer;
     }
 
     seekToCommentTimestamp(timestamp) {
@@ -1268,7 +1632,7 @@ class GlobalAudioManager {
         }
 
         const seekPosition = timestamp / this.playbackState.duration;
-        
+
         if (this.usingMediaElement) {
             const audioElement = document.getElementById('persistent-audio-element');
             if (audioElement) {
@@ -1280,7 +1644,7 @@ class GlobalAudioManager {
 
         // Pause playback when seeking from comment
         this.pause();
-        
+
         // Update position state
         this.playbackState.currentPosition = timestamp;
         if (this.alpineStore) {
@@ -1293,7 +1657,7 @@ class GlobalAudioManager {
             this.clearCommentMarkers();
             return;
         }
-        
+
         this.renderCommentMarkers(comments, this.playbackState.duration);
     }
 
@@ -1323,7 +1687,7 @@ class GlobalAudioManager {
             if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const activeElement = document.activeElement;
                 // Only trigger if not typing in an input
-                if (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA' && 
+                if (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA' &&
                     activeElement.contentEditable !== 'true') {
                     e.preventDefault();
                     this.triggerAddCommentAtCurrentPosition();
@@ -1333,8 +1697,8 @@ class GlobalAudioManager {
     }
 
     triggerAddCommentAtCurrentPosition() {
-        // Check if global player is visible and has a pitch file loaded
-        if (this.currentTrack && this.currentTrack.type === 'pitch_file') {
+        // Check if global player is visible and has a supported track loaded
+        if (this.currentTrack && (this.currentTrack.type === 'pitch_file' || this.currentTrack.type === 'project_file')) {
             this.callLivewireMethod('toggleCommentForm', this.playbackState.currentPosition);
         }
     }

@@ -121,7 +121,8 @@ class GlobalAudioPlayer extends Component
             'title' => $pitchFile->file_name,
             'url' => $pitchFile->getStreamingUrl(Auth::user()),
             'duration' => $pitchFile->duration ?? 0,
-            'waveform_data' => $pitchFile->waveform_data,
+            // Provide peaks to the global audio manager (normalized field name)
+            'waveform_peaks' => $pitchFile->waveform_peaks ? json_decode($pitchFile->waveform_peaks, true) : null,
             'pitch_id' => $pitchFile->pitch_id,
             'project_id' => $pitchFile->pitch->project_id,
             'artist' => $pitchFile->pitch->user->name ?? 'Unknown Artist',
@@ -191,20 +192,23 @@ class GlobalAudioPlayer extends Component
             'id' => $projectFile->id,
             'title' => $projectFile->file_name,
             'url' => $fileUrl,
-            'duration' => 0, // ProjectFile doesn't have duration stored
+            'duration' => $projectFile->duration ?? 0,
+            'waveform_peaks' => $projectFile->waveform_peaks ? json_decode($projectFile->waveform_peaks, true) : null,
             'project_id' => $projectFile->project_id,
             'artist' => $projectFile->project->user->name ?? 'Project Owner',
             'project_title' => $projectFile->project->title ?? '',
             'file_size' => $projectFile->size,
             'created_at' => $projectFile->created_at->toISOString(),
-            'has_comments' => false, // Project files don't have comments like pitch files
+            'has_comments' => $projectFile->comments()->exists(),
         ];
 
         // Build contextual queue - all audio files from this project
         $this->buildProjectFileQueue($projectFile);
 
-        $this->duration = 0; // Will be set when audio loads
-        $this->comments = []; // No comments for project files
+        $this->duration = $this->currentTrack['duration'] ?? 0;
+        $this->comments = [];
+        // Load comments for project files too
+        $this->loadComments($projectFile);
         $this->showPlayer();
 
         $this->dispatch('globalPlayerTrackChanged', track: $this->currentTrack, queue: $this->queue, queuePosition: $this->queuePosition);
@@ -230,6 +234,22 @@ class GlobalAudioPlayer extends Component
     {
         if (! is_array($track)) {
             return;
+        }
+
+        // Enrich with visualization data if missing
+        if (($track['type'] ?? null) === 'project_file') {
+            $pf = ProjectFile::find($track['id'] ?? null);
+            if ($pf) {
+                $track['duration'] = $track['duration'] ?? ($pf->duration ?? 0);
+                if (empty($track['waveform_peaks']) && $pf->waveform_peaks) {
+                    $track['waveform_peaks'] = json_decode($pf->waveform_peaks, true);
+                }
+            }
+        } elseif (($track['type'] ?? null) === 'pitch_file') {
+            $pf = PitchFile::find($track['id'] ?? null);
+            if ($pf && empty($track['waveform_peaks']) && $pf->waveform_peaks) {
+                $track['waveform_peaks'] = json_decode($pf->waveform_peaks, true);
+            }
         }
 
         $this->currentTrack = $track;
@@ -299,17 +319,36 @@ class GlobalAudioPlayer extends Component
      */
     protected function playTrackFromQueue($track)
     {
+        // Enrich queue track with visualization data if missing
+        if (($track['type'] ?? null) === 'project_file') {
+            $pf = ProjectFile::find($track['id'] ?? null);
+            if ($pf) {
+                $track['duration'] = $track['duration'] ?? ($pf->duration ?? 0);
+                if (empty($track['waveform_peaks']) && $pf->waveform_peaks) {
+                    $track['waveform_peaks'] = json_decode($pf->waveform_peaks, true);
+                }
+            }
+        } elseif (($track['type'] ?? null) === 'pitch_file') {
+            $pf = PitchFile::find($track['id'] ?? null);
+            if ($pf && empty($track['waveform_peaks']) && $pf->waveform_peaks) {
+                $track['waveform_peaks'] = json_decode($pf->waveform_peaks, true);
+            }
+        }
+
         $this->currentTrack = $track;
         $this->duration = $track['duration'] ?? 0;
 
-        // Load comments if it's a pitch file
+        // Load comments for both types
         if ($track['type'] === 'pitch_file') {
             $pitchFile = PitchFile::find($track['id']);
             if ($pitchFile) {
                 $this->loadComments($pitchFile);
             }
         } else {
-            $this->comments = [];
+            $projectFile = ProjectFile::find($track['id']);
+            if ($projectFile) {
+                $this->loadComments($projectFile);
+            }
         }
 
         $this->showPlayer();
@@ -333,7 +372,7 @@ class GlobalAudioPlayer extends Component
             ->get();
 
         $this->queue = [];
-        $currentFilePosition = 0;
+        $this->queuePosition = 0;
 
         foreach ($audioFiles as $index => $file) {
             if ($file->full_file_path) {
@@ -342,24 +381,23 @@ class GlobalAudioPlayer extends Component
                     'id' => $file->id,
                     'title' => $file->file_name,
                     'url' => $file->full_file_path,
-                    'duration' => 0,
+                    'duration' => $file->duration ?? 0,
+                    'waveform_peaks' => $file->waveform_peaks ? json_decode($file->waveform_peaks, true) : null,
                     'project_id' => $file->project_id,
                     'artist' => $file->project->user->name ?? 'Project Owner',
                     'project_title' => $file->project->title ?? '',
                     'file_size' => $file->size,
                     'created_at' => $file->created_at->toISOString(),
-                    'has_comments' => false,
+                    'has_comments' => $file->comments()->exists(),
                 ];
 
                 $this->queue[] = $track;
 
                 if ($file->id === $currentFile->id) {
-                    $currentFilePosition = count($this->queue) - 1;
+                    $this->queuePosition = count($this->queue) - 1;
                 }
             }
         }
-
-        $this->queuePosition = $currentFilePosition;
     }
 
     /**
@@ -385,7 +423,7 @@ class GlobalAudioPlayer extends Component
                 'title' => $file->file_name,
                 'url' => $file->getStreamingUrl(Auth::user()),
                 'duration' => $file->duration ?? 0,
-                'waveform_data' => $file->waveform_data,
+                'waveform_peaks' => $file->waveform_peaks ? json_decode($file->waveform_peaks, true) : null,
                 'pitch_id' => $file->pitch_id,
                 'project_id' => $file->pitch->project_id,
                 'artist' => $file->pitch->user->name ?? 'Unknown Artist',
@@ -555,8 +593,8 @@ class GlobalAudioPlayer extends Component
         $this->showReplyForm = false;
     }
 
-    // Comment system methods (adapted from PitchFilePlayer)
-    protected function loadComments(PitchFile $file)
+    // Comment system methods (supports PitchFile and ProjectFile)
+    protected function loadComments($file)
     {
         if (! $file) {
             $this->comments = [];
@@ -569,7 +607,7 @@ class GlobalAudioPlayer extends Component
             ->with(['user', 'replies.user', 'replies.replies.user']);
 
         if ($this->clientMode) {
-            $this->resolvedCount = $baseQuery->clone()->where('resolved', true)->count();
+            $this->resolvedCount = (clone $baseQuery)->where('resolved', true)->count();
         }
 
         if ($this->clientMode && ! $this->showResolved) {
@@ -586,13 +624,30 @@ class GlobalAudioPlayer extends Component
 
         if ($this->duration > 0 && ! empty($this->comments)) {
             foreach ($this->comments as $comment) {
-                $this->commentMarkers[] = [
+                $marker = [
                     'id' => $comment['id'],
                     'timestamp' => $comment['timestamp'],
                     'position' => ($comment['timestamp'] / $this->duration) * 100,
                     'resolved' => $comment['resolved'] ?? false,
                     'comment' => $comment['comment'] ?? '',
+                    'formatted_timestamp' => $this->formatTime($comment['timestamp'] ?? 0),
                 ];
+                if (! empty($comment['user'])) {
+                    $marker['user'] = [ 'name' => $comment['user']['name'] ?? null ];
+                } elseif (! empty($comment['client_email'])) {
+                    $marker['client_email'] = $comment['client_email'];
+                }
+                if (! empty($comment['replies'])) {
+                    $marker['replies'] = array_map(function ($reply) {
+                        return [
+                            'comment' => $reply['comment'] ?? '',
+                            'created_at_human' => isset($reply['created_at']) ? \Carbon\Carbon::parse($reply['created_at'])->diffForHumans() : '',
+                            'user' => ! empty($reply['user']) ? [ 'name' => $reply['user']['name'] ?? null ] : null,
+                            'client_email' => $reply['client_email'] ?? null,
+                        ];
+                    }, $comment['replies']);
+                }
+                $this->commentMarkers[] = $marker;
             }
         }
 
@@ -614,7 +669,7 @@ class GlobalAudioPlayer extends Component
 
     public function addComment()
     {
-        if (! $this->currentTrack || $this->currentTrack['type'] !== 'pitch_file') {
+        if (! $this->currentTrack || ! in_array($this->currentTrack['type'], ['pitch_file', 'project_file'])) {
             return;
         }
 
@@ -623,13 +678,23 @@ class GlobalAudioPlayer extends Component
             'commentTimestamp' => 'required|numeric|min:0',
         ]);
 
-        $pitchFile = PitchFile::find($this->currentTrack['id']);
-        if (! $pitchFile) {
-            return;
+        // Create appropriate comment record
+        if ($this->currentTrack['type'] === 'pitch_file') {
+            $pitchFile = PitchFile::find($this->currentTrack['id']);
+            if (! $pitchFile) {
+                return;
+            }
+            $comment = new PitchFileComment;
+            $comment->pitch_file_id = $pitchFile->id;
+        } else {
+            $projectFile = ProjectFile::find($this->currentTrack['id']);
+            if (! $projectFile) {
+                return;
+            }
+            $comment = new \App\Models\FileComment;
+            $comment->commentable_type = ProjectFile::class;
+            $comment->commentable_id = $projectFile->id;
         }
-
-        $comment = new PitchFileComment;
-        $comment->pitch_file_id = $pitchFile->id;
 
         if ($this->clientMode) {
             $comment->user_id = null;
@@ -645,31 +710,39 @@ class GlobalAudioPlayer extends Component
         $comment->resolved = false;
         $comment->save();
 
-        // Send notification
+        // Send notification for pitch files only
         try {
-            if ($this->clientMode) {
-                app(\App\Services\NotificationService::class)->notifyProducerClientCommented(
-                    $pitchFile->pitch,
-                    $this->newComment
-                );
-            } else {
-                app(\App\Services\NotificationService::class)->notifyPitchFileComment(
-                    $pitchFile,
-                    $comment,
-                    Auth::id()
-                );
+            if ($this->currentTrack['type'] === 'pitch_file' && isset($pitchFile)) {
+                if ($this->clientMode) {
+                    app(\App\Services\NotificationService::class)->notifyProducerClientCommented(
+                        $pitchFile->pitch,
+                        $this->newComment
+                    );
+                } else {
+                    app(\App\Services\NotificationService::class)->notifyPitchFileComment(
+                        $pitchFile,
+                        $comment,
+                        Auth::id()
+                    );
+                }
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to send global player comment notification', [
                 'error' => $e->getMessage(),
-                'file_id' => $pitchFile->id,
+                'file_id' => $this->currentTrack['id'],
                 'client_mode' => $this->clientMode,
             ]);
         }
 
         $this->newComment = '';
         $this->showAddCommentForm = false;
-        $this->loadComments($pitchFile);
+
+        // Reload comments
+        if ($this->currentTrack['type'] === 'pitch_file' && isset($pitchFile)) {
+            $this->loadComments($pitchFile);
+        } elseif ($this->currentTrack['type'] === 'project_file' && isset($projectFile)) {
+            $this->loadComments($projectFile);
+        }
 
         $this->dispatch('commentAdded');
     }
