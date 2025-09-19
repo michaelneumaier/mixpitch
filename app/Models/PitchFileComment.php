@@ -2,20 +2,32 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class PitchFileComment extends Model
+/**
+ * Class PitchFileComment
+ *
+ * @deprecated This class is deprecated and kept for backwards compatibility.
+ * Use FileComment instead which supports polymorphic relationships.
+ *
+ * This class extends FileComment to maintain compatibility during migration.
+ * All existing code using PitchFileComment will continue to work.
+ */
+class PitchFileComment extends FileComment
 {
-    use HasFactory;
+    /**
+     * The table associated with the model.
+     * Override to use the new file_comments table
+     *
+     * @var string
+     */
+    protected $table = 'file_comments';
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
+     * Override fillable to include pitch_file_id for backward compatibility
      */
     protected $fillable = [
         'pitch_file_id',
+        'commentable_type',
+        'commentable_id',
         'user_id',
         'parent_id',
         'comment',
@@ -26,44 +38,44 @@ class PitchFileComment extends Model
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array
+     * Boot method to set default values for polymorphic relationship
      */
-    protected $casts = [
-        'timestamp' => 'float',
-        'resolved' => 'boolean',
-        'is_client_comment' => 'boolean',
-    ];
-
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
-     */
-    protected $appends = [
-        'formatted_timestamp',
-        'has_replies',
-    ];
-
-    /**
-     * Get the pitch file that the comment belongs to.
-     */
-    public function pitchFile()
+    protected static function boot()
     {
-        return $this->belongsTo(PitchFile::class);
+        parent::boot();
+
+        // When creating a PitchFileComment, set the polymorphic relationship
+        static::creating(function ($comment) {
+            if (isset($comment->pitch_file_id) && ! isset($comment->commentable_id)) {
+                $comment->commentable_type = 'App\Models\PitchFile';
+                $comment->commentable_id = $comment->pitch_file_id;
+            }
+        });
     }
 
     /**
-     * Get the user that created the comment.
+     * Get pitch_file_id attribute for backward compatibility
      */
-    public function user()
+    public function getPitchFileIdAttribute()
     {
-        return $this->belongsTo(User::class);
+        if ($this->commentable_type === 'App\Models\PitchFile') {
+            return $this->commentable_id;
+        }
+
+        return null;
     }
 
     /**
-     * Get the parent comment.
+     * Set pitch_file_id attribute for backward compatibility
+     */
+    public function setPitchFileIdAttribute($value)
+    {
+        $this->commentable_type = 'App\Models\PitchFile';
+        $this->commentable_id = $value;
+    }
+
+    /**
+     * Override parent relationship to use PitchFileComment for compatibility
      */
     public function parent()
     {
@@ -71,88 +83,10 @@ class PitchFileComment extends Model
     }
 
     /**
-     * Get the replies to this comment.
+     * Override replies relationship to use PitchFileComment for compatibility
      */
     public function replies()
     {
         return $this->hasMany(PitchFileComment::class, 'parent_id')->orderBy('created_at', 'asc');
-    }
-
-    /**
-     * Check if the comment has replies.
-     *
-     * @return bool
-     */
-    public function getHasRepliesAttribute()
-    {
-        return $this->replies()->count() > 0;
-    }
-
-    /**
-     * Get all replies recursively
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getAllReplies()
-    {
-        $allReplies = collect();
-
-        // Add direct replies
-        $directReplies = $this->replies;
-        $allReplies = $allReplies->merge($directReplies);
-
-        // Add nested replies
-        foreach ($directReplies as $reply) {
-            $allReplies = $allReplies->merge($reply->getAllReplies());
-        }
-
-        return $allReplies;
-    }
-
-    /**
-     * Check if the comment is a reply.
-     *
-     * @return bool
-     */
-    public function isReply()
-    {
-        return $this->parent_id !== null;
-    }
-
-    /**
-     * Format the timestamp to a readable format (MM:SS).
-     *
-     * @return string
-     */
-    public function getFormattedTimestampAttribute()
-    {
-        $minutes = floor($this->timestamp / 60);
-        $seconds = $this->timestamp % 60;
-
-        return sprintf('%02d:%02d', $minutes, $seconds);
-    }
-
-    /**
-     * Check if this is a client comment.
-     *
-     * @return bool
-     */
-    public function isClientComment()
-    {
-        return $this->is_client_comment ?? false;
-    }
-
-    /**
-     * Get the author name (client email or user name).
-     *
-     * @return string
-     */
-    public function getAuthorName()
-    {
-        if ($this->isClientComment()) {
-            return $this->client_email;
-        }
-
-        return $this->user?->name ?? 'Unknown';
     }
 }

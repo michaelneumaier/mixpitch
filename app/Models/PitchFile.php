@@ -236,9 +236,19 @@ class PitchFile extends Model
     }
 
     /**
-     * Get all comments for this pitch file
+     * Get all comments for this pitch file (using new polymorphic relationship)
      */
     public function comments()
+    {
+        return $this->morphMany(FileComment::class, 'commentable');
+    }
+
+    /**
+     * Legacy relationship for backwards compatibility
+     *
+     * @deprecated Use comments() instead
+     */
+    public function pitchFileComments()
     {
         return $this->hasMany(PitchFileComment::class);
     }

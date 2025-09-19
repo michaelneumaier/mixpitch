@@ -23,6 +23,7 @@ class ProjectFile extends Model
         'size',
         'is_preview_track',
         'metadata',
+        'duration',
     ];
 
     /**
@@ -30,6 +31,7 @@ class ProjectFile extends Model
      */
     protected $casts = [
         'metadata' => 'array',
+        'duration' => 'float',
     ];
 
     public function formatBytes($bytes, $precision = 2)
@@ -149,6 +151,14 @@ class ProjectFile extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * Get all comments for this project file (using polymorphic relationship)
+     */
+    public function comments()
+    {
+        return $this->morphMany(FileComment::class, 'commentable');
     }
 
     /**

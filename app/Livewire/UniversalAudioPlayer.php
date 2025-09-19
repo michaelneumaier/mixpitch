@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use App\Models\PitchFileComment;
+use App\Models\FileComment;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -187,7 +187,7 @@ class UniversalAudioPlayer extends Component
 
         if ($this->fileType === 'pitch_file') {
             // Build queue from all audio files in the same pitch
-            $pitchFiles = $this->file->pitch->pitchFiles()
+            $pitchFiles = $this->file->pitch->files()
                 ->where('audio_processed', true)
                 ->orderBy('created_at')
                 ->get();
@@ -312,12 +312,14 @@ class UniversalAudioPlayer extends Component
             'newComment' => 'required|string|max:1000',
         ]);
 
-        PitchFileComment::create([
-            'pitch_file_id' => $this->file->id,
-            'user_id' => Auth::id(),
-            'client_email' => $this->clientMode ? $this->clientEmail : null,
+        FileComment::create([
+            'commentable_type' => get_class($this->file),
+            'commentable_id' => $this->file->id,
+            'user_id' => $this->clientMode ? null : Auth::id(),
             'comment' => $this->newComment,
             'timestamp' => $this->commentTimestamp,
+            'resolved' => false,
+            'client_email' => $this->clientMode ? $this->clientEmail : null,
             'is_client_comment' => $this->clientMode,
         ]);
 
@@ -479,7 +481,7 @@ class UniversalAudioPlayer extends Component
     public function getFileUrl()
     {
         if ($this->fileType === 'pitch_file') {
-            return $this->file->getFileUrl();
+            return $this->file->getStreamingUrl(auth()->user());
         } else {
             // Use the full_file_path attribute which generates signed S3 URLs
             return $this->file->full_file_path;
