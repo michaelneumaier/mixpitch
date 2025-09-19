@@ -102,6 +102,7 @@ class GlobalFileUploader extends Component
         $meta = $fileData['meta'] ?? [];
         $modelType = $meta['modelType'] ?? null;
         $modelId = isset($meta['modelId']) ? (int) $meta['modelId'] : null;
+        $context = $meta['context'] ?? null;
 
         if (! $s3Key || ! $modelType || ! $modelId) {
             throw new \InvalidArgumentException('Missing required upload metadata.');
@@ -109,6 +110,28 @@ class GlobalFileUploader extends Component
 
         if ($modelType === Project::class) {
             $project = Project::findOrFail($modelId);
+
+            // Special handling for client portal uploads
+            if ($context === 'client_portal' && $project->isClientManagement()) {
+                // For client portal uploads, we don't need auth check as the signed URL is the authorization
+                $this->fileManagementService->createProjectFileFromS3(
+                    $project,
+                    $s3Key,
+                    $filename,
+                    $size,
+                    $type,
+                    null, // No authenticated user for client portal uploads
+                    [
+                        'uploaded_by_client' => true,
+                        'client_email' => $project->client_email,
+                        'upload_context' => 'client_portal',
+                    ]
+                );
+
+                return;
+            }
+
+            // Regular upload authorization check
             if (! Gate::allows('uploadFile', $project)) {
                 throw new \RuntimeException('Not authorized to upload to this project.');
             }
@@ -127,6 +150,23 @@ class GlobalFileUploader extends Component
 
         if ($modelType === Pitch::class) {
             $pitch = Pitch::findOrFail($modelId);
+
+            // Special handling for client management projects where producer is uploading
+            if ($pitch->project->isClientManagement() && auth()->check() && auth()->id() === $pitch->user_id) {
+                // Producer uploading to their own pitch in a client management project
+                $this->fileManagementService->createPitchFileFromS3(
+                    $pitch,
+                    $s3Key,
+                    $filename,
+                    $size,
+                    $type,
+                    auth()->user()
+                );
+
+                return;
+            }
+
+            // Regular authorization check for other cases
             if (! Gate::allows('uploadFile', $pitch)) {
                 throw new \RuntimeException('Not authorized to upload to this pitch.');
             }
