@@ -1097,7 +1097,7 @@ class ManageProject extends Component
         if ($this->hasPreviewTrack) {
             $previewFile = $this->project->files()->where('id', $this->project->preview_track)->first();
             if ($previewFile) {
-                $this->audioUrl = $previewFile->getSignedUrl();
+                $this->audioUrl = $previewFile->signedUrl();
             }
         }
     }

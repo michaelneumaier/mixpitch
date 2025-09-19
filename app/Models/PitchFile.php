@@ -128,13 +128,25 @@ class PitchFile extends Model
     }
 
     /**
-     * Get a signed URL for downloading the file
+     * Get a signed URL for downloading the file (accessor)
      * This uses a longer expiration time and appropriate headers for downloading
      *
      * @param  int  $expirationMinutes  Minutes until URL expires (default: 60)
      * @return string|null
      */
     public function getSignedUrlAttribute($expirationMinutes = 60)
+    {
+        return $this->getSignedUrl($expirationMinutes);
+    }
+
+    /**
+     * Get a signed URL for downloading the file (method)
+     * This uses a longer expiration time and appropriate headers for downloading
+     *
+     * @param  int  $expirationMinutes  Minutes until URL expires (default: 60)
+     * @return string|null
+     */
+    public function getSignedUrl($expirationMinutes = 60)
     {
         try {
             /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
