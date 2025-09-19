@@ -661,7 +661,7 @@ class GlobalAudioManager {
         const samplesPerMinute = 67;
         const totalSamples = Math.floor((duration / 60) * samplesPerMinute);
         const peaks = new Float32Array(totalSamples);
-        
+
         // Generate simple sine wave with random amplitude variations
         for (let i = 0; i < totalSamples; i++) {
             // Create base sine wave with varying frequency
@@ -671,7 +671,7 @@ class GlobalAudioManager {
             // Combine and normalize to 0-1 range
             peaks[i] = Math.abs(baseWave + randomVariation);
         }
-        
+
         return [peaks]; // Return as array for WaveSurfer compatibility
     }
 
