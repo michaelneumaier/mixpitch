@@ -72,6 +72,9 @@ class GlobalAudioManager {
         // Initialize service worker communication
         this.initializeServiceWorkerCommunication();
 
+        // Setup comment marker listeners
+        this.setupCommentMarkerListeners();
+
         // State restoration removed - persist directive handles this
         // this.restoreAudioState();
     }
@@ -1170,6 +1173,172 @@ class GlobalAudioManager {
         this.playWithFallback();
     }
 
+    // Comment marker methods
+    renderCommentMarkers(comments, duration) {
+        if (!comments || !duration || duration <= 0) {
+            return;
+        }
+
+        // Find the waveform container
+        const waveformContainer = this.getCurrentWaveformContainer();
+        if (!waveformContainer) {
+            return;
+        }
+
+        // Remove existing comment markers
+        this.clearCommentMarkers(waveformContainer);
+
+        // Create comment markers overlay if it doesn't exist
+        let markersOverlay = waveformContainer.querySelector('.comment-markers-overlay');
+        if (!markersOverlay) {
+            markersOverlay = document.createElement('div');
+            markersOverlay.className = 'comment-markers-overlay absolute inset-0 pointer-events-none';
+            markersOverlay.style.position = 'absolute';
+            markersOverlay.style.top = '0';
+            markersOverlay.style.left = '0';
+            markersOverlay.style.right = '0';
+            markersOverlay.style.bottom = '0';
+            markersOverlay.style.pointerEvents = 'none';
+            markersOverlay.style.zIndex = '10';
+            waveformContainer.appendChild(markersOverlay);
+        }
+
+        // Create markers for each comment
+        comments.forEach(comment => {
+            const position = (comment.timestamp / duration) * 100;
+            const clampedPosition = Math.min(Math.max(position, 0), 100);
+            
+            const marker = document.createElement('div');
+            marker.className = 'comment-marker absolute h-full w-1 cursor-pointer group';
+            marker.style.left = `${clampedPosition}%`;
+            marker.style.background = comment.resolved 
+                ? 'linear-gradient(to bottom, #22c55e, #10b981)' 
+                : 'linear-gradient(to bottom, #7c3aed, #4f46e5)';
+            marker.style.pointerEvents = 'auto';
+            marker.style.zIndex = '10';
+
+            // Create marker dot
+            const markerDot = document.createElement('div');
+            markerDot.className = `h-4 w-4 rounded-full -ml-1.5 ${comment.resolved ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600'} border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200`;
+            
+            const pulse = document.createElement('div');
+            pulse.className = 'absolute inset-0 rounded-full bg-white/30 animate-pulse';
+            markerDot.appendChild(pulse);
+            marker.appendChild(markerDot);
+
+            // Add click handler for seeking
+            marker.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.seekToCommentTimestamp(comment.timestamp);
+            });
+
+            // Add tooltip with comment preview
+            marker.title = `${this.formatTime(comment.timestamp)} - ${comment.comment.substring(0, 50)}${comment.comment.length > 50 ? '...' : ''}`;
+
+            markersOverlay.appendChild(marker);
+        });
+    }
+
+    clearCommentMarkers(waveformContainer) {
+        if (!waveformContainer) {
+            waveformContainer = this.getCurrentWaveformContainer();
+        }
+        
+        if (waveformContainer) {
+            const markersOverlay = waveformContainer.querySelector('.comment-markers-overlay');
+            if (markersOverlay) {
+                markersOverlay.innerHTML = '';
+            }
+        }
+    }
+
+    getCurrentWaveformContainer() {
+        // Try persistent container first, then fallback
+        let container = document.querySelector(this.config.container);
+        if (!container) {
+            container = document.querySelector(this.config.fallbackContainer);
+        }
+        return container;
+    }
+
+    seekToCommentTimestamp(timestamp) {
+        if (!this.waveSurfer || !this.playbackState.duration || this.playbackState.duration <= 0) {
+            return;
+        }
+
+        const seekPosition = timestamp / this.playbackState.duration;
+        
+        if (this.usingMediaElement) {
+            const audioElement = document.getElementById('persistent-audio-element');
+            if (audioElement) {
+                audioElement.currentTime = timestamp;
+            }
+        } else {
+            this.waveSurfer.seekTo(seekPosition);
+        }
+
+        // Pause playback when seeking from comment
+        this.pause();
+        
+        // Update position state
+        this.playbackState.currentPosition = timestamp;
+        if (this.alpineStore) {
+            this.alpineStore.currentPosition = timestamp;
+        }
+    }
+
+    updateCommentMarkers(comments) {
+        if (!comments || !this.playbackState.duration) {
+            this.clearCommentMarkers();
+            return;
+        }
+        
+        this.renderCommentMarkers(comments, this.playbackState.duration);
+    }
+
+    formatTime(seconds) {
+        if (!seconds || isNaN(seconds)) return '00:00';
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    // Setup comment marker event listeners
+    setupCommentMarkerListeners() {
+        // Listen for comment updates from Livewire
+        Livewire.on('commentMarkersUpdated', (event) => {
+            this.updateCommentMarkers(event.comments);
+        });
+
+        // Listen for waveform ready to render comments
+        this.waveSurfer?.on('ready', () => {
+            // Request comment markers from Livewire component
+            this.callLivewireMethod('calculateCommentMarkers');
+        });
+
+        // Listen for keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // 'C' key for adding comment at current position (only if global player is active)
+            if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const activeElement = document.activeElement;
+                // Only trigger if not typing in an input
+                if (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA' && 
+                    activeElement.contentEditable !== 'true') {
+                    e.preventDefault();
+                    this.triggerAddCommentAtCurrentPosition();
+                }
+            }
+        });
+    }
+
+    triggerAddCommentAtCurrentPosition() {
+        // Check if global player is visible and has a pitch file loaded
+        if (this.currentTrack && this.currentTrack.type === 'pitch_file') {
+            this.callLivewireMethod('toggleCommentForm', this.playbackState.currentPosition);
+        }
+    }
+
     // Cleanup method
     destroy() {
         if (this.waveSurfer) {
@@ -1185,6 +1354,9 @@ class GlobalAudioManager {
             persistentAudio.pause();
             persistentAudio.src = '';
         }
+
+        // Clear comment markers
+        this.clearCommentMarkers();
     }
 }
 

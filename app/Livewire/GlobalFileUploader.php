@@ -152,7 +152,7 @@ class GlobalFileUploader extends Component
             $pitch = Pitch::findOrFail($modelId);
 
             // Special handling for client management projects where producer is uploading
-            if ($pitch->project->isClientManagement() && auth()->check() && auth()->id() === $pitch->user_id) {
+            if ($pitch->project->isClientManagement() && auth()->check() && (int) auth()->id() === (int) $pitch->user_id) {
                 // Producer uploading to their own pitch in a client management project
                 $this->fileManagementService->createPitchFileFromS3(
                     $pitch,

@@ -590,9 +590,14 @@ class GlobalAudioPlayer extends Component
                     'id' => $comment['id'],
                     'timestamp' => $comment['timestamp'],
                     'position' => ($comment['timestamp'] / $this->duration) * 100,
+                    'resolved' => $comment['resolved'] ?? false,
+                    'comment' => $comment['comment'] ?? '',
                 ];
             }
         }
+
+        // Dispatch event to update JavaScript comment markers
+        $this->dispatch('commentMarkersUpdated', comments: $this->commentMarkers);
     }
 
     public function toggleCommentForm($timestamp = null)

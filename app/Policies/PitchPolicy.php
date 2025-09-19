@@ -21,7 +21,7 @@ class PitchPolicy
     public function view(User $user, Pitch $pitch)
     {
         // Allow both the pitch owner (producer for DH/CM) and the project owner to view the pitch
-        return $user->id === $pitch->user_id || $user->id === $pitch->project->user_id;
+        return (int) $user->id === (int) $pitch->user_id || (int) $user->id === (int) $pitch->project->user_id;
     }
 
     /**
@@ -56,7 +56,7 @@ class PitchPolicy
     public function update(User $user, Pitch $pitch)
     {
         // Only the pitch owner (producer for DH/CM) can update the pitch details
-        if ($user->id === $pitch->user_id) {
+        if ((int) $user->id === (int) $pitch->user_id) {
             // Allow editing if the pitch is in these statuses
             $allowedStatuses = [
                 Pitch::STATUS_IN_PROGRESS,
@@ -86,7 +86,7 @@ class PitchPolicy
     public function delete(User $user, Pitch $pitch)
     {
         // Only the pitch owner (producer for DH/CM) can delete the pitch and only in certain statuses
-        return $user->id === $pitch->user_id && in_array($pitch->status, [
+        return (int) $user->id === (int) $pitch->user_id && in_array($pitch->status, [
             Pitch::STATUS_IN_PROGRESS,
             Pitch::STATUS_REVISIONS_REQUESTED,
             Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, // Added
@@ -215,7 +215,7 @@ class PitchPolicy
 
         // Only the pitch owner can recall
         // Pitch must be 'ready_for_review'
-        return $user->id === $pitch->user_id &&
+        return (int) $user->id === (int) $pitch->user_id &&
                $pitch->status === Pitch::STATUS_READY_FOR_REVIEW;
     }
 
@@ -243,7 +243,7 @@ class PitchPolicy
 
         // Only the pitch owner (producer for DH/CM) can submit
         // Pitch must be in an active state allowing submission
-        $isTargetProducer = $user->id === $pitch->user_id;
+        $isTargetProducer = (int) $user->id === (int) $pitch->user_id;
         if (! $isTargetProducer) {
             throw new AuthorizationException('Only the pitch owner can submit it for review.');
         }
@@ -288,7 +288,7 @@ class PitchPolicy
             $canComplete = $user->id === $pitch->project->user_id;
         } elseif ($pitch->project->isClientManagement()) {
             // Only the producer (pitch owner) can complete client mgmt projects
-            $canComplete = $user->id === $pitch->user_id;
+            $canComplete = (int) $user->id === (int) $pitch->user_id;
         }
 
         // Pitch must be approved
@@ -325,7 +325,7 @@ class PitchPolicy
         // Generally, only the pitch owner (producer) should upload files during active phases.
         // Project owner might upload reference files if logic allows, but primary uploads are by producer.
 
-        $canUpload = $user->id === $pitch->user_id;
+        $canUpload = (int) $user->id === (int) $pitch->user_id;
 
         // Define allowed statuses for upload
         $allowedStatuses = [
@@ -405,7 +405,7 @@ class PitchPolicy
     public function acceptDirectHire(User $user, Pitch $pitch): bool
     {
         // Only the assigned producer can accept, and only if awaiting acceptance
-        return $user->id === $pitch->user_id &&
+        return (int) $user->id === (int) $pitch->user_id &&
                $pitch->project->isDirectHire() &&
                $pitch->status === Pitch::STATUS_AWAITING_ACCEPTANCE;
     }
@@ -416,7 +416,7 @@ class PitchPolicy
     public function rejectDirectHire(User $user, Pitch $pitch): bool
     {
         // Only the assigned producer can reject, and only if awaiting acceptance
-        return $user->id === $pitch->user_id &&
+        return (int) $user->id === (int) $pitch->user_id &&
                $pitch->project->isDirectHire() &&
                $pitch->status === Pitch::STATUS_AWAITING_ACCEPTANCE;
     }
@@ -448,7 +448,7 @@ class PitchPolicy
         }
 
         // Entry owner can view their own entry
-        if ($user->id === $pitch->user_id && $pitch->project->isContest()) {
+        if ((int) $user->id === (int) $pitch->user_id && $pitch->project->isContest()) {
             return true;
         }
 
