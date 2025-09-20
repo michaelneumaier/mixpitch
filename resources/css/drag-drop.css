@@ -28,6 +28,15 @@
     display: flex;
 }
 
+
+/* Ensure all sidebar drop zones are accessible */
+.section-header-drop-zone,
+aside .drag-drop-zone,
+aside [x-data*="sectionMeta"] {
+    position: relative;
+    z-index: 10000;
+}
+
 .global-drag-overlay-content {
     text-align: center;
     padding: 3rem 2rem;
@@ -124,6 +133,7 @@ tr.drag-drop-zone::before,
     border-radius: 0.5rem;
     position: relative;
     overflow: hidden;
+    z-index: 10000; /* Ensure sidebar zones stay above partial overlay */
 }
 
 .sidebar-drop-zone::after {

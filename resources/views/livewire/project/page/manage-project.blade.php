@@ -223,6 +223,7 @@
                         context="manage" 
                         :showActions="true"
                         :showEditButton="true"
+                        :showWorkflowStatus="true"
                         :autoAllowAccess="$autoAllowAccess"
                     />
                     <div class="grid grid-cols-1 gap-2 lg:grid-cols-3">

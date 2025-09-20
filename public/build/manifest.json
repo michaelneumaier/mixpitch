@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-8f470244.css",
+    "file": "assets/app-f017ea53.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
@@ -31,7 +31,7 @@
     "src": "resources/js/filament/billing/stripe-handler.js"
   },
   "resources/js/global-drag-drop-manager.js": {
-    "file": "assets/global-drag-drop-manager-b8fae2e7.js",
+    "file": "assets/global-drag-drop-manager-436a16c1.js",
     "isEntry": true,
     "src": "resources/js/global-drag-drop-manager.js"
   },

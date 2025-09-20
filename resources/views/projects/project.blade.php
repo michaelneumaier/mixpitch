@@ -113,69 +113,20 @@
 
                     <!-- Project Files -->
                     <flux:card class="mb-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg shadow-sm">
-                                    <flux:icon name="musical-note" class="text-white" size="lg" />
-                                </div>
-                                <flux:heading size="lg" class="text-slate-800 dark:text-slate-200">Project Files</flux:heading>
-                            </div>
-                            <flux:badge color="purple" size="sm" icon="document">
-                                {{ $project->files->count() }} {{ Str::plural('file', $project->files->count()) }}
-                            </flux:badge>
-                        </div>
-
-                        @if($project->files->isEmpty())
-                            <!-- Empty State -->
-                            <div class="text-center py-12">
-                                <div class="mb-4">
-                                    <flux:icon name="folder-open" class="mx-auto text-slate-400 dark:text-slate-500" size="2xl" />
-                                </div>
-                                <flux:heading size="lg" class="mb-2 text-slate-800 dark:text-slate-200">No Files Yet</flux:heading>
-                                <flux:text class="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                                    No files have been uploaded for this project. Files will appear here once the project owner uploads reference tracks or materials.
-                                </flux:text>
-                            </div>
-                        @else
-                            <!-- Files List -->
-                            <div class="space-y-3">
-                                @foreach($project->files as $file)
-                                    <div class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                        <!-- File Icon -->
-                                        <div class="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg shadow-sm">
-                                            <flux:icon name="document" class="text-white" size="sm" />
-                                        </div>
-
-                                        <!-- File Info -->
-                                        <div class="flex-1 min-w-0">
-                                            <flux:heading size="sm" class="truncate mb-1 text-slate-900 dark:text-slate-100" :title="$file->file_name">
-                                                {{ $file->file_name }}
-                                            </flux:heading>
-                                            <div class="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                                                <span class="flex items-center gap-1">
-                                                    <flux:icon name="circle-stack" size="xs" />
-                                                    {{ $file->formatted_size }}
-                                                </span>
-                                                <span class="flex items-center gap-1">
-                                                    <flux:icon name="clock" size="xs" />
-                                                    {{ $file->created_at->format('M d, Y') }}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <!-- File Actions -->
-                                        <div class="flex items-center gap-2">
-                                            <flux:button icon="arrow-down-tray" variant="ghost" size="xs">
-                                                Download
-                                            </flux:button>
-                                            <flux:button icon="play" variant="ghost" size="xs">
-                                                Play
-                                            </flux:button>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+                        <livewire:components.file-list 
+                            :files="$project->files"
+                            modelType="project"
+                            :modelId="$project->id"
+                            colorScheme="project"
+                            :canPlay="false"
+                            :canDownload="false"
+                            :canDelete="false"
+                            :enableBulkActions="false"
+                            :showComments="false"
+                            emptyStateMessage="No Files Yet"
+                            emptyStateSubMessage="No files have been uploaded for this project. Files will appear here once the project owner uploads reference tracks or materials."
+                            headerIcon="musical-note"
+                        />
                     </flux:card>
                 </div>
 

@@ -87,11 +87,11 @@
                 <div class="flex justify-center">
                     <div class="w-full">
                         <!-- Enhanced Project Header -->
-                        <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true" />
+                        <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true" :showWorkflowStatus="true" />
 
-                        <div class="grid grid-cols-1 gap-2 lg:grid-cols-3">
+                        <div class="grid">
                             <!-- Main Content Area (2/3 width on large screens) -->
-                            <div class="space-y-2 lg:col-span-2">
+                            <div class="space-y-2">
                                 <!-- Client Management Workflow Status -->
                                 <div class="mb-2">
                                     <x-client-management.workflow-status :pitch="$pitch" :project="$project"

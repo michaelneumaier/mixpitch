@@ -204,7 +204,7 @@
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
                             @php
-                                $audioPlayerUrl = $this->getUniversalAudioPlayerUrl($file);
+                                $audioPlayerUrl = $canPlay ? $this->getUniversalAudioPlayerUrl($file) : null;
                             @endphp
                             @if($audioPlayerUrl)
                                 <a href="{{ $audioPlayerUrl }}" 
@@ -250,24 +250,26 @@
                 </div>
                 
                 <!-- Actions -->
-                <div class="track-actions flex items-center">
-                    <flux:dropdown>
-                        <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
-                        </flux:button>
-                        <flux:menu>
-                            @if($canDownload)
-                                <flux:menu.item wire:click="downloadFile({{ $file->id }})" icon="arrow-down-tray">
-                                    Download
-                                </flux:menu.item>
-                            @endif
-                            @if($canDelete)
-                                <flux:menu.item wire:click="confirmDeleteFile({{ $file->id }})" variant="danger" icon="trash">
-                                    Delete
-                                </flux:menu.item>
-                            @endif
-                        </flux:menu>
-                    </flux:dropdown>
-                </div>
+                @if($canDownload || $canDelete)
+                    <div class="track-actions flex items-center">
+                        <flux:dropdown>
+                            <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
+                            </flux:button>
+                            <flux:menu>
+                                @if($canDownload)
+                                    <flux:menu.item wire:click="downloadFile({{ $file->id }})" icon="arrow-down-tray">
+                                        Download
+                                    </flux:menu.item>
+                                @endif
+                                @if($canDelete)
+                                    <flux:menu.item wire:click="confirmDeleteFile({{ $file->id }})" variant="danger" icon="trash">
+                                        Delete
+                                    </flux:menu.item>
+                                @endif
+                            </flux:menu>
+                        </flux:dropdown>
+                    </div>
+                @endif
                 </div>
 
                 <!-- Comments Section -->

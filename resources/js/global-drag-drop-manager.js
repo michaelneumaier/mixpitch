@@ -15,10 +15,14 @@ const GlobalDragDropManager = (() => {
             currentTarget: null,
             defaultMeta: null,
             dragEnterCounter: 0, // Track nested drag events
+            listenersSetup: false, // Track if global listeners are already set up
         };
 
         function createDragOverlay() {
-            if (state.dragOverlay) return state.dragOverlay;
+            // Check if overlay exists AND is still in the DOM (SPA navigation can remove it)
+            if (state.dragOverlay && document.body.contains(state.dragOverlay)) {
+                return state.dragOverlay;
+            }
 
             const overlay = document.createElement('div');
             overlay.id = 'global-drag-overlay';
@@ -182,7 +186,42 @@ const GlobalDragDropManager = (() => {
             contextEl.textContent = contextText;
         }
 
+        function getActualSidebarWidth() {
+            // Flux sidebar root carries the data attribute below
+            const sidebar = document.querySelector('[data-flux-sidebar]');
+            if (!sidebar) return 0;
+
+            const rect = sidebar.getBoundingClientRect();
+            const computedStyle = window.getComputedStyle(sidebar);
+
+            // Compute the actually visible portion of the sidebar within the viewport
+            const visibleLeft = Math.max(0, rect.left);
+            const visibleRight = Math.min(window.innerWidth, rect.right);
+            const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+
+            // Consider it visible only if styles don't hide it and some portion intersects the viewport
+            const isEffectivelyVisible = (
+                visibleWidth > 0 &&
+                rect.width > 0 &&
+                computedStyle.display !== 'none' &&
+                computedStyle.visibility !== 'hidden' &&
+                computedStyle.opacity !== '0'
+            );
+
+            return isEffectivelyVisible ? Math.round(visibleWidth) : 0;
+        }
+
+        function updateOverlayOffset() {
+            if (!state.isDragging || !state.dragOverlay) return;
+            const sidebarWidth = getActualSidebarWidth();
+            state.dragOverlay.style.left = `${sidebarWidth}px`;
+        }
+
         function setupGlobalListeners() {
+            // Only set up listeners once to avoid duplicates on SPA navigation
+            if (state.listenersSetup) return;
+            state.listenersSetup = true;
+
             // Prevent default drag behaviors on the entire document
             document.addEventListener('dragover', (e) => {
                 e.preventDefault();
@@ -257,6 +296,35 @@ const GlobalDragDropManager = (() => {
                     state.dragOverlay.classList.remove('drag-over');
                 });
             }
+
+            // Handle window resize to recalculate sidebar width
+            window.addEventListener('resize', () => {
+                updateOverlayOffset();
+            });
+
+            // React to sidebar visibility/state changes (e.g., stashed/un-stashed, breakpoint changes)
+            const sidebar = document.querySelector('[data-flux-sidebar]');
+            if (sidebar) {
+                const sidebarObserver = new MutationObserver(() => updateOverlayOffset());
+                sidebarObserver.observe(sidebar, { attributes: true, attributeFilter: ['class', 'style', 'data-stashed'] });
+
+                // Also recalc after transform transitions complete
+                sidebar.addEventListener('transitionend', (e) => {
+                    if (e.propertyName === 'transform') {
+                        updateOverlayOffset();
+                    }
+                });
+            }
+
+            // Observe body attribute used by Flux to show stashed sidebar on small screens
+            const bodyObserver = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    if (m.type === 'attributes' && m.attributeName === 'data-show-stashed-sidebar') {
+                        updateOverlayOffset();
+                    }
+                }
+            });
+            bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['data-show-stashed-sidebar'] });
         }
 
         function showOverlay() {
@@ -264,6 +332,9 @@ const GlobalDragDropManager = (() => {
 
             updateOverlayContext();
             state.dragOverlay.classList.add('show');
+
+            // Dynamically position overlay based on actual sidebar width
+            updateOverlayOffset();
 
             // Add global drag state class to body for CSS targeting
             document.body.classList.add('global-drag-active');
@@ -276,6 +347,9 @@ const GlobalDragDropManager = (() => {
             if (!state.dragOverlay) return;
 
             state.dragOverlay.classList.remove('show', 'drag-over');
+
+            // Reset position style to default
+            state.dragOverlay.style.left = '';
 
             // Remove global drag state class from body
             document.body.classList.remove('global-drag-active');

@@ -6,7 +6,8 @@
     'showActions' => true,
     'userPitch' => null,
     'canPitch' => false,
-    'autoAllowAccess' => null
+    'autoAllowAccess' => null,
+    'showWorkflowStatus' => false
 ])
 
 @php
@@ -108,6 +109,129 @@
     } else {
         $timeStatus = 'Created ' . $project->created_at->diffForHumans();
     }
+
+    // Workflow Status Detection (only when showWorkflowStatus is true and context is 'manage')
+    $workflowStatusData = null;
+    if ($showWorkflowStatus && $context === 'manage' && $user) {
+        // Determine the relevant pitch for status display
+        $relevantPitch = null;
+        
+        if ($project->user_id === $user->id) {
+            // Project owner - show the active pitch or most recent pitch
+            if ($project->isClientManagement()) {
+                $relevantPitch = $project->pitches()->first(); // Client management has only one pitch
+            } elseif ($project->isDirectHire()) {
+                $relevantPitch = $project->pitches()->first(); // Direct hire has only one pitch
+            } elseif ($project->isContest()) {
+                // For contests, we might want to show overall contest status rather than individual pitches
+                $relevantPitch = null; // Will handle contest status separately
+            } else {
+                // Standard project - could show active pitch or summary
+                $activePitch = $project->pitches()->whereIn('status', [
+                    'in_progress', 'ready_for_review', 'approved'
+                ])->first();
+                $relevantPitch = $activePitch ?: $project->pitches()->latest()->first();
+            }
+        } else {
+            // Producer/collaborator - show their pitch
+            $relevantPitch = $project->pitches()->where('user_id', $user->id)->first();
+        }
+
+        // Prepare workflow status data
+        if ($relevantPitch) {
+            $workflowStatusData = [
+                'pitch' => $relevantPitch,
+                'type' => $project->workflow_type,
+                'userRole' => $project->user_id === $user->id ? 'owner' : 'collaborator'
+            ];
+        } elseif ($project->isContest() && $project->user_id === $user->id) {
+            // Contest owner without individual pitch - show project-level contest status
+            $workflowStatusData = [
+                'type' => 'contest_overview',
+                'project' => $project,
+                'userRole' => 'owner'
+            ];
+        }
+    }
+
+    // Define workflow colors for status components
+    $workflowColors = match($project->workflow_type) {
+        'standard' => [
+            'bg' => 'bg-blue-50 dark:bg-blue-950',
+            'border' => 'border-blue-200 dark:border-blue-800',
+            'text_primary' => 'text-blue-900 dark:text-blue-100',
+            'text_secondary' => 'text-blue-700 dark:text-blue-300',
+            'text_muted' => 'text-blue-600 dark:text-blue-400',
+            'accent_bg' => 'bg-blue-100 dark:bg-blue-900',
+            'accent_border' => 'border-blue-200 dark:border-blue-800',
+            'icon' => 'text-blue-600 dark:text-blue-400'
+        ],
+        'contest' => [
+            'bg' => 'bg-orange-50 dark:bg-orange-950',
+            'border' => 'border-orange-200 dark:border-orange-800',
+            'text_primary' => 'text-orange-900 dark:text-orange-100',
+            'text_secondary' => 'text-orange-700 dark:text-orange-300',
+            'text_muted' => 'text-orange-600 dark:text-orange-400',
+            'accent_bg' => 'bg-orange-100 dark:bg-orange-900',
+            'accent_border' => 'border-orange-200 dark:border-orange-800',
+            'icon' => 'text-orange-600 dark:text-orange-400'
+        ],
+        'direct_hire' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text_primary' => 'text-green-900 dark:text-green-100',
+            'text_secondary' => 'text-green-700 dark:text-green-300',
+            'text_muted' => 'text-green-600 dark:text-green-400',
+            'accent_bg' => 'bg-green-100 dark:bg-green-900',
+            'accent_border' => 'border-green-200 dark:border-green-800',
+            'icon' => 'text-green-600 dark:text-green-400'
+        ],
+        'client_management' => [
+            'bg' => 'bg-purple-50 dark:bg-purple-950',
+            'border' => 'border-purple-200 dark:border-purple-800',
+            'text_primary' => 'text-purple-900 dark:text-purple-100',
+            'text_secondary' => 'text-purple-700 dark:text-purple-300',
+            'text_muted' => 'text-purple-600 dark:text-purple-400',
+            'accent_bg' => 'bg-purple-100 dark:bg-purple-900',
+            'accent_border' => 'border-purple-200 dark:border-purple-800',
+            'icon' => 'text-purple-600 dark:text-purple-400'
+        ],
+        default => [
+            'bg' => 'bg-gray-50 dark:bg-gray-950',
+            'border' => 'border-gray-200 dark:border-gray-800',
+            'text_primary' => 'text-gray-900 dark:text-gray-100',
+            'text_secondary' => 'text-gray-700 dark:text-gray-300',
+            'text_muted' => 'text-gray-600 dark:text-gray-400',
+            'accent_bg' => 'bg-gray-100 dark:bg-gray-900',
+            'accent_border' => 'border-gray-200 dark:border-gray-800',
+            'icon' => 'text-gray-600 dark:text-gray-400'
+        ]
+    };
+
+    // Define semantic colors for status components
+    $semanticColors = [
+        'success' => [
+            'bg' => 'bg-green-50 dark:bg-green-950',
+            'border' => 'border-green-200 dark:border-green-800',
+            'text' => 'text-green-800 dark:text-green-200',
+            'icon' => 'text-green-600 dark:text-green-400',
+            'accent' => 'bg-green-600 dark:bg-green-500'
+        ],
+        'warning' => [
+            'bg' => 'bg-amber-50 dark:bg-amber-950',
+            'border' => 'border-amber-200 dark:border-amber-800',
+            'text' => 'text-amber-800 dark:text-amber-200',
+            'icon' => 'text-amber-600 dark:text-amber-400',
+            'accent' => 'bg-amber-500'
+        ],
+        'danger' => [
+            'bg' => 'bg-red-50 dark:bg-red-950',
+            'border' => 'border-red-200 dark:border-red-800',
+            'text' => 'text-red-800 dark:text-red-200',
+            'icon' => 'text-red-600 dark:text-red-400',
+            'accent' => 'bg-red-500'
+        ]
+    ];
 @endphp
 
 <!-- Enhanced Project Header with Image Support -->
@@ -404,6 +528,62 @@
             </div>
         @endif
     </div>
+    
+    <!-- Workflow Status Section -->
+    @if($workflowStatusData)
+        <div class="border-t border-slate-200 dark:border-slate-700 mt-4 pt-4">
+            @if(isset($workflowStatusData['pitch']))
+                @php
+                    $pitch = $workflowStatusData['pitch'];
+                    $workflowType = $workflowStatusData['type'];
+                @endphp
+                
+                @if($workflowType === 'client_management')
+                    <!-- Client Management Workflow Status -->
+                    <x-client-management.workflow-status 
+                        :pitch="$pitch" 
+                        :project="$project"
+                        :workflowColors="$workflowColors"
+                        :semanticColors="$semanticColors"
+                    />
+                @else
+                    <!-- Standard/Contest/Direct Hire Workflow Status -->
+                    <x-pitch.workflow-status 
+                        :pitch="$pitch"
+                        :showActions="false"
+                        :compact="true"
+                    />
+                @endif
+            @elseif(isset($workflowStatusData['type']) && $workflowStatusData['type'] === 'contest_overview')
+                <!-- Contest Project Overview Status -->
+                <div class="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+                            <flux:icon name="trophy" class="w-5 h-5 text-white" />
+                        </div>
+                        <div class="flex-1">
+                            <flux:heading size="base" class="text-orange-900 dark:text-orange-100 mb-1">
+                                Contest Management
+                            </flux:heading>
+                            <p class="text-sm text-orange-700 dark:text-orange-300">
+                                {{ $project->pitches()->count() }} {{ $project->pitches()->count() === 1 ? 'entry' : 'entries' }} received
+                                @if($project->deadline)
+                                    • {{ $project->deadline > now() ? 'Closes' : 'Closed' }} {{ $project->deadline->diffForHumans() }}
+                                @endif
+                            </p>
+                        </div>
+                        @if($project->deadline && $project->deadline > now())
+                            <div class="text-right">
+                                <div class="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                    {{ now()->diffInDays($project->deadline, false) }} days remaining
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
     
     <!-- Quick Stats Row -->
     <div class="border-t border-slate-200 dark:border-slate-700 mt-4 pt-4">
