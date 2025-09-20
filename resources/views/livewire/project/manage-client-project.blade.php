@@ -92,13 +92,6 @@
                         <div class="grid">
                             <!-- Main Content Area (2/3 width on large screens) -->
                             <div class="space-y-2">
-                                <!-- Client Management Workflow Status -->
-                                <div class="mb-2">
-                                    <x-client-management.workflow-status :pitch="$pitch" :project="$project"
-                                        :component="$this" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
-                                </div>
-
-
                                 <!-- INTEGRATED CLIENT COMMUNICATION HUB -->
                                 <div class="mb-2">
                                     <x-client-project.client-communication-hub :component="$this" :project="$project" :conversationItems="$this->conversationItems"

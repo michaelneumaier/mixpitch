@@ -144,13 +144,22 @@
                 'type' => $project->workflow_type,
                 'userRole' => $project->user_id === $user->id ? 'owner' : 'collaborator'
             ];
-        } elseif ($project->isContest() && $project->user_id === $user->id) {
-            // Contest owner without individual pitch - show project-level contest status
-            $workflowStatusData = [
-                'type' => 'contest_overview',
-                'project' => $project,
-                'userRole' => 'owner'
-            ];
+        } elseif ($project->user_id === $user->id) {
+            // Project owner without pitches - show project-level status
+            if ($project->isContest()) {
+                $workflowStatusData = [
+                    'type' => 'contest_overview',
+                    'project' => $project,
+                    'userRole' => 'owner'
+                ];
+            } else {
+                // For other project types, show project status
+                $workflowStatusData = [
+                    'type' => 'project_status',
+                    'project' => $project,
+                    'userRole' => 'owner'
+                ];
+            }
         }
     }
 
@@ -531,58 +540,139 @@
     
     <!-- Workflow Status Section -->
     @if($workflowStatusData)
-        <div class="border-t border-slate-200 dark:border-slate-700 mt-4 pt-4">
-            @if(isset($workflowStatusData['pitch']))
-                @php
-                    $pitch = $workflowStatusData['pitch'];
-                    $workflowType = $workflowStatusData['type'];
-                @endphp
+        @php
+            // Create a compact status display
+            $statusDisplay = null;
+            
+            if (isset($workflowStatusData['pitch'])) {
+                $pitch = $workflowStatusData['pitch'];
+                $workflowType = $workflowStatusData['type'];
                 
-                @if($workflowType === 'client_management')
-                    <!-- Client Management Workflow Status -->
-                    <x-client-management.workflow-status 
-                        :pitch="$pitch" 
-                        :project="$project"
-                        :workflowColors="$workflowColors"
-                        :semanticColors="$semanticColors"
-                    />
-                @else
-                    <!-- Standard/Contest/Direct Hire Workflow Status -->
-                    <x-pitch.workflow-status 
-                        :pitch="$pitch"
-                        :showActions="false"
-                        :compact="true"
-                    />
-                @endif
-            @elseif(isset($workflowStatusData['type']) && $workflowStatusData['type'] === 'contest_overview')
-                <!-- Contest Project Overview Status -->
-                <div class="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-                            <flux:icon name="trophy" class="w-5 h-5 text-white" />
-                        </div>
-                        <div class="flex-1">
-                            <flux:heading size="base" class="text-orange-900 dark:text-orange-100 mb-1">
-                                Contest Management
-                            </flux:heading>
-                            <p class="text-sm text-orange-700 dark:text-orange-300">
-                                {{ $project->pitches()->count() }} {{ $project->pitches()->count() === 1 ? 'entry' : 'entries' }} received
-                                @if($project->deadline)
-                                    • {{ $project->deadline > now() ? 'Closes' : 'Closed' }} {{ $project->deadline->diffForHumans() }}
-                                @endif
-                            </p>
-                        </div>
-                        @if($project->deadline && $project->deadline > now())
-                            <div class="text-right">
-                                <div class="text-xs text-orange-600 dark:text-orange-400 font-medium">
-                                    {{ now()->diffInDays($project->deadline, false) }} days remaining
-                                </div>
-                            </div>
-                        @endif
-                    </div>
+                // Get status info based on workflow type
+                $statusInfo = match($pitch->status) {
+                    'pending' => ['text' => 'Awaiting Approval', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'clock'],
+                    'in_progress' => ['text' => 'Work in Progress', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => 'cog-6-tooth'],
+                    'ready_for_review' => ['text' => 'Submitted for Review', 'color' => 'text-purple-600 dark:text-purple-400', 'icon' => 'eye'],
+                    'approved' => ['text' => 'Work Approved', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle'],
+                    'completed' => ['text' => 'Completed', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle'],
+                    'revisions_requested' => ['text' => 'Revisions Requested', 'color' => 'text-orange-600 dark:text-orange-400', 'icon' => 'arrow-path'],
+                    'client_revisions_requested' => ['text' => 'Client Revisions Requested', 'color' => 'text-orange-600 dark:text-orange-400', 'icon' => 'pencil'],
+                    'denied' => ['text' => 'Not Approved', 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'x-circle'],
+                    'contest_entry' => ['text' => 'Contest Entry', 'color' => 'text-orange-600 dark:text-orange-400', 'icon' => 'trophy'],
+                    'contest_winner' => ['text' => 'Contest Winner! 🏆', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'trophy'],
+                    'contest_runner_up' => ['text' => 'Runner-Up', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => 'star'],
+                    'contest_not_selected' => ['text' => 'Contest Complete', 'color' => 'text-gray-600 dark:text-gray-400', 'icon' => 'check'],
+                    default => ['text' => ucfirst(str_replace('_', ' ', $pitch->status)), 'color' => 'text-gray-600 dark:text-gray-400', 'icon' => 'information-circle']
+                };
+                
+                $statusDisplay = [
+                    'text' => $statusInfo['text'],
+                    'color' => $statusInfo['color'],
+                    'icon' => $statusInfo['icon'],
+                    'files' => $pitch->files->count()
+                ];
+            } elseif (isset($workflowStatusData['type']) && $workflowStatusData['type'] === 'contest_overview') {
+                $entriesCount = $project->pitches()->count();
+                $statusDisplay = [
+                    'text' => $entriesCount . ' ' . ($entriesCount === 1 ? 'Entry' : 'Entries'),
+                    'color' => 'text-orange-600 dark:text-orange-400',
+                    'icon' => 'trophy',
+                    'files' => null
+                ];
+            } elseif (isset($workflowStatusData['type']) && $workflowStatusData['type'] === 'project_status') {
+                // Use sophisticated project workflow logic
+                $currentProject = $workflowStatusData['project'];
+                $pitchCount = $currentProject->pitches()->count();
+                $approvedPitch = $currentProject->pitches()->where('status', 'approved')->first();
+                $completedPitch = $currentProject->pitches()->where('status', 'completed')->first();
+                
+                // Determine current focus based on project status and workflow type (from project workflow status component)
+                $currentFocus = ['text' => '', 'color' => '', 'icon' => '', 'urgency' => 'normal'];
+                
+                if ($currentProject->isContest()) {
+                    if (!$currentProject->is_published) {
+                        $currentFocus = ['text' => 'Ready to Launch Contest', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'megaphone', 'urgency' => 'warning'];
+                    } elseif ($currentProject->deadline && now()->gt($currentProject->deadline) && !$currentProject->isJudgingFinalized()) {
+                        $currentFocus = ['text' => 'Ready for Judging', 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'scale', 'urgency' => 'urgent'];
+                    } elseif ($currentProject->isJudgingFinalized()) {
+                        $currentFocus = ['text' => 'Contest Complete', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'trophy', 'urgency' => 'normal'];
+                    } elseif ($currentProject->deadline) {
+                        $daysLeft = now()->diffInDays($currentProject->deadline, false);
+                        if ($daysLeft > 0) {
+                            $urgency = $daysLeft <= 3 ? 'warning' : 'normal';
+                            $color = $urgency === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400';
+                            $currentFocus = ['text' => "Contest Active ({$daysLeft} days left)", 'color' => $color, 'icon' => 'clock', 'urgency' => $urgency];
+                        }
+                    }
+                } elseif ($currentProject->isClientManagement()) {
+                    if ($completedPitch) {
+                        $currentFocus = ['text' => 'Project Delivered', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle', 'urgency' => 'normal'];
+                    } elseif ($approvedPitch) {
+                        $workSubmitted = $approvedPitch->status === 'submitted_for_review';
+                        $currentFocus = ['text' => $workSubmitted ? 'Client Review Pending' : 'Work in Progress', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => $workSubmitted ? 'eye' : 'cog-6-tooth', 'urgency' => 'normal'];
+                    } else {
+                        $currentFocus = ['text' => 'Setup Client Review', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'user-group', 'urgency' => 'warning'];
+                    }
+                } else {
+                    // Standard and Direct Hire workflows
+                    if (!$currentProject->is_published) {
+                        $currentFocus = ['text' => 'Ready to Publish', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'globe-alt', 'urgency' => 'warning'];
+                    } elseif ($completedPitch) {
+                        $requiresPayment = $currentProject->budget > 0;
+                        $paymentStatus = $completedPitch->payment_status;
+                        
+                        if ($requiresPayment && in_array($paymentStatus, ['pending', 'failed', null])) {
+                            $currentFocus = ['text' => 'Payment Required', 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'credit-card', 'urgency' => 'urgent'];
+                        } else {
+                            $currentFocus = ['text' => 'Project Complete', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle', 'urgency' => 'normal'];
+                        }
+                    } elseif ($approvedPitch) {
+                        $workSubmitted = $approvedPitch->status === 'submitted_for_review';
+                        $revisionRequested = $approvedPitch->status === 'revision_requested';
+                        
+                        if ($workSubmitted) {
+                            $currentFocus = ['text' => 'Review Submitted Work', 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'eye', 'urgency' => 'urgent'];
+                        } elseif ($revisionRequested) {
+                            $currentFocus = ['text' => 'Revisions in Progress', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => 'arrow-path', 'urgency' => 'normal'];
+                        } else {
+                            $currentFocus = ['text' => 'Work in Progress', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => 'cog-6-tooth', 'urgency' => 'normal'];
+                        }
+                    } elseif ($pitchCount > 0) {
+                        $pendingPitches = $currentProject->pitches()->where('status', 'pending')->count();
+                        $currentFocus = ['text' => "Review {$pendingPitches} Pitch" . ($pendingPitches !== 1 ? 'es' : ''), 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'clipboard-document-list', 'urgency' => 'urgent'];
+                    } else {
+                        $daysSincePublished = $currentProject->created_at->diffInDays(now());
+                        $urgency = $daysSincePublished > 7 ? 'warning' : 'normal';
+                        $color = $urgency === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400';
+                        $currentFocus = ['text' => 'Waiting for Pitches', 'color' => $color, 'icon' => 'share', 'urgency' => $urgency];
+                    }
+                }
+                
+                $statusDisplay = [
+                    'text' => $currentFocus['text'],
+                    'color' => $currentFocus['color'],
+                    'icon' => $currentFocus['icon'],
+                    'files' => null
+                ];
+            }
+        @endphp
+        
+        @if($statusDisplay)
+            <div class="flex items-center gap-4 text-sm mt-2">
+                <div class="flex items-center gap-1.5">
+                    <flux:icon name="{{ $statusDisplay['icon'] }}" class="w-4 h-4 {{ $statusDisplay['color'] }}" />
+                    <span class="font-medium {{ $statusDisplay['color'] }}">
+                        {{ $statusDisplay['text'] }}
+                    </span>
                 </div>
-            @endif
-        </div>
+                @if($statusDisplay['files'] !== null && $statusDisplay['files'] > 0)
+                    <div class="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                        <flux:icon name="document" class="w-3 h-3" />
+                        <span class="text-xs">{{ $statusDisplay['files'] }} {{ $statusDisplay['files'] === 1 ? 'file' : 'files' }}</span>
+                    </div>
+                @endif
+            </div>
+        @endif
     @endif
     
     <!-- Quick Stats Row -->

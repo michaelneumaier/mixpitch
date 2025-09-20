@@ -230,13 +230,6 @@
                         <!-- Main Content Area (2/3 width on large screens) -->
                         <div class="space-y-2 lg:col-span-2">
 
-                            {{-- Workflow Status Component --}}
-                            @if ($project->isStandard() || $project->isContest() || $project->isDirectHire())
-                                <div>
-                                    <x-project.workflow-status :project="$project" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
-                                </div>
-                            @endif
-
                             {{-- Pitches Section / Contest Entries --}}
                             @if ($project->isContest())
                                 {{-- Contest Judging Component (includes Contest Entries) --}}
