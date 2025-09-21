@@ -26,15 +26,15 @@
                 </flux:subheading>
             </flux:card>
 
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-2">
 
 
                 <!-- Main Content Area -->
-                <div class="lg:col-span-3 space-y-4">
+                <div class="lg:col-span-3 space-y-2">
                     <!-- Search and View Controls -->
                     <flux:card>
                     
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <!-- Search Bar -->
                             <div class="flex-1 sm:max-w-md">
                                 <flux:input wire:model.live.debounce.300ms="search" 
@@ -78,7 +78,7 @@
                     </flux:card>
 
                     <!-- Results Header -->
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between mb-1 ml-2">
                         <div>
                             <flux:heading size="xl" class="mb-1 text-gray-900 dark:text-gray-100">
                                 @if($search)
@@ -92,7 +92,7 @@
                     </div>
 
                     <!-- Projects Grid/List -->
-                    <div class="{{ $viewMode === 'card' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4' }}">
+                    <div class="{{ $viewMode === 'card' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2' : 'space-y-2' }}">
                         @forelse($projects as $project)
                         @if($viewMode === 'card')
                                 <div>

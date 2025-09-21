@@ -12,7 +12,7 @@
     $statusConfig = match($pitch->status) {
         \App\Models\Pitch::STATUS_PENDING => [
             'color' => 'amber',
-            'message' => 'Awaiting Approval',
+            'message' => 'Awaiting Access',
             'icon' => 'clock'
         ],
         \App\Models\Pitch::STATUS_IN_PROGRESS => [

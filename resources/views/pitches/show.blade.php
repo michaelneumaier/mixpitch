@@ -82,16 +82,16 @@
 @endphp
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="mx-auto px-2 sm:px-4 py-6">
+    <div class="mx-auto p-2">
         <!-- Pitch Header -->
         <x-pitch.header 
             :pitch="$pitch"
             context="view"
         />
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid gap-2">
             <!-- Main Content Area (2/3 width on large screens) -->
-            <div class="lg:col-span-2 space-y-2">
+            <div class="space-y-2">
                 <!-- Pitch Workflow Status -->
                 @if($pitch->project->isContest() && in_array($pitch->status, [
                     \App\Models\Pitch::STATUS_CONTEST_ENTRY,
@@ -240,7 +240,7 @@
             </div>
 
             <!-- Sidebar -->
-            <div class="space-y-6">
+            <div class="space-y-2">
                 <!-- Payout Status (if applicable) -->
                 <x-pitch.payout-status :pitch="$pitch" />
 

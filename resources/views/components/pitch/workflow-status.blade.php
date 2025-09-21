@@ -22,8 +22,8 @@
     switch ($pitch->status) {
         case \App\Models\Pitch::STATUS_PENDING:
             $currentFocus = [
-                'title' => 'Awaiting Approval',
-                'description' => 'Your pitch is waiting for the project owner to review and approve it',
+                'title' => 'Awaiting Access',
+                'description' => 'Your pitch is waiting for the project owner to grant access',
                 'action' => null,
                 'urgency' => $daysInStatus > 3 ? 'warning' : 'normal',
                 'icon' => 'clock',

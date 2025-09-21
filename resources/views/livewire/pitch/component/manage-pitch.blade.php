@@ -82,7 +82,7 @@
 @endphp
 
 <x-draggable-upload-page :model="$pitch" title="Manage Pitch: {{ $project->title }}">
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="bg-gray-50 dark:bg-gray-900">
         <div class="mx-auto">
             <div class="mx-auto">
                 <div class="flex justify-center">
@@ -370,7 +370,7 @@
                                 <div class="space-y-2">
 
                                     <!-- Main Pitch Management Card -->
-                                    <flux:card class="mb-2">
+                                    <flux:card class="">
                                         <div class="mb-6 flex items-center gap-3">
                                             <flux:icon.document variant="solid"
                                                 class="{{ $workflowColors['icon'] }} h-8 w-8" />
@@ -641,7 +641,7 @@
                             <div class="space-y-2 lg:col-span-1">
                                 <!-- Workflow Type Information -->
                                 <flux:card
-                                    class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2 hidden lg:block">
+                                    class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2 hidden">
                                     <div class="mb-6 flex items-center gap-3">
                                         <flux:icon.users variant="solid"
                                             class="{{ $workflowColors['icon'] }} h-8 w-8" />
