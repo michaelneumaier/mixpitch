@@ -156,7 +156,7 @@
                 @if($canFinalize && !$isFinalized)
                     <button 
                         wire:click="openFinalizeModal"
-                        class="px-6 py-2 bg-gradient-to-r {{ $semanticColors['success']['accent'] ?? 'from-green-600 to-emerald-600' }} hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        class="px-6 py-2 bg-gradient-to-r {{ $semanticColors['success']['accent'] ?? 'from-green-600 to-emerald-600' }} hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-[transform,colors,shadow] duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                         <i class="fas fa-flag-checkered mr-2"></i>
                         Finalize Judging
@@ -182,7 +182,7 @@
                 <!-- Entries Grid -->
                 <div class="space-y-6">
                     @foreach($contestEntries as $entry)
-                        <div class="bg-white/80 backdrop-blur-sm border border-white/40 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] 
+                        <div class="bg-white/80 backdrop-blur-sm border border-white/40 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-300 hover:scale-[1.02] 
                             @if($entry->rank === 'first' || $entry->rank === '1st') 
                                 ring-2 ring-yellow-400/50 bg-gradient-to-r from-yellow-50/80 to-amber-50/80
                             @elseif($entry->rank === 'second' || $entry->rank === '2nd') 
@@ -290,7 +290,7 @@
                                     <!-- View Entry -->
                                     @if($entry->submitted_at && $entry->current_snapshot_id)
                                         <a href="{{ route('projects.pitches.snapshots.show', ['project' => $project, 'pitch' => $entry, 'snapshot' => $entry->current_snapshot_id]) }}" 
-                                           class="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg text-sm">
+                                           class="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 shadow-md hover:shadow-lg text-sm">
                                             <i class="fas fa-eye mr-2"></i>
                                             View Submitted Entry
                                         </a>
@@ -325,7 +325,7 @@
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeFinalizeModal"></div>
 
                 {{-- Modal --}}
-                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-[transform,opacity] sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
                             <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">

@@ -98,9 +98,10 @@
 
     {{-- Custom Styles --}}
     <style>
+        /* Remove problematic auto-fit grid that creates extra columns */
         .fi-wi-stats-overview {
             @apply grid gap-6;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            /* Let Filament handle the grid columns based on the widget configuration */
         }
         
         @media (max-width: 640px) {

@@ -499,19 +499,6 @@
                                                 <flux:error name="payment_amount" />
                                             </flux:field>
 
-                                            <flux:field>
-                                                <flux:label>
-                                                    <flux:icon name="calendar" class="mr-2" />
-                                                                Project Deadline (Optional)
-                                                    <flux:badge color="zinc" size="xs" class="ml-2">
-                                                                    {{ $this->getTimezoneDisplayName() }}
-                                                    </flux:badge>
-                                                </flux:label>
-                                                <flux:input 
-                                                    type="datetime-local" 
-                                                    wire:model="form.deadline" />
-                                                <flux:error name="form.deadline" />
-                                            </flux:field>
                                                         </div>
                                     </flux:card>
                                         @endif
@@ -527,20 +514,20 @@
                                     Please review all the details before creating your project. You can go back to make changes if needed.
                                 </flux:text>
                                 </div>
-
+                            <div class="max-w-4xl mx-auto space-y-6">
                             <!-- License Configuration -->
-                            <flux:card>
-                                <div class="flex items-center gap-3 mb-6">
-                                    <flux:icon name="document-text" variant="solid" class="w-8 h-8 text-indigo-600" />
-                                    <flux:heading size="lg">License Terms</flux:heading>
-                                    </div>
-
-                                    @livewire('components.license-selector', [
-                                        'projectType' => $form->projectType,
-                                        'selectedTemplateId' => $selectedLicenseTemplateId,
-                                        'requiresAgreement' => $requiresLicenseAgreement,
-                                        'licenseNotes' => $licenseNotes
-                                    ], key('license-selector-' . ($project->id ?? 'new')))
+                            <flux:card class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2">
+                                <flux:heading class="flex items-center gap-3 mb-4 {{ $workflowColors['text_primary'] }}">
+                                    <flux:icon name="document-text" class="w-6 h-6 {{ $workflowColors['icon'] }}" />
+                                    License Terms
+                                </flux:heading>
+                                
+                                @livewire('components.license-selector', [
+                                    'projectType' => $form->projectType,
+                                    'selectedTemplateId' => $selectedLicenseTemplateId,
+                                    'requiresAgreement' => $requiresLicenseAgreement,
+                                    'licenseNotes' => $licenseNotes
+                                ], key('license-selector-' . ($project->id ?? 'new')))
                             </flux:card>
 
                             <!-- Project Summary -->
@@ -550,19 +537,16 @@
                                 />
 
                             <!-- Additional Notes -->
-                            <flux:card>
-                                <div class="flex items-center gap-3 mb-6">
-                                    <flux:icon name="chat-bubble-left-ellipsis" variant="solid" class="w-8 h-8 text-gray-600" />
-                                    <flux:heading size="lg">Additional Notes</flux:heading>
-                                    </div>
-
+                            <flux:card class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }} mb-2">
+                                <flux:heading class="flex items-center gap-3 mb-4 {{ $workflowColors['text_primary'] }}">
+                                    <flux:icon name="chat-bubble-left-ellipsis" class="w-6 h-6 {{ $workflowColors['icon'] }}" />
+                                    Additional Notes
+                                </flux:heading>
+                                
                                 <flux:field>
                                     <flux:label>
-                                            Project Notes (Optional)
+                                        Project Notes (Optional)
                                     </flux:label>
-                                    <flux:description>
-                                        Add any extra information or special requirements for your project.
-                                    </flux:description>
                                     <flux:textarea 
                                         wire:model.blur="form.notes" 
                                         rows="4"
@@ -570,6 +554,7 @@
                                     <flux:error name="form.notes" />
                                 </flux:field>
                             </flux:card>
+                            </div>
                             </div>
                         @endif
 
@@ -742,7 +727,17 @@
                             <flux:heading class="flex items-center gap-3">
                                 <flux:icon name="briefcase" class="w-6 h-6 text-purple-600" />
                                 Client Management Settings
+                                @if($client_email)
+                                    <flux:badge variant="success" size="sm">Client Pre-filled</flux:badge>
+                                @endif
                             </flux:heading>
+                            
+                            @if($client_email)
+                                <flux:callout variant="info" size="sm">
+                                    <flux:icon name="information-circle" class="w-4 h-4" />
+                                    Creating project for {{ $client_name ?: $client_email }}
+                                </flux:callout>
+                            @endif
                             
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <flux:field>
@@ -781,21 +776,30 @@
                                         <flux:error name="payment_amount" />
                                     </flux:field>
                                         </div>
-                                        
-                                        <div class="lg:col-span-2">
-                                    <flux:field>
-                                        <flux:label>
-                                            <flux:icon name="calendar" class="mr-2" />
-                                                Project Deadline (Optional)
-                                            <flux:badge color="zinc" size="xs" class="ml-2">
-                                                    {{ $this->getTimezoneDisplayName() }}
-                                            </flux:badge>
-                                        </flux:label>
-                                        <flux:input type="datetime-local" wire:model="form.deadline" />
-                                        <flux:error name="form.deadline" />
-                                    </flux:field>
-                                        </div>
                                     </div>
+                                </div>
+                                @endif
+
+                                @if($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+                                <flux:separator class="my-8" />
+                                
+                                <!-- Client Project Timeline -->
+                        <div class="space-y-6">
+                            <flux:heading class="flex items-center gap-3">
+                                <flux:icon name="calendar" class="w-6 h-6 text-purple-600" />
+                                Project Timeline
+                            </flux:heading>
+                            
+                            <flux:field>
+                                <flux:label>
+                                    Project Deadline (Optional)
+                                    <flux:badge color="zinc" size="xs" class="ml-2">
+                                        {{ $this->getTimezoneDisplayName() }}
+                                    </flux:badge>
+                                </flux:label>
+                                <flux:input type="datetime-local" wire:model="form.deadline" />
+                                <flux:error name="form.deadline" />
+                            </flux:field>
                                 </div>
                                 @endif
 

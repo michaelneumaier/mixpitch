@@ -64,7 +64,7 @@
                 <div class="inline-block p-1 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
                     <div class="relative flex">
                         <button id="artist-toggle"
-                            class="role-toggle-btn active relative z-10 py-4 px-8 rounded-xl text-sm font-semibold transition-all duration-300 text-white">
+                            class="role-toggle-btn active relative z-10 py-4 px-8 rounded-xl text-sm font-semibold transition-colors duration-300 text-white">
                             <span class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -74,7 +74,7 @@
                             </span>
                         </button>
                         <button id="producer-toggle"
-                            class="role-toggle-btn relative z-10 py-4 px-8 rounded-xl text-sm font-semibold transition-all duration-300 text-white/70 hover:text-white">
+                            class="role-toggle-btn relative z-10 py-4 px-8 rounded-xl text-sm font-semibold transition-colors duration-300 text-white/70 hover:text-white">
                             <span class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -83,7 +83,7 @@
                                 I'm an Audio Pro
                             </span>
                         </button>
-                        <div class="toggle-indicator absolute top-1 left-1 h-[calc(100%-8px)] bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl transition-all duration-300 ease-out shadow-lg"></div>
+                        <div class="toggle-indicator absolute top-1 left-1 h-[calc(100%-8px)] bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl transition-[transform,colors] duration-300 ease-out shadow-lg"></div>
                     </div>
                 </div>
             </div>
@@ -154,7 +154,7 @@
                 <div class="flex flex-col sm:flex-row justify-center gap-6 max-w-2xl mx-auto">
                     @auth
                     <a href="{{ route('projects.create') }}"
-                        class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                        class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
                         <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         <span class="relative flex items-center justify-center text-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,7 +166,7 @@
                     </a>
                     @else
                     <a href="{{ route('register') }}"
-                        class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                        class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
                         <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         <span class="relative flex items-center justify-center text-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,7 +179,7 @@
                     @endauth
 
                     <a href="{{ route('projects.index') }}"
-                        class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                        class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
                         <span class="relative flex items-center justify-center text-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

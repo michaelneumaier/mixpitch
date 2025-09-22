@@ -25,7 +25,7 @@
             <!-- Path 1: New to Audio -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.1s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
                         <div class="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
@@ -92,7 +92,7 @@
             <!-- Path 2: Artist Journey -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
                         <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
@@ -159,7 +159,7 @@
             <!-- Path 3: Professional Journey -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.3s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
                         <div class="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
@@ -233,7 +233,7 @@
                 <!-- Standard Project -->
                 <div class="group relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -270,7 +270,7 @@
                 <!-- Contest Project -->
                 <div class="group relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -307,7 +307,7 @@
                 <!-- Direct Hire -->
                 <div class="group relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -344,7 +344,7 @@
                 <!-- Client Management -->
                 <div class="group relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -388,18 +388,18 @@
             <div class="inline-flex items-center justify-center space-x-6">
                 @auth
                 <a href="{{ route('projects.create') }}" 
-                   class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
                     Start Your First Project
                 </a>
                 @else
                 <a href="{{ route('register') }}" 
-                   class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
                     Join Free Today
                 </a>
                 @endauth
                 
                 <a href="{{ route('projects.index') }}" 
-                   class="bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg">
+                   class="bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-lg">
                     Browse Projects
                 </a>
             </div>

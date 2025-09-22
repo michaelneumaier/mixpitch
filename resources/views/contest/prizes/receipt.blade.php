@@ -210,19 +210,19 @@
         <!-- Actions -->
         <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
             <a href="{{ route('projects.manage', $project) }}" 
-               class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 hover:scale-105">
+               class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-[transform,colors,shadow] duration-200 hover:scale-105">
                 <i class="fas fa-arrow-left mr-2"></i>
                 Back to Contest Management
             </a>
             
             <a href="{{ route('projects.contest.results', $project) }}" 
-               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all duration-200 hover:scale-105 shadow-lg">
+               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-[transform,colors,shadow] duration-200 hover:scale-105 shadow-lg">
                 <i class="fas fa-trophy mr-2"></i>
                 View Contest Results
             </a>
 
             <a href="{{ route('contest.prizes.overview', $project) }}" 
-               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 hover:scale-105 shadow-lg">
+               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transition-[transform,colors,shadow] duration-200 hover:scale-105 shadow-lg">
                 <i class="fas fa-dollar-sign mr-2"></i>
                 Payment Overview
             </a>

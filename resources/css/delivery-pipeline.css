@@ -1,0 +1,124 @@
+/* Delivery Pipeline Board Responsive Styles */
+
+/* Mobile-optimized touch targets */
+@media (max-width: 640px) {
+  /* Ensure minimum 44px touch targets */
+  .delivery-pipeline button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Optimize card spacing for mobile */
+  .delivery-pipeline .kanban-card {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+
+/* Mobile column headers sticky for better context while scrolling */
+@media (max-width: 768px) {
+  .kanban-column-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: inherit;
+  }
+}
+
+/* Responsive button text */
+.btn-responsive-text {
+  display: inline-block;
+}
+
+@media (max-width: 640px) {
+  .btn-responsive-text-hide-mobile {
+    display: none;
+  }
+}
+
+/* Improve badge readability on mobile */
+@media (max-width: 640px) {
+  .delivery-pipeline .badge-group {
+    line-height: 1.5;
+  }
+}
+
+/* Horizontal scroll indicator for tablets */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .kanban-scroll-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .kanban-scroll-container > div {
+    scroll-snap-align: start;
+  }
+  
+  /* Scroll indicator */
+  .kanban-scroll-container::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .kanban-scroll-container::-webkit-scrollbar-track {
+    background: rgb(243 244 246);
+    border-radius: 3px;
+  }
+  
+  .kanban-scroll-container::-webkit-scrollbar-thumb {
+    background: rgb(209 213 219);
+    border-radius: 3px;
+  }
+  
+  .kanban-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgb(156 163 175);
+  }
+}
+
+/* Dark mode scrollbar */
+@media (prefers-color-scheme: dark) {
+  .kanban-scroll-container::-webkit-scrollbar-track {
+    background: rgb(31 41 55);
+  }
+  
+  .kanban-scroll-container::-webkit-scrollbar-thumb {
+    background: rgb(75 85 99);
+  }
+  
+  .kanban-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgb(107 114 128);
+  }
+}
+
+/* Ensure cards don't get too narrow on mobile */
+.kanban-card {
+  min-width: 280px;
+}
+
+@media (min-width: 640px) {
+  .kanban-card {
+    min-width: auto;
+  }
+}
+
+/* Better focus states for accessibility */
+.delivery-pipeline button:focus-visible,
+.delivery-pipeline a:focus-visible,
+.delivery-pipeline select:focus-visible,
+.delivery-pipeline input:focus-visible,
+.delivery-pipeline textarea:focus-visible {
+  outline: 2px solid rgb(99 102 241);
+  outline-offset: 2px;
+}
+
+/* Optimize modal for mobile */
+@media (max-width: 640px) {
+  .reminder-modal {
+    margin: 1rem;
+  }
+  
+  .reminder-modal .modal-content {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+}

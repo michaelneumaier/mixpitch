@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-5cf15e48.css",
+    "file": "assets/app-9c4cd3a5.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-321fdc08.css",
+    "file": "assets/theme-60f7a067.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -23,6 +23,11 @@
     "file": "assets/app-9e62b7a8.js",
     "isEntry": true,
     "src": "resources/js/app.js"
+  },
+  "resources/js/filament-sidebar-fix.js": {
+    "file": "assets/filament-sidebar-fix-ba2a83da.js",
+    "isEntry": true,
+    "src": "resources/js/filament-sidebar-fix.js"
   },
   "resources/js/filament/billing/stripe-handler.js": {
     "file": "assets/stripe-handler-9538a51a.js",

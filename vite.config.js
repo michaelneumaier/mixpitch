@@ -13,13 +13,13 @@ export default defineConfig({
                 'resources/js/hero.js',
                 'resources/js/global-drag-drop-manager.js',
                 'resources/js/filament/billing/stripe-handler.js',
+                'resources/js/filament-sidebar-fix.js',
             ],
-            refresh: false
-            // [
-            //     ...refreshPaths,
-            //     'app/Livewire/**',
-            //     'app/Filament/**',
-            // ]
+            refresh: [
+                ...refreshPaths,
+                'app/Livewire/**',
+                'app/Filament/**',
+            ]
             ,
         }),
     ],

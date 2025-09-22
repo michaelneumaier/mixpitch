@@ -384,7 +384,7 @@
                                 All your existing projects will be automatically linked to your new account.
                             </p>
                             <a href="{{ URL::temporarySignedRoute('client.portal.upgrade', now()->addHours(24), ['project' => $project->id]) }}" 
-                               class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105">
+                               class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-[transform,colors,shadow] duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105">
                                 <i class="fas fa-user-plus mr-2"></i>
                                 Create Free Account
                             </a>
@@ -1048,7 +1048,7 @@
                             </h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <a href="{{ URL::temporarySignedRoute('client.portal.deliverables', now()->addDays(7), ['project' => $project->id]) }}" 
-                                   class="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105">
+                                   class="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-[transform,colors,shadow] duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105">
                                     <i class="fas fa-download mr-3"></i>
                                     <div class="text-left">
                                         <div class="font-semibold">Download Files</div>
@@ -1057,7 +1057,7 @@
                                 </a>
                                 @if($pitch->payment_amount > 0 && $pitch->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
                                 <a href="{{ URL::temporarySignedRoute('client.portal.invoice', now()->addDays(7), ['project' => $project->id]) }}" 
-                                   class="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105">
+                                   class="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-[transform,colors,shadow] duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105">
                                     <i class="fas fa-receipt mr-3"></i>
                                     <div class="text-left">
                                         <div class="font-semibold">View Invoice</div>

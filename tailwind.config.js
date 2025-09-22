@@ -14,9 +14,13 @@ export default {
         "./resources/**/*.vue",
         "./app/View/Components/**/*.php",
         './vendor/masmerise/livewire-toaster/resources/views/*.blade.php',
+        // Filament content paths
+        './app/Filament/**/*.php',
+        './resources/views/filament/**/*.blade.php',
+        './vendor/filament/**/*.blade.php',
     ],
 
-    darkMode: 'selector',
+    darkMode: 'class',
 
     theme: {
         extend: {
@@ -46,6 +50,5 @@ export default {
     plugins: [
         forms,
         typography,
-        require('@tailwindcss/forms'),
         require('@tailwindcss/aspect-ratio')],
 };

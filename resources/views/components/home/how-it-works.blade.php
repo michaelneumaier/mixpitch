@@ -46,7 +46,7 @@
                             1
                         </div>
                         <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
                                 <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -66,7 +66,7 @@
                             2
                         </div>
                         <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
                                 <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -87,7 +87,7 @@
                             3
                         </div>
                         <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
                                 <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -125,7 +125,7 @@
                             1
                         </div>
                         <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
                                 <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -145,7 +145,7 @@
                             2
                         </div>
                         <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
                                 <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -165,7 +165,7 @@
                             3
                         </div>
                         <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
                                 <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
@@ -187,7 +187,7 @@
             <div class="inline-flex items-center justify-center space-x-6">
                 @auth
                 <a href="{{ route('projects.create') }}" 
-                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -198,7 +198,7 @@
                 </a>
                 @else
                 <a href="{{ route('register') }}" 
-                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,7 +210,7 @@
                 @endauth
                 
                 <a href="{{ route('projects.index') }}" 
-                   class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg">
+                   class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-lg">
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

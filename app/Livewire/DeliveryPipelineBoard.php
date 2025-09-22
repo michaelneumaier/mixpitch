@@ -369,25 +369,6 @@ class DeliveryPipelineBoard extends Component
     }
 
     // ----- Actions -----
-    public function handleDrop(int $projectId, string $toStage, string $fromStage): void
-    {
-        // Only allow transitions across high-level groups
-        // Make -> Review triggers submit for review if possible
-        if ($fromStage === 'make' && $toStage === 'review') {
-            $this->submitForReview($projectId);
-
-            return;
-        }
-        // Review -> Make triggers recall
-        if ($fromStage === 'review' && $toStage === 'make') {
-            $this->returnToInProgress($projectId);
-
-            return;
-        }
-        // Any drag involving Wrap Up or identical groups is treated as reorder only
-        // Reload to correct any invalid UI drops
-        $this->loadBoard();
-    }
 
     public function moveToInProgress(int $projectId): void
     {
@@ -498,32 +479,6 @@ class DeliveryPipelineBoard extends Component
             ]);
         }
 
-        $this->loadBoard();
-    }
-
-    public function reorderWithinColumn(string $stage, array $orderedProjectIds): void
-    {
-        $userId = Auth::id();
-        // Persist relative order by assigning delivery_sort_order incrementally
-        $order = 1;
-        foreach ($orderedProjectIds as $projectId) {
-            /** @var Project|null $project */
-            $project = Project::where('id', (int) $projectId)
-                ->where('user_id', $userId)
-                ->with('pitches')
-                ->first();
-            if (! $project) {
-                continue;
-            }
-            /** @var Pitch|null $pitch */
-            $pitch = $project->pitches->first();
-            if (! $pitch) {
-                continue;
-            }
-            // Set sort order regardless of exact stage mapping, simple per-column ordering
-            $pitch->delivery_sort_order = $order++;
-            $pitch->save();
-        }
         $this->loadBoard();
     }
 

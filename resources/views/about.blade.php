@@ -41,15 +41,15 @@
                         
                         <!-- Hero Stats -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12 max-w-2xl mx-auto">
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105">
+                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm hover:shadow-lg transition-[transform,colors,shadow] duration-300 hover:scale-105">
                                 <div class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">1000+</div>
                                 <div class="text-sm text-gray-600 font-medium">Projects Created</div>
                             </div>
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105">
+                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm hover:shadow-lg transition-[transform,colors,shadow] duration-300 hover:scale-105">
                                 <div class="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">500+</div>
                                 <div class="text-sm text-gray-600 font-medium">Audio Professionals</div>
                             </div>
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105">
+                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-4 shadow-sm hover:shadow-lg transition-[transform,colors,shadow] duration-300 hover:scale-105">
                                 <div class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">50+</div>
                                 <div class="text-sm text-gray-600 font-medium">Countries</div>
                             </div>
@@ -115,7 +115,7 @@
                             </div>
                             
                             <div class="relative">
-                                <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-300 hover:scale-105">
                                     <div class="text-center">
                                         <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full p-6 w-20 h-20 mx-auto mb-6 shadow-lg">
                                             <i class="fas fa-users text-white text-2xl"></i>
@@ -159,7 +159,7 @@
 
                 <div class="grid lg:grid-cols-2 gap-8">
                     <!-- For Musicians -->
-                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-[transform,colors,shadow] duration-300 hover:scale-[1.02]">
                         <div class="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-indigo-50/20"></div>
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-blue-600"></div>
                         <div class="absolute top-4 right-4 w-16 h-16 bg-blue-400/10 rounded-full blur-lg"></div>
@@ -203,7 +203,7 @@
                     </div>
 
                     <!-- For Audio Professionals -->
-                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-[transform,colors,shadow] duration-300 hover:scale-[1.02]">
                         <div class="absolute inset-0 bg-gradient-to-br from-purple-50/30 to-pink-50/20"></div>
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-600"></div>
                         <div class="absolute bottom-4 left-4 w-16 h-16 bg-purple-400/10 rounded-full blur-lg"></div>
@@ -261,9 +261,9 @@
 
                 <div class="grid md:grid-cols-3 gap-8">
                     <!-- Collaboration -->
-                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-                        <div class="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-indigo-50/20 group-hover:from-blue-50/50 group-hover:to-indigo-50/30 transition-all duration-300"></div>
-                        <div class="absolute top-4 right-4 w-12 h-12 bg-blue-400/10 rounded-full blur-lg group-hover:bg-blue-400/20 transition-all duration-300"></div>
+                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-[transform,colors,shadow] duration-300 hover:scale-105 group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-indigo-50/20 group-hover:from-blue-50/50 group-hover:to-indigo-50/30 transition-[transform,colors,shadow] duration-300"></div>
+                        <div class="absolute top-4 right-4 w-12 h-12 bg-blue-400/10 rounded-full blur-lg group-hover:bg-blue-400/20 transition-[transform,colors,shadow] duration-300"></div>
                         
                         <div class="relative p-8 text-center">
                             <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform">
@@ -277,9 +277,9 @@
                     </div>
 
                     <!-- Innovation -->
-                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-                        <div class="absolute inset-0 bg-gradient-to-br from-purple-50/30 to-pink-50/20 group-hover:from-purple-50/50 group-hover:to-pink-50/30 transition-all duration-300"></div>
-                        <div class="absolute bottom-4 left-4 w-12 h-12 bg-purple-400/10 rounded-full blur-lg group-hover:bg-purple-400/20 transition-all duration-300"></div>
+                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-[transform,colors,shadow] duration-300 hover:scale-105 group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-50/30 to-pink-50/20 group-hover:from-purple-50/50 group-hover:to-pink-50/30 transition-[transform,colors,shadow] duration-300"></div>
+                        <div class="absolute bottom-4 left-4 w-12 h-12 bg-purple-400/10 rounded-full blur-lg group-hover:bg-purple-400/20 transition-[transform,colors,shadow] duration-300"></div>
                         
                         <div class="relative p-8 text-center">
                             <div class="bg-gradient-to-r from-purple-500 to-pink-600 rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform">
@@ -293,9 +293,9 @@
                     </div>
 
                     <!-- Community -->
-                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-105 group">
-                        <div class="absolute inset-0 bg-gradient-to-br from-green-50/30 to-emerald-50/20 group-hover:from-green-50/50 group-hover:to-emerald-50/30 transition-all duration-300"></div>
-                        <div class="absolute top-4 left-4 w-12 h-12 bg-green-400/10 rounded-full blur-lg group-hover:bg-green-400/20 transition-all duration-300"></div>
+                    <div class="relative bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-[transform,colors,shadow] duration-300 hover:scale-105 group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-green-50/30 to-emerald-50/20 group-hover:from-green-50/50 group-hover:to-emerald-50/30 transition-[transform,colors,shadow] duration-300"></div>
+                        <div class="absolute top-4 left-4 w-12 h-12 bg-green-400/10 rounded-full blur-lg group-hover:bg-green-400/20 transition-[transform,colors,shadow] duration-300"></div>
                         
                         <div class="relative p-8 text-center">
                             <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform">
@@ -336,20 +336,20 @@
                     <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
                         @auth
                         <a href="{{ route('projects.create') }}"
-                            class="group inline-flex items-center px-8 py-4 bg-white text-indigo-600 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 hover:bg-gray-50">
+                            class="group inline-flex items-center px-8 py-4 bg-white text-indigo-600 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:bg-gray-50">
                             <i class="fas fa-plus mr-3 group-hover:scale-110 transition-transform"></i>
                             Start Collaborating
                         </a>
                         @else
                         <a href="{{ route('register') }}"
-                            class="group inline-flex items-center px-8 py-4 bg-white text-indigo-600 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 hover:bg-gray-50">
+                            class="group inline-flex items-center px-8 py-4 bg-white text-indigo-600 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:bg-gray-50">
                             <i class="fas fa-user-plus mr-3 group-hover:scale-110 transition-transform"></i>
                             Join MixPitch
                         </a>
                         @endauth
 
                         <a href="{{ route('projects.index') }}"
-                            class="group inline-flex items-center px-8 py-4 bg-transparent text-white text-lg font-bold border-2 border-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 hover:bg-white/10">
+                            class="group inline-flex items-center px-8 py-4 bg-transparent text-white text-lg font-bold border-2 border-white rounded-xl shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:bg-white/10">
                             <i class="fas fa-search mr-3 group-hover:scale-110 transition-transform"></i>
                             Explore Projects
                         </a>

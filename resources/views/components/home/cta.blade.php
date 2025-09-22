@@ -54,15 +54,15 @@
 
         <!-- Enhanced Statistics -->
         <div class="grid hidden grid-cols-1 md:grid-cols-3 gap-8 mb-16 animate-fade-in-up" style="animation-delay: 0.6s;">
-            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:scale-105">
                 <div class="text-3xl md:text-4xl font-bold text-white mb-2">10K+</div>
                 <div class="text-white/80">Active Creators</div>
             </div>
-            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:scale-105">
                 <div class="text-3xl md:text-4xl font-bold text-white mb-2">50K+</div>
                 <div class="text-white/80">Projects Completed</div>
             </div>
-            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:scale-105">
                 <div class="text-3xl md:text-4xl font-bold text-white mb-2">98%</div>
                 <div class="text-white/80">Satisfaction Rate</div>
             </div>
@@ -72,7 +72,7 @@
         <div class="flex flex-col sm:flex-row justify-center gap-6 mb-12 animate-fade-in-up" style="animation-delay: 0.8s;">
             @auth
             <a href="{{ route('projects.create') }}"
-                class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-10 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-2xl">
                 <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 <span class="relative flex items-center justify-center text-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -83,7 +83,7 @@
             </a>
             @else
             <a href="{{ route('register') }}"
-                class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-10 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
                 <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 <span class="relative flex items-center justify-center text-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,7 +95,7 @@
             @endauth
 
             <a href="{{ route('projects.index') }}"
-                class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl">
+                class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white font-bold py-4 px-10 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
                 <span class="relative flex items-center justify-center text-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

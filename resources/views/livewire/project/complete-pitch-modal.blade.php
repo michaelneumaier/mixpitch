@@ -39,7 +39,7 @@
                     </div>
                 </div>
                 <button wire:click="closeModal" 
-                        class="rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 p-2 text-gray-600 transition-all duration-200 hover:scale-105 hover:from-gray-200 hover:to-gray-300 hover:text-gray-700">
+                        class="rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 p-2 text-gray-600 transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:from-gray-200 hover:to-gray-300 hover:text-gray-700">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -109,7 +109,7 @@
                     @for($i = 1; $i <= 5; $i++)
                     <button type="button" 
                             wire:click="$set('rating', {{ $i }})"
-                            class="h-8 w-8 rounded-full transition-all duration-200 hover:scale-110 {{ $rating >= $i ? 'text-amber-400' : 'text-gray-300' }}">
+                            class="h-8 w-8 rounded-full transition-[transform,colors] duration-200 hover:scale-110 {{ $rating >= $i ? 'text-amber-400' : 'text-gray-300' }}">
                         <i class="fas fa-star text-lg"></i>
                     </button>
                     @endfor
@@ -128,7 +128,7 @@
                     id="feedback" 
                     wire:model="feedback" 
                     rows="4"
-                    class="w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                    class="w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm transition-[colors,shadow] duration-200 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20"
                     placeholder="Add any final feedback or notes about the completed work..."></textarea>
                 @error('feedback') 
                 <span class="mt-1 text-xs text-red-600 font-medium">{{ $message }}</span> 
@@ -140,12 +140,12 @@
         <div class="relative border-t border-white/20 bg-gradient-to-r from-gray-50/80 to-white/80 p-6 backdrop-blur-sm">
             <div class="flex justify-end space-x-3">
                 <button wire:click="closeModal"
-                        class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 px-4 py-2.5 font-medium text-gray-700 transition-all duration-200 hover:scale-105 hover:from-gray-200 hover:to-gray-300 hover:shadow-lg">
+                        class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 px-4 py-2.5 font-medium text-gray-700 transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:from-gray-200 hover:to-gray-300 hover:shadow-lg">
                     Cancel
                 </button>
                 <button wire:click="completePitch" 
                         wire:loading.attr="disabled"
-                        class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-2.5 font-semibold text-white transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg disabled:opacity-75 disabled:cursor-not-allowed">
+                        class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-2.5 font-semibold text-white transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg disabled:opacity-75 disabled:cursor-not-allowed">
                     <span wire:loading wire:target="completePitch">
                         <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

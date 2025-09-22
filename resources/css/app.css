@@ -4,6 +4,7 @@
 @import "tailwindcss";
 @import "../../vendor/livewire/flux/dist/flux.css";
 @import "./drag-drop.css";
+@import "./delivery-pipeline.css";
 @config "../../tailwind.config.js";
 
 /* Dark mode custom variant for Flux UI */

@@ -554,6 +554,29 @@ class CreateProject extends Component
             if (in_array($workflowType, $validWorkflowTypes)) {
                 $this->workflow_type = $workflowType;
                 $this->currentStep = 2; // Skip step 1 and go directly to step 2
+
+                // Handle client management specific parameters
+                if ($workflowType === Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT) {
+                    // Handle client_id parameter (from existing routes)
+                    if (request()->has('client_id')) {
+                        $clientId = request()->get('client_id');
+                        $client = \App\Models\Client::where('user_id', auth()->id())
+                            ->find($clientId);
+
+                        if ($client) {
+                            $this->client_email = $client->email;
+                            $this->client_name = $client->name;
+                        }
+                    }
+
+                    // Handle direct client_email and client_name parameters (from new dropdown buttons)
+                    if (request()->has('client_email')) {
+                        $this->client_email = request()->get('client_email');
+                    }
+                    if (request()->has('client_name')) {
+                        $this->client_name = request()->get('client_name');
+                    }
+                }
             }
         }
 

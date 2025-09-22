@@ -82,8 +82,24 @@ class ProjectObserver
                 throw $e;
             }
         } elseif ($project->isClientManagement() && $project->client_email) {
-            // Handle Client Management pitch creation
-            Log::info('Creating automatic pitch and inviting client for Client Management project', ['project_id' => $project->id, 'client_email' => $project->client_email]);
+            // Handle Client Management: create client record and pitch
+            Log::info('Creating client record and automatic pitch for Client Management project', ['project_id' => $project->id, 'client_email' => $project->client_email]);
+
+            // First, ensure client record exists
+            $client = \App\Models\Client::firstOrCreate(
+                ['user_id' => $project->user_id, 'email' => $project->client_email],
+                [
+                    'name' => $project->client_name,
+                    'timezone' => 'UTC',
+                    'status' => \App\Models\Client::STATUS_ACTIVE,
+                ]
+            );
+
+            // Link the project to the client
+            $project->client_id = $client->id;
+            $project->save();
+
+            Log::info('Client record ensured', ['client_id' => $client->id, 'project_id' => $project->id]);
             try {
                 // Determine pitch title
                 $pitchTitle = ! empty($project->title) ? $project->title : 'Client Project';

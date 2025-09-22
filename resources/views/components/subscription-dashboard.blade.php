@@ -16,17 +16,17 @@
     }
 @endphp
 
-<div class="bg-white rounded-xl shadow-lg overflow-hidden">
+<flux:card class="overflow-hidden">
     <!-- Header -->
     <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="bg-white/20 p-2 rounded-lg">
-                    <i class="fas fa-crown text-white text-lg"></i>
+                    <flux:icon name="sparkles" class="w-6 h-6 text-white" />
                 </div>
                 <div>
-                    <h3 class="text-white font-semibold text-lg">{{ $planName }}</h3>
-                    <p class="text-blue-100 text-sm">Your subscription plan</p>
+                    <flux:heading size="lg" class="text-white">{{ $planName }}</flux:heading>
+                    <flux:text size="sm" class="text-blue-100">Your subscription plan</flux:text>
                 </div>
             </div>
             @if($user->getUserBadge())
@@ -40,134 +40,134 @@
         <!-- Quick Stats Grid -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Total Earnings -->
-            <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div class="bg-green-50 dark:bg-green-950/50 rounded-lg p-4 border border-green-200 dark:border-green-800">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-green-600 text-sm font-medium">Total Earnings</p>
-                        <p class="text-green-900 text-xl font-bold">${{ number_format($totalEarnings, 2) }}</p>
+                        <flux:text size="sm" class="text-green-600 dark:text-green-400 font-medium">Total Earnings</flux:text>
+                        <flux:text class="text-green-900 dark:text-green-100 text-xl font-bold">${{ number_format($totalEarnings, 2) }}</flux:text>
                     </div>
-                    <i class="fas fa-dollar-sign text-green-500 text-lg"></i>
+                    <flux:icon name="currency-dollar" class="w-6 h-6 text-green-500" />
                 </div>
             </div>
 
             <!-- Commission Rate -->
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div class="bg-blue-50 dark:bg-blue-950/50 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-blue-600 text-sm font-medium">Commission Rate</p>
-                        <p class="text-blue-900 text-xl font-bold">{{ $user->getPlatformCommissionRate() }}%</p>
+                        <flux:text size="sm" class="text-blue-600 dark:text-blue-400 font-medium">Commission Rate</flux:text>
+                        <flux:text class="text-blue-900 dark:text-blue-100 text-xl font-bold">{{ $user->getPlatformCommissionRate() }}%</flux:text>
                     </div>
-                    <i class="fas fa-percentage text-blue-500 text-lg"></i>
+                    <flux:icon name="percent-badge" class="w-6 h-6 text-blue-500" />
                 </div>
             </div>
 
             <!-- Reputation Score -->
-            <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+            <div class="bg-yellow-50 dark:bg-yellow-950/50 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-yellow-600 text-sm font-medium">Reputation</p>
-                        <p class="text-yellow-900 text-xl font-bold">{{ number_format($reputationData['final_reputation'], 1) }}</p>
+                        <flux:text size="sm" class="text-yellow-600 dark:text-yellow-400 font-medium">Reputation</flux:text>
+                        <flux:text class="text-yellow-900 dark:text-yellow-100 text-xl font-bold">{{ number_format($reputationData['final_reputation'], 1) }}</flux:text>
                     </div>
                     <span class="text-lg">{{ $reputationData['tier']['badge'] }}</span>
                 </div>
             </div>
 
             <!-- Commission Savings -->
-            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <div class="bg-purple-50 dark:bg-purple-950/50 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-purple-600 text-sm font-medium">Savings</p>
-                        <p class="text-purple-900 text-xl font-bold">${{ number_format($commissionSavings, 2) }}</p>
+                        <flux:text size="sm" class="text-purple-600 dark:text-purple-400 font-medium">Savings</flux:text>
+                        <flux:text class="text-purple-900 dark:text-purple-100 text-xl font-bold">${{ number_format($commissionSavings, 2) }}</flux:text>
                     </div>
-                    <i class="fas fa-piggy-bank text-purple-500 text-lg"></i>
+                    <flux:icon name="banknotes" class="w-6 h-6 text-purple-500" />
                 </div>
             </div>
         </div>
 
         <!-- Monthly Usage -->
         <div class="border-t pt-6">
-            <h4 class="font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
+            <flux:heading size="base" class="mb-4 flex items-center">
+                <flux:icon name="chart-bar" class="w-5 h-5 text-blue-500 mr-2" />
                 Monthly Usage - {{ $usageSummary['month_year'] }}
-            </h4>
+            </flux:heading>
             
             <div class="space-y-4">
                 <!-- Visibility Boosts -->
                 @if($user->getMonthlyVisibilityBoosts() > 0)
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div class="flex items-center space-x-3">
-                        <div class="bg-blue-100 p-2 rounded-lg">
-                            <i class="fas fa-rocket text-blue-600"></i>
+                        <div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                            <flux:icon name="rocket-launch" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900">Visibility Boosts</p>
-                            <p class="text-sm text-gray-600">Boost your content visibility</p>
+                            <flux:text class="font-medium text-gray-900 dark:text-gray-100">Visibility Boosts</flux:text>
+                            <flux:text size="sm" class="text-gray-600 dark:text-gray-400">Boost your content visibility</flux:text>
                         </div>
                     </div>
                     <div class="text-right">
-                        <p class="font-semibold text-gray-900">
+                        <flux:text class="font-semibold text-gray-900 dark:text-gray-100">
                             {{ $usageSummary['visibility_boosts']['used'] }} / {{ $usageSummary['visibility_boosts']['limit'] }}
-                        </p>
-                        <p class="text-sm text-gray-600">{{ $remainingVisibilityBoosts }} remaining</p>
+                        </flux:text>
+                        <flux:text size="sm" class="text-gray-600 dark:text-gray-400">{{ $remainingVisibilityBoosts }} remaining</flux:text>
                     </div>
                 </div>
                 @endif
 
                 <!-- Private Projects -->
                 @if($user->getMaxPrivateProjectsMonthly() !== 0)
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div class="flex items-center space-x-3">
-                        <div class="bg-red-100 p-2 rounded-lg">
-                            <i class="fas fa-lock text-red-600"></i>
+                        <div class="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg">
+                            <flux:icon name="lock-closed" class="w-5 h-5 text-red-600 dark:text-red-400" />
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900">Private Projects</p>
-                            <p class="text-sm text-gray-600">Create private projects</p>
+                            <flux:text class="font-medium text-gray-900 dark:text-gray-100">Private Projects</flux:text>
+                            <flux:text size="sm" class="text-gray-600 dark:text-gray-400">Create private projects</flux:text>
                         </div>
                     </div>
                     <div class="text-right">
-                        <p class="font-semibold text-gray-900">
+                        <flux:text class="font-semibold text-gray-900 dark:text-gray-100">
                             {{ $usageSummary['private_projects']['created'] }}
                             @if($user->getMaxPrivateProjectsMonthly() !== null)
                                 / {{ $user->getMaxPrivateProjectsMonthly() }}
                             @endif
-                        </p>
-                        <p class="text-sm text-gray-600">
+                        </flux:text>
+                        <flux:text size="sm" class="text-gray-600 dark:text-gray-400">
                             @if($remainingPrivateProjects === null)
                                 Unlimited
                             @else
                                 {{ $remainingPrivateProjects }} remaining
                             @endif
-                        </p>
+                        </flux:text>
                     </div>
                 </div>
                 @endif
 
                 <!-- License Templates -->
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div class="flex items-center space-x-3">
-                        <div class="bg-green-100 p-2 rounded-lg">
-                            <i class="fas fa-file-contract text-green-600"></i>
+                        <div class="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg">
+                            <flux:icon name="document-text" class="w-5 h-5 text-green-600 dark:text-green-400" />
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900">License Templates</p>
-                            <p class="text-sm text-gray-600">Custom licensing options</p>
+                            <flux:text class="font-medium text-gray-900 dark:text-gray-100">License Templates</flux:text>
+                            <flux:text size="sm" class="text-gray-600 dark:text-gray-400">Custom licensing options</flux:text>
                         </div>
                     </div>
                     <div class="text-right">
-                        <p class="font-semibold text-gray-900">
+                        <flux:text class="font-semibold text-gray-900 dark:text-gray-100">
                             {{ $usageSummary['license_templates']['total_templates'] }}
                             @if($user->getMaxLicenseTemplates() !== null)
                                 / {{ $user->getMaxLicenseTemplates() }}
                             @endif
-                        </p>
-                        <p class="text-sm text-gray-600">
+                        </flux:text>
+                        <flux:text size="sm" class="text-gray-600 dark:text-gray-400">
                             @if($user->getMaxLicenseTemplates() === null)
                                 Unlimited
                             @else
                                 {{ max(0, $user->getMaxLicenseTemplates() - $usageSummary['license_templates']['total_templates']) }} slots available
                             @endif
-                        </p>
+                        </flux:text>
                     </div>
                 </div>
             </div>
@@ -175,72 +175,72 @@
 
         <!-- Subscription Benefits -->
         <div class="border-t pt-6">
-            <h4 class="font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-star text-yellow-500 mr-2"></i>
+            <flux:heading size="base" class="mb-4 flex items-center">
+                <flux:icon name="star" class="w-5 h-5 text-yellow-500 mr-2" />
                 Your Benefits
-            </h4>
+            </flux:heading>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Storage -->
-                <div class="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                    <i class="fas fa-hdd text-blue-600"></i>
+                <div class="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                    <flux:icon name="circle-stack" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <div>
-                        <p class="font-medium text-blue-900">{{ $user->getStorageLimitGB() }}GB Storage</p>
-                        <p class="text-sm text-blue-700">Total storage</p>
+                        <flux:text class="font-medium text-blue-900 dark:text-blue-100">{{ $user->getStorageLimitGB() }}GB Storage</flux:text>
+                        <flux:text size="sm" class="text-blue-700 dark:text-blue-300">Total storage</flux:text>
                     </div>
                 </div>
 
                 <!-- Reputation Multiplier -->
                 @if($user->getReputationMultiplier() > 1.0)
-                <div class="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
-                    <i class="fas fa-chart-line text-yellow-600"></i>
+                <div class="flex items-center space-x-3 p-3 bg-yellow-50 dark:bg-yellow-950/50 rounded-lg">
+                    <flux:icon name="chart-bar" class="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                     <div>
-                        <p class="font-medium text-yellow-900">{{ $user->getReputationMultiplier() }}× Reputation</p>
-                        <p class="text-sm text-yellow-700">Boost multiplier</p>
+                        <flux:text class="font-medium text-yellow-900 dark:text-yellow-100">{{ $user->getReputationMultiplier() }}× Reputation</flux:text>
+                        <flux:text size="sm" class="text-yellow-700 dark:text-yellow-300">Boost multiplier</flux:text>
                     </div>
                 </div>
                 @endif
 
                 <!-- Client Portal -->
                 @if($user->hasClientPortalAccess())
-                <div class="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-                    <i class="fas fa-users text-purple-600"></i>
+                <div class="flex items-center space-x-3 p-3 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
+                    <flux:icon name="users" class="w-5 h-5 text-purple-600 dark:text-purple-400" />
                     <div>
-                        <p class="font-medium text-purple-900">Client Portal</p>
-                        <p class="text-sm text-purple-700">Advanced client tools</p>
+                        <flux:text class="font-medium text-purple-900 dark:text-purple-100">Client Portal</flux:text>
+                        <flux:text size="sm" class="text-purple-700 dark:text-purple-300">Advanced client tools</flux:text>
                     </div>
                 </div>
                 @endif
 
                 <!-- Early Access -->
                 @if($user->getChallengeEarlyAccessHours() > 0)
-                <div class="flex items-center space-x-3 p-3 bg-indigo-50 rounded-lg">
-                    <i class="fas fa-clock text-indigo-600"></i>
+                <div class="flex items-center space-x-3 p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg">
+                    <flux:icon name="clock" class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     <div>
-                        <p class="font-medium text-indigo-900">{{ $user->getChallengeEarlyAccessHours() }}h Early Access</p>
-                        <p class="text-sm text-indigo-700">To challenges</p>
+                        <flux:text class="font-medium text-indigo-900 dark:text-indigo-100">{{ $user->getChallengeEarlyAccessHours() }}h Early Access</flux:text>
+                        <flux:text size="sm" class="text-indigo-700 dark:text-indigo-300">To challenges</flux:text>
                     </div>
                 </div>
                 @endif
 
                 <!-- Judge Access -->
                 @if($user->hasJudgeAccess())
-                <div class="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
-                    <i class="fas fa-gavel text-red-600"></i>
+                <div class="flex items-center space-x-3 p-3 bg-red-50 dark:bg-red-950/50 rounded-lg">
+                    <flux:icon name="scale" class="w-5 h-5 text-red-600 dark:text-red-400" />
                     <div>
-                        <p class="font-medium text-red-900">Judge Access</p>
-                        <p class="text-sm text-red-700">Contest judging privileges</p>
+                        <flux:text class="font-medium text-red-900 dark:text-red-100">Judge Access</flux:text>
+                        <flux:text size="sm" class="text-red-700 dark:text-red-300">Contest judging privileges</flux:text>
                     </div>
                 </div>
                 @endif
 
                 <!-- Support Level -->
                 @if($user->getSupportSlaHours())
-                <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                    <i class="fas fa-headset text-green-600"></i>
+                <div class="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                    <flux:icon name="chat-bubble-left-ellipsis" class="w-5 h-5 text-green-600 dark:text-green-400" />
                     <div>
-                        <p class="font-medium text-green-900">{{ $user->getSupportSlaHours() }}h Support SLA</p>
-                        <p class="text-sm text-green-700">Priority assistance</p>
+                        <flux:text class="font-medium text-green-900 dark:text-green-100">{{ $user->getSupportSlaHours() }}h Support SLA</flux:text>
+                        <flux:text size="sm" class="text-green-700 dark:text-green-300">Priority assistance</flux:text>
                     </div>
                 </div>
                 @endif
@@ -251,25 +251,34 @@
         <div class="border-t pt-6">
             <div class="flex flex-col sm:flex-row gap-3">
                 @if(!$user->isProPlan())
-                    <a href="{{ route('subscription.index') }}" 
-                       class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-center py-3 px-4 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg">
-                        <i class="fas fa-arrow-up mr-2"></i>
+                    <flux:button 
+                        href="{{ route('subscription.index') }}" 
+                        wire:navigate
+                        variant="filled"
+                        icon="arrow-up"
+                        class="flex-1 justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 !text-white">
                         Upgrade to Pro
-                    </a>
+                    </flux:button>
                 @else
-                    <a href="{{ route('subscription.index') }}" 
-                       class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-center py-3 px-4 rounded-lg font-medium transition-colors duration-200">
-                        <i class="fas fa-cog mr-2"></i>
+                    <flux:button 
+                        href="{{ route('subscription.index') }}" 
+                        wire:navigate
+                        variant="outline"
+                        icon="cog-6-tooth"
+                        class="flex-1 justify-center">
                         Manage Subscription
-                    </a>
+                    </flux:button>
                 @endif
                 
-                <a href="{{ route('profile.username', ['username' => auth()->user()->username]) }}" 
-                   class="flex-1 border border-gray-300 hover:border-gray-400 text-gray-700 text-center py-3 px-4 rounded-lg font-medium transition-colors duration-200">
-                    <i class="fas fa-user mr-2"></i>
+                <flux:button 
+                    href="{{ route('profile.username', ['username' => auth()->user()->username]) }}" 
+                    wire:navigate
+                    variant="outline"
+                    icon="user"
+                    class="flex-1 justify-center">
                     View Profile
-                </a>
+                </flux:button>
             </div>
         </div>
     </div>
-</div> 
+</flux:card> 

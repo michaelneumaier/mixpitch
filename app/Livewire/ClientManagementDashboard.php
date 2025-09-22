@@ -9,6 +9,7 @@ use App\Models\Pitch;
 use App\Models\Project;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -75,6 +76,14 @@ class ClientManagementDashboard extends Component
     public string $modalReminderNote = '';
 
     public string $modalReminderDueAt = '';
+
+    // New client form state
+    public string $newClientEmail = '';
+
+    public string $newClientName = '';
+
+    // Client selection for project creation
+    public ?int $selectedClientForProject = null;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -686,6 +695,110 @@ class ClientManagementDashboard extends Component
         $this->dispatch('modal-close', name: 'add-reminder');
 
         session()->flash('success', 'Reminder added successfully!');
+    }
+
+    // --- New Client Creation Methods ---
+    public function openAddClientModal(): void
+    {
+        // Reset form fields
+        $this->reset(['newClientEmail', 'newClientName']);
+
+        // Show the modal using Flux's modal system
+        $this->dispatch('modal-show', name: 'add-client');
+    }
+
+    public function saveNewClient(): void
+    {
+        $userId = $this->userId ?? Auth::id();
+
+        $this->validate([
+            'newClientEmail' => 'required|email|max:255',
+            'newClientName' => 'nullable|string|max:255',
+        ], [
+            'newClientEmail.required' => 'Email is required.',
+            'newClientEmail.email' => 'Please enter a valid email address.',
+        ]);
+
+        // Check if client already exists for this user
+        $existingClient = Client::where('user_id', $userId)
+            ->where('email', $this->newClientEmail)
+            ->first();
+
+        if ($existingClient) {
+            session()->flash('error', 'A client with this email already exists.');
+
+            return;
+        }
+
+        try {
+            $client = Client::create([
+                'user_id' => $userId,
+                'email' => $this->newClientEmail,
+                'name' => $this->newClientName ?: null,
+                'timezone' => 'UTC',
+                'status' => Client::STATUS_ACTIVE,
+            ]);
+
+            // Update the clientsForSelect array to include the new client
+            $this->clientsForSelect = Client::where('user_id', $userId)
+                ->orderByRaw('COALESCE(NULLIF(name, ""), email) asc')
+                ->get(['id', 'name', 'email'])
+                ->map(fn ($c) => [
+                    'id' => $c->id,
+                    'label' => $c->name ? ($c->name.' — '.$c->email) : $c->email,
+                ])->toArray();
+
+            // Reset modal fields
+            $this->reset(['newClientEmail', 'newClientName']);
+
+            // Close modal
+            $this->dispatch('modal-close', name: 'add-client');
+
+            session()->flash('success', 'Client added successfully!');
+        } catch (\Throwable $e) {
+            Log::error('Failed to create client', [
+                'user_id' => $userId,
+                'email' => $this->newClientEmail,
+                'error' => $e->getMessage(),
+            ]);
+
+            session()->flash('error', 'Failed to create client. Please try again.');
+        }
+    }
+
+    // --- Client Selection for Project Creation ---
+    public function openClientSelectionModal(): void
+    {
+        // Reset selection
+        $this->selectedClientForProject = null;
+
+        // Show the modal
+        $this->dispatch('modal-show', name: 'client-selection');
+    }
+
+    public function createProjectForSelectedClient()
+    {
+        $this->validate([
+            'selectedClientForProject' => 'required|exists:clients,id',
+        ], [
+            'selectedClientForProject.required' => 'Please select a client.',
+        ]);
+
+        $client = Client::where('user_id', $this->userId ?? Auth::id())
+            ->findOrFail($this->selectedClientForProject);
+
+        // Close modal
+        $this->dispatch('modal-close', name: 'client-selection');
+
+        // Reset selection
+        $this->selectedClientForProject = null;
+
+        // Redirect to create project with client pre-filled
+        return redirect()->route('projects.create', [
+            'workflow_type' => 'client_management',
+            'client_email' => $client->email,
+            'client_name' => $client->name,
+        ]);
     }
 
     public function render()

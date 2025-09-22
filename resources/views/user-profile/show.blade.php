@@ -316,7 +316,7 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             @foreach($user->projects as $project)
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 hover:scale-[1.02] group">
+                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl overflow-hidden hover:shadow-lg hover:bg-white/80 transition-[transform,colors,shadow] duration-300 hover:scale-[1.02] group">
                                 <a href="{{ route('projects.show', $project) }}" class="block">
                                     @if($project->image_path)
                                     <div class="h-40 bg-gray-200/80 backdrop-blur-sm overflow-hidden">
@@ -371,7 +371,7 @@
 
                         <div class="space-y-4">
                             @foreach($completedPitches as $pitch)
-                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-6 hover:bg-white/80 hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
+                            <div class="bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl p-6 hover:bg-white/80 hover:shadow-lg transition-[transform,colors,shadow] duration-300 hover:scale-[1.01]">
                                 <div class="flex justify-between items-start">
                                     <div class="flex-1">
                                         <h3 class="font-bold text-gray-900 text-lg mb-2">
@@ -465,7 +465,7 @@
                         Your profile is not complete. Add more information to improve your visibility and chances of getting hired.
                     </p>
                     <a href="{{ route('profile.edit') }}"
-                        class="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
+                        class="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-200 hover:scale-105">
                         <i class="fas fa-edit mr-2 group-hover:scale-110 transition-transform"></i>
                         Complete Profile Now
                     </a>
@@ -524,7 +524,7 @@
             const container = audioElement.parentElement;
             const playButton = document.createElement('div');
             playButton.className = 'flex items-center justify-center absolute inset-0';
-            playButton.innerHTML = '<button class="bg-white/90 backdrop-blur-sm border border-white/30 hover:bg-white/95 text-blue-600 rounded-full p-4 shadow-xl hover:shadow-2xl transition-all duration-200 hover:scale-110 group">' +
+            playButton.innerHTML = '<button class="bg-white/90 backdrop-blur-sm border border-white/30 hover:bg-white/95 text-blue-600 rounded-full p-4 shadow-xl hover:shadow-2xl transition-[transform,colors,shadow] duration-200 hover:scale-110 group">' +
                                   '<i class="fas fa-play text-xl group-hover:scale-110 transition-transform"></i></button>';
                                       
             container.style.position = 'relative';

@@ -268,7 +268,7 @@
                 <!-- Select Winners Button -->
                 @if($contestEntries->count() > 0)
                     <a href="{{ route('projects.contest.judging', $project) }}" 
-                       class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                       class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg text-sm">
                         <i class="fas fa-crown mr-2"></i>
                         Select Winners
                     </a>
@@ -278,19 +278,19 @@
                 @if($hasCashPrizes)
                     @if($paymentStatus['payment_status'] === 'all_paid')
                         <a href="{{ route('contest.prizes.receipt', $project) }}" 
-                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg text-sm">
                             <i class="fas fa-receipt mr-2"></i>
                             View Receipt
                         </a>
                     @elseif($paymentStatus['payment_status'] === 'partially_paid')
                         <a href="{{ route('contest.prizes.overview', $project) }}" 
-                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg text-sm">
                             <i class="fas fa-clock mr-2"></i>
                             Continue Payments
                         </a>
                     @else
                         <a href="{{ route('contest.prizes.overview', $project) }}" 
-                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                           class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg text-sm">
                             <i class="fas fa-dollar-sign mr-2"></i>
                             Pay Prizes
                         </a>
@@ -299,7 +299,7 @@
                 
                 <!-- Formal Announcement Button -->
                 <button onclick="announceResults({{ $project->id }})" 
-                        class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                        class="inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg text-sm">
                     <i class="fas fa-bullhorn mr-2"></i>
                     Announce Results
                 </button>

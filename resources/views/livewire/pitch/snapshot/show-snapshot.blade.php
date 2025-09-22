@@ -25,7 +25,7 @@
                                 @if($pitch->project->image_path)
                                 <img @click="lightbox.isOpen = true" src="{{ $pitch->project->imageUrl }}"
                                     alt="{{ $pitch->project->name }}"
-                                    class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300" />
+                                    class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-[transform,colors,shadow] duration-300" />
                                 @else
                                 <div class="w-full h-full bg-gradient-to-br from-indigo-100 via-blue-100 to-purple-100 flex items-center justify-center">
                                     <div class="text-center">
@@ -106,7 +106,7 @@
                                         <!-- Enhanced Approve Button -->
                                         <button
                                             onclick="openApproveModal('{{ $pitchSnapshot->id }}', '{{ $approveUrl }}')"
-                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-lg transition-all duration-200 hover:scale-105 hover:shadow-xl relative overflow-hidden group">
+                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-lg transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-xl relative overflow-hidden group">
                                             <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                             <i class="fas fa-check mr-3 relative z-10"></i>
                                             <span class="relative z-10">Approve</span>
@@ -115,7 +115,7 @@
                                         <!-- Enhanced Request Revisions Button -->
                                         <button
                                             onclick="openRevisionsModal('{{ $pitchSnapshot->id }}', '{{ $revisionsUrl }}')"
-                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg transition-all duration-200 hover:scale-105 hover:shadow-xl relative overflow-hidden group">
+                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-xl relative overflow-hidden group">
                                             <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                             <i class="fas fa-edit mr-3 relative z-10"></i>
                                             <span class="relative z-10">Request Revisions</span>
@@ -124,7 +124,7 @@
                                         <!-- Enhanced Deny Button -->
                                         <button
                                             onclick="openDenyModal('{{ $pitchSnapshot->id }}', '{{ $denyUrl }}')"
-                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-lg transition-all duration-200 hover:scale-105 hover:shadow-xl relative overflow-hidden group">
+                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-lg transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-xl relative overflow-hidden group">
                                             <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                             <i class="fas fa-times mr-3 relative z-10"></i>
                                             <span class="relative z-10">Deny</span>
@@ -164,7 +164,7 @@
                                         </div>
                                         @if(auth()->id() === $pitch->user_id)
                                         <a href="{{ route('projects.pitches.edit', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug]) }}"
-                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-lg transition-all duration-200 hover:scale-105 hover:shadow-xl">
+                                            class="flex-1 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-lg transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-xl">
                                             <i class="fas fa-reply mr-3"></i>
                                             <span>Submit Revisions</span>
                                         </a>
@@ -246,7 +246,7 @@
                                             <!-- Enhanced Previous Button -->
                                             @if($previousSnapshot)
                                             <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $previousSnapshot->id]) }}"
-                                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium text-sm transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                                 <i class="fas fa-arrow-left mr-2"></i> Previous
                                             </a>
                                             @endif
@@ -254,7 +254,7 @@
                                             <!-- Enhanced Next Button -->
                                             @if($nextSnapshot)
                                             <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $nextSnapshot->id]) }}"
-                                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium text-sm transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                                 Next <i class="fas fa-arrow-right ml-2"></i>
                                             </a>
                                             @endif
@@ -262,7 +262,7 @@
                                             <!-- Enhanced Latest Button -->
                                             @if(!$isLatestSnapshot && $latestSnapshot)
                                             <a href="{{ route('projects.pitches.snapshots.show', ['project' => $pitch->project->slug, 'pitch' => $pitch->slug, 'snapshot' => $latestSnapshot->id]) }}"
-                                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium text-sm transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                                 <i class="fas fa-fast-forward mr-2"></i> Latest
                                             </a>
                                             @endif
@@ -461,7 +461,7 @@
                                 $file = \App\Models\PitchFile::find($fileId);
                                 @endphp
                                 @if($file)
-                                <div class="bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
+                                <div class="bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-[transform,colors,shadow] duration-200 hover:scale-[1.02]">
                                     @if($file->note)
                                     <div class="mb-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border border-blue-200/50 rounded-lg p-3">
                                         <div class="flex items-center">
@@ -499,7 +499,7 @@
                             @if(Auth::id() === $pitch->user_id)
                             <div class="text-center md:text-left">
                                 <a href="{{ \App\Helpers\RouteHelpers::pitchUrl($pitch) }}"
-                                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                     <i class="fas fa-arrow-left mr-2"></i> Back to Pitch Overview
                                 </a>
                             </div>
@@ -507,7 +507,7 @@
 
                             @if(Auth::id() === $pitch->project->user_id)
                             <a href="{{ route('projects.manage', $pitch->project) }}"
-                                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                 <i class="fas fa-project-diagram mr-2"></i> Back to Project
                             </a>
                             @endif

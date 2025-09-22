@@ -152,7 +152,7 @@
                                 </div>
                             </div>
                             <a href="{{ route('projects.files.download', ['project' => $project, 'file' => $projectFile]) }}"
-                               class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-600 rounded-lg transition-all duration-200 hover:scale-105 flex-shrink-0 ml-2">
+                               class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-600 rounded-lg transition-[transform,colors,shadow] duration-200 hover:scale-105 flex-shrink-0 ml-2">
                                 <i class="fas fa-download text-sm"></i>
                             </a>
                         </div>
@@ -267,12 +267,12 @@
                                     </div>
                                     <div class="flex items-center space-x-2 flex-shrink-0 ml-2">
                                         <button wire:click="downloadFile({{ $file->id }})"
-                                            class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-600 rounded-lg transition-all duration-200 hover:scale-105">
+                                            class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-600 rounded-lg transition-[transform,colors,shadow] duration-200 hover:scale-105">
                                             <i class="fas fa-download text-sm"></i>
                                         </button>
                                         @if(!$pitch->submitted_at)
                                             <button wire:click="confirmDeleteFile({{ $file->id }})"
-                                                class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-600 rounded-lg transition-all duration-200 hover:scale-105">
+                                                class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-600 rounded-lg transition-[transform,colors,shadow] duration-200 hover:scale-105">
                                                 <i class="fas fa-trash text-sm"></i>
                                             </button>
                                         @endif
@@ -316,7 +316,7 @@
                 @if(!$pitch->submitted_at)
                     <button wire:click="submitEntry" 
                         wire:confirm="Are you sure you want to submit your contest entry? Once submitted, you cannot upload or modify files."
-                        class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                        class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                         <i class="fas fa-paper-plane mr-2"></i>
                         Submit Contest Entry
                     </button>
@@ -325,14 +325,14 @@
                 @if(!$pitch->submitted_at)
                     <button wire:click="deletePitch" 
                         wire:confirm="Are you sure you want to delete your contest entry? This action cannot be undone."
-                        class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                        class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                         <i class="fas fa-trash mr-2"></i>
                         Delete Contest Entry
                     </button>
                 @endif
                 
                 <a href="{{ route('projects.show', $project) }}"
-                   class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                   class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-arrow-left mr-2"></i>
                     Back to Contest
                 </a>

@@ -79,7 +79,7 @@
                     <div class="flex space-x-3 items-center">
                         <!-- Play in Global Player Button -->
                         <button wire:click="playInGlobalPlayer" 
-                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                             <i class="fas fa-play mr-2"></i>
                             <span class="hidden sm:inline">Play Globally</span>
                             <span class="sm:hidden">Global</span>
@@ -87,7 +87,7 @@
                         
                         <!-- Download Button -->
                         <!-- <a href="{{ route('pitch-files.download', ['file' => $file->uuid]) }}" 
-                           class="inline-flex items-center px-3 sm:px-2 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                           class="inline-flex items-center px-3 sm:px-2 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                             <i class="fas fa-download md:px-2"></i>
                             <span class="hidden md:inline px-2">Download</span>
                         </a> -->
@@ -95,7 +95,7 @@
                         @if(auth()->check() && auth()->user()->can('delete', $file))
                             <!-- Delete Button -->
                             <button wire:click="$dispatch('open-delete-modal', { fileId: {{ $file->id }} })" 
-                                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                 <i class="fas fa-trash-alt mr-2"></i> Delete
                             </button>
                         @endif
@@ -112,7 +112,7 @@
                                 <!-- Enhanced Play/Pause Button - Centered to waveform -->
                                 <button :id="'playPauseBtn-' + instanceId" 
                                         @click="playerState.isPlaying = !playerState.isPlaying; $dispatch('toggle-playback-' + instanceId, { playing: playerState.isPlaying })"
-                                        class="group absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 {{ ($isInCard ?? false) ? 'w-10 h-10' : 'w-14 h-14' }} bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center justify-center">
+                                        class="group absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 {{ ($isInCard ?? false) ? 'w-10 h-10' : 'w-14 h-14' }} bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-200 hover:scale-105 flex items-center justify-center">
                                     
                                     <!-- Animated Background Effect -->
                                     <div class="absolute inset-0 bg-white/20 rounded-2xl transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
@@ -277,12 +277,12 @@
                                 <div class="flex justify-end mt-4 space-x-3">
                                     <button type="button" 
                                             @click="show = false; $wire.showAddCommentForm = false"
-                                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105">
+                                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105">
                                         <i class="fas fa-times mr-2"></i>Cancel
                                     </button>
                                     <button type="button" 
                                             wire:click="addComment" 
-                                            class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                            class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                         <i class="fas fa-plus mr-2"></i>Add Comment
                                     </button>
                                 </div>
@@ -340,7 +340,7 @@
                 <!-- Add Comment Button -->
                 <button type="button" 
                         @click="$wire.toggleCommentForm(getCurrentPosition())"
-                        class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                        class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                     <i class="fas fa-plus mr-1"></i>Add Comment
                 </button>
             </div>
@@ -385,7 +385,7 @@
                     <!-- Add Comment Button -->
                     <button type="button" 
                             @click="$wire.toggleCommentForm(getCurrentPosition())"
-                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg text-sm">
+                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg text-sm">
                         <i class="fas fa-comment-plus mr-2"></i>Add Comment
                     </button>
                 </div>
@@ -466,7 +466,7 @@
                                     @if($this->getCommentPermissions()['can_reply'])
                                     <button type="button" 
                                             @click="$wire.toggleReplyForm({{ $comment->id }})"
-                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                         <i class="fas fa-reply mr-1"></i>Reply
                                     </button>
                                     @endif
@@ -487,7 +487,7 @@
                                     <!-- Resolve Toggle Button -->
                                     <button type="button" 
                                             @click="$wire.toggleResolveComment({{ $comment->id }})"
-                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' : 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' }} text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' : 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' }} text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                         <i class="fas {{ $comment->resolved ? 'fa-undo' : 'fa-check' }} mr-1"></i>
                                         {{ $comment->resolved ? 'Unresolve' : 'Resolve' }}
                                     </button>
@@ -497,7 +497,7 @@
                                     @if($this->getCommentPermissions()['can_delete'])
                                     <button type="button" 
                                             @click="$wire.confirmDelete({{ $comment->id }})"
-                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                         <i class="fas fa-trash-alt mr-1"></i>Delete
                                     </button>
                                     @endif
@@ -519,7 +519,7 @@
                                     @if($this->getCommentPermissions()['can_reply'])
                                     <button type="button" 
                                             @click="$wire.toggleReplyForm({{ $comment->id }})"
-                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                         <i class="fas fa-reply mr-1"></i>Reply
                                     </button>
                                     @endif
@@ -540,7 +540,7 @@
                                     <!-- Resolve Toggle Button -->
                                     <button type="button" 
                                             @click="$wire.toggleResolveComment({{ $comment->id }})"
-                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' : 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' }} text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r {{ $comment->resolved ? 'from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800' : 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' }} text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                         <i class="fas {{ $comment->resolved ? 'fa-undo' : 'fa-check' }} mr-1"></i>
                                         {{ $comment->resolved ? 'Unresolve' : 'Resolve' }}
                                     </button>
@@ -550,7 +550,7 @@
                                     @if($this->getCommentPermissions()['can_delete'])
                                     <button type="button" 
                                             @click="$wire.confirmDelete({{ $comment->id }})"
-                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                            class="inline-flex items-center px-3 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                         <i class="fas fa-trash-alt mr-1"></i>Delete
                                     </button>
                                     @endif
@@ -576,12 +576,12 @@
                                 <div class="flex justify-end mt-3 space-x-3">
                                     <button type="button" 
                                             wire:click="toggleReplyForm"
-                                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105">
+                                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105">
                                         <i class="fas fa-times mr-2"></i>Cancel
                                     </button>
                                     <button type="button" 
                                             wire:click="submitReply" 
-                                            class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                                            class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                                         <i class="fas fa-paper-plane mr-2"></i>Send Reply
                                     </button>
                                 </div>
@@ -620,13 +620,13 @@
                                                 <div class="flex items-center space-x-1">
                                                     <button type="button" 
                                                             @click="$wire.toggleReplyForm({{ $reply->id }})"
-                                                            class="inline-flex items-center px-2 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                            class="inline-flex items-center px-2 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                                         <i class="fas fa-reply mr-1"></i>Reply
                                                     </button>
                                                     @if(Auth::id() === $reply->user_id || Auth::id() === $file->pitch->user_id)
                                                     <button type="button" 
                                                             @click="$wire.confirmDelete({{ $reply->id }})"
-                                                            class="inline-flex items-center px-2 py-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                            class="inline-flex items-center px-2 py-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                                         <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                     @endif
@@ -644,12 +644,12 @@
                                                 <div class="flex justify-end mt-2 space-x-2">
                                                     <button type="button" 
                                                             wire:click="toggleReplyForm"
-                                                            class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                            class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                                         Cancel
                                                     </button>
                                                     <button type="button" 
                                                             wire:click="submitReply"
-                                                            class="inline-flex items-center px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-xs">
+                                                            class="inline-flex items-center px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 text-xs">
                                                         <i class="fas fa-paper-plane mr-1"></i>Reply
                                                     </button>
                                                 </div>
@@ -688,7 +688,7 @@
                 @if(!($isInCard ?? false))
                 <button type="button" 
                         @click="$wire.toggleCommentForm(getCurrentPosition())"
-                        class="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                        class="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-comment-plus mr-3 group-hover:scale-110 transition-transform"></i>
                     Add Your First Comment
                 </button>
@@ -749,12 +749,12 @@
                     <div class="mt-6 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
                         <button type="button" 
                                 wire:click="deleteComment"
-                                class="w-full inline-flex justify-center items-center px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg sm:w-auto">
+                                class="w-full inline-flex justify-center items-center px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg sm:w-auto">
                             <i class="fas fa-trash-alt mr-2"></i>Delete Forever
                         </button>
                         <button type="button" 
                                 wire:click="cancelDelete"
-                                class="mt-3 w-full inline-flex justify-center items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 sm:mt-0 sm:w-auto">
+                                class="mt-3 w-full inline-flex justify-center items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 sm:mt-0 sm:w-auto">
                             <i class="fas fa-times mr-2"></i>Cancel
                         </button>
                     </div>

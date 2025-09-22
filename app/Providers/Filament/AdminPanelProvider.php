@@ -39,7 +39,9 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -50,6 +52,13 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        FilamentAsset::register([
+            Js::make('filament-sidebar-fix', \Vite::asset('resources/js/filament-sidebar-fix.js')),
+        ]);
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -98,31 +107,38 @@ class AdminPanelProvider extends PanelProvider
                 'Analytics' => \Filament\Navigation\NavigationGroup::make()
                     ->label('Analytics')
                     ->icon('heroicon-o-chart-bar')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
                 'Content Management' => \Filament\Navigation\NavigationGroup::make()
                     ->label('Content Management')
                     ->icon('heroicon-o-document-duplicate')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
                 'User Management' => \Filament\Navigation\NavigationGroup::make()
                     ->label('User Management')
                     ->icon('heroicon-o-users')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
                 'Email Management' => \Filament\Navigation\NavigationGroup::make()
                     ->label('Email Management')
                     ->icon('heroicon-o-envelope')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
                 'Financial' => \Filament\Navigation\NavigationGroup::make()
                     ->label('Financial')
                     ->icon('heroicon-o-banknotes')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
                 'Subscriptions' => \Filament\Navigation\NavigationGroup::make()
                     ->label('Subscriptions')
                     ->icon('heroicon-o-credit-card')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
                 'System' => \Filament\Navigation\NavigationGroup::make()
                     ->label('System')
                     ->icon('heroicon-o-cog-6-tooth')
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false),
             ])
             ->resources([
                 ProjectResource::class,

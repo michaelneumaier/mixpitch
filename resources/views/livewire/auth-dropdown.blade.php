@@ -21,7 +21,7 @@ use Filament\Panel;
             </button>
             <button
                 @click="if (tab === 'register' && isOpen) { isOpen = false; } else { isOpen = true; $wire.set('tab', 'register'); }"
-                class="group relative overflow-hidden inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
+                class="group relative overflow-hidden inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
                 <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 <span class="relative flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,7 +89,7 @@ use Filament\Panel;
 
                     <div class="mt-6">
                         <button type="submit"
-                            class="w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                            class="w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105">
                             <span wire:loading.remove wire:target="submitLoginForm">Sign In</span>
                             <svg wire:loading wire:target="submitLoginForm"
                                 class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
@@ -189,7 +189,7 @@ use Filament\Panel;
 
                     <div class="mt-6">
                         <button type="submit"
-                            class="w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                            class="w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105">
                             <span wire:loading.remove wire:target="submitRegisterForm">Create Account</span>
                             <svg wire:loading wire:target="submitRegisterForm"
                                 class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
@@ -353,7 +353,7 @@ use Filament\Panel;
                 <div class="border-t border-white/20 mt-1">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="group flex w-full items-center px-4 py-3 text-sm font-medium bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 rounded-b-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                        <button type="submit" class="group flex w-full items-center px-4 py-3 text-sm font-medium bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 rounded-b-xl shadow-lg hover:shadow-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105"
                             role="menuitem">
                             <svg class="mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">

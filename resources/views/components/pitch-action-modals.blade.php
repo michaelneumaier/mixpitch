@@ -45,12 +45,12 @@
             <!-- Actions -->
             <div class="relative px-6 py-4 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm border-t border-white/20 flex justify-end space-x-3">
                 <button type="button" onclick="closeModal('approveModal')"
-                    class="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-800 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-md backdrop-blur-sm">
+                    class="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-800 rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-md backdrop-blur-sm">
                     Cancel
                 </button>
 
                 <button type="button" id="approveSubmitBtn"
-                    class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                    class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-check mr-2"></i>Approve Pitch
                 </button>
             </div>
@@ -112,12 +112,12 @@
             <!-- Actions -->
             <div class="relative px-6 py-4 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm border-t border-white/20 flex justify-end space-x-3">
                 <button type="button" onclick="closeModal('denyModal')"
-                    class="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-800 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-md backdrop-blur-sm">
+                    class="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-800 rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-md backdrop-blur-sm">
                     Cancel
                 </button>
 
                 <button type="button" id="denySubmitBtn"
-                    class="px-6 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                    class="px-6 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl font-semibold transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-times mr-2"></i>Deny Pitch
                 </button>
             </div>
@@ -179,12 +179,12 @@
             <!-- Actions -->
             <div class="relative px-6 py-4 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm border-t border-white/20 flex justify-end space-x-3">
                 <button type="button" onclick="closeModal('revisionsModal')"
-                    class="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-800 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-md backdrop-blur-sm">
+                    class="px-4 py-2 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-800 rounded-xl font-medium transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-md backdrop-blur-sm">
                     Cancel
                 </button>
 
                 <button type="button" id="revisionsSubmitBtn"
-                    class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                    class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-[transform,colors,shadow] duration-200 hover:scale-105 hover:shadow-lg">
                     <i class="fas fa-paper-plane mr-2"></i>Send Request
                 </button>
             </div>

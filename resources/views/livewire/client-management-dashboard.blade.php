@@ -23,7 +23,7 @@
                 
                 <div class="p-1">
                     @forelse($this->clientsForFilter as $client)
-                        <a href="{{ route('producer.client-detail', $client['id']) }}" class="flex items-center gap-3 w-full p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <div class="flex items-center gap-3 w-full p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <flux:avatar size="sm" class="bg-blue-600 text-white">
                                 <flux:icon.user />
                             </flux:avatar>
@@ -36,7 +36,23 @@
                                     {{ $projectCount }} {{ Str::plural('project', $projectCount) }}
                                 </p>
                             </div>
-                        </a>
+                            <div class="flex items-center gap-1">
+                                <flux:button 
+                                    wire:click="createProjectForClient({{ $client['id'] }})"
+                                    variant="filled" 
+                                    size="xs" 
+                                    icon="plus"
+                                    title="Create project for {{ $client['label'] }}">
+                                </flux:button>
+                                <flux:button 
+                                    href="{{ route('producer.client-detail', $client['id']) }}"
+                                    variant="ghost" 
+                                    size="xs" 
+                                    icon="arrow-top-right-on-square"
+                                    title="View client details">
+                                </flux:button>
+                            </div>
+                        </div>
                     @empty
                         <div class="px-4 py-8 text-center">
                             <flux:icon.users class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
@@ -225,9 +241,19 @@
             <!-- Quick Add Reminder Button -->
             <flux:separator />
             
-            <div class="flex items-center justify-between pt-6">
-                <flux:subheading class="text-gray-600 dark:text-gray-400">Need to follow up with a client?</flux:subheading>
-                <flux:button wire:click="openReminderModal()" variant="primary" icon="plus">Add Reminder for Client</flux:button>
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pt-6">
+                <flux:subheading class="text-gray-600 dark:text-gray-400">Manage your client relationships</flux:subheading>
+                <div class="flex flex-wrap items-center gap-3">
+                    <flux:button wire:click="openAddClientModal()" variant="filled" size="sm" icon="user-plus">
+                        Add Client
+                    </flux:button>
+                    <flux:button wire:click="openClientSelectionModal()" variant="primary" size="sm" icon="plus">
+                        Create Project
+                    </flux:button>
+                    <flux:button wire:click="openReminderModal()" variant="ghost" size="sm" icon="bell">
+                        Add Reminder
+                    </flux:button>
+                </div>
             </div>
         </div>
     </flux:card>
@@ -459,6 +485,92 @@
                 </flux:modal.close>
                 <flux:button wire:click="saveModalReminder" variant="primary" icon="plus">
                     Add Reminder
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <!-- Add New Client Modal -->
+    <flux:modal name="add-client" class="max-w-lg">
+        <div class="space-y-6">
+            <div class="flex items-center gap-3">
+                <flux:icon.user-plus class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <flux:heading size="lg">Add New Client</flux:heading>
+            </div>
+            
+            <flux:subheading class="text-gray-600 dark:text-gray-400">
+                Create a new client record for your client management projects.
+            </flux:subheading>
+
+            <div class="space-y-4">
+                <!-- Client Email -->
+                <div>
+                    <flux:field>
+                        <flux:label>Email *</flux:label>
+                        <flux:input 
+                            wire:model="newClientEmail" 
+                            type="email"
+                            placeholder="client@example.com" />
+                        <flux:error name="newClientEmail" />
+                    </flux:field>
+                </div>
+
+                <!-- Client Name -->
+                <div>
+                    <flux:field>
+                        <flux:label>Name</flux:label>
+                        <flux:input 
+                            wire:model="newClientName" 
+                            placeholder="Client Name (optional)" />
+                        <flux:error name="newClientName" />
+                    </flux:field>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancel</flux:button>
+                </flux:modal.close>
+                <flux:button wire:click="saveNewClient" variant="primary" icon="plus">
+                    Add Client
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <!-- Client Selection Modal -->
+    <flux:modal name="client-selection" class="max-w-lg">
+        <div class="space-y-6">
+            <div class="flex items-center gap-3">
+                <flux:icon.folder-plus class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <flux:heading size="lg">Create Project for Client</flux:heading>
+            </div>
+            
+            <flux:subheading class="text-gray-600 dark:text-gray-400">
+                Select which client you'd like to create a new project for.
+            </flux:subheading>
+
+            <div class="space-y-4">
+                <!-- Client Selection -->
+                <div>
+                    <flux:field>
+                        <flux:label>Client</flux:label>
+                        <flux:select wire:model="selectedClientForProject" placeholder="Select a client">
+                            @foreach($this->clientsForSelect as $client)
+                                <option value="{{ $client['id'] }}">{{ $client['label'] }}</option>
+                            @endforeach
+                        </flux:select>
+                        <flux:error name="selectedClientForProject" />
+                    </flux:field>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancel</flux:button>
+                </flux:modal.close>
+                <flux:button wire:click="createProjectForSelectedClient" variant="primary" icon="plus">
+                    Create Project
                 </flux:button>
             </div>
         </div>
