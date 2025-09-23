@@ -1,156 +1,142 @@
-<div class="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-amber-200 rounded-xl p-2 md:p-6 shadow-lg">
+<flux:card class="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border border-orange-200 dark:border-orange-800">
     <div class="flex flex-col md:flex-row items-center justify-between mb-6">
-        <h3 class="text-2xl font-bold text-amber-800 flex items-center">
-            <i class="fas fa-trophy text-amber-600 mr-3 text-3xl"></i>
-            Contest Prize Configuration
-        </h3>
-        <div class="text-sm text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
+        <div class="flex items-center gap-3">
+            <flux:icon name="trophy" variant="solid" class="text-orange-600 dark:text-orange-400 h-8 w-8" />
+            <flux:heading size="xl" class="text-orange-900 dark:text-orange-100">Contest Prize Configuration</flux:heading>
+        </div>
+        <flux:badge color="amber" size="sm">
             @if($project)
                 Edit prizes for this contest
             @else
                 Configure prizes (will be saved when project is created)
             @endif
-        </div>
+        </flux:badge>
     </div>
 
     {{-- Flash Messages --}}
     @if (session()->has('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6" role="alert">
-            <i class="fas fa-check-circle mr-2"></i>
+        <flux:callout color="green" icon="check-circle" class="mb-6">
             {{ session('success') }}
-        </div>
+        </flux:callout>
     @endif
 
     @if (session()->has('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">
-            <i class="fas fa-exclamation-circle mr-2"></i>
+        <flux:callout color="red" icon="exclamation-circle" class="mb-6">
             {{ session('error') }}
-        </div>
+        </flux:callout>
     @endif
 
     {{-- Prize Configuration for Each Placement --}}
     <div class="space-y-2 md:space-y-6">
         @foreach(['1st', '2nd', '3rd', 'runner_up'] as $placement)
-            <div class="bg-white border-2 border-gray-200 rounded-lg p-2 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-2 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                 {{-- Placement Header --}}
                 <div class="flex items-center justify-between mb-4">
-                    <h4 class="text-xl font-semibold text-gray-800 flex items-center">
-                        <span class="text-2xl mr-3">{{ $this->getPlacementEmoji($placement) }}</span>
-                        {{ $this->getPlacementDisplayName($placement) }}
-                    </h4>
-                    <select wire:model.live="prizes.{{ $placement }}.type" 
-                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 px-4 py-2 min-w-[140px]">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">{{ $this->getPlacementEmoji($placement) }}</span>
+                        <flux:heading size="lg" class="text-gray-800 dark:text-gray-200">{{ $this->getPlacementDisplayName($placement) }}</flux:heading>
+                    </div>
+                    <flux:select wire:model.live="prizes.{{ $placement }}.type" class="min-w-[140px]">
                         <option value="none">No Prize</option>
                         <option value="cash">💰 Cash Prize</option>
                         <option value="other">🎁 Other Prize</option>
-                    </select>
+                    </flux:select>
                 </div>
 
                 {{-- Prize Configuration Based on Type --}}
                 @if($prizes[$placement]['type'] === 'cash')
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-2 md:p-4">
-                        <h5 class="font-medium text-green-800 mb-3 flex items-center">
-                            <i class="fas fa-dollar-sign mr-2"></i>
-                            Cash Prize Configuration
-                        </h5>
+                    <div class="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-2 md:p-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <flux:icon name="banknotes" class="text-green-600 dark:text-green-400 h-5 w-5" />
+                            <flux:heading size="base" class="text-green-800 dark:text-green-200">Cash Prize Configuration</flux:heading>
+                        </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-green-700 mb-2">Currency</label>
-                                <select wire:model="prizes.{{ $placement }}.currency" 
-                                        class="w-full bg-white border border-green-300 text-green-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 px-3 py-2">
+                            <flux:field>
+                                <flux:label class="text-green-700 dark:text-green-300">Currency</flux:label>
+                                <flux:select wire:model="prizes.{{ $placement }}.currency">
                                     @foreach($availableCurrencies as $code => $label)
                                         <option value="{{ $code }}">{{ $label }}</option>
                                     @endforeach
-                                </select>
-                            </div>
+                                </flux:select>
+                            </flux:field>
                             
-                            <div>
-                                <label class="block text-sm font-medium text-green-700 mb-2">Amount</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-2 text-green-600 font-medium">
-                                        {{ collect($availableCurrencies)->keys()->contains($prizes[$placement]['currency']) ? 
-                                           (match($prizes[$placement]['currency']) {
-                                               'EUR' => '€',
-                                               'GBP' => '£', 
-                                               'CAD' => 'C$',
-                                               'AUD' => 'A$',
-                                               default => '$'
-                                           }) : '$' }}
-                                    </span>
-                                    <input type="number" 
-                                           wire:model="prizes.{{ $placement }}.cash_amount"
-                                           placeholder="0.00"
-                                           step="0.01"
-                                           min="0.01"
-                                           max="999999.99"
-                                           class="w-full pl-10 pr-3 py-2 bg-white border border-green-300 text-green-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500">
-                                </div>
-                                @error("prizes.{$placement}.cash_amount")
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
+                            <flux:field>
+                                <flux:label class="text-green-700 dark:text-green-300">Amount</flux:label>
+                                <flux:input 
+                                    type="number" 
+                                    wire:model="prizes.{{ $placement }}.cash_amount"
+                                    placeholder="0.00"
+                                    step="0.01"
+                                    min="0.01"
+                                    max="999999.99"
+                                    prefix="{{ collect($availableCurrencies)->keys()->contains($prizes[$placement]['currency']) ? 
+                                               (match($prizes[$placement]['currency']) {
+                                                   'EUR' => '€',
+                                                   'GBP' => '£', 
+                                                   'CAD' => 'C$',
+                                                   'AUD' => 'A$',
+                                                   default => '$'
+                                               }) : '$' }}"
+                                />
+                                <flux:error name="prizes.{{ $placement }}.cash_amount" />
+                            </flux:field>
                         </div>
                     </div>
 
                 @elseif($prizes[$placement]['type'] === 'other')
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 md:p-4">
-                        <h5 class="font-medium text-blue-800 mb-3 flex items-center">
-                            <i class="fas fa-gift mr-2"></i>
-                            Other Prize Configuration
-                        </h5>
+                    <div class="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-2 md:p-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <flux:icon name="gift" class="text-blue-600 dark:text-blue-400 h-5 w-5" />
+                            <flux:heading size="base" class="text-blue-800 dark:text-blue-200">Other Prize Configuration</flux:heading>
+                        </div>
                         
                         <div class="space-y-2 md:space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-blue-700 mb-2">Prize Title <span class="text-red-500">*</span></label>
-                                <input type="text" 
-                                       wire:model="prizes.{{ $placement }}.title"
-                                       placeholder="e.g., Software License, T-shirt, Studio Time"
-                                       maxlength="255"
-                                       class="w-full px-3 py-2 bg-white border border-blue-300 text-blue-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                                @error("prizes.{$placement}.title")
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
+                            <flux:field>
+                                <flux:label class="text-blue-700 dark:text-blue-300">Prize Title <span class="text-red-500">*</span></flux:label>
+                                <flux:input 
+                                    type="text" 
+                                    wire:model="prizes.{{ $placement }}.title"
+                                    placeholder="e.g., Software License, T-shirt, Studio Time"
+                                    maxlength="255"
+                                />
+                                <flux:error name="prizes.{{ $placement }}.title" />
+                            </flux:field>
                             
-                            <div>
-                                <label class="block text-sm font-medium text-blue-700 mb-2">Description</label>
-                                <textarea wire:model="prizes.{{ $placement }}.description"
-                                          placeholder="Describe the prize details, how it will be delivered, etc."
-                                          rows="3"
-                                          maxlength="1000"
-                                          class="w-full px-3 py-2 bg-white border border-blue-300 text-blue-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
-                                <p class="text-xs text-blue-600 mt-1">{{ strlen($prizes[$placement]['description'] ?? '') }}/1000 characters</p>
-                                @error("prizes.{$placement}.description")
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
+                            <flux:field>
+                                <flux:label class="text-blue-700 dark:text-blue-300">Description</flux:label>
+                                <flux:textarea 
+                                    wire:model="prizes.{{ $placement }}.description"
+                                    placeholder="Describe the prize details, how it will be delivered, etc."
+                                    rows="3"
+                                    maxlength="1000"
+                                />
+                                <flux:text size="xs" class="text-blue-600 dark:text-blue-400">{{ strlen($prizes[$placement]['description'] ?? '') }}/1000 characters</flux:text>
+                                <flux:error name="prizes.{{ $placement }}.description" />
+                            </flux:field>
                             
-                            <div>
-                                <label class="block text-sm font-medium text-blue-700 mb-2">Estimated Value (Optional)</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-2 text-blue-600 font-medium">$</span>
-                                    <input type="number" 
-                                           wire:model="prizes.{{ $placement }}.value_estimate"
-                                           placeholder="0.00"
-                                           step="0.01"
-                                           min="0"
-                                           max="999999.99"
-                                           class="w-full pl-10 pr-3 py-2 bg-white border border-blue-300 text-blue-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                                <p class="text-xs text-blue-600 mt-1">Optional: For reference and analytics purposes</p>
-                                @error("prizes.{$placement}.value_estimate")
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
+                            <flux:field>
+                                <flux:label class="text-blue-700 dark:text-blue-300">Estimated Value (Optional)</flux:label>
+                                <flux:input 
+                                    type="number" 
+                                    wire:model="prizes.{{ $placement }}.value_estimate"
+                                    placeholder="0.00"
+                                    step="0.01"
+                                    min="0"
+                                    max="999999.99"
+                                    prefix="$"
+                                />
+                                <flux:text size="xs" class="text-blue-600 dark:text-blue-400">Optional: For reference and analytics purposes</flux:text>
+                                <flux:error name="prizes.{{ $placement }}.value_estimate" />
+                            </flux:field>
                         </div>
                     </div>
 
                 @else
-                    <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-2 md:p-8 text-center">
-                        <i class="fas fa-trophy text-gray-400 text-4xl mb-3"></i>
-                        <p class="text-gray-500 font-medium">No prize configured for this placement</p>
-                        <p class="text-gray-400 text-sm">Select a prize type above to get started</p>
+                    <div class="bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-2 md:p-8 text-center">
+                        <flux:icon name="trophy" class="text-gray-400 dark:text-gray-500 h-12 w-12 mx-auto mb-3" />
+                        <flux:text class="text-gray-500 dark:text-gray-400 font-medium">No prize configured for this placement</flux:text>
+                        <flux:text size="sm" class="text-gray-400 dark:text-gray-500">Select a prize type above to get started</flux:text>
                     </div>
                 @endif
             </div>
@@ -158,48 +144,48 @@
     </div>
 
     {{-- Prize Summary Section --}}
-    <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-2 md:p-6">
-        <h4 class="font-bold text-lg text-blue-800 mb-4 flex items-center">
-            <i class="fas fa-chart-bar mr-2"></i>
-            Prize Summary
-        </h4>
+    <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800 rounded-lg p-2 md:p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <flux:icon name="chart-bar" class="text-blue-600 dark:text-blue-400 h-6 w-6" />
+            <flux:heading size="lg" class="text-blue-800 dark:text-blue-200">Prize Summary</flux:heading>
+        </div>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 mb-4">
-            <div class="bg-white rounded-lg p-4 text-center border border-blue-200">
-                <div class="text-2xl font-bold text-green-600">${{ number_format($this->getTotalCashPrizes(), 2) }}</div>
-                <div class="text-sm text-green-700">Total Cash Prizes</div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-blue-200 dark:border-blue-700">
+                <flux:heading size="xl" class="text-green-600 dark:text-green-400">${{ number_format($this->getTotalCashPrizes(), 2) }}</flux:heading>
+                <flux:text size="sm" class="text-green-700 dark:text-green-300">Total Cash Prizes</flux:text>
             </div>
             
-            <div class="bg-white rounded-lg p-4 text-center border border-blue-200">
-                <div class="text-2xl font-bold text-blue-600">${{ number_format($this->getTotalEstimatedValue(), 2) }}</div>
-                <div class="text-sm text-blue-700">Total Estimated Value</div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-blue-200 dark:border-blue-700">
+                <flux:heading size="xl" class="text-blue-600 dark:text-blue-400">${{ number_format($this->getTotalEstimatedValue(), 2) }}</flux:heading>
+                <flux:text size="sm" class="text-blue-700 dark:text-blue-300">Total Estimated Value</flux:text>
             </div>
             
-            <div class="bg-white rounded-lg p-4 text-center border border-blue-200">
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-blue-200 dark:border-blue-700">
                 @php $counts = $this->getPrizeCounts(); @endphp
-                <div class="text-2xl font-bold text-purple-600">{{ $counts['total'] }}</div>
-                <div class="text-sm text-purple-700">Total Prizes ({{ $counts['cash'] }} cash, {{ $counts['other'] }} other)</div>
+                <flux:heading size="xl" class="text-purple-600 dark:text-purple-400">{{ $counts['total'] }}</flux:heading>
+                <flux:text size="sm" class="text-purple-700 dark:text-purple-300">Total Prizes ({{ $counts['cash'] }} cash, {{ $counts['other'] }} other)</flux:text>
             </div>
         </div>
 
         {{-- Preview of Configured Prizes --}}
         @if($counts['total'] > 0)
-            <div class="bg-white rounded-lg p-2 md:p-4 border border-blue-200">
-                <h5 class="font-medium text-blue-800 mb-3">Prize Breakdown:</h5>
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-2 md:p-4 border border-blue-200 dark:border-blue-700">
+                <flux:heading size="base" class="text-blue-800 dark:text-blue-200 mb-3">Prize Breakdown:</flux:heading>
                 <div class="space-y-2">
                     @foreach(['1st', '2nd', '3rd', 'runner_up'] as $placement)
                         @if($prizes[$placement]['type'] !== 'none')
-                            <div class="flex items-center justify-between py-2 px-3 bg-blue-50 rounded">
-                                <span class="font-medium text-blue-800">
+                            <div class="flex items-center justify-between py-2 px-3 bg-blue-50 dark:bg-blue-950 rounded">
+                                <flux:text class="font-medium text-blue-800 dark:text-blue-200">
                                     {{ $this->getPlacementEmoji($placement) }} {{ $this->getPlacementDisplayName($placement) }}
-                                </span>
-                                <span class="text-blue-700">
+                                </flux:text>
+                                <flux:text class="text-blue-700 dark:text-blue-300">
                                     @if($prizes[$placement]['type'] === 'cash')
                                         {{ $prizes[$placement]['currency'] }} {{ number_format($prizes[$placement]['cash_amount'] ?? 0, 2) }}
                                     @else
                                         {{ $prizes[$placement]['title'] ?: 'Other Prize' }}
                                     @endif
-                                </span>
+                                </flux:text>
                             </div>
                         @endif
                     @endforeach
@@ -210,42 +196,35 @@
 
     {{-- Action Buttons --}}
     <div class="flex justify-end space-x-2 md:space-x-4 mt-8">
-        <button type="button" 
-                wire:click="resetPrizes"
-                class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center">
-            <i class="fas fa-undo mr-2"></i>
+        <flux:button variant="ghost" wire:click="resetPrizes" icon="arrow-path">
             Reset
-        </button>
+        </flux:button>
         
-        <button type="button" 
-                wire:click="savePrizes"
-                class="px-4 md:px-8 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors duration-200 flex items-center shadow-lg">
-            <i class="fas fa-save mr-2"></i>
+        <flux:button variant="primary" wire:click="savePrizes" icon="check">
             @if($project)
                 Save Prize Configuration
             @else
                 Configure Prizes
             @endif
-        </button>
+        </flux:button>
     </div>
 
     {{-- Help Text --}}
-    <div class="mt-6 bg-amber-100 border border-amber-300 rounded-lg p-4">
-        <h5 class="font-medium text-amber-800 mb-2 flex items-center">
-            <i class="fas fa-info-circle mr-2"></i>
-            Prize Configuration Tips
-        </h5>
-        <ul class="text-sm text-amber-700 space-y-1">
-            <li>• <strong>Cash prizes</strong> will be automatically distributed via invoice when contest finalization occurs</li>
-            <li>• <strong>Other prizes</strong> require manual coordination between you and the winners</li>
-            @if($project)
-                <li>• The project budget will be automatically updated to match your total cash prizes</li>
-                <li>• All prize configurations can be changed before the contest submission deadline</li>
-            @else
-                <li>• Prize configuration will be saved when you complete the project creation</li>
-                <li>• The project budget will be automatically set to match your total cash prizes</li>
-            @endif
-            <li>• You can leave placements without prizes if desired (e.g., recognition only)</li>
-        </ul>
-    </div>
-</div>
+    <flux:callout color="amber" icon="information-circle" class="mt-6">
+        <flux:callout.heading>Prize Configuration Tips</flux:callout.heading>
+        <flux:callout.text>
+            <ul class="space-y-1">
+                <li>• <strong>Cash prizes</strong> will be automatically distributed via invoice when contest finalization occurs</li>
+                <li>• <strong>Other prizes</strong> require manual coordination between you and the winners</li>
+                @if($project)
+                    <li>• The project budget will be automatically updated to match your total cash prizes</li>
+                    <li>• All prize configurations can be changed before the contest submission deadline</li>
+                @else
+                    <li>• Prize configuration will be saved when you complete the project creation</li>
+                    <li>• The project budget will be automatically set to match your total cash prizes</li>
+                @endif
+                <li>• You can leave placements without prizes if desired (e.g., recognition only)</li>
+            </ul>
+        </flux:callout.text>
+    </flux:callout>
+</flux:card>

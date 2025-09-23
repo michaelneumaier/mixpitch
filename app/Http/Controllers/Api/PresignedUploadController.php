@@ -45,9 +45,10 @@ class PresignedUploadController extends Controller
             $metadata = $validated['metadata'] ?? [];
 
             // Validate file type
-            if (! $this->isFileTypeAllowed($mimeType)) {
+            if (! $this->isFileTypeAllowed($mimeType, $context)) {
+                $allowedTypes = $this->getAllowedFileTypes($context);
                 throw ValidationException::withMessages([
-                    'mime_type' => 'File type not allowed. Supported types: audio/*, application/pdf, image/*, application/zip',
+                    'mime_type' => 'File type not allowed. Supported types: '.implode(', ', $allowedTypes),
                 ]);
             }
 
@@ -279,11 +280,11 @@ class PresignedUploadController extends Controller
     }
 
     /**
-     * Check if a file type is allowed
+     * Check if a file type is allowed for the given context
      */
-    protected function isFileTypeAllowed(string $mimeType): bool
+    protected function isFileTypeAllowed(string $mimeType, string $context = 'global'): bool
     {
-        $allowedTypes = ['audio/*', 'application/pdf', 'image/*', 'application/zip'];
+        $allowedTypes = $this->getAllowedFileTypes($context);
 
         foreach ($allowedTypes as $allowedType) {
             if (str_ends_with($allowedType, '/*')) {
@@ -297,5 +298,26 @@ class PresignedUploadController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * Get allowed file types for the given context
+     */
+    protected function getAllowedFileTypes(string $context = 'global'): array
+    {
+        // Get context-specific allowed types, fallback to global
+        $contextTypes = config("file-types.contexts.{$context}");
+
+        if ($contextTypes) {
+            return $contextTypes;
+        }
+
+        return config('file-types.allowed_types', [
+            'audio/*',
+            'video/*',
+            'application/pdf',
+            'image/*',
+            'application/zip',
+        ]);
     }
 }

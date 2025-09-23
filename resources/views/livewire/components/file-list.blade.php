@@ -191,10 +191,14 @@
                         <div class="{{ $this->resolvedColorScheme['accent_bg'] }} {{ $this->resolvedColorScheme['icon'] }} mx-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
                             @if ($this->isAudioFile($file))
                                 <flux:icon.musical-note class="w-5 h-5" />
+                            @elseif (isset($file->mime_type) && str_starts_with($file->mime_type, 'video/'))
+                                <flux:icon.play class="w-5 h-5" />
                             @elseif (isset($file->mime_type) && str_starts_with($file->mime_type, 'image/'))
                                 <flux:icon.photo class="w-5 h-5" />
                             @elseif (isset($file->mime_type) && $file->mime_type === 'application/pdf')
                                 <flux:icon.document-text class="w-5 h-5" />
+                            @elseif (isset($file->mime_type) && $file->mime_type === 'application/zip')
+                                <flux:icon.archive-box class="w-5 h-5" />
                             @else
                                 <flux:icon.document class="w-5 h-5" />
                             @endif
@@ -205,12 +209,15 @@
                         <div class="flex items-center gap-2">
                             @php
                                 $audioPlayerUrl = $canPlay ? $this->getUniversalAudioPlayerUrl($file) : null;
+                                $videoPlayerUrl = $canPlay ? $this->getUniversalVideoPlayerUrl($file) : null;
+                                $playerUrl = $audioPlayerUrl ?: $videoPlayerUrl;
+                                $playerType = $audioPlayerUrl ? 'audio' : 'video';
                             @endphp
-                            @if($audioPlayerUrl)
-                                <a href="{{ $audioPlayerUrl }}" 
+                            @if($playerUrl)
+                                <a href="{{ $playerUrl }}" 
                                    class="truncate text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
                                    id="file-{{ $file->id }}-info"
-                                   title="Open {{ $file->file_name }} in full audio player">
+                                   title="Open {{ $file->file_name }} in full {{ $playerType }} player">
                                     {{ $file->file_name }}
                                 </a>
                             @else

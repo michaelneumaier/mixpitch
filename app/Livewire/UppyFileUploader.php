@@ -19,7 +19,7 @@ class UppyFileUploader extends Component
 
     public string $uploadContext = FileUploadSetting::CONTEXT_GLOBAL;
 
-    public array $acceptedFileTypes = ['audio/*', 'application/pdf', 'image/*', 'application/zip'];
+    public array $acceptedFileTypes = [];
 
     public int $maxFiles = 1000;
 
@@ -47,6 +47,9 @@ class UppyFileUploader extends Component
 
         // Determine upload context based on model type
         $this->uploadContext = $this->determineUploadContext($model);
+
+        // Load accepted file types for this context
+        $this->loadAcceptedFileTypes();
 
         // Load upload settings for this context
         $this->loadUploadSettings();
@@ -251,6 +254,49 @@ class UppyFileUploader extends Component
             'settings' => $this->uploadSettings,
             'settingsContext' => $this->uploadContext,
         ];
+    }
+
+    /**
+     * Load accepted file types for the current context
+     */
+    protected function loadAcceptedFileTypes(): void
+    {
+        try {
+            // Get context-specific file types from configuration
+            $contextTypes = config("file-types.contexts.{$this->uploadContext}");
+
+            if ($contextTypes) {
+                $this->acceptedFileTypes = $contextTypes;
+            } else {
+                $this->acceptedFileTypes = config('file-types.allowed_types', [
+                    'audio/*',
+                    'video/*',
+                    'application/pdf',
+                    'image/*',
+                    'application/zip',
+                ]);
+            }
+
+            Log::info('Accepted file types loaded', [
+                'context' => $this->uploadContext,
+                'accepted_types' => $this->acceptedFileTypes,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to load accepted file types, using defaults', [
+                'context' => $this->uploadContext,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Fallback to default values
+            $this->acceptedFileTypes = [
+                'audio/*',
+                'video/*',
+                'application/pdf',
+                'image/*',
+                'application/zip',
+            ];
+        }
     }
 
     /**

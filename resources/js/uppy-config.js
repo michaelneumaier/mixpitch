@@ -28,7 +28,7 @@ window.createUppy = function(options = {}) {
         allowMultipleUploads: false,
         restrictions: {
             maxFileSize: 200 * 1024 * 1024, // 200MB fallback
-            allowedFileTypes: ['audio/*', 'application/pdf', 'image/*', 'application/zip'],
+            allowedFileTypes: window.defaultAllowedFileTypes || ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip'],
         },
     };
 
@@ -79,7 +79,7 @@ window.fetchUploadSettings = async function(context = 'global') {
             computed: {
                 uppy_restrictions: {
                     maxFileSize: 200 * 1024 * 1024,
-                    allowedFileTypes: ['audio/*', 'application/pdf', 'image/*', 'application/zip']
+                    allowedFileTypes: window.defaultAllowedFileTypes || ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip']
                 },
                 upload_config: {
                     chunkSize: 5 * 1024 * 1024,

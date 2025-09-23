@@ -15,10 +15,14 @@
                 <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center bg-base-200 text-gray-500 mr-3">
                     @if (Str::startsWith($file->mime_type, 'audio/'))
                         <i class="fas fa-music text-sm sm:text-base"></i>
+                    @elseif (Str::startsWith($file->mime_type, 'video/'))
+                        <i class="fas fa-video text-sm sm:text-base text-purple-500"></i>
                     @elseif ($file->mime_type == 'application/pdf')
                         <i class="fas fa-file-pdf text-sm sm:text-base text-red-500"></i>
                     @elseif (Str::startsWith($file->mime_type, 'image/'))
                         <i class="fas fa-file-image text-sm sm:text-base text-blue-500"></i>
+                    @elseif ($file->mime_type == 'application/zip')
+                        <i class="fas fa-file-archive text-sm sm:text-base text-orange-500"></i>
                     @else
                         <i class="fas fa-file-alt text-sm sm:text-base"></i>
                     @endif

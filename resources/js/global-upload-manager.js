@@ -59,7 +59,7 @@ const GlobalUploadManager = (() => {
                 autoProceed: true,
                 allowMultipleUploads: true,
                 restrictions: {
-                    allowedFileTypes: ['audio/*', 'application/pdf', 'image/*', 'application/zip'],
+                    allowedFileTypes: ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip'],
                 },
                 onBeforeFileAdded: (currentFile, files) => {
                     // Inject current active meta when adding files
@@ -386,7 +386,7 @@ const GlobalUploadManager = (() => {
             
             // Enhanced file validation
             validateFiles(files, meta) {
-                const allowedTypes = ['audio/*', 'application/pdf', 'image/*', 'application/zip'];
+                const allowedTypes = ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip'];
                 const validFiles = [];
                 const invalidFiles = [];
                 

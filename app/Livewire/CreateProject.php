@@ -144,9 +144,9 @@ class CreateProject extends Component
             'form.artistName' => 'nullable|string|max:30',
             'form.projectType' => 'required|string|max:50',
             'form.description' => 'required|string|min:5|max:1000',
-            'form.genre' => 'required|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk',
+            'form.genre' => 'required|in:Pop,Rock,Hip Hop,Electronic,R&B,Country,Jazz,Classical,Metal,Blues,Folk,Funk,Reggae,Soul,Punk',
             'form.budgetType' => 'required|in:free,paid',
-            'form.budget' => 'nullable|numeric|min:0',
+            'form.budget' => 'nullable|numeric|min:0|max:999999.99',
             'form.deadline' => 'nullable|date',
             'form.collaborationTypeMixing' => 'boolean',
             'form.collaborationTypeMastering' => 'boolean',
@@ -169,7 +169,7 @@ class CreateProject extends Component
             'client_name' => 'nullable|string|max:255',
 
             // Added: Validation for Client Management Payment Amount
-            'payment_amount' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT.'|nullable|numeric|min:0',
+            'payment_amount' => 'required_if:workflow_type,'.Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT.'|nullable|numeric|min:0|max:999999.99',
         ];
 
         // Apply step-specific validation in wizard mode
@@ -201,7 +201,7 @@ class CreateProject extends Component
                     $stepRules['form.description'] = 'nullable|string|min:5|max:1000';
                     $stepRules['form.artistName'] = $allRules['form.artistName'];
                     $stepRules['form.projectType'] = 'nullable|string|max:50';
-                    $stepRules['form.genre'] = 'nullable|in:Blues,Classical,Country,Electronic,Folk,Funk,Hip Hop,Jazz,Metal,Pop,Reggae,Rock,Soul,R&B,Punk';
+                    $stepRules['form.genre'] = 'nullable|in:Pop,Rock,Hip Hop,Electronic,R&B,Country,Jazz,Classical,Metal,Blues,Folk,Funk,Reggae,Soul,Punk';
                 } else {
                     // Standard validation for other workflows
                     $stepRules['form.description'] = $allRules['form.description'];
@@ -909,6 +909,8 @@ class CreateProject extends Component
             'payment_amount' => $this->payment_amount,
             'selectedLicenseTemplateId' => $this->selectedLicenseTemplateId,
             'licenseNotes' => $this->licenseNotes,
+            'requiresLicenseAgreement' => $this->requiresLicenseAgreement,
+            'customLicenseTerms' => $this->customLicenseTerms,
         ];
     }
 
@@ -928,6 +930,8 @@ class CreateProject extends Component
             'payment_amount' => $this->payment_amount,
             'selectedLicenseTemplateId' => $this->selectedLicenseTemplateId,
             'licenseNotes' => $this->licenseNotes,
+            'requiresLicenseAgreement' => $this->requiresLicenseAgreement,
+            'customLicenseTerms' => $this->customLicenseTerms,
         ];
 
         return $currentState !== $this->initialFormState;
@@ -1055,9 +1059,33 @@ class CreateProject extends Component
 
             // Add project_type_id by looking up the ProjectType
             if (! empty($this->form->projectType)) {
-                $projectType = ProjectType::where('slug', $this->form->projectType)->first();
-                if ($projectType) {
-                    $projectData['project_type_id'] = $projectType->id;
+                try {
+                    $projectType = ProjectType::where('slug', $this->form->projectType)->first();
+                    if ($projectType) {
+                        $projectData['project_type_id'] = $projectType->id;
+                    } else {
+                        // Log missing project type but continue without it
+                        Log::warning('CreateProject: ProjectType not found', [
+                            'slug' => $this->form->projectType,
+                            'available_types' => ProjectType::pluck('slug')->toArray(),
+                        ]);
+                        
+                        // Try to find any active project type as fallback
+                        $fallbackType = ProjectType::getActive()->first();
+                        if ($fallbackType) {
+                            $projectData['project_type_id'] = $fallbackType->id;
+                            Log::info('CreateProject: Using fallback ProjectType', [
+                                'fallback_slug' => $fallbackType->slug,
+                                'original_slug' => $this->form->projectType,
+                            ]);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error('CreateProject: ProjectType lookup failed', [
+                        'slug' => $this->form->projectType,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Continue without setting project_type_id
                 }
             }
 
@@ -1177,20 +1205,20 @@ class CreateProject extends Component
             case Project::WORKFLOW_TYPE_STANDARD:
                 return [
                     'title' => 'Project Details',
-                    'subtitle' => 'Tell us about your project. Provide clear details to attract the right collaborators.',
-                    'required_fields' => ['name', 'description', 'projectType', 'genre'],
+                    'subtitle' => 'Tell us about your project. Provide clear details and select at least one collaboration type to attract the right collaborators.',
+                    'required_fields' => ['name', 'description', 'projectType', 'genre', 'collaboration_types'],
                 ];
             case Project::WORKFLOW_TYPE_CONTEST:
                 return [
                     'title' => 'Contest Details',
-                    'subtitle' => 'Set up your contest project. Clear details will help producers understand what you\'re looking for.',
-                    'required_fields' => ['name', 'description', 'projectType', 'genre'],
+                    'subtitle' => 'Set up your contest project. Clear details and collaboration types will help producers understand what you\'re looking for.',
+                    'required_fields' => ['name', 'description', 'projectType', 'genre', 'collaboration_types'],
                 ];
             case Project::WORKFLOW_TYPE_DIRECT_HIRE:
                 return [
                     'title' => 'Project Details',
-                    'subtitle' => 'Describe your project for the producer you\'ll be working with directly.',
-                    'required_fields' => ['name', 'description', 'projectType', 'genre'],
+                    'subtitle' => 'Describe your project for the producer you\'ll be working with directly. Include collaboration types needed.',
+                    'required_fields' => ['name', 'description', 'projectType', 'genre', 'collaboration_types'],
                 ];
             case Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT:
                 return [
@@ -1261,44 +1289,72 @@ class CreateProject extends Component
      */
     private function convertDateTimeToUtc(string $dateTime, ?User $user = null): Carbon
     {
-        $user = $user ?? auth()->user();
-        $userTimezone = $user->getTimezone();
+        try {
+            $user = $user ?? auth()->user();
+            $userTimezone = $user->getTimezone() ?? 'UTC';
 
-        Log::debug('CreateProject convertDateTimeToUtc called', [
-            'input' => $dateTime,
-            'user_timezone' => $userTimezone,
-            'input_type' => gettype($dateTime),
-        ]);
+            Log::debug('CreateProject convertDateTimeToUtc called', [
+                'input' => $dateTime,
+                'user_timezone' => $userTimezone,
+                'input_type' => gettype($dateTime),
+            ]);
 
-        // Handle datetime-local format: "2025-06-29T13:00"
-        if (str_contains($dateTime, 'T')) {
-            // Convert T to space and add seconds if needed
-            $formattedDateTime = str_replace('T', ' ', $dateTime);
-            if (substr_count($formattedDateTime, ':') === 1) {
-                $formattedDateTime .= ':00'; // Add seconds
+            // Handle datetime-local format: "2025-06-29T13:00"
+            if (str_contains($dateTime, 'T')) {
+                // Convert T to space and add seconds if needed
+                $formattedDateTime = str_replace('T', ' ', $dateTime);
+                if (substr_count($formattedDateTime, ':') === 1) {
+                    $formattedDateTime .= ':00'; // Add seconds
+                }
+
+                // Validate the datetime format before conversion
+                if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $formattedDateTime)) {
+                    throw new \InvalidArgumentException('Invalid datetime format: ' . $formattedDateTime);
+                }
+
+                // Create Carbon instance in user's timezone and convert to UTC
+                $result = Carbon::createFromFormat('Y-m-d H:i:s', $formattedDateTime, $userTimezone);
+                
+                if (!$result) {
+                    throw new \InvalidArgumentException('Failed to parse datetime: ' . $formattedDateTime);
+                }
+
+                $result = $result->utc();
+
+                Log::debug('CreateProject: Datetime-local conversion', [
+                    'input' => $dateTime,
+                    'formatted' => $formattedDateTime,
+                    'user_timezone' => $userTimezone,
+                    'output_utc' => $result->toDateTimeString(),
+                ]);
+
+                return $result;
             }
 
-            // Create Carbon instance in user's timezone and convert to UTC
-            $result = Carbon::createFromFormat('Y-m-d H:i:s', $formattedDateTime, $userTimezone)->utc();
+            // Fallback: assume it's already in UTC or parse as-is
+            $result = Carbon::parse($dateTime);
+            if (!$result) {
+                throw new \InvalidArgumentException('Failed to parse datetime: ' . $dateTime);
+            }
 
-            Log::debug('CreateProject: Datetime-local conversion', [
+            $result = $result->utc();
+            Log::debug('CreateProject: Fallback conversion', [
                 'input' => $dateTime,
-                'formatted' => $formattedDateTime,
-                'user_timezone' => $userTimezone,
-                'output_utc' => $result->toDateTimeString(),
+                'output' => $result->toDateTimeString(),
             ]);
 
             return $result;
+
+        } catch (\Exception $e) {
+            Log::error('CreateProject: Timezone conversion failed', [
+                'input' => $dateTime,
+                'user_timezone' => $userTimezone ?? 'unknown',
+                'error' => $e->getMessage(),
+            ]);
+
+            // Fallback to current UTC time to prevent fatal errors
+            return Carbon::now('UTC');
         }
-
-        // Fallback: assume it's already in UTC or parse as-is
-        $result = Carbon::parse($dateTime)->utc();
-        Log::debug('CreateProject: Fallback conversion', [
-            'input' => $dateTime,
-            'output' => $result->toDateTimeString(),
-        ]);
-
-        return $result;
     }
 
     /**
@@ -1334,6 +1390,18 @@ class CreateProject extends Component
         }
     }
 
+    /**
+     * Handle workflow type changes to clear relevant validation errors
+     */
+    public function updatedWorkflowType()
+    {
+        // Clear collaboration type error when switching workflow types
+        $this->resetErrorBag('collaboration_type');
+        
+        // Mark form as changed
+        $this->markAsChanged();
+    }
+
     // Property watchers to track form changes
     public function updated($propertyName)
     {
@@ -1342,7 +1410,8 @@ class CreateProject extends Component
             in_array($propertyName, [
                 'workflow_type', 'submission_deadline', 'judging_deadline',
                 'target_producer_id', 'client_email', 'client_name', 'payment_amount',
-                'selectedLicenseTemplateId', 'licenseNotes',
+                'selectedLicenseTemplateId', 'licenseNotes', 'requiresLicenseAgreement',
+                'customLicenseTerms',
             ])) {
             $this->markAsChanged();
         }

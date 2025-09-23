@@ -325,6 +325,32 @@ class FileList extends Component
     }
 
     /**
+     * Check if a file is a video file
+     */
+    public function isVideoFile($file): bool
+    {
+        if (method_exists($file, 'isVideoFile')) {
+            return $file->isVideoFile();
+        }
+
+        // Fallback: check mime type or file extension
+        $videoMimeTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/webm', 'video/avi', 'video/mov'];
+        $videoExtensions = ['mp4', 'mpeg', 'mpg', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'];
+
+        if (isset($file->mime_type) && in_array($file->mime_type, $videoMimeTypes)) {
+            return true;
+        }
+
+        if (isset($file->file_name)) {
+            $extension = strtolower(pathinfo($file->file_name, PATHINFO_EXTENSION));
+
+            return in_array($extension, $videoExtensions);
+        }
+
+        return false;
+    }
+
+    /**
      * Get the universal audio player URL for a file
      */
     public function getUniversalAudioPlayerUrl($file): ?string
@@ -347,6 +373,32 @@ class FileList extends Component
         return route('audio.show', [
             'file_type' => $this->modelType === 'pitch' ? 'pitch_file' : 'project_file',
             'file_id' => $file->id
+        ]);
+    }
+
+    /**
+     * Get the universal video player URL for a file
+     */
+    public function getUniversalVideoPlayerUrl($file): ?string
+    {
+        if (!$this->isVideoFile($file)) {
+            return null;
+        }
+
+        // Determine file type based on model type and file properties
+        if ($this->modelType === 'pitch' || (isset($file->pitch_id) && $file->pitch_id)) {
+            // This is a pitch file
+            $fileId = $file->uuid ?? $file->id;
+            return route('video.pitch-file.show', ['file' => $fileId]);
+        } elseif ($this->modelType === 'project' || (isset($file->project_id) && $file->project_id)) {
+            // This is a project file
+            return route('video.project-file.show', ['file' => $file->id]);
+        }
+
+        // Fallback to the universal route with query parameters
+        return route('video.show', [
+            'type' => $this->modelType === 'pitch' ? 'pitch_file' : 'project_file',
+            'id' => $file->id
         ]);
     }
 

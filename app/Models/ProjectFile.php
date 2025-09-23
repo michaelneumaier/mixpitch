@@ -230,4 +230,41 @@ class ProjectFile extends Model
 
         return in_array($this->mime_type, $audioMimes);
     }
+
+    /**
+     * Check if file is a video file
+     */
+    public function isVideoFile(): bool
+    {
+        if (! $this->mime_type) {
+            return false;
+        }
+
+        $videoMimes = [
+            'video/mp4',
+            'video/mpeg',
+            'video/quicktime',
+            'video/x-msvideo',
+            'video/avi',
+            'video/webm',
+            'video/ogg',
+            'video/3gpp',
+            'video/x-flv',
+            'video/x-ms-wmv',
+        ];
+
+        return in_array($this->mime_type, $videoMimes);
+    }
+
+    /**
+     * Check if file is an image file
+     */
+    public function isImageFile(): bool
+    {
+        if (! $this->mime_type) {
+            return false;
+        }
+
+        return str_starts_with($this->mime_type, 'image/');
+    }
 }

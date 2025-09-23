@@ -45,7 +45,7 @@ export class FilePondConfigManager {
             allowRemove: true,
 
             // File validation defaults
-            acceptedFileTypes: ['audio/*', 'application/pdf', 'image/*', 'application/zip'],
+            acceptedFileTypes: ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip'],
             maxFileSize: '500MB',
             maxFiles: 1,
 
@@ -313,7 +313,7 @@ export class EnhancedFilePond {
             allowRemove: true,
 
             // File validation
-            acceptedFileTypes: config.acceptedFileTypes || ['audio/*', 'application/pdf', 'image/*', 'application/zip'],
+            acceptedFileTypes: config.acceptedFileTypes || ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip'],
             maxFileSize: config.maxFileSize || '500MB',
             maxFiles: config.maxFiles || (config.allowMultiple ? 10 : 1),
 

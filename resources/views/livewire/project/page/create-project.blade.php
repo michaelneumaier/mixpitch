@@ -156,7 +156,7 @@
                             {{-- Step 1: Project Type & Workflow Selection --}}
                         <div class="p-2 lg:p-10">
                             <div class="text-center mb-8">
-                                <flux:heading size="xl" class="font-bold">Choose Your Collaboration Type</flux:heading>
+                                <flux:heading size="xl" class="font-bold">Choose Your Project Workflow</flux:heading>
                                 <flux:text class="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                                     Each workflow is designed for different collaboration needs. Select the one that best matches your project goals.
                                 </flux:text>
@@ -262,7 +262,7 @@
                                             wire:model.blur="form.description" 
                                             rows="6"
                                                       placeholder="Describe your project, what you're looking for, and any specific requirements..."
-                                            maxlength="5000" />
+                                            maxlength="1000" />
                                         <flux:error name="form.description" />
                                     </flux:field>
                                 </div>
@@ -271,9 +271,20 @@
                             <!-- Collaboration Types - Full Width Section -->
                             <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
                                 <div class="mb-6">
-                                    <flux:heading class="mb-2">Collaboration Services</flux:heading>
+                                    <flux:heading class="mb-2">
+                                        Collaboration Services
+                                        @if($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+                                            <span class="text-gray-500">(Optional)</span>
+                                        @else
+                                            <span class="text-red-500">*</span>
+                                        @endif
+                                    </flux:heading>
                                     <flux:text class="text-gray-600 dark:text-gray-400">
-                                        Select the types of collaboration you're looking for (optional)
+                                        @if($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+                                            Select the types of collaboration you're looking for (optional)
+                                        @else
+                                            Select at least one type of collaboration you're looking for
+                                        @endif
                                     </flux:text>
                                 </div>
                                 
@@ -357,7 +368,7 @@
                                             <flux:field>
                                                 <flux:label>
                                                     <flux:icon name="calendar" class="mr-2" />
-                                                                Submission Deadline
+                                                                Submission Deadline <span class="text-red-500">*</span>
                                                     <flux:badge color="zinc" size="xs" class="ml-2">
                                                                     {{ $this->getTimezoneDisplayName() }}
                                                     </flux:badge>
@@ -554,7 +565,7 @@
                                     <flux:error name="form.notes" />
                                 </flux:field>
                             </flux:card>
-                            </div>
+o                            </div>
                             </div>
                         @endif
 
@@ -630,9 +641,9 @@
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div class="lg:col-span-2">
                                     <flux:field>
-                                        <flux:label>Project Title</flux:label>
-                                        <flux:input wire:model="title" placeholder="Enter your project title" />
-                                        <flux:error name="title" />
+                                        <flux:label>Project Title <span class="text-red-500">*</span></flux:label>
+                                        <flux:input wire:model.blur="form.name" placeholder="Enter your project title" maxlength="80" />
+                                        <flux:error name="form.name" />
                                     </flux:field>
                                         </div>
 
@@ -675,7 +686,7 @@
                                                     <span class="text-red-500">*</span>
                                                 @endif
                                         </flux:label>
-                                        <flux:textarea wire:model="form.description" rows="6" placeholder="Describe your project, what you're looking for, and any specific requirements..." maxlength="5000" />
+                                        <flux:textarea wire:model="form.description" rows="6" placeholder="Describe your project, what you're looking for, and any specific requirements..." maxlength="1000" />
                                         <flux:error name="form.description" />
                                     </flux:field>
                                         </div>
@@ -689,6 +700,11 @@
                             <flux:heading class="flex items-center gap-3">
                                 <flux:icon name="user-group" class="w-6 h-6 text-green-600" />
                                 Collaboration Types
+                                @if($workflow_type === \App\Models\Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+                                    <span class="text-gray-500 text-sm font-normal">(Optional)</span>
+                                @else
+                                    <span class="text-red-500 text-sm font-normal">*</span>
+                                @endif
                             </flux:heading>
                             
                             <flux:checkbox.group variant="pills" class="flex flex-wrap gap-3 [&_label]:cursor-pointer [&_*]:select-none">
@@ -816,7 +832,7 @@
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div>
                                     <div>
-                                        <flux:label class="mb-3">Budget Type</flux:label>
+                                        <flux:label class="mb-3">Budget Type <span class="text-red-500">*</span></flux:label>
                                         <div class="space-y-3">
                                             <label class="flex items-start gap-3 cursor-pointer">
                                                 <input type="radio" 
@@ -889,7 +905,7 @@
                                 <flux:field>
                                     <flux:label>
                                         <flux:icon name="calendar" class="mr-2" />
-                                                Submission Deadline
+                                                Submission Deadline <span class="text-red-500">*</span>
                                         <flux:badge color="zinc" size="xs" class="ml-2">
                                                     {{ $this->getTimezoneDisplayName() }}
                                         </flux:badge>

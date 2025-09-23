@@ -1,51 +1,40 @@
 @props(['workflowColors' => [], 'semanticColors' => []])
 
-<div class="relative">
-    <!-- Background Effects -->
-    <div class="absolute inset-0 rounded-2xl {{ $workflowColors['bg'] ?? 'bg-gradient-to-br from-amber-50/30 via-yellow-50/20 to-orange-50/30 dark:from-amber-950/30 dark:via-yellow-950/20 dark:to-orange-950/30' }}"></div>
-    <div class="absolute left-2 top-2 h-16 w-16 rounded-full bg-amber-400/10 dark:bg-amber-600/10 blur-xl"></div>
-    <div class="absolute bottom-2 right-2 h-12 w-12 rounded-full bg-yellow-400/10 dark:bg-yellow-600/10 blur-lg"></div>
-
-    <!-- Content -->
-    <div class="relative rounded-2xl border {{ $workflowColors['border'] ?? 'border-white/20 dark:border-gray-700/20' }} bg-white/95 dark:bg-gray-900/95 p-6 shadow-xl backdrop-blur-md">
-        <div class="mb-6 flex items-center justify-between">
-            <div class="flex items-center">
-                <div class="mr-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br {{ $workflowColors['icon'] ?? 'from-amber-500 to-yellow-600' }}">
-                    <i class="fas fa-trophy text-lg text-white"></i>
+<flux:card class="bg-gradient-to-br {{ $workflowColors['bg'] ?? 'from-orange-50/30 to-amber-50/30 dark:from-orange-950/30 dark:to-amber-950/30' }} border {{ $workflowColors['border'] ?? 'border-orange-200/50 dark:border-orange-800/50' }}">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <flux:icon name="trophy" variant="solid" class="{{ $workflowColors['icon'] ?? 'text-orange-600 dark:text-orange-400' }} h-8 w-8" />
+            <div>
+                <div class="flex items-center gap-3">
+                    <flux:heading size="lg" class="{{ $workflowColors['text_primary'] ?? 'text-orange-900 dark:text-orange-100' }}">Contest Prizes</flux:heading>
+                    <x-contest.payment-status-badge :project="$project" compact="true" />
                 </div>
-                <div>
-                    <div class="flex items-center gap-3 mb-1">
-                        <h3 class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-amber-800 dark:text-amber-200' }}">Contest Prizes</h3>
-                        <x-contest.payment-status-badge :project="$project" compact="true" />
-                    </div>
-                    <p class="text-sm {{ $workflowColors['text_secondary'] ?? 'text-amber-600 dark:text-amber-400' }}">Rewards and incentives for winners</p>
+                <flux:subheading class="{{ $workflowColors['text_muted'] ?? 'text-orange-600 dark:text-orange-400' }}">Rewards and incentives for winners</flux:subheading>
+            </div>
+        </div>
+        <flux:button variant="outline" size="sm" icon="pencil" href="{{ route('projects.edit', $project) }}">
+            Edit Prizes
+        </flux:button>
+    </div>
+
+    @if ($project->hasPrizes())
+        <!-- New Contest Prize System -->
+        <div class="rounded-xl border {{ $workflowColors['accent_border'] ?? 'border-orange-200/50 dark:border-orange-700/50' }} {{ $workflowColors['accent_bg'] ?? 'bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:from-orange-950/80 dark:to-amber-950/80' }} p-4 backdrop-blur-sm">
+            <!-- Prize Summary Stats -->
+            <div class="mb-4 grid grid-cols-2 gap-3">
+                <div class="rounded-lg border {{ $workflowColors['accent_border'] ?? 'border-orange-200/30 dark:border-orange-700/30' }} bg-white/60 dark:bg-gray-800/60 p-3 text-center backdrop-blur-sm">
+                    <flux:heading size="lg" class="{{ $workflowColors['text_primary'] ?? 'text-orange-900 dark:text-orange-100' }}">
+                        ${{ number_format($project->getTotalPrizeBudget()) }}
+                    </flux:heading>
+                    <flux:text size="xs" class="{{ $workflowColors['text_secondary'] ?? 'text-orange-700 dark:text-orange-300' }}">Total Cash Prizes</flux:text>
+                </div>
+                <div class="rounded-lg border {{ $workflowColors['accent_border'] ?? 'border-orange-200/30 dark:border-orange-700/30' }} bg-white/60 dark:bg-gray-800/60 p-3 text-center backdrop-blur-sm">
+                    <flux:heading size="lg" class="{{ $workflowColors['text_primary'] ?? 'text-orange-900 dark:text-orange-100' }}">
+                        ${{ number_format($project->getTotalPrizeValue()) }}
+                    </flux:heading>
+                    <flux:text size="xs" class="{{ $workflowColors['text_secondary'] ?? 'text-orange-700 dark:text-orange-300' }}">Total Prize Value</flux:text>
                 </div>
             </div>
-            <a href="{{ route('projects.edit', $project) }}"
-                class="inline-flex items-center rounded-lg {{ $workflowColors['accent_bg'] ?? 'bg-amber-100 dark:bg-amber-900' }} px-3 py-2 text-sm font-medium {{ $workflowColors['text_primary'] ?? 'text-amber-800 dark:text-amber-200' }} transition-colors hover:bg-amber-200 dark:hover:bg-amber-800">
-                <i class="fas fa-edit mr-2"></i>
-                Edit Prizes
-            </a>
-        </div>
-
-        @if ($project->hasPrizes())
-            <!-- New Contest Prize System -->
-            <div class="rounded-xl border {{ $workflowColors['accent_border'] ?? 'border-amber-200/50 dark:border-amber-700/50' }} {{ $workflowColors['accent_bg'] ?? 'bg-gradient-to-br from-amber-50/80 to-yellow-50/80 dark:from-amber-950/80 dark:to-yellow-950/80' }} p-4 backdrop-blur-sm">
-                <!-- Prize Summary Stats -->
-                <div class="mb-4 grid grid-cols-2 gap-3">
-                    <div class="rounded-lg border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} bg-white/60 dark:bg-gray-800/60 p-3 text-center backdrop-blur-sm">
-                        <div class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }}">
-                            ${{ number_format($project->getTotalPrizeBudget()) }}
-                        </div>
-                        <div class="text-xs {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Total Cash Prizes</div>
-                    </div>
-                    <div class="rounded-lg border {{ $workflowColors['accent_border'] ?? 'border-amber-200/30 dark:border-amber-700/30' }} bg-white/60 dark:bg-gray-800/60 p-3 text-center backdrop-blur-sm">
-                        <div class="text-lg font-bold {{ $workflowColors['text_primary'] ?? 'text-amber-900 dark:text-amber-100' }}">
-                            ${{ number_format($project->getTotalPrizeValue()) }}
-                        </div>
-                        <div class="text-xs {{ $workflowColors['text_secondary'] ?? 'text-amber-700 dark:text-amber-300' }}">Total Prize Value</div>
-                    </div>
-                </div>
 
                 <!-- Prize Breakdown -->
                 <div class="space-y-2">
@@ -64,88 +53,72 @@
                             $isCashPrize = isset($prize['type']) && $prize['type'] === 'cash';
                         @endphp
                         
-                        <div class="flex items-center justify-between rounded-lg border border-amber-200/20 bg-white/40 p-3 backdrop-blur-sm">
+                        <div class="flex items-center justify-between rounded-lg border border-orange-200/20 bg-white/40 p-3 backdrop-blur-sm">
                             <div class="flex items-center">
                                 <span class="mr-3 text-lg">{{ $prize['emoji'] ?? '🏆' }}</span>
                                 <div>
                                     <div class="flex items-center gap-2">
-                                        <span class="text-sm font-medium text-amber-900">{{ $prize['placement'] ?? 'Prize' }}</span>
+                                        <flux:text size="sm" class="font-medium text-orange-900">{{ $prize['placement'] ?? 'Prize' }}</flux:text>
                                         @if($isCashPrize && $hasWinner)
                                             @if($isPaid)
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    <i class="fas fa-check mr-1"></i>Paid
-                                                </span>
+                                                <flux:badge color="green" size="xs" icon="check">Paid</flux:badge>
                                             @else
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                    <i class="fas fa-clock mr-1"></i>Pending
-                                                </span>
+                                                <flux:badge color="amber" size="xs" icon="clock">Pending</flux:badge>
                                             @endif
                                         @elseif($isCashPrize && !$hasWinner && $project->isJudgingFinalized())
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                                <i class="fas fa-user-slash mr-1"></i>No Winner
-                                            </span>
+                                            <flux:badge color="zinc" size="xs" icon="user">No Winner</flux:badge>
                                         @endif
                                     </div>
                                     @if (isset($prize['title']) && $prize['title'])
-                                        <div class="text-xs text-amber-700">{{ $prize['title'] }}</div>
+                                        <flux:text size="xs" class="text-orange-700">{{ $prize['title'] }}</flux:text>
                                     @endif
                                     @if($hasWinner)
-                                        <div class="text-xs text-green-700 font-medium">
-                                            <i class="fas fa-crown mr-1"></i>{{ $winnerStatus['user']->name }}
+                                        <div class="flex items-center">
+                                            <flux:icon name="trophy" class="mr-1 h-3 w-3 text-green-700" />
+                                            <flux:text size="xs" class="text-green-700 font-medium">{{ $winnerStatus['user']->name }}</flux:text>
                                         </div>
                                     @endif
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-sm font-bold text-amber-900">
+                                <flux:text size="sm" class="font-bold text-orange-900">
                                     {{ $prize['display_value'] ?? 'N/A' }}
-                                </div>
+                                </flux:text>
                                 @if($isPaid && $winnerStatus['payment_date'])
-                                    <div class="text-xs text-green-600">
+                                    <flux:text size="xs" class="text-green-600">
                                         Paid {{ $winnerStatus['payment_date']->format('M j') }}
-                                    </div>
+                                    </flux:text>
                                 @endif
                             </div>
                         </div>
                     @endforeach
                 </div>
             </div>
-        @elseif($project->prize_amount && $project->prize_amount > 0)
-            <!-- Legacy Prize Display (for backward compatibility) -->
-            <div class="rounded-xl border border-green-200/50 bg-gradient-to-br from-green-50/80 to-emerald-50/80 p-4 backdrop-blur-sm">
-                <div class="mb-3 flex items-center">
-                    <div class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                        <i class="fas fa-dollar-sign text-sm text-white"></i>
-                    </div>
-                    <h4 class="font-bold text-green-800">Prize Amount (Legacy)</h4>
-                </div>
-                <p class="text-2xl font-bold text-green-900 mb-3">
-                    {{ $project->prize_currency ?? '$' }}{{ number_format($project->prize_amount ?: 0, 2) }}
-                </p>
-                <div>
-                    <a href="{{ route('projects.edit', $project) }}"
-                        class="inline-flex items-center rounded-lg bg-green-100 px-3 py-1 text-xs font-medium text-green-800 transition-colors hover:bg-green-200">
-                        <i class="fas fa-plus mr-1"></i>
-                        Configure New Prizes
-                    </a>
-                </div>
+    @elseif($project->prize_amount && $project->prize_amount > 0)
+        <!-- Legacy Prize Display (for backward compatibility) -->
+        <div class="rounded-xl border border-green-200/50 bg-gradient-to-br from-green-50/80 to-emerald-50/80 p-4 backdrop-blur-sm">
+            <div class="mb-3 flex items-center gap-3">
+                <flux:icon name="banknotes" class="h-6 w-6 text-green-600" />
+                <flux:heading size="base" class="text-green-800">Prize Amount (Legacy)</flux:heading>
             </div>
-        @else
-            <!-- No Prizes Display -->
-            <div class="rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50/80 to-gray-100/80 p-4 backdrop-blur-sm">
-                <div class="mb-3 flex items-center">
-                    <div class="mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-400 to-gray-500">
-                        <i class="fas fa-gift text-sm text-white"></i>
-                    </div>
-                    <h4 class="font-bold text-gray-700">No Prizes Set</h4>
-                </div>
-                <p class="mb-3 text-sm text-gray-600">This contest doesn't have any prizes configured yet.</p>
-                <a href="{{ route('projects.edit', $project) }}"
-                    class="inline-flex items-center rounded-lg bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200">
-                    <i class="fas fa-plus mr-1"></i>
-                    Add Prizes
-                </a>
+            <flux:heading size="xl" class="text-green-900 mb-3">
+                {{ $project->prize_currency ?? '$' }}{{ number_format($project->prize_amount ?: 0, 2) }}
+            </flux:heading>
+            <flux:button variant="outline" size="xs" icon="plus" href="{{ route('projects.edit', $project) }}">
+                Configure New Prizes
+            </flux:button>
+        </div>
+    @else
+        <!-- No Prizes Display -->
+        <div class="rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50/80 to-gray-100/80 p-4 backdrop-blur-sm">
+            <div class="mb-3 flex items-center gap-3">
+                <flux:icon name="gift" class="h-6 w-6 text-gray-600" />
+                <flux:heading size="base" class="text-gray-700">No Prizes Set</flux:heading>
             </div>
-        @endif
-    </div>
-</div> 
+            <flux:text size="sm" class="text-gray-600 mb-3">This contest doesn't have any prizes configured yet.</flux:text>
+            <flux:button variant="outline" size="xs" icon="plus" href="{{ route('projects.edit', $project) }}">
+                Add Prizes
+            </flux:button>
+        </div>
+    @endif
+</flux:card> 

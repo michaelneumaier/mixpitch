@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-9c4cd3a5.css",
+    "file": "assets/app-61acaa72.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-60f7a067.css",
+    "file": "assets/theme-3a637932.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -20,7 +20,7 @@
     "dynamicImports": [
       "resources/js/filament/billing/stripe-handler.js"
     ],
-    "file": "assets/app-9e62b7a8.js",
+    "file": "assets/app-a59d7b4b.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   },

@@ -147,6 +147,17 @@ Route::middleware(['auth'])->group(function () {
         ->name('audio.show')
         ->middleware('auth');
 
+    // Universal Video Player routes
+    Route::get('/video/pitch/{file:uuid}', [App\Http\Controllers\UniversalVideoController::class, 'showPitchFile'])
+        ->name('video.pitch-file.show')
+        ->middleware('auth');
+    Route::get('/video/project/{file}', [App\Http\Controllers\UniversalVideoController::class, 'showProjectFile'])
+        ->name('video.project-file.show')
+        ->middleware('auth');
+    Route::get('/video', [App\Http\Controllers\UniversalVideoController::class, 'show'])
+        ->name('video.show')
+        ->middleware('auth');
+
     // Email testing routes
     Route::get('/email/test', [App\Http\Controllers\EmailController::class, 'showTestForm'])->name('email.test');
     Route::post('/email/test', [App\Http\Controllers\EmailController::class, 'sendTest'])->name('email.test.send');
