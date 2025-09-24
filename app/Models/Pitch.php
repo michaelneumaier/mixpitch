@@ -737,6 +737,21 @@ class Pitch extends Model implements HasMedia
         };
     }
 
+    public function getStatusVariant(): string
+    {
+        return match ($this->status) {
+            self::STATUS_PENDING, self::STATUS_AWAITING_ACCEPTANCE => 'ghost',
+            self::STATUS_IN_PROGRESS, self::STATUS_CONTEST_ENTRY => 'info',
+            self::STATUS_READY_FOR_REVIEW => 'warning',
+            self::STATUS_REVISIONS_REQUESTED, self::STATUS_CLIENT_REVISIONS_REQUESTED => 'warning',
+            self::STATUS_APPROVED => 'info',
+            self::STATUS_COMPLETED, self::STATUS_CONTEST_WINNER => 'success',
+            self::STATUS_CONTEST_RUNNER_UP => 'success',
+            self::STATUS_DENIED, self::STATUS_CLOSED, self::STATUS_CONTEST_NOT_SELECTED => 'danger',
+            default => 'ghost',
+        };
+    }
+
     /**
      * Check if the pitch has been placed in the contest
      */

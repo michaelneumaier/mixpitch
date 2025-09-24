@@ -456,17 +456,238 @@ class LinkAnalysisService
      */
     protected function analyzeGoogleDrive(string $url): array
     {
-        // For now, return a placeholder - Google Drive analysis would require OAuth
-        Log::info('Google Drive analysis requested', ['url' => $url]);
+        try {
+            Log::info('Starting Google Drive analysis', ['url' => $url]);
+
+            // Extract ID and determine if it's a file or folder
+            $driveInfo = $this->parseGoogleDriveUrl($url);
+
+            if (! $driveInfo) {
+                throw new \Exception('Could not parse Google Drive URL');
+            }
+
+            Log::debug('Parsed Google Drive URL', $driveInfo);
+
+            if ($driveInfo['type'] === 'file') {
+                return $this->analyzeGoogleDriveFile($driveInfo['id']);
+            } else {
+                return $this->analyzeGoogleDriveFolder($driveInfo['id']);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Google Drive analysis failed', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Parse Google Drive URL to extract ID and determine type (file or folder).
+     */
+    protected function parseGoogleDriveUrl(string $url): ?array
+    {
+        // Parse different Google Drive URL patterns
+        $patterns = [
+            // File URLs
+            '/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/' => 'file',
+            '/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/' => 'file',
+
+            // Folder URLs
+            '/drive\.google\.com\/drive\/folders\/([a-zA-Z0-9_-]+)/' => 'folder',
+            '/drive\.google\.com\/drive\/u\/\d+\/folders\/([a-zA-Z0-9_-]+)/' => 'folder',
+        ];
+
+        foreach ($patterns as $pattern => $type) {
+            if (preg_match($pattern, $url, $matches)) {
+                return [
+                    'id' => $matches[1],
+                    'type' => $type,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Analyze a single Google Drive file.
+     */
+    protected function analyzeGoogleDriveFile(string $fileId): array
+    {
+        $apiKey = config('linkimport.google_drive.api_key');
+
+        // If we have an API key, try to get metadata via API
+        if ($apiKey) {
+            return $this->analyzeGoogleDriveFileWithApi($fileId);
+        }
+
+        // Fallback: Create file info with direct download URL and let the download job handle it
+        Log::info('No Google Drive API key configured, using direct download approach', ['file_id' => $fileId]);
 
         return [
             [
-                'filename' => 'Google_Drive_File',
-                'size' => 0,
-                'mime_type' => 'application/octet-stream',
-                'download_url' => null,
+                'filename' => "GoogleDrive_File_{$fileId}", // Placeholder name
+                'size' => 0, // Unknown size
+                'mime_type' => 'application/octet-stream', // Unknown type initially
+                'file_id' => $fileId,
+                'download_url' => $this->buildGoogleDriveDirectDownloadUrl($fileId),
+                'metadata' => ['id' => $fileId, 'source' => 'google_drive_direct'],
+                'requires_fallback' => true, // Flag for the job to handle differently
             ],
         ];
+    }
+
+    /**
+     * Analyze Google Drive file using API (when API key is available).
+     */
+    protected function analyzeGoogleDriveFileWithApi(string $fileId): array
+    {
+        $apiKey = config('linkimport.google_drive.api_key');
+        $baseUrl = config('linkimport.google_drive.base_url');
+        $timeout = config('linkimport.google_drive.timeout_seconds', 60);
+
+        Log::debug('Fetching Google Drive file metadata via API', ['file_id' => $fileId]);
+
+        $response = Http::timeout($timeout)->get("{$baseUrl}/files/{$fileId}", [
+            'key' => $apiKey,
+            'fields' => 'id,name,mimeType,size,webContentLink',
+        ]);
+
+        if (! $response->successful()) {
+            if ($response->status() === 404) {
+                throw new \Exception('Google Drive file not found or not publicly accessible');
+            }
+            if ($response->status() === 403) {
+                throw new \Exception('Google Drive file is private and requires authentication');
+            }
+            throw new \Exception("Google Drive API error: {$response->status()}");
+        }
+
+        $fileData = $response->json();
+
+        return [
+            [
+                'filename' => $fileData['name'],
+                'size' => (int) ($fileData['size'] ?? 0),
+                'mime_type' => $fileData['mimeType'] ?? 'application/octet-stream',
+                'file_id' => $fileData['id'],
+                'download_url' => $this->buildGoogleDriveDownloadUrl($fileData['id']),
+                'metadata' => $fileData,
+            ],
+        ];
+    }
+
+    /**
+     * Build direct Google Drive download URL (no API key required).
+     */
+    protected function buildGoogleDriveDirectDownloadUrl(string $fileId): string
+    {
+        return "https://drive.google.com/uc?export=download&id={$fileId}";
+    }
+
+    /**
+     * Analyze a Google Drive folder and list its files.
+     */
+    protected function analyzeGoogleDriveFolder(string $folderId): array
+    {
+        $apiKey = config('linkimport.google_drive.api_key');
+
+        if (! $apiKey) {
+            // For folders, we need API access to list contents
+            // Without API key, we can't analyze folders
+            throw new \Exception('Google Drive folders require API key for analysis. Please configure GOOGLE_DRIVE_API_KEY in your .env file.');
+        }
+
+        $baseUrl = config('linkimport.google_drive.base_url');
+        $timeout = config('linkimport.google_drive.timeout_seconds', 60);
+        $pageSize = config('linkimport.google_drive.page_size', 50);
+        $maxFiles = config('linkimport.google_drive.max_files_per_folder', 100);
+
+        Log::debug('Fetching Google Drive folder contents', ['folder_id' => $folderId]);
+
+        $files = [];
+        $nextPageToken = null;
+
+        do {
+            $params = [
+                'key' => $apiKey,
+                'q' => "'{$folderId}' in parents and trashed=false",
+                'fields' => 'nextPageToken,files(id,name,mimeType,size,webContentLink)',
+                'pageSize' => min($pageSize, $maxFiles - count($files)),
+            ];
+
+            if ($nextPageToken) {
+                $params['pageToken'] = $nextPageToken;
+            }
+
+            $response = Http::timeout($timeout)->get("{$baseUrl}/files", $params);
+
+            if (! $response->successful()) {
+                if ($response->status() === 404) {
+                    throw new \Exception('Google Drive folder not found or not publicly accessible');
+                }
+                if ($response->status() === 403) {
+                    throw new \Exception('Google Drive folder is private and requires authentication');
+                }
+                throw new \Exception("Google Drive API error: {$response->status()}");
+            }
+
+            $responseData = $response->json();
+            $folderFiles = $responseData['files'] ?? [];
+
+            // Filter out folders (we only want files for import)
+            $folderFiles = array_filter($folderFiles, function ($file) {
+                return $file['mimeType'] !== 'application/vnd.google-apps.folder';
+            });
+
+            foreach ($folderFiles as $file) {
+                $files[] = [
+                    'filename' => $file['name'],
+                    'size' => (int) ($file['size'] ?? 0),
+                    'mime_type' => $file['mimeType'] ?? 'application/octet-stream',
+                    'file_id' => $file['id'],
+                    'download_url' => $this->buildGoogleDriveDownloadUrl($file['id']),
+                    'metadata' => $file,
+                ];
+
+                // Respect max files limit
+                if (count($files) >= $maxFiles) {
+                    Log::warning('Google Drive folder contains more files than limit', [
+                        'folder_id' => $folderId,
+                        'max_files' => $maxFiles,
+                        'files_found' => count($files),
+                    ]);
+                    break 2;
+                }
+            }
+
+            $nextPageToken = $responseData['nextPageToken'] ?? null;
+
+        } while ($nextPageToken && count($files) < $maxFiles);
+
+        if (empty($files)) {
+            throw new \Exception('No accessible files found in Google Drive folder');
+        }
+
+        Log::info('Google Drive folder analysis completed', [
+            'folder_id' => $folderId,
+            'files_found' => count($files),
+        ]);
+
+        return $files;
+    }
+
+    /**
+     * Build Google Drive download URL for a file.
+     */
+    protected function buildGoogleDriveDownloadUrl(string $fileId): string
+    {
+        $apiKey = config('linkimport.google_drive.api_key');
+        $baseUrl = config('linkimport.google_drive.base_url');
+
+        return "{$baseUrl}/files/{$fileId}?alt=media&key={$apiKey}";
     }
 
     /**

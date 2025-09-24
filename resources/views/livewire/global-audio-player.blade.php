@@ -600,7 +600,7 @@
     </div>
 </div>
 
-@script
+@push('scripts')
 <script>
 // Create a centralized store for audio player state
 Alpine.store('audioPlayer', {
@@ -1427,7 +1427,7 @@ Alpine.data('globalAudioPlayer', () => ({
 
 }));
 </script>
-@endscript
+@endpush
 
 <style>
 /* Custom slider styling */

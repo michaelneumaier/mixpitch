@@ -141,7 +141,7 @@
     @endpush
 @endonce
 
-@script
+@push('scripts')
 <script>
     // Add body class for global drag state
     window.addEventListener('global-drag-drop:show', () => {
@@ -156,4 +156,4 @@
     document.addEventListener('alpine:initialized', () => {
     });
 </script>
-@endscript
+@endpush

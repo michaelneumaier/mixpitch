@@ -102,6 +102,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Google Drive Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Google Drive API integration for public file imports.
+    | Falls back to existing OAuth system for private files.
+    |
+    */
+    'google_drive' => [
+        'api_key' => env('GOOGLE_DRIVE_API_KEY'), // For public file metadata
+        'base_url' => 'https://www.googleapis.com/drive/v3',
+        'timeout_seconds' => env('GOOGLE_DRIVE_DOWNLOAD_TIMEOUT', 60),
+        'max_files_per_folder' => env('GOOGLE_DRIVE_MAX_FILES_PER_FOLDER', 100),
+        'page_size' => env('GOOGLE_DRIVE_FILES_PER_PAGE', 50),
+        'use_oauth_fallback' => true, // Use existing OAuth system for private files
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Notifications
     |--------------------------------------------------------------------------
     |

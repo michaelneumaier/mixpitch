@@ -3,6 +3,7 @@
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\CustomUppyS3MultipartController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PayoutSetupController;
 use App\Http\Controllers\PitchController;
 use App\Http\Controllers\PitchFileController;
 use App\Http\Controllers\PricingController;
@@ -455,9 +456,17 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('integrations/google-dri
 // Payout Management Routes
 Route::middleware(['auth:sanctum', 'verified'])->prefix('payouts')->name('payouts.')->group(function () {
     Route::get('/', [App\Http\Controllers\PayoutController::class, 'index'])->name('index');
-    Route::get('/{payout}', [App\Http\Controllers\PayoutController::class, 'show'])->name('show');
     Route::get('/export/csv', [App\Http\Controllers\PayoutController::class, 'export'])->name('export');
     Route::get('/api/statistics', [App\Http\Controllers\PayoutController::class, 'statistics'])->name('statistics');
+
+    // Multi-provider payout setup routes (must come before wildcard routes)
+    Route::prefix('setup')->name('setup.')->group(function () {
+        Route::get('/', [PayoutSetupController::class, 'index'])->name('index');
+        Route::get('/summary', [PayoutSetupController::class, 'summary'])->name('summary');
+    });
+
+    // Wildcard route must come last
+    Route::get('/{payout}', [App\Http\Controllers\PayoutController::class, 'show'])->name('show');
 });
 
 // Refund Request Routes

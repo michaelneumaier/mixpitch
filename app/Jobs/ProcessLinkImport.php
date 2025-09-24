@@ -219,66 +219,9 @@ class ProcessLinkImport implements ShouldBeUnique, ShouldQueue
             'url' => $downloadUrl,
         ]);
 
-        $timeout = config('linkimport.security.timeout_seconds', 60);
-        $userAgent = config('linkimport.processing.user_agent');
-
-        // Download the file
-        $response = Http::timeout($timeout)
-            ->withHeaders(['User-Agent' => $userAgent])
-            ->get($downloadUrl);
-
-        if (! $response->successful()) {
-            throw new \Exception("Failed to download file: HTTP {$response->status()}");
-        }
-
-        $fileContent = $response->body();
-        $actualSize = strlen($fileContent);
-
-        // Create a temporary file
-        $tempPath = tempnam(sys_get_temp_dir(), 'linkimport_');
-        file_put_contents($tempPath, $fileContent);
-
-        try {
-            // Use the FileManagementService to store the file
-            $projectFile = $fileService->storeProjectFile(
-                project: $this->linkImport->project,
-                file: new \Illuminate\Http\UploadedFile(
-                    $tempPath,
-                    $filename,
-                    $mimeType,
-                    null,
-                    true
-                ),
-                user: $this->linkImport->user,
-                metadata: [
-                    'import_source' => 'link_import',
-                    'source_url' => $this->linkImport->source_url,
-                    'original_size' => $fileInfo['size'] ?? 0,
-                ]
-            );
-
-            // Update project file with import source
-            $projectFile->update(['import_source' => 'link_import']);
-
-            // Create imported file record
-            ImportedFile::create([
-                'link_import_id' => $this->linkImport->id,
-                'project_file_id' => $projectFile->id,
-                'source_filename' => $filename,
-                'source_url' => $downloadUrl,
-                'size_bytes' => $actualSize,
-                'mime_type' => $mimeType,
-                'imported_at' => now(),
-            ]);
-
-            return $projectFile;
-
-        } finally {
-            // Clean up temp file
-            if (file_exists($tempPath)) {
-                unlink($tempPath);
-            }
-        }
+        // Use the same logic as downloadFileFromDirectLink for consistency
+        // This supports both small files (in-memory) and large files (streaming)
+        return $this->downloadFileFromDirectLink($downloadUrl, $filename, $mimeType, $fileService);
     }
 
     /**

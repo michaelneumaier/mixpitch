@@ -33,7 +33,7 @@
 
 </div>
 
-@script
+@push('scripts')
 <script>
     /*Disable media control keys */
     navigator.mediaSession.setActionHandler('play', function () { });
@@ -112,4 +112,4 @@
         });
     });
 </script>
-@endscript
+@endpush

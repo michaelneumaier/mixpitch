@@ -280,7 +280,7 @@
                             Congratulations on winning ${{ number_format($prizeAmount, 2) }}! To receive your prize payout, you need to set up your Stripe Connect account for receiving payments.
                         </p>
                         <div class="flex flex-wrap gap-3">
-                            <a href="{{ route('stripe.connect.setup') }}" 
+                            <a href="{{ route('payouts.setup.index') }}" 
                                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg">
                                 <i class="fas fa-cog mr-2"></i>
                                 Set Up Prize Payouts

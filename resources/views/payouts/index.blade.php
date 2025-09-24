@@ -11,7 +11,7 @@
                     </flux:heading>
                     
                     <div class="flex items-center gap-2">
-                        <flux:button href="{{ route('stripe.connect.setup') }}" icon="cog-6-tooth" variant="outline" size="xs">
+                        <flux:button href="{{ route('payouts.setup.index') }}" icon="cog-6-tooth" variant="outline" size="xs">
                             Settings
                         </flux:button>
                         <flux:button href="{{ route('dashboard') }}" icon="arrow-left" variant="ghost" size="xs">

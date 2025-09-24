@@ -33,7 +33,7 @@
         </flux:navlist.item>
 
         <!-- Payout Status -->
-        <flux:navlist.item icon="credit-card" href="{{ route('stripe.connect.setup') }}" class="text-sm">
+        <flux:navlist.item icon="credit-card" href="{{ route('payouts.setup.index') }}" class="text-sm">
             <div class="flex items-center justify-between w-full">
                 <span>Payouts</span>
                 @if(($producerData['stripe_connect']['can_receive_payouts'] ?? false))

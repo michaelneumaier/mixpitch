@@ -88,7 +88,7 @@
                         <i class="fas fa-chart-line mr-2"></i>
                         View Payout Dashboard
                     </a>
-                    <a href="{{ route('stripe.connect.setup') }}" 
+                    <a href="{{ route('payouts.setup.index') }}" 
                        class="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-blue-700 font-medium rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200">
                         <i class="fas fa-cog mr-2"></i>
                         Account Settings

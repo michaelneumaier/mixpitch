@@ -1443,4 +1443,58 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         return $this->google_drive_connected_at;
     }
+
+    /**
+     * Get user's payout accounts for all providers
+     */
+    public function payoutAccounts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserPayoutAccount::class);
+    }
+
+    /**
+     * Get user's payout accounts by provider
+     */
+    public function payoutAccountsForProvider(string $provider): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->payoutAccounts()->where('provider', $provider);
+    }
+
+    /**
+     * Get user's primary payout account for a provider
+     */
+    public function primaryPayoutAccountForProvider(string $provider): ?UserPayoutAccount
+    {
+        return $this->payoutAccounts()
+            ->where('provider', $provider)
+            ->where('is_primary', true)
+            ->first();
+    }
+
+    /**
+     * Check if user has a verified payout account for a provider
+     */
+    public function hasVerifiedPayoutAccount(string $provider): bool
+    {
+        return $this->payoutAccounts()
+            ->where('provider', $provider)
+            ->where('is_verified', true)
+            ->exists();
+    }
+
+    /**
+     * Get all payout schedules for this user
+     */
+    public function payoutSchedules(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PayoutSchedule::class, 'producer_user_id');
+    }
+
+    /**
+     * Get payout schedules by provider
+     */
+    public function payoutSchedulesForProvider(string $provider): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->payoutSchedules()->where('payout_provider', $provider);
+    }
 }

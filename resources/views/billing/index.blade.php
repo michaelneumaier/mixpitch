@@ -283,7 +283,7 @@
                         
                         <div class="flex flex-col sm:flex-row gap-3 mt-6">
                             @if($accountStatus['status'] === 'not_created' || $accountStatus['status'] === 'incomplete' || $accountStatus['status'] === 'action_required')
-                                <flux:button href="{{ route('stripe.connect.setup') }}" wire:navigate variant="primary">
+                                <flux:button href="{{ route('payouts.setup.index') }}" wire:navigate variant="primary">
                                     <flux:icon name="building-office" class="w-4 h-4 mr-2" />
                                     {{ $accountStatus['status'] === 'not_created' ? 'Set Up Stripe Connect' : 'Complete Setup' }}
                                 </flux:button>
@@ -294,7 +294,7 @@
                                 </flux:button>
                             @endif
                             
-                            <flux:button href="{{ route('stripe.connect.setup') }}" wire:navigate variant="ghost">
+                            <flux:button href="{{ route('payouts.setup.index') }}" wire:navigate variant="ghost">
                                 <flux:icon name="information-circle" class="w-4 h-4 mr-2" />
                                 View Details
                             </flux:button>

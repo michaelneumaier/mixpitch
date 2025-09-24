@@ -491,7 +491,7 @@
                                                         </div>
                                                     </div>
                                                     @if(auth()->id() === $winner['user']->id)
-                                                        <a href="{{ route('stripe.connect.setup') }}" 
+                                                        <a href="{{ route('payouts.setup.index') }}" 
                                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
                                                             <i class="fas fa-cog mr-2"></i>
                                                             {{ !$hasAccount ? 'Set Up Payouts' : 'Complete Setup' }}
