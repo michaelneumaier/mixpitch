@@ -46,7 +46,7 @@
                 </flux:text>
                 <flux:button
                     href="{{ URL::temporarySignedRoute('client.portal.upgrade', now()->addHours(24), ['project' => $project->id]) }}"
-                    variant="primary" size="lg" class="w-full">
+                    variant="primary" class="w-full">
                     <flux:icon.user-plus class="mr-2" />
                     Create Free Account
                 </flux:button>
