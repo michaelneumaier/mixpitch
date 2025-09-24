@@ -14,7 +14,7 @@ class FeedbackTemplateTest extends TestCase
     public function test_feedback_template_can_be_created()
     {
         $user = User::factory()->create();
-        
+
         $template = FeedbackTemplate::create([
             'user_id' => $user->id,
             'name' => 'Test Template',
@@ -26,7 +26,7 @@ class FeedbackTemplateTest extends TestCase
                     'type' => FeedbackTemplate::TYPE_TEXT,
                     'label' => 'Test Question',
                     'required' => true,
-                ]
+                ],
             ],
         ]);
 
@@ -34,7 +34,7 @@ class FeedbackTemplateTest extends TestCase
             'name' => 'Test Template',
             'user_id' => $user->id,
         ]);
-        
+
         $this->assertEquals('Test Template', $template->name);
         $this->assertEquals($user->id, $template->user_id);
         $this->assertEquals(FeedbackTemplate::CATEGORY_GENERAL, $template->category);
@@ -62,7 +62,7 @@ class FeedbackTemplateTest extends TestCase
     public function test_feedback_template_scopes()
     {
         $user = User::factory()->create();
-        
+
         // Create various templates
         $activeTemplate = FeedbackTemplate::factory()->create(['is_active' => true, 'category' => FeedbackTemplate::CATEGORY_GENERAL]);
         $inactiveTemplate = FeedbackTemplate::factory()->create(['is_active' => false, 'category' => FeedbackTemplate::CATEGORY_GENERAL]);
@@ -76,7 +76,7 @@ class FeedbackTemplateTest extends TestCase
         $customCount = FeedbackTemplate::custom()->count();
         $mixingCount = FeedbackTemplate::byCategory(FeedbackTemplate::CATEGORY_MIXING)->count();
         $availableCount = FeedbackTemplate::availableToUser($user->id)->count();
-        
+
         // Test scopes
         $this->assertEquals(4, $activeCount); // All except inactive
         $this->assertEquals(1, $defaultCount);
@@ -88,7 +88,7 @@ class FeedbackTemplateTest extends TestCase
     public function test_feedback_template_category_label()
     {
         $template = FeedbackTemplate::factory()->create([
-            'category' => FeedbackTemplate::CATEGORY_MIXING
+            'category' => FeedbackTemplate::CATEGORY_MIXING,
         ]);
 
         $this->assertEquals('Mixing', $template->category_label);
@@ -121,8 +121,8 @@ class FeedbackTemplateTest extends TestCase
                     'type' => FeedbackTemplate::TYPE_RATING,
                     'label' => 'Rating Question',
                     // Missing max_rating
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $errors = $template->validateQuestions();
@@ -142,8 +142,8 @@ class FeedbackTemplateTest extends TestCase
                     'type' => FeedbackTemplate::TYPE_SELECT,
                     'label' => 'Select Question',
                     // Missing options
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $errors = $template->validateQuestions();
@@ -160,8 +160,8 @@ class FeedbackTemplateTest extends TestCase
                     'type' => FeedbackTemplate::TYPE_RANGE,
                     'label' => 'Range Question',
                     // Missing min/max
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $errors = $template->validateQuestions();
@@ -212,7 +212,7 @@ class FeedbackTemplateTest extends TestCase
 
         $this->assertIsArray($defaultTemplates);
         $this->assertNotEmpty($defaultTemplates);
-        
+
         $generalTemplate = collect($defaultTemplates)->firstWhere('name', 'General Audio Feedback');
         $this->assertNotNull($generalTemplate);
         $this->assertEquals(FeedbackTemplate::CATEGORY_GENERAL, $generalTemplate['category']);
@@ -238,8 +238,8 @@ class FeedbackTemplateTest extends TestCase
                     'id' => 'invalid_question',
                     'type' => 'invalid_type',
                     'label' => 'Invalid Question',
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $errors = $template->validateQuestions();
@@ -250,14 +250,14 @@ class FeedbackTemplateTest extends TestCase
     public function test_feedback_template_casts_questions_to_array()
     {
         $questionsArray = [['id' => 'test', 'type' => 'text', 'label' => 'Test']];
-        
+
         $template = FeedbackTemplate::factory()->create([
-            'questions' => $questionsArray
+            'questions' => $questionsArray,
         ]);
 
         $this->assertIsArray($template->questions);
         $this->assertEquals('test', $template->questions[0]['id']);
-        
+
         // Test that it's properly cast when retrieved fresh from database
         $template = $template->fresh();
         $this->assertIsArray($template->questions);

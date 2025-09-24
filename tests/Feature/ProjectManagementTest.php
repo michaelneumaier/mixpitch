@@ -2,19 +2,17 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Livewire\Livewire;
-use App\Models\User;
-use App\Models\Project;
 use App\Livewire\CreateProject;
 use App\Livewire\ManageProject;
-use Tests\TestCase;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Gate;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\Project\ProjectManagementService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
+use Tests\TestCase;
 
 class ProjectManagementTest extends TestCase
 {
@@ -27,9 +25,9 @@ class ProjectManagementTest extends TestCase
         Storage::fake('s3');
     }
 
-    //========================================
+    // ========================================
     // CreateProject Livewire Component Tests
-    //========================================
+    // ========================================
 
     /** @test */
     public function guest_cannot_view_create_project_page()
@@ -129,9 +127,9 @@ class ProjectManagementTest extends TestCase
         Storage::disk('s3')->assertExists($project->image_path);
     }
 
-    //========================================
+    // ========================================
     // Edit Project Tests (Using CreateProject Component)
-    //========================================
+    // ========================================
 
     /** @test */
     public function authorized_user_can_view_edit_project_page()
@@ -181,7 +179,7 @@ class ProjectManagementTest extends TestCase
     public function edit_project_component_can_update_project_details()
     {
         $this->markTestSkipped('Skipping due to form update issues with projectType field.');
-        
+
         /*
         $user = User::factory()->create();
         $project = Project::factory()->for($user)->create([
@@ -212,7 +210,7 @@ class ProjectManagementTest extends TestCase
         // This test verifies that image uploads work through the CreateProject component
         Storage::fake('s3');
         $user = User::factory()->create();
-        
+
         // Create project with no initial image
         $project = Project::factory()->for($user)->create([
             'image_path' => null,
@@ -221,38 +219,38 @@ class ProjectManagementTest extends TestCase
             'genre' => 'Rock',
             'project_type' => 'single',
             'budget' => 100,
-            'deadline' => now()->addMonth()->format('Y-m-d')
+            'deadline' => now()->addMonth()->format('Y-m-d'),
         ]);
-        
+
         // Verify project has no initial image path
         $this->assertNull($project->image_path);
-        
+
         // Create a fake image file for upload
         $newImage = UploadedFile::fake()->image('test_image.jpg');
-        
+
         // Test using the component with our special test helper
         $component = Livewire::actingAs($user)
             ->test(CreateProject::class, ['project' => $project])
             ->set('form.projectImage', $newImage)
             ->call('forceImageUpdate');
-        
+
         // Refresh project from database
         $project->refresh();
-        
+
         // Assert project now has an image
         $this->assertNotNull($project->image_path, 'Project should have an image path after forced update');
         Storage::disk('s3')->assertExists($project->image_path);
-        
+
         // Creating a second image to verify updates work
         $secondImage = UploadedFile::fake()->image('second_test_image.jpg');
         $oldPath = $project->image_path;
-        
+
         // Update with second image
         Livewire::actingAs($user)
             ->test(CreateProject::class, ['project' => $project])
             ->set('form.projectImage', $secondImage)
             ->call('forceImageUpdate');
-        
+
         // Refresh project and check image was updated
         $project->refresh();
         $this->assertNotNull($project->image_path, 'Project should still have an image path');
@@ -274,9 +272,9 @@ class ProjectManagementTest extends TestCase
             ->assertHasErrors(['form.name']);
     }
 
-    //========================================
+    // ========================================
     // ManageProject Livewire Component Tests
-    //========================================
+    // ========================================
 
     /** @test */
     public function guest_cannot_view_manage_project_page()
@@ -385,7 +383,7 @@ class ProjectManagementTest extends TestCase
     // TODO: Add tests for ManageProject file uploads/deletions in Step 5 testing
     // These require mocking or interacting with the FileManagementService once refactored.
 
-     /** @test */
+    /** @test */
     public function manage_project_component_update_with_new_image_removes_old_one()
     {
         Storage::fake('s3');
@@ -396,12 +394,12 @@ class ProjectManagementTest extends TestCase
         // Ensure factory data is valid according to ProjectForm rules
         $project = Project::factory()->for($user)->create([
             'image_path' => $oldImagePath,
-            'name' => 'Valid Project Name Minimum Five', 
+            'name' => 'Valid Project Name Minimum Five',
             'description' => 'Valid description with more than five characters.',
-            'project_type' => 'single',                 
+            'project_type' => 'single',
             'genre' => 'Pop',
             'budget' => 100, // Ensure valid budget
-            'deadline' => now()->addMonth()->format('Y-m-d') // Ensure valid deadline
+            'deadline' => now()->addMonth()->format('Y-m-d'), // Ensure valid deadline
             // artistName is nullable, collaborationType mapped in mount, notes nullable
         ]);
 
@@ -459,5 +457,4 @@ class ProjectManagementTest extends TestCase
         // Verify the returned project instance also has the correct path
         $this->assertEquals($projectFromDb->image_path, $updatedProject->image_path, 'Returned project image path mismatch.');
     }
-
-} 
+}

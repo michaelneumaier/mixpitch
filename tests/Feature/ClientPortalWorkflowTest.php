@@ -2,30 +2,32 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\Project;
-use App\Models\User;
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\ProjectFile;
+use App\Models\User;
+use App\Notifications\ClientCommentNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
-use App\Notifications\ClientCommentNotification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Tests\TestCase;
 
 class ClientPortalWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $user;
+
     protected $project;
+
     protected $pitch;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create test data
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create([
@@ -33,9 +35,9 @@ class ClientPortalWorkflowTest extends TestCase
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_name' => 'Jane Smith',
             'client_email' => 'jane@example.com',
-            'title' => 'Music Production Project'
+            'title' => 'Music Production Project',
         ]);
-        
+
         $this->pitch = Pitch::factory()->create([
             'project_id' => $this->project->id,
             'user_id' => $this->user->id,
@@ -64,12 +66,12 @@ class ClientPortalWorkflowTest extends TestCase
         $response->assertSee('Jane Smith');
         $response->assertSee('jane@example.com');
         $response->assertSee('Project Progress');
-        
+
         // Check for progress indicators (the test shows "In Progress" status)
         $response->assertSee('animate-pulse'); // Animated elements
         $response->assertSee('Project Files'); // File management section
         $response->assertSee('Project Communication'); // Communication section
-        
+
         // Check for modern styling elements
         $response->assertSee('backdrop-blur'); // Glass morphism
         $response->assertSee('gradient'); // Gradient styling
@@ -82,23 +84,23 @@ class ClientPortalWorkflowTest extends TestCase
             [
                 'status' => Pitch::STATUS_PENDING,
                 'expected_progress' => '0%',
-                'expected_message' => 'preparing your deliverables'
+                'expected_message' => 'preparing your deliverables',
             ],
             [
                 'status' => Pitch::STATUS_IN_PROGRESS,
                 'expected_progress' => '25%',
-                'expected_message' => 'actively working'
+                'expected_message' => 'actively working',
             ],
             [
                 'status' => Pitch::STATUS_COMPLETED,
                 'expected_progress' => '100%',
-                'expected_message' => 'completed successfully'
-            ]
+                'expected_message' => 'completed successfully',
+            ],
         ];
 
         foreach ($testCases as $testCase) {
             $this->pitch->update(['status' => $testCase['status']]);
-            
+
             $signedUrl = URL::temporarySignedRoute(
                 'client.portal.view',
                 now()->addHours(24),
@@ -106,7 +108,7 @@ class ClientPortalWorkflowTest extends TestCase
             );
 
             $response = $this->get($signedUrl);
-            
+
             $response->assertStatus(200);
             $response->assertSee($testCase['expected_progress']);
             $response->assertSee($testCase['expected_message']);
@@ -117,9 +119,9 @@ class ClientPortalWorkflowTest extends TestCase
     public function client_can_upload_reference_files()
     {
         Storage::fake('local');
-        
+
         $file = UploadedFile::fake()->create('reference-track.mp3', 2048);
-        
+
         $uploadUrl = URL::temporarySignedRoute(
             'client.portal.upload',
             now()->addHours(24),
@@ -128,21 +130,21 @@ class ClientPortalWorkflowTest extends TestCase
 
         // Act
         $response = $this->post($uploadUrl, [
-            'file' => $file
+            'file' => $file,
         ]);
 
         // Assert
         $response->assertStatus(200);
         $response->assertJson([
             'success' => true,
-            'filename' => 'reference-track.mp3'
+            'filename' => 'reference-track.mp3',
         ]);
-        
+
         // Verify file was stored in database
         $this->assertDatabaseHas('project_files', [
             'project_id' => $this->project->id,
             'filename' => 'reference-track.mp3',
-            'file_type' => 'client_reference'
+            'file_type' => 'client_reference',
         ]);
     }
 
@@ -150,11 +152,11 @@ class ClientPortalWorkflowTest extends TestCase
     public function client_can_delete_uploaded_files()
     {
         Storage::fake('local');
-        
+
         $projectFile = ProjectFile::factory()->create([
             'project_id' => $this->project->id,
             'file_type' => 'client_reference',
-            'filename' => 'old-reference.mp3'
+            'filename' => 'old-reference.mp3',
         ]);
 
         $deleteUrl = URL::temporarySignedRoute(
@@ -169,10 +171,10 @@ class ClientPortalWorkflowTest extends TestCase
         // Assert
         $response->assertStatus(200);
         $response->assertJson(['success' => true]);
-        
+
         // Verify file was removed from database
         $this->assertDatabaseMissing('project_files', [
-            'id' => $projectFile->id
+            'id' => $projectFile->id,
         ]);
     }
 
@@ -180,7 +182,7 @@ class ClientPortalWorkflowTest extends TestCase
     public function client_can_add_comments()
     {
         Notification::fake();
-        
+
         $commentUrl = URL::temporarySignedRoute(
             'client.portal.comments.store',
             now()->addHours(24),
@@ -191,20 +193,20 @@ class ClientPortalWorkflowTest extends TestCase
 
         // Act
         $response = $this->post($commentUrl, [
-            'comment' => $comment
+            'comment' => $comment,
         ]);
 
         // Assert
         $response->assertStatus(302); // Redirect back
         $response->assertSessionHas('success');
-        
+
         // Verify comment was stored
         $this->assertDatabaseHas('pitch_events', [
             'pitch_id' => $this->pitch->id,
             'event_type' => 'client_comment',
-            'comment' => $comment
+            'comment' => $comment,
         ]);
-        
+
         // Verify producer was notified
         Notification::assertSentTo(
             $this->user,
@@ -225,22 +227,22 @@ class ClientPortalWorkflowTest extends TestCase
 
         // Act
         $response = $this->post($revisionsUrl, [
-            'feedback' => $feedback
+            'feedback' => $feedback,
         ]);
 
         // Assert
         $response->assertStatus(302); // Redirect back
         $response->assertSessionHas('success');
-        
+
         // Verify pitch status changed to revisions requested
         $this->pitch->refresh();
         $this->assertEquals(Pitch::STATUS_REVISIONS_REQUESTED, $this->pitch->status);
-        
+
         // Verify revision event was created
         $this->assertDatabaseHas('pitch_events', [
             'pitch_id' => $this->pitch->id,
             'event_type' => 'client_revisions_requested',
-            'comment' => $feedback
+            'comment' => $feedback,
         ]);
     }
 
@@ -249,7 +251,7 @@ class ClientPortalWorkflowTest extends TestCase
     {
         // Ensure producer has Stripe setup
         $this->user->createOrGetStripeCustomer();
-        
+
         $approveUrl = URL::temporarySignedRoute(
             'client.portal.approve',
             now()->addHours(24),
@@ -262,7 +264,7 @@ class ClientPortalWorkflowTest extends TestCase
         // Assert
         $response->assertStatus(302); // Redirect to Stripe
         $this->assertStringContainsString('checkout.stripe.com', $response->headers->get('Location'));
-        
+
         // Verify pitch status hasn't changed yet (payment pending)
         $this->pitch->refresh();
         $this->assertEquals(Pitch::STATUS_READY_FOR_REVIEW, $this->pitch->status);
@@ -274,7 +276,7 @@ class ClientPortalWorkflowTest extends TestCase
     {
         // Update pitch to be free
         $this->pitch->update(['payment_amount' => 0.00]);
-        
+
         $approveUrl = URL::temporarySignedRoute(
             'client.portal.approve',
             now()->addHours(24),
@@ -287,7 +289,7 @@ class ClientPortalWorkflowTest extends TestCase
         // Assert
         $response->assertStatus(302); // Redirect back
         $response->assertSessionHas('success');
-        
+
         // Verify pitch was approved
         $this->pitch->refresh();
         $this->assertEquals(Pitch::STATUS_APPROVED, $this->pitch->status);
@@ -299,9 +301,9 @@ class ClientPortalWorkflowTest extends TestCase
         // Set pitch to approved status
         $this->pitch->update([
             'status' => Pitch::STATUS_APPROVED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
-        
+
         $signedUrl = URL::temporarySignedRoute(
             'client.portal.view',
             now()->addHours(24),
@@ -325,9 +327,9 @@ class ClientPortalWorkflowTest extends TestCase
         // Set pitch to completed status
         $this->pitch->update([
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
-        
+
         $signedUrl = URL::temporarySignedRoute(
             'client.portal.view',
             now()->addHours(24),
@@ -364,9 +366,9 @@ class ClientPortalWorkflowTest extends TestCase
         // Create a standard project
         $standardProject = Project::factory()->create([
             'user_id' => $this->user->id,
-            'workflow_type' => Project::WORKFLOW_TYPE_STANDARD
+            'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
         ]);
-        
+
         $signedUrl = URL::temporarySignedRoute(
             'client.portal.view',
             now()->addHours(24),
@@ -441,7 +443,7 @@ class ClientPortalWorkflowTest extends TestCase
     public function client_portal_validates_file_uploads()
     {
         Storage::fake('local');
-        
+
         $uploadUrl = URL::temporarySignedRoute(
             'client.portal.upload',
             now()->addHours(24),
@@ -452,20 +454,20 @@ class ClientPortalWorkflowTest extends TestCase
         $invalidFile = UploadedFile::fake()->create('virus.exe', 1024);
 
         $response = $this->post($uploadUrl, [
-            'file' => $invalidFile
+            'file' => $invalidFile,
         ]);
 
         // Should reject invalid file types
         $response->assertStatus(422);
-        
+
         // Test with oversized file
         $oversizedFile = UploadedFile::fake()->create('huge.mp3', 50000); // 50MB
 
         $response = $this->post($uploadUrl, [
-            'file' => $oversizedFile
+            'file' => $oversizedFile,
         ]);
 
         // Should reject oversized files
         $response->assertStatus(422);
     }
-} 
+}

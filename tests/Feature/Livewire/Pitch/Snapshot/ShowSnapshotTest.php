@@ -3,10 +3,10 @@
 namespace Tests\Feature\Livewire\Pitch\Snapshot;
 
 use App\Livewire\Pitch\Snapshot\ShowSnapshot;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
 use App\Models\PitchSnapshot;
+use App\Models\Project;
+use App\Models\User;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -21,7 +21,7 @@ class ShowSnapshotTest extends TestCase
         $project = Project::factory()->create(['user_id' => $projectOwner->id]);
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
-            'user_id' => $pitchCreator->id
+            'user_id' => $pitchCreator->id,
         ]);
         $snapshot = PitchSnapshot::factory()->create(['pitch_id' => $pitch->id, 'user_id' => $pitchCreator->id]);
 
@@ -30,7 +30,7 @@ class ShowSnapshotTest extends TestCase
             ->test(ShowSnapshot::class, [
                 'project' => $project,
                 'pitch' => $pitch,
-                'snapshot' => $snapshot
+                'snapshot' => $snapshot,
             ])
             ->assertOk();
 
@@ -39,8 +39,8 @@ class ShowSnapshotTest extends TestCase
             ->test(ShowSnapshot::class, [
                 'project' => $project,
                 'pitch' => $pitch,
-                'snapshot' => $snapshot
+                'snapshot' => $snapshot,
             ])
             ->assertOk();
     }
-} 
+}

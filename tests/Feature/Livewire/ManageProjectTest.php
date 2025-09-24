@@ -3,16 +3,13 @@
 namespace Tests\Feature\Livewire;
 
 use App\Livewire\ManageProject;
-use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Tests\TestCase;
-use Carbon\Carbon;
-use Mockery;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Gate;
 
 class ManageProjectTest extends TestCase
 {
@@ -23,7 +20,7 @@ class ManageProjectTest extends TestCase
     {
         // Create a user
         $user = User::factory()->create();
-        
+
         // Create a project with all needed fields
         $project = Project::factory()->create([
             'user_id' => $user->id,
@@ -40,21 +37,21 @@ class ManageProjectTest extends TestCase
             'total_storage_used' => 0,
             'total_storage_limit_bytes' => 104857600, // 100MB
         ]);
-        
+
         // Define authorization explicitly to avoid hanging in policy lookups
-        Gate::define('update', function (User $gateUser, Project $gateProject) use ($user) {
+        Gate::define('update', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         // Define a simple publish/unpublish permission
-        Gate::define('publish', function (User $gateUser, Project $gateProject) use ($user) {
+        Gate::define('publish', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
-        Gate::define('unpublish', function (User $gateUser, Project $gateProject) use ($user) {
+
+        Gate::define('unpublish', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         // Test with mocks for problematic methods
         $component = Livewire::actingAs($user)
             ->test(ManageProject::class, ['project' => $project])
@@ -79,15 +76,15 @@ class ManageProjectTest extends TestCase
             'is_published' => false,
             'preview_track' => null,
         ]);
-        
+
         // Create unauthorized user
         $unauthorizedUser = User::factory()->create();
-        
+
         // Define authorization explicitly to avoid hanging in policy lookups
-        Gate::define('update', function (User $gateUser, Project $gateProject) use ($projectOwner) {
+        Gate::define('update', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         // Test with unauthorized user
         Livewire::actingAs($unauthorizedUser)
             ->test(ManageProject::class, ['project' => $project])
@@ -108,16 +105,16 @@ class ManageProjectTest extends TestCase
             'budget' => 0,
             'deadline' => Carbon::now()->addDays(10)->format('Y-m-d'),
         ]);
-        
+
         // Define gate permissions
         Gate::define('update', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         // Test updating project details
         $component = Livewire::actingAs($user)
             ->test(ManageProject::class, ['project' => $project]);
-        
+
         // Set form data
         $component->set('form.name', 'Updated Name')
             ->set('form.description', 'Updated Description')
@@ -129,11 +126,11 @@ class ManageProjectTest extends TestCase
             ->set('form.budget', 500)
             ->call('updateProjectDetails')
             ->assertDispatched('project-details-updated');
-        
+
         // Verify project was updated in database
         $this->assertDatabaseHas('projects', [
             'id' => $project->id,
-            'name' => 'Updated Name', 
+            'name' => 'Updated Name',
             'description' => 'Updated Description',
             'project_type' => 'album',
             'genre' => 'Pop',
@@ -152,28 +149,28 @@ class ManageProjectTest extends TestCase
             'project_type' => 'single',
             'genre' => 'Rock',
             'status' => 'draft',
-            'is_published' => false
+            'is_published' => false,
         ]);
-        
+
         // Set up gate permissions
         Gate::define('update', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         Gate::define('publish', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         // Test publish functionality
         Livewire::actingAs($user)
             ->test(ManageProject::class, ['project' => $project])
             ->call('publish')
             ->assertDispatched('project-updated');
-        
+
         // Verify status updated in database
         $this->assertDatabaseHas('projects', [
             'id' => $project->id,
-            'is_published' => true
+            'is_published' => true,
         ]);
     }
 
@@ -188,28 +185,28 @@ class ManageProjectTest extends TestCase
             'project_type' => 'single',
             'genre' => 'Rock',
             'status' => 'published',
-            'is_published' => true
+            'is_published' => true,
         ]);
-        
+
         // Set up gate permissions
         Gate::define('update', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         Gate::define('unpublish', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         // Test unpublish functionality
         Livewire::actingAs($user)
             ->test(ManageProject::class, ['project' => $project])
             ->call('unpublish')
             ->assertDispatched('project-updated');
-        
+
         // Verify status updated in database
         $this->assertDatabaseHas('projects', [
             'id' => $project->id,
-            'is_published' => false
+            'is_published' => false,
         ]);
     }
 
@@ -227,19 +224,19 @@ class ManageProjectTest extends TestCase
             'budget' => 0,
             'deadline' => Carbon::now()->addDays(10)->format('Y-m-d'),
         ]);
-        
+
         // Output original project details for debugging
         dump('Original Project: ', $project->toArray());
-        
+
         // Define gate permissions
         Gate::define('update', function (User $gateUser, Project $gateProject) {
             return $gateUser->id === $gateProject->user_id;
         });
-        
+
         // Test updating project details
         $component = Livewire::actingAs($user)
             ->test(ManageProject::class, ['project' => $project]);
-        
+
         // Set form data
         $component->set('form.name', 'Updated Name')
             ->set('form.description', 'Updated Description')
@@ -249,24 +246,24 @@ class ManageProjectTest extends TestCase
             ->set('form.collaborationTypeMastering', true)
             ->set('form.budgetType', 'paid')
             ->set('form.budget', 500);
-            
+
         // Dump component state before update
         dump('Component Form State Before Update: ', $component->get('form'));
-        
+
         $component->call('updateProjectDetails');
-        
+
         // Get the updated project directly from DB
         $updatedProject = Project::find($project->id);
         dump('Updated Project from DB: ', $updatedProject->toArray());
-        
+
         // Verify project was updated in database
         $this->assertDatabaseHas('projects', [
             'id' => $project->id,
-            'name' => 'Updated Name', 
+            'name' => 'Updated Name',
             'description' => 'Updated Description',
             'project_type' => 'album',
             'genre' => 'Pop',
             'budget' => 500,
         ]);
     }
-} 
+}

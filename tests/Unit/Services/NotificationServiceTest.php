@@ -4,10 +4,10 @@ namespace Tests\Unit\Services;
 
 use App\Events\NotificationCreated;
 use App\Models\Notification;
+use App\Models\NotificationPreference;
 use App\Models\Pitch;
 use App\Models\Project;
 use App\Models\User;
-use App\Models\NotificationPreference;
 use App\Services\EmailService;
 use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,8 +20,11 @@ class NotificationServiceTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected Pitch $pitch;
+
     protected NotificationService $notificationService;
 
     protected function setUp(): void
@@ -161,7 +164,7 @@ class NotificationServiceTest extends TestCase
                 'project_name' => $this->project->name,
                 'producer_id' => $submitter->id,
                 'producer_name' => $submitter->name,
-            ])
+            ]),
         ]);
 
         $this->assertEquals($projectOwner->id, $notification->user_id);
@@ -191,7 +194,7 @@ class NotificationServiceTest extends TestCase
                 'status' => Pitch::STATUS_APPROVED,
                 'project_id' => $this->pitch->project_id,
                 'project_name' => $this->pitch->project->name,
-            ])
+            ]),
         ]);
 
         $this->assertEquals($pitchCreator->id, $notification->user_id);
@@ -323,4 +326,4 @@ class NotificationServiceTest extends TestCase
     // - notifySnapshotApproved (check recipient)
     // - notifyPaymentProcessed (check recipient)
 
-} 
+}

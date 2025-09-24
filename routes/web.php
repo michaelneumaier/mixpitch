@@ -1055,6 +1055,15 @@ Route::get('/client-portal/project/{project:id}/file/{pitchFile:id}', [ClientPor
     ->name('client.portal.download_file')
     ->middleware(['signed_or_client']);
 
+// Client Audio Streaming routes (for audio player functionality)
+Route::get('/client-portal/project/{project:id}/audio/{pitchFile:id}', [ClientPortalController::class, 'streamAudioFile'])
+    ->name('client.portal.audio.stream')
+    ->middleware(['signed_or_client']);
+
+Route::get('/client-portal/project/{project:id}/audio/{pitchFile:id}/player', [ClientPortalController::class, 'showAudioPlayer'])
+    ->name('client.portal.audio.player')
+    ->middleware(['signed_or_client']);
+
 // Client File Upload route - TEMPORARILY REMOVING SIGNED MIDDLEWARE FOR DEBUGGING
 Route::post('/client-portal/project/{project:id}/upload', [ClientPortalController::class, 'uploadFile'])
     ->name('client.portal.upload_file')

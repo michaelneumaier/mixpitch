@@ -2,26 +2,33 @@
 
 namespace Tests\Feature\Policies;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
 use App\Models\PitchFile;
-use App\Policies\PitchFilePolicy;
+use App\Models\Project;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class PitchFilePolicyTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $projectOwner;
+
     private User $pitchCreator;
+
     private User $unrelatedUser;
+
     private Project $project;
+
     private Pitch $pitchInProgress;
+
     private Pitch $pitchRevisionsRequested;
+
     private Pitch $pitchApproved; // A status where uploads/deletes are generally disallowed
+
     private PitchFile $pitchFileOnInProgress;
+
     private PitchFile $pitchFileOnApproved;
 
     protected function setUp(): void
@@ -100,7 +107,7 @@ class PitchFilePolicyTest extends TestCase
         // Example: Approved status
         $this->assertFalse($this->pitchCreator->can('deleteFile', $this->pitchFileOnApproved));
 
-         // Add other disallowed statuses if needed
+        // Add other disallowed statuses if needed
         $pitchCompleted = Pitch::factory()->for($this->project)->for($this->pitchCreator, 'user')->create(['status' => Pitch::STATUS_COMPLETED]);
         $fileOnCompleted = PitchFile::factory()->for($pitchCompleted)->create(['user_id' => $this->pitchCreator->id]);
         $this->assertFalse($this->pitchCreator->can('deleteFile', $fileOnCompleted));
@@ -137,4 +144,4 @@ class PitchFilePolicyTest extends TestCase
     {
         $this->assertFalse($this->unrelatedUser->can('downloadFile', $this->pitchFileOnInProgress));
     }
-} 
+}

@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\PayoutHoldSetting;
 use App\Models\PayoutSchedule;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\PayoutHoldService;
 use Carbon\Carbon;
@@ -54,19 +54,19 @@ class StripeConnectHoldPeriodTest extends TestCase
         $standardPitch = Pitch::factory()->create([
             'project_id' => $standardProject->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1500
+            'payment_amount' => 1500,
         ]);
 
         $contestPitch = Pitch::factory()->create([
             'project_id' => $contestProject->id,
             'user_id' => $producer->id,
-            'payment_amount' => 2500
+            'payment_amount' => 2500,
         ]);
 
         $clientPitch = Pitch::factory()->create([
             'project_id' => $clientProject->id,
             'user_id' => $producer->id,
-            'payment_amount' => 3000
+            'payment_amount' => 3000,
         ]);
 
         // Act: Test that hold service calculates correctly
@@ -77,7 +77,7 @@ class StripeConnectHoldPeriodTest extends TestCase
         // Assert: Verify hold periods are correctly calculated
         // Current time: 2024-01-05 14:00:00 (Friday afternoon)
         // With calendar days: Next day + hold days at 09:00:00
-        
+
         // Standard: 2 calendar days (Friday + 2 days = Sunday)
         $this->assertEquals(
             Carbon::parse('2024-01-07 09:00:00')->format('Y-m-d H:i'),
@@ -114,7 +114,7 @@ class StripeConnectHoldPeriodTest extends TestCase
                 'stripe_account_id' => $producer->stripe_account_id,
                 'commission_percentage' => 8,
                 'gross_amount' => 1500,
-            ]
+            ],
         ]);
 
         // Verify Stripe metadata is preserved
@@ -143,7 +143,7 @@ class StripeConnectHoldPeriodTest extends TestCase
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
 
         // Create payout with past hold release date
@@ -162,11 +162,11 @@ class StripeConnectHoldPeriodTest extends TestCase
             'metadata' => [
                 'stripe_invoice_id' => 'in_test_ready_123',
                 'stripe_account_id' => $producer->stripe_account_id,
-            ]
+            ],
         ]);
 
         // Act: Check if payout is ready for processing
-        $isReadyForStripe = $payout->hold_release_date <= now() && 
+        $isReadyForStripe = $payout->hold_release_date <= now() &&
                            $payout->status === PayoutSchedule::STATUS_SCHEDULED;
 
         // Assert: Payout should be ready for Stripe processing
@@ -197,7 +197,7 @@ class StripeConnectHoldPeriodTest extends TestCase
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 2000
+            'payment_amount' => 2000,
         ]);
 
         $payout = PayoutSchedule::create([
@@ -215,7 +215,7 @@ class StripeConnectHoldPeriodTest extends TestCase
             'metadata' => [
                 'stripe_invoice_id' => 'in_test_bypass_456',
                 'stripe_account_id' => $producer->stripe_account_id,
-            ]
+            ],
         ]);
 
         // Act: Admin bypasses hold period
@@ -227,7 +227,7 @@ class StripeConnectHoldPeriodTest extends TestCase
         $this->assertEquals('Emergency payout for producer', $payout->bypass_reason);
         $this->assertEquals($admin->id, $payout->bypass_admin_id);
         $this->assertLessThanOrEqual(now()->addHours(1), $payout->hold_release_date);
-        
+
         // Should still have Stripe metadata intact
         $this->assertEquals('in_test_bypass_456', $payout->metadata['stripe_invoice_id']);
         $this->assertEquals('acct_test_bypass123', $payout->metadata['stripe_account_id']);

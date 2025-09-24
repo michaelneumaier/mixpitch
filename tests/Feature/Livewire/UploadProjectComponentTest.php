@@ -18,4 +18,4 @@ class UploadProjectComponentTest extends TestCase
             ->test(UploadProjectComponent::class)
             ->assertOk();
     }
-} 
+}

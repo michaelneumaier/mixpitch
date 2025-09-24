@@ -14,7 +14,6 @@ class DeletePitch extends Component
 
     public $deleteConfirmInput = '';
 
-
     public function mount(Pitch $pitch)
     {
         $this->pitch = $pitch;

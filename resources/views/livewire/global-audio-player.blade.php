@@ -417,7 +417,7 @@
                     {{-- Shuffle and Repeat Controls --}}
                     <div class="flex items-center gap-2">
                         <button @click="$store.audioPlayer.toggleShuffle()" 
-                                class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-150"
+                                class="hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-150"
                                 :class="{ 'text-purple-600 bg-purple-100': $store.audioPlayer.shuffleMode }"
                                 title="Shuffle">
                             <i class="fas fa-random text-sm"></i>
@@ -600,7 +600,7 @@
     </div>
 </div>
 
-@push('scripts')
+@script
 <script>
 // Create a centralized store for audio player state
 Alpine.store('audioPlayer', {
@@ -1427,7 +1427,7 @@ Alpine.data('globalAudioPlayer', () => ({
 
 }));
 </script>
-@endpush
+@endscript
 
 <style>
 /* Custom slider styling */

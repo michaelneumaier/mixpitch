@@ -3,7 +3,6 @@
 namespace Tests\Feature\Livewire;
 
 use App\Livewire\PitchFilePlayer;
-use App\Models\User;
 use App\Models\PitchFile;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -23,4 +22,4 @@ class PitchFilePlayerTest extends TestCase
         Livewire::test(PitchFilePlayer::class, ['file' => $pitchFile])
             ->assertOk();
     }
-} 
+}

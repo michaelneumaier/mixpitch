@@ -20,4 +20,4 @@ class ProjectCardTest extends TestCase
             ->test(ProjectCard::class, ['project' => $project])
             ->assertOk();
     }
-} 
+}

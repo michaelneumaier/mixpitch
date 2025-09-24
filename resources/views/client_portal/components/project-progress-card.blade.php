@@ -78,8 +78,8 @@
         </flux:badge>
     </div>
 
-    <div class="mb-6 rounded-xl bg-gray-50 p-6 dark:bg-gray-800">
-        <div class="mb-4 flex items-center gap-3">
+    <div class="mb-6 rounded-xl bg-gray-50 p-2 md:p-6 dark:bg-gray-800">
+        <div class="mb-4 flex items-center gap-2">
             <flux:icon.map class="text-blue-500" />
             <flux:heading size="sm">Project Progress</flux:heading>
         </div>

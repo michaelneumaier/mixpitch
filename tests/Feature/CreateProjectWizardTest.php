@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Livewire\CreateProject;
-use App\Models\User;
 use App\Models\Project;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -16,11 +16,11 @@ class CreateProjectWizardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create and authenticate a user
         $user = User::factory()->create();
         $this->actingAs($user);
-        
+
         // Seed project types for tests that need them
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ProjectTypeSeeder']);
     }
@@ -39,7 +39,7 @@ class CreateProjectWizardTest extends TestCase
     public function wizard_mode_is_disabled_for_edit_mode()
     {
         $project = Project::factory()->create(['user_id' => auth()->id()]);
-        
+
         Livewire::test(CreateProject::class, ['project' => $project])
             ->assertSet('useWizard', false)
             ->assertSet('isEdit', true)
@@ -84,15 +84,15 @@ class CreateProjectWizardTest extends TestCase
     public function workflow_types_are_properly_configured()
     {
         $component = Livewire::test(CreateProject::class);
-        
+
         $workflowTypes = $component->get('workflowTypes');
-        
+
         // Should now have 3 workflow types (Direct Hire is hidden)
         $this->assertCount(3, $workflowTypes);
         $this->assertEquals(Project::WORKFLOW_TYPE_STANDARD, $workflowTypes[0]['value']);
         $this->assertEquals(Project::WORKFLOW_TYPE_CONTEST, $workflowTypes[1]['value']);
         $this->assertEquals(Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT, $workflowTypes[2]['value']);
-        
+
         // Verify Direct Hire is not in the available options
         $workflowValues = array_column($workflowTypes, 'value');
         $this->assertNotContains(Project::WORKFLOW_TYPE_DIRECT_HIRE, $workflowValues);
@@ -105,7 +105,7 @@ class CreateProjectWizardTest extends TestCase
             // Step 1: Workflow Selection
             ->set('workflow_type', Project::WORKFLOW_TYPE_STANDARD)
             ->call('nextStep')
-            
+
             // Step 2: Basic Details
             ->set('form.name', 'Test Project')
             ->set('form.artistName', 'Test Artist')
@@ -114,11 +114,11 @@ class CreateProjectWizardTest extends TestCase
             ->set('form.genre', 'Rock')
             ->set('form.collaborationTypeMixing', true)
             ->call('nextStep')
-            
+
             // Step 3: Configuration
             ->set('form.budgetType', 'free')
             ->call('nextStep')
-            
+
             // Step 4: Review
             ->assertSee('Review Your Project')
             ->assertSee('Test Project')
@@ -195,10 +195,10 @@ class CreateProjectWizardTest extends TestCase
             // Don't set required fields: description, projectType, genre
             // Don't set any collaboration types
             ->call('nextStep');
-            
+
         // Should have validation error for collaboration types (which is checked first)
         $component->assertHasErrors(['collaboration_type'])
-                  ->assertSet('currentStep', 2); // Should stay on step 2
+            ->assertSet('currentStep', 2); // Should stay on step 2
     }
 
     /** @test */
@@ -212,28 +212,28 @@ class CreateProjectWizardTest extends TestCase
             // Don't set required fields: description, genre
             // Note: projectType has a default value of 'single' so it won't be in validation errors
             ->call('nextStep');
-            
+
         // Should have validation errors for required form fields (excluding projectType which has default)
         $component->assertHasErrors(['form.description', 'form.genre'])
-                  ->assertSet('currentStep', 2); // Should stay on step 2
+            ->assertSet('currentStep', 2); // Should stay on step 2
     }
 
     /** @test */
     public function step_2_content_changes_based_on_workflow()
     {
         $component = Livewire::test(CreateProject::class);
-        
+
         // Test Standard workflow content
         $component->set('workflow_type', Project::WORKFLOW_TYPE_STANDARD)
-                  ->call('nextStep');
+            ->call('nextStep');
         $step2Content = $component->get('step2Content');
         $this->assertEquals('Project Details', $step2Content['title']);
         $this->assertStringContainsString('attract the right collaborators', $step2Content['subtitle']);
-        
+
         // Test Client Management workflow content
         $component->set('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
-                  ->call('previousStep')
-                  ->call('nextStep');
+            ->call('previousStep')
+            ->call('nextStep');
         $step2Content = $component->get('step2Content');
         $this->assertEquals('Client Project Setup', $step2Content['title']);
         $this->assertStringContainsString('Only the project name is required', $step2Content['subtitle']);
@@ -271,7 +271,7 @@ class CreateProjectWizardTest extends TestCase
             ->call('nextStep');
 
         $summary = $component->get('projectSummary');
-        
+
         $this->assertEquals('Summary Test Project', $summary['name']);
         $this->assertEquals('Summary Artist', $summary['artist_name']);
         $this->assertEquals('album', $summary['project_type']);
@@ -280,4 +280,4 @@ class CreateProjectWizardTest extends TestCase
         $this->assertContains('mixing', $summary['collaboration_types']);
         $this->assertContains('mastering', $summary['collaboration_types']);
     }
-} 
+}

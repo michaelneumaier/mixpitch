@@ -103,9 +103,32 @@
     @endif
 
     {{-- Enhanced Current Snapshot Files Display with Audio Player --}}
-    @if (
-        $currentSnapshot &&
-            (method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0))
+    {{-- Show Producer Deliverables based on workflow state for client management projects --}}
+    @php
+        $shouldShowDeliverables = false;
+        
+        // For client management workflow, show deliverables when producer has submitted files for review
+        if ($project->isClientManagement()) {
+            $statusAllowed = in_array($pitch->status, [
+                \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+                \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+                \App\Models\Pitch::STATUS_COMPLETED
+            ]);
+            $hasCurrentSnapshot = $currentSnapshot ? true : false;
+            $hasFiles = false;
+            if ($currentSnapshot) {
+                $hasFiles = method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0;
+            }
+            
+            $shouldShowDeliverables = $statusAllowed && $hasCurrentSnapshot && $hasFiles;
+        } else {
+            // For other workflows, use the original logic
+            $shouldShowDeliverables = $currentSnapshot && (method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : ($currentSnapshot->files ?? collect())->count() > 0);
+        }
+    @endphp
+    
+    
+    @if ($shouldShowDeliverables)
         <div class="mb-4">
             {{-- Response to Feedback (moved to top for better visibility) --}}
             @if ($currentSnapshot->response_to_feedback ?? false)
@@ -126,22 +149,6 @@
                 </span>
             </div>
 
-            @if (!isset($isPreview) || !$isPreview)
-                <div class="mb-4">
-                    <form x-data="approveAll({ url: '{{ URL::temporarySignedRoute('client.portal.files.approve_all', now()->addHours(24), ['project' => $project->id]) }}' })"
-                        @submit.prevent="submit" method="POST">
-                        @csrf
-                        <button type="submit"
-                            class="inline-flex items-center rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-2 text-sm text-white hover:from-green-700 hover:to-emerald-700">
-                            <i class="fas fa-check-double mr-2"></i>
-                            <span x-show="!loading">Approve All Files</span>
-                            <span x-show="loading"><i class="fas fa-spinner fa-spin mr-1"></i>
-                                Approving...</span>
-                        </button>
-                    </form>
-                </div>
-            @endif
-
             {{-- Enhanced File Display with Audio Players and Annotations --}}
             @if (request('checkout_status') === 'success')
                 <div class="mb-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
@@ -152,75 +159,10 @@
                     <i class="fas fa-info-circle mr-1"></i> Checkout canceled.
                 </div>
             @endif
-
-            {{-- Milestones Section --}}
-            @if (isset($milestones) && $milestones->count() > 0)
-                <div class="mb-6 rounded-xl bg-purple-50 p-6 dark:bg-purple-900/20">
-                    <div class="mb-4 flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <flux:icon.flag class="text-purple-500" />
-                            <flux:heading size="lg">Milestones</flux:heading>
-                        </div>
-                        @php($sumMilestones = $milestones->sum('amount'))
-                        <flux:badge variant="info">Total:
-                            ${{ number_format($sumMilestones, 2) }}
-                        </flux:badge>
-                    </div>
-                    <div class="space-y-3">
-                        @foreach ($milestones as $m)
-                            <div class="flex items-center justify-between rounded-xl border bg-white p-4 dark:bg-gray-700">
-                                <div class="min-w-0 flex-1">
-                                    <flux:heading size="sm" class="truncate">
-                                        {{ $m->name }}</flux:heading>
-                                    @if ($m->description)
-                                        <flux:subheading class="truncate">
-                                            {{ $m->description }}
-                                        </flux:subheading>
-                                    @endif
-                                    <div class="mt-1 flex items-center gap-2">
-                                        <flux:text size="xs">Status:
-                                            {{ ucfirst($m->status) }}</flux:text>
-                                        @if ($m->amount > 0)
-                                            @if ($m->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
-                                                <flux:badge variant="success" size="sm">
-                                                    Paid
-                                                </flux:badge>
-                                            @elseif($m->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
-                                                <flux:badge variant="warning" size="sm">
-                                                    Payment pending</flux:badge>
-                                            @endif
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="ml-4 flex items-center gap-3">
-                                    <flux:heading size="sm">
-                                        ${{ number_format($m->amount, 2) }}</flux:heading>
-                                    @if ($m->status !== 'approved' || ($m->amount > 0 && $m->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_PAID))
-                                        <form method="POST"
-                                            action="{{ URL::temporarySignedRoute('client.portal.milestones.approve', now()->addHours(24), ['project' => $project->id, 'milestone' => $m->id]) }}">
-                                            @csrf
-                                            <flux:button type="submit" variant="primary" size="sm">
-                                                @if ($m->amount > 0)
-                                                    <flux:icon.credit-card class="mr-1" />Approve & Pay
-                                                @else
-                                                    <flux:icon.check class="mr-1" />Approve
-                                                @endif
-                                            </flux:button>
-                                        </form>
-                                    @else
-                                        <flux:badge variant="success">
-                                            <flux:icon.check-circle class="mr-1" /> Completed
-                                        </flux:badge>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
             {{-- Enhanced File List using Livewire Component --}}
-            @livewire('file-list', [
+            @livewire('components.file-list', [
                 'files' => $currentSnapshot->files ?? collect(),
+                'modelType' => 'pitch',
                 'canPlay' => true,
                 'canDownload' => false,
                 'canDelete' => false,
@@ -230,7 +172,18 @@
                 'headerIcon' => 'document-duplicate',
                 'emptyStateMessage' => 'No files in this version',
                 'emptyStateSubMessage' => 'Files will appear here when uploaded',
-                'colorScheme' => 'green'
+                'isClientPortal' => true,
+                'clientPortalProjectId' => $project->id,
+                'colorScheme' => [
+                    'bg' => 'bg-green-50 dark:bg-green-950',
+                    'border' => 'border-green-200 dark:border-green-800',
+                    'text_primary' => 'text-green-900 dark:text-green-100',
+                    'text_secondary' => 'text-green-700 dark:text-green-300',
+                    'text_muted' => 'text-green-600 dark:text-green-400',
+                    'accent_bg' => 'bg-green-100 dark:bg-green-900',
+                    'accent_border' => 'border-green-200 dark:border-green-800',
+                    'icon' => 'text-green-600 dark:text-green-400',
+                ]
             ])
 
             {{-- File Approval Section --}}
@@ -270,8 +223,7 @@
                                         x-data="approveFile({ url: '{{ URL::temporarySignedRoute('client.portal.files.approve', now()->addHours(24), ['project' => $project->id, 'pitchFile' => $file->id]) }}' })"
                                         @submit.prevent="submit">
                                         @csrf
-                                        <flux:button type="submit" variant="primary" size="sm">
-                                            <flux:icon.check class="mr-2" />
+                                        <flux:button type="submit" variant="primary" size="sm" icon="check-circle">
                                             <span x-show="!loading">Approve</span>
                                             <span x-show="loading">
                                                 <flux:icon.arrow-path class="mr-1 animate-spin" />
@@ -288,8 +240,7 @@
                             <form x-data="approveAll({ url: '{{ URL::temporarySignedRoute('client.portal.files.approve_all', now()->addHours(24), ['project' => $project->id]) }}' })"
                                 @submit.prevent="submit" method="POST">
                                 @csrf
-                                <flux:button type="submit" variant="primary">
-                                    <flux:icon.check-circle class="mr-2" />
+                                <flux:button type="submit" variant="primary" icon="check-circle">
                                     <span x-show="!loading">Approve All Files</span>
                                     <span x-show="loading">
                                         <flux:icon.arrow-path class="mr-1 animate-spin" />
@@ -321,15 +272,37 @@
     @else
         <div class="py-8 text-center">
             <flux:icon.clock class="mx-auto mb-4 w-16 h-16 text-green-400" />
-            @if ($currentSnapshot)
-                <flux:heading size="md" class="mb-2 text-green-700">No files in this version</flux:heading>
-                <flux:text class="text-green-600">The producer hasn't uploaded files for this submission yet.</flux:text>
+            
+            @if ($project->isClientManagement())
+                {{-- Client Management Workflow Empty States --}}
+                @if ($pitch->status === \App\Models\Pitch::STATUS_IN_PROGRESS)
+                    <flux:heading size="md" class="mb-2 text-green-700">Producer is working on your project</flux:heading>
+                    <flux:text class="mx-auto max-w-md leading-relaxed text-green-600">
+                        Files will appear here when the producer submits them for your review. 
+                        You'll receive an email notification when deliverables are ready.
+                    </flux:text>
+                @elseif (in_array($pitch->status, [\App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_COMPLETED]))
+                    <flux:heading size="md" class="mb-2 text-green-700">No files in this submission</flux:heading>
+                    <flux:text class="text-green-600">The producer hasn't uploaded any files for this submission yet.</flux:text>
+                @else
+                    <flux:heading size="md" class="mb-2 text-green-700">Deliverables will appear here</flux:heading>
+                    <flux:text class="mx-auto max-w-md leading-relaxed text-green-600">
+                        Files will be uploaded here as the producer works on your project. 
+                        You'll be notified when new deliverables are available for review.
+                    </flux:text>
+                @endif
             @else
-                <flux:heading size="md" class="mb-2 text-green-700">No deliverables uploaded yet</flux:heading>
-                <flux:text class="mx-auto max-w-md leading-relaxed text-green-600">
-                    The producer will upload files here as they work on your project. 
-                    You'll be notified when new files are available.
-                </flux:text>
+                {{-- Other Workflow Types --}}
+                @if ($currentSnapshot)
+                    <flux:heading size="md" class="mb-2 text-green-700">No files in this version</flux:heading>
+                    <flux:text class="text-green-600">The producer hasn't uploaded files for this submission yet.</flux:text>
+                @else
+                    <flux:heading size="md" class="mb-2 text-green-700">No deliverables uploaded yet</flux:heading>
+                    <flux:text class="mx-auto max-w-md leading-relaxed text-green-600">
+                        The producer will upload files here as they work on your project. 
+                        You'll be notified when new files are available.
+                    </flux:text>
+                @endif
             @endif
         </div>
     @endif

@@ -2,24 +2,24 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
 use App\Models\Notification;
-use App\Notifications\DirectHireAssignmentNotification; // Adjust if notification class name differs
+use App\Models\Pitch;
+use App\Models\PitchSnapshot;
+use App\Models\Project;
+use App\Models\User;
+use App\Notifications\DirectHireAssignmentNotification;
+use Illuminate\Auth\Access\AuthorizationException; // Adjust if notification class name differs
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Livewire\Livewire;
-use App\Models\PitchSnapshot;
-use Illuminate\Auth\Access\AuthorizationException;
+use Tests\TestCase;
 
 class DirectHireWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $projectOwner;
+
     protected User $targetProducer;
 
     protected function setUp(): void
@@ -29,7 +29,7 @@ class DirectHireWorkflowTest extends TestCase
         // Create users
         $this->projectOwner = User::factory()->create(['role' => 'owner']); // Assuming roles exist
         $this->targetProducer = User::factory()->create(['role' => 'producer']);
-        
+
         // Mock notifications
         NotificationFacade::fake();
     }
@@ -74,7 +74,7 @@ class DirectHireWorkflowTest extends TestCase
         //         return $notification->pitch->id === $pitch->id;
         //     }
         // );
-        
+
         // Assert: In-app notification was created (check NotificationService logic)
         $this->assertDatabaseHas('notifications', [
             'user_id' => $this->targetProducer->id,
@@ -83,7 +83,7 @@ class DirectHireWorkflowTest extends TestCase
             'related_id' => $pitch->id,
         ]);
     }
-    
+
     /**
      * Test producer can submit work for review on a Direct Hire project.
      *
@@ -123,7 +123,7 @@ class DirectHireWorkflowTest extends TestCase
         // Assert: Pitch status updated
         $pitch->refresh();
         $this->assertEquals(Pitch::STATUS_READY_FOR_REVIEW, $pitch->status);
-        
+
         // Assert: Snapshot created (assuming standard workflow creates one)
         $this->assertDatabaseHas('pitch_snapshots', [
             'pitch_id' => $pitch->id,
@@ -135,7 +135,7 @@ class DirectHireWorkflowTest extends TestCase
         //     $this->projectOwner,
         //     \App\Notifications\PitchReadyForReviewNotification::class // Adjust class name
         // );
-         $this->assertDatabaseHas('notifications', [
+        $this->assertDatabaseHas('notifications', [
             'user_id' => $this->projectOwner->id,
             'type' => Notification::TYPE_PITCH_READY_FOR_REVIEW, // Check constant
             'related_type' => Pitch::class,
@@ -162,14 +162,14 @@ class DirectHireWorkflowTest extends TestCase
             'user_id' => $this->targetProducer->id,
         ]);
         $snapshot = $pitch->snapshots()->create([
-             'project_id' => $pitch->project_id,
-             'user_id' => $this->targetProducer->id,
-             'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
-             'status' => \App\Models\PitchSnapshot::STATUS_PENDING,
+            'project_id' => $pitch->project_id,
+            'user_id' => $this->targetProducer->id,
+            'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
+            'status' => \App\Models\PitchSnapshot::STATUS_PENDING,
         ]);
         $pitch->update([
             'status' => Pitch::STATUS_READY_FOR_REVIEW,
-            'current_snapshot_id' => $snapshot->id
+            'current_snapshot_id' => $snapshot->id,
         ]);
 
         // Act: Simulate owner approving the submission via Livewire
@@ -217,14 +217,14 @@ class DirectHireWorkflowTest extends TestCase
             'user_id' => $this->targetProducer->id,
         ]);
         $snapshot = $pitch->snapshots()->create([
-             'project_id' => $pitch->project_id,
-             'user_id' => $this->targetProducer->id,
-             'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
-             'status' => \App\Models\PitchSnapshot::STATUS_PENDING,
+            'project_id' => $pitch->project_id,
+            'user_id' => $this->targetProducer->id,
+            'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
+            'status' => \App\Models\PitchSnapshot::STATUS_PENDING,
         ]);
         $pitch->update([
             'status' => Pitch::STATUS_READY_FOR_REVIEW,
-            'current_snapshot_id' => $snapshot->id
+            'current_snapshot_id' => $snapshot->id,
         ]);
 
         $revisionFeedback = 'Needs more cowbell.';
@@ -274,23 +274,23 @@ class DirectHireWorkflowTest extends TestCase
             'user_id' => $this->targetProducer->id,
         ]);
         $snapshotV1 = $pitch->snapshots()->create([
-             'project_id' => $pitch->project_id,
-             'user_id' => $this->targetProducer->id,
-             'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
-             'status' => \App\Models\PitchSnapshot::STATUS_REVISIONS_REQUESTED, // Start as revisions requested
+            'project_id' => $pitch->project_id,
+            'user_id' => $this->targetProducer->id,
+            'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
+            'status' => \App\Models\PitchSnapshot::STATUS_REVISIONS_REQUESTED, // Start as revisions requested
         ]);
         $pitch->update([
             'status' => Pitch::STATUS_REVISIONS_REQUESTED, // Start as revisions requested
-            'current_snapshot_id' => $snapshotV1->id
+            'current_snapshot_id' => $snapshotV1->id,
         ]);
-        
+
         // Mock the event creation for revision request (optional but good practice)
         $pitch->events()->create([
             'event_type' => 'revision_request', // Or the type used in the service
             'snapshot_id' => $snapshotV1->id,
             'created_by' => $this->projectOwner->id,
             'comment' => 'Needs more cowbell.',
-            'metadata' => ['feedback' => 'Needs more cowbell.'] 
+            'metadata' => ['feedback' => 'Needs more cowbell.'],
         ]);
 
         $responseText = 'Okay, added more cowbell.';
@@ -351,14 +351,14 @@ class DirectHireWorkflowTest extends TestCase
             'user_id' => $this->targetProducer->id,
         ]);
         $snapshot = $pitch->snapshots()->create([
-             'project_id' => $pitch->project_id,
-             'user_id' => $this->targetProducer->id,
-             'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
-             'status' => \App\Models\PitchSnapshot::STATUS_ACCEPTED, // Start as accepted
+            'project_id' => $pitch->project_id,
+            'user_id' => $this->targetProducer->id,
+            'snapshot_data' => ['version' => 1, 'file_ids' => [$file->id]],
+            'status' => \App\Models\PitchSnapshot::STATUS_ACCEPTED, // Start as accepted
         ]);
         $pitch->update([
             'status' => Pitch::STATUS_APPROVED, // Start as approved
-            'current_snapshot_id' => $snapshot->id
+            'current_snapshot_id' => $snapshot->id,
         ]);
 
         $completionFeedback = 'Great work!';
@@ -380,13 +380,13 @@ class DirectHireWorkflowTest extends TestCase
 
         // Assert: Rating saved (Check event data, as it might not be on pitch model directly)
         $completionEvent = $pitch->events()
-                                ->where('event_type', 'status_change')
-                                ->where('status', Pitch::STATUS_COMPLETED)
-                                ->latest()
-                                ->first();
+            ->where('event_type', 'status_change')
+            ->where('status', Pitch::STATUS_COMPLETED)
+            ->latest()
+            ->first();
         $this->assertNotNull($completionEvent);
         $this->assertEquals($completionRating, $completionEvent->rating);
-        
+
         // Assert: Project status updated
         $project->refresh();
         $this->assertEquals(Project::STATUS_COMPLETED, $project->status);
@@ -420,17 +420,17 @@ class DirectHireWorkflowTest extends TestCase
 
         // Direct policy test approach - more reliable than Livewire test helpers for policy checks
         $this->actingAs($unauthorizedUser);
-        
+
         // Test that the policy directly denies access - expect AuthorizationException
         try {
             // Create the component instance manually
-            $component = new \App\Livewire\Pitch\Component\ManagePitch();
+            $component = new \App\Livewire\Pitch\Component\ManagePitch;
             $component->pitch = $pitch;
             $component->mount($pitch);
-            
+
             // Call the authorization method directly to check if it throws properly
             app()->call([$component, 'submitForReview']);
-            
+
             // If we reach here, the authorization didn't throw an exception as expected
             $this->fail('Expected AuthorizationException was not thrown');
         } catch (AuthorizationException $e) {
@@ -441,7 +441,7 @@ class DirectHireWorkflowTest extends TestCase
 
     /**
      * Test project owner can cancel a direct hire project mid-workflow.
-     * 
+     *
      * @test
      */
     public function owner_can_cancel_direct_hire_mid_workflow(): void
@@ -451,54 +451,54 @@ class DirectHireWorkflowTest extends TestCase
             'user_id' => $this->projectOwner->id,
             'workflow_type' => Project::WORKFLOW_TYPE_DIRECT_HIRE,
             'target_producer_id' => $this->targetProducer->id,
-            'status' => Project::STATUS_ACTIVE
+            'status' => Project::STATUS_ACTIVE,
         ]);
-        
+
         $pitch = Pitch::where('project_id', $project->id)->firstOrFail();
-        
+
         // Update pitch to simulate being in the middle of the workflow
         $pitch->update([
-            'status' => Pitch::STATUS_IN_PROGRESS
+            'status' => Pitch::STATUS_IN_PROGRESS,
         ]);
-        
+
         // Act: Owner cancels the project
         $this->actingAs($this->projectOwner);
         $response = $this->post(route('projects.cancel', ['project' => $project->id]), [
-            'cancellation_reason' => 'Changed my mind.'
+            'cancellation_reason' => 'Changed my mind.',
         ]);
-        
+
         // Assert: Project and pitch statuses updated appropriately
         $response->assertStatus(302); // Success redirect
-        
+
         $project->refresh();
         $pitch->refresh();
-        
+
         $this->assertEquals(Project::STATUS_CANCELLED, $project->status);
         $this->assertEquals(Pitch::STATUS_CLOSED, $pitch->status);
         $this->assertNotNull($pitch->closed_at);
-        
+
         // Check event was created
         $this->assertDatabaseHas('pitch_events', [
             'pitch_id' => $pitch->id,
             'event_type' => 'project_cancelled',
-            'status' => Pitch::STATUS_CLOSED
+            'status' => Pitch::STATUS_CLOSED,
         ]);
-        
+
         // Assert producer cannot continue working
         $this->actingAs($this->targetProducer);
         $file = \Illuminate\Http\UploadedFile::fake()->create('test.mp3', 100);
-        
+
         // Try to upload a file (should fail)
         $uploadResponse = $this->post(route('pitch.files.store', ['pitch' => $pitch->id]), [
-            'file' => $file
+            'file' => $file,
         ]);
-        
+
         $uploadResponse->assertStatus(403); // Forbidden
     }
-    
+
     /**
      * Test producer can cancel a direct hire project.
-     * 
+     *
      * @test
      */
     public function producer_can_cancel_direct_hire_project(): void
@@ -508,45 +508,45 @@ class DirectHireWorkflowTest extends TestCase
             'user_id' => $this->projectOwner->id,
             'workflow_type' => Project::WORKFLOW_TYPE_DIRECT_HIRE,
             'target_producer_id' => $this->targetProducer->id,
-            'status' => Project::STATUS_ACTIVE
+            'status' => Project::STATUS_ACTIVE,
         ]);
-        
+
         $pitch = Pitch::where('project_id', $project->id)->firstOrFail();
-        
+
         // Simulate beginning of workflow
         $pitch->update([
-            'status' => Pitch::STATUS_IN_PROGRESS
+            'status' => Pitch::STATUS_IN_PROGRESS,
         ]);
-        
+
         // Act: Producer cancels their participation
         $this->actingAs($this->targetProducer);
         $response = $this->post(route('pitches.cancel', ['pitch' => $pitch->id]), [
-            'cancellation_reason' => 'Unable to work on this project right now.'
+            'cancellation_reason' => 'Unable to work on this project right now.',
         ]);
-        
+
         // Assert: Pitch is cancelled but project remains active
         $response->assertStatus(302); // Success redirect
-        
+
         $project->refresh();
         $pitch->refresh();
-        
+
         $this->assertEquals(Project::STATUS_OPEN, $project->status); // Project should remain open for reassignment
         $this->assertEquals(Pitch::STATUS_CLOSED, $pitch->status);
         $this->assertNotNull($pitch->closed_at);
-        
+
         // Check event was created
         $this->assertDatabaseHas('pitch_events', [
             'pitch_id' => $pitch->id,
             'event_type' => 'pitch_cancelled',
             'status' => Pitch::STATUS_CLOSED,
-            'created_by' => $this->targetProducer->id
+            'created_by' => $this->targetProducer->id,
         ]);
-        
+
         // Verify project owner is notified
         $this->assertDatabaseHas('notifications', [
             'user_id' => $this->projectOwner->id,
             'type' => 'pitch_cancelled', // Adjust to match your actual notification type
-            'related_id' => $pitch->id
+            'related_id' => $pitch->id,
         ]);
     }
 
@@ -559,4 +559,4 @@ class DirectHireWorkflowTest extends TestCase
     // - Verify project status after completion
     // - Verify access control (non-owner/producer cannot view/manage)
 
-} 
+}

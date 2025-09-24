@@ -66,7 +66,7 @@ class NotificationFlowTest extends TestCase
             ->where('type', Notification::TYPE_PITCH_SUBMITTED)
             ->first();
 
-        $this->assertNotNull($notification, "Notification was not found in the database.");
+        $this->assertNotNull($notification, 'Notification was not found in the database.');
 
         // Assert Event was dispatched with the correct notification data
         Event::assertDispatched(NotificationCreated::class, function (NotificationCreated $event) use ($notification) {
@@ -82,4 +82,4 @@ class NotificationFlowTest extends TestCase
     // 3. Perform the action that should trigger the notification (ideally via route/controller, fallback to service call)
     // 4. Assert database record exists
     // 5. Assert NotificationCreated event was dispatched with the correct notification instance
-} 
+}

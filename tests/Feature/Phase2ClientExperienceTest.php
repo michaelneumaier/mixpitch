@@ -2,22 +2,24 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Models\User;
-use App\Models\PitchFile;
 use App\Models\PitchEvent;
+use App\Models\PitchFile;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
+use Tests\TestCase;
 
 class Phase2ClientExperienceTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $producer;
+
     protected $project;
+
     protected $pitch;
 
     protected function setUp(): void
@@ -26,7 +28,7 @@ class Phase2ClientExperienceTest extends TestCase
 
         $this->producer = User::factory()->create([
             'role' => User::ROLE_PRODUCER,
-            'name' => 'Test Producer'
+            'name' => 'Test Producer',
         ]);
 
         $this->project = Project::factory()->create([
@@ -34,7 +36,7 @@ class Phase2ClientExperienceTest extends TestCase
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',
             'title' => 'Test Project',
-            'description' => 'Test project description'
+            'description' => 'Test project description',
         ]);
 
         $this->pitch = Pitch::factory()->create([
@@ -42,7 +44,7 @@ class Phase2ClientExperienceTest extends TestCase
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
             'payment_amount' => 500.00,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
     }
 
@@ -78,7 +80,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -105,7 +107,7 @@ class Phase2ClientExperienceTest extends TestCase
         $response = $this->post($signedUrl, [
             'name' => 'New Client User',
             'password' => 'password123',
-            'password_confirmation' => 'password123'
+            'password_confirmation' => 'password123',
         ]);
 
         // Verify user was created
@@ -138,7 +140,7 @@ class Phase2ClientExperienceTest extends TestCase
         $response = $this->post($signedUrl, [
             'name' => '',
             'password' => 'short',
-            'password_confirmation' => 'different'
+            'password_confirmation' => 'different',
         ]);
 
         $response->assertSessionHasErrors(['name', 'password']);
@@ -150,7 +152,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -162,7 +164,7 @@ class Phase2ClientExperienceTest extends TestCase
         $response = $this->post($signedUrl, [
             'name' => 'New Client User',
             'password' => 'password123',
-            'password_confirmation' => 'password123'
+            'password_confirmation' => 'password123',
         ]);
 
         $response->assertSessionHasErrors(['email']);
@@ -174,7 +176,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         $client = User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $this->project->update(['client_user_id' => $client->id]);
@@ -195,7 +197,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         $client = User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $this->project->update(['client_user_id' => $client->id]);
@@ -204,21 +206,21 @@ class Phase2ClientExperienceTest extends TestCase
         $project2 = Project::factory()->create([
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_user_id' => $client->id,
-            'status' => Project::STATUS_IN_PROGRESS
+            'status' => Project::STATUS_IN_PROGRESS,
         ]);
 
         $pitch2 = Pitch::factory()->create([
             'project_id' => $project2->id,
             'user_id' => $this->producer->id,
             'payment_amount' => 300.00,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         $response = $this->actingAs($client)->get(route('dashboard'));
 
         $response->assertStatus(200);
         $stats = $response->viewData('stats');
-        
+
         $this->assertEquals(2, $stats['total_projects']);
         $this->assertEquals(1, $stats['active_projects']);
         $this->assertEquals(1, $stats['completed_projects']);
@@ -242,7 +244,7 @@ class Phase2ClientExperienceTest extends TestCase
         $response->assertViewHas('pitch', $this->pitch);
         $response->assertViewHas('amount', 500.00);
         $response->assertSee('Invoice');
-        $response->assertSee('INV-' . $this->project->id);
+        $response->assertSee('INV-'.$this->project->id);
         $response->assertSee('$500.00');
     }
 
@@ -251,7 +253,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         $client = User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $this->project->update(['client_user_id' => $client->id]);
@@ -292,14 +294,14 @@ class Phase2ClientExperienceTest extends TestCase
             'pitch_id' => $this->pitch->id,
             'file_name' => 'final_mix.wav',
             'is_deliverable' => true,
-            'file_size' => 1024000
+            'file_size' => 1024000,
         ]);
 
         $deliverable2 = PitchFile::factory()->create([
             'pitch_id' => $this->pitch->id,
             'file_name' => 'master.wav',
             'file_category' => 'deliverable',
-            'file_size' => 2048000
+            'file_size' => 2048000,
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -361,7 +363,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         $client = User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -400,12 +402,12 @@ class Phase2ClientExperienceTest extends TestCase
     {
         $client = User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $this->project->update([
             'client_user_id' => $client->id,
-            'status' => Project::STATUS_COMPLETED
+            'status' => Project::STATUS_COMPLETED,
         ]);
 
         $response = $this->actingAs($client)->get(route('dashboard'));
@@ -421,7 +423,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         $client = User::factory()->create([
             'email' => $this->project->client_email,
-            'role' => User::ROLE_CLIENT
+            'role' => User::ROLE_CLIENT,
         ]);
 
         $this->project->update(['client_user_id' => $client->id]);
@@ -430,13 +432,13 @@ class Phase2ClientExperienceTest extends TestCase
         PitchEvent::factory()->create([
             'pitch_id' => $this->pitch->id,
             'event_type' => 'pitch_submitted',
-            'created_at' => now()->subHours(2)
+            'created_at' => now()->subHours(2),
         ]);
 
         PitchEvent::factory()->create([
             'pitch_id' => $this->pitch->id,
             'event_type' => 'payment_completed',
-            'created_at' => now()->subHour()
+            'created_at' => now()->subHour(),
         ]);
 
         $response = $this->actingAs($client)->get(route('dashboard'));
@@ -452,7 +454,7 @@ class Phase2ClientExperienceTest extends TestCase
     {
         $standardProject = Project::factory()->create([
             'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
-            'client_email' => 'client@example.com'
+            'client_email' => 'client@example.com',
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -473,13 +475,13 @@ class Phase2ClientExperienceTest extends TestCase
         $project2 = Project::factory()->create([
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_email' => $this->project->client_email,
-            'title' => 'Second Project'
+            'title' => 'Second Project',
         ]);
 
         $project3 = Project::factory()->create([
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_email' => $this->project->client_email,
-            'title' => 'Third Project'
+            'title' => 'Third Project',
         ]);
 
         $signedUrl = URL::temporarySignedRoute(
@@ -491,7 +493,7 @@ class Phase2ClientExperienceTest extends TestCase
         $response = $this->post($signedUrl, [
             'name' => 'New Client User',
             'password' => 'password123',
-            'password_confirmation' => 'password123'
+            'password_confirmation' => 'password123',
         ]);
 
         $user = User::where('email', $this->project->client_email)->first();
@@ -512,4 +514,4 @@ class Phase2ClientExperienceTest extends TestCase
         $response->assertViewIs('dashboard'); // Regular producer dashboard
         $response->assertDontSee('Client Dashboard');
     }
-} 
+}

@@ -1,12 +1,12 @@
 <?php
 
-use App\Models\User;
 use App\Models\Client;
+use App\Models\User;
 
 beforeEach(function () {
     // Create a test user
     $this->user = User::factory()->create();
-    
+
     // Create Zapier API token
     $this->token = $this->user->createToken('Zapier Integration', ['zapier-client-management']);
     $this->apiKey = $this->token->plainTextToken;
@@ -14,7 +14,7 @@ beforeEach(function () {
 
 test('zapier authentication test endpoint works', function () {
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $this->apiKey,
+        'Authorization' => 'Bearer '.$this->apiKey,
         'Accept' => 'application/json',
     ])->get('/api/zapier/auth/test');
 
@@ -37,22 +37,22 @@ test('new client trigger returns recent clients', function () {
         'user_id' => $this->user->id,
         'created_at' => now()->subHours(2),
     ]);
-    
+
     $newClient = Client::factory()->create([
         'user_id' => $this->user->id,
         'created_at' => now()->subMinutes(5),
     ]);
 
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $this->apiKey,
+        'Authorization' => 'Bearer '.$this->apiKey,
         'Accept' => 'application/json',
-    ])->get('/api/zapier/triggers/clients/new?since=' . now()->subMinutes(15)->toISOString());
+    ])->get('/api/zapier/triggers/clients/new?since='.now()->subMinutes(15)->toISOString());
 
     $response->assertSuccessful()
         ->assertJson([
             'success' => true,
         ]);
-    
+
     $data = $response->json('data');
     expect($data)->toHaveCount(1);
     expect($data[0]['id'])->toBe($newClient->id);
@@ -68,7 +68,7 @@ test('create client action creates new client', function () {
     ];
 
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $this->apiKey,
+        'Authorization' => 'Bearer '.$this->apiKey,
         'Accept' => 'application/json',
         'Content-Type' => 'application/json',
     ])->postJson('/api/zapier/actions/clients/create', $clientData);
@@ -106,7 +106,7 @@ test('create client action returns existing client if email exists', function ()
     ];
 
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $this->apiKey,
+        'Authorization' => 'Bearer '.$this->apiKey,
         'Accept' => 'application/json',
         'Content-Type' => 'application/json',
     ])->postJson('/api/zapier/actions/clients/create', $clientData);
@@ -127,7 +127,7 @@ test('zapier endpoints require valid token abilities', function () {
     $wrongToken = $this->user->createToken('Wrong Token', ['other-ability']);
 
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $wrongToken->plainTextToken,
+        'Authorization' => 'Bearer '.$wrongToken->plainTextToken,
         'Accept' => 'application/json',
     ])->get('/api/zapier/auth/test');
 
@@ -143,7 +143,7 @@ test('zapier endpoints require valid token abilities', function () {
 
 test('create client action validates required fields', function () {
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $this->apiKey,
+        'Authorization' => 'Bearer '.$this->apiKey,
         'Accept' => 'application/json',
         'Content-Type' => 'application/json',
     ])->postJson('/api/zapier/actions/clients/create', []);

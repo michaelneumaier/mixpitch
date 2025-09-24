@@ -2,23 +2,19 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
-use App\Models\Project;
-use App\Models\User;
-use App\Models\Pitch;
 use App\Models\Invoice;
-use App\Services\InvoiceService;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
-use App\Notifications\UserNotification;
-use App\Events\ContestWinnerSelected;
-use Livewire\Livewire;
-use Mockery;
-use App\Livewire\CreateProject;
-use App\Services\PitchWorkflowService;
 use App\Models\Notification as NotificationModel;
 use App\Models\NotificationPreference;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
+use App\Notifications\UserNotification;
+use App\Services\InvoiceService;
+use App\Services\PitchWorkflowService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Mockery;
+use Tests\TestCase;
 
 class ContestWorkflowTest extends TestCase
 {
@@ -35,15 +31,15 @@ class ContestWorkflowTest extends TestCase
         $otherProducer = User::factory()->create(); // Add a second producer
 
         // Enable relevant notifications for the users
-        NotificationPreference::updateOrCreate( ['user_id' => $winnerProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
-        NotificationPreference::updateOrCreate( ['user_id' => $otherProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_ENTRY_NOT_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
-        NotificationPreference::updateOrCreate( ['user_id' => $projectOwner->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION], ['email_enabled' => true, 'database_enabled' => true]);
+        NotificationPreference::updateOrCreate(['user_id' => $winnerProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
+        NotificationPreference::updateOrCreate(['user_id' => $otherProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_ENTRY_NOT_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
+        NotificationPreference::updateOrCreate(['user_id' => $projectOwner->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION], ['email_enabled' => true, 'database_enabled' => true]);
 
         // 1. Create Contest Project directly
         $this->actingAs($projectOwner);
         $projectName = 'Multi-Entry Contest';
         $prizeAmount = 200;
-        
+
         $project = Project::create([
             'user_id' => $projectOwner->id,
             'name' => $projectName,
@@ -54,7 +50,7 @@ class ContestWorkflowTest extends TestCase
             'prize_amount' => $prizeAmount,
             'prize_currency' => 'USD',
             'submission_deadline' => now()->addDays(5),
-            'is_published' => true
+            'is_published' => true,
         ]);
 
         // 2. Submit Entries (Directly create pitches with correct status)
@@ -62,31 +58,31 @@ class ContestWorkflowTest extends TestCase
             'project_id' => $project->id,
             'user_id' => $winnerProducer->id,
             'status' => Pitch::STATUS_CONTEST_ENTRY,
-            'description' => 'Winning entry'
+            'description' => 'Winning entry',
         ]);
 
         $otherPitch = Pitch::create([
             'project_id' => $project->id,
             'user_id' => $otherProducer->id,
             'status' => Pitch::STATUS_CONTEST_ENTRY,
-            'description' => 'Other entry'
+            'description' => 'Other entry',
         ]);
 
         // 3. Select Winner (as Project Owner using PitchWorkflowService)
         $this->actingAs($projectOwner);
 
         // Mock InvoiceService - expect it to be called by PitchWorkflowService
-        $this->mock(InvoiceService::class, function ($mock) use ($project, $winnerProducer, $winningPitch) {
-            $mockInvoice = (object)['id' => 'inv_multi_mock_789']; // Simulate invoice ID
+        $this->mock(InvoiceService::class, function ($mock) use ($project, $winnerProducer) {
+            $mockInvoice = (object) ['id' => 'inv_multi_mock_789']; // Simulate invoice ID
             $mock->shouldReceive('createInvoiceForContestPrize')
-                 ->once() // Expect the service to call this once
-                 ->with(
-                    Mockery::on(fn($p) => $p->id === $project->id), // Project object
-                    Mockery::on(fn($w) => $w->id === $winnerProducer->id), // User object (winner)
+                ->once() // Expect the service to call this once
+                ->with(
+                    Mockery::on(fn ($p) => $p->id === $project->id), // Project object
+                    Mockery::on(fn ($w) => $w->id === $winnerProducer->id), // User object (winner)
                     $project->prize_amount, // Amount
                     $project->prize_currency // Currency
-                 )
-                 ->andReturn($mockInvoice);
+                )
+                ->andReturn($mockInvoice);
         });
 
         // Get the service instance
@@ -165,14 +161,14 @@ class ContestWorkflowTest extends TestCase
         $otherProducer = User::factory()->create();
 
         // Enable relevant notifications for the users
-        NotificationPreference::updateOrCreate( ['user_id' => $winnerProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
-        NotificationPreference::updateOrCreate( ['user_id' => $otherProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_ENTRY_NOT_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
-        NotificationPreference::updateOrCreate( ['user_id' => $projectOwner->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION], ['email_enabled' => true, 'database_enabled' => true]);
+        NotificationPreference::updateOrCreate(['user_id' => $winnerProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
+        NotificationPreference::updateOrCreate(['user_id' => $otherProducer->id, 'notification_type' => NotificationModel::TYPE_CONTEST_ENTRY_NOT_SELECTED], ['email_enabled' => true, 'database_enabled' => true]);
+        NotificationPreference::updateOrCreate(['user_id' => $projectOwner->id, 'notification_type' => NotificationModel::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION], ['email_enabled' => true, 'database_enabled' => true]);
 
         // 1. Create Contest Project directly (No Prize)
         $this->actingAs($projectOwner);
         $projectName = 'Free Contest';
-        
+
         $project = Project::create([
             'user_id' => $projectOwner->id,
             'name' => $projectName,
@@ -183,7 +179,7 @@ class ContestWorkflowTest extends TestCase
             'prize_amount' => 0,
             'prize_currency' => 'USD',
             'submission_deadline' => now()->addDays(5),
-            'is_published' => true
+            'is_published' => true,
         ]);
 
         // 2. Submit Entries (Directly create pitches with correct status)
@@ -191,14 +187,14 @@ class ContestWorkflowTest extends TestCase
             'project_id' => $project->id,
             'user_id' => $winnerProducer->id,
             'status' => Pitch::STATUS_CONTEST_ENTRY,
-            'description' => 'Winning entry (no prize)'
+            'description' => 'Winning entry (no prize)',
         ]);
 
         $otherPitch = Pitch::create([
             'project_id' => $project->id,
             'user_id' => $otherProducer->id,
             'status' => Pitch::STATUS_CONTEST_ENTRY,
-            'description' => 'Other entry (no prize)'
+            'description' => 'Other entry (no prize)',
         ]);
 
         // 3. Select Winner (as Project Owner using PitchWorkflowService)
@@ -267,7 +263,7 @@ class ContestWorkflowTest extends TestCase
             $projectOwner,
             UserNotification::class,
             function ($notification, $channels) use ($winningPitch, $winnerProducer) {
-                 // Use eventType and relatedId, check winner name in eventData
+                // Use eventType and relatedId, check winner name in eventData
                 return $notification->eventType === NotificationModel::TYPE_CONTEST_WINNER_SELECTED_OWNER_NOTIFICATION_NO_PRIZE &&
                        $notification->relatedId === $winningPitch->id &&
                        $notification->eventData['winner_name'] === $winnerProducer->name;
@@ -297,7 +293,7 @@ class ContestWorkflowTest extends TestCase
             'prize_currency' => 'USD',
             'submission_deadline' => now()->addDays(5),
             'judging_deadline' => now()->addDays(10),
-            'is_published' => true
+            'is_published' => true,
         ]);
 
         // 2. Create winner and runner-up pitches manually
@@ -305,14 +301,14 @@ class ContestWorkflowTest extends TestCase
             'project_id' => $project->id,
             'user_id' => $winnerProducer->id,
             'status' => Pitch::STATUS_CONTEST_ENTRY,
-            'description' => 'Winner pitch'
+            'description' => 'Winner pitch',
         ]);
 
         $runnerUpPitch = Pitch::create([
             'project_id' => $project->id,
             'user_id' => $runnerUpProducer->id,
             'status' => Pitch::STATUS_CONTEST_ENTRY,
-            'description' => 'Runner-up pitch'
+            'description' => 'Runner-up pitch',
         ]);
 
         // 3. Select winner (direct database update)
@@ -389,7 +385,7 @@ class ContestWorkflowTest extends TestCase
             'prize_currency' => 'USD',
             'submission_deadline' => now()->addDays(5),
             'judging_deadline' => now()->addDays(10),
-            'is_published' => true
+            'is_published' => true,
         ]);
 
         // 2. Submit entry manually
@@ -397,15 +393,15 @@ class ContestWorkflowTest extends TestCase
             'project_id' => $project->id,
             'user_id' => $producer->id,
             'status' => Pitch::STATUS_CONTEST_ENTRY,
-            'description' => 'Producer pitch'
+            'description' => 'Producer pitch',
         ]);
 
         // 3. Directly assert policy implications - producer cannot select winner
         $this->actingAs($producer);
-        
+
         // Test PitchPolicy would prevent action
-        $policy = new \App\Policies\PitchPolicy();
-        $this->assertFalse($policy->selectWinner($producer, $pitch)); 
+        $policy = new \App\Policies\PitchPolicy;
+        $this->assertFalse($policy->selectWinner($producer, $pitch));
 
         // Assert pitch state did not change
         $pitch->refresh();
@@ -428,5 +424,3 @@ class ContestWorkflowTest extends TestCase
         ]);
     }
 }
-
- 

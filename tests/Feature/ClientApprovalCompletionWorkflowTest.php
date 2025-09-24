@@ -2,45 +2,47 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
 use App\Models\PayoutSchedule;
-use App\Services\PitchWorkflowService;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Facades\Log;
+use Tests\TestCase;
 
 class ClientApprovalCompletionWorkflowTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     protected $producer;
+
     protected $project;
+
     protected $pitch;
+
     protected $workflowService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create producer
         $this->producer = User::factory()->create([
             'subscription_plan' => 'pro',
-            'subscription_tier' => 'artist'
+            'subscription_tier' => 'artist',
         ]);
-        
+
         // Create client management project
         $this->project = Project::factory()->create([
             'user_id' => $this->producer->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_name' => 'Jane Smith',
             'client_email' => 'jane@example.com',
-            'title' => 'Music Production Project'
+            'title' => 'Music Production Project',
         ]);
-        
+
         // Create pitch ready for client approval
         $this->pitch = Pitch::factory()->create([
             'project_id' => $this->project->id,
@@ -49,7 +51,7 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
             'payment_amount' => 500.00,
             'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
-        
+
         $this->workflowService = app(PitchWorkflowService::class);
     }
 
@@ -59,7 +61,7 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         // Arrange: Set up free project
         $this->pitch->update([
             'payment_amount' => 0.00,
-            'payment_status' => Pitch::PAYMENT_STATUS_NOT_REQUIRED
+            'payment_status' => Pitch::PAYMENT_STATUS_NOT_REQUIRED,
         ]);
 
         // Act: Client approves the project
@@ -95,7 +97,7 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         $this->pitch->update([
             'payment_amount' => 500.00,
             'payment_status' => Pitch::PAYMENT_STATUS_PAID, // Simulate payment completed
-            'payment_completed_at' => now()
+            'payment_completed_at' => now(),
         ]);
 
         // Act: Client approves the project
@@ -116,16 +118,16 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         $this->assertEquals($this->producer->id, $payoutSchedule->producer_user_id);
         $this->assertEquals(500.00, $payoutSchedule->gross_amount);
         $this->assertEquals(PayoutSchedule::STATUS_SCHEDULED, $payoutSchedule->status);
-        
+
         // Verify commission calculation
         $expectedCommissionRate = $this->producer->getPlatformCommissionRate();
         $expectedCommissionAmount = 500.00 * ($expectedCommissionRate / 100);
         $expectedNetAmount = 500.00 - $expectedCommissionAmount;
-        
+
         $this->assertEquals($expectedCommissionRate, $payoutSchedule->commission_rate);
         $this->assertEquals($expectedCommissionAmount, $payoutSchedule->commission_amount);
         $this->assertEquals($expectedNetAmount, $payoutSchedule->net_amount);
-        
+
         // Assert: Hold release date is set (7 days from now)
         $this->assertNotNull($payoutSchedule->hold_release_date);
         $this->assertEquals(
@@ -141,7 +143,7 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         $this->pitch->update([
             'status' => Pitch::STATUS_COMPLETED,
             'approved_at' => now()->subHour(),
-            'completed_at' => now()->subHour()
+            'completed_at' => now()->subHour(),
         ]);
 
         $originalApprovedAt = $this->pitch->approved_at;
@@ -169,15 +171,13 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         $this->workflowService->clientApprovePitch($this->pitch, $this->project->client_email);
     }
 
-
-
     /** @test */
     public function payout_scheduling_handles_errors_gracefully()
     {
         // Arrange: Set up paid project but simulate error in payout creation
         $this->pitch->update([
             'payment_amount' => 500.00,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         // Mock PayoutSchedule to throw exception
@@ -202,11 +202,11 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         $mockNotificationService->shouldReceive('notifyProducerClientApprovedAndCompleted')
             ->once()
             ->with(\Mockery::on(function ($pitch) {
-                return $pitch->id === $this->pitch->id && 
+                return $pitch->id === $this->pitch->id &&
                        $pitch->status === Pitch::STATUS_COMPLETED;
             }))
             ->andReturn(null);
-            
+
         $workflowService = new PitchWorkflowService($mockNotificationService);
 
         // Act: Client approves
@@ -236,7 +236,7 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         // Arrange: Set up paid project
         $this->pitch->update([
             'payment_amount' => 750.00,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         // Act: Client approves
@@ -245,7 +245,7 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         // Assert: Payout metadata is correct
         $payoutSchedule = PayoutSchedule::where('pitch_id', $this->pitch->id)->first();
         $this->assertNotNull($payoutSchedule);
-        
+
         $metadata = $payoutSchedule->metadata;
         $this->assertEquals('client_management_completion', $metadata['type']);
         $this->assertEquals($this->project->client_email, $metadata['client_email']);
@@ -258,7 +258,7 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         // Arrange: Project with payment but not yet paid
         $this->pitch->update([
             'payment_amount' => 300.00,
-            'payment_status' => Pitch::PAYMENT_STATUS_PENDING // Not paid yet
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING, // Not paid yet
         ]);
 
         // Act: Client approves
@@ -280,11 +280,11 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
         $this->project->workflow_type = Project::WORKFLOW_TYPE_STANDARD;
         $this->project->save();
         $this->project->refresh();
-        
+
         // Refresh the pitch to clear any cached project relationship
         $this->pitch->refresh();
         $this->pitch->load('project');
-        
+
         // Verify the change took effect
         $this->assertEquals(Project::WORKFLOW_TYPE_STANDARD, $this->project->workflow_type);
         $this->assertFalse($this->project->isClientManagement());
@@ -297,4 +297,4 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
 
         $this->workflowService->clientApprovePitch($this->pitch, $this->project->client_email);
     }
-} 
+}

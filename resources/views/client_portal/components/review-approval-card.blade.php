@@ -46,12 +46,10 @@
 
                 <form action="{{ URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
                     @csrf
-                    <flux:button type="submit" variant="primary" size="lg" class="w-full">
+                    <flux:button type="submit" variant="primary" icon="check-circle" class="w-full">
                         @if ($pitch->payment_amount > 0)
-                            <flux:icon.credit-card class="mr-2" />
                             Approve &amp; Pay ${{ number_format($pitch->payment_amount, 2) }}
                         @else
-                            <flux:icon.check-circle class="mr-2" />
                             Approve Project
                         @endif
                     </flux:button>
@@ -95,8 +93,7 @@
                         @error('feedback')
                             <flux:text size="sm" class="mb-2 text-red-600">{{ $message }}</flux:text>
                         @enderror
-                        <flux:button type="submit" variant="warning" size="sm" class="w-full">
-                            <flux:icon.paper-airplane class="mr-2" />
+                        <flux:button type="submit" variant="danger" size="sm" icon="paper-airplane" class="w-full">
                             Send Traditional Feedback
                         </flux:button>
                     </form>

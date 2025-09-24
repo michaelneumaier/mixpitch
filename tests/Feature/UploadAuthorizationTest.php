@@ -17,10 +17,10 @@ class UploadAuthorizationTest extends TestCase
     {
         $user = User::factory()->create();
         $project = Project::factory()->for($user, 'user')->create([
-            'status' => Project::STATUS_COMPLETED
+            'status' => Project::STATUS_COMPLETED,
         ]);
 
-        $policy = new \App\Policies\ProjectFilePolicy();
+        $policy = new \App\Policies\ProjectFilePolicy;
         $this->assertFalse($policy->uploadFile($user, $project));
     }
 
@@ -29,10 +29,10 @@ class UploadAuthorizationTest extends TestCase
     {
         $user = User::factory()->create();
         $project = Project::factory()->for($user, 'user')->create([
-            'status' => Project::STATUS_OPEN
+            'status' => Project::STATUS_OPEN,
         ]);
 
-        $policy = new \App\Policies\ProjectFilePolicy();
+        $policy = new \App\Policies\ProjectFilePolicy;
         $this->assertTrue($policy->uploadFile($user, $project));
     }
 
@@ -41,7 +41,7 @@ class UploadAuthorizationTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchOwner = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create();
         $pitch = Pitch::factory()
             ->for($project)
@@ -56,7 +56,7 @@ class UploadAuthorizationTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchOwner = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create();
         $pitch = Pitch::factory()
             ->for($project)
@@ -71,7 +71,7 @@ class UploadAuthorizationTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchOwner = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create();
         $pitch = Pitch::factory()
             ->for($project)
@@ -86,7 +86,7 @@ class UploadAuthorizationTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchOwner = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create();
         $pitch = Pitch::factory()
             ->for($project)
@@ -101,9 +101,9 @@ class UploadAuthorizationTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchOwner = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create([
-            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST
+            'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
         ]);
         $pitch = Pitch::factory()
             ->for($project)
@@ -118,7 +118,7 @@ class UploadAuthorizationTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $pitchOwner = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create([
             'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
             'submission_deadline' => now()->addDays(1), // Contest still open
@@ -136,12 +136,12 @@ class UploadAuthorizationTest extends TestCase
     {
         $projectOwner = User::factory()->create();
         $otherUser = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create([
-            'status' => Project::STATUS_OPEN
+            'status' => Project::STATUS_OPEN,
         ]);
 
-        $policy = new \App\Policies\ProjectFilePolicy();
+        $policy = new \App\Policies\ProjectFilePolicy;
         $this->assertFalse($policy->uploadFile($otherUser, $project));
     }
 
@@ -151,7 +151,7 @@ class UploadAuthorizationTest extends TestCase
         $projectOwner = User::factory()->create();
         $pitchOwner = User::factory()->create();
         $otherUser = User::factory()->create();
-        
+
         $project = Project::factory()->for($projectOwner, 'user')->create();
         $pitch = Pitch::factory()
             ->for($project)

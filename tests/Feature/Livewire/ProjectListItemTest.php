@@ -3,8 +3,8 @@
 namespace Tests\Feature\Livewire;
 
 use App\Livewire\ProjectListItem;
-use App\Models\User;
-use App\Models\Project; // Assuming a Project model exists
+use App\Models\Project;
+use App\Models\User; // Assuming a Project model exists
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -20,4 +20,4 @@ class ProjectListItemTest extends TestCase
             ->test(ProjectListItem::class, ['project' => $project])
             ->assertOk();
     }
-} 
+}

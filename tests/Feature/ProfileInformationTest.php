@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Http\Livewire\Profile\UpdateProfileInformationForm;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Http\Livewire\Profile\UpdateProfileInformationForm;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -15,7 +15,7 @@ class ProfileInformationTest extends TestCase
     public function test_current_profile_information_is_available(): void
     {
         $this->actingAs($user = User::factory()->create([
-            'username' => 'testuser'
+            'username' => 'testuser',
         ]));
 
         $component = Livewire::test(UpdateProfileInformationForm::class);
@@ -28,12 +28,12 @@ class ProfileInformationTest extends TestCase
     public function test_profile_information_can_be_updated(): void
     {
         $this->actingAs($user = User::factory()->create([
-            'username' => 'originaluser'
+            'username' => 'originaluser',
         ]));
 
         Livewire::test(UpdateProfileInformationForm::class)
             ->set('state', [
-                'name' => 'Test Name', 
+                'name' => 'Test Name',
                 'email' => 'test@example.com',
                 'username' => 'testuser',
                 'bio' => null,
@@ -41,7 +41,7 @@ class ProfileInformationTest extends TestCase
                 'website' => null,
                 'location' => null,
                 'social_links' => [],
-                'tipjar_link' => null
+                'tipjar_link' => null,
             ])
             ->call('updateProfileInformation');
 

@@ -1,16 +1,15 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Models\User;
-use App\Models\SubscriptionLimit;
-use App\Notifications\SubscriptionUpgraded;
-use App\Notifications\SubscriptionCancelled;
 use App\Notifications\LimitReached;
+use App\Notifications\SubscriptionCancelled;
+use App\Notifications\SubscriptionUpgraded;
 use Illuminate\Support\Facades\Notification;
 
 // Bootstrap Laravel
-$app = require_once __DIR__ . '/bootstrap/app.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 echo "=======================================\n";
@@ -25,19 +24,19 @@ $viewsToCheck = [
     'subscription.index' => 'resources/views/subscription/index.blade.php',
     'subscription.success' => 'resources/views/subscription/success.blade.php',
     'pricing' => 'resources/views/pricing.blade.php',
-    'dashboard' => 'resources/views/dashboard.blade.php'
+    'dashboard' => 'resources/views/dashboard.blade.php',
 ];
 
 foreach ($viewsToCheck as $viewName => $filePath) {
     if (file_exists($filePath)) {
         echo "✅ {$viewName}: EXISTS\n";
-        
+
         // Check if file has content
         $content = file_get_contents($filePath);
         if (strlen($content) > 100) {
-            echo "   - Content length: " . number_format(strlen($content)) . " characters\n";
+            echo '   - Content length: '.number_format(strlen($content))." characters\n";
         } else {
-            echo "   ⚠️  WARNING: File seems too small (" . strlen($content) . " characters)\n";
+            echo '   ⚠️  WARNING: File seems too small ('.strlen($content)." characters)\n";
         }
     } else {
         echo "❌ {$viewName}: MISSING at {$filePath}\n";
@@ -51,9 +50,9 @@ echo "TEST 2: TESTING SUBSCRIPTION CONTROLLER\n";
 echo "========================================\n";
 
 try {
-    $controller = new \App\Http\Controllers\SubscriptionController();
+    $controller = new \App\Http\Controllers\SubscriptionController;
     echo "✅ SubscriptionController: Can be instantiated\n";
-    
+
     // Check if controller methods exist
     $methods = ['index', 'upgrade', 'success', 'cancel', 'downgrade', 'resume'];
     foreach ($methods as $method) {
@@ -64,7 +63,7 @@ try {
         }
     }
 } catch (Exception $e) {
-    echo "❌ SubscriptionController: ERROR - " . $e->getMessage() . "\n";
+    echo '❌ SubscriptionController: ERROR - '.$e->getMessage()."\n";
 }
 
 echo "\n";
@@ -76,45 +75,45 @@ echo "====================================\n";
 $user = User::first();
 if ($user) {
     echo "Testing notifications with user: {$user->email}\n\n";
-    
+
     // Test SubscriptionUpgraded notification
     try {
         $notification = new SubscriptionUpgraded('pro', 'artist');
         echo "✅ SubscriptionUpgraded: Can be created\n";
-        
+
         // Test if it can generate mail message
         $mailMessage = $notification->toMail($user);
-        echo "   - Subject: " . $mailMessage->subject . "\n";
-        echo "   - Lines count: " . count($mailMessage->lines) . "\n";
-        
+        echo '   - Subject: '.$mailMessage->subject."\n";
+        echo '   - Lines count: '.count($mailMessage->lines)."\n";
+
     } catch (Exception $e) {
-        echo "❌ SubscriptionUpgraded: ERROR - " . $e->getMessage() . "\n";
+        echo '❌ SubscriptionUpgraded: ERROR - '.$e->getMessage()."\n";
     }
-    
+
     // Test SubscriptionCancelled notification
     try {
         $notification = new SubscriptionCancelled('Pro Artist', now()->addMonth());
         echo "✅ SubscriptionCancelled: Can be created\n";
-        
+
         $mailMessage = $notification->toMail($user);
-        echo "   - Subject: " . $mailMessage->subject . "\n";
-        
+        echo '   - Subject: '.$mailMessage->subject."\n";
+
     } catch (Exception $e) {
-        echo "❌ SubscriptionCancelled: ERROR - " . $e->getMessage() . "\n";
+        echo '❌ SubscriptionCancelled: ERROR - '.$e->getMessage()."\n";
     }
-    
+
     // Test LimitReached notification
     try {
         $notification = new LimitReached('projects', 3, 1);
         echo "✅ LimitReached: Can be created\n";
-        
+
         $mailMessage = $notification->toMail($user);
-        echo "   - Subject: " . $mailMessage->subject . "\n";
-        
+        echo '   - Subject: '.$mailMessage->subject."\n";
+
     } catch (Exception $e) {
-        echo "❌ LimitReached: ERROR - " . $e->getMessage() . "\n";
+        echo '❌ LimitReached: ERROR - '.$e->getMessage()."\n";
     }
-    
+
 } else {
     echo "No users found to test notifications\n";
 }
@@ -130,7 +129,7 @@ $requiredConfigs = [
     'subscription.stripe_prices.pro_engineer',
     'subscription.plans.free.name',
     'subscription.plans.pro_artist.name',
-    'subscription.plans.pro_engineer.name'
+    'subscription.plans.pro_engineer.name',
 ];
 
 foreach ($requiredConfigs as $configKey) {
@@ -151,7 +150,7 @@ echo "===============================\n";
 if ($user) {
     try {
         $limits = $user->getSubscriptionLimits();
-        
+
         // Test usage data calculation (like what dashboard would show)
         $usage = [
             'projects_count' => $user->projects()->count(),
@@ -163,12 +162,12 @@ if ($user) {
             ])->count(),
             'monthly_pitches_used' => $user->monthly_pitch_count,
         ];
-        
+
         echo "✅ Usage data calculation: SUCCESS\n";
-        echo "   - Projects: {$usage['projects_count']} / " . ($limits->max_projects_owned ?? 'unlimited') . "\n";
-        echo "   - Active Pitches: {$usage['active_pitches_count']} / " . ($limits->max_active_pitches ?? 'unlimited') . "\n";
-        echo "   - Monthly Pitches: {$usage['monthly_pitches_used']} / " . ($limits->max_monthly_pitches ?? 'N/A') . "\n";
-        
+        echo "   - Projects: {$usage['projects_count']} / ".($limits->max_projects_owned ?? 'unlimited')."\n";
+        echo "   - Active Pitches: {$usage['active_pitches_count']} / ".($limits->max_active_pitches ?? 'unlimited')."\n";
+        echo "   - Monthly Pitches: {$usage['monthly_pitches_used']} / ".($limits->max_monthly_pitches ?? 'N/A')."\n";
+
         // Test alert conditions
         $alerts = [];
         if ($limits && $limits->max_projects_owned && $usage['projects_count'] >= $limits->max_projects_owned) {
@@ -180,8 +179,8 @@ if ($user) {
         if ($limits && $limits->max_monthly_pitches && $usage['monthly_pitches_used'] >= $limits->max_monthly_pitches) {
             $alerts[] = 'Monthly pitch limit reached';
         }
-        
-        if (!empty($alerts)) {
+
+        if (! empty($alerts)) {
             echo "⚠️  Active alerts:\n";
             foreach ($alerts as $alert) {
                 echo "   - {$alert}\n";
@@ -189,12 +188,12 @@ if ($user) {
         } else {
             echo "✅ No limit alerts\n";
         }
-        
+
     } catch (Exception $e) {
-        echo "❌ Dashboard data: ERROR - " . $e->getMessage() . "\n";
+        echo '❌ Dashboard data: ERROR - '.$e->getMessage()."\n";
     }
 }
 
 echo "\n=======================================\n";
 echo "SUBSCRIPTION VIEWS & NOTIFICATIONS TEST COMPLETE\n";
-echo "=======================================\n"; 
+echo "=======================================\n";

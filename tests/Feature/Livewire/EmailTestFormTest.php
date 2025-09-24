@@ -19,4 +19,4 @@ class EmailTestFormTest extends TestCase
             ->test(EmailTestForm::class)
             ->assertOk();
     }
-} 
+}

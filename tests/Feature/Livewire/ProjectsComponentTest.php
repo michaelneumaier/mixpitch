@@ -14,12 +14,19 @@ class ProjectsComponentTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Project $projectA;
+
     private Project $projectB;
+
     private Project $projectC;
+
     private Project $unpublishedProject;
+
     private Project $projectD_InProgress;
+
     private Project $projectE_Completed;
+
     private \Illuminate\Database\Eloquent\Collection $additionalProjects;
 
     protected function setUp(): void
@@ -139,8 +146,8 @@ class ProjectsComponentTest extends TestCase
             ->set('search', 'Alpha Project')
             ->assertViewHas('projects', function ($projects) {
                 return $projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
-                       !$projects->contains($this->projectC);
+                       ! $projects->contains($this->projectB) &&
+                       ! $projects->contains($this->projectC);
             });
     }
 
@@ -151,9 +158,9 @@ class ProjectsComponentTest extends TestCase
             ->test(ProjectsComponent::class)
             ->set('search', 'synths')
             ->assertViewHas('projects', function ($projects) {
-                return !$projects->contains($this->projectA) &&
+                return ! $projects->contains($this->projectA) &&
                         $projects->contains($this->projectB) &&
-                       !$projects->contains($this->projectC);
+                       ! $projects->contains($this->projectC);
             });
     }
 
@@ -174,16 +181,16 @@ class ProjectsComponentTest extends TestCase
             ->set('search', 'alpha project')
             ->assertViewHas('projects', function ($projects) {
                 return $projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
-                       !$projects->contains($this->projectC);
+                       ! $projects->contains($this->projectB) &&
+                       ! $projects->contains($this->projectC);
             });
 
         Livewire::actingAs($this->user)
             ->test(ProjectsComponent::class)
             ->set('search', 'ACOUSTIC')
             ->assertViewHas('projects', function ($projects) {
-                return !$projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
+                return ! $projects->contains($this->projectA) &&
+                       ! $projects->contains($this->projectB) &&
                         $projects->contains($this->projectC);
             });
     }
@@ -198,8 +205,8 @@ class ProjectsComponentTest extends TestCase
             ->set('genres', ['Pop']) // Filter by Pop genre (Project A)
             ->assertViewHas('projects', function ($projects) {
                 return $projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
-                       !$projects->contains($this->projectC);
+                       ! $projects->contains($this->projectB) &&
+                       ! $projects->contains($this->projectC);
             });
     }
 
@@ -211,7 +218,7 @@ class ProjectsComponentTest extends TestCase
             ->set('genres', ['Pop', 'Acoustic']) // Filter by Pop (A) and Acoustic (C)
             ->assertViewHas('projects', function ($projects) {
                 return $projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
+                       ! $projects->contains($this->projectB) &&
                         $projects->contains($this->projectC);
             });
     }
@@ -237,9 +244,9 @@ class ProjectsComponentTest extends TestCase
             ->test(ProjectsComponent::class)
             ->set('projectTypes', ['Production']) // Filter by Production (Project B)
             ->assertViewHas('projects', function ($projects) {
-                return !$projects->contains($this->projectA) &&
+                return ! $projects->contains($this->projectA) &&
                         $projects->contains($this->projectB) &&
-                       !$projects->contains($this->projectC);
+                       ! $projects->contains($this->projectC);
             });
     }
 
@@ -251,7 +258,7 @@ class ProjectsComponentTest extends TestCase
             ->set('projectTypes', ['Mixing', 'Mastering']) // Filter by Mixing (A) and Mastering (C)
             ->assertViewHas('projects', function ($projects) {
                 return $projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
+                       ! $projects->contains($this->projectB) &&
                         $projects->contains($this->projectC);
             });
     }
@@ -270,7 +277,7 @@ class ProjectsComponentTest extends TestCase
             ->assertViewHas('projects', function ($projects) {
                 // Should match A (+1m) and C (+2m)
                 return $projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
+                       ! $projects->contains($this->projectB) &&
                         $projects->contains($this->projectC);
             });
     }
@@ -288,12 +295,12 @@ class ProjectsComponentTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(ProjectsComponent::class)
             // Filter by 'Mastering' (Project C only)
-            ->set('selected_collaboration_types', ['Mastering']) 
+            ->set('selected_collaboration_types', ['Mastering'])
             ->assertViewHas('projects', function ($projects) {
                 // dump('Single collab filter - Mastering:', $projects->pluck('name')); // Debug
                 return $projects->contains($this->projectC) &&
-                       !$projects->contains($this->projectA) &&
-                       !$projects->contains($this->projectB) &&
+                       ! $projects->contains($this->projectA) &&
+                       ! $projects->contains($this->projectB) &&
                        $projects->count() === 1; // Only Project C should match
             });
     }
@@ -315,7 +322,7 @@ class ProjectsComponentTest extends TestCase
                 return $projects->contains($this->projectA) &&
                        $projects->contains($this->projectB) &&
                        $projects->contains($this->projectE) &&
-                       !$projects->contains($this->projectC) &&
+                       ! $projects->contains($this->projectC) &&
                        $projects->count() === 3; // Projects A, B, E match 'Production'
             });
     }
@@ -343,7 +350,7 @@ class ProjectsComponentTest extends TestCase
                 $containsE = $projects->contains($this->projectE_Completed);
 
                 return $containsA && $containsB && $containsD && $containsAdditional &&
-                       !$containsC && !$containsE &&
+                       ! $containsC && ! $containsE &&
                        $projects->count() === 13; // A (Mixing), B (Songwriting), D (Mixing), 10 additional (Songwriting)
             });
     }
@@ -351,7 +358,7 @@ class ProjectsComponentTest extends TestCase
     // --- Pagination/Infinite Scroll Tests ---
 
     /** @test */
-    public function it_loads_more_projects_when_loadMore_is_called()
+    public function it_loads_more_projects_when_load_more_is_called()
     {
         Livewire::actingAs($this->user)
             ->test(ProjectsComponent::class)
@@ -400,16 +407,17 @@ class ProjectsComponentTest extends TestCase
     // --- Clear Filters Test ---
 
     /** @test */
-    public function clearFilters_resets_all_filters_and_results()
+    public function clear_filters_resets_all_filters_and_results()
     {
         // Skip test if using SQLite since the JSON collaboration type filtering doesn't work properly
         if ($this->getDatabaseDriver() === 'sqlite') {
             $this->markTestSkipped('Skipping clearFilters test on SQLite due to issues with JSON collaboration type filtering.');
+
             return;
         }
-        
+
         $component = Livewire::actingAs($this->user)->test(ProjectsComponent::class);
-        
+
         // 1. Apply multiple filters and search
         $component
             ->set('genres', ['Pop']) // Project A (budget 500, collab: Mixing, Prod)
@@ -418,22 +426,21 @@ class ProjectsComponentTest extends TestCase
             ->set('sortBy', 'budget_high_low')
             ->set('min_budget', 400)
             ->set('max_budget', 600)
-            ->set('deadline_start', now()->addWeeks(3)->toDateString() )
-            // Only use non-collaboration type filters since we know that causes issues in SQLite
-            // ->set('selected_collaboration_types', ['Production'])
-            ;
-            
+            ->set('deadline_start', now()->addWeeks(3)->toDateString());
+        // Only use non-collaboration type filters since we know that causes issues in SQLite
+        // ->set('selected_collaboration_types', ['Production'])
+
         // Assert that filters are applied (only Project A should match)
         $component->assertViewHas('projects', function ($projects) {
             return $projects->count() === 1 && $projects->first()->is($this->projectA);
         });
-            
+
         // 2. Call clearFilters
         $component->call('clearFilters');
-        
+
         // Explicitly refresh component to see updated state
         $component->call('$refresh');
-        
+
         // 3. Assert properties are reset to defaults
         $component
             ->assertSet('genres', [])
@@ -452,10 +459,10 @@ class ProjectsComponentTest extends TestCase
 
         // 4. Get the updated projects after clearFilters and count them
         $finalProjects = $component->instance()->get('projects');
-        
+
         // The test was failing because it expected 12 results but got something else
-        // Since the exact count might vary by database/test environment, just verify 
+        // Since the exact count might vary by database/test environment, just verify
         // that we got more than the single filtered result
         $this->assertTrue($finalProjects->count() > 1, 'Expected more than 1 project after clearing filters');
     }
-} 
+}

@@ -3,15 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\PortfolioItem;
-use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
-use Illuminate\Support\Str;
 
 class PortfolioManagementTest extends TestCase
 {
@@ -19,8 +18,11 @@ class PortfolioManagementTest extends TestCase
     use WithFaker;
 
     protected User $producer;
+
     protected User $client;
+
     protected string $itemTypeAudio;
+
     protected string $itemTypeYoutube;
 
     protected function setUp(): void
@@ -34,12 +36,12 @@ class PortfolioManagementTest extends TestCase
         // Create users with explicit usernames
         $this->producer = User::factory()->create([
             'role' => 'producer',
-            'username' => 'producer_' . $this->faker->userName()
+            'username' => 'producer_'.$this->faker->userName(),
         ]);
-        
+
         $this->client = User::factory()->create([
             'role' => 'client',
-            'username' => 'client_' . $this->faker->userName()
+            'username' => 'client_'.$this->faker->userName(),
         ]);
 
         // Use fake S3 storage
@@ -73,7 +75,7 @@ class PortfolioManagementTest extends TestCase
     {
         $otherProducer = User::factory()->create([
             'role' => 'producer',
-            'username' => 'other_producer_' . $this->faker->userName()
+            'username' => 'other_producer_'.$this->faker->userName(),
         ]);
         $portfolioItem = PortfolioItem::factory()->for($otherProducer, 'user')->create();
 
@@ -215,22 +217,22 @@ class PortfolioManagementTest extends TestCase
         $this->actingAs($this->producer);
         $otherProducer = User::factory()->create([
             'role' => 'producer',
-            'username' => 'other_producer_' . $this->faker->userName()
+            'username' => 'other_producer_'.$this->faker->userName(),
         ]);
-        
+
         // Explicitly create item for other producer with only necessary fields
         $portfolioItem = PortfolioItem::factory()->for($otherProducer, 'user')->create([
-             'title' => 'Other Producer Item',
-             'item_type' => $this->itemTypeAudio, // Example type
-             'file_path' => 'other/item.mp3',
-             'video_url' => null,
-             'video_id' => null,
+            'title' => 'Other Producer Item',
+            'item_type' => $this->itemTypeAudio, // Example type
+            'file_path' => 'other/item.mp3',
+            'video_url' => null,
+            'video_id' => null,
         ]);
 
         // Policy should prevent loading the item in the editItem method
         Livewire::actingAs($this->producer)
             ->test(\App\Livewire\User\ManagePortfolioItems::class)
-            ->call('editItem', $portfolioItem->id) 
+            ->call('editItem', $portfolioItem->id)
             ->assertForbidden(); // Expecting AuthorizationException caught by editItem
 
         // Verify the item was not updated (Check original title still exists)
@@ -247,7 +249,7 @@ class PortfolioManagementTest extends TestCase
         $this->actingAs($this->producer);
         $fakeFile = UploadedFile::fake()->create('delete_me.mp3', 100);
         // Use a realistic path structure like in the component
-        $filePath = "portfolio-audio/{$this->producer->id}/" . Str::slug('delete_me') . '-' . time() . '.mp3'; 
+        $filePath = "portfolio-audio/{$this->producer->id}/".Str::slug('delete_me').'-'.time().'.mp3';
         Storage::disk('s3')->put($filePath, $fakeFile->get()); // Store the file first
 
         $item = PortfolioItem::factory()->for($this->producer, 'user')->create([
@@ -271,9 +273,9 @@ class PortfolioManagementTest extends TestCase
         $this->actingAs($this->producer);
         $otherProducer = User::factory()->create([
             'role' => 'producer',
-            'username' => 'other_producer_' . $this->faker->userName()
+            'username' => 'other_producer_'.$this->faker->userName(),
         ]);
-        
+
         // Create a portfolio item for another producer (Factory creates valid item)
         $portfolioItem = PortfolioItem::factory()->for($otherProducer, 'user')->create();
         $itemId = $portfolioItem->id; // Store the ID
@@ -289,37 +291,36 @@ class PortfolioManagementTest extends TestCase
 
         // Verify item still exists in the database
         $this->assertDatabaseHas('portfolio_items', [
-            'id' => $itemId
+            'id' => $itemId,
         ]);
     }
 
-     // --- Sorting Test ---
+    // --- Sorting Test ---
 
-     public function test_producer_can_reorder_portfolio_items()
-     {
-         $this->actingAs($this->producer);
-         $item1 = PortfolioItem::factory()->for($this->producer, 'user')->create(['display_order' => 1]);
-         $item2 = PortfolioItem::factory()->for($this->producer, 'user')->create(['display_order' => 2]);
-         $item3 = PortfolioItem::factory()->for($this->producer, 'user')->create(['display_order' => 3]);
+    public function test_producer_can_reorder_portfolio_items()
+    {
+        $this->actingAs($this->producer);
+        $item1 = PortfolioItem::factory()->for($this->producer, 'user')->create(['display_order' => 1]);
+        $item2 = PortfolioItem::factory()->for($this->producer, 'user')->create(['display_order' => 2]);
+        $item3 = PortfolioItem::factory()->for($this->producer, 'user')->create(['display_order' => 3]);
 
-         // Simulate the data structure sent by livewire-sortable
-         // Example: Moving item3 to the top
-         $newOrder = [
-             ['order' => 1, 'value' => $item3->id], // item3 moved to position 1
-             ['order' => 2, 'value' => $item1->id], // item1 moved to position 2
-             ['order' => 3, 'value' => $item2->id], // item2 moved to position 3
-         ];
+        // Simulate the data structure sent by livewire-sortable
+        // Example: Moving item3 to the top
+        $newOrder = [
+            ['order' => 1, 'value' => $item3->id], // item3 moved to position 1
+            ['order' => 2, 'value' => $item1->id], // item1 moved to position 2
+            ['order' => 3, 'value' => $item2->id], // item2 moved to position 3
+        ];
 
+        Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
+            ->call('updateSort', $newOrder)
+            ->assertHasNoErrors();
 
-         Livewire::test(\App\Livewire\User\ManagePortfolioItems::class)
-             ->call('updateSort', $newOrder)
-             ->assertHasNoErrors();
-
-         // Refresh models from DB and assert new order
-         $this->assertEquals(1, $item3->refresh()->display_order);
-         $this->assertEquals(2, $item1->refresh()->display_order);
-         $this->assertEquals(3, $item2->refresh()->display_order);
-     }
+        // Refresh models from DB and assert new order
+        $this->assertEquals(1, $item3->refresh()->display_order);
+        $this->assertEquals(2, $item1->refresh()->display_order);
+        $this->assertEquals(3, $item2->refresh()->display_order);
+    }
 
     // --- Public Profile Display Tests ---
 
@@ -328,7 +329,7 @@ class PortfolioManagementTest extends TestCase
         // Create a public portfolio item
         $item = PortfolioItem::factory()->for($this->producer, 'user')->create([
             'is_public' => true,
-            'title' => 'Public Item'
+            'title' => 'Public Item',
         ]);
 
         // View the producer's profile while authenticated
@@ -347,14 +348,14 @@ class PortfolioManagementTest extends TestCase
 
         // Acting as another user (or guest) to view the profile
         $this->actingAs($this->client)
-             ->get(route('profile.username', '@'.$this->producer->username))
-             ->assertOk()
-             ->assertDontSeeText('Private Item');
+            ->get(route('profile.username', '@'.$this->producer->username))
+            ->assertOk()
+            ->assertDontSeeText('Private Item');
 
         // Also check as guest
         $this->get(route('profile.username', '@'.$this->producer->username))
-             ->assertOk()
-             ->assertDontSeeText('Private Item');
+            ->assertOk()
+            ->assertDontSeeText('Private Item');
     }
 
     public function test_portfolio_items_render_correctly_based_on_type()
@@ -371,13 +372,13 @@ class PortfolioManagementTest extends TestCase
 
         $youtubeVideoId = 'dQw4w9WgXcQ'; // Use a known ID
         $youtubeItem = PortfolioItem::factory()->for($this->producer, 'user')->create([
-             'is_public' => true,
-             'item_type' => $this->itemTypeYoutube,
-             'title' => 'YouTube Render Test',
-             'video_url' => 'https://www.youtube.com/watch?v=' . $youtubeVideoId,
-             'video_id' => $youtubeVideoId, // Ensure the correct ID is set
-             'file_path' => null, // Ensure audio fields are null
-         ]);
+            'is_public' => true,
+            'item_type' => $this->itemTypeYoutube,
+            'title' => 'YouTube Render Test',
+            'video_url' => 'https://www.youtube.com/watch?v='.$youtubeVideoId,
+            'video_id' => $youtubeVideoId, // Ensure the correct ID is set
+            'file_path' => null, // Ensure audio fields are null
+        ]);
 
         // View the producer's profile while authenticated
         $response = $this->actingAs($this->client)
@@ -395,4 +396,4 @@ class PortfolioManagementTest extends TestCase
         // Check specifically if the YouTube embed URL is present in the raw HTML
         $response->assertSee("https://www.youtube.com/embed/{$youtubeVideoId}", false);
     }
-} 
+}

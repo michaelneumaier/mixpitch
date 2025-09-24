@@ -592,7 +592,7 @@ class ManageClientProject extends Component
             $this->pitch->refresh();
 
             Toaster::success('Message sent to client successfully.');
-            
+
             // Dispatch event to close the message form
             $this->dispatch('messageAdded');
 
@@ -616,6 +616,7 @@ class ManageClientProject extends Component
             // Verify this is a producer comment and belongs to current user
             if ($event->event_type !== 'producer_comment' || $event->created_by !== auth()->id()) {
                 Toaster::error('You can only delete your own messages.');
+
                 return;
             }
 
@@ -1297,10 +1298,10 @@ class ManageClientProject extends Component
             ]);
 
             $this->pitch->refresh();
-            
+
             // Force refresh by clearing cached properties and triggering re-render
             unset($this->fileCommentsData);
-            
+
             Toaster::success('Comment added successfully.');
         } catch (\Exception $e) {
             Log::error('Failed to create file comment', [
@@ -1319,21 +1320,21 @@ class ManageClientProject extends Component
     {
         try {
             $comment = $this->pitch->events()->findOrFail($commentId);
-            
+
             // Store comment info for success message
             $fileId = $comment->metadata['file_id'] ?? null;
-            
+
             // Delete the comment
             $comment->delete();
-            
+
             $this->pitch->refresh();
-            
+
             // Force refresh by clearing cached properties
             unset($this->fileCommentsData);
-            
+
             // Dispatch event to update comments display
             $this->dispatch('commentsUpdated');
-            
+
             Toaster::success('Comment deleted successfully.');
         } catch (\Exception $e) {
             Log::error('Failed to delete file comment', [

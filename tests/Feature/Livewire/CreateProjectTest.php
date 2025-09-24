@@ -18,4 +18,4 @@ class CreateProjectTest extends TestCase
             ->test(CreateProject::class)
             ->assertOk();
     }
-} 
+}

@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Policies\PitchPolicy; // Import the policy
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\Project;
+use App\Models\User;
+use App\Policies\PitchPolicy;
+use Illuminate\Foundation\Testing\RefreshDatabase; // Import the policy
+use Tests\TestCase;
 
 class PitchPolicyTest extends TestCase
 {
@@ -23,7 +23,7 @@ class PitchPolicyTest extends TestCase
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
-                'payment_status' => Pitch::PAYMENT_STATUS_PENDING // Or NOT_REQUIRED
+                'payment_status' => Pitch::PAYMENT_STATUS_PENDING, // Or NOT_REQUIRED
             ]);
 
         $this->assertTrue($projectOwner->can('complete', $pitch));
@@ -39,7 +39,7 @@ class PitchPolicyTest extends TestCase
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
-                'payment_status' => Pitch::PAYMENT_STATUS_NOT_REQUIRED
+                'payment_status' => Pitch::PAYMENT_STATUS_NOT_REQUIRED,
             ]);
 
         $this->assertTrue($projectOwner->can('complete', $pitch));
@@ -82,7 +82,7 @@ class PitchPolicyTest extends TestCase
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
-                'payment_status' => Pitch::PAYMENT_STATUS_PAID
+                'payment_status' => Pitch::PAYMENT_STATUS_PAID,
             ]);
 
         $this->assertFalse($projectOwner->can('complete', $pitch));
@@ -98,7 +98,7 @@ class PitchPolicyTest extends TestCase
             ->for($project)->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_APPROVED,
-                'payment_status' => Pitch::PAYMENT_STATUS_PROCESSING
+                'payment_status' => Pitch::PAYMENT_STATUS_PROCESSING,
             ]);
 
         $this->assertFalse($projectOwner->can('complete', $pitch));
@@ -185,23 +185,23 @@ class PitchPolicyTest extends TestCase
         // Create users and project first
         $projectOwner = User::factory()->create();
         $producer = User::factory()->create();
-        
+
         // Create project using create()
         $project = Project::factory()->create([
             'user_id' => $projectOwner->id,
-            'status' => Project::STATUS_OPEN
+            'status' => Project::STATUS_OPEN,
         ]);
-        
+
         // Create pitch manually (not using for() relationship method)
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
-            'user_id' => $producer->id
+            'user_id' => $producer->id,
         ]);
-        
+
         // Make a custom Gate check instead of using the can() helper
-        $policy = new PitchPolicy();
+        $policy = new PitchPolicy;
         $result = $policy->createPitch($producer, $project);
-        
+
         $this->assertFalse($result, "Producer should not be able to create a pitch for a project they've already pitched");
     }
 
@@ -237,7 +237,7 @@ class PitchPolicyTest extends TestCase
             Pitch::STATUS_IN_PROGRESS,
             Pitch::STATUS_DENIED,
             Pitch::STATUS_REVISIONS_REQUESTED,
-            Pitch::STATUS_PENDING_REVIEW // Note: PENDING_REVIEW might be internal, check if intended
+            Pitch::STATUS_PENDING_REVIEW, // Note: PENDING_REVIEW might be internal, check if intended
         ];
 
         foreach ($validStatuses as $status) {
@@ -302,7 +302,7 @@ class PitchPolicyTest extends TestCase
         $validStatuses = [
             Pitch::STATUS_IN_PROGRESS,
             Pitch::STATUS_DENIED,
-            Pitch::STATUS_REVISIONS_REQUESTED
+            Pitch::STATUS_REVISIONS_REQUESTED,
         ];
 
         foreach ($validStatuses as $status) {
@@ -324,7 +324,7 @@ class PitchPolicyTest extends TestCase
             Pitch::STATUS_APPROVED,
             Pitch::STATUS_COMPLETED,
             Pitch::STATUS_CLOSED,
-            Pitch::STATUS_PENDING_REVIEW
+            Pitch::STATUS_PENDING_REVIEW,
         ];
 
         foreach ($invalidStatuses as $status) {
@@ -414,14 +414,14 @@ class PitchPolicyTest extends TestCase
         $project = Project::factory()->for($projectOwner, 'user')->create();
 
         $invalidStatuses = [
-             Pitch::STATUS_PENDING,
-             Pitch::STATUS_IN_PROGRESS,
-             Pitch::STATUS_APPROVED,
-             Pitch::STATUS_COMPLETED,
-             Pitch::STATUS_CLOSED,
-             Pitch::STATUS_DENIED,
-             Pitch::STATUS_REVISIONS_REQUESTED,
-             Pitch::STATUS_PENDING_REVIEW
+            Pitch::STATUS_PENDING,
+            Pitch::STATUS_IN_PROGRESS,
+            Pitch::STATUS_APPROVED,
+            Pitch::STATUS_COMPLETED,
+            Pitch::STATUS_CLOSED,
+            Pitch::STATUS_DENIED,
+            Pitch::STATUS_REVISIONS_REQUESTED,
+            Pitch::STATUS_PENDING_REVIEW,
         ];
 
         foreach ($invalidStatuses as $status) {
@@ -432,7 +432,7 @@ class PitchPolicyTest extends TestCase
         }
     }
 
-     /** @test */
+    /** @test */
     public function project_owner_cannot_review_paid_or_processing_pitch()
     {
         $projectOwner = User::factory()->create();
@@ -446,9 +446,9 @@ class PitchPolicyTest extends TestCase
 
         foreach ($paymentStatuses as $paymentStatus) {
             // Create a pitch that is technically READY_FOR_REVIEW but already paid/processing (edge case)
-             $pitch = Pitch::factory()
-                 ->for($project)->for($pitchCreator, 'user')
-                 ->create(['status' => Pitch::STATUS_READY_FOR_REVIEW, 'payment_status' => $paymentStatus]);
+            $pitch = Pitch::factory()
+                ->for($project)->for($pitchCreator, 'user')
+                ->create(['status' => Pitch::STATUS_READY_FOR_REVIEW, 'payment_status' => $paymentStatus]);
 
             $this->assertFalse($projectOwner->can('approveSubmission', $pitch), "Approve failed for payment status: {$paymentStatus}");
             $this->assertFalse($projectOwner->can('denySubmission', $pitch), "Deny failed for payment status: {$paymentStatus}");
@@ -481,11 +481,11 @@ class PitchPolicyTest extends TestCase
         $snapshot = \App\Models\PitchSnapshot::factory()->create(['status' => \App\Models\PitchSnapshot::STATUS_PENDING]);
         $pitch = Pitch::factory()->for($project)->for($pitchCreator, 'user')->create([
             'status' => Pitch::STATUS_READY_FOR_REVIEW,
-            'current_snapshot_id' => $snapshot->id
+            'current_snapshot_id' => $snapshot->id,
         ]);
-         // Associate snapshot manually if factory doesn't
-         $snapshot->pitch_id = $pitch->id;
-         $snapshot->save();
+        // Associate snapshot manually if factory doesn't
+        $snapshot->pitch_id = $pitch->id;
+        $snapshot->save();
 
         $this->assertTrue($pitchCreator->can('cancelSubmission', $pitch));
     }
@@ -499,15 +499,15 @@ class PitchPolicyTest extends TestCase
         $snapshot = \App\Models\PitchSnapshot::factory()->create(['status' => \App\Models\PitchSnapshot::STATUS_PENDING]);
         $pitch = Pitch::factory()->for($project)->for($pitchCreator, 'user')->create([
             'status' => Pitch::STATUS_IN_PROGRESS, // Wrong status
-            'current_snapshot_id' => $snapshot->id
+            'current_snapshot_id' => $snapshot->id,
         ]);
-         $snapshot->pitch_id = $pitch->id;
-         $snapshot->save();
+        $snapshot->pitch_id = $pitch->id;
+        $snapshot->save();
 
         $this->assertFalse($pitchCreator->can('cancelSubmission', $pitch));
     }
 
-     /** @test */
+    /** @test */
     public function pitch_creator_cannot_cancel_submission_if_snapshot_not_pending()
     {
         $projectOwner = User::factory()->create();
@@ -516,10 +516,10 @@ class PitchPolicyTest extends TestCase
         $snapshot = \App\Models\PitchSnapshot::factory()->create(['status' => \App\Models\PitchSnapshot::STATUS_ACCEPTED]); // Snapshot not pending
         $pitch = Pitch::factory()->for($project)->for($pitchCreator, 'user')->create([
             'status' => Pitch::STATUS_READY_FOR_REVIEW,
-            'current_snapshot_id' => $snapshot->id
+            'current_snapshot_id' => $snapshot->id,
         ]);
-         $snapshot->pitch_id = $pitch->id;
-         $snapshot->save();
+        $snapshot->pitch_id = $pitch->id;
+        $snapshot->save();
 
         $this->assertFalse($pitchCreator->can('cancelSubmission', $pitch));
     }
@@ -533,10 +533,10 @@ class PitchPolicyTest extends TestCase
         $snapshot = \App\Models\PitchSnapshot::factory()->create(['status' => \App\Models\PitchSnapshot::STATUS_PENDING]);
         $pitch = Pitch::factory()->for($project)->for($pitchCreator, 'user')->create([
             'status' => Pitch::STATUS_READY_FOR_REVIEW,
-            'current_snapshot_id' => $snapshot->id
+            'current_snapshot_id' => $snapshot->id,
         ]);
-         $snapshot->pitch_id = $pitch->id;
-         $snapshot->save();
+        $snapshot->pitch_id = $pitch->id;
+        $snapshot->save();
 
         $this->assertFalse($projectOwner->can('cancelSubmission', $pitch));
     }
@@ -552,7 +552,7 @@ class PitchPolicyTest extends TestCase
 
         $validStatuses = [
             Pitch::STATUS_IN_PROGRESS,
-            Pitch::STATUS_REVISIONS_REQUESTED
+            Pitch::STATUS_REVISIONS_REQUESTED,
             // Add DENIED if policy allows resubmission from DENIED
         ];
 
@@ -577,7 +577,7 @@ class PitchPolicyTest extends TestCase
             Pitch::STATUS_CLOSED,
             Pitch::STATUS_PENDING_REVIEW,
             // Add DENIED here if it's not a valid status to submit from
-            Pitch::STATUS_DENIED
+            Pitch::STATUS_DENIED,
         ];
 
         foreach ($invalidStatuses as $status) {
@@ -663,4 +663,4 @@ class PitchPolicyTest extends TestCase
     }
 
     // --- downloadFile / deleteFile tests remain in PitchFilePolicyTest ---
-} 
+}

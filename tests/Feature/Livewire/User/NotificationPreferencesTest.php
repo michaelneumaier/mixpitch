@@ -93,4 +93,4 @@ class NotificationPreferencesTest extends TestCase
             'is_enabled' => true,
         ]);
     }
-} 
+}

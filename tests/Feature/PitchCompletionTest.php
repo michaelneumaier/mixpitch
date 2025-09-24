@@ -2,26 +2,21 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
+use App\Events\Pitch\PitchCompleted;
 use App\Livewire\Pitch\CompletePitch;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Models\PitchSnapshot;
-use App\Exceptions\Pitch\CompletionValidationException;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Livewire;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
-use App\Services\PitchCompletionService;
-use App\Notifications\Pitch\PitchCompletedNotification;
-use App\Events\Pitch\PitchCompleted;
+use Livewire\Livewire;
+use Tests\TestCase;
 
 class PitchCompletionTest extends TestCase
 {
     use RefreshDatabase;
-    
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,14 +32,14 @@ class PitchCompletionTest extends TestCase
         $pitch = Pitch::factory()
             ->for($project)->for($pitchCreator, 'user')
             ->create(['status' => Pitch::STATUS_APPROVED]);
-        
+
         // Test component renders for project owner
         Livewire::actingAs($projectOwner)
             ->test(CompletePitch::class, ['pitch' => $pitch])
             ->assertViewIs('livewire.pitch.complete-pitch')
             ->assertSee('Mark as Complete');
     }
-    
+
     /** @test */
     public function does_not_show_complete_button_for_non_approved_pitch()
     {
@@ -55,7 +50,7 @@ class PitchCompletionTest extends TestCase
         $pitch = Pitch::factory()
             ->for($project)->for($pitchCreator, 'user')
             ->create(['status' => Pitch::STATUS_IN_PROGRESS]); // Not approved
-        
+
         // Test that component doesn't show button for non-approved pitch
         Livewire::actingAs($projectOwner)
             ->test(CompletePitch::class, ['pitch' => $pitch])
@@ -63,7 +58,7 @@ class PitchCompletionTest extends TestCase
             ->assertDontSee('Mark as Complete')
             ->assertSee('This pitch cannot be completed because it is not in the approved status');
     }
-    
+
     /** @test */
     public function displays_payment_notice_for_paid_projects()
     {
@@ -74,14 +69,14 @@ class PitchCompletionTest extends TestCase
         $pitch = Pitch::factory()
             ->for($project)->for($pitchCreator, 'user')
             ->create(['status' => Pitch::STATUS_APPROVED]);
-        
+
         // Test component shows payment notice for paid projects
         Livewire::actingAs($projectOwner)
             ->test(CompletePitch::class, ['pitch' => $pitch])
             ->assertViewIs('livewire.pitch.complete-pitch')
             ->assertSee('You will be prompted to process payment after completion');
     }
-    
+
     /** @test */
     public function does_not_display_payment_notice_for_free_projects()
     {
@@ -92,14 +87,14 @@ class PitchCompletionTest extends TestCase
         $pitch = Pitch::factory()
             ->for($project)->for($pitchCreator, 'user')
             ->create(['status' => Pitch::STATUS_APPROVED]);
-        
+
         // Test component doesn't show payment notice for free projects
         Livewire::actingAs($projectOwner)
             ->test(CompletePitch::class, ['pitch' => $pitch])
             ->assertViewIs('livewire.pitch.complete-pitch')
             ->assertDontSee('You will be prompted to process payment after completion');
     }
-    
+
     /** @test */
     public function project_owner_can_successfully_complete_an_approved_pitch_for_paid_project()
     {
@@ -123,7 +118,7 @@ class PitchCompletionTest extends TestCase
             ->assertOk() // Check if the component action executed without error
             ->assertDispatched('openPaymentModal') // Check if payment modal event is dispatched for paid project
             ->assertHasNoErrors(); // Check no validation errors
-            
+
         // Session flash checks are challenging in Livewire 3, so we'll skip them
 
         // Assert: Verify outcomes
@@ -155,7 +150,7 @@ class PitchCompletionTest extends TestCase
             ->assertOk()
             ->assertNotDispatched('openPaymentModal') // Ensure payment modal NOT dispatched for free project
             ->assertHasNoErrors(); // Check no validation errors
-            
+
         // Session flash checks are challenging in Livewire 3, so we'll skip them
 
         // Assert: Verify outcomes
@@ -176,14 +171,14 @@ class PitchCompletionTest extends TestCase
         $pitch = Pitch::factory()
             ->for($project)->for($pitchCreator, 'user')
             ->create(['status' => Pitch::STATUS_APPROVED]);
-        
+
         // Verify the policy denies access to complete the pitch
         $this->assertFalse($pitchCreator->can('complete', $pitch));
-        
+
         // If we try to force it, we should get a forbidden response
         Livewire::actingAs($pitchCreator)
             ->test(CompletePitch::class, ['pitch' => $pitch])
             ->call('completePitch')
             ->assertForbidden();
     }
-} 
+}

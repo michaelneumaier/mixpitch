@@ -1069,7 +1069,7 @@ class CreateProject extends Component
                             'slug' => $this->form->projectType,
                             'available_types' => ProjectType::pluck('slug')->toArray(),
                         ]);
-                        
+
                         // Try to find any active project type as fallback
                         $fallbackType = ProjectType::getActive()->first();
                         if ($fallbackType) {
@@ -1308,15 +1308,15 @@ class CreateProject extends Component
                 }
 
                 // Validate the datetime format before conversion
-                if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $formattedDateTime)) {
-                    throw new \InvalidArgumentException('Invalid datetime format: ' . $formattedDateTime);
+                if (! preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $formattedDateTime)) {
+                    throw new \InvalidArgumentException('Invalid datetime format: '.$formattedDateTime);
                 }
 
                 // Create Carbon instance in user's timezone and convert to UTC
                 $result = Carbon::createFromFormat('Y-m-d H:i:s', $formattedDateTime, $userTimezone);
-                
-                if (!$result) {
-                    throw new \InvalidArgumentException('Failed to parse datetime: ' . $formattedDateTime);
+
+                if (! $result) {
+                    throw new \InvalidArgumentException('Failed to parse datetime: '.$formattedDateTime);
                 }
 
                 $result = $result->utc();
@@ -1333,8 +1333,8 @@ class CreateProject extends Component
 
             // Fallback: assume it's already in UTC or parse as-is
             $result = Carbon::parse($dateTime);
-            if (!$result) {
-                throw new \InvalidArgumentException('Failed to parse datetime: ' . $dateTime);
+            if (! $result) {
+                throw new \InvalidArgumentException('Failed to parse datetime: '.$dateTime);
             }
 
             $result = $result->utc();
@@ -1397,7 +1397,7 @@ class CreateProject extends Component
     {
         // Clear collaboration type error when switching workflow types
         $this->resetErrorBag('collaboration_type');
-        
+
         // Mark form as changed
         $this->markAsChanged();
     }

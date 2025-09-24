@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Pitch;
+use App\Models\PitchFile;
+use App\Models\PitchSnapshot;
 use App\Models\Project;
 use App\Models\User;
-use App\Models\Pitch;
-use App\Models\PitchSnapshot;
-use App\Models\PitchFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -16,7 +16,9 @@ class ClientPortalSnapshotNavigationTest extends TestCase
     use RefreshDatabase;
 
     protected $producer;
+
     protected $project;
+
     protected $pitch;
 
     protected function setUp(): void
@@ -191,7 +193,7 @@ class ClientPortalSnapshotNavigationTest extends TestCase
             'pitch_id' => $this->pitch->id,
             'file_name' => 'legacy_file.mp3',
         ]);
-        
+
         $file2 = PitchFile::factory()->create([
             'pitch_id' => $this->pitch->id,
             'file_name' => 'another_file.wav',
@@ -216,4 +218,4 @@ class ClientPortalSnapshotNavigationTest extends TestCase
         $response->assertDontSee('versions available'); // Single version
         $response->assertDontSee('Submission History'); // No navigation for single version
     }
-} 
+}

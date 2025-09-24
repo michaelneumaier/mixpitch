@@ -203,7 +203,11 @@
 
     {{-- Global Components --}}
     @livewire('global-file-uploader')
-    @livewire('global-audio-player')
+    
+    {{-- Global Audio Player with Persistence --}}
+    @persist('global-audio-player')
+        @livewire('global-audio-player')
+    @endpersist
 
     {{-- Scripts --}}
     @livewireScripts
@@ -267,6 +271,132 @@
         
         // Make toggle function global
         window.toggleDarkMode = toggleTheme;
+    </script>
+
+    {{-- Alpine.js Data Functions for Client Portal --}}
+    <script>
+        document.addEventListener('alpine:init', () => {
+            // File approval functionality
+            Alpine.data('approveFile', (config) => ({
+                loading: false,
+                async submit() {
+                    if (this.loading) return;
+                    
+                    this.loading = true;
+                    try {
+                        const response = await fetch(config.url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            // Reload the page to show updated status
+                            window.location.reload();
+                        } else {
+                            console.error('Failed to approve file');
+                            alert('Failed to approve file. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Error approving file:', error);
+                        alert('An error occurred. Please try again.');
+                    }
+                    this.loading = false;
+                }
+            }));
+
+            // Approve all files functionality
+            Alpine.data('approveAll', (config) => ({
+                loading: false,
+                async submit() {
+                    if (this.loading) return;
+                    
+                    this.loading = true;
+                    try {
+                        const response = await fetch(config.url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            // Reload the page to show updated status
+                            window.location.reload();
+                        } else {
+                            console.error('Failed to approve all files');
+                            alert('Failed to approve files. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Error approving files:', error);
+                        alert('An error occurred. Please try again.');
+                    }
+                    this.loading = false;
+                }
+            }));
+
+            // Version comparison functionality
+            Alpine.data('versionComparison', () => ({
+                showComparison: false,
+                selectedVersions: [],
+                
+                init() {
+                    // Handle version comparison toggle
+                    const toggleButton = document.querySelector('.js-toggle-comparison');
+                    if (toggleButton) {
+                        toggleButton.addEventListener('click', () => {
+                            this.toggleComparison();
+                        });
+                    }
+                    
+                    // Handle hide comparison
+                    const hideButton = document.querySelector('#js-hide-comparison');
+                    if (hideButton) {
+                        hideButton.addEventListener('click', () => {
+                            this.hideComparison();
+                        });
+                    }
+                },
+                
+                toggleComparison() {
+                    this.showComparison = !this.showComparison;
+                    const checkboxes = document.querySelectorAll('.comparison-checkbox');
+                    const comparisonDiv = document.querySelector('#version-comparison');
+                    
+                    if (this.showComparison) {
+                        checkboxes.forEach(cb => cb.classList.remove('hidden'));
+                        if (comparisonDiv) comparisonDiv.classList.remove('hidden');
+                    } else {
+                        checkboxes.forEach(cb => cb.classList.add('hidden'));
+                        if (comparisonDiv) comparisonDiv.classList.add('hidden');
+                        this.selectedVersions = [];
+                    }
+                },
+                
+                hideComparison() {
+                    this.showComparison = false;
+                    const checkboxes = document.querySelectorAll('.comparison-checkbox');
+                    const comparisonDiv = document.querySelector('#version-comparison');
+                    
+                    checkboxes.forEach(cb => {
+                        cb.classList.add('hidden');
+                        cb.checked = false;
+                    });
+                    if (comparisonDiv) comparisonDiv.classList.add('hidden');
+                    this.selectedVersions = [];
+                }
+            }));
+        });
+
+        // Global function for comparison checkbox updates
+        function updateComparison() {
+            const checkboxes = document.querySelectorAll('.comparison-checkbox:checked');
+            // Handle comparison logic here if needed
+            console.log('Selected versions for comparison:', Array.from(checkboxes).map(cb => cb.dataset.snapshotId));
+        }
     </script>
 </body>
 

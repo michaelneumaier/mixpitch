@@ -3,8 +3,8 @@
 namespace Tests\Feature\Livewire\Pitch;
 
 use App\Livewire\Pitch\CompletePitch;
-use App\Models\User;
-use App\Models\Pitch; // Assuming a Pitch model exists
+use App\Models\Pitch;
+use App\Models\User; // Assuming a Pitch model exists
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -20,4 +20,4 @@ class CompletePitchTest extends TestCase
             ->test(CompletePitch::class, ['pitch' => $pitch])
             ->assertOk();
     }
-} 
+}

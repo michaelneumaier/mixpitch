@@ -2,26 +2,26 @@
 
 namespace Tests\Feature;
 
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Models\User;
+use App\Models\Project;
 use App\Models\ProjectFile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
-use Livewire\Livewire;
 
 class StandardProjectManagementTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     protected $user;
+
     protected $project;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -120,7 +120,7 @@ class StandardProjectManagementTest extends TestCase
     public function workflow_status_shows_project_metrics()
     {
         $producer = User::factory()->create();
-        
+
         // Create multiple pitches
         Pitch::factory()->count(3)->create([
             'project_id' => $this->project->id,
@@ -190,19 +190,19 @@ class StandardProjectManagementTest extends TestCase
             ->get(route('projects.manage', $project));
 
         $response->assertStatus(200);
-        
+
         // Check for mobile-specific Quick Actions (shown first on mobile)
         $response->assertSee('lg:hidden'); // Mobile-only elements
         $response->assertSee('View Public');
         $response->assertSee('Edit Project');
-        
+
         // Check for mobile Quick Stats (new component)
         $response->assertSee('Project Overview');
         $response->assertSee('grid grid-cols-2 sm:grid-cols-4'); // Mobile stats grid
-        
+
         // Check for mobile Tips section
         $response->assertSee('Tips for Success');
-        
+
         // Check for desktop-only sidebar elements
         $response->assertSee('hidden lg:block'); // Desktop-only elements
     }
@@ -221,14 +221,14 @@ class StandardProjectManagementTest extends TestCase
             ->get(route('projects.manage', $unpublishedProject));
 
         $response->assertStatus(200);
-        
+
         // Should NOT see the old Project Status section header
         $response->assertDontSee('<i class="fas fa-toggle-off text-gray-500"></i>Project Status');
-        
+
         // Should see publish action in Quick Actions instead
         $response->assertSee('Publish Project');
         $response->assertSee('Quick Actions');
-        
+
         // Test with published project
         $publishedProject = Project::factory()->create([
             'user_id' => $this->user->id,
@@ -240,7 +240,7 @@ class StandardProjectManagementTest extends TestCase
             ->get(route('projects.manage', $publishedProject));
 
         $response->assertStatus(200);
-        
+
         // Should see unpublish action in Quick Actions
         $response->assertSee('Unpublish Project');
         $response->assertSee('Quick Actions');
@@ -260,11 +260,11 @@ class StandardProjectManagementTest extends TestCase
             ->get(route('projects.manage', $this->project));
 
         $response->assertStatus(200);
-        
+
         // Count occurrences of the specific Pitches section header
         $content = $response->getContent();
         $pitchHeaderCount = substr_count($content, 'Submitted Pitches');
-        
+
         // Should only see the Pitches header once in the unified section
         $this->assertEquals(1, $pitchHeaderCount);
     }
@@ -334,7 +334,7 @@ class StandardProjectManagementTest extends TestCase
             ->get(route('projects.manage', $contestProject));
 
         $response->assertStatus(200);
-        
+
         // Check for Quick Actions component (both mobile and desktop)
         $response->assertSee('Quick Actions');
         $response->assertSee('Manage your contest efficiently');
@@ -342,17 +342,17 @@ class StandardProjectManagementTest extends TestCase
         $response->assertSee('Edit Contest');
         $response->assertSee('Unpublish Contest');
         $response->assertSee('Post to r/MixPitch');
-        
+
         // Check for Danger Zone component (both mobile and desktop)
         $response->assertSee('Danger Zone');
         $response->assertSee('Irreversible actions');
         $response->assertSee('Delete Contest');
         $response->assertSee('Permanently delete this contest and all associated files, entries, and judging data');
-        
+
         // Check for Contest Prizes component (replaced Contest Details)
         $response->assertSee('Contest Prizes');
         $response->assertSee('Rewards and incentives for winners');
-        
+
         // Check for Project Files section (should be available for contests now)
         $response->assertSee('Contest Files');
         $response->assertSee('Upload and manage contest');
@@ -414,25 +414,25 @@ class StandardProjectManagementTest extends TestCase
             ->get(route('projects.manage', $project));
 
         $response->assertStatus(200);
-        
+
         // Check for Standard Project sidebar content (desktop only)
         // Note: These elements are hidden on mobile with 'hidden lg:block' classes
         $response->assertSee('Standard Project');
         $response->assertSee('Open Collaboration');
-        
+
         // Check for Quick Stats section (new component)
         $response->assertSee('Quick Stats');
         $response->assertSee('Pitches');
         $response->assertSee('Files');
         $response->assertSee('Days Active');
-        
+
         // Check for Quick Actions section
         $response->assertSee('Quick Actions');
         $response->assertSee('View Public Page');
         $response->assertSee('Edit Project');
-        
+
         // Check for Tips section
         $response->assertSee('Tips for Success');
         $response->assertSee('Share your project');
     }
-} 
+}

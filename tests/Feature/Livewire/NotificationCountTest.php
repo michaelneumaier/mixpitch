@@ -97,4 +97,4 @@ class NotificationCountTest extends TestCase
         // Assert the count is updated
         $component->assertSet('count', 1);
     }
-} 
+}

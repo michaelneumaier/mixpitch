@@ -2,24 +2,28 @@
 
 namespace Tests\Feature\Livewire;
 
-use Livewire\Component;
+use App\Livewire\Forms\ProjectForm;
 use App\Models\Project;
 use Illuminate\Auth\Access\AuthorizationException;
-use App\Livewire\Forms\ProjectForm;
+use Livewire\Component;
 
 class ManageProjectTestHelper extends Component
 {
     public Project $project;
+
     public ProjectForm $form;
-    
+
     public $hasPreviewTrack = false;
+
     public $audioUrl;
-    
+
     // Storage tracking vars
     public $storageUsedPercentage = 0;
+
     public $storageLimitMessage = '';
+
     public $storageRemaining = 0;
-    
+
     // Simplified mount method for testing
     public function mount(Project $project)
     {
@@ -31,10 +35,10 @@ class ManageProjectTestHelper extends Component
         }
 
         $this->project = $project;
-        
+
         // Initialize form with minimal setup
         $this->form = new ProjectForm($this, 'form');
-        
+
         // Simple values instead of complex calculations
         $this->storageUsedPercentage = 0;
         $this->storageLimitMessage = '100MB available';
@@ -50,4 +54,4 @@ class ManageProjectTestHelper extends Component
         </div>
         BLADE;
     }
-} 
+}

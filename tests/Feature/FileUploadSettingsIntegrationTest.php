@@ -3,16 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\FileUploadSetting;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\FileManagementService;
-use App\Http\Controllers\Api\UploadSettingsController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class FileUploadSettingsIntegrationTest extends TestCase
@@ -20,25 +19,28 @@ class FileUploadSettingsIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected Pitch $pitch;
+
     protected FileManagementService $fileService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create test user and models
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create(['user_id' => $this->user->id]);
         $this->pitch = Pitch::factory()->create([
             'user_id' => $this->user->id,
             'project_id' => $this->project->id,
-            'status' => Pitch::STATUS_IN_PROGRESS
+            'status' => Pitch::STATUS_IN_PROGRESS,
         ]);
-        
+
         $this->fileService = app(FileManagementService::class);
-        
+
         // Clear any existing settings
         FileUploadSetting::query()->delete();
         Cache::flush();
@@ -48,7 +50,7 @@ class FileUploadSettingsIntegrationTest extends TestCase
     public function it_uses_default_settings_when_no_custom_settings_exist()
     {
         $settings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_GLOBAL);
-        
+
         $this->assertEquals(FileUploadSetting::DEFAULT_VALUES, $settings);
     }
 
@@ -61,7 +63,7 @@ class FileUploadSettingsIntegrationTest extends TestCase
             FileUploadSetting::MAX_CONCURRENT_UPLOADS => 5,
             FileUploadSetting::MAX_RETRY_ATTEMPTS => 4,
             FileUploadSetting::ENABLE_CHUNKING => false,
-            FileUploadSetting::SESSION_TIMEOUT_HOURS => 48
+            FileUploadSetting::SESSION_TIMEOUT_HOURS => 48,
         ];
 
         $result = FileUploadSetting::updateSettings($newSettings, FileUploadSetting::CONTEXT_GLOBAL);
@@ -75,7 +77,7 @@ class FileUploadSettingsIntegrationTest extends TestCase
     public function it_validates_settings_before_saving()
     {
         $this->expectException(\Illuminate\Validation\ValidationException::class);
-        
+
         FileUploadSetting::updateSettings([
             FileUploadSetting::MAX_FILE_SIZE_MB => 3000, // Exceeds max of 2048
         ], FileUploadSetting::CONTEXT_GLOBAL);
@@ -96,7 +98,7 @@ class FileUploadSettingsIntegrationTest extends TestCase
         ], FileUploadSetting::CONTEXT_PROJECTS);
 
         $projectSettings = FileUploadSetting::getSettings(FileUploadSetting::CONTEXT_PROJECTS);
-        
+
         // Should get project-specific max file size but global chunk size
         $this->assertEquals(1000, $projectSettings[FileUploadSetting::MAX_FILE_SIZE_MB]);
         $this->assertEquals(5, $projectSettings[FileUploadSetting::CHUNK_SIZE_MB]);
@@ -139,10 +141,10 @@ class FileUploadSettingsIntegrationTest extends TestCase
 
         $this->actingAs($this->user);
         $response = $this->getJson('/api/upload-settings/projects');
-        
+
         $response->assertOk();
         $computed = $response->json('computed');
-        
+
         $this->assertEquals(100 * 1024 * 1024, $computed['max_file_size_bytes']);
         $this->assertEquals(5 * 1024 * 1024, $computed['chunk_size_bytes']);
         $this->assertEquals(100 * 1024 * 1024, $computed['uppy_restrictions']['maxFileSize']);
@@ -226,8 +228,8 @@ class FileUploadSettingsIntegrationTest extends TestCase
         $request->files->set('chunk', $largeChunk);
         $request->merge(['model_type' => 'projects']);
 
-        $middleware = new \App\Http\Middleware\ValidateUploadSettings();
-        
+        $middleware = new \App\Http\Middleware\ValidateUploadSettings;
+
         $response = $middleware->handle($request, function ($req) {
             return response()->json(['success' => true]);
         }, 'projects');
@@ -291,8 +293,8 @@ class FileUploadSettingsIntegrationTest extends TestCase
         $largeFile = UploadedFile::fake()->create('client_file.mp3', 70 * 1024); // 70MB
         $request->files->set('file', $largeFile);
 
-        $middleware = new \App\Http\Middleware\ValidateUploadSettings();
-        
+        $middleware = new \App\Http\Middleware\ValidateUploadSettings;
+
         $response = $middleware->handle($request, function ($req) {
             return response()->json(['success' => true]);
         }, 'client_portals');
@@ -332,12 +334,12 @@ class FileUploadSettingsIntegrationTest extends TestCase
 
         // Create the Livewire component
         $component = \Livewire\Livewire::test(\App\Livewire\UppyFileUploader::class, [
-            'model' => $this->project
+            'model' => $this->project,
         ]);
 
         // Call the getUploadConfig method through the component instance
         $uploadConfig = $component->instance()->getUploadConfig();
-        
+
         // Should have project-specific settings
         $this->assertEquals(300 * 1024 * 1024, $uploadConfig['maxFileSize']);
         $this->assertEquals(4, $uploadConfig['chunking']['limit']);

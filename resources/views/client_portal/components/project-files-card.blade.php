@@ -7,7 +7,7 @@
 @endphp
 
 <flux:card class="mb-6">
-    <div class="mb-6 flex items-center gap-3">
+    <div class="mb-6 flex items-center gap-2">
         <flux:icon.folder-open class="text-purple-500" />
         <div>
             <flux:heading size="lg">Project Files</flux:heading>

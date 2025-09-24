@@ -3,8 +3,8 @@
 namespace Tests\Feature\Livewire\Pitch\Component;
 
 use App\Livewire\Pitch\Component\PitchHistory;
-use App\Models\User;
-use App\Models\Pitch; // Assuming a Pitch model exists
+use App\Models\Pitch;
+use App\Models\User; // Assuming a Pitch model exists
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -20,4 +20,4 @@ class PitchHistoryTest extends TestCase
             ->test(PitchHistory::class, ['pitch' => $pitch])
             ->assertOk();
     }
-} 
+}

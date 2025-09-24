@@ -2,20 +2,16 @@
 
 namespace Tests\Feature\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
-use App\Services\NotificationService;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Artisan;
-use Mockery;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Project;
+use App\Models\User;
 use App\Observers\ProjectObserver;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
+use Mockery;
+use Tests\TestCase;
 
 class DirectHireWorkflowTest extends TestCase
 {
@@ -27,9 +23,9 @@ class DirectHireWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Ensure migrations are run and workflow_type column exists
-        if (!Schema::hasColumn('projects', 'workflow_type')) {
+        if (! Schema::hasColumn('projects', 'workflow_type')) {
             $this->markTestSkipped('The workflow_type column does not exist in the projects table.');
         }
     }
@@ -60,27 +56,27 @@ class DirectHireWorkflowTest extends TestCase
         // Log test diagnostic information
         \Illuminate\Support\Facades\Log::info('Starting direct hire project creation test', [
             'owner_id' => $owner->id,
-            'producer_id' => $producer->id
+            'producer_id' => $producer->id,
         ]);
 
         // Verify that the workflow_type column exists
-        if (!Schema::hasColumn('projects', 'workflow_type')) {
+        if (! Schema::hasColumn('projects', 'workflow_type')) {
             $this->fail('workflow_type column does not exist in projects table');
         }
 
         // Act: Create the Direct Hire project using the factory
         $project = Project::factory()
             ->configureWorkflow(Project::WORKFLOW_TYPE_DIRECT_HIRE, [
-                'target_producer_id' => $producer->id
+                'target_producer_id' => $producer->id,
             ])
             ->create([
                 'user_id' => $owner->id,
-                 // Ensure required fields not covered by definition/state are set
+                // Ensure required fields not covered by definition/state are set
                 'name' => 'Test Direct Hire Project',
                 'artist_name' => 'Test Artist',
-                'project_type' => 'single', 
+                'project_type' => 'single',
                 'collaboration_type' => ['Mixing'],
-                'budget' => 100, 
+                'budget' => 100,
                 'deadline' => now()->addDays(30),
             ]);
 
@@ -88,9 +84,9 @@ class DirectHireWorkflowTest extends TestCase
         \Illuminate\Support\Facades\Log::info('Project created', [
             'project_id' => $project->id,
             'workflow_type' => $project->workflow_type,
-            'has_target_producer' => !is_null($project->target_producer_id)
+            'has_target_producer' => ! is_null($project->target_producer_id),
         ]);
-            
+
         // Refresh from database to ensure we have all fields
         $project = $project->fresh();
 
@@ -126,11 +122,11 @@ class DirectHireWorkflowTest extends TestCase
         $pitch = Pitch::where('project_id', $project->id)->where('user_id', $producer->id)->first(); // Re-fetch pitch
         $this->assertNotNull($pitch, 'Pitch should exist before checking notification.');
         $this->assertDatabaseHas('notifications', [
-             'user_id' => $producer->id,
-             'type' => \App\Models\Notification::TYPE_DIRECT_HIRE_ASSIGNMENT,
-             'related_type' => Pitch::class,
-             'related_id' => $pitch->id,
-         ]);
+            'user_id' => $producer->id,
+            'type' => \App\Models\Notification::TYPE_DIRECT_HIRE_ASSIGNMENT,
+            'related_type' => Pitch::class,
+            'related_id' => $pitch->id,
+        ]);
     }
 
     /**
@@ -144,7 +140,7 @@ class DirectHireWorkflowTest extends TestCase
         $randomUser = User::factory()->create();
 
         // Verify that the workflow_type column exists
-        if (!Schema::hasColumn('projects', 'workflow_type')) {
+        if (! Schema::hasColumn('projects', 'workflow_type')) {
             $this->fail('workflow_type column does not exist in projects table');
         }
 
@@ -152,7 +148,7 @@ class DirectHireWorkflowTest extends TestCase
         $project = Project::factory()
             ->configureWorkflow(Project::WORKFLOW_TYPE_DIRECT_HIRE, ['target_producer_id' => $producer->id])
             ->create(['user_id' => $owner->id]);
-        
+
         // Manually trigger observer logic
         $observer = app(ProjectObserver::class);
         $observer->created($project);
@@ -194,7 +190,7 @@ class DirectHireWorkflowTest extends TestCase
         $randomUser = User::factory()->create();
 
         // Verify that the workflow_type column exists
-        if (!Schema::hasColumn('projects', 'workflow_type')) {
+        if (! Schema::hasColumn('projects', 'workflow_type')) {
             $this->fail('workflow_type column does not exist in projects table');
         }
 
@@ -228,7 +224,7 @@ class DirectHireWorkflowTest extends TestCase
         $response->assertDontSee($directHireProject->name); // Use 'name'
         $response->assertSee($standardProject->name);
 
-         // Act & Assert: Guest's view (not logged in)
+        // Act & Assert: Guest's view (not logged in)
         Auth::logout();
         $response = $this->get(route('projects.index'));
         $response->assertStatus(200);

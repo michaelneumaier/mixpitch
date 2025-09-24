@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Project;
-use App\Models\Pitch;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 use Database\Seeders\CompleteSubscriptionLimitsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class SubscriptionLimitsTest extends TestCase
 {
@@ -16,7 +15,7 @@ class SubscriptionLimitsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Seed subscription limits
         $this->seed(CompleteSubscriptionLimitsSeeder::class);
     }
@@ -26,7 +25,7 @@ class SubscriptionLimitsTest extends TestCase
     {
         $user = User::factory()->create([
             'subscription_plan' => 'free',
-            'subscription_tier' => 'basic'
+            'subscription_tier' => 'basic',
         ]);
 
         // User should be able to create a project initially
@@ -40,13 +39,13 @@ class SubscriptionLimitsTest extends TestCase
     {
         $user = User::factory()->create([
             'subscription_plan' => 'free',
-            'subscription_tier' => 'basic'
+            'subscription_tier' => 'basic',
         ]);
 
         // Create one active project
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_OPEN
+            'status' => Project::STATUS_OPEN,
         ]);
 
         // User should not be able to create another project
@@ -60,13 +59,13 @@ class SubscriptionLimitsTest extends TestCase
     {
         $user = User::factory()->create([
             'subscription_plan' => 'free',
-            'subscription_tier' => 'basic'
+            'subscription_tier' => 'basic',
         ]);
 
         // Create one completed project
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_COMPLETED
+            'status' => Project::STATUS_COMPLETED,
         ]);
 
         // User should be able to create another project
@@ -80,19 +79,19 @@ class SubscriptionLimitsTest extends TestCase
     {
         $user = User::factory()->create([
             'subscription_plan' => 'free',
-            'subscription_tier' => 'basic'
+            'subscription_tier' => 'basic',
         ]);
 
         // Create one active project
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_OPEN
+            'status' => Project::STATUS_OPEN,
         ]);
 
         // Create one completed project
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_COMPLETED
+            'status' => Project::STATUS_COMPLETED,
         ]);
 
         // User should not be able to create another project (active limit reached)
@@ -106,18 +105,18 @@ class SubscriptionLimitsTest extends TestCase
     {
         $user = User::factory()->create([
             'subscription_plan' => 'pro',
-            'subscription_tier' => 'artist'
+            'subscription_tier' => 'artist',
         ]);
 
         // Create multiple projects (both active and completed)
         Project::factory()->count(5)->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_OPEN
+            'status' => Project::STATUS_OPEN,
         ]);
 
         Project::factory()->count(3)->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_COMPLETED
+            'status' => Project::STATUS_COMPLETED,
         ]);
 
         // Pro user should always be able to create projects
@@ -131,37 +130,37 @@ class SubscriptionLimitsTest extends TestCase
     {
         $user = User::factory()->create([
             'subscription_plan' => 'free',
-            'subscription_tier' => 'basic'
+            'subscription_tier' => 'basic',
         ]);
 
         // Create projects with different statuses
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_UNPUBLISHED
+            'status' => Project::STATUS_UNPUBLISHED,
         ]);
 
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_OPEN
+            'status' => Project::STATUS_OPEN,
         ]);
 
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_IN_PROGRESS
+            'status' => Project::STATUS_IN_PROGRESS,
         ]);
 
         Project::factory()->create([
             'user_id' => $user->id,
-            'status' => Project::STATUS_COMPLETED
+            'status' => Project::STATUS_COMPLETED,
         ]);
 
         // Should count 3 active projects (unpublished, open, in_progress)
         $this->assertEquals(3, $user->getActiveProjectsCount());
-        
+
         // Should count 1 completed project
         $this->assertEquals(1, $user->getCompletedProjectsCount());
-        
+
         // Total should be 4
         $this->assertEquals(4, $user->projects()->count());
     }
-} 
+}

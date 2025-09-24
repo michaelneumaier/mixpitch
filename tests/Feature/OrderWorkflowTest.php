@@ -5,24 +5,22 @@ namespace Tests\Feature;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderEvent;
+use App\Models\OrderFile;
 use App\Models\ServicePackage;
 use App\Models\User;
 use App\Notifications\Orders\OrderRequirementsSubmitted;
-use App\Notifications\Orders\OrderDelivered;
-use App\Notifications\Orders\RevisionRequested;
 use App\Services\InvoiceService;
 use App\Services\OrderWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\UploadedFile;
 use Mockery;
 use Stripe\Checkout\Session;
 use Tests\TestCase;
-use App\Models\OrderFile;
 
 class OrderWorkflowTest extends TestCase
 {
@@ -35,7 +33,7 @@ class OrderWorkflowTest extends TestCase
         parent::setUp();
         $this->orderWorkflowService = app(OrderWorkflowService::class);
         // Clear route cache for test environment
-        $this->artisan('route:clear'); 
+        $this->artisan('route:clear');
     }
 
     protected function tearDown(): void
@@ -63,41 +61,41 @@ class OrderWorkflowTest extends TestCase
             'requirements_prompt' => 'Please provide details.',
         ]);
 
-        // --- Simulate successful payment & webhook processing --- 
+        // --- Simulate successful payment & webhook processing ---
         // Create Order and Invoice directly in the state after successful payment
         $order = Order::factory()
             ->for($servicePackage)
             ->for($client, 'client')
             ->for($producer, 'producer')
             ->create([
-                'status' => Order::STATUS_PENDING_REQUIREMENTS, 
+                'status' => Order::STATUS_PENDING_REQUIREMENTS,
                 'payment_status' => Order::PAYMENT_STATUS_PAID,
                 'price' => $servicePackage->price,
                 'currency' => $servicePackage->currency,
             ]);
-            
+
         $invoice = Invoice::factory()
-             ->for($client) // Invoice belongs to the client paying
-             ->for($order)
-             ->paid() // Use the paid state from the factory
-             ->create([
-                 'amount' => $order->price,
-                 'currency' => $order->currency,
-             ]);
-        
+            ->for($client) // Invoice belongs to the client paying
+            ->for($order)
+            ->paid() // Use the paid state from the factory
+            ->create([
+                'amount' => $order->price,
+                'currency' => $order->currency,
+            ]);
+
         // Link invoice to order if factory didn't handle it
         if (is_null($order->invoice_id)) {
             $order->invoice_id = $invoice->id;
             $order->save();
         }
-        
+
         // Simulate event creation by webhook
-         $order->events()->create([
-             'event_type' => OrderEvent::EVENT_PAYMENT_RECEIVED, // Assuming this constant exists
-             'comment' => 'Payment successful via Stripe (Simulated in test).',
-             'status_from' => Order::STATUS_PENDING_PAYMENT, // Hypothetical previous state
-             'status_to' => Order::STATUS_PENDING_REQUIREMENTS,
-         ]);
+        $order->events()->create([
+            'event_type' => OrderEvent::EVENT_PAYMENT_RECEIVED, // Assuming this constant exists
+            'comment' => 'Payment successful via Stripe (Simulated in test).',
+            'status_from' => Order::STATUS_PENDING_PAYMENT, // Hypothetical previous state
+            'status_to' => Order::STATUS_PENDING_REQUIREMENTS,
+        ]);
         // --- End Simulation ---
 
         // 2. Client views the order (now pending requirements)
@@ -109,10 +107,10 @@ class OrderWorkflowTest extends TestCase
 
         // 3. Client submits requirements
         $requirementsText = 'These are my detailed requirements.';
-        
+
         // Explicitly load producer relationship before calling service
-        $order->load('producer'); 
-        
+        $order->load('producer');
+
         $response = $this->actingAs($client)->post(route('orders.requirements.submit', $order), [
             'requirements' => $requirementsText,
         ]);
@@ -138,7 +136,7 @@ class OrderWorkflowTest extends TestCase
         // Assert Notification was sent to producer
         // Reset Notification fake just before assertion as a precaution
         // Notification::fake(); // Re-faking might clear previous sends, try assertSentTo directly first
-        
+
         Notification::assertSentTo(
             $producer,
             OrderRequirementsSubmitted::class,
@@ -302,9 +300,9 @@ class OrderWorkflowTest extends TestCase
             'status_from' => Order::STATUS_READY_FOR_REVIEW,
             'status_to' => Order::STATUS_REVISIONS_REQUESTED,
             // Check if comment structure includes feedback
-            // 'comment' => "Client requested revisions.\n\nFeedback:\n" . $revisionFeedback, 
+            // 'comment' => "Client requested revisions.\n\nFeedback:\n" . $revisionFeedback,
             // Check metadata if feedback is stored there
-            // 'metadata->feedback' => $revisionFeedback, 
+            // 'metadata->feedback' => $revisionFeedback,
         ]);
         // More robust check for comment containing feedback
         $event = $order->events()->where('event_type', OrderEvent::EVENT_REVISIONS_REQUESTED)->latest()->first();
@@ -313,7 +311,6 @@ class OrderWorkflowTest extends TestCase
         if ($event->metadata) { // Check metadata if it exists
             $this->assertEquals($revisionFeedback, $event->metadata['feedback'] ?? null);
         }
-
 
         // Assert Notification was sent to producer
         Notification::assertSentTo(
@@ -369,7 +366,7 @@ class OrderWorkflowTest extends TestCase
         // Assert Forbidden (403) or redirect back with error
         // Policy should prevent this. If controller handles it, might be redirect.
         $response->assertForbidden(); // Assuming OrderPolicy::requestRevision handles limit
-        // OR if controller redirects: $response->assertRedirect(); $response->assertSessionHasErrors(); 
+        // OR if controller redirects: $response->assertRedirect(); $response->assertSessionHasErrors();
 
         // Assert Order status and revision count did NOT change
         $order->refresh();
@@ -385,7 +382,7 @@ class OrderWorkflowTest extends TestCase
         // Assert no notification was sent
         Notification::assertNothingSent();
     }
-    
+
     /** @test */
     public function client_cannot_request_revisions_in_invalid_status()
     {
@@ -397,7 +394,7 @@ class OrderWorkflowTest extends TestCase
         $servicePackage = ServicePackage::factory()->create([
             'user_id' => $producer->id,
             'revisions_included' => 1,
-             'price' => 50.00,
+            'price' => 50.00,
             'title' => 'Service Test',
             'slug' => 'service-test-invalid',
             'currency' => 'USD',
@@ -452,7 +449,7 @@ class OrderWorkflowTest extends TestCase
         // Create a client and producer
         $client = User::factory()->create(['role' => 'owner']);
         $producer = User::factory()->create(['role' => 'producer']);
-        
+
         // Create a service package with 1 revision
         $servicePackage = ServicePackage::factory()->create([
             'user_id' => $producer->id,
@@ -463,7 +460,7 @@ class OrderWorkflowTest extends TestCase
             'currency' => 'USD',
             'is_published' => true,
         ]);
-        
+
         // Create an order ready for review
         $order = Order::factory()->create([
             'service_package_id' => $servicePackage->id,
@@ -483,7 +480,7 @@ class OrderWorkflowTest extends TestCase
 
         // Debug output
         \Log::info('Debug test - Session data:', $response->getSession()->all());
-        
+
         // Skip session assertion for now
         // $response->assertSessionHas('success');
 
@@ -511,7 +508,7 @@ class OrderWorkflowTest extends TestCase
             'currency' => 'USD',
             'is_published' => true,
         ]);
-        
+
         // Create an order ready for review
         $order = Order::factory()->create([
             'service_package_id' => $servicePackage->id,
@@ -528,21 +525,21 @@ class OrderWorkflowTest extends TestCase
         $response = $this->actingAs($client)->get(route('orders.show', $order));
         $response->assertStatus(200);
         $response->assertSee('2 revision(s) remaining');
-        
+
         // 2. Client requests first revision
         $response = $this->actingAs($client)->post(route('orders.requestRevision', $order), [
             'revision_feedback' => 'First revision feedback',
         ]);
-        
+
         // 3. Assert the order was updated correctly
         $order->refresh();
         $this->assertEquals(Order::STATUS_REVISIONS_REQUESTED, $order->status);
         $this->assertEquals(1, $order->revision_count); // Revision count incremented
-        
+
         // 4. Manually update the order back to READY_FOR_REVIEW to simulate a delivery
         $order->status = Order::STATUS_READY_FOR_REVIEW;
         $order->save();
-        
+
         // Create a delivery event
         $order->events()->create([
             'user_id' => $producer->id,
@@ -551,24 +548,24 @@ class OrderWorkflowTest extends TestCase
             'status_from' => Order::STATUS_REVISIONS_REQUESTED,
             'status_to' => Order::STATUS_READY_FOR_REVIEW,
         ]);
-        
+
         // 5. Now client views the updated order page - should see 1 revision remaining
         $order->refresh();
         $this->assertEquals(Order::STATUS_READY_FOR_REVIEW, $order->status);
         $response = $this->actingAs($client)->get(route('orders.show', $order));
         $response->assertStatus(200);
         $response->assertSee('1 revision(s) remaining');
-        
+
         // 6. Client requests second revision
         $response = $this->actingAs($client)->post(route('orders.requestRevision', $order), [
             'revision_feedback' => 'Second revision feedback',
         ]);
-        
+
         // 7. Manually update order again back to READY_FOR_REVIEW
         $order->refresh();
         $order->status = Order::STATUS_READY_FOR_REVIEW;
         $order->save();
-        
+
         // Create another delivery event
         $order->events()->create([
             'user_id' => $producer->id,
@@ -577,7 +574,7 @@ class OrderWorkflowTest extends TestCase
             'status_from' => Order::STATUS_REVISIONS_REQUESTED,
             'status_to' => Order::STATUS_READY_FOR_REVIEW,
         ]);
-        
+
         // 8. Client views the order page again - should now see 0 revisions remaining
         $order->refresh();
         $this->assertEquals(Order::STATUS_READY_FOR_REVIEW, $order->status);
@@ -591,7 +588,7 @@ class OrderWorkflowTest extends TestCase
     {
         $this->withoutExceptionHandling();
         Notification::fake();
-        
+
         // Setup: Create order in READY_FOR_REVIEW status with all required relationships
         $client = User::factory()->create(['role' => 'owner']);
         $producer = User::factory()->create(['role' => 'producer']);
@@ -603,7 +600,7 @@ class OrderWorkflowTest extends TestCase
             'currency' => 'USD',
             'is_published' => true,
         ]);
-        
+
         $order = Order::factory()->create([
             'service_package_id' => $servicePackage->id,
             'client_user_id' => $client->id,
@@ -613,7 +610,7 @@ class OrderWorkflowTest extends TestCase
             'price' => $servicePackage->price,
             'currency' => $servicePackage->currency,
         ]);
-        
+
         // Add a delivery file to make it realistic
         $order->files()->create([
             'uploader_user_id' => $producer->id,
@@ -623,13 +620,13 @@ class OrderWorkflowTest extends TestCase
             'size' => 1024,
             'type' => 'delivery',
         ]);
-        
+
         // Client views order
         $response = $this->actingAs($client)->get(route('orders.show', $order));
         $response->assertStatus(200);
         $response->assertSee('Ready for Review');
         $response->assertSee('Accept Delivery'); // Button/form should be visible
-        
+
         // Simulate client accepting the delivery
         $response = $this->actingAs($client)->post(route('orders.accept-delivery', $order));
 
@@ -638,7 +635,7 @@ class OrderWorkflowTest extends TestCase
         $response->assertSessionHas('success');
         $order->refresh();
         $this->assertEquals(Order::STATUS_COMPLETED, $order->status);
-        
+
         // Verify an event was created
         $this->assertDatabaseHas('order_events', [
             'order_id' => $order->id,
@@ -647,14 +644,14 @@ class OrderWorkflowTest extends TestCase
             'status_from' => Order::STATUS_READY_FOR_REVIEW,
             'status_to' => Order::STATUS_COMPLETED,
         ]);
-        
+
         // Verify notification was sent to producer
         Notification::assertSentTo(
             $producer,
             \App\Notifications\Orders\OrderCompleted::class
         );
     }
-    
+
     /** @test */
     public function client_can_download_order_files()
     {
@@ -665,7 +662,7 @@ class OrderWorkflowTest extends TestCase
             'order_id' => $order->id,
             'uploader_user_id' => $order->producer_user_id, // Uploaded by producer
             'type' => OrderFile::TYPE_DELIVERY,
-            'file_path' => 'orders/' . $order->id . '/deliveries/test_delivery.txt',
+            'file_path' => 'orders/'.$order->id.'/deliveries/test_delivery.txt',
             'file_name' => 'test_delivery.txt',
         ]);
         // Ensure fake file exists
@@ -679,7 +676,7 @@ class OrderWorkflowTest extends TestCase
         // $response->assertHeader('Content-Disposition', 'attachment; filename="' . $file->file_name . '"'); // Cannot assert this on redirect
         // $this->assertEquals('Test content', $response->streamedContent()); // Cannot assert this on redirect
     }
-    
+
     /** @test */
     public function producer_can_download_order_files()
     {
@@ -690,19 +687,19 @@ class OrderWorkflowTest extends TestCase
             'order_id' => $order->id,
             'uploader_user_id' => $order->client_user_id, // Uploaded by client (e.g., requirement)
             'type' => OrderFile::TYPE_REQUIREMENT,
-            'file_path' => 'orders/' . $order->id . '/requirements/req.txt',
+            'file_path' => 'orders/'.$order->id.'/requirements/req.txt',
             'file_name' => 'req.txt',
         ]);
         Storage::disk('s3')->put($file->file_path, 'Requirement content');
 
         $response = $this->actingAs($producer)->get(route('orders.files.download', [$order, $file])); // Correct route name
 
-         $response->assertStatus(302); // Expecting a redirect to S3
-         // $this->assertStringContainsString('s3.amazonaws.com', $response->headers->get('Location')); // Removed assertion
+        $response->assertStatus(302); // Expecting a redirect to S3
+        // $this->assertStringContainsString('s3.amazonaws.com', $response->headers->get('Location')); // Removed assertion
         // $response->assertHeader('Content-Disposition', 'attachment; filename="' . $file->file_name . '"');
         // $this->assertEquals('Requirement content', $response->streamedContent());
     }
-    
+
     /** @test */
     public function unauthorized_users_cannot_download_files()
     {
@@ -713,7 +710,7 @@ class OrderWorkflowTest extends TestCase
         $order = Order::factory()->create(['client_user_id' => $client->id, 'producer_user_id' => $producer->id]);
         $file = OrderFile::factory()->create([
             'order_id' => $order->id,
-            'file_path' => 'orders/' . $order->id . '/deliveries/secret.txt',
+            'file_path' => 'orders/'.$order->id.'/deliveries/secret.txt',
             'file_name' => 'secret.txt',
         ]);
         Storage::disk('s3')->put($file->file_path, 'Secret content');
@@ -722,26 +719,26 @@ class OrderWorkflowTest extends TestCase
         $response = $this->actingAs($unauthorizedUser)->get(route('orders.files.download', [$order, $file])); // Correct route name
         $response->assertStatus(403); // Expecting Forbidden
     }
-    
+
     /** @test */
     public function webhook_handles_successful_payment_for_order()
     {
         // This simulates the webhook payment confirmation flow in a test environment
-        
+
         Notification::fake();
-        
+
         // Setup: Create users, package, order and invoice
         $client = User::factory()->create(['role' => 'owner']);
         $producer = User::factory()->create(['role' => 'producer']);
-        $producer->stripe_account_id = 'acct_' . $this->faker->uuid;
+        $producer->stripe_account_id = 'acct_'.$this->faker->uuid;
         $producer->save();
-        
+
         $servicePackage = ServicePackage::factory()->create([
             'user_id' => $producer->id,
             'price' => 100.00,
             'currency' => 'USD',
         ]);
-        
+
         // Create order in PENDING_PAYMENT state
         $order = Order::factory()->create([
             'service_package_id' => $servicePackage->id,
@@ -752,7 +749,7 @@ class OrderWorkflowTest extends TestCase
             'price' => $servicePackage->price,
             'currency' => $servicePackage->currency,
         ]);
-        
+
         // Create invoice linked to order
         $invoice = Invoice::factory()->create([
             'user_id' => $client->id,
@@ -761,10 +758,10 @@ class OrderWorkflowTest extends TestCase
             'amount' => $servicePackage->price,
             'currency' => $servicePackage->currency,
         ]);
-        
+
         $order->invoice_id = $invoice->id;
         $order->save();
-        
+
         // Mock InvoiceService again to isolate WebhookController logic
         $mockInvoiceService = Mockery::mock(InvoiceService::class);
         // We don't necessarily need to assert calls on it for this specific test's goal (order status)
@@ -773,84 +770,84 @@ class OrderWorkflowTest extends TestCase
 
         // Mock Notification sending
         Notification::fake();
-        
+
         // Create webhook controller instance
         $webhookController = $this->app->make(\App\Http\Controllers\Billing\WebhookController::class);
-        
+
         // Create mock payload based on your webhook structure
         $payload = [
-            'id' => 'evt_' . $this->faker->uuid,
+            'id' => 'evt_'.$this->faker->uuid,
             'type' => 'checkout.session.completed',
             'data' => [
                 'object' => [
-                    'id' => 'cs_' . $this->faker->uuid,
+                    'id' => 'cs_'.$this->faker->uuid,
                     'payment_status' => 'paid',
-                    'payment_intent' => 'pi_' . $this->faker->uuid,
+                    'payment_intent' => 'pi_'.$this->faker->uuid,
                     'metadata' => [
                         'order_id' => $order->id,
                         'invoice_id' => $invoice->id,
                         'service_package_id' => $servicePackage->id,
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
-        
-        // Process the mock webhook payload 
+
+        // Process the mock webhook payload
         // Pass the MOCKED InvoiceService and RESOLVED NotificationService
         $response = $webhookController->handleCheckoutSessionCompleted(
-            $payload, 
-            $mockInvoiceService, // Pass mock 
+            $payload,
+            $mockInvoiceService, // Pass mock
             $this->app->make(\App\Services\NotificationService::class) // Resolve real one
         );
-        
+
         // Assert success response to Stripe
         $this->assertEquals(200, $response->getStatusCode());
-        
+
         // Since we're in a test environment, manually update the order status to simulate what the webhook would do
         // This is needed because the transaction in the webhook controller might not be committing properly in tests
         DB::table('orders')->where('id', $order->id)->update([
             'status' => Order::STATUS_PENDING_REQUIREMENTS,
-            'payment_status' => Order::PAYMENT_STATUS_PAID
+            'payment_status' => Order::PAYMENT_STATUS_PAID,
         ]);
-        
+
         // Create an event if it doesn't exist yet
-        if (!DB::table('order_events')->where('order_id', $order->id)->where('event_type', OrderEvent::EVENT_PAYMENT_RECEIVED)->exists()) {
+        if (! DB::table('order_events')->where('order_id', $order->id)->where('event_type', OrderEvent::EVENT_PAYMENT_RECEIVED)->exists()) {
             DB::table('order_events')->insert([
                 'order_id' => $order->id,
                 'event_type' => OrderEvent::EVENT_PAYMENT_RECEIVED,
                 'comment' => 'Payment successfully received via Stripe Checkout.',
                 'status_to' => Order::STATUS_PENDING_REQUIREMENTS,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
         }
-        
+
         // Refresh order from database
         $order->refresh();
-        
+
         // Verify order status and payment status were updated
         $this->assertEquals(Order::STATUS_PENDING_REQUIREMENTS, $order->status);
         $this->assertEquals(Order::PAYMENT_STATUS_PAID, $order->payment_status);
-        
+
         // Verify an event was created
         $this->assertDatabaseHas('order_events', [
             'order_id' => $order->id,
             'event_type' => OrderEvent::EVENT_PAYMENT_RECEIVED,
         ]);
-        
+
         // Manually trigger notifications since we're in a test environment
         $client->notify(new \App\Notifications\Notifications\Order\OrderPaymentConfirmed($order));
         $producer->notify(new \App\Notifications\Notifications\Order\ProducerOrderReceived($order));
-        
+
         // Verify notifications were sent
         Notification::assertSentTo(
             $client,
             \App\Notifications\Notifications\Order\OrderPaymentConfirmed::class
         );
-        
+
         Notification::assertSentTo(
             $producer,
             \App\Notifications\Notifications\Order\ProducerOrderReceived::class
         );
     }
-} 
+}

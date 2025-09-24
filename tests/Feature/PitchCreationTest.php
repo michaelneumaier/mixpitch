@@ -2,26 +2,29 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
-use App\Services\NotificationService; // To mock
-use Illuminate\Support\Facades\Notification; // Use Laravel's built-in facade for faking
-use Mockery;
-use Spatie\Permission\Models\Permission;
-use Illuminate\Support\Facades\Log;
 use App\Helpers\RouteHelpers;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
+use App\Services\NotificationService;
+use Illuminate\Foundation\Testing\RefreshDatabase; // To mock
+use Illuminate\Support\Facades\Log; // Use Laravel's built-in facade for faking
+use Illuminate\Support\Facades\Notification;
+use Mockery;
+use Tests\TestCase;
 
 class PitchCreationTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $projectOwner;
+
     protected $producer;
+
     protected $otherUser;
+
     protected $openProject;
+
     protected $closedProject;
 
     protected function setUp(): void
@@ -36,14 +39,14 @@ class PitchCreationTest extends TestCase
         // Create projects with explicit slugs to ensure proper route resolution
         $this->openProject = Project::factory()->for($this->projectOwner)->create([
             'status' => Project::STATUS_OPEN,
-            'slug' => 'open-test-project'
+            'slug' => 'open-test-project',
         ]);
-        
+
         $this->closedProject = Project::factory()->for($this->projectOwner)->create([
             'status' => Project::STATUS_COMPLETED,
-            'slug' => 'closed-test-project'
+            'slug' => 'closed-test-project',
         ]);
-        
+
         // Make sure projects are properly saved with slugs
         $this->openProject->refresh();
         $this->closedProject->refresh();
@@ -59,11 +62,11 @@ class PitchCreationTest extends TestCase
 
     }
 
-    // --- Create Form View Tests --- 
+    // --- Create Form View Tests ---
 
     protected function makePitchesCreateUrl($project)
     {
-        return '/projects/' . $project->slug . '/pitches/create';
+        return '/projects/'.$project->slug.'/pitches/create';
     }
 
     /** @test */
@@ -71,7 +74,7 @@ class PitchCreationTest extends TestCase
     {
         // In setUp we explicitly set the slug to 'open-test-project'
         $url = '/projects/open-test-project/pitches/create';
-        
+
         // Log the URL and project details to help debug
         Log::info('DEBUG test URL', [
             'url' => $url,
@@ -82,7 +85,7 @@ class PitchCreationTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->producer)
-                         ->get($url);
+            ->get($url);
 
         $response->assertStatus(200);
         $response->assertViewIs('pitches.create');
@@ -97,7 +100,7 @@ class PitchCreationTest extends TestCase
         $existingPitch->refresh(); // Make sure we have the slug
 
         $response = $this->actingAs($this->producer)
-                         ->get(route('projects.pitches.create', $this->openProject));
+            ->get(route('projects.pitches.create', $this->openProject));
 
         // Should redirect to the existing pitch show page
         $response->assertRedirect(RouteHelpers::pitchUrl($existingPitch));
@@ -108,7 +111,7 @@ class PitchCreationTest extends TestCase
     public function producer_cannot_view_create_form_for_closed_project()
     {
         $response = $this->actingAs($this->producer)
-                         ->get(route('projects.pitches.create', $this->closedProject));
+            ->get(route('projects.pitches.create', $this->closedProject));
 
         // Should redirect back to project show page with an error
         $response->assertRedirect(route('projects.show', $this->closedProject));
@@ -120,7 +123,7 @@ class PitchCreationTest extends TestCase
     public function project_owner_cannot_view_create_pitch_form_for_their_own_project()
     {
         $response = $this->actingAs($this->projectOwner)
-                         ->get(route('projects.pitches.create', $this->openProject));
+            ->get(route('projects.pitches.create', $this->openProject));
 
         // Redirect back to project show page with error
         $response->assertRedirect(route('projects.show', $this->openProject));
@@ -137,15 +140,15 @@ class PitchCreationTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
-    // --- Store Action Tests --- 
+    // --- Store Action Tests ---
 
     /** @test */
     public function pitch_creation_fails_validation_if_terms_not_accepted()
     {
         $response = $this->actingAs($this->producer)
-                         ->post(route('projects.pitches.store', ['project' => $this->openProject]), [
-                             // 'agree_terms' => '1' // Missing or not 'accepted'
-                         ]);
+            ->post(route('projects.pitches.store', ['project' => $this->openProject]), [
+                // 'agree_terms' => '1' // Missing or not 'accepted'
+            ]);
 
         // Laravel returns a redirect with validation errors
         $response->assertStatus(302); // Expecting a redirect
@@ -160,9 +163,9 @@ class PitchCreationTest extends TestCase
     public function producer_can_successfully_create_a_pitch()
     {
         $response = $this->actingAs($this->producer)
-                         ->post(route('projects.pitches.store', $this->openProject), [
-                             'agree_terms' => '1', // Represents checked checkbox
-                         ]);
+            ->post(route('projects.pitches.store', $this->openProject), [
+                'agree_terms' => '1', // Represents checked checkbox
+            ]);
 
         // Verify pitch was created in the database
         $this->assertDatabaseHas('pitches', [
@@ -173,9 +176,9 @@ class PitchCreationTest extends TestCase
 
         // Get the created pitch from the database
         $pitch = Pitch::where('project_id', $this->openProject->id)
-                      ->where('user_id', $this->producer->id)
-                      ->first();
-        
+            ->where('user_id', $this->producer->id)
+            ->first();
+
         // Ensure the pitch was saved
         $this->assertNotNull($pitch);
 
@@ -191,9 +194,9 @@ class PitchCreationTest extends TestCase
         $this->openProject->save();
 
         $response = $this->actingAs($this->producer)
-                         ->post(route('projects.pitches.store', ['project' => $this->openProject]), [
-                             'agree_terms' => '1',
-                         ]);
+            ->post(route('projects.pitches.store', ['project' => $this->openProject]), [
+                'agree_terms' => '1',
+            ]);
 
         // Expecting a 403 Forbidden because the policy should block creation on a closed project
         $response->assertStatus(403);
@@ -207,9 +210,9 @@ class PitchCreationTest extends TestCase
 
         // Attempt to submit the form again
         $response = $this->actingAs($this->producer)
-                         ->post(route('projects.pitches.store', $this->openProject), [
-                             'agree_terms' => '1',
-                         ]);
+            ->post(route('projects.pitches.store', $this->openProject), [
+                'agree_terms' => '1',
+            ]);
 
         // Expecting a redirect back to the project page with an error, because the service throws PitchCreationException
         // $response->assertStatus(403); // Old expectation based on policy blocking
@@ -237,7 +240,7 @@ class PitchCreationTest extends TestCase
         $pitch->refresh();
 
         $response = $this->actingAs($this->projectOwner)
-                         ->get(route('projects.pitches.show', ['project' => $this->openProject, 'pitch' => $pitch]));
+            ->get(route('projects.pitches.show', ['project' => $this->openProject, 'pitch' => $pitch]));
 
         $response->assertRedirect(route('projects.manage', $this->openProject));
         $response->assertSessionHas('info');
@@ -250,25 +253,25 @@ class PitchCreationTest extends TestCase
         $pitch->refresh();
 
         $response = $this->actingAs($this->producer)
-                         ->get(route('projects.pitches.show', ['project' => $this->openProject, 'pitch' => $pitch]));
+            ->get(route('projects.pitches.show', ['project' => $this->openProject, 'pitch' => $pitch]));
 
         $response->assertStatus(200);
         $response->assertViewIs('pitches.show');
-        
+
         // Assert seeing the linked project title text
         $response->assertSeeText($this->openProject->name);
         // Keep a general check for 'Pitch' as well
         $response->assertSee('Pitch', false);
     }
 
-     /** @test */
+    /** @test */
     public function unauthorized_user_cannot_view_pitch_show_page()
     {
         $pitch = Pitch::factory()->for($this->openProject)->for($this->producer)->create();
         $pitch->refresh();
 
         $response = $this->actingAs($this->otherUser)
-                         ->get(route('projects.pitches.show', ['project' => $this->openProject, 'pitch' => $pitch]));
+            ->get(route('projects.pitches.show', ['project' => $this->openProject, 'pitch' => $pitch]));
 
         // Expecting 403 Forbidden based on PitchPolicy@view
         $response->assertStatus(403);
@@ -286,27 +289,26 @@ class PitchCreationTest extends TestCase
             'workflow_type' => Project::WORKFLOW_TYPE_CONTEST,
             'submission_deadline' => now()->subDays(1), // Deadline was yesterday
             'status' => Project::STATUS_OPEN,
-            'is_published' => true
+            'is_published' => true,
         ]);
 
         // Create a producer user who will try to submit a pitch
         $producer = User::factory()->create();
-        
+
         // Attempt to submit a pitch
         $response = $this->actingAs($producer)
-                        ->post(route('projects.pitches.store', ['project' => $contestProject]), [
-                            'agree_terms' => '1',
-                        ]);
+            ->post(route('projects.pitches.store', ['project' => $contestProject]), [
+                'agree_terms' => '1',
+            ]);
 
         // Expect a redirect with error message
         $response->assertRedirect();
         $response->assertSessionHas('error'); // Verify there's an error message
-        
+
         // Verify no pitch was created
         $this->assertDatabaseMissing('pitches', [
             'project_id' => $contestProject->id,
-            'user_id' => $producer->id
+            'user_id' => $producer->id,
         ]);
     }
-
-} 
+}

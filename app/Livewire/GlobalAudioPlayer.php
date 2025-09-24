@@ -83,6 +83,7 @@ class GlobalAudioPlayer extends Component
         'playbackPaused' => 'onPlaybackPaused',
         'trackEnded' => 'onTrackEnded',
         'persistent-audio-update' => 'handlePersistentAudioUpdate',
+        'fileAction' => 'handleFileAction',
     ];
 
     public function mount()
@@ -107,19 +108,30 @@ class GlobalAudioPlayer extends Component
             return;
         }
 
-        // Check permissions
-        if (! Auth::check() || ! Auth::user()->can('view', $pitchFile)) {
+        // Check permissions - allow client portal access or authenticated users
+        if (! $clientMode && (! Auth::check() || ! Auth::user()->can('view', $pitchFile))) {
             return;
         }
+        
+        // For client mode, we assume the client portal has already validated access via signed URLs
+        // The client portal controller would have validated the project and file access
 
         $this->clientMode = $clientMode;
         $this->clientEmail = $clientEmail;
+
+        // Generate appropriate streaming URL based on context
+        $streamingUrl = $clientMode 
+            ? route('client.portal.audio.stream', [
+                'project' => $pitchFile->pitch->project_id,
+                'pitchFile' => $pitchFile->id
+              ])
+            : $pitchFile->getStreamingUrl(Auth::user());
 
         $this->currentTrack = [
             'type' => 'pitch_file',
             'id' => $pitchFile->id,
             'title' => $pitchFile->file_name,
-            'url' => $pitchFile->getStreamingUrl(Auth::user()),
+            'url' => $streamingUrl,
             'duration' => $pitchFile->duration ?? 0,
             // Provide peaks to the global audio manager (normalized field name)
             'waveform_peaks' => $pitchFile->waveform_peaks ? json_decode($pitchFile->waveform_peaks, true) : null,
@@ -130,6 +142,7 @@ class GlobalAudioPlayer extends Component
             'file_size' => $pitchFile->file_size,
             'created_at' => $pitchFile->created_at->toISOString(),
             'has_comments' => $pitchFile->comments()->exists(),
+            'client_mode' => $clientMode,
         ];
 
         // Build contextual queue - all pitch files from this project
@@ -225,6 +238,51 @@ class GlobalAudioPlayer extends Component
         }
 
         $this->playTrack($track);
+    }
+
+    /**
+     * Handle file actions dispatched from the FileList component
+     */
+    public function handleFileAction($data)
+    {
+        $action = $data['action'] ?? null;
+        $fileId = $data['fileId'] ?? null;
+        $modelType = $data['modelType'] ?? null;
+        $modelId = $data['modelId'] ?? null;
+
+        if (! $action || ! $fileId) {
+            return;
+        }
+
+        // Route the action to the appropriate method
+        switch ($action) {
+            case 'playFile':
+                // Determine if this is a pitch file or project file based on model type
+                if ($modelType === 'pitch') {
+                    // Check if we're in client portal context (no authenticated user)
+                    $isClientPortal = ! Auth::check();
+                    $clientEmail = '';
+                    
+                    if ($isClientPortal) {
+                        // Try to get client email from the current request context
+                        // This would typically be available in the component that includes the FileList
+                        $clientEmail = request()->get('client_email', '');
+                    }
+                    
+                    $this->playPitchFile($fileId, $isClientPortal, $clientEmail);
+                } elseif ($modelType === 'project') {
+                    $this->playProjectFile($fileId);
+                }
+                break;
+            case 'playProjectFile':
+                $this->playProjectFile($fileId);
+                break;
+            case 'playPitchFile':
+                $isClientPortal = ! Auth::check();
+                $clientEmail = request()->get('client_email', '');
+                $this->playPitchFile($fileId, $isClientPortal, $clientEmail);
+                break;
+        }
     }
 
     /**
@@ -417,11 +475,19 @@ class GlobalAudioPlayer extends Component
         $currentFilePosition = 0;
 
         foreach ($pitchFiles as $index => $file) {
+            // Use client portal URL if in client mode
+            $streamingUrl = $this->clientMode 
+                ? route('client.portal.audio.stream', [
+                    'project' => $file->pitch->project_id,
+                    'pitchFile' => $file->id
+                  ])
+                : $file->getStreamingUrl(Auth::user());
+                
             $track = [
                 'type' => 'pitch_file',
                 'id' => $file->id,
                 'title' => $file->file_name,
-                'url' => $file->getStreamingUrl(Auth::user()),
+                'url' => $streamingUrl,
                 'duration' => $file->duration ?? 0,
                 'waveform_peaks' => $file->waveform_peaks ? json_decode($file->waveform_peaks, true) : null,
                 'pitch_id' => $file->pitch_id,
@@ -431,6 +497,7 @@ class GlobalAudioPlayer extends Component
                 'file_size' => $file->file_size,
                 'created_at' => $file->created_at->toISOString(),
                 'has_comments' => $file->comments()->exists(),
+                'client_mode' => $this->clientMode,
             ];
 
             $this->queue[] = $track;
@@ -633,7 +700,7 @@ class GlobalAudioPlayer extends Component
                     'formatted_timestamp' => $this->formatTime($comment['timestamp'] ?? 0),
                 ];
                 if (! empty($comment['user'])) {
-                    $marker['user'] = [ 'name' => $comment['user']['name'] ?? null ];
+                    $marker['user'] = ['name' => $comment['user']['name'] ?? null];
                 } elseif (! empty($comment['client_email'])) {
                     $marker['client_email'] = $comment['client_email'];
                 }
@@ -642,7 +709,7 @@ class GlobalAudioPlayer extends Component
                         return [
                             'comment' => $reply['comment'] ?? '',
                             'created_at_human' => isset($reply['created_at']) ? \Carbon\Carbon::parse($reply['created_at'])->diffForHumans() : '',
-                            'user' => ! empty($reply['user']) ? [ 'name' => $reply['user']['name'] ?? null ] : null,
+                            'user' => ! empty($reply['user']) ? ['name' => $reply['user']['name'] ?? null] : null,
                             'client_email' => $reply['client_email'] ?? null,
                         ];
                     }, $comment['replies']);

@@ -25,13 +25,13 @@ class PayPalController extends Controller
     public function onboardingReturn(Request $request): RedirectResponse
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login')->with('error', 'Authentication required');
         }
 
         // PayPal returns these parameters after onboarding
         $merchantId = $request->input('merchantId');
-        $merchantIdInPayPal = $request->input('merchantIdInPayPal');  
+        $merchantIdInPayPal = $request->input('merchantIdInPayPal');
         $permissionsGranted = $request->input('permissionsGranted', 'true');
         $accountStatus = $request->input('accountStatus');
         $consentStatus = $request->input('consentStatus');
@@ -88,7 +88,7 @@ class PayPalController extends Controller
             $headers = $request->headers->all();
             $body = $request->getContent();
 
-            if (!$this->paypalProvider->validateWebhookSignature($headers, $body)) {
+            if (! $this->paypalProvider->validateWebhookSignature($headers, $body)) {
                 Log::warning('PayPal webhook signature validation failed', [
                     'headers' => $headers,
                 ]);
@@ -148,9 +148,10 @@ class PayPalController extends Controller
     {
         // Extract merchant info from webhook
         $merchantId = $event['resource']['merchant_id'] ?? null;
-        
-        if (!$merchantId) {
+
+        if (! $merchantId) {
             Log::warning('PayPal onboarding completed webhook missing merchant ID', $event);
+
             return;
         }
 
@@ -160,10 +161,11 @@ class PayPalController extends Controller
             ->whereNull('completed_at')
             ->first();
 
-        if (!$onboardingRecord) {
+        if (! $onboardingRecord) {
             Log::warning('No matching onboarding record found for merchant', [
                 'merchant_id' => $merchantId,
             ]);
+
             return;
         }
 
@@ -189,9 +191,10 @@ class PayPalController extends Controller
     protected function handlePartnerConsentRevoked(array $event): void
     {
         $merchantId = $event['resource']['merchant_id'] ?? null;
-        
-        if (!$merchantId) {
+
+        if (! $merchantId) {
             Log::warning('PayPal consent revoked webhook missing merchant ID', $event);
+
             return;
         }
 
@@ -217,7 +220,7 @@ class PayPalController extends Controller
         // Handle successful payment processing
         $paymentId = $event['resource']['id'] ?? null;
         $amount = $event['resource']['amount'] ?? null;
-        
+
         Log::info('PayPal payment capture completed', [
             'payment_id' => $paymentId,
             'amount' => $amount,
@@ -235,7 +238,7 @@ class PayPalController extends Controller
         // Handle refund processing
         $refundId = $event['resource']['id'] ?? null;
         $amount = $event['resource']['amount'] ?? null;
-        
+
         Log::info('PayPal payment refunded', [
             'refund_id' => $refundId,
             'amount' => $amount,

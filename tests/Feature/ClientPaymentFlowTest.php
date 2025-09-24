@@ -2,18 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Billing\WebhookController;
 use App\Models\Pitch;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\InvoiceService;
 use App\Services\NotificationService;
 use App\Services\PitchWorkflowService;
-use App\Services\InvoiceService;
-use App\Http\Controllers\Billing\WebhookController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
-use Tests\TestCase;
-use Mockery;
 use Laravel\Cashier\Checkout;
+use Mockery;
+use Tests\TestCase;
 
 class ClientPaymentFlowTest extends TestCase
 {
@@ -45,7 +45,7 @@ class ClientPaymentFlowTest extends TestCase
 
         // Get automatically created pitch
         $pitch = $project->pitches()->first();
-        $this->assertNotNull($pitch, "Pitch was not automatically created for client management project.");
+        $this->assertNotNull($pitch, 'Pitch was not automatically created for client management project.');
 
         // Update pitch with required payment
         $pitch->update([
@@ -55,11 +55,11 @@ class ClientPaymentFlowTest extends TestCase
         ]);
 
         // Mock the Checkout class to avoid actual API calls
-        $checkoutMock = Mockery::mock('overload:' . Checkout::class);
+        $checkoutMock = Mockery::mock('overload:'.Checkout::class);
         $checkoutMock->shouldReceive('create')
             ->once()
-            ->andReturn((object)[
-                'url' => 'https://checkout.stripe.com/test-session'
+            ->andReturn((object) [
+                'url' => 'https://checkout.stripe.com/test-session',
             ]);
 
         // Generate the signed URL for approval
@@ -98,7 +98,7 @@ class ClientPaymentFlowTest extends TestCase
 
         // Get automatically created pitch
         $pitch = $project->pitches()->first();
-        $this->assertNotNull($pitch, "Pitch was not automatically created for client management project.");
+        $this->assertNotNull($pitch, 'Pitch was not automatically created for client management project.');
 
         // Update pitch with no required payment
         $pitch->update([
@@ -134,7 +134,7 @@ class ClientPaymentFlowTest extends TestCase
         $notificationMock = $this->mock(NotificationService::class);
         $notificationMock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull();
         // Don't expect this directly since our workflow service mock will be mocked too
-        //$notificationMock->shouldReceive('notifyProducerClientApproved')->once();
+        // $notificationMock->shouldReceive('notifyProducerClientApproved')->once();
 
         // Create producer with Stripe customer
         $producer = User::factory()->create();
@@ -149,7 +149,7 @@ class ClientPaymentFlowTest extends TestCase
 
         // Get automatically created pitch
         $pitch = $project->pitches()->first();
-        $this->assertNotNull($pitch, "Pitch was not automatically created for client management project.");
+        $this->assertNotNull($pitch, 'Pitch was not automatically created for client management project.');
 
         // Update pitch with payment pending and ready for review
         $pitch->update([
@@ -159,9 +159,9 @@ class ClientPaymentFlowTest extends TestCase
         ]);
 
         // Create test Stripe payload
-        $sessionId = 'cs_test_' . uniqid();
+        $sessionId = 'cs_test_'.uniqid();
         $payload = [
-            'id' => 'evt_test_' . uniqid(),
+            'id' => 'evt_test_'.uniqid(),
             'type' => 'checkout.session.completed',
             'data' => [
                 'object' => [
@@ -173,8 +173,8 @@ class ClientPaymentFlowTest extends TestCase
                         'pitch_id' => (string) $pitch->id,
                         'type' => 'client_pitch_payment',
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
 
         // Mock InvoiceService
@@ -184,7 +184,7 @@ class ClientPaymentFlowTest extends TestCase
                 ->withArgs(function ($argPitch, $argSessionId) use ($pitch, $sessionId) {
                     return $argPitch->id === $pitch->id && $argSessionId === $sessionId;
                 })
-                ->andReturn((object)['id' => 'inv_test123']);
+                ->andReturn((object) ['id' => 'inv_test123']);
         });
 
         // Mock PitchWorkflowService to update pitch but not call actual notification
@@ -196,6 +196,7 @@ class ClientPaymentFlowTest extends TestCase
                     $argPitch->status = Pitch::STATUS_APPROVED;
                     $argPitch->approved_at = now();
                     $argPitch->save();
+
                     return $argPitch;
                 });
         });
@@ -221,11 +222,11 @@ class ClientPaymentFlowTest extends TestCase
     {
         // Arrange: Create test payload with different metadata type
         $payload = [
-            'id' => 'evt_test_' . uniqid(),
+            'id' => 'evt_test_'.uniqid(),
             'type' => 'checkout.session.completed',
             'data' => [
                 'object' => [
-                    'id' => 'cs_test_' . uniqid(),
+                    'id' => 'cs_test_'.uniqid(),
                     'payment_status' => 'paid',
                     'amount_total' => 10000,
                     'currency' => 'usd',
@@ -233,8 +234,8 @@ class ClientPaymentFlowTest extends TestCase
                         'pitch_id' => '999', // Non-existent pitch
                         'type' => 'other_payment_type', // Different type
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
 
         // Mock InvoiceService - should not be called
@@ -279,7 +280,7 @@ class ClientPaymentFlowTest extends TestCase
         // Get automatically created pitch and mark it as already paid
         $pitch = $project->pitches()->first();
         $this->assertNotNull($pitch);
-        
+
         // Set the timestamps properly for our test
         $pitch->update([
             'payment_amount' => 100.00,
@@ -295,9 +296,9 @@ class ClientPaymentFlowTest extends TestCase
         $originalPaymentStatus = $pitch->payment_status;
 
         // Create test Stripe payload with same pitch ID
-        $sessionId = 'cs_test_' . uniqid();
+        $sessionId = 'cs_test_'.uniqid();
         $payload = [
-            'id' => 'evt_test_' . uniqid(),
+            'id' => 'evt_test_'.uniqid(),
             'type' => 'checkout.session.completed',
             'data' => [
                 'object' => [
@@ -309,8 +310,8 @@ class ClientPaymentFlowTest extends TestCase
                         'pitch_id' => (string) $pitch->id,
                         'type' => 'client_pitch_payment',
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
 
         // Mock services - they should NOT be called for idempotent operation
@@ -336,4 +337,4 @@ class ClientPaymentFlowTest extends TestCase
         $this->assertEquals($originalStatus, $pitch->status);
         $this->assertEquals($originalPaymentStatus, $pitch->payment_status);
     }
-} 
+}

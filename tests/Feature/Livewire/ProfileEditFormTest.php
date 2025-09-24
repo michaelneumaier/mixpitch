@@ -18,4 +18,4 @@ class ProfileEditFormTest extends TestCase
             ->test(ProfileEditForm::class)
             ->assertOk();
     }
-} 
+}

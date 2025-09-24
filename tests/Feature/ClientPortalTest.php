@@ -3,17 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\Pitch;
+use App\Models\PitchEvent;
 use App\Models\Project;
 use App\Models\User;
-use App\Models\PitchEvent;
 use App\Services\NotificationService;
 use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\URL;
-use Tests\TestCase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\URL;
+use Tests\TestCase;
 
 class ClientPortalTest extends TestCase
 {
@@ -38,7 +38,7 @@ class ClientPortalTest extends TestCase
 
         // The ProjectObserver should have created a pitch automatically
         $pitch = $project->pitches()->first();
-        $this->assertNotNull($pitch, "Pitch was not automatically created for client management project.");
+        $this->assertNotNull($pitch, 'Pitch was not automatically created for client management project.');
 
         // Generate a valid signed URL
         $signedUrl = URL::temporarySignedRoute(
@@ -167,7 +167,7 @@ class ClientPortalTest extends TestCase
         $this->assertNotNull($pitch);
         $pitch->delete();
         $project->refresh(); // Refresh project state
-        $this->assertNull($project->pitches()->first(), "Pitch was not deleted for test setup.");
+        $this->assertNull($project->pitches()->first(), 'Pitch was not deleted for test setup.');
 
         // Generate a signed URL
         $signedUrl = URL::temporarySignedRoute(
@@ -220,9 +220,9 @@ class ClientPortalTest extends TestCase
 
         // Act: Make POST request to the signed action URL
         $response = $this->from($signedViewUrl) // Keep referer for good practice
-                         ->post($postCommentUrl, [
-                             'comment' => $commentText,
-                         ]);
+            ->post($postCommentUrl, [
+                'comment' => $commentText,
+            ]);
 
         // Assert
         $response->assertStatus(302); // Should redirect back
@@ -314,16 +314,17 @@ class ClientPortalTest extends TestCase
 
         // Expect the workflow service method to be called
         $workflowMock->shouldReceive('clientApprovePitch')
-                     ->once()
-                     ->withArgs(function ($argPitch, $argEmail) use ($pitch, $project) {
-                         return $argPitch->id === $pitch->id && $argEmail === $project->client_email;
-                     })
-                     ->andReturnUsing(function ($argPitch) {
-                         // Simulate the status change that the real service would do
-                         $argPitch->status = Pitch::STATUS_APPROVED;
-                         $argPitch->save();
-                         return $argPitch; // Return the modified pitch
-                     });
+            ->once()
+            ->withArgs(function ($argPitch, $argEmail) use ($pitch, $project) {
+                return $argPitch->id === $pitch->id && $argEmail === $project->client_email;
+            })
+            ->andReturnUsing(function ($argPitch) {
+                // Simulate the status change that the real service would do
+                $argPitch->status = Pitch::STATUS_APPROVED;
+                $argPitch->save();
+
+                return $argPitch; // Return the modified pitch
+            });
 
         // Generate URLs (Sign the POST action URL)
         $signedViewUrl = URL::temporarySignedRoute('client.portal.view', now()->addMinutes(15), ['project' => $project->id]);
@@ -335,7 +336,7 @@ class ClientPortalTest extends TestCase
 
         // Act: Make POST request to the signed action URL
         $response = $this->from($signedViewUrl)
-                         ->post($approveUrl);
+            ->post($approveUrl);
 
         // Assert
         $response->assertStatus(302); // Should redirect back
@@ -373,13 +374,13 @@ class ClientPortalTest extends TestCase
         // Expect the workflow service method to be called and throw an exception
         $exceptionMessage = 'Pitch cannot be approved from its current state.';
         $workflowMock->shouldReceive('clientApprovePitch')
-                     ->once()
-                     ->withArgs(fn ($p, $e) => $p->id === $pitch->id && $e === $project->client_email)
-                     ->andThrow(new \App\Exceptions\Pitch\InvalidStatusTransitionException(
-                         $initialStatus, // Current status
-                         Pitch::STATUS_APPROVED, // Target status
-                         $exceptionMessage
-                     ));
+            ->once()
+            ->withArgs(fn ($p, $e) => $p->id === $pitch->id && $e === $project->client_email)
+            ->andThrow(new \App\Exceptions\Pitch\InvalidStatusTransitionException(
+                $initialStatus, // Current status
+                Pitch::STATUS_APPROVED, // Target status
+                $exceptionMessage
+            ));
 
         // Generate URLs (Sign the POST action URL)
         $signedViewUrl = URL::temporarySignedRoute('client.portal.view', now()->addMinutes(15), ['project' => $project->id]);
@@ -397,7 +398,7 @@ class ClientPortalTest extends TestCase
         $response->assertSessionHasErrors('approval'); // Check for the specific error key used in controller
 
         // Construct the expected full error message from the exception
-        $expectedFullErrorMessage = $exceptionMessage . ": Cannot transition from '{$initialStatus}' to '" . Pitch::STATUS_APPROVED . "'";
+        $expectedFullErrorMessage = $exceptionMessage.": Cannot transition from '{$initialStatus}' to '".Pitch::STATUS_APPROVED."'";
         $this->assertEquals($expectedFullErrorMessage, session('errors')->first('approval')); // Check full error message
 
         // Assert pitch status did NOT change
@@ -427,16 +428,17 @@ class ClientPortalTest extends TestCase
 
         // Expect workflow service call
         $workflowMock->shouldReceive('clientRequestRevisions')
-                     ->once()
-                     ->withArgs(function ($argPitch, $argFeedback, $argEmail) use ($pitch, $feedbackText, $project) {
-                         return $argPitch->id === $pitch->id && $argFeedback === $feedbackText && $argEmail === $project->client_email;
-                     })
-                     ->andReturnUsing(function ($argPitch) {
-                         // Simulate status change
-                         $argPitch->status = Pitch::STATUS_REVISIONS_REQUESTED;
-                         $argPitch->save();
-                         return $argPitch; // Return the modified pitch
-                     });
+            ->once()
+            ->withArgs(function ($argPitch, $argFeedback, $argEmail) use ($pitch, $feedbackText, $project) {
+                return $argPitch->id === $pitch->id && $argFeedback === $feedbackText && $argEmail === $project->client_email;
+            })
+            ->andReturnUsing(function ($argPitch) {
+                // Simulate status change
+                $argPitch->status = Pitch::STATUS_REVISIONS_REQUESTED;
+                $argPitch->save();
+
+                return $argPitch; // Return the modified pitch
+            });
 
         // Generate URLs (Sign the POST action URL)
         $signedViewUrl = URL::temporarySignedRoute('client.portal.view', now()->addMinutes(15), ['project' => $project->id]);
@@ -448,7 +450,7 @@ class ClientPortalTest extends TestCase
 
         // Act
         $response = $this->from($signedViewUrl)
-                         ->post($revisionsUrl, ['feedback' => $feedbackText]);
+            ->post($revisionsUrl, ['feedback' => $feedbackText]);
 
         // Assert
         $response->assertStatus(302); // Expect redirect back
@@ -562,7 +564,7 @@ class ClientPortalTest extends TestCase
         $response->assertSessionHasErrors(['revisions']);
         $pitch->refresh();
         $this->assertEquals(Pitch::STATUS_APPROVED, $pitch->status);
-         $this->assertDatabaseMissing('pitch_events', [
+        $this->assertDatabaseMissing('pitch_events', [
             'pitch_id' => $pitch->id,
             'event_type' => 'client_revisions_requested',
         ]);
@@ -575,7 +577,7 @@ class ClientPortalTest extends TestCase
         $response->assertSessionHasErrors(['revisions']);
         $pitch->refresh();
         $this->assertEquals(Pitch::STATUS_COMPLETED, $pitch->status);
-         $this->assertDatabaseMissing('pitch_events', [
+        $this->assertDatabaseMissing('pitch_events', [
             'pitch_id' => $pitch->id,
             'event_type' => 'client_revisions_requested',
         ]);
@@ -587,24 +589,27 @@ class ClientPortalTest extends TestCase
         // Arrange: Mock NotificationService
         $notificationMock = $this->mock(NotificationService::class);
         // Expect invite notification on creation
-        $notificationMock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull(); 
+        $notificationMock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull();
         // Crucial expectation: Client review notification
         $notificationMock->shouldReceive('notifyClientReviewReady')
-                         ->once()
-                         ->withArgs(function (Pitch $notifiedPitch, string $signedUrl) {
-                             // Check if URL is a valid signed URL for the client portal view
-                             // We can't know the exact signature, but we can parse and check structure/expiry
-                             try {
-                                 $route = app('url')->route('client.portal.view', ['project' => $notifiedPitch->project_id], false);
-                                 // Basic check: Does the generated URL start with the expected route path?
-                                 if (strpos($signedUrl, $route) === false) return false;
-                                 // Further checks could parse query params for 'expires' and 'signature'
-                                 // if needed, but checking the base path is a good start.
-                                 return true;
-                             } catch (\Exception $e) {
-                                 return false;
-                             }
-                         });
+            ->once()
+            ->withArgs(function (Pitch $notifiedPitch, string $signedUrl) {
+                // Check if URL is a valid signed URL for the client portal view
+                // We can't know the exact signature, but we can parse and check structure/expiry
+                try {
+                    $route = app('url')->route('client.portal.view', ['project' => $notifiedPitch->project_id], false);
+                    // Basic check: Does the generated URL start with the expected route path?
+                    if (strpos($signedUrl, $route) === false) {
+                        return false;
+                    }
+
+                    // Further checks could parse query params for 'expires' and 'signature'
+                    // if needed, but checking the base path is a good start.
+                    return true;
+                } catch (\Exception $e) {
+                    return false;
+                }
+            });
 
         // Create producer, project, and pitch
         $producer = User::factory()->create();
@@ -657,7 +662,7 @@ class ClientPortalTest extends TestCase
         $notificationMock->shouldReceive('notifyClientProjectInvite')->once();
         $notificationMock->shouldReceive('notifyPitchCompleted')->once(); // Called for producer
         $notificationMock->shouldReceive('notifyClientProjectCompleted')->once(); // Called for client
-        
+
         // Mock ProjectManagementService to avoid side effects on Project model
         $projectManagementMock = $this->mock(\App\Services\Project\ProjectManagementService::class);
         $projectManagementMock->shouldReceive('completeProject')->once();
@@ -704,7 +709,7 @@ class ClientPortalTest extends TestCase
         // Mock NotificationService (only for project creation)
         $notificationMock = $this->mock(NotificationService::class);
         $notificationMock->shouldReceive('notifyClientProjectInvite')->once();
-        
+
         // Create producer, project, and pitch
         $producer = User::factory()->create();
         $project = Project::factory()->create([
@@ -739,16 +744,17 @@ class ClientPortalTest extends TestCase
         // Mock NotificationService - expect invite TWICE
         $notificationMock = $this->mock(NotificationService::class);
         $notificationMock->shouldReceive('notifyClientProjectInvite')
-                         ->twice() // Expect it twice (creation + resend)
-                         ->andReturnUsing(function (Project $notifiedProject, string $signedUrl) use (&$firstSignedUrl, &$secondSignedUrl) {
-                             // Capture the URLs to compare later
-                             if ($firstSignedUrl === null) {
-                                 $firstSignedUrl = $signedUrl;
-                             } else {
-                                 $secondSignedUrl = $signedUrl;
-                             }
-                             return null;
-                         });
+            ->twice() // Expect it twice (creation + resend)
+            ->andReturnUsing(function (Project $notifiedProject, string $signedUrl) use (&$firstSignedUrl, &$secondSignedUrl) {
+                // Capture the URLs to compare later
+                if ($firstSignedUrl === null) {
+                    $firstSignedUrl = $signedUrl;
+                } else {
+                    $secondSignedUrl = $signedUrl;
+                }
+
+                return null;
+            });
 
         // Create producer, project, and pitch (triggers first notification with frozen time)
         $producer = User::factory()->create();
@@ -767,7 +773,7 @@ class ClientPortalTest extends TestCase
         // Act: Producer resends the invite via the new route (triggers second notification with advanced time)
         // Authenticate as the producer
         $response = $this->actingAs($producer)
-                         ->post(route('client.portal.resend_invite', ['project' => $project->id]));
+            ->post(route('client.portal.resend_invite', ['project' => $project->id]));
 
         // Assert
         // 1. Response indicates success (redirect back with success flash)
@@ -785,7 +791,7 @@ class ClientPortalTest extends TestCase
             $routePath = app('url')->route('client.portal.view', ['project' => $project->id], false);
             $this->assertStringContainsString($routePath, $secondSignedUrl);
         } catch (\Exception $e) {
-            $this->fail('Could not verify structure of the second signed URL: ' . $e->getMessage());
+            $this->fail('Could not verify structure of the second signed URL: '.$e->getMessage());
         }
 
         // Clean up: Reset time
@@ -797,17 +803,17 @@ class ClientPortalTest extends TestCase
     {
         // Arrange: Set up test dependencies & environment
         Storage::fake('local');
-        
+
         // Create producer and client management project
         $producer = User::factory()->create();
         $otherProducer = User::factory()->create(); // For testing access control
         $otherClient = User::factory()->create();   // For testing access control
-        
+
         // Mock NotificationService (not testing notifications here)
         $notificationMock = $this->mock(NotificationService::class);
         $notificationMock->shouldReceive('notifyClientProjectInvite')->once()->andReturnNull();
         $notificationMock->shouldReceive('notifyClientReviewReady')->once()->andReturnNull();
-        
+
         // Create project and pitch
         $project = Project::factory()->create([
             'user_id' => $producer->id,
@@ -815,14 +821,14 @@ class ClientPortalTest extends TestCase
             'client_email' => 'client@example.com',
             'client_name' => 'Test Client',
         ]);
-        
+
         // Get auto-created pitch and prepare a test file
         $pitch = $project->pitches()->first();
         $this->assertNotNull($pitch);
-        
+
         // Set up a test file (owned by producer)
         $testFile = UploadedFile::fake()->create('test-delivery.mp3', 500);
-        $filePath = Storage::disk('local')->putFile('pitch_files/' . $pitch->id, $testFile);
+        $filePath = Storage::disk('local')->putFile('pitch_files/'.$pitch->id, $testFile);
         $pitchFile = \App\Models\PitchFile::create([
             'pitch_id' => $pitch->id,
             'user_id' => $producer->id,
@@ -832,30 +838,30 @@ class ClientPortalTest extends TestCase
             'mime_type' => $testFile->getMimeType(),
             'size' => $testFile->getSize(),
         ]);
-        
+
         // Set pitch status for submission
         $pitch->update(['status' => Pitch::STATUS_READY_FOR_REVIEW]);
-        
+
         // Generate signed URLs
         $clientViewUrl = URL::temporarySignedRoute(
             'client.portal.view',
             now()->addMinutes(15),
             ['project' => $project->id]
         );
-        
+
         $clientDownloadUrl = URL::temporarySignedRoute(
             'client.portal.download_file',
             now()->addMinutes(15),
             ['project' => $project->id, 'file' => $pitchFile->id]
         );
-        
+
         // Test Cases:
-        
+
         // 1. Client with signed URL can download the file
         $clientResponse = $this->get($clientDownloadUrl);
         $clientResponse->assertStatus(200);
         $clientResponse->assertHeader('Content-Type', $pitchFile->mime_type);
-        
+
         // 2. Tampering with file ID results in 404/403
         $tamperedFileUrl = URL::temporarySignedRoute(
             'client.portal.download_file',
@@ -864,42 +870,41 @@ class ClientPortalTest extends TestCase
         );
         $tamperedResponse = $this->get($tamperedFileUrl);
         $tamperedResponse->assertStatus(404); // File not found
-        
+
         // 3. Missing/invalid signature is rejected
         $unsignedUrl = route('client.portal.download_file', ['project' => $project->id, 'file' => $pitchFile->id]);
         $unsignedResponse = $this->get($unsignedUrl);
         $unsignedResponse->assertStatus(403); // Forbidden without signature
-        
+
         // 4. Client from different project cannot access (wrong project ID in URL)
         $otherProject = Project::factory()->create([
-            'user_id' => $otherProducer->id, 
+            'user_id' => $otherProducer->id,
             'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             'client_email' => 'other@example.com',
         ]);
-        
+
         $wrongProjectUrl = URL::temporarySignedRoute(
             'client.portal.download_file',
             now()->addMinutes(15),
             ['project' => $otherProject->id, 'file' => $pitchFile->id] // Wrong project
         );
-        
+
         $wrongProjectResponse = $this->get($wrongProjectUrl);
         $wrongProjectResponse->assertStatus(403); // Should be forbidden
-        
+
         // 5. Even logged-in users must have correct signature
         $this->actingAs($otherClient); // Log in as another user
         $loggedInResponse = $this->get($unsignedUrl); // Try without signature
         $loggedInResponse->assertStatus(403); // Should still be forbidden
-        
+
         // 6. Only producer and client can download (producer via normal auth)
         $this->actingAs($producer); // Log in as the producer
         $producerResponse = $this->get(route('pitch.files.download', ['file' => $pitchFile->id]));
         $producerResponse->assertStatus(200); // Producer can access via normal route
-        
+
         // 7. Other producer cannot access
         $this->actingAs($otherProducer);
         $otherProducerResponse = $this->get(route('pitch.files.download', ['file' => $pitchFile->id]));
         $otherProducerResponse->assertStatus(403); // Other producer cannot access
     }
-
 }

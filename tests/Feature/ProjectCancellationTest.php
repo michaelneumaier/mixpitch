@@ -55,10 +55,10 @@ class ProjectCancellationTest extends TestCase
         // Define expected notification calls
         $notificationMock->shouldReceive('notifyPitchCancelled')
             ->once()
-            ->with(Mockery::on(fn($p) => $p->id === $pitch1->id));
+            ->with(Mockery::on(fn ($p) => $p->id === $pitch1->id));
         $notificationMock->shouldReceive('notifyPitchCancelled')
             ->once()
-            ->with(Mockery::on(fn($p) => $p->id === $pitch2->id));
+            ->with(Mockery::on(fn ($p) => $p->id === $pitch2->id));
 
         // Assuming cancellation is handled by ProjectManagementService::cancelProject
         // We might need to mock this or call it directly, depending on how the UI triggers it.
@@ -80,17 +80,16 @@ class ProjectCancellationTest extends TestCase
                         // Assume service triggers notifications internally
                     }
                 }
+
                 return $proj;
             });
         $this->app->instance(ProjectManagementService::class, $projectManagementServiceMock);
-
 
         // Act: Simulate owner cancelling via a hypothetical Livewire component
         // Replace 'App\Livewire\Project\ManageProject' with the actual component name if different
         Livewire::actingAs($projectOwner)
             ->test('App\Livewire\Project\ManageProject', ['project' => $project])
             ->call('cancelProject', 'No longer needed'); // Assuming method exists and takes optional reason
-
 
         // Assert
         $project->refresh();
@@ -112,12 +111,12 @@ class ProjectCancellationTest extends TestCase
         $this->assertDatabaseHas('notifications', [
             'user_id' => $producer1->id,
             'type' => Notification::TYPE_PITCH_CANCELLED,
-            'related_id' => $pitch1->id
+            'related_id' => $pitch1->id,
         ]);
-         $this->assertDatabaseHas('notifications', [
+        $this->assertDatabaseHas('notifications', [
             'user_id' => $producer2->id,
             'type' => Notification::TYPE_PITCH_CANCELLED,
-            'related_id' => $pitch2->id
+            'related_id' => $pitch2->id,
         ]);
     }
-} 
+}

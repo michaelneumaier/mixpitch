@@ -59,12 +59,31 @@ class PitchSnapshot extends Model
      */
     public function getFilesAttribute()
     {
-        $fileIds = $this->snapshot_data['file_ids'] ?? [];
-        if (empty($fileIds)) {
-            return collect();
+        // Check if files are already cached on this instance
+        if (isset($this->attributes['cached_files'])) {
+            return $this->attributes['cached_files'];
         }
 
-        return PitchFile::whereIn('id', $fileIds)->orderBy('created_at')->get();
+        $fileIds = $this->snapshot_data['file_ids'] ?? [];
+        if (empty($fileIds)) {
+            $this->attributes['cached_files'] = collect();
+            return $this->attributes['cached_files'];
+        }
+
+        // Load files with proper relationships for client portal compatibility
+        $files = PitchFile::whereIn('id', $fileIds)
+            ->with(['pitch', 'pitch.project'])
+            ->orderBy('created_at')
+            ->get()
+            ->map(function ($file) {
+                // Ensure the file has all necessary properties for FileList component
+                $file->pitch_id = $file->pitch_id ?? $this->pitch_id;
+                return $file;
+            });
+
+        // Cache the result to avoid multiple database queries
+        $this->attributes['cached_files'] = $files;
+        return $files;
     }
 
     /**

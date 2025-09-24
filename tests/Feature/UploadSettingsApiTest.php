@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\FileUploadSetting;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -15,20 +15,22 @@ class UploadSettingsApiTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected Pitch $pitch;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create(['user_id' => $this->user->id]);
         $this->pitch = Pitch::factory()->create([
             'user_id' => $this->user->id,
-            'project_id' => $this->project->id
+            'project_id' => $this->project->id,
         ]);
-        
+
         // Clear settings and cache
         FileUploadSetting::query()->delete();
         Cache::flush();
@@ -47,7 +49,7 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/global');
-        
+
         $response->assertOk();
         $response->assertJsonStructure([
             'context',
@@ -57,22 +59,22 @@ class UploadSettingsApiTest extends TestCase
                 'max_concurrent_uploads',
                 'max_retry_attempts',
                 'enable_chunking',
-                'session_timeout_hours'
+                'session_timeout_hours',
             ],
             'metadata' => [
                 'schema',
                 'defaults',
-                'validation_rules'
+                'validation_rules',
             ],
             'computed' => [
                 'max_file_size_bytes',
                 'chunk_size_bytes',
                 'session_timeout_ms',
                 'uppy_restrictions',
-                'upload_config'
-            ]
+                'upload_config',
+            ],
         ]);
-        
+
         $this->assertEquals('global', $response->json('context'));
         $this->assertEquals(FileUploadSetting::DEFAULT_VALUES, $response->json('settings'));
     }
@@ -89,7 +91,7 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/projects');
-        
+
         $response->assertOk();
         $this->assertEquals('projects', $response->json('context'));
         $this->assertEquals(1000, $response->json('settings.max_file_size_mb'));
@@ -102,11 +104,11 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/invalid_context');
-        
+
         $response->assertStatus(400);
         $response->assertJson([
             'error' => 'Invalid context',
-            'valid_contexts' => FileUploadSetting::getValidContexts()
+            'valid_contexts' => FileUploadSetting::getValidContexts(),
         ]);
     }
 
@@ -124,20 +126,20 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/pitches');
-        
+
         $response->assertOk();
-        
+
         $computed = $response->json('computed');
-        
+
         // Test byte conversions
         $this->assertEquals(150 * 1024 * 1024, $computed['max_file_size_bytes']);
         $this->assertEquals(8 * 1024 * 1024, $computed['chunk_size_bytes']);
         $this->assertEquals(48 * 60 * 60 * 1000, $computed['session_timeout_ms']);
-        
+
         // Test Uppy restrictions
         $this->assertEquals(150 * 1024 * 1024, $computed['uppy_restrictions']['maxFileSize']);
         $this->assertEquals(['audio/*', 'application/pdf', 'image/*', 'application/zip'], $computed['uppy_restrictions']['allowedFileTypes']);
-        
+
         // Test upload config
         $this->assertEquals(8 * 1024 * 1024, $computed['upload_config']['chunkSize']);
         $this->assertEquals(4, $computed['upload_config']['limit']);
@@ -150,19 +152,19 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/global');
-        
+
         $response->assertOk();
-        
+
         $metadata = $response->json('metadata');
-        
+
         // Test schema
         $this->assertArrayHasKey('max_file_size_mb', $metadata['schema']);
         $this->assertEquals('Maximum file size in megabytes', $metadata['schema']['max_file_size_mb']['description']);
         $this->assertEquals('integer', $metadata['schema']['max_file_size_mb']['type']);
-        
+
         // Test defaults
         $this->assertEquals(FileUploadSetting::DEFAULT_VALUES, $metadata['defaults']);
-        
+
         // Test validation rules
         $this->assertEquals(FileUploadSetting::VALIDATION_RULES, $metadata['validation_rules']);
     }
@@ -181,7 +183,7 @@ class UploadSettingsApiTest extends TestCase
             'model_type' => 'App\\Models\\Project',
             'model_id' => $this->project->id,
         ]);
-        
+
         $response->assertOk();
         $this->assertEquals('projects', $response->json('context'));
         $this->assertEquals(800, $response->json('settings.max_file_size_mb'));
@@ -230,10 +232,10 @@ class UploadSettingsApiTest extends TestCase
             'file_size' => 50 * 1024 * 1024, // 50MB
             'file_type' => 'audio/mp3',
         ]);
-        
+
         $response->assertOk();
         $data = $response->json();
-        
+
         $this->assertTrue($data['is_size_valid']);
         $this->assertTrue($data['is_type_valid']);
         $this->assertTrue($data['chunking_enabled']);
@@ -246,7 +248,7 @@ class UploadSettingsApiTest extends TestCase
             'file_size' => 150 * 1024 * 1024, // 150MB
             'file_type' => 'audio/mp3',
         ]);
-        
+
         $response->assertOk();
         $this->assertFalse($response->json('is_size_valid'));
     }
@@ -329,7 +331,7 @@ class UploadSettingsApiTest extends TestCase
             'file_size' => 10 * 1024 * 1024, // 10MB
             'file_type' => 'audio/mp3',
         ]);
-        
+
         $response->assertOk();
         $this->assertFalse($response->json('chunking_enabled'));
         $this->assertFalse($response->json('will_be_chunked'));
@@ -345,7 +347,7 @@ class UploadSettingsApiTest extends TestCase
             'file_size' => 5 * 1024 * 1024, // 5MB (smaller than chunk size)
             'file_type' => 'audio/mp3',
         ]);
-        
+
         $response->assertOk();
         $this->assertTrue($response->json('chunking_enabled'));
         $this->assertFalse($response->json('will_be_chunked')); // File smaller than chunk size
@@ -358,7 +360,7 @@ class UploadSettingsApiTest extends TestCase
 
         // This should trigger an error (we'll mock it by using a very invalid context)
         $response = $this->getJson('/api/upload-settings/global');
-        
+
         // Even if there are internal errors, it should return a proper JSON response
         $response->assertHeader('Content-Type', 'application/json');
     }
@@ -380,16 +382,16 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/projects');
-        
+
         $response->assertOk();
         $settings = $response->json('settings');
-        
+
         // Should get project-specific max file size
         $this->assertEquals(1200, $settings['max_file_size_mb']);
-        
+
         // Should inherit global chunk size
         $this->assertEquals(6, $settings['chunk_size_mb']);
-        
+
         // Should use default for unset values
         $this->assertEquals(
             FileUploadSetting::DEFAULT_VALUES['max_concurrent_uploads'],
@@ -403,7 +405,7 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/');
-        
+
         $response->assertOk();
         $this->assertEquals('global', $response->json('context'));
     }
@@ -414,10 +416,10 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/projects');
-        
+
         $response->assertOk();
         $defaults = $response->json('metadata.defaults');
-        
+
         // Should include project-specific recommended defaults
         $this->assertEquals(1000, $defaults['max_file_size_mb']); // Project default
         $this->assertEquals(10, $defaults['chunk_size_mb']); // Project default
@@ -429,10 +431,10 @@ class UploadSettingsApiTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->getJson('/api/upload-settings/client_portals');
-        
+
         $response->assertOk();
         $validationRules = $response->json('metadata.validation_rules');
-        
+
         // Should include client portal specific validation rules
         $this->assertEquals('integer|min:1|max:500', $validationRules['max_file_size_mb']);
         $this->assertEquals('integer|min:1|max:5', $validationRules['max_concurrent_uploads']);

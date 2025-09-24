@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\ValidateUploadSettings;
 use App\Models\FileUploadSetting;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -18,24 +18,27 @@ class UploadValidationMiddlewareTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected Pitch $pitch;
+
     protected ValidateUploadSettings $middleware;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->project = Project::factory()->create(['user_id' => $this->user->id]);
         $this->pitch = Pitch::factory()->create([
             'user_id' => $this->user->id,
             'project_id' => $this->project->id,
-            'status' => Pitch::STATUS_IN_PROGRESS
+            'status' => Pitch::STATUS_IN_PROGRESS,
         ]);
-        
-        $this->middleware = new ValidateUploadSettings();
-        
+
+        $this->middleware = new ValidateUploadSettings;
+
         // Clear settings and cache
         FileUploadSetting::query()->delete();
         Cache::flush();
@@ -45,7 +48,7 @@ class UploadValidationMiddlewareTest extends TestCase
     public function it_skips_validation_for_non_upload_requests()
     {
         $request = Request::create('/some-other-endpoint', 'GET');
-        
+
         $response = $this->middleware->handle($request, function ($req) {
             return response()->json(['success' => true]);
         });
@@ -154,6 +157,7 @@ class UploadValidationMiddlewareTest extends TestCase
             // Check that settings were added to request
             $this->assertEquals('projects', $req->get('_upload_context'));
             $this->assertEquals(200, $req->get('_upload_settings')[FileUploadSetting::MAX_FILE_SIZE_MB]);
+
             return response()->json(['success' => true]);
         }, 'auto');
 
@@ -171,8 +175,10 @@ class UploadValidationMiddlewareTest extends TestCase
         $request = Request::create('/project/upload', 'POST');
         $request->files->set('file', $validFile);
         $request->setRouteResolver(function () {
-            return new class {
-                public function parameter($name) {
+            return new class
+            {
+                public function parameter($name)
+                {
                     return $name === 'project' ? 'some-project' : null;
                 }
             };
@@ -180,6 +186,7 @@ class UploadValidationMiddlewareTest extends TestCase
 
         $response = $this->middleware->handle($request, function ($req) {
             $this->assertEquals('projects', $req->get('_upload_context'));
+
             return response()->json(['success' => true]);
         }, 'auto');
 
@@ -199,6 +206,7 @@ class UploadValidationMiddlewareTest extends TestCase
 
         $response = $this->middleware->handle($request, function ($req) {
             $this->assertEquals('pitches', $req->get('_upload_context'));
+
             return response()->json(['success' => true]);
         }, 'auto');
 
@@ -218,6 +226,7 @@ class UploadValidationMiddlewareTest extends TestCase
 
         $response = $this->middleware->handle($request, function ($req) {
             $this->assertEquals('client_portals', $req->get('_upload_context'));
+
             return response()->json(['success' => true]);
         }, 'auto');
 
@@ -257,7 +266,7 @@ class UploadValidationMiddlewareTest extends TestCase
             $this->assertEquals(250, $settings[FileUploadSetting::MAX_FILE_SIZE_MB]);
             $this->assertEquals(8, $settings[FileUploadSetting::CHUNK_SIZE_MB]);
             $this->assertEquals('projects', $req->get('_upload_context'));
-            
+
             return response()->json(['success' => true]);
         }, 'projects');
 
@@ -284,7 +293,7 @@ class UploadValidationMiddlewareTest extends TestCase
         $request = Request::create('/upload', 'POST');
         $largeFile = UploadedFile::fake()->create('large.mp3', 5 * 1024); // 5MB file
         $request->files->set('file', $largeFile);
-        
+
         // Set very strict settings to ensure validation fails
         FileUploadSetting::updateSettings([
             FileUploadSetting::MAX_FILE_SIZE_MB => 1, // Very small limit (1MB) to trigger failure
@@ -325,41 +334,41 @@ class UploadValidationMiddlewareTest extends TestCase
         // Test with file parameter
         $request1 = Request::create('/test', 'POST');
         $request1->files->set('file', UploadedFile::fake()->create('test.mp3'));
-        
+
         $response1 = $this->middleware->handle($request1, function ($req) {
             return response()->json(['processed' => true]);
         });
-        
+
         // Should process the request (not skip it)
         $this->assertEquals(200, $response1->getStatusCode());
 
         // Test with chunk parameter
         $request2 = Request::create('/test', 'POST');
         $request2->files->set('chunk', UploadedFile::fake()->create('chunk.part'));
-        
+
         $response2 = $this->middleware->handle($request2, function ($req) {
             return response()->json(['processed' => true]);
         });
-        
+
         $this->assertEquals(200, $response2->getStatusCode());
 
         // Test with total_size parameter
         $request3 = Request::create('/test', 'POST');
         $request3->merge(['total_size' => 1024]);
-        
+
         $response3 = $this->middleware->handle($request3, function ($req) {
             return response()->json(['processed' => true]);
         });
-        
+
         $this->assertEquals(200, $response3->getStatusCode());
 
         // Test with upload in path
         $request4 = Request::create('/api/upload-something', 'POST');
-        
+
         $response4 = $this->middleware->handle($request4, function ($req) {
             return response()->json(['processed' => true]);
         });
-        
+
         $this->assertEquals(200, $response4->getStatusCode());
     }
 }

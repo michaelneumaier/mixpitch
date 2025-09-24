@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
 use App\Models\PitchSnapshot;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,10 +14,15 @@ class PitchOwnerRedirectTest extends TestCase
     use RefreshDatabase;
 
     protected $projectOwner;
+
     protected $producer;
+
     protected $otherUser;
+
     protected $standardProject;
+
     protected $clientManagementProject;
+
     protected $directHireProject;
 
     protected function setUp(): void
@@ -35,7 +40,7 @@ class PitchOwnerRedirectTest extends TestCase
             ->create([
                 'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
                 'status' => Project::STATUS_OPEN,
-                'is_published' => true
+                'is_published' => true,
             ]);
 
         $this->clientManagementProject = Project::factory()
@@ -43,7 +48,7 @@ class PitchOwnerRedirectTest extends TestCase
             ->create([
                 'workflow_type' => Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
                 'status' => Project::STATUS_OPEN,
-                'is_published' => true
+                'is_published' => true,
             ]);
 
         $this->directHireProject = Project::factory()
@@ -51,7 +56,7 @@ class PitchOwnerRedirectTest extends TestCase
             ->create([
                 'workflow_type' => Project::WORKFLOW_TYPE_DIRECT_HIRE,
                 'status' => Project::STATUS_OPEN,
-                'is_published' => true
+                'is_published' => true,
             ]);
     }
 
@@ -67,7 +72,7 @@ class PitchOwnerRedirectTest extends TestCase
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.show', [
                 'project' => $this->standardProject,
-                'pitch' => $pitch
+                'pitch' => $pitch,
             ]));
 
         $response->assertRedirect(route('projects.manage', $this->standardProject));
@@ -90,13 +95,13 @@ class PitchOwnerRedirectTest extends TestCase
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.show', [
                 'project' => $this->standardProject,
-                'pitch' => $pitch
+                'pitch' => $pitch,
             ]));
 
         $response->assertRedirect(route('projects.pitches.snapshots.show', [
             'project' => $this->standardProject->slug,
             'pitch' => $pitch->slug,
-            'snapshot' => $snapshot->id
+            'snapshot' => $snapshot->id,
         ]));
         $response->assertSessionHas('info', 'Redirected to the latest snapshot for review.');
     }
@@ -121,14 +126,14 @@ class PitchOwnerRedirectTest extends TestCase
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.show', [
                 'project' => $this->standardProject,
-                'pitch' => $pitch
+                'pitch' => $pitch,
             ]));
 
         // Should redirect to the latest snapshot, not the old one
         $response->assertRedirect(route('projects.pitches.snapshots.show', [
             'project' => $this->standardProject->slug,
             'pitch' => $pitch->slug,
-            'snapshot' => $latestSnapshot->id
+            'snapshot' => $latestSnapshot->id,
         ]));
         $response->assertSessionHas('info', 'Redirected to the latest snapshot for review.');
     }
@@ -155,7 +160,7 @@ class PitchOwnerRedirectTest extends TestCase
             ->get(route('projects.pitches.snapshots.show', [
                 'project' => $this->standardProject,
                 'pitch' => $pitch,
-                'snapshot' => $latestSnapshot->id
+                'snapshot' => $latestSnapshot->id,
             ]));
 
         $response->assertOk();
@@ -184,7 +189,7 @@ class PitchOwnerRedirectTest extends TestCase
             ->get(route('projects.pitches.snapshots.show', [
                 'project' => $this->standardProject,
                 'pitch' => $pitch,
-                'snapshot' => $oldSnapshot->id
+                'snapshot' => $oldSnapshot->id,
             ]));
 
         $response->assertOk();
@@ -207,7 +212,7 @@ class PitchOwnerRedirectTest extends TestCase
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.show', [
                 'project' => $this->clientManagementProject,
-                'pitch' => $pitch
+                'pitch' => $pitch,
             ]));
 
         // Should NOT redirect for client management projects
@@ -231,7 +236,7 @@ class PitchOwnerRedirectTest extends TestCase
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.show', [
                 'project' => $this->directHireProject,
-                'pitch' => $pitch
+                'pitch' => $pitch,
             ]));
 
         // Should NOT redirect for direct hire projects
@@ -256,7 +261,7 @@ class PitchOwnerRedirectTest extends TestCase
         $response = $this->actingAs($this->producer)
             ->get(route('projects.pitches.show', [
                 'project' => $this->standardProject,
-                'pitch' => $pitch
+                'pitch' => $pitch,
             ]));
 
         $response->assertOk();
@@ -280,10 +285,10 @@ class PitchOwnerRedirectTest extends TestCase
         $response = $this->actingAs($this->otherUser)
             ->get(route('projects.pitches.show', [
                 'project' => $this->standardProject,
-                'pitch' => $pitch
+                'pitch' => $pitch,
             ]));
 
         // Should get 403 (based on policy), not redirect
         $response->assertStatus(403);
     }
-} 
+}

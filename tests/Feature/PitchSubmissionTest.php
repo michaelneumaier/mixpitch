@@ -3,20 +3,19 @@
 namespace Tests\Feature;
 
 use App\Events\NotificationCreated;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
+use App\Livewire\Pitch\Component\ManagePitch;
+use App\Models\Notification;
 use App\Models\Pitch;
 use App\Models\PitchFile;
 use App\Models\PitchSnapshot;
-use App\Livewire\Pitch\Component\ManagePitch;
-use Livewire\Livewire;
-use Illuminate\Support\Facades\Notification as LaravelNotificationFacade; // Alias Laravel's facade
+use App\Models\Project;
+use App\Models\User;
 use App\Services\NotificationService;
-use Mockery;
-use App\Models\Notification; // Import the Notification model
-use Illuminate\Support\Facades\Event; // Import Event facade
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event; // Alias Laravel's facade
+use Illuminate\Support\Facades\Notification as LaravelNotificationFacade;
+use Livewire\Livewire; // Import the Notification model
+use Tests\TestCase; // Import Event facade
 
 class PitchSubmissionTest extends TestCase
 {
@@ -85,7 +84,7 @@ class PitchSubmissionTest extends TestCase
         $this->assertEquals(1, $snapshot->snapshot_data['version'] ?? null);
     }
 
-     /** @test */
+    /** @test */
     public function producer_can_resubmit_pitch_after_revisions_and_notification_is_created()
     {
         $pitchCreator = User::factory()->create();
@@ -93,14 +92,14 @@ class PitchSubmissionTest extends TestCase
         $project = Project::factory()->for($projectOwner, 'user')->create(); // Ensure owner
         $previousSnapshot = PitchSnapshot::factory()->create([
             'status' => PitchSnapshot::STATUS_REVISIONS_REQUESTED,
-            'snapshot_data' => ['version' => 1]
+            'snapshot_data' => ['version' => 1],
         ]);
         $pitch = Pitch::factory()
             ->for($project)
             ->for($pitchCreator, 'user')
             ->create([
                 'status' => Pitch::STATUS_REVISIONS_REQUESTED,
-                'current_snapshot_id' => $previousSnapshot->id
+                'current_snapshot_id' => $previousSnapshot->id,
             ]);
         $previousSnapshot->pitch_id = $pitch->id;
         $previousSnapshot->save();
@@ -239,4 +238,4 @@ class PitchSubmissionTest extends TestCase
         ]);
         Event::assertNotDispatched(NotificationCreated::class);
     }
-} 
+}

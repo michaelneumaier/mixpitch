@@ -20,4 +20,4 @@ class ProjectTracksTest extends TestCase
             ->test(ProjectTracks::class, ['project' => $project])
             ->assertOk();
     }
-} 
+}

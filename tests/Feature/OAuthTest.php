@@ -17,7 +17,7 @@ class OAuthTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Mock the Socialite config
         config([
             'services.google.client_id' => 'test-client-id',
@@ -29,7 +29,7 @@ class OAuthTest extends TestCase
     public function test_oauth_redirect_works()
     {
         $response = $this->get('/auth/google/redirect');
-        
+
         $this->assertEquals(302, $response->getStatusCode());
         $this->assertStringContainsString('accounts.google.com', $response->getTargetUrl());
     }
@@ -186,4 +186,4 @@ class OAuthTest extends TestCase
         Mockery::close();
         parent::tearDown();
     }
-} 
+}

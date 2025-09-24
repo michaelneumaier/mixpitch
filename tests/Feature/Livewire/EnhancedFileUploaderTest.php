@@ -2,28 +2,32 @@
 
 namespace Tests\Feature\Livewire;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
-use App\Models\Pitch;
 use App\Livewire\EnhancedFileUploader;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\FileUploadSettingsService;
 use App\Services\UploadErrorHandler;
-use Livewire\Livewire;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Mockery;
 use Mockery\MockInterface;
+use Tests\TestCase;
 
 class EnhancedFileUploaderTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected Pitch $pitch;
+
     protected MockInterface $settingsServiceMock;
+
     protected MockInterface $errorHandlerMock;
 
     protected function setUp(): void
@@ -33,7 +37,7 @@ class EnhancedFileUploaderTest extends TestCase
         // Mock the services
         $this->settingsServiceMock = Mockery::mock(FileUploadSettingsService::class);
         $this->errorHandlerMock = Mockery::mock(UploadErrorHandler::class);
-        
+
         $this->app->instance(FileUploadSettingsService::class, $this->settingsServiceMock);
         $this->app->instance(UploadErrorHandler::class, $this->errorHandlerMock);
 
@@ -45,7 +49,7 @@ class EnhancedFileUploaderTest extends TestCase
         // Fake storage for uploads
         Storage::fake('local');
         Storage::fake(config('filesystems.default'));
-        
+
         // Mock default settings
         $this->settingsServiceMock
             ->shouldReceive('getSettings')
@@ -67,7 +71,7 @@ class EnhancedFileUploaderTest extends TestCase
             ->assertStatus(200)
             ->assertSee('Upload files');
     }
-    
+
     /** @test */
     public function component_renders_correctly_for_pitch()
     {
@@ -83,7 +87,7 @@ class EnhancedFileUploaderTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(EnhancedFileUploader::class, [
                 'model' => $this->project,
-                'config' => ['allowMultiple' => true]
+                'config' => ['allowMultiple' => true],
             ])
             ->assertStatus(200)
             ->assertSee('Multiple files supported');
@@ -104,7 +108,7 @@ class EnhancedFileUploaderTest extends TestCase
     {
         $component = new EnhancedFileUploader($this->project);
         $config = $component->getUploadConfig();
-        
+
         $this->assertIsArray($config);
         $this->assertArrayHasKey('enableChunking', $config);
         $this->assertArrayHasKey('allowMultiple', $config);
@@ -118,7 +122,7 @@ class EnhancedFileUploaderTest extends TestCase
     {
         $component = new EnhancedFileUploader($this->project);
         $rules = $component->rules();
-        
+
         $this->assertIsArray($rules);
         $this->assertArrayHasKey('file', $rules);
         $this->assertContains('file', $rules['file']);
@@ -129,11 +133,11 @@ class EnhancedFileUploaderTest extends TestCase
     public function can_add_files_to_queue()
     {
         $file = UploadedFile::fake()->create('test.mp3', 1024, 'audio/mpeg');
-        
+
         Livewire::actingAs($this->user)
             ->test(EnhancedFileUploader::class, [
                 'model' => $this->project,
-                'config' => ['allowMultiple' => true]
+                'config' => ['allowMultiple' => true],
             ])
             ->call('addFilesToQueue', [$file])
             ->assertDispatched('fileQueueUpdated');
@@ -143,20 +147,20 @@ class EnhancedFileUploaderTest extends TestCase
     public function can_remove_file_from_queue()
     {
         $file = UploadedFile::fake()->create('test.mp3', 1024, 'audio/mpeg');
-        
+
         $component = Livewire::actingAs($this->user)
             ->test(EnhancedFileUploader::class, [
                 'model' => $this->project,
-                'config' => ['allowMultiple' => true]
+                'config' => ['allowMultiple' => true],
             ]);
-        
+
         // Add file to queue first
         $component->call('addFilesToQueue', [$file]);
-        
+
         // Get the file ID from the queue
         $fileQueue = $component->get('fileQueue');
         $fileId = $fileQueue[0]['id'] ?? null;
-        
+
         if ($fileId) {
             $component->call('removeFromQueue', $fileId)
                 ->assertDispatched('fileQueueUpdated');
@@ -167,16 +171,16 @@ class EnhancedFileUploaderTest extends TestCase
     public function can_clear_queue()
     {
         $file = UploadedFile::fake()->create('test.mp3', 1024, 'audio/mpeg');
-        
+
         $component = Livewire::actingAs($this->user)
             ->test(EnhancedFileUploader::class, [
                 'model' => $this->project,
-                'config' => ['allowMultiple' => true]
+                'config' => ['allowMultiple' => true],
             ]);
-        
+
         // Add file to queue first
         $component->call('addFilesToQueue', [$file]);
-        
+
         // Clear the queue
         $component->call('clearQueue')
             ->assertDispatched('fileQueueUpdated');
@@ -186,16 +190,16 @@ class EnhancedFileUploaderTest extends TestCase
     public function can_start_queue_processing()
     {
         $file = UploadedFile::fake()->create('test.mp3', 1024, 'audio/mpeg');
-        
+
         $component = Livewire::actingAs($this->user)
             ->test(EnhancedFileUploader::class, [
                 'model' => $this->project,
-                'config' => ['allowMultiple' => true]
+                'config' => ['allowMultiple' => true],
             ]);
-        
+
         // Add file to queue first
         $component->call('addFilesToQueue', [$file]);
-        
+
         // Start processing
         $component->call('startQueueProcessing')
             ->assertDispatched('queueStatusUpdated');
@@ -205,25 +209,25 @@ class EnhancedFileUploaderTest extends TestCase
     public function can_pause_and_resume_uploads()
     {
         $file = UploadedFile::fake()->create('test.mp3', 1024, 'audio/mpeg');
-        
+
         $component = Livewire::actingAs($this->user)
             ->test(EnhancedFileUploader::class, [
                 'model' => $this->project,
-                'config' => ['allowMultiple' => true]
+                'config' => ['allowMultiple' => true],
             ]);
-        
+
         // Add file to queue first
         $component->call('addFilesToQueue', [$file]);
-        
+
         // Get the file ID from the queue
         $fileQueue = $component->get('fileQueue');
         $fileId = $fileQueue[0]['id'] ?? null;
-        
+
         if ($fileId) {
             // Pause upload
             $component->call('pauseUpload', $fileId)
                 ->assertDispatched('uploadPaused');
-            
+
             // Resume upload
             $component->call('resumeUpload', $fileId)
                 ->assertDispatched('uploadResumed');
@@ -234,30 +238,30 @@ class EnhancedFileUploaderTest extends TestCase
     public function can_retry_failed_upload()
     {
         $file = UploadedFile::fake()->create('test.mp3', 1024, 'audio/mpeg');
-        
+
         $component = Livewire::actingAs($this->user)
             ->test(EnhancedFileUploader::class, [
                 'model' => $this->project,
-                'config' => ['allowMultiple' => true]
+                'config' => ['allowMultiple' => true],
             ]);
-        
+
         // Add file to queue first
         $component->call('addFilesToQueue', [$file]);
-        
+
         // Get the file ID from the queue
         $fileQueue = $component->get('fileQueue');
         $fileId = $fileQueue[0]['id'] ?? null;
-        
+
         if ($fileId) {
             // Simulate a failed upload by setting status to error
             $component->set('fileQueue', [
                 [
                     'id' => $fileId,
                     'status' => 'error',
-                    'error' => 'Upload failed'
-                ]
+                    'error' => 'Upload failed',
+                ],
             ]);
-            
+
             // Retry the upload
             $component->call('retryUpload', $fileId)
                 ->assertDispatched('uploadRetrying');
@@ -269,7 +273,7 @@ class EnhancedFileUploaderTest extends TestCase
     {
         $component = new EnhancedFileUploader($this->project);
         $progress = $component->getQueueProgress();
-        
+
         $this->assertIsArray($progress);
         $this->assertArrayHasKey('overall_progress', $progress);
         $this->assertArrayHasKey('completed_files', $progress);
@@ -284,4 +288,4 @@ class EnhancedFileUploaderTest extends TestCase
         Mockery::close();
         parent::tearDown();
     }
-} 
+}

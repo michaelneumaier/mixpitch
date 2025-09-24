@@ -2,27 +2,30 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\InvoiceService;
 use App\Services\PitchWorkflowService;
-use App\Services\NotificationService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Mockery;
-use Stripe\Exception\CardException;
+use Tests\TestCase;
 
 class PaymentProcessingTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $projectOwner;
+
     protected $producer;
+
     protected $project;
+
     protected $pitch;
+
     protected $invoiceServiceMock;
+
     protected $pitchWorkflowServiceMock;
 
     protected function setUp(): void
@@ -36,13 +39,13 @@ class PaymentProcessingTest extends TestCase
         // Create project
         $this->project = Project::factory()->for($this->projectOwner)->create([
             'budget' => 500,
-            'name' => 'Test Payment Project'
+            'name' => 'Test Payment Project',
         ]);
 
         // Create completed pitch awaiting payment
         $this->pitch = Pitch::factory()->for($this->project)->for($this->producer, 'user')->create([
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
 
         // Mock services
@@ -68,14 +71,14 @@ class PaymentProcessingTest extends TestCase
         // Skip Stripe integration by mocking the User model
         $mockUser = Mockery::mock($this->projectOwner)->makePartial();
         $mockUser->shouldReceive('createSetupIntent')
-            ->andReturn((object)['client_secret' => 'seti_test_secret']);
-        
+            ->andReturn((object) ['client_secret' => 'seti_test_secret']);
+
         $this->app->instance(User::class, $mockUser);
         $this->be($mockUser);
 
         $response = $this->get(route('projects.pitches.payment.overview', [
             'project' => $this->project,
-            'pitch' => $this->pitch
+            'pitch' => $this->pitch,
         ]));
 
         $response->assertStatus(200);
@@ -91,7 +94,7 @@ class PaymentProcessingTest extends TestCase
         $response = $this->actingAs($this->producer)
             ->get(route('projects.pitches.payment.overview', [
                 'project' => $this->project,
-                'pitch' => $this->pitch
+                'pitch' => $this->pitch,
             ]));
 
         $response->assertStatus(403);
@@ -107,12 +110,12 @@ class PaymentProcessingTest extends TestCase
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.payment.overview', [
                 'project' => $this->project,
-                'pitch' => $this->pitch
+                'pitch' => $this->pitch,
             ]));
 
         $response->assertRedirect(route('projects.pitches.payment.receipt', [
             'project' => $this->project,
-            'pitch' => $this->pitch
+            'pitch' => $this->pitch,
         ]));
     }
 
@@ -126,7 +129,7 @@ class PaymentProcessingTest extends TestCase
         $response = $this->actingAs($this->projectOwner)
             ->get(route('projects.pitches.payment.overview', [
                 'project' => $this->project,
-                'pitch' => $this->pitch
+                'pitch' => $this->pitch,
             ]));
 
         $response->assertRedirect();
@@ -137,8 +140,8 @@ class PaymentProcessingTest extends TestCase
     public function owner_can_process_payment_successfully()
     {
         // Mock a successful invoice creation and payment
-        $mockInvoice = (object)['id' => 'inv_test123'];
-        
+        $mockInvoice = (object) ['id' => 'inv_test123'];
+
         // Set reasonable expectations for what our mocks should receive
         $this->invoiceServiceMock->shouldReceive('createPitchInvoice')
             ->once()
@@ -146,7 +149,7 @@ class PaymentProcessingTest extends TestCase
             ->andReturn([
                 'success' => true,
                 'invoice' => $mockInvoice,
-                'invoiceId' => 'inv_test123'
+                'invoiceId' => 'inv_test123',
             ]);
 
         $this->invoiceServiceMock->shouldReceive('processInvoicePayment')
@@ -154,7 +157,7 @@ class PaymentProcessingTest extends TestCase
             ->with($mockInvoice, 'pm_test_card')
             ->andReturn([
                 'success' => true,
-                'paymentResult' => (object)['id' => 'inv_test123', 'status' => 'paid']
+                'paymentResult' => (object) ['id' => 'inv_test123', 'status' => 'paid'],
             ]);
 
         $this->pitchWorkflowServiceMock->shouldReceive('markPitchAsPaid')
@@ -164,9 +167,10 @@ class PaymentProcessingTest extends TestCase
                 $pitch->payment_status = Pitch::PAYMENT_STATUS_PAID;
                 $pitch->final_invoice_id = $invoiceId;
                 $pitch->save();
+
                 return $pitch;
             });
-        
+
         // Ensure we always return a reasonable expectation for markPitchPaymentFailed
         // This prevents Mockery errors from unexpected calls during test failures
         $this->pitchWorkflowServiceMock->shouldReceive('markPitchPaymentFailed')
@@ -175,28 +179,29 @@ class PaymentProcessingTest extends TestCase
                 $pitch->payment_status = Pitch::PAYMENT_STATUS_FAILED;
                 $pitch->final_invoice_id = $invoiceId;
                 $pitch->save();
+
                 return $pitch;
             });
 
         // Mock the RouteHelpers class
         $receiptUrl = route('projects.pitches.payment.receipt', [
             'project' => $this->project,
-            'pitch' => $this->pitch
+            'pitch' => $this->pitch,
         ]);
-        
+
         // Make request
         $response = $this->actingAs($this->projectOwner)
             ->post(route('projects.pitches.payment.process', [
                 'project' => $this->project,
-                'pitch' => $this->pitch
+                'pitch' => $this->pitch,
             ]), [
-                'payment_method_id' => 'pm_test_card'
+                'payment_method_id' => 'pm_test_card',
             ]);
 
         // Verify the response
         $response->assertStatus(302); // Redirect status
         $response->assertSessionHas('success');
-        
+
         // Check that the model was updated
         $this->pitch->refresh();
         $this->assertEquals(Pitch::PAYMENT_STATUS_PAID, $this->pitch->payment_status);
@@ -209,7 +214,7 @@ class PaymentProcessingTest extends TestCase
         // Skip the actual HTTP test since we've already tested the successful path
         // and we're having issues with the controller in the error case
         $this->markTestSkipped('Skipping the card error test as it is difficult to simulate controller behavior with mocks.');
-        
+
         // For a proper unit test of this functionality, we should test PitchWorkflowService directly
         // rather than going through the controller and complete HTTP path
     }
@@ -220,9 +225,9 @@ class PaymentProcessingTest extends TestCase
         $response = $this->actingAs($this->producer)
             ->post(route('projects.pitches.payment.process', [
                 'project' => $this->project,
-                'pitch' => $this->pitch
+                'pitch' => $this->pitch,
             ]), [
-                'payment_method_id' => 'pm_test_card'
+                'payment_method_id' => 'pm_test_card',
             ]);
 
         $response->assertStatus(403);
@@ -242,10 +247,10 @@ class PaymentProcessingTest extends TestCase
                     'charge' => 'ch_test123456',
                     'metadata' => [
                         'pitch_id' => $this->pitch->id,
-                        'project_id' => $this->project->id
-                    ]
-                ]
-            ]
+                        'project_id' => $this->project->id,
+                    ],
+                ],
+            ],
         ];
 
         // Expect workflow service to be called
@@ -256,12 +261,13 @@ class PaymentProcessingTest extends TestCase
                 $pitch->payment_status = Pitch::PAYMENT_STATUS_PAID;
                 $pitch->final_invoice_id = $invoiceId;
                 $pitch->save();
+
                 return $pitch;
             });
 
         // Manually set webhook signature verification to pass
         $this->app['env'] = 'testing';
-        
+
         // Call the webhook handler method directly
         app(\App\Http\Controllers\Billing\WebhookController::class)
             ->handleInvoicePaymentSucceeded($payload, $this->pitchWorkflowServiceMock);
@@ -285,13 +291,13 @@ class PaymentProcessingTest extends TestCase
                     'customer' => 'cus_test123',
                     'metadata' => [
                         'pitch_id' => $this->pitch->id,
-                        'project_id' => $this->project->id
+                        'project_id' => $this->project->id,
                     ],
                     'last_payment_error' => [
-                        'message' => 'Card declined'
-                    ]
-                ]
-            ]
+                        'message' => 'Card declined',
+                    ],
+                ],
+            ],
         ];
 
         // Expect workflow service to be called
@@ -302,12 +308,13 @@ class PaymentProcessingTest extends TestCase
                 $pitch->payment_status = Pitch::PAYMENT_STATUS_FAILED;
                 $pitch->final_invoice_id = $invoiceId;
                 $pitch->save();
+
                 return $pitch;
             });
 
         // Manually set webhook signature verification to pass
         $this->app['env'] = 'testing';
-        
+
         // Call the webhook handler method directly
         app(\App\Http\Controllers\Billing\WebhookController::class)
             ->handleInvoicePaymentFailed($payload, $this->pitchWorkflowServiceMock);
@@ -323,7 +330,7 @@ class PaymentProcessingTest extends TestCase
     {
         // Save pitch status to ensure it doesn't change
         $originalStatus = $this->pitch->payment_status;
-        
+
         // Create test Stripe payload without pitch_id
         $payload = [
             'id' => 'evt_test123',
@@ -332,9 +339,9 @@ class PaymentProcessingTest extends TestCase
                 'object' => [
                     'id' => 'inv_test123',
                     'customer' => 'cus_test123',
-                    'metadata' => [] // No pitch_id here
-                ]
-            ]
+                    'metadata' => [], // No pitch_id here
+                ],
+            ],
         ];
 
         // Expect workflow service NOT to be called
@@ -342,7 +349,7 @@ class PaymentProcessingTest extends TestCase
 
         // Manually set webhook signature verification to pass
         $this->app['env'] = 'testing';
-        
+
         // Call the webhook handler method directly
         app(\App\Http\Controllers\Billing\WebhookController::class)
             ->handleInvoicePaymentSucceeded($payload, $this->pitchWorkflowServiceMock);
@@ -351,4 +358,4 @@ class PaymentProcessingTest extends TestCase
         $this->pitch->refresh();
         $this->assertEquals($originalStatus, $this->pitch->payment_status);
     }
-} 
+}

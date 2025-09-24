@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\PayoutHoldSetting;
 use App\Models\PayoutSchedule;
-use App\Models\Project;
 use App\Models\Pitch;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\PayoutHoldService;
 use App\Services\PayoutProcessingService;
@@ -20,13 +20,15 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected PayoutHoldService $holdService;
+
     protected PayoutProcessingService $payoutService;
+
     protected PitchWorkflowService $pitchService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->holdService = app(PayoutHoldService::class);
         $this->payoutService = app(PayoutProcessingService::class);
         $this->pitchService = app(PitchWorkflowService::class);
@@ -53,32 +55,32 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
 
         // Test Standard Project
         $standardProject = Project::factory()->configureWorkflow('standard')->create([
-            'budget' => 1000
+            'budget' => 1000,
         ]);
         $standardPitch = Pitch::factory()->create([
             'project_id' => $standardProject->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
 
-        // Test Contest Project  
+        // Test Contest Project
         $contestProject = Project::factory()->configureWorkflow('contest')->create([
-            'budget' => 5000
+            'budget' => 5000,
         ]);
         $contestPitch = Pitch::factory()->create([
             'project_id' => $contestProject->id,
             'user_id' => $producer->id,
-            'payment_amount' => 5000
+            'payment_amount' => 5000,
         ]);
 
         // Test Client Management Project
         $clientProject = Project::factory()->configureWorkflow('client_management')->create([
-            'budget' => 2000
+            'budget' => 2000,
         ]);
         $clientPitch = Pitch::factory()->create([
             'project_id' => $clientProject->id,
             'user_id' => $producer->id,
-            'payment_amount' => 2000
+            'payment_amount' => 2000,
         ]);
 
         // Act: Schedule payouts
@@ -88,19 +90,19 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
 
         // Assert: Verify hold periods are correct
         $now = now();
-        
+
         // Standard: 1 day
         $this->assertEquals(
             $now->copy()->addDays(1)->format('Y-m-d'),
             $standardPayout->hold_release_date->format('Y-m-d')
         );
-        
+
         // Contest: 0 days (immediate, but with minimum hold)
         $this->assertEquals(
             $now->format('Y-m-d'),
             $contestPayout->hold_release_date->format('Y-m-d')
         );
-        
+
         // Client Management: 2 days
         $this->assertEquals(
             $now->copy()->addDays(2)->format('Y-m-d'),
@@ -125,7 +127,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
 
         // Set current time to a Friday
@@ -156,7 +158,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
 
         Carbon::setTestNow(Carbon::parse('2024-01-05 14:00:00'));
@@ -177,7 +179,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
     {
         // Arrange: Freeze time for consistent testing
         Carbon::setTestNow(Carbon::parse('2024-01-05 10:00:00'));
-        
+
         // Initial settings
         $settings = PayoutHoldSetting::factory()->create([
             'enabled' => true,
@@ -191,12 +193,12 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $pitch1 = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
 
         // Act: Create first payout with 1-day hold
         $payout1 = $this->payoutService->schedulePayoutForPitch($pitch1, 'invoice_1');
-        
+
         // Update settings to 3 days
         $this->holdService->updateSettings([
             'enabled' => true,
@@ -214,7 +216,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $pitch2 = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
         $payout2 = $this->payoutService->schedulePayoutForPitch($pitch2, 'invoice_2');
 
@@ -249,7 +251,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
 
         $payout = $this->payoutService->schedulePayoutForPitch($pitch, 'invoice_123');
@@ -264,7 +266,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $this->assertEquals('Emergency payout request', $payout->bypass_reason);
         $this->assertEquals($admin->id, $payout->bypass_admin_id);
         $this->assertNotNull($payout->bypassed_at);
-        
+
         // Should be set to minimum hold (1 hour)
         $expectedDate = now()->addHours(1);
         $this->assertEquals(
@@ -336,12 +338,12 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
 
         $producer = User::factory()->create(['stripe_account_id' => 'acct_test123']);
         $project = Project::factory()->configureWorkflow('client_management', [
-            'client_email' => 'client@example.com'
+            'client_email' => 'client@example.com',
         ])->create();
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 2000
+            'payment_amount' => 2000,
         ]);
 
         // Act: Directly test payout scheduling with client management workflow
@@ -361,7 +363,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
     {
         // Arrange: Freeze time for consistent testing
         Carbon::setTestNow(Carbon::parse('2024-01-05 10:00:00'));
-        
+
         // Create old payout with hardcoded hold period
         PayoutHoldSetting::factory()->create([
             'enabled' => true,
@@ -388,7 +390,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
             $expectedDate->format('Y-m-d H:i'),
             $payout->hold_release_date->format('Y-m-d H:i')
         );
-        
+
         // Should have migration metadata
         $this->assertTrue($payout->metadata['hold_period_migrated'] ?? false);
         $this->assertNotNull($payout->metadata['migration_date'] ?? null);
@@ -405,7 +407,7 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
-            'payment_amount' => 1000
+            'payment_amount' => 1000,
         ]);
 
         // Act: Should fall back to config defaults
@@ -415,14 +417,14 @@ class PayoutHoldPeriodIntegrationTest extends TestCase
         $expectedDays = config('business.payout_hold_settings.default_days', 3);
         $processingTime = config('business.payout_hold_settings.processing_time', '09:00:00');
         $useBusinessDays = config('business.payout_hold_settings.business_days_only', true);
-        
+
         if ($useBusinessDays) {
             // Business days calculation from Friday 10:00 + 3 business days = Monday 09:00
             $expectedDate = Carbon::parse('2024-01-08 09:00:00');
         } else {
             $expectedDate = Carbon::parse('2024-01-05 10:00:00')->addDays($expectedDays);
         }
-        
+
         $this->assertEquals(
             $expectedDate->format('Y-m-d H:i'),
             $payout->hold_release_date->format('Y-m-d H:i')

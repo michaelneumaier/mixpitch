@@ -2,31 +2,35 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\ManageProject; // Adjust namespace if needed
-use App\Livewire\Pitch\Component\ManagePitch; // Adjust namespace if needed
+// Adjust namespace if needed
+// Adjust namespace if needed
+use App\Exceptions\File\FileUploadException;
+use App\Exceptions\File\StorageLimitException;
 use App\Models\Pitch;
 use App\Models\PitchFile;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Models\User;
-use App\Exceptions\File\FileUploadException;
-use App\Exceptions\File\StorageLimitException;
+use App\Services\FileManagementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Livewire\Livewire;
 use Tests\TestCase;
-use App\Services\FileManagementService;
 
 class FileManagementTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $projectOwner;
+
     protected User $pitchProducer;
+
     protected User $otherUser;
+
     protected Project $project;
+
     protected Pitch $pitch;
+
     protected FileManagementService $fileManagementService;
 
     protected function setUp(): void
@@ -41,13 +45,13 @@ class FileManagementTest extends TestCase
 
         // Create project owned by projectOwner
         $this->project = Project::factory()->recycle($this->projectOwner)->create([
-            'total_storage_limit_bytes' => 100 * 1024 * 1024 // 100MB
+            'total_storage_limit_bytes' => 100 * 1024 * 1024, // 100MB
         ]);
 
         // Create pitch associated with the project, owned by pitchProducer
         $this->pitch = Pitch::factory()->recycle($this->pitchProducer)->recycle($this->project)->create([
             'status' => Pitch::STATUS_IN_PROGRESS,
-            'total_storage_limit_bytes' => 50 * 1024 * 1024 // 50MB
+            'total_storage_limit_bytes' => 50 * 1024 * 1024, // 50MB
         ]);
 
         // Get service instance
@@ -60,23 +64,23 @@ class FileManagementTest extends TestCase
     public function service_can_upload_project_file()
     {
         $file = UploadedFile::fake()->create('project_audio.mp3', 5 * 1024); // 5KB
-        
+
         // Call the service method directly (assuming prior authorization)
         $projectFile = $this->fileManagementService->uploadProjectFile(
             $this->project,
             $file,
             $this->projectOwner // Pass uploader for record keeping
         );
-        
+
         $this->assertNotNull($projectFile);
         $this->assertInstanceOf(ProjectFile::class, $projectFile);
         $this->assertEquals($this->project->id, $projectFile->project_id);
         $this->assertEquals($this->projectOwner->id, $projectFile->user_id);
         $this->assertEquals('project_audio.mp3', $projectFile->file_name);
         $this->assertEquals($file->getSize(), $projectFile->size);
-        
+
         Storage::disk('s3')->assertExists($projectFile->file_path);
-        
+
         // Check that user storage was updated (not project storage)
         $userStorageService = app(\App\Services\UserStorageService::class);
         $this->assertEquals($file->getSize(), $userStorageService->getUserStorageUsed($this->projectOwner));
@@ -88,16 +92,16 @@ class FileManagementTest extends TestCase
         // Set up initial user storage
         $userStorageService = app(\App\Services\UserStorageService::class);
         $userStorageService->incrementUserStorage($this->projectOwner, 1024);
-        
+
         $projectFile = ProjectFile::factory()->recycle($this->project)->recycle($this->projectOwner)->create(['size' => 1024]);
         Storage::disk('s3')->put($projectFile->file_path, 'content');
-        
+
         // Call the service method directly (assuming prior authorization)
         $this->fileManagementService->deleteProjectFile($projectFile);
-        
+
         $this->assertSoftDeleted($projectFile);
         Storage::disk('s3')->assertMissing($projectFile->file_path);
-        
+
         // Check that user storage was decremented
         $this->assertEquals(0, $userStorageService->getUserStorageUsed($this->projectOwner));
     }
@@ -108,16 +112,16 @@ class FileManagementTest extends TestCase
         $projectFile = ProjectFile::factory()->recycle($this->project)->recycle($this->projectOwner)->create();
         Storage::disk('s3')->put($projectFile->file_path, 'content');
         $expectedUrl = 'http://fake-domain.test/temp-project-url';
-        
+
         // Mock Storage facade for temporaryUrl
         Storage::shouldReceive('disk')->with('s3')->andReturnSelf();
         Storage::shouldReceive('temporaryUrl')
             ->with($projectFile->file_path, \Mockery::type(\Carbon\Carbon::class), \Mockery::any())
             ->andReturn($expectedUrl);
-        
+
         // Call the service method directly (assuming prior authorization)
         $url = $this->fileManagementService->getTemporaryDownloadUrl($projectFile);
-        
+
         $this->assertEquals($expectedUrl, $url);
     }
 
@@ -125,21 +129,21 @@ class FileManagementTest extends TestCase
     public function service_can_set_preview_track()
     {
         $projectFile = ProjectFile::factory()->recycle($this->project)->recycle($this->projectOwner)->create();
-        
+
         // Call the service method directly (assuming prior authorization)
         $this->fileManagementService->setProjectPreviewTrack($this->project, $projectFile);
-        
+
         $this->project->refresh();
         $this->assertEquals($projectFile->id, $this->project->preview_track);
     }
-    
+
     /** @test */
     public function service_throws_exception_setting_preview_track_with_file_from_different_project()
     {
         // Create a dummy project for the file to belong to
-        $otherProject = Project::factory()->create(); 
+        $otherProject = Project::factory()->create();
         $projectFile = ProjectFile::factory()->recycle($this->projectOwner)->create(['project_id' => $otherProject->id]); // File associated with the other project
-        
+
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('File does not belong to the specified project.');
 
@@ -152,10 +156,10 @@ class FileManagementTest extends TestCase
     {
         $projectFile = ProjectFile::factory()->recycle($this->project)->recycle($this->projectOwner)->create();
         $this->project->update(['preview_track' => $projectFile->id]);
-        
+
         // Call the service method directly (assuming prior authorization)
         $this->fileManagementService->clearProjectPreviewTrack($this->project);
-        
+
         $this->project->refresh();
         $this->assertNull($this->project->preview_track);
     }
@@ -184,16 +188,16 @@ class FileManagementTest extends TestCase
         // Set up initial user storage
         $userStorageService = app(\App\Services\UserStorageService::class);
         $userStorageService->incrementUserStorage($this->pitchProducer, 2048);
-        
+
         $pitchFile = PitchFile::factory()->recycle($this->pitch)->recycle($this->pitchProducer)->create(['size' => 2048]);
         Storage::disk('s3')->put($pitchFile->file_path, 'audio data');
-        
+
         // Call the service method directly (assuming prior authorization)
         $this->fileManagementService->deletePitchFile($pitchFile);
-        
+
         $this->assertSoftDeleted($pitchFile);
         Storage::disk('s3')->assertMissing($pitchFile->file_path);
-        
+
         // Check that user storage was decremented
         $this->assertEquals(0, $userStorageService->getUserStorageUsed($this->pitchProducer));
     }
@@ -210,7 +214,7 @@ class FileManagementTest extends TestCase
         Storage::shouldReceive('temporaryUrl')
             ->with($pitchFile->file_path, \Mockery::type(\Carbon\Carbon::class), \Mockery::any())
             ->andReturn($expectedUrl);
-        
+
         // Call the service method directly (assuming prior authorization)
         $url = $this->fileManagementService->getTemporaryDownloadUrl($pitchFile);
 
@@ -227,7 +231,7 @@ class FileManagementTest extends TestCase
         $this->project->update([\
             \'total_storage_limit_bytes\' => 10 * 1024, // 10KB limit
             \'total_storage_used\' => 0 // Ensure it starts empty
-        ]); 
+        ]);
         $this->project->refresh(); // Refresh the instance
         $file = UploadedFile::fake()->create(\'large_file.dat\', 15 * 1024); // 15KB file, > 10KB limit
 
@@ -246,7 +250,7 @@ class FileManagementTest extends TestCase
         $this->pitch->update([\
             \'total_storage_limit_bytes\' => 10 * 1024, // 10KB limit
             \'total_storage_used\' => 0 // Ensure it starts empty
-        ]); 
+        ]);
         $this->pitch->refresh(); // Refresh the instance
         $file = UploadedFile::fake()->create(\'large_audio.wav\', 15 * 1024); // 15KB file > 10KB limit
 
@@ -256,9 +260,9 @@ class FileManagementTest extends TestCase
         $this->fileManagementService->uploadPitchFile($this->pitch, $file, $this->pitchProducer);
         */
     }
-    
+
     // --- File Size Limit Tests (Remain valid for service-level checks) ---
-    
+
     /** @test */
     public function project_file_size_check_throws_exception_when_limit_exceeded()
     {
@@ -269,8 +273,8 @@ class FileManagementTest extends TestCase
 
         $this->expectException(FileUploadException::class);
         // Message check might be fragile if exact wording changes, focus on exception type
-        // $this->expectExceptionMessage("File 'too_big_project.dat' (...) exceeds the maximum allowed size."); 
-        $this->expectExceptionMessageMatches("/exceeds the maximum allowed size/");
+        // $this->expectExceptionMessage("File 'too_big_project.dat' (...) exceeds the maximum allowed size.");
+        $this->expectExceptionMessageMatches('/exceeds the maximum allowed size/');
 
         $this->fileManagementService->uploadProjectFile($this->project, $file, $this->projectOwner);
     }
@@ -284,12 +288,12 @@ class FileManagementTest extends TestCase
         $file = UploadedFile::fake()->create('too_big_pitch.wav', $fileSizeInBytes / 1024); // Size in KB for helper
 
         $this->expectException(FileUploadException::class);
-        $this->expectExceptionMessageMatches("/exceeds the maximum allowed size/");
+        $this->expectExceptionMessageMatches('/exceeds the maximum allowed size/');
 
         $this->fileManagementService->uploadPitchFile($this->pitch, $file, $this->pitchProducer);
     }
 
-    // NOTE: Removed tests that specifically checked *service-level* authorization 
+    // NOTE: Removed tests that specifically checked *service-level* authorization
     // (e.g., unauthorized_user_cannot_upload_project_file) as authorization
     // is now handled by Policies *before* calling the service.
     // Tests for storage limits and successful operations remain.

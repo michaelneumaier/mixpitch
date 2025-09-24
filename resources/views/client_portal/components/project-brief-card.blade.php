@@ -4,7 +4,7 @@
             <flux:icon.document-text class="text-blue-500" />
             <flux:heading size="lg">Project Brief</flux:heading>
         </div>
-        <div class="rounded-xl bg-gray-50 p-6 dark:bg-gray-800">
+        <div class="rounded-xl bg-gray-50 p-2 md:p-6 dark:bg-gray-800">
             <flux:text class="whitespace-pre-wrap">{{ $project->description }}</flux:text>
         </div>
     </flux:card>

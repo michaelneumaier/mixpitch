@@ -66,6 +66,24 @@ class ClientPortalController extends Controller
         // Enhanced: Prepare snapshot history and current snapshot
         $snapshotHistory = $this->prepareSnapshotHistory($pitch);
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
+        
+        // Debug logging for client portal file display
+        if ($currentSnapshot) {
+            Log::info('Client portal current snapshot prepared', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $currentSnapshot->id ?? 'virtual',
+                'snapshot_files_count' => $currentSnapshot->files ? $currentSnapshot->files->count() : 0,
+                'snapshot_has_files' => method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : false,
+                'files_data' => $currentSnapshot->files ? $currentSnapshot->files->map(function($file) {
+                    return [
+                        'id' => $file->id ?? 'missing',
+                        'name' => $file->file_name ?? 'missing',
+                        'pitch_id' => $file->pitch_id ?? 'missing',
+                    ];
+                })->toArray() : []
+            ]);
+        }
 
         // Pass enhanced data to view
         $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
@@ -1019,6 +1037,102 @@ class ClientPortalController extends Controller
     }
 
     /**
+     * Stream an audio file for the client portal.
+     */
+    public function streamAudioFile(Project $project, PitchFile $pitchFile, Request $request)
+    {
+        // Validate client management project
+        if (! $project->isClientManagement()) {
+            abort(404, 'Project not found or not accessible via client portal.');
+        }
+
+        // Get the associated pitch
+        $pitch = $project->pitches()->first();
+        if (! $pitch) {
+            abort(404, 'Project details could not be loaded.');
+        }
+
+        // Ensure the file belongs to this project's pitch
+        if ($pitchFile->pitch_id !== $pitch->id) {
+            abort(404, 'File not found for this project.');
+        }
+
+        // Check if pitch is in appropriate status for file streaming
+        $allowedStatuses = [
+            \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+            \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+            \App\Models\Pitch::STATUS_COMPLETED,
+        ];
+
+        if (! in_array($pitch->status, $allowedStatuses)) {
+            abort(403, 'Files are not available for streaming at this time.');
+        }
+
+        try {
+            // Stream the file directly using the storage system
+            $headers = [
+                'Content-Type' => $pitchFile->mime_type ?? 'audio/mpeg',
+                'Content-Length' => $pitchFile->size,
+                'Accept-Ranges' => 'bytes',
+                'Cache-Control' => 'no-cache, must-revalidate',
+            ];
+
+            return response()->stream(function () use ($pitchFile) {
+                $stream = Storage::disk($pitchFile->disk)->readStream($pitchFile->file_path);
+                if ($stream) {
+                    fpassthru($stream);
+                    fclose($stream);
+                }
+            }, 200, $headers);
+
+        } catch (\Exception $e) {
+            Log::error('Client portal audio streaming failed.', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'file_id' => $pitchFile->id,
+                'error' => $e->getMessage(),
+            ]);
+            abort(500, 'Could not stream audio file at this time.');
+        }
+    }
+
+    /**
+     * Show the audio player interface for the client portal.
+     */
+    public function showAudioPlayer(Project $project, PitchFile $pitchFile, Request $request)
+    {
+        // Validate client management project
+        if (! $project->isClientManagement()) {
+            abort(404, 'Project not found or not accessible via client portal.');
+        }
+
+        // Get the associated pitch
+        $pitch = $project->pitches()->first();
+        if (! $pitch) {
+            abort(404, 'Project details could not be loaded.');
+        }
+
+        // Ensure the file belongs to this project's pitch
+        if ($pitchFile->pitch_id !== $pitch->id) {
+            abort(404, 'File not found for this project.');
+        }
+
+        // Load necessary relationships
+        $pitchFile->load(['pitch.project', 'pitch.user']);
+
+        return view('audio.show', [
+            'file' => $pitchFile,
+            'fileType' => 'pitch_file',
+            'isClientPortal' => true,
+            'breadcrumbs' => [
+                'title' => $pitch->title ?? 'Producer Deliverable',
+                'url' => route('client.portal.view', $project->id),
+                'icon' => 'fas fa-music',
+            ],
+        ]);
+    }
+
+    /**
      * Preview the client portal (for project owners)
      */
     public function preview($projectId, Request $request)
@@ -1073,6 +1187,24 @@ class ClientPortalController extends Controller
         // Enhanced: Prepare snapshot history and current snapshot
         $snapshotHistory = $this->prepareSnapshotHistory($pitch);
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
+        
+        // Debug logging for client portal file display (preview)
+        if ($currentSnapshot) {
+            Log::info('Client portal PREVIEW current snapshot prepared', [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'snapshot_id' => $currentSnapshot->id ?? 'virtual',
+                'snapshot_files_count' => $currentSnapshot->files ? $currentSnapshot->files->count() : 0,
+                'snapshot_has_files' => method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : false,
+                'files_data' => $currentSnapshot->files ? $currentSnapshot->files->map(function($file) {
+                    return [
+                        'id' => $file->id ?? 'missing',
+                        'name' => $file->file_name ?? 'missing',
+                        'pitch_id' => $file->pitch_id ?? 'missing',
+                    ];
+                })->toArray() : []
+            ]);
+        }
 
         // Add preview banner context
         $isPreview = true;

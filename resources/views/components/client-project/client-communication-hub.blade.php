@@ -2,15 +2,16 @@
 
 <flux:card class="mb-2">
     <!-- Header with Client Information -->
-    <div class="mb-6 flex items-start justify-between">
-        <div class="flex items-center gap-3">
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between">
+        <!-- Title and Icon Section -->
+        <div class="flex items-center gap-3 mb-4 sm:mb-0">
             <flux:icon.chat-bubble-left-ellipsis variant="solid"
                 class="{{ $workflowColors['icon'] }} h-8 w-8" />
             <div>
                 <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
                     Client Communication
                 </flux:heading>
-                <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                <flux:subheading class="{{ $workflowColors['text_muted'] }} hidden sm:block">
                     Connect with your client and track project conversations
                 </flux:subheading>
             </div>
@@ -18,10 +19,10 @@
         
         <!-- Client Info Badge -->
         @if ($project->client_name || $project->client_email)
-            <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-lg border p-3">
+            <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-lg border p-3 sm:flex-shrink-0">
                 <div class="flex items-center gap-2 text-sm">
                     <flux:icon.user-circle class="{{ $workflowColors['icon'] }} h-4 w-4" />
-                    <div class="text-right">
+                    <div class="text-left sm:text-right">
                         @if ($project->client_name)
                             <div class="{{ $workflowColors['text_primary'] }} font-medium">{{ $project->client_name }}</div>
                         @endif

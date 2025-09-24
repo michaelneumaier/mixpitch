@@ -3,8 +3,8 @@
 namespace Tests\Feature\Livewire;
 
 use App\Livewire\StatusButton;
-use App\Models\User;
-use App\Models\Pitch; // Assuming a Pitch model exists
+use App\Models\Pitch;
+use App\Models\User; // Assuming a Pitch model exists
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -21,4 +21,4 @@ class StatusButtonTest extends TestCase
             ->test(StatusButton::class, ['model' => $pitch]) // Pass the required model
             ->assertOk();
     }
-} 
+}

@@ -6,12 +6,11 @@ use App\Events\NotificationCreated;
 use App\Livewire\NotificationList;
 use App\Models\Notification;
 use App\Models\User;
-use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Broadcast;
 
 class NotificationListTest extends TestCase
 {
@@ -76,7 +75,7 @@ class NotificationListTest extends TestCase
         $this->assertNotNull($notification->fresh()->read_at);
     }
 
-     /** @test */
+    /** @test */
     public function mark_all_as_read_marks_all_user_notifications_read()
     {
         $user = User::factory()->create();
@@ -168,4 +167,4 @@ class NotificationListTest extends TestCase
 
         $this->assertDatabaseHas('notifications', ['id' => $notificationForUserB->id]); // Notification should still exist
     }
-} 
+}

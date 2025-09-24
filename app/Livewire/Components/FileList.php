@@ -35,6 +35,11 @@ class FileList extends Component
 
     public string $deleteMethod = 'confirmDeleteFile';
 
+    // Client portal context awareness
+    public bool $isClientPortal = false;
+
+    public ?int $clientPortalProjectId = null;
+
     // Display options
     public bool $showFileCount = true;
 
@@ -110,9 +115,13 @@ class FileList extends Component
         bool $showComments = false,
         ?Collection $commentsData = null,
         string $commentsMethod = 'handleCommentAction',
-        bool $enableCommentCreation = false
+        bool $enableCommentCreation = false,
+        bool $isClientPortal = false,
+        ?int $clientPortalProjectId = null
     ) {
         $this->files = $files ?? collect();
+        
+        
         $this->modelType = $modelType;
         $this->modelId = $modelId;
         $this->colorScheme = $colorScheme;
@@ -139,6 +148,8 @@ class FileList extends Component
         $this->commentsData = $commentsData ?? collect();
         $this->commentsMethod = $commentsMethod;
         $this->enableCommentCreation = $enableCommentCreation;
+        $this->isClientPortal = $isClientPortal;
+        $this->clientPortalProjectId = $clientPortalProjectId;
     }
 
     /**
@@ -355,14 +366,30 @@ class FileList extends Component
      */
     public function getUniversalAudioPlayerUrl($file): ?string
     {
-        if (!$this->isAudioFile($file)) {
+        if (! $this->isAudioFile($file)) {
             return null;
         }
 
+        // If we're in client portal context, use client portal routes
+        if ($this->isClientPortal && $this->clientPortalProjectId) {
+            // For client portal, we only support pitch files (producer deliverables)
+            if ($this->modelType === 'pitch' || (isset($file->pitch_id) && $file->pitch_id)) {
+                return route('client.portal.audio.player', [
+                    'project' => $this->clientPortalProjectId,
+                    'pitchFile' => $file->id,
+                ]);
+            }
+
+            // Project files in client portal don't have audio players yet
+            return null;
+        }
+
+        // Standard authenticated user routes
         // Determine file type based on model type and file properties
         if ($this->modelType === 'pitch' || (isset($file->pitch_id) && $file->pitch_id)) {
             // This is a pitch file
             $fileId = $file->uuid ?? $file->id;
+
             return route('audio.pitch-file.show', ['file' => $fileId]);
         } elseif ($this->modelType === 'project' || (isset($file->project_id) && $file->project_id)) {
             // This is a project file
@@ -372,7 +399,7 @@ class FileList extends Component
         // Fallback to the universal route with query parameters
         return route('audio.show', [
             'file_type' => $this->modelType === 'pitch' ? 'pitch_file' : 'project_file',
-            'file_id' => $file->id
+            'file_id' => $file->id,
         ]);
     }
 
@@ -381,7 +408,7 @@ class FileList extends Component
      */
     public function getUniversalVideoPlayerUrl($file): ?string
     {
-        if (!$this->isVideoFile($file)) {
+        if (! $this->isVideoFile($file)) {
             return null;
         }
 
@@ -389,6 +416,7 @@ class FileList extends Component
         if ($this->modelType === 'pitch' || (isset($file->pitch_id) && $file->pitch_id)) {
             // This is a pitch file
             $fileId = $file->uuid ?? $file->id;
+
             return route('video.pitch-file.show', ['file' => $fileId]);
         } elseif ($this->modelType === 'project' || (isset($file->project_id) && $file->project_id)) {
             // This is a project file
@@ -398,7 +426,7 @@ class FileList extends Component
         // Fallback to the universal route with query parameters
         return route('video.show', [
             'type' => $this->modelType === 'pitch' ? 'pitch_file' : 'project_file',
-            'id' => $file->id
+            'id' => $file->id,
         ]);
     }
 
@@ -737,7 +765,7 @@ class FileList extends Component
      */
     public function deleteComment(): void
     {
-        if (!$this->commentToDelete) {
+        if (! $this->commentToDelete) {
             return;
         }
 
@@ -749,7 +777,7 @@ class FileList extends Component
         ]);
 
         $this->commentToDelete = null;
-        
+
         // Close the modal after successful deletion
         $this->dispatch('modal-close', name: 'delete-comment');
     }

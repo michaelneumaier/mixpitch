@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ProfileSetupBannerTest extends TestCase
 {
@@ -76,7 +76,7 @@ class ProfileSetupBannerTest extends TestCase
         $this->assertEquals(60, $status['percentage']); // 3 out of 5 fields = 60%
         $this->assertEquals(3, $status['completed_count']);
         $this->assertEquals(5, $status['total_count']);
-        
+
         // Check specific fields
         $this->assertTrue($status['fields']['username']);
         $this->assertTrue($status['fields']['bio']);
@@ -104,4 +104,4 @@ class ProfileSetupBannerTest extends TestCase
         $this->assertNotContains('username', $missingFields);
         $this->assertNotContains('website', $missingFields);
     }
-} 
+}

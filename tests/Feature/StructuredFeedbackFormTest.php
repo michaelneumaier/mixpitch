@@ -17,10 +17,15 @@ class StructuredFeedbackFormTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected User $producer;
+
     protected Project $project;
+
     protected Pitch $pitch;
+
     protected PitchFile $pitchFile;
+
     protected FeedbackTemplate $template;
 
     protected function setUp(): void
@@ -58,7 +63,7 @@ class StructuredFeedbackFormTest extends TestCase
                     'label' => 'Comments',
                     'required' => false,
                     'rows' => 3,
-                ]
+                ],
             ],
         ]);
     }
@@ -73,8 +78,8 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->assertSet('isClientUser', false)
-                  ->assertSet('pitch', $this->pitch)
-                  ->assertSet('pitchFile', $this->pitchFile);
+            ->assertSet('pitch', $this->pitch)
+            ->assertSet('pitchFile', $this->pitchFile);
     }
 
     public function test_component_mounts_with_client_email()
@@ -86,7 +91,7 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->assertSet('isClientUser', true)
-                  ->assertSet('clientEmail', 'client@example.com');
+            ->assertSet('clientEmail', 'client@example.com');
     }
 
     public function test_authenticated_user_sees_available_templates()
@@ -129,9 +134,9 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->assertSet('selectedTemplateId', $this->template->id)
-                  ->assertSet('showTemplateSelector', false);
-        
+            ->assertSet('selectedTemplateId', $this->template->id)
+            ->assertSet('showTemplateSelector', false);
+
         // Check that responses are initialized
         $responses = $component->get('responses');
         $this->assertArrayHasKey('overall_rating', $responses);
@@ -147,10 +152,10 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->call('backToTemplateSelector')
-                  ->assertSet('showTemplateSelector', true)
-                  ->assertSet('template', null)
-                  ->assertSet('selectedTemplateId', null);
+            ->call('backToTemplateSelector')
+            ->assertSet('showTemplateSelector', true)
+            ->assertSet('template', null)
+            ->assertSet('selectedTemplateId', null);
     }
 
     public function test_user_can_submit_feedback_with_valid_responses()
@@ -163,9 +168,9 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->set('responses.overall_rating', 4)
-                  ->set('responses.comments', 'Great work on this track!')
-                  ->call('submitFeedback');
+            ->set('responses.overall_rating', 4)
+            ->set('responses.comments', 'Great work on this track!')
+            ->call('submitFeedback');
 
         // Check that feedback was created
         $this->assertDatabaseHas('pitch_file_comments', [
@@ -194,13 +199,13 @@ class StructuredFeedbackFormTest extends TestCase
                     'label' => 'Rating',
                     'required' => true,
                     'max_rating' => 5,
-                ]
+                ],
             ],
         ]);
 
         $component->call('selectTemplate', $defaultTemplate->id)
-                  ->set('responses.rating', 5)
-                  ->call('submitFeedback');
+            ->set('responses.rating', 5)
+            ->call('submitFeedback');
 
         // Check that client feedback was created
         $this->assertDatabaseHas('pitch_file_comments', [
@@ -220,8 +225,8 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->set('responses.overall_rating', null) // Required field
-                  ->call('submitFeedback');
+            ->set('responses.overall_rating', null) // Required field
+            ->call('submitFeedback');
 
         $validationErrors = $component->get('validationErrors');
         $this->assertArrayHasKey('overall_rating', $validationErrors);
@@ -237,8 +242,8 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->set('responses.overall_rating', 10) // Max is 5
-                  ->call('submitFeedback');
+            ->set('responses.overall_rating', 10) // Max is 5
+            ->call('submitFeedback');
 
         $validationErrors = $component->get('validationErrors');
         $this->assertArrayHasKey('overall_rating', $validationErrors);
@@ -256,7 +261,7 @@ class StructuredFeedbackFormTest extends TestCase
                     'label' => 'Quality',
                     'required' => true,
                     'options' => ['Poor', 'Good', 'Excellent'],
-                ]
+                ],
             ],
         ]);
 
@@ -267,8 +272,8 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $template->id)
-                  ->set('responses.quality', 'Invalid Option')
-                  ->call('submitFeedback');
+            ->set('responses.quality', 'Invalid Option')
+            ->call('submitFeedback');
 
         $validationErrors = $component->get('validationErrors');
         $this->assertArrayHasKey('quality', $validationErrors);
@@ -287,7 +292,7 @@ class StructuredFeedbackFormTest extends TestCase
                     'required' => true,
                     'min' => 0,
                     'max' => 100,
-                ]
+                ],
             ],
         ]);
 
@@ -298,8 +303,8 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $template->id)
-                  ->set('responses.loudness', 150) // Max is 100
-                  ->call('submitFeedback');
+            ->set('responses.loudness', 150) // Max is 100
+            ->call('submitFeedback');
 
         $validationErrors = $component->get('validationErrors');
         $this->assertArrayHasKey('loudness', $validationErrors);
@@ -317,7 +322,7 @@ class StructuredFeedbackFormTest extends TestCase
                     'label' => 'Good Aspects',
                     'required' => false,
                     'options' => ['Vocals', 'Mixing', 'Arrangement'],
-                ]
+                ],
             ],
         ]);
 
@@ -328,8 +333,8 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $template->id)
-                  ->set('responses.aspects', ['Vocals', 'Invalid Option'])
-                  ->call('submitFeedback');
+            ->set('responses.aspects', ['Vocals', 'Invalid Option'])
+            ->call('submitFeedback');
 
         $validationErrors = $component->get('validationErrors');
         $this->assertArrayHasKey('aspects', $validationErrors);
@@ -346,12 +351,12 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->set('responses.overall_rating', 4)
-                  ->set('responses.comments', 'Great work!')
-                  ->call('submitFeedback');
+            ->set('responses.overall_rating', 4)
+            ->set('responses.comments', 'Great work!')
+            ->call('submitFeedback');
 
         $comment = PitchFileComment::where('pitch_file_id', $this->pitchFile->id)->first();
-        
+
         $this->assertStringContainsString('**Structured Feedback -', $comment->comment);
         $this->assertStringContainsString('**Overall Rating**', $comment->comment);
         $this->assertStringContainsString('★★★★☆ (4/5)', $comment->comment);
@@ -376,7 +381,7 @@ class StructuredFeedbackFormTest extends TestCase
                     'type' => FeedbackTemplate::TYPE_CHECKBOX,
                     'label' => 'Aspects',
                     'options' => ['Option1', 'Option2'],
-                ]
+                ],
             ],
         ]);
 
@@ -403,8 +408,8 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->set('responses.overall_rating', 3)
-                  ->call('submitFeedback');
+            ->set('responses.overall_rating', 3)
+            ->call('submitFeedback');
 
         // Should create feedback successfully
         $this->assertDatabaseHas('pitch_file_comments', [
@@ -424,9 +429,9 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->set('responses.overall_rating', 5)
-                  ->call('submitFeedback')
-                  ->assertDispatched('feedbackSubmitted');
+            ->set('responses.overall_rating', 5)
+            ->call('submitFeedback')
+            ->assertDispatched('feedbackSubmitted');
     }
 
     public function test_form_resets_after_successful_submission()
@@ -439,11 +444,11 @@ class StructuredFeedbackFormTest extends TestCase
         ]);
 
         $component->call('selectTemplate', $this->template->id)
-                  ->set('responses.overall_rating', 5)
-                  ->call('submitFeedback')
-                  ->assertSet('showTemplateSelector', true)
-                  ->assertSet('template', null)
-                  ->assertSet('selectedTemplateId', null)
-                  ->assertSet('responses', []);
+            ->set('responses.overall_rating', 5)
+            ->call('submitFeedback')
+            ->assertSet('showTemplateSelector', true)
+            ->assertSet('template', null)
+            ->assertSet('selectedTemplateId', null)
+            ->assertSet('responses', []);
     }
 }

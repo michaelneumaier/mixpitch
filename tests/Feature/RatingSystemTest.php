@@ -2,26 +2,30 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Project;
 use App\Models\Pitch;
 use App\Models\PitchEvent;
+use App\Models\Project;
+use App\Models\User;
+use App\Services\NotificationService;
 use App\Services\PitchCompletionService;
 use App\Services\ProjectManagementService;
-use App\Services\NotificationService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Mockery;
+use Tests\TestCase;
 
 class RatingSystemTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $projectOwner;
+
     protected $pitchCreator;
+
     protected $project;
+
     protected $pitch;
+
     protected $pitchCompletionService;
 
     protected function setUp(): void
@@ -41,17 +45,17 @@ class RatingSystemTest extends TestCase
         // Mock services
         $projectManagementServiceMock = Mockery::mock(ProjectManagementService::class);
         $projectManagementServiceMock->shouldReceive('completeProject')->andReturnSelf();
-        
+
         $notificationServiceMock = Mockery::mock(NotificationService::class);
         $notificationServiceMock->shouldReceive('notifyPitchCompleted')->andReturnNull(); // Return null to match type hint
         $notificationServiceMock->shouldReceive('notifyPitchClosed')->andReturnNull();    // Mock the closed notification too
-        
+
         Notification::fake(); // Still needed if any default Laravel notifications are used elsewhere
 
         // Use app() to resolve the service with mocked dependencies
         $this->instance(ProjectManagementService::class, $projectManagementServiceMock);
         $this->instance(NotificationService::class, $notificationServiceMock);
-        
+
         $this->pitchCompletionService = $this->app->make(PitchCompletionService::class);
     }
 
@@ -72,11 +76,11 @@ class RatingSystemTest extends TestCase
             ->where('status', Pitch::STATUS_COMPLETED)
             ->orderBy('created_at', 'desc')
             ->first();
-            
+
         $this->assertNotNull($completionEvent);
         $this->assertEquals($rating, $completionEvent->rating);
         $this->assertEquals($this->projectOwner->id, $completionEvent->created_by);
-        
+
         // Use the specific method to get the rating
         $this->assertEquals($rating, $completedPitch->getCompletionRating());
     }
@@ -116,7 +120,7 @@ class RatingSystemTest extends TestCase
         $this->assertEquals(4.0, $ratingData['average']);
         $this->assertEquals(3, $ratingData['count']);
     }
-    
+
     /** @test */
     public function user_average_rating_handles_null_ratings()
     {

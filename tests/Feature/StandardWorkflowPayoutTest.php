@@ -2,38 +2,40 @@
 
 namespace Tests\Feature;
 
-use App\Models\Project;
-use App\Models\Pitch;
-use App\Models\User;
 use App\Models\PayoutSchedule;
+use App\Models\Pitch;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\PayoutProcessingService;
 use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Mockery;
+use Tests\TestCase;
 
 class StandardWorkflowPayoutTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $producer;
+
     protected $projectOwner;
+
     protected $project;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create test users
         $this->producer = User::factory()->create();
         $this->projectOwner = User::factory()->create();
-        
+
         // Create standard project
         $this->project = Project::factory()->create([
             'user_id' => $this->projectOwner->id,
             'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
             'budget' => 500,
-            'status' => Project::STATUS_COMPLETED
+            'status' => Project::STATUS_COMPLETED,
         ]);
     }
 
@@ -45,22 +47,22 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
 
         // Act
         $pitchWorkflowService = app(PitchWorkflowService::class);
-        $updatedPitch = $pitchWorkflowService->markPitchAsPaid($pitch, 'inv_test_' . time());
+        $updatedPitch = $pitchWorkflowService->markPitchAsPaid($pitch, 'inv_test_'.time());
 
         // Assert
         $this->assertEquals(Pitch::PAYMENT_STATUS_PAID, $updatedPitch->payment_status);
-        
+
         $this->assertDatabaseHas('payout_schedules', [
             'pitch_id' => $pitch->id,
             'workflow_type' => 'standard',
             'gross_amount' => 500.00,
             'producer_user_id' => $this->producer->id,
-            'project_id' => $this->project->id
+            'project_id' => $this->project->id,
         ]);
     }
 
@@ -72,7 +74,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         // Act
@@ -86,16 +88,16 @@ class StandardWorkflowPayoutTest extends TestCase
         $this->assertEquals($pitch->id, $payout->pitch_id);
         $this->assertEquals(500.00, $payout->gross_amount);
         $this->assertEquals('scheduled', $payout->status);
-        
+
         // Verify commission calculation
         $expectedCommissionRate = $this->producer->getPlatformCommissionRate();
         $expectedCommissionAmount = 500 * ($expectedCommissionRate / 100);
         $expectedNetAmount = 500 - $expectedCommissionAmount;
-        
+
         $this->assertEquals($expectedCommissionRate, $payout->commission_rate);
         $this->assertEquals($expectedCommissionAmount, $payout->commission_amount);
         $this->assertEquals($expectedNetAmount, $payout->net_amount);
-        
+
         // Verify hold release date (should be 3 business days)
         $this->assertNotNull($payout->hold_release_date);
         $this->assertGreaterThan(now(), $payout->hold_release_date);
@@ -109,7 +111,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         $payout = PayoutSchedule::create([
@@ -124,7 +126,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'currency' => 'USD',
             'status' => 'scheduled',
             'hold_release_date' => now()->addDays(3),
-            'metadata' => ['test' => true]
+            'metadata' => ['test' => true],
         ]);
 
         // Act - Visit pitch show page as producer
@@ -150,7 +152,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         $payout = PayoutSchedule::create([
@@ -167,7 +169,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'hold_release_date' => now()->subDays(1),
             'completed_at' => now(),
             'stripe_transfer_id' => 'tr_test_123',
-            'metadata' => ['test' => true]
+            'metadata' => ['test' => true],
         ]);
 
         // Act
@@ -190,7 +192,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         $payout = PayoutSchedule::create([
@@ -205,7 +207,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'currency' => 'USD',
             'status' => 'processing',
             'hold_release_date' => now()->subDays(1),
-            'metadata' => ['test' => true]
+            'metadata' => ['test' => true],
         ]);
 
         // Act
@@ -226,7 +228,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         $payout = PayoutSchedule::create([
@@ -242,7 +244,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'status' => 'failed',
             'failure_reason' => 'Insufficient funds in connected account',
             'hold_release_date' => now()->subDays(1),
-            'metadata' => ['test' => true]
+            'metadata' => ['test' => true],
         ]);
 
         // Act
@@ -264,7 +266,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         $payout = PayoutSchedule::create([
@@ -279,7 +281,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'currency' => 'USD',
             'status' => 'scheduled',
             'hold_release_date' => now()->addDays(3),
-            'metadata' => ['test' => true]
+            'metadata' => ['test' => true],
         ]);
 
         // Act & Assert - Project owner gets redirected (302) due to controller logic
@@ -287,7 +289,7 @@ class StandardWorkflowPayoutTest extends TestCase
             ->get(route('projects.pitches.show', ['project' => $this->project, 'pitch' => $pitch]));
 
         $response->assertStatus(302); // Project owners get redirected to manage page
-        
+
         // Act & Assert - Producer SHOULD see payout component
         $response = $this->actingAs($this->producer)
             ->get(route('projects.pitches.show', ['project' => $this->project, 'pitch' => $pitch]));
@@ -295,7 +297,7 @@ class StandardWorkflowPayoutTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Payout Status');
         $response->assertSee('Your earnings from this project');
-        
+
         // Act & Assert - Random user should not see payout component (if they can access the page)
         $randomUser = User::factory()->create();
         $response = $this->actingAs($randomUser)
@@ -319,7 +321,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'project_id' => $this->project->id,
             'user_id' => $this->producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PAID
+            'payment_status' => Pitch::PAYMENT_STATUS_PAID,
         ]);
 
         // Create multiple payouts (simulating partial payments or adjustments)
@@ -336,7 +338,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'status' => 'completed',
             'hold_release_date' => now()->subDays(3),
             'completed_at' => now()->subDays(2),
-            'metadata' => ['test' => true]
+            'metadata' => ['test' => true],
         ]);
 
         PayoutSchedule::create([
@@ -351,7 +353,7 @@ class StandardWorkflowPayoutTest extends TestCase
             'currency' => 'USD',
             'status' => 'scheduled',
             'hold_release_date' => now()->addDays(3),
-            'metadata' => ['test' => true]
+            'metadata' => ['test' => true],
         ]);
 
         // Act
@@ -382,14 +384,14 @@ class StandardWorkflowPayoutTest extends TestCase
             $project = Project::factory()->create([
                 'user_id' => $this->projectOwner->id,
                 'workflow_type' => Project::WORKFLOW_TYPE_STANDARD,
-                'budget' => $case['amount']
+                'budget' => $case['amount'],
             ]);
-            
+
             $pitch = Pitch::factory()->create([
                 'project_id' => $project->id,
                 'user_id' => $producer->id,
                 'status' => Pitch::STATUS_COMPLETED,
-                'payment_status' => Pitch::PAYMENT_STATUS_PAID
+                'payment_status' => Pitch::PAYMENT_STATUS_PAID,
             ]);
 
             // Create a payout manually with the expected commission rate
@@ -405,7 +407,7 @@ class StandardWorkflowPayoutTest extends TestCase
                 'currency' => 'USD',
                 'status' => 'scheduled',
                 'hold_release_date' => now()->addDays(3),
-                'metadata' => ['test' => true]
+                'metadata' => ['test' => true],
             ]);
 
             // Assert
@@ -423,14 +425,14 @@ class StandardWorkflowPayoutTest extends TestCase
         $project = Project::factory()->create([
             'workflow_type' => 'standard',
             'budget' => 500,
-            'user_id' => $this->projectOwner->id
+            'user_id' => $this->projectOwner->id,
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
 
         // Act - Try to access payment overview
@@ -451,21 +453,21 @@ class StandardWorkflowPayoutTest extends TestCase
         $project = Project::factory()->create([
             'workflow_type' => 'standard',
             'budget' => 500,
-            'user_id' => $this->projectOwner->id
+            'user_id' => $this->projectOwner->id,
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
 
         // Act - Try to process payment
         $response = $this->actingAs($this->projectOwner)
             ->post(route('projects.pitches.payment.process', ['project' => $project, 'pitch' => $pitch]), [
                 'payment_method_id' => 'pm_test_123',
-                'confirm_payment' => true
+                'confirm_payment' => true,
             ]);
 
         // Assert - Should fail authorization
@@ -477,23 +479,23 @@ class StandardWorkflowPayoutTest extends TestCase
     {
         // Arrange - Create a pitch with valid Stripe Connect setup
         $producer = User::factory()->create(['stripe_account_id' => 'acct_test123']);
-        
+
         // Mock the hasValidStripeConnectAccount method to return true
         $producer = Mockery::mock($producer)->makePartial();
         $producer->shouldReceive('hasValidStripeConnectAccount')->andReturn(true);
         $producer->shouldReceive('getStripeConnectStatus')->andReturn(['status' => 'active']);
-        
+
         $project = Project::factory()->create([
             'workflow_type' => 'standard',
             'budget' => 500,
-            'user_id' => $this->projectOwner->id
+            'user_id' => $this->projectOwner->id,
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
 
         // Mock the User::find to return our mocked producer
@@ -514,26 +516,26 @@ class StandardWorkflowPayoutTest extends TestCase
     {
         // Arrange - Create pitch with producer who has Stripe account in progress
         $producer = User::factory()->create(['stripe_account_id' => 'acct_test123']);
-        
+
         // Mock partial setup (account exists but not fully verified)
         $producer = Mockery::mock($producer)->makePartial();
         $producer->shouldReceive('hasValidStripeConnectAccount')->andReturn(false);
         $producer->shouldReceive('getStripeConnectStatus')->andReturn([
             'status' => 'pending_verification',
-            'display' => 'Setup In Progress'
+            'display' => 'Setup In Progress',
         ]);
-        
+
         $project = Project::factory()->create([
             'workflow_type' => 'standard',
             'budget' => 500,
-            'user_id' => $this->projectOwner->id
+            'user_id' => $this->projectOwner->id,
         ]);
-        
+
         $pitch = Pitch::factory()->create([
             'project_id' => $project->id,
             'user_id' => $producer->id,
             'status' => Pitch::STATUS_COMPLETED,
-            'payment_status' => Pitch::PAYMENT_STATUS_PENDING
+            'payment_status' => Pitch::PAYMENT_STATUS_PENDING,
         ]);
 
         // Act - Try to access payment overview
@@ -544,4 +546,4 @@ class StandardWorkflowPayoutTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHasErrors('stripe_connect');
     }
-} 
+}

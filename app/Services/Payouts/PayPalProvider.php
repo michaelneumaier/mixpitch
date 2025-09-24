@@ -8,12 +8,13 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class PayPalProvider extends AbstractPayoutProvider
 {
     protected string $apiBaseUrl;
+
     protected string $partnerId;
+
     protected string $bnCode;
 
     public function __construct(array $config = [])
@@ -51,12 +52,12 @@ class PayPalProvider extends AbstractPayoutProvider
         try {
             // Get partner access token
             $accessToken = $this->getPartnerAccessToken();
-            if (!$accessToken) {
+            if (! $accessToken) {
                 throw new \Exception('Failed to obtain partner access token');
             }
 
             // Generate unique tracking ID
-            $trackingId = 'mp_' . $user->id . '_' . time();
+            $trackingId = 'mp_'.$user->id.'_'.time();
 
             // Create partner referral
             $response = Http::withToken($accessToken)
@@ -118,8 +119,7 @@ class PayPalProvider extends AbstractPayoutProvider
                 ];
             }
 
-            throw new \Exception('Failed to create partner referral: ' . $response->body());
-
+            throw new \Exception('Failed to create partner referral: '.$response->body());
         } catch (\Exception $e) {
             $this->logError('Failed to create PayPal Commerce account', [
                 'user_id' => $user->id,
@@ -140,7 +140,7 @@ class PayPalProvider extends AbstractPayoutProvider
             $accessToken = $this->getPartnerAccessToken();
             $merchantDetails = $this->getMerchantDetails($merchantId, $accessToken);
 
-            if (!$merchantDetails) {
+            if (! $merchantDetails) {
                 throw new \Exception('Failed to retrieve merchant details');
             }
 
@@ -199,7 +199,7 @@ class PayPalProvider extends AbstractPayoutProvider
         try {
             $account = $user->payoutAccountsForProvider($this->getProviderName())->first();
 
-            if (!$account) {
+            if (! $account) {
                 return [
                     'success' => true,
                     'status' => 'not_connected',
@@ -269,7 +269,7 @@ class PayPalProvider extends AbstractPayoutProvider
     {
         try {
             $account = $seller->payoutAccountsForProvider($this->getProviderName())->first();
-            if (!$account || !$account->account_id) {
+            if (! $account || ! $account->account_id) {
                 throw new \Exception('Seller does not have a connected PayPal Commerce account');
             }
 
@@ -313,6 +313,7 @@ class PayPalProvider extends AbstractPayoutProvider
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return [
                     'success' => true,
                     'order_id' => $data['id'],
@@ -321,8 +322,7 @@ class PayPalProvider extends AbstractPayoutProvider
                 ];
             }
 
-            throw new \Exception('Failed to create order: ' . $response->body());
-
+            throw new \Exception('Failed to create order: '.$response->body());
         } catch (\Exception $e) {
             $this->logError('Failed to create PayPal order with platform fee', [
                 'seller_id' => $seller->id,
@@ -341,7 +341,7 @@ class PayPalProvider extends AbstractPayoutProvider
     protected function getPartnerAccessToken(): ?string
     {
         $cacheKey = 'paypal_partner_access_token';
-        
+
         // Check cache first
         $cachedToken = cache($cacheKey);
         if ($cachedToken) {
@@ -459,7 +459,7 @@ class PayPalProvider extends AbstractPayoutProvider
 
         // Implement PayPal webhook signature validation
         // This is a simplified version - full implementation would verify certificate chain
-        return !empty($transmissionSig) && !empty($webhookId);
+        return ! empty($transmissionSig) && ! empty($webhookId);
     }
 
     /**
@@ -477,6 +477,7 @@ class PayPalProvider extends AbstractPayoutProvider
     public function isAccountReadyForPayouts(User $user): bool
     {
         $status = $this->getAccountStatus($user);
+
         return $status['success'] && $status['can_receive_payouts'];
     }
 
@@ -495,7 +496,7 @@ class PayPalProvider extends AbstractPayoutProvider
     {
         try {
             $accessToken = $this->getPartnerAccessToken();
-            
+
             $refundData = [
                 'amount' => [
                     'currency_code' => 'USD',
@@ -503,7 +504,7 @@ class PayPalProvider extends AbstractPayoutProvider
                 ],
             ];
 
-            if (!empty($metadata['reason'])) {
+            if (! empty($metadata['reason'])) {
                 $refundData['note_to_payer'] = $metadata['reason'];
             }
 
@@ -516,6 +517,7 @@ class PayPalProvider extends AbstractPayoutProvider
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return [
                     'success' => true,
                     'refund_id' => $data['id'],
@@ -524,8 +526,7 @@ class PayPalProvider extends AbstractPayoutProvider
                 ];
             }
 
-            throw new \Exception('Failed to process refund: ' . $response->body());
-
+            throw new \Exception('Failed to process refund: '.$response->body());
         } catch (\Exception $e) {
             $this->logError('Failed to reverse PayPal transfer', [
                 'transfer_id' => $transferId,
@@ -554,6 +555,7 @@ class PayPalProvider extends AbstractPayoutProvider
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return [
                     'success' => true,
                     'transfer_id' => $data['id'],
@@ -563,8 +565,7 @@ class PayPalProvider extends AbstractPayoutProvider
                 ];
             }
 
-            throw new \Exception('Failed to get transfer details: ' . $response->body());
-
+            throw new \Exception('Failed to get transfer details: '.$response->body());
         } catch (\Exception $e) {
             $this->logError('Failed to get PayPal transfer details', [
                 'transfer_id' => $transferId,
@@ -639,7 +640,7 @@ class PayPalProvider extends AbstractPayoutProvider
     {
         return [
             'US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE',
-            'AT', 'CH', 'DK', 'FI', 'IE', 'LU', 'NO', 'PT', 'SE', 'JP'
+            'AT', 'CH', 'DK', 'FI', 'IE', 'LU', 'NO', 'PT', 'SE', 'JP',
         ];
     }
 

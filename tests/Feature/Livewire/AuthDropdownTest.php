@@ -25,4 +25,4 @@ class AuthDropdownTest extends TestCase
         Livewire::test(AuthDropdown::class)
             ->assertOk();
     }
-} 
+}

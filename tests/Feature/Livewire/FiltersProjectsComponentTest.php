@@ -18,4 +18,4 @@ class FiltersProjectsComponentTest extends TestCase
             ->test(FiltersProjectsComponent::class)
             ->assertOk();
     }
-} 
+}

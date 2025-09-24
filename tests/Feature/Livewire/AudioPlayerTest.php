@@ -20,4 +20,4 @@ class AudioPlayerTest extends TestCase
             ->test(AudioPlayer::class, ['audioUrl' => 'dummy.mp3']) // Use audioUrl parameter
             ->assertOk();
     }
-} 
+}

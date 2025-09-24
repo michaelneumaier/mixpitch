@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Notification as NotificationModel;
+use App\Models\NotificationPreference;
 use App\Models\Pitch;
-use App\Models\PitchEvent;
 use App\Models\PitchFile;
 use App\Models\PitchSnapshot;
 use App\Models\Project;
@@ -14,20 +14,22 @@ use App\Services\NotificationService;
 use App\Services\PitchWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
-use App\Models\NotificationPreference;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class PitchDenialTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $projectOwner;
+
     protected $producer;
+
     protected $pitchWorkflowService;
+
     protected $project;
 
     protected function setUp(): void
@@ -48,7 +50,7 @@ class PitchDenialTest extends TestCase
             ['user_id' => $this->producer->id, 'notification_type' => NotificationModel::TYPE_PITCH_SUBMISSION_DENIED],
             ['email_enabled' => true, 'database_enabled' => true]
         );
-         NotificationPreference::updateOrCreate(
+        NotificationPreference::updateOrCreate(
             ['user_id' => $this->producer->id, 'notification_type' => NotificationModel::TYPE_SNAPSHOT_DENIED], // Added based on test assertion
             ['email_enabled' => true, 'database_enabled' => true]
         );
@@ -73,42 +75,42 @@ class PitchDenialTest extends TestCase
 
         // Act: Owner denies the initial pitch - MODIFIED FOR TESTING
         $this->actingAs($this->projectOwner);
-        $denialReason = "Not a good fit.";
-        
+        $denialReason = 'Not a good fit.';
+
         // Step 1: Update the pitch status directly (bypass service)
         $pitch->status = Pitch::STATUS_DENIED;
         $pitch->save();
-        
+
         // Step 2: Try to create the event manually
         try {
             DB::beginTransaction();
             $event = $pitch->events()->create([
                 'event_type' => 'status_change',
-                'comment' => 'Pitch application denied by project owner. Reason: ' . $denialReason,
+                'comment' => 'Pitch application denied by project owner. Reason: '.$denialReason,
                 'status' => Pitch::STATUS_DENIED,
                 'created_by' => $this->projectOwner->id,
             ]);
             DB::commit();
-            
+
             // Step 3: Log the event creation result
             Log::info('Manual event creation in test', [
                 'event_id' => $event->id ?? 'Failed',
                 'pitch_id' => $pitch->id,
-                'created_by' => $this->projectOwner->id
+                'created_by' => $this->projectOwner->id,
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             // Log the specific exception for debugging
             Log::error('Error creating event in test', [
                 'pitch_id' => $pitch->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             throw $e; // Re-throw to see the detailed error
         }
-        
+
         // Step 4: Trigger notification manually
         $notificationService = app(NotificationService::class);
         $notificationService->notifyInitialPitchDenied($pitch, $denialReason);
@@ -121,15 +123,14 @@ class PitchDenialTest extends TestCase
             'pitch_id' => $pitch->id,
             'event_type' => 'status_change',
             'status' => Pitch::STATUS_DENIED,
-            'comment' => 'Pitch application denied by project owner. Reason: ' . $denialReason,
+            'comment' => 'Pitch application denied by project owner. Reason: '.$denialReason,
             'created_by' => $this->projectOwner->id,
         ]);
 
         NotificationFacade::assertSentTo(
             $this->producer,
             UserNotification::class,
-            fn ($notification) => 
-                $notification->eventType === NotificationModel::TYPE_INITIAL_PITCH_DENIED && 
+            fn ($notification) => $notification->eventType === NotificationModel::TYPE_INITIAL_PITCH_DENIED &&
                 $notification->relatedId === $pitch->id &&
                 $notification->eventData['reason'] === $denialReason
         );
@@ -152,7 +153,7 @@ class PitchDenialTest extends TestCase
 
         // Act: Owner denies the submission
         $this->actingAs($this->projectOwner);
-        $denialReason = "Audio quality issues.";
+        $denialReason = 'Audio quality issues.';
         $this->pitchWorkflowService->denySubmittedPitch($pitch, $snapshot->id, $this->projectOwner, $denialReason);
 
         // Assert
@@ -166,17 +167,16 @@ class PitchDenialTest extends TestCase
             'event_type' => 'status_change',
             'status' => Pitch::STATUS_DENIED,
             'snapshot_id' => $snapshot->id,
-            'comment' => 'Pitch submission denied. Reason: ' . $denialReason,
+            'comment' => 'Pitch submission denied. Reason: '.$denialReason,
             'created_by' => $this->projectOwner->id,
         ]);
 
         NotificationFacade::assertSentTo(
             $this->producer,
             UserNotification::class,
-            fn ($notification) => 
-                ($notification->eventType === NotificationModel::TYPE_PITCH_SUBMISSION_DENIED || $notification->eventType === NotificationModel::TYPE_SNAPSHOT_DENIED) && // Check both possible types
+            fn ($notification) => ($notification->eventType === NotificationModel::TYPE_PITCH_SUBMISSION_DENIED || $notification->eventType === NotificationModel::TYPE_SNAPSHOT_DENIED) && // Check both possible types
                 $notification->relatedId === $snapshot->id && // Relation should be snapshot
                 $notification->eventData['reason'] === $denialReason
         );
     }
-} 
+}
