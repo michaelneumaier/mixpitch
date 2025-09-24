@@ -11,28 +11,97 @@
 ])
 
 @php
-    // Determine project status color and messaging based on UX guidelines
-    $statusConfig = match($project->status) {
-        'open' => [
+    // Determine project status color and messaging based on workflow type and status
+    $statusConfig = match([$project->workflow_type, $project->status]) {
+        // Standard Workflow
+        ['standard', 'open'] => [
             'color' => 'blue',
             'message' => 'Accepting Pitches',
             'icon' => 'folder-open'
         ],
-        'in_progress' => [
-            'color' => 'amber', 
-            'message' => 'In Progress',
-            'icon' => 'clock'
+        ['standard', 'in_progress'] => [
+            'color' => 'amber',
+            'message' => 'Collaboration Active',
+            'icon' => 'users'
         ],
-        'completed' => [
+        ['standard', 'completed'] => [
             'color' => 'green',
-            'message' => 'Completed',
+            'message' => 'Project Complete',
             'icon' => 'check-circle'
         ],
-        'unpublished' => [
+        ['standard', 'unpublished'] => [
             'color' => 'gray',
             'message' => 'Draft',
             'icon' => 'document'
         ],
+        
+        // Contest Workflow  
+        ['contest', 'open'] => [
+            'color' => 'orange',
+            'message' => 'Accepting Entries',
+            'icon' => 'trophy'
+        ],
+        ['contest', 'in_progress'] => [
+            'color' => 'amber',
+            'message' => 'Contest Active',
+            'icon' => 'clock'
+        ],
+        ['contest', 'completed'] => [
+            'color' => 'green',
+            'message' => 'Contest Complete',
+            'icon' => 'trophy'
+        ],
+        ['contest', 'unpublished'] => [
+            'color' => 'gray',
+            'message' => 'Contest Draft',
+            'icon' => 'document'
+        ],
+        
+        // Direct Hire Workflow
+        ['direct_hire', 'open'] => [
+            'color' => 'green',
+            'message' => 'Producer Assigned',
+            'icon' => 'user-check'
+        ],
+        ['direct_hire', 'in_progress'] => [
+            'color' => 'amber',
+            'message' => 'Work in Progress',
+            'icon' => 'cog-6-tooth'
+        ],
+        ['direct_hire', 'completed'] => [
+            'color' => 'green',
+            'message' => 'Work Complete',
+            'icon' => 'check-circle'
+        ],
+        ['direct_hire', 'unpublished'] => [
+            'color' => 'gray',
+            'message' => 'Setup Draft',
+            'icon' => 'document'
+        ],
+        
+        // Client Management Workflow
+        ['client_management', 'open'] => [
+            'color' => 'purple',
+            'message' => 'Setup Complete',
+            'icon' => 'user-group'
+        ],
+        ['client_management', 'in_progress'] => [
+            'color' => 'amber',
+            'message' => 'Producer Working',
+            'icon' => 'cog-6-tooth'
+        ],
+        ['client_management', 'completed'] => [
+            'color' => 'green',
+            'message' => 'Delivered to Client',
+            'icon' => 'check-circle'
+        ],
+        ['client_management', 'unpublished'] => [
+            'color' => 'gray',
+            'message' => 'Client Setup Draft',
+            'icon' => 'document'
+        ],
+        
+        // Fallback for any unknown combinations
         default => [
             'color' => 'gray',
             'message' => ucfirst(str_replace('_', ' ', $project->status)),
@@ -45,46 +114,119 @@
     $user = auth()->user();
     
     if ($project->user_id === $user->id) {
-        // Project owner actions
+        // Project owner actions - workflow-aware
         if ($project->status === 'unpublished' && !$project->isClientManagement()) {
+            $labelMap = [
+                'standard' => 'Publish Project',
+                'contest' => 'Launch Contest',
+                'direct_hire' => 'Start Collaboration',
+                'client_management' => 'Setup Client Portal'
+            ];
             $primaryAction = [
                 'action' => 'wire:click="publish"',
-                'label' => 'Publish Project',
+                'label' => $labelMap[$project->workflow_type] ?? 'Publish Project',
                 'variant' => 'primary'
             ];
         } elseif ($project->status === 'open' && $project->pitches()->count() > 0) {
+            // Workflow-specific review labels
+            $reviewLabels = [
+                'standard' => 'Review Pitches',
+                'contest' => 'Review Entries',
+                'direct_hire' => 'Check Progress',
+                'client_management' => 'Monitor Work'
+            ];
             $primaryAction = [
                 'url' => '#pitch-review',
-                'label' => 'Review Pitches',
+                'label' => $reviewLabels[$project->workflow_type] ?? 'Review Pitches',
                 'variant' => 'primary'
             ];
         } elseif ($project->status === 'in_progress') {
+            // Workflow-specific progress labels
+            $progressLabels = [
+                'standard' => 'View Progress',
+                'contest' => 'Monitor Contest',
+                'direct_hire' => 'Check Work',
+                'client_management' => 'View Deliverables'
+            ];
             $primaryAction = [
                 'url' => '#current-work',
-                'label' => 'View Progress',
+                'label' => $progressLabels[$project->workflow_type] ?? 'View Progress',
                 'variant' => 'primary'
             ];
         } elseif ($project->status === 'open') {
-            $primaryAction = [
-                'type' => 'modal',
-                'modal' => 'shareProject',
-                'label' => 'Share Project',
-                'variant' => 'outline'
-            ];
+            // Different sharing behavior for different workflows
+            if ($project->isClientManagement()) {
+                $primaryAction = [
+                    'type' => 'modal',
+                    'modal' => 'clientPortalLink',
+                    'label' => 'Share Client Portal',
+                    'variant' => 'outline'
+                ];
+            } elseif ($project->isDirectHire()) {
+                // Direct hire shouldn't show sharing options as it's private
+                $primaryAction = [
+                    'url' => '#collaboration',
+                    'label' => 'View Collaboration',
+                    'variant' => 'outline'
+                ];
+            } else {
+                // Standard and Contest can be shared publicly
+                $shareLabels = [
+                    'standard' => 'Share Project',
+                    'contest' => 'Share Contest'
+                ];
+                $primaryAction = [
+                    'type' => 'modal',
+                    'modal' => 'shareProject',
+                    'label' => $shareLabels[$project->workflow_type] ?? 'Share Project',
+                    'variant' => 'outline'
+                ];
+            }
         }
     } else {
-        // Producer/collaborator actions
+        // Producer/collaborator actions - workflow-aware
         if (!$userPitch && $project->status === 'open' && $canPitch) {
-            $primaryAction = [
-                'url' => "javascript:openPitchTermsModal()",
-                'label' => 'Start Pitch',
-                'variant' => 'primary'
+            // Different action labels based on workflow type
+            $actionLabels = [
+                'standard' => 'Start Pitch',
+                'contest' => 'Submit Entry',
+                'direct_hire' => 'Accept Project',
+                'client_management' => 'View Details' // Client management shouldn't allow public pitching
             ];
+            
+            // Client management and direct hire have different behaviors
+            if ($project->isClientManagement()) {
+                // Client management projects shouldn't show pitch options to non-collaborators
+                $primaryAction = null;
+            } elseif ($project->isDirectHire()) {
+                // Direct hire should only show for the target producer
+                if ($project->target_producer_id === $user->id) {
+                    $primaryAction = [
+                        'url' => "javascript:openPitchTermsModal()",
+                        'label' => 'Accept Project',
+                        'variant' => 'primary'
+                    ];
+                }
+            } else {
+                // Standard and Contest workflows allow public participation
+                $primaryAction = [
+                    'url' => "javascript:openPitchTermsModal()",
+                    'label' => $actionLabels[$project->workflow_type] ?? 'Start Pitch',
+                    'variant' => 'primary'
+                ];
+            }
         } elseif ($userPitch) {
+            // Workflow-specific management labels
+            $manageLabels = [
+                'standard' => 'Manage Pitch',
+                'contest' => 'Manage Entry',
+                'direct_hire' => 'Manage Work',
+                'client_management' => 'Manage Deliverables'
+            ];
             $primaryAction = [
                 'url' => route('projects.pitches.show', [$userPitch->project, $userPitch]),
                 'navigate' => true,
-                'label' => 'Manage Pitch',
+                'label' => $manageLabels[$project->workflow_type] ?? 'Manage Pitch',
                 'variant' => 'outline'
             ];
         }

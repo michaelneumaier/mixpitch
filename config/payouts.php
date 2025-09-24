@@ -34,10 +34,13 @@ return [
         ],
 
         'paypal' => [
-            'enabled' => env('PAYOUT_PAYPAL_ENABLED', true),
+            'enabled' => env('PAYPAL_ENABLED', false), // Disabled until partnership approved
+            'partner_id' => env('PAYPAL_PARTNER_ID'),
             'client_id' => env('PAYPAL_CLIENT_ID'),
             'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+            'bn_code' => env('PAYPAL_BN_CODE'),
             'environment' => env('PAYPAL_ENVIRONMENT', 'sandbox'), // 'sandbox' or 'production'
+            'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
         ],
 
         'wise' => [

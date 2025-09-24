@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Payouts\PayoutProviderRegistry;
-use App\Services\Payouts\PayPalPayoutProvider;
+use App\Services\Payouts\PayPalProvider;
 use App\Services\Payouts\StripePayoutProvider;
 use Illuminate\Support\ServiceProvider;
 
@@ -46,7 +46,7 @@ class PayoutServiceProvider extends ServiceProvider
 
         // Register PayPal provider
         if (config('payouts.providers.paypal.enabled', false)) {
-            $paypalProvider = $this->app->make(PayPalPayoutProvider::class);
+            $paypalProvider = $this->app->make(PayPalProvider::class);
             $registry->register('paypal', $paypalProvider);
         }
 
@@ -75,14 +75,14 @@ class PayoutServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register PayPal payout provider
+     * Register PayPal provider
      */
     protected function registerPayPalProvider(): void
     {
-        $this->app->bind(PayPalPayoutProvider::class, function ($app) {
+        $this->app->bind(PayPalProvider::class, function ($app) {
             $config = config('payouts.providers.paypal', []);
 
-            return new PayPalPayoutProvider($config);
+            return new PayPalProvider($config);
         });
     }
 

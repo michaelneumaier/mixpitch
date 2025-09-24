@@ -4,6 +4,7 @@ use App\Http\Controllers\AboutController;
 use App\Http\Controllers\CustomUppyS3MultipartController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PayoutSetupController;
+use App\Http\Controllers\PayPalController;
 use App\Http\Controllers\PitchController;
 use App\Http\Controllers\PitchFileController;
 use App\Http\Controllers\PricingController;
@@ -441,6 +442,14 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('stripe/connect')->name(
     Route::get('/status', [StripeConnectController::class, 'accountStatus'])->name('status');
     Route::get('/eligibility', [StripeConnectController::class, 'payoutEligibility'])->name('eligibility');
 });
+
+// PayPal Connect Routes
+Route::middleware(['auth:sanctum', 'verified'])->prefix('paypal')->name('paypal.')->group(function () {
+    Route::get('/onboarding/return', [PayPalController::class, 'onboardingReturn'])->name('onboarding.return');
+});
+
+// PayPal Webhook Route (no auth middleware)
+Route::post('/paypal/webhook', [PayPalController::class, 'webhook'])->name('paypal.webhook');
 
 // Google Drive Integration Routes
 Route::middleware(['auth:sanctum', 'verified'])->prefix('integrations/google-drive')->name('integrations.google-drive.')->group(function () {
