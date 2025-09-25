@@ -3,6 +3,7 @@
 namespace App\Livewire\Components;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\URL;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -120,8 +121,7 @@ class FileList extends Component
         ?int $clientPortalProjectId = null
     ) {
         $this->files = $files ?? collect();
-        
-        
+
         $this->modelType = $modelType;
         $this->modelId = $modelId;
         $this->colorScheme = $colorScheme;
@@ -374,7 +374,7 @@ class FileList extends Component
         if ($this->isClientPortal && $this->clientPortalProjectId) {
             // For client portal, we only support pitch files (producer deliverables)
             if ($this->modelType === 'pitch' || (isset($file->pitch_id) && $file->pitch_id)) {
-                return route('client.portal.audio.player', [
+                return URL::signedRoute('client.portal.audio.player', [
                     'project' => $this->clientPortalProjectId,
                     'pitchFile' => $file->id,
                 ]);

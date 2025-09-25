@@ -66,7 +66,7 @@ class ClientPortalController extends Controller
         // Enhanced: Prepare snapshot history and current snapshot
         $snapshotHistory = $this->prepareSnapshotHistory($pitch);
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
-        
+
         // Debug logging for client portal file display
         if ($currentSnapshot) {
             Log::info('Client portal current snapshot prepared', [
@@ -75,13 +75,13 @@ class ClientPortalController extends Controller
                 'snapshot_id' => $currentSnapshot->id ?? 'virtual',
                 'snapshot_files_count' => $currentSnapshot->files ? $currentSnapshot->files->count() : 0,
                 'snapshot_has_files' => method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : false,
-                'files_data' => $currentSnapshot->files ? $currentSnapshot->files->map(function($file) {
+                'files_data' => $currentSnapshot->files ? $currentSnapshot->files->map(function ($file) {
                     return [
                         'id' => $file->id ?? 'missing',
                         'name' => $file->file_name ?? 'missing',
                         'pitch_id' => $file->pitch_id ?? 'missing',
                     ];
-                })->toArray() : []
+                })->toArray() : [],
             ]);
         }
 
@@ -588,6 +588,22 @@ class ClientPortalController extends Controller
     }
 
     /**
+     * Get MIME type for processed audio format
+     */
+    private function getMimeTypeForFormat(?string $format): string
+    {
+        return match ($format) {
+            'mp3' => 'audio/mpeg',
+            'wav' => 'audio/wav',
+            'ogg' => 'audio/ogg',
+            'aac' => 'audio/aac',
+            'm4a' => 'audio/mp4',
+            'flac' => 'audio/flac',
+            default => 'audio/mpeg'
+        };
+    }
+
+    /**
      * Phase 2: Create client account from guest access.
      */
     public function createAccount(Request $request, Project $project)
@@ -1069,16 +1085,59 @@ class ClientPortalController extends Controller
         }
 
         try {
-            // Stream the file directly using the storage system
+            // Determine which file to stream based on watermarking logic
+            // Client portal users (null user) should receive watermarked versions when available
+            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(null);
+
+            if ($shouldServeWatermarked && $pitchFile->processed_file_path && $pitchFile->is_watermarked) {
+                // Stream the processed (watermarked) version
+                $filePath = $pitchFile->processed_file_path;
+                $mimeType = $pitchFile->processed_format ? $this->getMimeTypeForFormat($pitchFile->processed_format) : ($pitchFile->mime_type ?? 'audio/mpeg');
+
+                // Get file size from processed file
+                $fileSize = Storage::disk($pitchFile->disk)->size($filePath);
+
+                Log::info('Client portal streaming watermarked version', [
+                    'project_id' => $project->id,
+                    'file_id' => $pitchFile->id,
+                    'processed_path' => $filePath,
+                    'original_path' => $pitchFile->file_path,
+                ]);
+            } else {
+                // Stream the original version
+                $filePath = $pitchFile->file_path;
+                $mimeType = $pitchFile->mime_type ?? 'audio/mpeg';
+                $fileSize = $pitchFile->size;
+
+                Log::info('Client portal streaming original version', [
+                    'project_id' => $project->id,
+                    'file_id' => $pitchFile->id,
+                    'should_watermark' => $shouldServeWatermarked,
+                    'has_processed' => ! empty($pitchFile->processed_file_path),
+                    'is_watermarked' => $pitchFile->is_watermarked,
+                ]);
+            }
+
+            // Check if the file exists
+            if (! Storage::disk($pitchFile->disk)->exists($filePath)) {
+                Log::error('Client portal audio file not found', [
+                    'project_id' => $project->id,
+                    'file_id' => $pitchFile->id,
+                    'file_path' => $filePath,
+                    'disk' => $pitchFile->disk,
+                ]);
+                abort(404, 'Audio file not found.');
+            }
+
             $headers = [
-                'Content-Type' => $pitchFile->mime_type ?? 'audio/mpeg',
-                'Content-Length' => $pitchFile->size,
+                'Content-Type' => $mimeType,
+                'Content-Length' => $fileSize,
                 'Accept-Ranges' => 'bytes',
                 'Cache-Control' => 'no-cache, must-revalidate',
             ];
 
-            return response()->stream(function () use ($pitchFile) {
-                $stream = Storage::disk($pitchFile->disk)->readStream($pitchFile->file_path);
+            return response()->stream(function () use ($pitchFile, $filePath) {
+                $stream = Storage::disk($pitchFile->disk)->readStream($filePath);
                 if ($stream) {
                     fpassthru($stream);
                     fclose($stream);
@@ -1187,7 +1246,7 @@ class ClientPortalController extends Controller
         // Enhanced: Prepare snapshot history and current snapshot
         $snapshotHistory = $this->prepareSnapshotHistory($pitch);
         $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
-        
+
         // Debug logging for client portal file display (preview)
         if ($currentSnapshot) {
             Log::info('Client portal PREVIEW current snapshot prepared', [
@@ -1196,13 +1255,13 @@ class ClientPortalController extends Controller
                 'snapshot_id' => $currentSnapshot->id ?? 'virtual',
                 'snapshot_files_count' => $currentSnapshot->files ? $currentSnapshot->files->count() : 0,
                 'snapshot_has_files' => method_exists($currentSnapshot, 'hasFiles') ? $currentSnapshot->hasFiles() : false,
-                'files_data' => $currentSnapshot->files ? $currentSnapshot->files->map(function($file) {
+                'files_data' => $currentSnapshot->files ? $currentSnapshot->files->map(function ($file) {
                     return [
                         'id' => $file->id ?? 'missing',
                         'name' => $file->file_name ?? 'missing',
                         'pitch_id' => $file->pitch_id ?? 'missing',
                     ];
-                })->toArray() : []
+                })->toArray() : [],
             ]);
         }
 

@@ -6,6 +6,7 @@ use App\Models\PitchFile;
 use App\Models\PitchFileComment;
 use App\Models\ProjectFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
 use Livewire\Component;
 
 class GlobalAudioPlayer extends Component
@@ -112,7 +113,7 @@ class GlobalAudioPlayer extends Component
         if (! $clientMode && (! Auth::check() || ! Auth::user()->can('view', $pitchFile))) {
             return;
         }
-        
+
         // For client mode, we assume the client portal has already validated access via signed URLs
         // The client portal controller would have validated the project and file access
 
@@ -120,11 +121,11 @@ class GlobalAudioPlayer extends Component
         $this->clientEmail = $clientEmail;
 
         // Generate appropriate streaming URL based on context
-        $streamingUrl = $clientMode 
-            ? route('client.portal.audio.stream', [
+        $streamingUrl = $clientMode
+            ? URL::signedRoute('client.portal.audio.stream', [
                 'project' => $pitchFile->pitch->project_id,
-                'pitchFile' => $pitchFile->id
-              ])
+                'pitchFile' => $pitchFile->id,
+            ])
             : $pitchFile->getStreamingUrl(Auth::user());
 
         $this->currentTrack = [
@@ -262,13 +263,13 @@ class GlobalAudioPlayer extends Component
                     // Check if we're in client portal context (no authenticated user)
                     $isClientPortal = ! Auth::check();
                     $clientEmail = '';
-                    
+
                     if ($isClientPortal) {
                         // Try to get client email from the current request context
                         // This would typically be available in the component that includes the FileList
                         $clientEmail = request()->get('client_email', '');
                     }
-                    
+
                     $this->playPitchFile($fileId, $isClientPortal, $clientEmail);
                 } elseif ($modelType === 'project') {
                     $this->playProjectFile($fileId);
@@ -476,13 +477,13 @@ class GlobalAudioPlayer extends Component
 
         foreach ($pitchFiles as $index => $file) {
             // Use client portal URL if in client mode
-            $streamingUrl = $this->clientMode 
-                ? route('client.portal.audio.stream', [
+            $streamingUrl = $this->clientMode
+                ? URL::signedRoute('client.portal.audio.stream', [
                     'project' => $file->pitch->project_id,
-                    'pitchFile' => $file->id
-                  ])
+                    'pitchFile' => $file->id,
+                ])
                 : $file->getStreamingUrl(Auth::user());
-                
+
             $track = [
                 'type' => 'pitch_file',
                 'id' => $file->id,

@@ -62,9 +62,10 @@ class GoogleDriveUploadModal extends Component
         // Google Drive connection only available for authenticated users
         if (! Auth::check()) {
             Toaster::error('Please log in to connect Google Drive.');
+
             return;
         }
-        
+
         try {
             $authUrl = $this->googleDriveService->getAuthorizationUrl(Auth::user());
             $this->redirect($authUrl);
@@ -83,9 +84,10 @@ class GoogleDriveUploadModal extends Component
         // Google Drive integration is only available for authenticated users
         if (! Auth::check()) {
             $this->isConnected = false;
+
             return;
         }
-        
+
         $this->isConnected = $this->googleDriveService->isConnected(Auth::user());
     }
 
@@ -143,11 +145,13 @@ class GoogleDriveUploadModal extends Component
     {
         if (! Auth::check()) {
             Toaster::error('Please log in to import files from Google Drive.');
+
             return;
         }
-        
+
         if (! $this->selectedFile) {
             Toaster::error('Please select a file to import.');
+
             return;
         }
 

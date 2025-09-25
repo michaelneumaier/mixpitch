@@ -84,6 +84,7 @@ class ManageClientProject extends Component
         'milestonesUpdated' => '$refresh',
         'refreshClientFiles' => '$refresh',
         'commentsUpdated' => '$refresh',
+        'pitchStatusChanged' => 'refreshPitchStatus',
     ];
 
     protected $rules = [
@@ -125,6 +126,15 @@ class ManageClientProject extends Component
 
         // Initialize watermarking preference
         $this->watermarkingEnabled = $this->pitch->watermarking_enabled ?? false;
+    }
+
+    /**
+     * Handle pitch status changes from child components
+     */
+    public function refreshPitchStatus()
+    {
+        $this->pitch->refresh();
+        $this->loadStatusFeedback();
     }
 
     public function render()
