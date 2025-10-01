@@ -71,9 +71,9 @@
                         'producer_comment', 'producer_message' => 'bg-purple-500',
                         'client_approval' => 'bg-green-500',
                         'client_revisions_requested' => 'bg-amber-500',
-                        'status_change' => 'bg-gray-500',
-                        'file_uploaded' => 'bg-indigo-500',
-                        default => 'bg-gray-400'
+                        'status_change' => 'bg-gray-300',
+                        'file_uploaded' => 'bg-indigo-300',
+                        default => 'bg-gray-300'
                     };
                     
                     $title = match ($item['type']) {

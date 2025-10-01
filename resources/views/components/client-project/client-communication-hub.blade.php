@@ -66,10 +66,10 @@
                         'producer_message' => 'bg-purple-500',
                         'approval' => 'bg-green-500',
                         'revision_request' => 'bg-amber-500',
-                        'recall' => 'bg-orange-500',
-                        'status_update' => 'bg-gray-500',
-                        'file_activity' => 'bg-indigo-500',
-                        default => 'bg-gray-400'
+                        'recall' => 'bg-orange-300',
+                        'status_update' => 'bg-gray-300',
+                        'file_activity' => 'bg-indigo-300',
+                        default => 'bg-gray-300'
                     };
                     
                     $icon = match ($item['type']) {

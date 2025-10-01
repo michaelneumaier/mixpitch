@@ -11,7 +11,6 @@ class PitchEvent extends Model
 
     protected $fillable = [
         'pitch_id',
-        'user_id',
         'event_type',
         'comment',
         'status', // Pitch status AT THE TIME of the event

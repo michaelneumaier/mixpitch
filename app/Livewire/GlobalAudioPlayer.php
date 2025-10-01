@@ -144,6 +144,9 @@ class GlobalAudioPlayer extends Component
             'created_at' => $pitchFile->created_at->toISOString(),
             'has_comments' => $pitchFile->comments()->exists(),
             'client_mode' => $clientMode,
+            'client_email' => $clientEmail,
+            'is_watermarked' => $pitchFile->is_watermarked ?? false,
+            'audio_processed' => $pitchFile->audio_processed ?? false,
         ];
 
         // Build contextual queue - all pitch files from this project
@@ -214,6 +217,8 @@ class GlobalAudioPlayer extends Component
             'file_size' => $projectFile->size,
             'created_at' => $projectFile->created_at->toISOString(),
             'has_comments' => $projectFile->comments()->exists(),
+            'is_watermarked' => false, // Project files are typically not watermarked
+            'audio_processed' => $projectFile->audio_processed ?? false,
         ];
 
         // Build contextual queue - all audio files from this project
@@ -448,6 +453,8 @@ class GlobalAudioPlayer extends Component
                     'file_size' => $file->size,
                     'created_at' => $file->created_at->toISOString(),
                     'has_comments' => $file->comments()->exists(),
+                    'is_watermarked' => false, // Project files are typically not watermarked
+                    'audio_processed' => $file->audio_processed ?? false,
                 ];
 
                 $this->queue[] = $track;
@@ -499,6 +506,8 @@ class GlobalAudioPlayer extends Component
                 'created_at' => $file->created_at->toISOString(),
                 'has_comments' => $file->comments()->exists(),
                 'client_mode' => $this->clientMode,
+                'is_watermarked' => $file->is_watermarked ?? false,
+                'audio_processed' => $file->audio_processed ?? false,
             ];
 
             $this->queue[] = $track;

@@ -147,7 +147,7 @@ class ManageClientProject extends Component
      */
     protected function loadStatusFeedback()
     {
-        if (in_array($this->pitch->status, [Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_DENIED])) {
+        if (in_array($this->pitch->status, [Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, Pitch::STATUS_DENIED])) {
             $this->statusFeedbackMessage = $this->getLatestStatusFeedback();
         }
     }
@@ -182,11 +182,22 @@ class ManageClientProject extends Component
     protected function getLatestStatusFeedback(): ?string
     {
         $latestEvent = $this->pitch->events()
-            ->whereIn('event_type', ['revisions_requested', 'pitch_denied'])
+            ->whereIn('event_type', ['revisions_requested', 'client_revisions_requested', 'pitch_denied'])
             ->latest()
             ->first();
 
         return $latestEvent ? $latestEvent->comment : null;
+    }
+
+    /**
+     * Get the latest feedback event with metadata
+     */
+    protected function getLatestFeedbackEvent(): ?\App\Models\PitchEvent
+    {
+        return $this->pitch->events()
+            ->whereIn('event_type', ['revisions_requested', 'client_revisions_requested', 'pitch_denied'])
+            ->latest()
+            ->first();
     }
 
     /**
@@ -278,6 +289,51 @@ class ManageClientProject extends Component
                 'error' => $e->getMessage(),
             ]);
             Toaster::error($e->getMessage());
+        }
+    }
+
+    /**
+     * Send a response to client feedback without changing pitch status
+     */
+    public function sendFeedbackResponse()
+    {
+        $this->validate(['responseToFeedback' => 'required|string|max:5000']);
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () {
+                // Create producer comment event for feedback response
+                $this->pitch->events()->create([
+                    'event_type' => 'producer_comment',
+                    'comment' => $this->responseToFeedback,
+                    'status' => $this->pitch->status,
+                    'created_by' => auth()->id(),
+                    'metadata' => [
+                        'visible_to_client' => true,
+                        'comment_type' => 'feedback_response',
+                        'responding_to_feedback' => true,
+                    ],
+                ]);
+
+                // Notify client if project has client email
+                if ($this->project->client_email) {
+                    app(NotificationService::class)->notifyClientProducerCommented(
+                        $this->pitch,
+                        $this->responseToFeedback
+                    );
+                }
+            });
+
+            $this->responseToFeedback = '';
+            $this->pitch->refresh();
+
+            Toaster::success('Response sent to client successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send feedback response', [
+                'pitch_id' => $this->pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to send response. Please try again.');
         }
     }
 
@@ -708,10 +764,22 @@ class ManageClientProject extends Component
             'producer_message' => 'bg-purple-500',
             'approval' => 'bg-green-500',
             'revision_request' => 'bg-amber-500',
-            'recall' => 'bg-orange-500',
-            'status_update' => 'bg-gray-500',
-            'file_activity' => 'bg-indigo-500',
-            default => 'bg-gray-400'
+            'recall' => 'bg-orange-300',
+            'status_update' => 'bg-gray-300',
+            'file_activity' => 'bg-indigo-300',
+            default => 'bg-gray-300'
+        };
+    }
+
+    /**
+     * Get event icon color for timeline display (ensures contrast)
+     */
+    public function getEventIconColor($item): string
+    {
+        return match ($item['type']) {
+            'client_message', 'producer_message', 'approval', 'revision_request' => 'text-white',
+            'recall', 'status_update', 'file_activity' => 'text-gray-700',
+            default => 'text-gray-700'
         };
     }
 
@@ -799,35 +867,83 @@ class ManageClientProject extends Component
 
     /**
      * Get file comments data for the file-list component
+     * Updated to use the new file_comments table with polymorphic relationships
      */
     public function getFileCommentsDataProperty()
     {
-        return $this->pitch->events()
-            ->whereIn('event_type', ['client_file_comment', 'producer_comment'])
-            ->where(function ($query) {
-                $query->where('event_type', 'client_file_comment')
-                    ->orWhere(function ($subQuery) {
-                        $subQuery->where('event_type', 'producer_comment')
-                            ->whereJsonContains('metadata->comment_type', 'producer_file_comment');
-                    });
-            })
-            ->with('user')
+        // Get all pitch files for this pitch
+        $pitchFileIds = $this->pitch->files()->pluck('id')->toArray();
+
+        // Get comments for all pitch files using the new file_comments system
+        return \App\Models\FileComment::where('commentable_type', \App\Models\PitchFile::class)
+            ->whereIn('commentable_id', $pitchFileIds)
+            ->with(['user', 'replies.user'])
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(function ($event) {
-                // Add client_name to metadata for the component
-                $metadata = $event->metadata ?? [];
-                $metadata['client_name'] = $this->project->client_name ?: 'Client';
+            ->map(function ($comment) {
+                // Map the FileComment to match the expected structure
+                // Add client_name and producer_name for backward compatibility
+                $comment->client_name = $this->project->client_name ?: 'Client';
+                $comment->producer_name = $comment->user->name ?? 'Producer';
 
-                // Add producer name for producer comments
-                if ($event->event_type === 'producer_comment') {
-                    $metadata['producer_name'] = $event->user->name ?? 'Producer';
-                }
+                // Add metadata structure to match old system
+                $comment->metadata = [
+                    'file_id' => $comment->commentable_id,
+                    'client_name' => $comment->client_name,
+                    'producer_name' => $comment->producer_name,
+                    'type' => $comment->is_client_comment ? 'client_comment' : 'producer_comment',
+                ];
 
-                $event->metadata = $metadata;
+                // Add event_type for compatibility with old template logic
+                $comment->event_type = $comment->is_client_comment ? 'client_file_comment' : 'producer_comment';
 
-                return $event;
+                return $comment;
             });
+    }
+
+    /**
+     * Get file comments summary grouped by file for feedback overview
+     */
+    public function getFileCommentsSummaryProperty()
+    {
+        $comments = $this->fileCommentsData;
+        $files = $this->pitch->files()->get()->keyBy('id');
+
+        return $comments->groupBy('commentable_id')->map(function ($fileComments, $fileId) use ($files) {
+            $file = $files->get($fileId);
+            if (! $file) {
+                return null;
+            }
+
+            $unresolvedCount = $fileComments->where('resolved', false)->count();
+            $resolvedCount = $fileComments->where('resolved', true)->count();
+            $totalCount = $fileComments->count();
+
+            // Get the most recent unresolved comment for preview
+            $latestUnresolved = $fileComments->where('resolved', false)->sortByDesc('created_at')->first();
+
+            return [
+                'file' => $file,
+                'total_comments' => $totalCount,
+                'unresolved_count' => $unresolvedCount,
+                'resolved_count' => $resolvedCount,
+                'latest_unresolved' => $latestUnresolved,
+                'needs_attention' => $unresolvedCount > 0,
+            ];
+        })->filter()->values(); // Remove null entries and reset keys
+    }
+
+    /**
+     * Get file comments summary totals for template display
+     */
+    public function getFileCommentsTotalsProperty()
+    {
+        $summary = $this->fileCommentsSummary;
+        
+        return [
+            'unresolved' => $summary->sum('unresolved_count'),
+            'total' => $summary->sum('total_comments'),
+        ];
     }
 
     private function getBaseClientBudget(): float
@@ -1215,25 +1331,37 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Mark a file comment as resolved
+     * Mark a file comment as resolved using the new FileComment system
      */
     public function markFileCommentResolved($commentId)
     {
         try {
-            $comment = $this->pitch->events()->findOrFail($commentId);
+            $comment = \App\Models\FileComment::findOrFail($commentId);
 
-            // Update metadata to mark as responded
-            $metadata = $comment->metadata ?? [];
-            $metadata['responded'] = true;
-            $metadata['response_type'] = 'marked_addressed';
+            // Verify the comment belongs to a file in this pitch
+            $pitchFileIds = $this->pitch->files()->pluck('id')->toArray();
 
-            $comment->update(['metadata' => $metadata]);
+            if ($comment->commentable_type !== \App\Models\PitchFile::class ||
+                ! in_array($comment->commentable_id, $pitchFileIds)) {
+                throw new \Exception('Comment does not belong to this pitch');
+            }
+
+            // Mark the comment as resolved
+            $comment->update(['resolved' => true]);
 
             $this->pitch->refresh();
+
+            // Force refresh by clearing cached properties
+            unset($this->fileCommentsData);
+
+            // Dispatch event to refresh the file-list component
+            $this->dispatch('commentsUpdated');
+
             Toaster::success('Comment marked as addressed.');
         } catch (\Exception $e) {
             Log::error('Failed to mark comment as resolved', [
                 'comment_id' => $commentId,
+                'pitch_id' => $this->pitch->id,
                 'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to mark comment as addressed.');
@@ -1241,38 +1369,50 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Respond to a file comment
+     * Respond to a file comment using the new FileComment system
      */
     public function respondToFileComment($commentId, $response)
     {
         try {
-            $comment = $this->pitch->events()->findOrFail($commentId);
+            $originalComment = \App\Models\FileComment::findOrFail($commentId);
 
-            // Create a response event
-            $this->pitch->events()->create([
-                'event_type' => 'producer_comment',
-                'comment' => $response,
-                'status' => $this->pitch->status,
-                'created_by' => auth()->id(),
-                'metadata' => [
-                    'response_to_comment_id' => $commentId,
-                    'file_id' => $comment->metadata['file_id'] ?? null,
-                    'comment_type' => 'response_to_client_feedback',
-                    'client_name' => $this->project->client_name,
-                ],
+            // Verify the comment belongs to a file in this pitch
+            $pitchFileIds = $this->pitch->files()->pluck('id')->toArray();
+
+            if ($originalComment->commentable_type !== \App\Models\PitchFile::class ||
+                ! in_array($originalComment->commentable_id, $pitchFileIds)) {
+                throw new \Exception('Comment does not belong to this pitch');
+            }
+
+            // Create a reply to the original comment
+            \App\Models\FileComment::create([
+                'commentable_type' => $originalComment->commentable_type,
+                'commentable_id' => $originalComment->commentable_id,
+                'user_id' => auth()->id(),
+                'parent_id' => $commentId, // This makes it a reply
+                'comment' => trim($response),
+                'timestamp' => null,
+                'resolved' => false,
+                'is_client_comment' => false, // Producer response
+                'client_email' => null,
             ]);
 
-            // Mark original comment as responded
-            $metadata = $comment->metadata ?? [];
-            $metadata['responded'] = true;
-            $metadata['response_type'] = 'text_response';
-            $comment->update(['metadata' => $metadata]);
+            // Mark original comment as resolved since it was responded to
+            $originalComment->update(['resolved' => true]);
 
             $this->pitch->refresh();
+
+            // Force refresh by clearing cached properties
+            unset($this->fileCommentsData);
+
+            // Dispatch event to refresh the file-list component
+            $this->dispatch('commentsUpdated');
+
             Toaster::success('Response sent successfully.');
         } catch (\Exception $e) {
             Log::error('Failed to respond to comment', [
                 'comment_id' => $commentId,
+                'pitch_id' => $this->pitch->id,
                 'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to send response.');
@@ -1280,7 +1420,7 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Create a new comment on a file
+     * Create a new comment on a file using the new FileComment system
      */
     public function createFileComment($fileId, $comment)
     {
@@ -1294,17 +1434,16 @@ class ManageClientProject extends Component
             // Verify the file belongs to this pitch
             $file = $this->pitch->files()->findOrFail($fileId);
 
-            // Create the comment event
-            $this->pitch->events()->create([
-                'event_type' => 'producer_comment',
+            // Create the comment using the new FileComment model
+            \App\Models\FileComment::create([
+                'commentable_type' => \App\Models\PitchFile::class,
+                'commentable_id' => $fileId,
+                'user_id' => auth()->id(),
                 'comment' => trim($comment),
-                'status' => $this->pitch->status,
-                'created_by' => auth()->id(),
-                'metadata' => [
-                    'file_id' => (int) $fileId, // Ensure it's an integer
-                    'comment_type' => 'producer_file_comment',
-                    'client_name' => $this->project->client_name,
-                ],
+                'timestamp' => null, // Can be set later if needed for audio player integration
+                'resolved' => false,
+                'is_client_comment' => false, // Producer comment
+                'client_email' => null,
             ]);
 
             $this->pitch->refresh();
@@ -1324,15 +1463,23 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Delete a file comment
+     * Delete a file comment using the new FileComment system
      */
     public function deleteFileComment($commentId)
     {
         try {
-            $comment = $this->pitch->events()->findOrFail($commentId);
+            $comment = \App\Models\FileComment::findOrFail($commentId);
 
-            // Store comment info for success message
-            $fileId = $comment->metadata['file_id'] ?? null;
+            // Verify the comment belongs to a file in this pitch
+            $pitchFileIds = $this->pitch->files()->pluck('id')->toArray();
+
+            if ($comment->commentable_type !== \App\Models\PitchFile::class ||
+                ! in_array($comment->commentable_id, $pitchFileIds)) {
+                throw new \Exception('Comment does not belong to this pitch');
+            }
+
+            // Store file info for success message
+            $fileId = $comment->commentable_id;
 
             // Delete the comment
             $comment->delete();

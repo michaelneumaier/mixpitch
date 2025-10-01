@@ -136,7 +136,7 @@
     <div class="divide-y divide-gray-200 dark:divide-gray-700">
         @forelse($files as $file)
             <div x-data="{ 
-                     showComments: {{ $this->getFileCommentCount($file->id) > 0 ? 'true' : 'false' }},
+                     showComments: false,
                      fileId: {{ $file->id }},
                      init() {
                          // Keep comment section expanded if this file was just commented on
@@ -238,6 +238,23 @@
                                     <span>{{ isset($file->formatted_size) ? $file->formatted_size : $this->formatFileSize($file->size) }}</span>
                                 </div>
                             @endif
+                            @if (isset($file->is_watermarked) && $file->is_watermarked && isset($file->audio_processed) && $file->audio_processed)
+                                @php
+                                    $shouldShowWatermarkBadge = false;
+                                    if ($isClientPortal ?? false) {
+                                        // In client portal, always show badge for watermarked files
+                                        $shouldShowWatermarkBadge = true;
+                                    } elseif (Auth::check()) {
+                                        // In main app, check Gate permission
+                                        $shouldShowWatermarkBadge = Gate::allows('receivesWatermarked', $file);
+                                    }
+                                @endphp
+                                @if ($shouldShowWatermarkBadge)
+                                    <span class="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                        <i class="fas fa-shield-alt mr-1"></i>Protected
+                                    </span>
+                                @endif
+                            @endif
                             @if ($showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
                                 <div class="flex items-center gap-1">
                                     <flux:icon.chat-bubble-left-ellipsis class="w-3 h-3" />
@@ -291,46 +308,60 @@
                                 Comments for this File
                             </flux:text>
                         </div>
-                        <div class="max-h-48 space-y-3 overflow-y-auto">
+                        <div class="space-y-3">
                             @foreach ($this->getFileComments($file->id) as $comment)
                                 <div class="rounded-lg border p-3 
-                                    @if ($comment->event_type === 'producer_comment')
-                                        border-purple-200 bg-purple-50 dark:border-purple-700 dark:bg-purple-900/20
-                                    @else
+                                    @if ($comment->is_client_comment ?? false)
                                         border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800
+                                    @else
+                                        border-purple-200 bg-purple-50 dark:border-purple-700 dark:bg-purple-900/20
                                     @endif">
                                     <div class="mb-2 flex items-start justify-between">
                                         <div class="flex items-center gap-2">
-                                            @if ($comment->event_type === 'producer_comment')
-                                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500">
-                                                    <flux:icon name="musical-note" size="xs" class="text-white" />
-                                                </div>
-                                            @else
+                                            @if ($comment->is_client_comment ?? false)
                                                 <div class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500">
                                                     <flux:icon name="user" size="xs" class="text-white" />
+                                                </div>
+                                            @else
+                                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500">
+                                                    <flux:icon name="musical-note" size="xs" class="text-white" />
                                                 </div>
                                             @endif
                                             <div>
                                                 <flux:text weight="medium" size="sm"
                                                            class="text-gray-900 dark:text-gray-100">
-                                                    @if ($comment->event_type === 'producer_comment')
-                                                        {{ $comment->metadata['producer_name'] ?? 'Producer' }}
+                                                    @if ($comment->is_client_comment ?? false)
+                                                        {{ $comment->client_email ?? $comment->client_name ?? $comment->metadata['client_name'] ?? 'Client' }}
                                                     @else
-                                                        {{ $comment->metadata['client_name'] ?? 'Client' }}
+                                                        {{ $comment->producer_name ?? $comment->metadata['producer_name'] ?? 'Producer' }}
                                                     @endif
                                                 </flux:text>
-                                                <flux:text size="xs" class="text-gray-600 dark:text-gray-400">
-                                                    {{ $comment->created_at->diffForHumans() }}
-                                                </flux:text>
+                                                <div class="flex items-center gap-2">
+                                                    <flux:text size="xs" class="text-gray-600 dark:text-gray-400">
+                                                        {{ $comment->created_at->diffForHumans() }}
+                                                    </flux:text>
+                                                    @if(isset($comment->timestamp) && $comment->timestamp)
+                                                        @php
+                                                            $formattedTime = $comment->formatted_timestamp ?? sprintf('%02d:%02d', floor($comment->timestamp / 60), $comment->timestamp % 60);
+                                                        @endphp
+                                                        <flux:text size="xs" class="text-blue-600 dark:text-blue-400">
+                                                            {{ $formattedTime }}
+                                                        </flux:text>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div class="flex items-center gap-2">
-                                            @if ($comment->metadata['type'] ?? null === 'revision_request')
-                                                <flux:badge variant="warning" size="xs">
-                                                    <flux:icon name="pencil" size="xs" class="mr-1" />Revision Request
+                                            @if($comment->resolved ?? false)
+                                                <flux:badge variant="success" size="xs">
+                                                    <flux:icon name="check" size="xs" class="mr-1" />Resolved
                                                 </flux:badge>
-                                            @elseif($comment->metadata['type'] ?? null === 'approval')
+                                            @elseif(($comment->metadata['type'] ?? null) === 'revision_request' || ($comment->is_client_comment ?? false))
+                                                <flux:badge variant="warning" size="xs">
+                                                    <flux:icon name="pencil" size="xs" class="mr-1" />Needs Response
+                                                </flux:badge>
+                                            @elseif(($comment->metadata['type'] ?? null) === 'approval')
                                                 <flux:badge variant="success" size="xs">
                                                     <flux:icon name="check" size="xs" class="mr-1" />Approved
                                                 </flux:badge>
@@ -350,14 +381,21 @@
                                         {{ $comment->comment }}
                                     </flux:text>
 
-                                    {{-- Quick Response for Revision Requests --}}
-                                    @if (($comment->metadata['type'] ?? null) === 'revision_request' && !($comment->metadata['responded'] ?? false))
+                                    {{-- Quick Response for Unresolved Comments --}}
+                                    @if (!($comment->resolved ?? false) && (($comment->is_client_comment ?? false) || ($comment->metadata['type'] ?? null) === 'revision_request'))
                                         <div class="mt-3 border-t border-blue-200 pt-3">
                                             <div class="flex gap-2">
                                                 <button
                                                     wire:click="markFileCommentResolved({{ $comment->id }})"
-                                                    class="inline-flex items-center rounded-md bg-green-100 px-3 py-1 text-xs font-medium text-green-800 transition-colors hover:bg-green-200">
-                                                    <i class="fas fa-check mr-1"></i>Mark as Addressed
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="markFileCommentResolved({{ $comment->id }})"
+                                                    class="inline-flex items-center rounded-md bg-green-100 px-3 py-1 text-xs font-medium text-green-800 transition-colors hover:bg-green-200 disabled:opacity-50">
+                                                    <span wire:loading.remove wire:target="markFileCommentResolved({{ $comment->id }})">
+                                                        <i class="fas fa-check mr-1"></i>Mark as Addressed
+                                                    </span>
+                                                    <span wire:loading wire:target="markFileCommentResolved({{ $comment->id }})">
+                                                        <i class="fas fa-spinner fa-spin mr-1"></i>Addressing...
+                                                    </span>
                                                 </button>
                                                 <button
                                                     @click="showResponse = !showResponse"
@@ -386,6 +424,47 @@
                                                     </div>
                                                 </form>
                                             </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- Display Replies --}}
+                                    @if(isset($comment->replies) && $comment->replies->count() > 0)
+                                        <div class="mt-3 border-t border-gray-200 pt-3">
+                                            <flux:text size="xs" class="text-gray-600 dark:text-gray-400 mb-2">
+                                                {{ $comment->replies->count() }} {{ $comment->replies->count() === 1 ? 'reply' : 'replies' }}
+                                            </flux:text>
+                                            @foreach($comment->replies as $reply)
+                                                <div class="ml-4 pl-3 border-l-2 border-gray-200 mb-2 last:mb-0">
+                                                    <div class="flex items-start gap-2">
+                                                        @if ($reply->is_client_comment ?? false)
+                                                            <div class="flex h-4 w-4 items-center justify-center rounded-full bg-blue-400">
+                                                                <flux:icon name="user" size="xs" class="text-white" />
+                                                            </div>
+                                                        @else
+                                                            <div class="flex h-4 w-4 items-center justify-center rounded-full bg-purple-400">
+                                                                <flux:icon name="musical-note" size="xs" class="text-white" />
+                                                            </div>
+                                                        @endif
+                                                        <div class="flex-1">
+                                                            <div class="flex items-center gap-2">
+                                                                <flux:text weight="medium" size="xs" class="text-gray-800 dark:text-gray-200">
+                                                                    @if ($reply->is_client_comment ?? false)
+                                                                        {{ $reply->client_email ?? $reply->client_name ?? $reply->metadata['client_name'] ?? 'Client' }}
+                                                                    @else
+                                                                        {{ $reply->producer_name ?? $reply->metadata['producer_name'] ?? 'Producer' }}
+                                                                    @endif
+                                                                </flux:text>
+                                                                <flux:text size="xs" class="text-gray-500 dark:text-gray-400">
+                                                                    {{ $reply->created_at->diffForHumans() }}
+                                                                </flux:text>
+                                                            </div>
+                                                            <flux:text size="xs" class="text-gray-700 dark:text-gray-300 mt-1">
+                                                                {{ $reply->comment }}
+                                                            </flux:text>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
                                         </div>
                                     @endif
                                 </div>

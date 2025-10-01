@@ -39,6 +39,29 @@
                     <p class="text-xs text-gray-600 truncate">
                         <span x-text="displayTrack.artist"></span>
                         <span x-show="displayTrack.project_title" x-text="'• ' + displayTrack.project_title"></span>
+                        @if($currentTrack && isset($currentTrack['is_watermarked']) && $currentTrack['is_watermarked'] && isset($currentTrack['audio_processed']) && $currentTrack['audio_processed'])
+                            @php
+                                $shouldShowWatermarkBadge = false;
+                                $fileForGateCheck = null;
+                                if ($currentTrack['type'] === 'pitch_file') {
+                                    $fileForGateCheck = \App\Models\PitchFile::find($currentTrack['id']);
+                                }
+                                
+                                if (isset($currentTrack['client_mode']) && $currentTrack['client_mode']) {
+                                    // In client portal mode, always show badge for watermarked files
+                                    $shouldShowWatermarkBadge = true;
+                                } elseif (Auth::check() && $fileForGateCheck) {
+                                    // In main app, check Gate permission
+                                    $shouldShowWatermarkBadge = Gate::allows('receivesWatermarked', $fileForGateCheck);
+                                }
+                            @endphp
+                            @if($shouldShowWatermarkBadge)
+                                <span class="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                    <i class="fas fa-shield-alt text-xs"></i>
+                                    <span class="hidden sm:inline">Protected</span>
+                                </span>
+                            @endif
+                        @endif
                         <span x-show="$store.audioPlayer.isOffline" class="inline-flex items-center gap-1 ml-2 text-amber-600">
                             <i class="fas fa-wifi-slash text-xs"></i>
                             <span class="text-xs">Offline</span>
@@ -302,6 +325,29 @@
                             {{ $currentTrack['artist'] ?? '' }}
                             @if($currentTrack && isset($currentTrack['project_title']))
                                 • {{ $currentTrack['project_title'] }}
+                            @endif
+                            @if($currentTrack && isset($currentTrack['is_watermarked']) && $currentTrack['is_watermarked'] && isset($currentTrack['audio_processed']) && $currentTrack['audio_processed'])
+                                @php
+                                    $shouldShowWatermarkBadge = false;
+                                    $fileForGateCheck = null;
+                                    if ($currentTrack['type'] === 'pitch_file') {
+                                        $fileForGateCheck = \App\Models\PitchFile::find($currentTrack['id']);
+                                    }
+                                    
+                                    if (isset($currentTrack['client_mode']) && $currentTrack['client_mode']) {
+                                        // In client portal mode, always show badge for watermarked files
+                                        $shouldShowWatermarkBadge = true;
+                                    } elseif (Auth::check() && $fileForGateCheck) {
+                                        // In main app, check Gate permission
+                                        $shouldShowWatermarkBadge = Gate::allows('receivesWatermarked', $fileForGateCheck);
+                                    }
+                                @endphp
+                                @if($shouldShowWatermarkBadge)
+                                    <span class="inline-flex items-center gap-1 ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                        <i class="fas fa-shield-alt"></i>
+                                        Protected
+                                    </span>
+                                @endif
                             @endif
                         </p>
                     </div>

@@ -5,7 +5,6 @@ namespace App\Services\Payouts;
 use App\Contracts\PayoutProviderInterface;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 
 class PayoutProviderRegistry
 {
@@ -24,11 +23,6 @@ class PayoutProviderRegistry
     public function register(string $name, PayoutProviderInterface $provider): void
     {
         $this->providers[$name] = $provider;
-
-        Log::info('Payout provider registered', [
-            'provider' => $name,
-            'class' => get_class($provider),
-        ]);
     }
 
     /**

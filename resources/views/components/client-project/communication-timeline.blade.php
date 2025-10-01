@@ -20,7 +20,7 @@
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center {{ $this->getEventBgColor($item) }}">
-                            <i class="{{ $this->getEventIcon($item) }} text-white text-sm"></i>
+                            <i class="{{ $this->getEventIcon($item) }} {{ $this->getEventIconColor($item) }} text-sm"></i>
                         </div>
                         <div class="flex-1">
                             <flux:text weight="semibold" class="text-gray-900 dark:text-gray-100">{{ $this->getEventTitle($item) }}</flux:text>

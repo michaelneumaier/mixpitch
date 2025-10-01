@@ -72,12 +72,11 @@
                 <button wire:click="recallSubmission" 
                         wire:confirm="Are you sure you want to recall this submission? The client will be notified that you're making changes."
                         wire:loading.attr="disabled"
-                        class="group relative inline-flex w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 text-lg font-bold text-white duration-200 hover:from-amber-700 hover:to-orange-700 hover:shadow-xl disabled:opacity-50">
-                    <div class="absolute inset-0 -translate-x-full -skew-x-12 transform bg-white/20 transition-transform duration-700 group-hover:translate-x-full"></div>
+                        class="relative inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 text-lg font-bold text-white transition-transform duration-200 hover:from-amber-700 hover:to-orange-700 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100">
                     <span wire:loading wire:target="recallSubmission"
                         class="mr-3 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                    <flux:icon.arrow-uturn-left wire:loading.remove wire:target="recallSubmission" class="relative z-10 mr-3 h-5 w-5" />
-                    <span class="relative z-10">Recall Submission</span>
+                    <flux:icon.arrow-uturn-left wire:loading.remove wire:target="recallSubmission" class="mr-3 h-5 w-5" />
+                    <span>Recall Submission</span>
                 </button>
             </div>
         </flux:card>
@@ -140,7 +139,7 @@
                         <!-- Toggle Switch -->
                         <label class="relative inline-flex cursor-pointer items-center">
                             <input type="checkbox" wire:model.live="watermarkingEnabled" class="peer sr-only">
-                            <div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300"></div>
+                            <div class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300"></div>
                             <span class="ml-3 text-sm font-medium text-purple-900">
                                 {{ $watermarkingEnabled ? 'Enabled' : 'Disabled' }}
                             </span>
@@ -206,12 +205,11 @@
             <div class="flex flex-col gap-3 sm:flex-row">
                 @if ($this->producerFiles->count() > 0)
                     <button wire:click="submitForReview" wire:loading.attr="disabled"
-                        class="group relative inline-flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-lg font-bold text-white duration-200 hover:from-purple-700 hover:to-indigo-700 hover:shadow-xl disabled:opacity-50">
-                        <div class="absolute inset-0 -translate-x-full -skew-x-12 transform bg-white/20 transition-transform duration-700 group-hover:translate-x-full"></div>
+                        class="relative inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-lg font-bold text-white transition-transform duration-200 hover:from-purple-700 hover:to-indigo-700 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100">
                         <span wire:loading wire:target="submitForReview"
                             class="mr-3 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                        <i wire:loading.remove wire:target="submitForReview" class="fas fa-paper-plane relative z-10 mr-3"></i>
-                        <span class="relative z-10">
+                        <i wire:loading.remove wire:target="submitForReview" class="fas fa-paper-plane mr-3"></i>
+                        <span>
                             @if (in_array($pitch->status, [
                                     \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
                                     \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,

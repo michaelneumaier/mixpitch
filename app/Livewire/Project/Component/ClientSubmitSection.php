@@ -121,12 +121,10 @@ class ClientSubmitSection extends Component
 
                 // Create event to track the recall
                 $this->pitch->events()->create([
-                    'user_id' => Auth::id(),
+                    'created_by' => Auth::id(),
                     'event_type' => 'submission_recalled',
                     'status' => Pitch::STATUS_IN_PROGRESS,
                     'comment' => 'Producer recalled submission to make changes',
-                    'display_name' => Auth::user()->name,
-                    'role' => 'producer',
                 ]);
             });
 

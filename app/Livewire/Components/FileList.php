@@ -662,7 +662,7 @@ class FileList extends Component
     }
 
     /**
-     * Get comments for a specific file
+     * Get comments for a specific file using new FileComment structure
      */
     public function getFileComments(int $fileId): Collection
     {
@@ -671,7 +671,19 @@ class FileList extends Component
         }
 
         return $this->commentsData->filter(function ($comment) use ($fileId) {
-            return isset($comment->metadata['file_id']) && (int) $comment->metadata['file_id'] === (int) $fileId;
+            // Support both old metadata structure and new commentable_id structure
+            $commentFileId = null;
+
+            // New FileComment structure
+            if (isset($comment->commentable_id)) {
+                $commentFileId = (int) $comment->commentable_id;
+            }
+            // Fallback to old metadata structure for backward compatibility
+            elseif (isset($comment->metadata['file_id'])) {
+                $commentFileId = (int) $comment->metadata['file_id'];
+            }
+
+            return $commentFileId === (int) $fileId;
         })->sortByDesc('created_at')->values(); // Sort newest first, values() resets array keys
     }
 

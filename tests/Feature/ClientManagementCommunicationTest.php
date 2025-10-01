@@ -141,7 +141,7 @@ class ClientManagementCommunicationTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        // Update pitch status to revisions requested
+        // Update pitch status to revisions requested BEFORE mounting component
         $this->pitch->update(['status' => Pitch::STATUS_REVISIONS_REQUESTED]);
 
         // Create revision request event
@@ -152,9 +152,44 @@ class ClientManagementCommunicationTest extends TestCase
             'status' => $this->pitch->status,
         ]);
 
-        Livewire::test(\App\Livewire\Project\ManageClientProject::class, ['project' => $this->project])
-            ->assertSee('Client Requested Revisions')
+        // Clear cached relationships and reload the project with fresh data
+        $this->project->unsetRelation('pitches');
+        $this->project = $this->project->fresh(['pitches.events.user', 'pitches.files']);
+
+        $component = Livewire::test(\App\Livewire\Project\ManageClientProject::class, ['project' => $this->project]);
+
+        $component->assertSee('Respond to Feedback')
+            ->assertSee('Client Feedback')
             ->assertSee('Please make these changes...');
+    }
+
+    /** @test */
+    public function client_feedback_displays_prominently_for_client_revisions()
+    {
+        $this->actingAs($this->user);
+
+        // Update pitch status to client revisions requested BEFORE mounting component
+        $this->pitch->update(['status' => Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]);
+
+        // Create client revision request event
+        PitchEvent::create([
+            'pitch_id' => $this->pitch->id,
+            'event_type' => 'client_revisions_requested',
+            'comment' => 'Please adjust the tempo and add more bass.',
+            'status' => $this->pitch->status,
+            'created_at' => now()->subHour(), // One hour ago
+        ]);
+
+        // Clear cached relationships and reload the project with fresh data
+        $this->project->unsetRelation('pitches');
+        $this->project = $this->project->fresh(['pitches.events.user', 'pitches.files']);
+
+        $component = Livewire::test(\App\Livewire\Project\ManageClientProject::class, ['project' => $this->project]);
+
+        $component->assertSee('Client Feedback')
+            ->assertSee('Please adjust the tempo and add more bass.')
+            ->assertSee('Your Response to Client Feedback')
+            ->assertSee('hour ago'); // Should show relative time
     }
 
     /** @test */
