@@ -159,21 +159,17 @@
                     <i class="fas fa-info-circle mr-1"></i> Checkout canceled.
                 </div>
             @endif
-            {{-- Enhanced File List using Livewire Component --}}
-            @livewire('components.file-list', [
+            {{-- Enhanced File List with Comments using ClientPortal FileManager --}}
+            @livewire('client-portal.file-manager', [
+                'project' => $project,
+                'pitch' => $pitch,
                 'files' => $currentSnapshot->files ?? collect(),
-                'modelType' => 'pitch',
                 'canPlay' => true,
                 'canDownload' => false,
                 'canDelete' => false,
                 'enableBulkActions' => false,
-                'showComments' => false,
-                'enableCommentCreation' => false,
-                'headerIcon' => 'document-duplicate',
-                'emptyStateMessage' => 'No files in this version',
-                'emptyStateSubMessage' => 'Files will appear here when uploaded',
-                'isClientPortal' => true,
-                'clientPortalProjectId' => $project->id,
+                'showComments' => true,
+                'enableCommentCreation' => true,
                 'colorScheme' => [
                     'bg' => 'bg-green-50 dark:bg-green-950',
                     'border' => 'border-green-200 dark:border-green-800',
@@ -183,7 +179,10 @@
                     'accent_bg' => 'bg-green-100 dark:bg-green-900',
                     'accent_border' => 'border-green-200 dark:border-green-800',
                     'icon' => 'text-green-600 dark:text-green-400',
-                ]
+                ],
+                'headerIcon' => 'document-duplicate',
+                'emptyStateMessage' => 'No files in this version',
+                'emptyStateSubMessage' => 'Files will appear here when uploaded',
             ])
 
             {{-- File Approval Section --}}
