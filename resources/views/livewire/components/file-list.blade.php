@@ -367,13 +367,35 @@
                                                 </flux:badge>
                                             @endif
                                             
-                                            <!-- Delete Comment Button -->
-                                            <button 
-                                                wire:click="confirmDeleteComment({{ $comment->id }})"
-                                                class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
-                                                title="Delete comment">
-                                                <flux:icon name="x-mark" size="xs" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
-                                            </button>
+                                            <!-- Delete Comment Button (with authorization check) -->
+                                            @php
+                                                $canDeleteThisComment = false;
+                                                if ($isClientPortal ?? false) {
+                                                    // In client portal, only allow deleting client's own comments
+                                                    $canDeleteThisComment = ($comment->is_client_comment ?? false) && 
+                                                                          isset($clientPortalProjectId) &&
+                                                                          ($comment->client_email ?? null) === (\App\Models\Project::find($clientPortalProjectId)->client_email ?? null);
+                                                } else {
+                                                    // In main app, check if current user can delete (existing logic)
+                                                    $canDeleteThisComment = Auth::check() && (
+                                                        // User can delete their own comments
+                                                        (($comment->user_id ?? null) === Auth::id()) ||
+                                                        // Or if they have admin/project owner permissions
+                                                        (Auth::user()->role === 'admin') ||
+                                                        // Or if this is the project owner (for producer comments)
+                                                        (isset($modelId) && Auth::user()->projects()->where('id', $modelId)->exists())
+                                                    );
+                                                }
+                                            @endphp
+                                            
+                                            @if ($canDeleteThisComment)
+                                                <button 
+                                                    wire:click="confirmDeleteComment({{ $comment->id }})"
+                                                    class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
+                                                    title="Delete comment">
+                                                    <flux:icon name="x-mark" size="xs" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
 

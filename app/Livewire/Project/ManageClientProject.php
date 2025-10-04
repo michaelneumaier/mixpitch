@@ -1391,7 +1391,7 @@ class ManageClientProject extends Component
                 'user_id' => auth()->id(),
                 'parent_id' => $commentId, // This makes it a reply
                 'comment' => trim($response),
-                'timestamp' => null,
+                'timestamp' => 0.0,
                 'resolved' => false,
                 'is_client_comment' => false, // Producer response
                 'client_email' => null,
@@ -1440,7 +1440,7 @@ class ManageClientProject extends Component
                 'commentable_id' => $fileId,
                 'user_id' => auth()->id(),
                 'comment' => trim($comment),
-                'timestamp' => null, // Can be set later if needed for audio player integration
+                'timestamp' => 0.0, // Can be set later if needed for audio player integration
                 'resolved' => false,
                 'is_client_comment' => false, // Producer comment
                 'client_email' => null,

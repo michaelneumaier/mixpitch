@@ -80,743 +80,765 @@
 @endphp
 
 <x-draggable-upload-page :model="$pitch" title="Manage Client Project: {{ $project->title }}">
-<div>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div class="mx-auto p-2">
-            <div class="mx-auto">
-                <div class="flex justify-center">
-                    <div class="w-full">
-                        <!-- Enhanced Project Header -->
-                        <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true" :showWorkflowStatus="true" />
+    <div>
+        <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div class="mx-auto p-2">
+                <div class="mx-auto">
+                    <div class="flex justify-center">
+                        <div class="w-full">
+                            <!-- Enhanced Project Header -->
+                            <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true"
+                                :showWorkflowStatus="true" />
 
-                        <div class="grid">
-                            <!-- Main Content Area (2/3 width on large screens) -->
-                            <div class="space-y-2">
-                                <!-- INTEGRATED CLIENT COMMUNICATION HUB -->
-                                <div class="mb-2">
-                                    <x-client-project.client-communication-hub :component="$this" :project="$project" :conversationItems="$this->conversationItems"
-                                        :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
-                                </div>
-
-                                <!-- Milestones Section -->
-                                <flux:card class="mb-2">
-                                    <div class="mb-6 flex items-center justify-between">
-                                        <div class="flex items-center gap-3">
-                                            <flux:icon.flag variant="solid"
-                                                class="{{ $workflowColors['icon'] }} h-8 w-8" />
-                                            <div>
-                                                <flux:heading size="lg"
-                                                    class="{{ $workflowColors['text_primary'] }}">Milestones
-                                                </flux:heading>
-                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Define
-                                                    partial payments and approvals</flux:subheading>
-                                            </div>
-                                        </div>
-                                        <flux:button wire:click="beginAddMilestone" variant="primary" icon="plus">
-                                            Add Milestone
-                                        </flux:button>
-                                    </div>
-                                    @php($milestones = $pitch->milestones()->get())
-                                    @php($milestoneTotal = $milestones->sum('amount'))
-                                    @php($milestonePaid = $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->sum('amount'))
-                                    @php($approvedFiles = $pitch->files->where('client_approval_status', 'approved')->count())
-                                    @php($totalFiles = $pitch->files->count())
-
-                                    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-                                        <div class="{{ $workflowColors['text_secondary'] }} text-sm">
-                                            <span class="mr-2">Totals:</span>
-                                            <span
-                                                class="{{ $workflowColors['text_primary'] }} font-semibold">${{ number_format($milestonePaid, 2) }}</span>
-                                            <span class="{{ $workflowColors['text_muted'] }}">of</span>
-                                            <span
-                                                class="{{ $workflowColors['text_primary'] }} font-semibold">${{ number_format($milestoneTotal, 2) }}</span>
-                                            @php($baseBudget = $pitch->payment_amount > 0 ? $pitch->payment_amount : $project->budget ?? 0)
-                                            @if ($baseBudget && $baseBudget > 0)
-                                                <span class="{{ $workflowColors['text_muted'] }}">(base budget:
-                                                    ${{ number_format($baseBudget, 2) }})</span>
-                                            @endif
-                                        </div>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <flux:badge variant="success" size="sm">
-                                                <flux:icon.currency-dollar class="mr-1" />
-                                                Paid: ${{ number_format($milestonePaid, 2) }}
-                                            </flux:badge>
-                                            <flux:badge variant="outline" size="sm">
-                                                <flux:icon.flag class="mr-1" />
-                                                Milestones: {{ $milestones->count() }}
-                                            </flux:badge>
-                                            <flux:badge variant="primary" size="sm">
-                                                <flux:icon.document-check class="mr-1" />
-                                                Approvals: {{ $approvedFiles }} / {{ $totalFiles }}
-                                            </flux:badge>
-                                            <flux:button wire:click="toggleSplitForm" variant="outline" size="sm" icon="calculator">
-                                                Split budget
-                                            </flux:button>
-                                        </div>
-                                    </div>
-                                    @if ($milestones->count())
-                                        <div class="mb-4">
-                                            @php($percentPaid = $milestoneTotal > 0 ? round(($milestonePaid / max($milestoneTotal, 0.01)) * 100) : 0)
-                                            <div
-                                                class="{{ $workflowColors['accent_bg'] }} h-2 w-full overflow-hidden rounded-full">
-                                                <div class="h-2 bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-300"
-                                                    style="width: {{ $percentPaid }}%"></div>
-                                            </div>
-                                            <div class="{{ $workflowColors['text_muted'] }} mt-1 text-xs">
-                                                {{ $percentPaid }}% paid</div>
-                                        </div>
-
-                                        <div x-data="{
-                                            init() {
-                                                if (window.Sortable) {
-                                                    const el = this.$refs.milestoneList;
-                                                    window.Sortable.create(el, {
-                                                        animation: 150,
-                                                        handle: '.drag-handle',
-                                                        onEnd: (evt) => {
-                                                            const orderedIds = Array.from(el.querySelectorAll('[data-id]')).map(e => e.getAttribute('data-id'));
-                                                            this.$wire.reorderMilestones(orderedIds);
-                                                        }
-                                                    });
-                                                }
-                                            }
-                                        }" x-init="init()">
-                                            <div class="{{ $workflowColors['accent_border'] }} divide-y"
-                                                x-ref="milestoneList">
-                                                @foreach ($milestones as $m)
-                                                    <div class="flex items-center justify-between py-3"
-                                                        data-id="{{ $m->id }}">
-                                                        <div class="min-w-0">
-                                                            <div
-                                                                class="flex items-center gap-2 font-medium text-gray-900">
-                                                                {{ $m->name }}
-                                                                @if ($m->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
-                                                                    <span
-                                                                        class="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-[10px] text-green-800"><i
-                                                                            class="fas fa-dollar-sign mr-1"></i>
-                                                                        Paid</span>
-                                                                @elseif($m->status === 'approved')
-                                                                    <span
-                                                                        class="inline-flex items-center rounded bg-purple-100 px-2 py-0.5 text-[10px] text-purple-800"><i
-                                                                            class="fas fa-check mr-1"></i>
-                                                                        Approved</span>
-                                                                @else
-                                                                    <span
-                                                                        class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700"><i
-                                                                            class="fas fa-clock mr-1"></i>
-                                                                        Pending</span>
-                                                                @endif
-                                                            </div>
-                                                            <div class="text-xs text-gray-600">Status:
-                                                                {{ ucfirst($m->status) }} @if ($m->payment_status)
-                                                                    • Payment:
-                                                                    {{ str_replace('_', ' ', $m->payment_status) }}
-                                                                @endif
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex items-center gap-3">
-                                                            <div class="text-sm font-semibold text-gray-900">
-                                                                ${{ number_format($m->amount, 2) }}</div>
-                                                            <span
-                                                                class="drag-handle inline-flex h-8 w-8 cursor-move items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:text-gray-700"
-                                                                title="Drag to reorder">
-                                                                <i class="fas fa-grip-vertical"></i>
-                                                            </span>
-                                                            <button
-                                                                wire:click="beginEditMilestone({{ $m->id }})"
-                                                                class="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs hover:bg-gray-50">Edit</button>
-                                                            <button wire:click="deleteMilestone({{ $m->id }})"
-                                                                wire:confirm="Delete this milestone?"
-                                                                class="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">Delete</button>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="py-6 text-center text-sm text-gray-600">No milestones yet.</div>
-                                    @endif
-
-                                    @if ($showMilestoneForm)
-                                        <div
-                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} mt-6 rounded-xl border p-6">
-                                            <flux:heading size="base"
-                                                class="{{ $workflowColors['text_primary'] }} mb-4">
-                                                {{ $editingMilestoneId ? 'Edit Milestone' : 'Add Milestone' }}
-                                            </flux:heading>
-                                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                <flux:field>
-                                                    <flux:label>Name</flux:label>
-                                                    <flux:input type="text" wire:model.defer="milestoneName"
-                                                        placeholder="e.g., Initial Deposit" />
-                                                    <flux:error name="milestoneName" />
-                                                </flux:field>
-                                                <flux:field>
-                                                    <flux:label>Amount</flux:label>
-                                                    <flux:input type="number" step="0.01"
-                                                        wire:model.defer="milestoneAmount" placeholder="0.00" />
-                                                    <flux:error name="milestoneAmount" />
-                                                </flux:field>
-                                                <flux:field class="md:col-span-2">
-                                                    <flux:label>Description</flux:label>
-                                                    <flux:textarea rows="2"
-                                                        wire:model.defer="milestoneDescription"
-                                                        placeholder="Optional details..." />
-                                                    <flux:error name="milestoneDescription" />
-                                                </flux:field>
-                                                <flux:field>
-                                                    <flux:label>Sort Order</flux:label>
-                                                    <flux:input type="number" wire:model.defer="milestoneSortOrder"
-                                                        placeholder="0" />
-                                                    <flux:error name="milestoneSortOrder" />
-                                                </flux:field>
-                                            </div>
-                                            <div class="mt-6 flex flex-wrap items-center gap-3">
-                                                <flux:button wire:click="saveMilestone" variant="primary">Save
-                                                </flux:button>
-                                                <flux:button wire:click="cancelMilestoneForm" variant="outline">Cancel
-                                                </flux:button>
-                                                @if ($pitch->project && $pitch->project->budget)
-                                                    <flux:button type="button"
-                                                        wire:click="$set('milestoneAmount', {{ number_format($pitch->project->budget, 2, '.', '') }})"
-                                                        variant="ghost" size="sm">
-                                                        Use total budget
-                                                    </flux:button>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    @if ($showSplitForm)
-                                        <div
-                                            class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} mt-6 rounded-xl border p-6">
-                                            <flux:heading size="base"
-                                                class="{{ $workflowColors['text_primary'] }} mb-4">Split Total Budget
-                                            </flux:heading>
-                                            <div class="flex flex-wrap items-center gap-3">
-                                                <flux:field class="max-w-xs flex-1">
-                                                    <flux:label>Number of milestones</flux:label>
-                                                    <flux:input type="number" min="2" max="20"
-                                                        wire:model.defer="splitCount" />
-                                                </flux:field>
-                                                <div class="mt-6 flex gap-2">
-                                                    <flux:button wire:click="splitBudgetIntoMilestones"
-                                                        variant="primary">Create</flux:button>
-                                                    <flux:button type="button" wire:click="toggleSplitForm"
-                                                        variant="outline">Cancel</flux:button>
-                                                </div>
-                                            </div>
-                                            <flux:text size="sm"
-                                                class="{{ $workflowColors['text_muted'] }} mt-4">Splits the project
-                                                budget into equal parts. The last milestone gets the rounding remainder.
-                                            </flux:text>
-                                        </div>
-                                    @endif
-
-                                </flux:card>
-
-                                <!-- File Management Section -->
-                                    <!-- Client Reference Files Section -->
-                                    <flux:card
-                                        class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }} mb-6">
-                                        <div class="mb-6 flex items-center gap-3">
-                                            <flux:icon.folder-open variant="solid"
-                                                class="{{ $semanticColors['success']['icon'] }} h-8 w-8" />
-                                            <div>
-                                                <flux:heading size="base"
-                                                    class="{{ $semanticColors['success']['text'] }}">
+                            <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+                                <!-- Main Content Area (70% width on large screens) -->
+                                <div class="space-y-2 lg:col-span-2">
+                                    <!-- File Management Tabs -->
+                                    <div x-data="{ activeTab: 'client-files' }" class="mb-6">
+                                        <!-- Tab Navigation -->
+                                        <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+                                            <nav class="-mb-px flex space-x-8">
+                                                <button @click="activeTab = 'client-files'"
+                                                    :class="activeTab === 'client-files' ? 'border-purple-500 text-purple-600' :
+                                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                                    class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
+                                                    <flux:icon.folder-open class="mr-2 inline h-4 w-4" />
                                                     Client Reference Files
-                                                </flux:heading>
-                                                <flux:subheading class="{{ $semanticColors['success']['icon'] }}">
-                                                    Files uploaded by your client to provide project requirements, references, or examples</flux:subheading>
-                                            </div>
-                                        </div>
-
-                                        @livewire('components.file-list', [
-                                            'files' => $this->clientFiles,
-                                            'modelType' => 'project',
-                                            'modelId' => $project->id,
-                                            'colorScheme' => [
-                                                'bg' => $semanticColors['success']['bg'],
-                                                'border' => $semanticColors['success']['border'],
-                                                'text_primary' => $semanticColors['success']['text'],
-                                                'text_secondary' => $semanticColors['success']['text'],
-                                                'text_muted' => $semanticColors['success']['icon'],
-                                                'accent_bg' => 'bg-green-100 dark:bg-green-900',
-                                                'accent_border' => $semanticColors['success']['border'],
-                                                'icon' => $semanticColors['success']['icon'],
-                                            ],
-                                            'canPlay' => true,
-                                            'canDownload' => true,
-                                            'canDelete' => true,
-                                            'downloadMethod' => 'downloadClientFile',
-                                            'deleteMethod' => 'confirmDeleteClientFile',
-                                            'emptyStateMessage' => 'No client files yet',
-                                            'emptyStateSubMessage' => 'Your client can upload reference files through their portal',
-                                            'headerIcon' => 'folder-open',
-                                            'emptyIcon' => 'inbox'
-                                        ], key('client-files-list-' . $project->id . '-' . $refreshKey))
-
-                                        <!-- Link Import Section -->
-                                        <div class="mt-6 border-t border-green-200 pt-6 dark:border-green-800">
-                                            <div class="flex items-center justify-between mb-4">
-                                                <div>
-                                                    <flux:heading size="sm" class="{{ $semanticColors['success']['text'] }}">
-                                                        Import from Link
-                                                    </flux:heading>
-                                                    <flux:text size="xs" class="{{ $semanticColors['success']['icon'] }}">
-                                                        Import files from WeTransfer, Google Drive, Dropbox, or OneDrive
-                                                    </flux:text>
-                                                </div>
-                                            </div>
-                                            
-                                            @livewire('link-importer', ['project' => $project], key('link-importer-' . $project->id))
-                                        </div>
-                                    </flux:card>
-
-                                    <!-- Producer Deliverables Section -->
-                                    <flux:card data-section="producer-deliverables"
-                                        class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
-                                        <div class="mb-6 flex items-center gap-3">
-                                            <flux:icon.musical-note variant="solid"
-                                                class="{{ $workflowColors['icon'] }} h-8 w-8" />
-                                            <div>
-                                                <flux:heading size="base"
-                                                    class="{{ $workflowColors['text_primary'] }}">
+                                                </button>
+                                                <button @click="activeTab = 'deliverables'"
+                                                    :class="activeTab === 'deliverables' ? 'border-purple-500 text-purple-600' :
+                                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                                    class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
+                                                    <flux:icon.musical-note class="mr-2 inline h-4 w-4" />
                                                     Your Deliverables
                                                     <flux:badge variant="outline" size="sm" class="ml-2">
                                                         {{ $this->producerFiles->count() }} files
                                                     </flux:badge>
+                                                </button>
+                                            </nav>
+                                        </div>
+
+                                        <!-- Tab Content -->
+                                        <!-- Client Reference Files Tab -->
+                                        <div x-show="activeTab === 'client-files'" x-transition>
+                                            <flux:card
+                                                class="{{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }}">
+                                                <div class="mb-6 flex items-center gap-3">
+                                                    <flux:icon.folder-open variant="solid"
+                                                        class="{{ $semanticColors['success']['icon'] }} h-8 w-8" />
+                                                    <div>
+                                                        <flux:heading size="base"
+                                                            class="{{ $semanticColors['success']['text'] }}">
+                                                            Client Reference Files
+                                                        </flux:heading>
+                                                        <flux:subheading
+                                                            class="{{ $semanticColors['success']['icon'] }}">
+                                                            Files uploaded by your client to provide project
+                                                            requirements,
+                                                            references, or examples</flux:subheading>
+                                                    </div>
+                                                </div>
+
+                                                @livewire(
+                                                    'components.file-list',
+                                                    [
+                                                        'files' => $this->clientFiles,
+                                                        'modelType' => 'project',
+                                                        'modelId' => $project->id,
+                                                        'colorScheme' => [
+                                                            'bg' => $semanticColors['success']['bg'],
+                                                            'border' => $semanticColors['success']['border'],
+                                                            'text_primary' => $semanticColors['success']['text'],
+                                                            'text_secondary' => $semanticColors['success']['text'],
+                                                            'text_muted' => $semanticColors['success']['icon'],
+                                                            'accent_bg' => 'bg-green-100 dark:bg-green-900',
+                                                            'accent_border' => $semanticColors['success']['border'],
+                                                            'icon' => $semanticColors['success']['icon'],
+                                                        ],
+                                                        'canPlay' => true,
+                                                        'canDownload' => true,
+                                                        'canDelete' => true,
+                                                        'downloadMethod' => 'downloadClientFile',
+                                                        'deleteMethod' => 'confirmDeleteClientFile',
+                                                        'emptyStateMessage' => 'No client files yet',
+                                                        'emptyStateSubMessage' => 'Your client can upload reference files through their portal',
+                                                        'headerIcon' => 'folder-open',
+                                                        'emptyIcon' => 'inbox',
+                                                    ],
+                                                    key('client-files-list-' . $project->id . '-' . $refreshKey)
+                                                )
+
+                                                <!-- Link Import Section -->
+                                                <div class="mt-6 border-t border-green-200 pt-6 dark:border-green-800">
+                                                    <div class="mb-4 flex items-center justify-between">
+                                                        <div>
+                                                            <flux:heading size="sm"
+                                                                class="{{ $semanticColors['success']['text'] }}">
+                                                                Import from Link
+                                                            </flux:heading>
+                                                            <flux:text size="xs"
+                                                                class="{{ $semanticColors['success']['icon'] }}">
+                                                                Import files from WeTransfer, Google Drive, Dropbox, or
+                                                                OneDrive
+                                                            </flux:text>
+                                                        </div>
+                                                    </div>
+
+                                                    @livewire('link-importer', ['project' => $project], key('link-importer-' . $project->id))
+                                                </div>
+                                            </flux:card>
+                                        </div>
+
+                                        <!-- Your Deliverables Tab -->
+                                        <div x-show="activeTab === 'deliverables'" x-transition>
+                                            <!-- Producer Deliverables Section -->
+                                            <flux:card data-section="producer-deliverables"
+                                                class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                                <div class="mb-6 flex items-center gap-3">
+                                                    <flux:icon.musical-note variant="solid"
+                                                        class="{{ $workflowColors['icon'] }} h-8 w-8" />
+                                                    <div>
+                                                        <flux:heading size="base"
+                                                            class="{{ $workflowColors['text_primary'] }}">
+                                                            Your Deliverables
+                                                            <flux:badge variant="outline" size="sm" class="ml-2">
+                                                                {{ $this->producerFiles->count() }} files
+                                                            </flux:badge>
+                                                        </flux:heading>
+                                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                                                            Upload
+                                                            your
+                                                            work files here. These will be visible to your client for
+                                                            review
+                                                        </flux:subheading>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Upload Section for Producer Deliverables -->
+                                                <div class="mb-6">
+                                                    <x-file-management.upload-section :model="$pitch"
+                                                        title="Upload Deliverables"
+                                                        description="Upload your work files here. These will be visible to your client for review" />
+                                                </div>
+
+                                                <!-- Producer Files List -->
+                                                @livewire(
+                                                    'components.file-list',
+                                                    [
+                                                        'files' => $this->producerFiles,
+                                                        'modelType' => 'pitch',
+                                                        'modelId' => $pitch->id,
+                                                        'colorScheme' => $workflowColors,
+                                                        'canPlay' => true,
+                                                        'canDownload' => true,
+                                                        'canDelete' => in_array($pitch->status, [\App\Models\Pitch::STATUS_IN_PROGRESS, \App\Models\Pitch::STATUS_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, \App\Models\Pitch::STATUS_DENIED, \App\Models\Pitch::STATUS_READY_FOR_REVIEW]),
+                                                        'playMethod' => 'playPitchFile',
+                                                        'downloadMethod' => 'downloadFile',
+                                                        'deleteMethod' => 'confirmDeleteFile',
+                                                        'showComments' => true,
+                                                        'commentsData' => $this->fileCommentsData,
+                                                        'enableCommentCreation' => true,
+                                                        'headerIcon' => 'musical-note',
+                                                        'emptyStateMessage' => 'No deliverables uploaded yet',
+                                                        'emptyStateSubMessage' => 'Use the upload area above to add files',
+                                                        'showFileCount' => false,
+                                                    ],
+                                                    key('producer-files-list-' . $pitch->id)
+                                                )
+                                            </flux:card>
+                                        </div>
+                                    </div>
+
+                                    <!-- Response to Feedback Section (if applicable) -->
+                                    @if (in_array($pitch->status, [
+                                            \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
+                                            \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+                                        ]))
+                                        <flux:card class="mb-2 border-amber-200 bg-amber-50">
+                                            <div>
+                                                <flux:heading size="lg">
+                                                    <flux:icon name="arrow-uturn-left" class="mr-2" />
+                                                    Respond to Feedback
                                                 </flux:heading>
-                                                <flux:subheading class="{{ $workflowColors['text_muted'] }}">Upload
-                                                    your
-                                                    work files here. These will be visible to your client for review
-                                                </flux:subheading>
                                             </div>
-                                        </div>
-
-                                        <!-- Upload Section for Producer Deliverables -->
-                                        <div class="mb-6">
-                                            <x-file-management.upload-section 
-                                                :model="$pitch"
-                                                title="Upload Deliverables"
-                                                description="Upload your work files here. These will be visible to your client for review"
-                                            />
-                                        </div>
-
-                                        <!-- Producer Files List -->
-                                        @livewire('components.file-list', [
-                                            'files' => $this->producerFiles,
-                                            'modelType' => 'pitch',
-                                            'modelId' => $pitch->id,
-                                            'colorScheme' => $workflowColors,
-                                            'canPlay' => true,
-                                            'canDownload' => true,
-                                            'canDelete' => in_array($pitch->status, [
-                                                \App\Models\Pitch::STATUS_IN_PROGRESS,
-                                                \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
-                                                \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-                                                \App\Models\Pitch::STATUS_DENIED,
-                                                \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
-                                            ]),
-                                            'playMethod' => 'playPitchFile',
-                                            'downloadMethod' => 'downloadFile',
-                                            'deleteMethod' => 'confirmDeleteFile',
-                                            'showComments' => true,
-                                            'commentsData' => $this->fileCommentsData,
-                                            'enableCommentCreation' => true,
-                                            'headerIcon' => 'musical-note',
-                                            'emptyStateMessage' => 'No deliverables uploaded yet',
-                                            'emptyStateSubMessage' => 'Use the upload area above to add files',
-                                            'showFileCount' => false,
-                                        ], key('producer-files-list-' . $pitch->id))
-                                    </flux:card>
-
-                                <!-- Response to Feedback Section (if applicable) -->
-                                @if (in_array($pitch->status, [
-                                        \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
-                                        \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-                                    ]))
-                                    <flux:card class="mb-2 border-amber-200 bg-amber-50">
-                                        <div>
-                                            <flux:heading size="lg">
-                                                <flux:icon name="arrow-uturn-left" class="mr-2" />
-                                                Respond to Feedback
-                                            </flux:heading>
-                                        </div>
-                                        <div>
-                                            <!-- Client Feedback Display -->
-                                            @if ($statusFeedbackMessage)
-                                                <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                                                    <div class="flex items-start gap-3">
-                                                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
-                                                            <flux:icon name="chat-bubble-left-ellipsis" class="h-4 w-4 text-white" />
-                                                        </div>
-                                                        <div class="flex-1">
-                                                            <div class="mb-2 flex items-center gap-2">
-                                                                <flux:heading size="sm" class="text-blue-900">
-                                                                    Client Feedback
-                                                                </flux:heading>
-                                                                @if ($this->getLatestFeedbackEvent())
-                                                                    <flux:text size="xs" class="text-blue-600">
-                                                                        {{ $this->getLatestFeedbackEvent()->created_at->diffForHumans() }}
-                                                                    </flux:text>
-                                                                @endif
+                                            <div>
+                                                <!-- Client Feedback Display -->
+                                                @if ($statusFeedbackMessage)
+                                                    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                                        <div class="flex items-start gap-3">
+                                                            <div
+                                                                class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
+                                                                <flux:icon name="chat-bubble-left-ellipsis"
+                                                                    class="h-4 w-4 text-white" />
                                                             </div>
-                                                            <div class="rounded bg-white p-3 text-sm text-gray-800 shadow-sm">
-                                                                {{ $statusFeedbackMessage }}
+                                                            <div class="flex-1">
+                                                                <div class="mb-2 flex items-center gap-2">
+                                                                    <flux:heading size="sm" class="text-blue-900">
+                                                                        Client Feedback
+                                                                    </flux:heading>
+                                                                    @if ($this->getLatestFeedbackEvent())
+                                                                        <flux:text size="xs" class="text-blue-600">
+                                                                            {{ $this->getLatestFeedbackEvent()->created_at->diffForHumans() }}
+                                                                        </flux:text>
+                                                                    @endif
+                                                                </div>
+                                                                <div
+                                                                    class="rounded bg-white p-3 text-sm text-gray-800 shadow-sm">
+                                                                    {{ $statusFeedbackMessage }}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-
-                                            <!-- File Comments Summary -->
-                                            @if ($this->fileCommentsSummary->count() > 0)
-                                                <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                                                    <div class="flex items-start gap-3">
-                                                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500">
-                                                            <flux:icon name="document-text" class="h-4 w-4 text-white" />
-                                                        </div>
-                                                        <div class="flex-1">
-                                                            <div class="mb-3 flex items-center gap-2">
-                                                                <flux:heading size="sm" class="text-amber-900">
-                                                                    File Comments Overview
-                                                                </flux:heading>
-                                                                <flux:badge variant="warning" size="xs">
-                                                                    {{ $this->fileCommentsTotals['unresolved'] }} unresolved of {{ $this->fileCommentsTotals['total'] }} total
-                                                                </flux:badge>
-                                                            </div>
-                                                            
-                                                            <div class="space-y-2">
-                                                                @foreach ($this->fileCommentsSummary as $summary)
-                                                                    <div class="rounded bg-white p-3 shadow-sm">
-                                                                        <div class="flex items-start justify-between">
-                                                                            <div class="flex-1">
-                                                                                <div class="flex items-center gap-2 mb-1">
-                                                                                    <flux:text weight="medium" size="sm" class="text-gray-900">
-                                                                                        {{ $summary['file']->file_name }}
-                                                                                    </flux:text>
-                                                                                    @if ($summary['needs_attention'])
-                                                                                        <flux:badge variant="warning" size="xs">
-                                                                                            {{ $summary['unresolved_count'] }} need attention
-                                                                                        </flux:badge>
-                                                                                    @else
-                                                                                        <flux:badge variant="success" size="xs">
-                                                                                            All resolved
-                                                                                        </flux:badge>
-                                                                                    @endif
-                                                                                </div>
-                                                                                
-                                                                                @if ($summary['latest_unresolved'])
-                                                                                    <flux:text size="xs" class="text-gray-600 line-clamp-2">
-                                                                                        Latest: "{{ Str::limit($summary['latest_unresolved']->comment, 80) }}"
-                                                                                    </flux:text>
-                                                                                    <flux:text size="xs" class="text-gray-500">
-                                                                                        — {{ $summary['latest_unresolved']->is_client_comment ? ($this->project->client_name ?: 'Client') : 'Producer' }}, 
-                                                                                        {{ $summary['latest_unresolved']->created_at->diffForHumans() }}
-                                                                                    </flux:text>
-                                                                                @endif
-                                                                            </div>
-                                                                            
-                                                                            <div class="text-right">
-                                                                                <flux:text size="xs" class="text-gray-500">
-                                                                                    {{ $summary['total_comments'] }} total
-                                                                                </flux:text>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                @endforeach
-                                                            </div>
-                                                            
-                                                            <div class="mt-3 text-center">
-                                                                <flux:text size="xs" class="text-amber-700">
-                                                                    💡 Navigate to individual files below to respond to specific comments
-                                                                </flux:text>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-
-                                            <flux:field>
-                                                <flux:label>Your Response to Client Feedback</flux:label>
-                                                <flux:textarea wire:model.lazy="responseToFeedback" rows="4"
-                                                    placeholder="Explain what changes you've made in response to the feedback..." />
-                                                <flux:error name="responseToFeedback" />
-                                                
-                                                <!-- Send Response Button -->
-                                                @if ($statusFeedbackMessage || $this->fileCommentsSummary->count() > 0)
-                                                    <div class="mt-3">
-                                                        <flux:button 
-                                                            wire:click="sendFeedbackResponse" 
-                                                            variant="primary" 
-                                                            size="sm"
-                                                            icon="paper-airplane"
-                                                            wire:loading.attr="disabled">
-                                                            <span wire:loading.remove>Send Response</span>
-                                                            <span wire:loading>Sending...</span>
-                                                        </flux:button>
-                                                        <flux:text size="xs" class="text-gray-600 ml-2">
-                                                            This will notify the client without changing project status
-                                                        </flux:text>
                                                     </div>
                                                 @endif
-                                            </flux:field>
-                                        </div>
-                                    </flux:card>
-                                @endif
 
-                                <!-- Submit/Recall Section -->
-                                @livewire('project.component.client-submit-section', [
-                                    'project' => $project,
-                                    'pitch' => $pitch,
-                                    'workflowColors' => $workflowColors
-                                ], key('client-submit-section-' . $pitch->id . '-' . $pitch->updated_at->timestamp))
-                            </div>
-                            <!-- Sidebar (1/3 width on large screens) -->
-                            <div class="space-y-2 lg:col-span-1">
-                                <!-- Sidebar content can be added here if needed -->
+                                                <!-- File Comments Summary -->
+                                                @if ($this->fileCommentsSummary->count() > 0)
+                                                    <div
+                                                        class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                                                        <div class="flex items-start gap-3">
+                                                            <div
+                                                                class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500">
+                                                                <flux:icon name="document-text"
+                                                                    class="h-4 w-4 text-white" />
+                                                            </div>
+                                                            <div class="flex-1">
+                                                                <div class="mb-3 flex items-center gap-2">
+                                                                    <flux:heading size="sm" class="text-amber-900">
+                                                                        File Comments Overview
+                                                                    </flux:heading>
+                                                                    <flux:badge variant="warning" size="xs">
+                                                                        {{ $this->fileCommentsTotals['unresolved'] }}
+                                                                        unresolved of
+                                                                        {{ $this->fileCommentsTotals['total'] }} total
+                                                                    </flux:badge>
+                                                                </div>
+
+                                                                <div class="space-y-2">
+                                                                    @foreach ($this->fileCommentsSummary as $summary)
+                                                                        <div class="rounded bg-white p-3 shadow-sm">
+                                                                            <div
+                                                                                class="flex items-start justify-between">
+                                                                                <div class="flex-1">
+                                                                                    <div
+                                                                                        class="mb-1 flex items-center gap-2">
+                                                                                        <flux:text weight="medium"
+                                                                                            size="sm"
+                                                                                            class="text-gray-900">
+                                                                                            {{ $summary['file']->file_name }}
+                                                                                        </flux:text>
+                                                                                        @if ($summary['needs_attention'])
+                                                                                            <flux:badge
+                                                                                                variant="warning"
+                                                                                                size="xs">
+                                                                                                {{ $summary['unresolved_count'] }}
+                                                                                                need attention
+                                                                                            </flux:badge>
+                                                                                        @else
+                                                                                            <flux:badge
+                                                                                                variant="success"
+                                                                                                size="xs">
+                                                                                                All resolved
+                                                                                            </flux:badge>
+                                                                                        @endif
+                                                                                    </div>
+
+                                                                                    @if ($summary['latest_unresolved'])
+                                                                                        <flux:text size="xs"
+                                                                                            class="line-clamp-2 text-gray-600">
+                                                                                            Latest:
+                                                                                            "{{ Str::limit($summary['latest_unresolved']->comment, 80) }}"
+                                                                                        </flux:text>
+                                                                                        <flux:text size="xs"
+                                                                                            class="text-gray-500">
+                                                                                            —
+                                                                                            {{ $summary['latest_unresolved']->is_client_comment ? ($this->project->client_name ?: 'Client') : 'Producer' }},
+                                                                                            {{ $summary['latest_unresolved']->created_at->diffForHumans() }}
+                                                                                        </flux:text>
+                                                                                    @endif
+                                                                                </div>
+
+                                                                                <div class="text-right">
+                                                                                    <flux:text size="xs"
+                                                                                        class="text-gray-500">
+                                                                                        {{ $summary['total_comments'] }}
+                                                                                        total
+                                                                                    </flux:text>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+
+                                                                <div class="mt-3 text-center">
+                                                                    <flux:text size="xs" class="text-amber-700">
+                                                                        💡 Navigate to individual files below to respond
+                                                                        to
+                                                                        specific comments
+                                                                    </flux:text>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+
+                                                <flux:field>
+                                                    <flux:label>Your Response to Client Feedback</flux:label>
+                                                    <flux:textarea wire:model.lazy="responseToFeedback" rows="4"
+                                                        placeholder="Explain what changes you've made in response to the feedback..." />
+                                                    <flux:error name="responseToFeedback" />
+
+                                                    <!-- Send Response Button -->
+                                                    @if ($statusFeedbackMessage || $this->fileCommentsSummary->count() > 0)
+                                                        <div class="mt-3">
+                                                            <flux:button wire:click="sendFeedbackResponse"
+                                                                variant="primary" size="sm"
+                                                                icon="paper-airplane" wire:loading.attr="disabled">
+                                                                <span wire:loading.remove>Send Response</span>
+                                                                <span wire:loading>Sending...</span>
+                                                            </flux:button>
+                                                            <flux:text size="xs" class="ml-2 text-gray-600">
+                                                                This will notify the client without changing project
+                                                                status
+                                                            </flux:text>
+                                                        </div>
+                                                    @endif
+                                                </flux:field>
+                                            </div>
+                                        </flux:card>
+                                    @endif
+
+                                    <!-- Submit/Recall Section -->
+                                    @livewire(
+                                        'project.component.client-submit-section',
+                                        [
+                                            'project' => $project,
+                                            'pitch' => $pitch,
+                                            'workflowColors' => $workflowColors,
+                                        ],
+                                        key('client-submit-section-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
+                                    )
+                                </div>
+                                <!-- Sidebar (30% width on large screens) -->
+                                <div class="space-y-4 lg:col-span-1">
+                                    <!-- Client Communication Hub -->
+                                    <div class="mb-4">
+                                        <x-client-project.client-communication-hub :component="$this" :project="$project"
+                                            :conversationItems="$this->conversationItems" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
+                                    </div>
+
+                                    <!-- Milestones Section -->
+                                    <flux:card class="mb-4">
+                                        <div class="mb-4 flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <flux:icon.flag variant="solid"
+                                                    class="{{ $workflowColors['icon'] }} h-6 w-6" />
+                                                <div>
+                                                    <flux:heading size="base"
+                                                        class="{{ $workflowColors['text_primary'] }}">Milestones
+                                                    </flux:heading>
+                                                    <flux:text size="xs"
+                                                        class="{{ $workflowColors['text_muted'] }}">
+                                                        Payments & approvals
+                                                    </flux:text>
+                                                </div>
+                                            </div>
+                                            <flux:button wire:click="beginAddMilestone" variant="primary"
+                                                size="sm" icon="plus">
+                                                Add
+                                            </flux:button>
+                                        </div>
+
+                                        @php($milestones = $pitch->milestones()->get())
+                                        @php($milestoneTotal = $milestones->sum('amount'))
+                                        @php($milestonePaid = $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->sum('amount'))
+
+                                        <!-- Quick Stats -->
+                                        <div class="mb-4 space-y-2">
+                                            <div class="flex items-center justify-between text-sm">
+                                                <span class="{{ $workflowColors['text_secondary'] }}">Progress</span>
+                                                <span class="{{ $workflowColors['text_primary'] }} font-medium">
+                                                    ${{ number_format($milestonePaid, 2) }} /
+                                                    ${{ number_format($milestoneTotal, 2) }}
+                                                </span>
+                                            </div>
+                                            @if ($milestoneTotal > 0)
+                                                @php($percentPaid = round(($milestonePaid / max($milestoneTotal, 0.01)) * 100))
+                                                <div
+                                                    class="{{ $workflowColors['accent_bg'] }} h-1.5 w-full overflow-hidden rounded-full">
+                                                    <div class="h-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-300"
+                                                        style="width: {{ $percentPaid }}%"></div>
+                                                </div>
+                                                <div class="{{ $workflowColors['text_muted'] }} text-xs">
+                                                    {{ $percentPaid }}% completed
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        <!-- Milestones List -->
+                                        @if ($milestones->count())
+                                            <div class="max-h-64 space-y-2 overflow-y-auto">
+                                                @foreach ($milestones as $m)
+                                                    <div
+                                                        class="{{ $workflowColors['accent_bg'] }} rounded-lg p-3 text-sm">
+                                                        <div class="flex items-start justify-between">
+                                                            <div class="min-w-0 flex-1">
+                                                                <div
+                                                                    class="{{ $workflowColors['text_primary'] }} truncate font-medium">
+                                                                    {{ $m->name }}
+                                                                </div>
+                                                                <div class="mt-1 flex items-center gap-2">
+                                                                    <span
+                                                                        class="{{ $workflowColors['text_secondary'] }} font-medium">
+                                                                        ${{ number_format($m->amount, 2) }}
+                                                                    </span>
+                                                                    @if ($m->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                                                                        <flux:badge variant="success" size="xs">
+                                                                            Paid
+                                                                        </flux:badge>
+                                                                    @elseif($m->status === 'approved')
+                                                                        <flux:badge variant="primary" size="xs">
+                                                                            Approved</flux:badge>
+                                                                    @else
+                                                                        <flux:badge variant="outline" size="xs">
+                                                                            Pending</flux:badge>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                            <flux:button
+                                                                wire:click="beginEditMilestone({{ $m->id }})"
+                                                                variant="ghost" size="xs">
+                                                                <flux:icon.pencil class="h-3 w-3" />
+                                                            </flux:button>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <div class="py-4 text-center">
+                                                <flux:text size="sm"
+                                                    class="{{ $workflowColors['text_muted'] }}">
+                                                    No milestones yet
+                                                </flux:text>
+                                            </div>
+                                        @endif
+
+                                        <!-- Milestone Forms (when editing) -->
+                                        @if ($showMilestoneForm)
+                                            <div
+                                                class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} mt-4 rounded-lg border p-4">
+                                                <flux:heading size="sm"
+                                                    class="{{ $workflowColors['text_primary'] }} mb-3">
+                                                    {{ $editingMilestoneId ? 'Edit Milestone' : 'Add Milestone' }}
+                                                </flux:heading>
+                                                <div class="space-y-3">
+                                                    <flux:field>
+                                                        <flux:label>Name</flux:label>
+                                                        <flux:input type="text" wire:model.defer="milestoneName"
+                                                            size="sm" placeholder="e.g., Initial Deposit" />
+                                                        <flux:error name="milestoneName" />
+                                                    </flux:field>
+                                                    <flux:field>
+                                                        <flux:label>Amount</flux:label>
+                                                        <flux:input type="number" step="0.01" size="sm"
+                                                            wire:model.defer="milestoneAmount" placeholder="0.00" />
+                                                        <flux:error name="milestoneAmount" />
+                                                    </flux:field>
+                                                    <flux:field>
+                                                        <flux:label>Description</flux:label>
+                                                        <flux:textarea rows="2" size="sm"
+                                                            wire:model.defer="milestoneDescription"
+                                                            placeholder="Optional details..." />
+                                                        <flux:error name="milestoneDescription" />
+                                                    </flux:field>
+                                                </div>
+                                                <div class="mt-4 flex flex-wrap items-center gap-2">
+                                                    <flux:button wire:click="saveMilestone" variant="primary"
+                                                        size="sm">Save</flux:button>
+                                                    <flux:button wire:click="cancelMilestoneForm" variant="outline"
+                                                        size="sm">Cancel</flux:button>
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        @if ($showSplitForm)
+                                            <div
+                                                class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} mt-4 rounded-lg border p-4">
+                                                <flux:heading size="sm"
+                                                    class="{{ $workflowColors['text_primary'] }} mb-3">
+                                                    Split Budget
+                                                </flux:heading>
+                                                <div class="space-y-3">
+                                                    <flux:field>
+                                                        <flux:label>Number of milestones</flux:label>
+                                                        <flux:input type="number" min="2" max="20"
+                                                            size="sm" wire:model.defer="splitCount" />
+                                                    </flux:field>
+                                                    <div class="flex gap-2">
+                                                        <flux:button wire:click="splitBudgetIntoMilestones"
+                                                            variant="primary" size="sm">Create</flux:button>
+                                                        <flux:button wire:click="toggleSplitForm" variant="outline"
+                                                            size="sm">Cancel</flux:button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </flux:card>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- File Delete Confirmation Modal -->
-        @if ($showDeleteModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900">Confirm File Deletion</h3>
-                    <p class="mb-6 text-gray-600">Are you sure you want to delete this file? This action cannot be
-                        undone.</p>
-                    <div class="flex justify-end space-x-3">
-                        <button wire:click="cancelDeleteFile" class="btn btn-outline">Cancel</button>
-                        <button wire:click="deleteFile" class="btn btn-error">Delete File</button>
+            <!-- File Delete Confirmation Modal -->
+            @if ($showDeleteModal)
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
+                        <h3 class="mb-4 text-lg font-semibold text-gray-900">Confirm File Deletion</h3>
+                        <p class="mb-6 text-gray-600">Are you sure you want to delete this file? This action cannot be
+                            undone.</p>
+                        <div class="flex justify-end space-x-3">
+                            <button wire:click="cancelDeleteFile" class="btn btn-outline">Cancel</button>
+                            <button wire:click="deleteFile" class="btn btn-error">Delete File</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        @endif
+            @endif
 
-        <!-- Client File Delete Confirmation Modal -->
-        @if ($showDeleteClientFileModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900">
-                        <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Confirm Client File Deletion
-                    </h3>
-                    <p class="mb-4 text-gray-600">
-                        Are you sure you want to delete the client reference file:
-                        <strong class="text-gray-900">{{ $clientFileNameToDelete }}</strong>?
-                    </p>
-                    <p class="mb-6 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-600">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        This file was uploaded by your client. Once deleted, they will need to re-upload it if
-                        needed.
-                    </p>
-                    <p class="mb-6 font-medium text-red-600">This action cannot be undone.</p>
-                    <div class="flex justify-end space-x-3">
-                        <button wire:click="cancelDeleteClientFile" class="btn btn-outline">Cancel</button>
-                        <button wire:click="deleteClientFile" class="btn btn-error">
-                            <i class="fas fa-trash mr-2"></i>Delete File
-                        </button>
+            <!-- Client File Delete Confirmation Modal -->
+            @if ($showDeleteClientFileModal)
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
+                        <h3 class="mb-4 text-lg font-semibold text-gray-900">
+                            <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Confirm Client File Deletion
+                        </h3>
+                        <p class="mb-4 text-gray-600">
+                            Are you sure you want to delete the client reference file:
+                            <strong class="text-gray-900">{{ $clientFileNameToDelete }}</strong>?
+                        </p>
+                        <p class="mb-6 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-600">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            This file was uploaded by your client. Once deleted, they will need to re-upload it if
+                            needed.
+                        </p>
+                        <p class="mb-6 font-medium text-red-600">This action cannot be undone.</p>
+                        <div class="flex justify-end space-x-3">
+                            <button wire:click="cancelDeleteClientFile" class="btn btn-outline">Cancel</button>
+                            <button wire:click="deleteClientFile" class="btn btn-error">
+                                <i class="fas fa-trash mr-2"></i>Delete File
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        @endif
+            @endif
 
-        <!-- Project Delete Confirmation Modal -->
-        @if ($showProjectDeleteModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
-                    <h3 class="mb-4 text-lg font-semibold text-red-800">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>Delete Project
-                    </h3>
-                    <p class="mb-4 text-gray-600">
-                        Are you sure you want to permanently delete this project? This will also delete:
-                    </p>
-                    <ul class="mb-6 list-inside list-disc text-sm text-gray-600">
-                        <li>All project files</li>
-                        <li>All pitch files and data</li>
-                        <li>All project history and events</li>
-                    </ul>
-                    <p class="mb-6 font-medium text-red-600">This action cannot be undone.</p>
-                    <div class="flex justify-end space-x-3">
-                        <button wire:click="cancelDeleteProject" class="btn btn-outline">Cancel</button>
-                        <button wire:click="deleteProject" class="btn btn-error">
-                            <i class="fas fa-trash-alt mr-2"></i>Delete Project
-                        </button>
+            <!-- Project Delete Confirmation Modal -->
+            @if ($showProjectDeleteModal)
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
+                        <h3 class="mb-4 text-lg font-semibold text-red-800">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Delete Project
+                        </h3>
+                        <p class="mb-4 text-gray-600">
+                            Are you sure you want to permanently delete this project? This will also delete:
+                        </p>
+                        <ul class="mb-6 list-inside list-disc text-sm text-gray-600">
+                            <li>All project files</li>
+                            <li>All pitch files and data</li>
+                            <li>All project history and events</li>
+                        </ul>
+                        <p class="mb-6 font-medium text-red-600">This action cannot be undone.</p>
+                        <div class="flex justify-end space-x-3">
+                            <button wire:click="cancelDeleteProject" class="btn btn-outline">Cancel</button>
+                            <button wire:click="deleteProject" class="btn btn-error">
+                                <i class="fas fa-trash-alt mr-2"></i>Delete Project
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        @endif
+            @endif
 
-        <!-- Google Drive Backup Modal -->
-        @livewire('google-drive-backup-modal', ['model' => $project], key('google-drive-backup-' . $project->id))
+            <!-- Google Drive Backup Modal -->
+            @livewire('google-drive-backup-modal', ['model' => $project], key('google-drive-backup-' . $project->id))
 
-        <!-- Google Drive Backup History Modal -->
-        @livewire('google-drive-backup-history-modal', ['model' => $project, 'viewType' => 'project'], key('google-drive-backup-history-' . $project->id))
+            <!-- Google Drive Backup History Modal -->
+            @livewire('google-drive-backup-history-modal', ['model' => $project, 'viewType' => 'project'], key('google-drive-backup-history-' . $project->id))
 
-        <!-- JavaScript for File Annotations -->
-        <script>
-            // Global function to expand comment details
-            function expandComment(fileId, commentId) {
-                console.log('Expand comment', commentId, 'for file', fileId);
+            <!-- JavaScript for File Annotations -->
+            <script>
+                // Global function to expand comment details
+                function expandComment(fileId, commentId) {
+                    console.log('Expand comment', commentId, 'for file', fileId);
 
-                // Show a notification with comment details
-                showNotification('Comment details view - Comment ID: ' + commentId + ' (Full modal coming soon)');
-            }
+                    // Show a notification with comment details
+                    showNotification('Comment details view - Comment ID: ' + commentId + ' (Full modal coming soon)');
+                }
 
-            // Helper function to show notifications
-            function showNotification(message) {
-                // Create a simple notification
-                const notification = document.createElement('div');
-                notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg z-50';
-                notification.textContent = message;
-                document.body.appendChild(notification);
+                // Helper function to show notifications
+                function showNotification(message) {
+                    // Create a simple notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                    notification.textContent = message;
+                    document.body.appendChild(notification);
 
-                // Remove after 3 seconds
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 3000);
-            }
+                    // Remove after 3 seconds
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 3000);
+                }
 
-            // Simple cleanup - no special handling needed
-            console.log('ManageClientProject initialized');
-        </script>
+                // Simple cleanup - no special handling needed
+                console.log('ManageClientProject initialized');
+            </script>
 
-        {{-- Mobile Floating Action Button --}}
-        @if ($pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED)
-            {{-- Revision Response FAB --}}
-            <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
-                <button @click="handleFabAction('scrollToRevisionResponse')" @mouseenter="showTooltip = true"
-                    @mouseleave="showTooltip = false"
-                    class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
-                    <i class="fas fa-edit text-lg"></i>
-                </button>
-
-                <div x-show="showTooltip" x-transition
-                    class="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white">
-                    Respond to Feedback
-                    <div
-                        class="absolute right-3 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900">
-                    </div>
-                </div>
-            </div>
-        @elseif($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
-            {{-- Communication FAB --}}
-            <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
-                <button @click="handleFabAction('scrollToCommunication')" @mouseenter="showTooltip = true"
-                    @mouseleave="showTooltip = false"
-                    class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
-                    <i class="fas fa-comment text-lg"></i>
-                </button>
-
-                <div x-show="showTooltip" x-transition
-                    class="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white">
-                    Send Message
-                    <div
-                        class="absolute right-3 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900">
-                    </div>
-                </div>
-            </div>
-        @else
-            {{-- In Progress / Default FAB --}}
-            @if ($this->producerFiles->count() === 0)
-                {{-- Upload Files FAB --}}
+            {{-- Mobile Floating Action Button --}}
+            @if ($pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED)
+                {{-- Revision Response FAB --}}
                 <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
-                    <button @click="handleFabAction('scrollToUpload')" @mouseenter="showTooltip = true"
+                    <button @click="handleFabAction('scrollToRevisionResponse')" @mouseenter="showTooltip = true"
                         @mouseleave="showTooltip = false"
-                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
-                        <i class="fas fa-upload text-lg"></i>
+                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
+                        <i class="fas fa-edit text-lg"></i>
                     </button>
 
                     <div x-show="showTooltip" x-transition
                         class="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white">
-                        Upload Files
+                        Respond to Feedback
+                        <div
+                            class="absolute right-3 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900">
+                        </div>
+                    </div>
+                </div>
+            @elseif($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
+                {{-- Communication FAB --}}
+                <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
+                    <button @click="handleFabAction('scrollToCommunication')" @mouseenter="showTooltip = true"
+                        @mouseleave="showTooltip = false"
+                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
+                        <i class="fas fa-comment text-lg"></i>
+                    </button>
+
+                    <div x-show="showTooltip" x-transition
+                        class="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white">
+                        Send Message
                         <div
                             class="absolute right-3 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900">
                         </div>
                     </div>
                 </div>
             @else
-                {{-- Submit for Review FAB --}}
-                <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
-                    <button @click="handleFabAction('scrollToSubmit')" @mouseenter="showTooltip = true"
-                        @mouseleave="showTooltip = false"
-                        class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xl duration-300 hover:shadow-2xl">
-                        <i class="fas fa-paper-plane text-lg"></i>
-                    </button>
+                {{-- In Progress / Default FAB --}}
+                @if ($this->producerFiles->count() === 0)
+                    {{-- Upload Files FAB --}}
+                    <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
+                        <button @click="handleFabAction('scrollToUpload')" @mouseenter="showTooltip = true"
+                            @mouseleave="showTooltip = false"
+                            class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
+                            <i class="fas fa-upload text-lg"></i>
+                        </button>
 
-                    <div x-show="showTooltip" x-transition
-                        class="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white">
-                        Submit for Review
-                        <div
-                            class="absolute right-3 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900">
+                        <div x-show="showTooltip" x-transition
+                            class="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white">
+                            Upload Files
+                            <div
+                                class="absolute right-3 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900">
+                            </div>
                         </div>
                     </div>
-                </div>
+                @else
+                    {{-- Submit for Review FAB --}}
+                    <div class="fixed bottom-6 right-6 z-50 lg:hidden" x-data="{ showTooltip: false }">
+                        <button @click="handleFabAction('scrollToSubmit')" @mouseenter="showTooltip = true"
+                            @mouseleave="showTooltip = false"
+                            class="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xl duration-300 hover:shadow-2xl">
+                            <i class="fas fa-paper-plane text-lg"></i>
+                        </button>
+
+                        <div x-show="showTooltip" x-transition
+                            class="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white">
+                            Submit for Review
+                            <div
+                                class="absolute right-3 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900">
+                            </div>
+                        </div>
+                    </div>
+                @endif
             @endif
-        @endif
 
-        {{-- JavaScript for FAB Actions --}}
-        <script>
-            function handleFabAction(action) {
-                switch (action) {
-                    case 'scrollToRevisionResponse':
-                        // Scroll to revision response area
-                        const responseArea = document.querySelector('textarea[wire\\:model\\.lazy="responseToFeedback"]');
-                        if (responseArea) {
-                            responseArea.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                            });
-                            setTimeout(() => responseArea.focus(), 800);
-                        }
-                        break;
+            {{-- JavaScript for FAB Actions --}}
+            <script>
+                function handleFabAction(action) {
+                    switch (action) {
+                        case 'scrollToRevisionResponse':
+                            // Scroll to revision response area
+                            const responseArea = document.querySelector('textarea[wire\\:model\\.lazy="responseToFeedback"]');
+                            if (responseArea) {
+                                responseArea.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                                setTimeout(() => responseArea.focus(), 800);
+                            }
+                            break;
 
-                    case 'scrollToCommunication':
-                        // Scroll to communication form
-                        const commentArea = document.getElementById('newComment');
-                        if (commentArea) {
-                            commentArea.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                            });
-                            setTimeout(() => commentArea.focus(), 800);
-                        }
-                        break;
+                        case 'scrollToCommunication':
+                            // Scroll to communication hub in sidebar
+                            const communicationHub = document.querySelector(
+                                '.client-communication-hub, [wire\\:id*="client-communication-hub"]');
+                            if (communicationHub) {
+                                communicationHub.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                                // Try to find and focus the comment textarea
+                                setTimeout(() => {
+                                    const commentArea = document.getElementById('newComment') ||
+                                        document.querySelector('textarea[wire\\:model*="comment"]') ||
+                                        document.querySelector('textarea[placeholder*="message"]');
+                                    if (commentArea) {
+                                        commentArea.focus();
+                                    }
+                                }, 800);
+                            }
+                            break;
 
-                    case 'scrollToUpload':
-                        // Scroll to upload section
-                        const uploadSection = document.querySelector('[data-section="producer-deliverables"], .uppy-Dashboard');
-                        if (uploadSection) {
-                            uploadSection.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'start'
-                            });
-                        }
-                        break;
+                        case 'scrollToUpload':
+                            // Switch to deliverables tab and scroll to upload section
+                            const deliverablesTab = document.querySelector('button[\\@click="activeTab = \'deliverables\'"]');
+                            if (deliverablesTab) {
+                                deliverablesTab.click();
+                                // Wait for tab transition then scroll to upload
+                                setTimeout(() => {
+                                    const uploadSection = document.querySelector(
+                                        '[data-section="producer-deliverables"], .uppy-Dashboard');
+                                    if (uploadSection) {
+                                        uploadSection.scrollIntoView({
+                                            behavior: 'smooth',
+                                            block: 'start'
+                                        });
+                                    }
+                                }, 200);
+                            }
+                            break;
 
-                    case 'scrollToSubmit':
-                        // Scroll to submit section
-                        const submitButton = document.querySelector('button[wire\\:click="submitForReview"]');
-                        if (submitButton) {
-                            submitButton.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                            });
-                            // Add a subtle highlight effect
-                            submitButton.classList.add('animate-pulse');
-                            setTimeout(() => submitButton.classList.remove('animate-pulse'), 2000);
-                        }
-                        break;
+                        case 'scrollToSubmit':
+                            // Scroll to submit section
+                            const submitButton = document.querySelector('button[wire\\:click="submitForReview"]');
+                            if (submitButton) {
+                                submitButton.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                                // Add a subtle highlight effect
+                                submitButton.classList.add('animate-pulse');
+                                setTimeout(() => submitButton.classList.remove('animate-pulse'), 2000);
+                            }
+                            break;
+                    }
                 }
-            }
-        </script>
-    </div>
-</div>
+            </script>
+        </div>
 </x-draggable-upload-page>

@@ -657,8 +657,8 @@ class FileList extends Component
     #[On('commentsUpdated')]
     public function handleCommentsUpdated(): void
     {
-        // The parent component will refresh, which will update our commentsData
-        // No need to do anything here as the parent will re-render this component
+        // Force component refresh to get updated comments data from parent
+        $this->dispatch('$refresh');
     }
 
     /**
