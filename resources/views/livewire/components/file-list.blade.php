@@ -142,12 +142,12 @@
                          // Keep comment section expanded if this file was just commented on
                          if (window.lastCommentedFileId === this.fileId) {
                              this.showComments = true;
-                             // Clear the flag after a moment
+                             // Clear the flag after a longer delay to ensure state is preserved
                              setTimeout(() => {
                                  if (window.lastCommentedFileId === this.fileId) {
                                      window.lastCommentedFileId = null;
                                  }
-                             }, 100);
+                             }, 2000); // Increased from 100ms to 2000ms
                          }
                      }
                  }"
@@ -391,6 +391,7 @@
                                             @if ($canDeleteThisComment)
                                                 <button 
                                                     wire:click="confirmDeleteComment({{ $comment->id }})"
+                                                    @click="window.lastCommentedFileId = {{ $file->id }}"
                                                     class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
                                                     title="Delete comment">
                                                     <flux:icon name="x-mark" size="xs" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
@@ -404,8 +405,12 @@
                                     </flux:text>
 
                                     {{-- Quick Response for Unresolved Comments --}}
-                                    @if (!($comment->resolved ?? false) && (($comment->is_client_comment ?? false) || ($comment->metadata['type'] ?? null) === 'revision_request'))
-                                        <div class="mt-3 border-t border-blue-200 pt-3">
+                                    @if (!($comment->resolved ?? false) && (
+                                        ($comment->is_client_comment ?? false) || 
+                                        ($comment->metadata['type'] ?? null) === 'revision_request' ||
+                                        (($isClientPortal ?? false) && !($comment->is_client_comment ?? false))
+                                    ))
+                                        <div class="mt-3 border-t border-blue-200 pt-3" x-data="{ showResponse: false }">
                                             <div class="flex gap-2">
                                                 <button
                                                     wire:click="markFileCommentResolved({{ $comment->id }})"
@@ -422,20 +427,26 @@
                                                 <button
                                                     @click="showResponse = !showResponse"
                                                     class="inline-flex items-center rounded-md bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200">
-                                                    <i class="fas fa-reply mr-1"></i>Respond
+                                                    <i class="fas fa-reply mr-1"></i>
+                                                    @if (($isClientPortal ?? false) && !($comment->is_client_comment ?? false))
+                                                        Reply to Producer
+                                                    @else
+                                                        Respond
+                                                    @endif
                                                 </button>
                                             </div>
 
-                                            <div x-data="{ showResponse: false }"
-                                                 x-show="showResponse"
+                                            <div x-show="showResponse"
                                                  x-collapse class="mt-3">
-                                                <form wire:submit.prevent="respondToFileComment({{ $comment->id }})">
+                                                <form wire:submit.prevent="respondToFileComment({{ $comment->id }})" 
+                                                      @submit="window.lastCommentedFileId = {{ $file->id }}">
                                                     <textarea wire:model.defer="fileCommentResponse.{{ $comment->id }}" rows="2"
                                                               class="w-full rounded-md border border-blue-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                              placeholder="Explain how you've addressed this feedback..."></textarea>
+                                                              placeholder="@if (($isClientPortal ?? false) && !($comment->is_client_comment ?? false))Write your reply to the producer...@else Explain how you've addressed this feedback...@endif"></textarea>
                                                     <div class="mt-2 flex gap-2">
                                                         <button type="submit"
-                                                                class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700">
+                                                                class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                                                                @click="window.lastCommentedFileId = {{ $file->id }}">
                                                             <i class="fas fa-paper-plane mr-1"></i>Send Response
                                                         </button>
                                                         <button type="button"
@@ -468,17 +479,50 @@
                                                             </div>
                                                         @endif
                                                         <div class="flex-1">
-                                                            <div class="flex items-center gap-2">
-                                                                <flux:text weight="medium" size="xs" class="text-gray-800 dark:text-gray-200">
-                                                                    @if ($reply->is_client_comment ?? false)
-                                                                        {{ $reply->client_email ?? $reply->client_name ?? $reply->metadata['client_name'] ?? 'Client' }}
-                                                                    @else
-                                                                        {{ $reply->producer_name ?? $reply->metadata['producer_name'] ?? 'Producer' }}
-                                                                    @endif
-                                                                </flux:text>
-                                                                <flux:text size="xs" class="text-gray-500 dark:text-gray-400">
-                                                                    {{ $reply->created_at->diffForHumans() }}
-                                                                </flux:text>
+                                                            <div class="flex items-center justify-between">
+                                                                <div class="flex items-center gap-2">
+                                                                    <flux:text weight="medium" size="xs" class="text-gray-800 dark:text-gray-200">
+                                                                        @if ($reply->is_client_comment ?? false)
+                                                                            {{ $reply->client_email ?? $reply->client_name ?? $reply->metadata['client_name'] ?? 'Client' }}
+                                                                        @else
+                                                                            {{ $reply->producer_name ?? $reply->metadata['producer_name'] ?? 'Producer' }}
+                                                                        @endif
+                                                                    </flux:text>
+                                                                    <flux:text size="xs" class="text-gray-500 dark:text-gray-400">
+                                                                        {{ $reply->created_at->diffForHumans() }}
+                                                                    </flux:text>
+                                                                </div>
+
+                                                                <!-- Delete Reply Button (with authorization check) -->
+                                                                @php
+                                                                    $canDeleteThisReply = false;
+                                                                    if ($isClientPortal ?? false) {
+                                                                        // In client portal, only allow deleting client's own replies
+                                                                        $canDeleteThisReply = ($reply->is_client_comment ?? false) && 
+                                                                                              isset($clientPortalProjectId) &&
+                                                                                              ($reply->client_email ?? null) === (\App\Models\Project::find($clientPortalProjectId)->client_email ?? null);
+                                                                    } else {
+                                                                        // In main app, check if current user can delete (existing logic)
+                                                                        $canDeleteThisReply = Auth::check() && (
+                                                                            // User can delete their own replies
+                                                                            (($reply->user_id ?? null) === Auth::id()) ||
+                                                                            // Or if they have admin/project owner permissions
+                                                                            (Auth::user()->role === 'admin') ||
+                                                                            // Or if this is the project owner (for producer replies)
+                                                                            (isset($modelId) && Auth::user()->projects()->where('id', $modelId)->exists())
+                                                                        );
+                                                                    }
+                                                                @endphp
+                                                                
+                                                                @if ($canDeleteThisReply)
+                                                                    <button 
+                                                                        wire:click="confirmDeleteComment({{ $reply->id }})"
+                                                                        @click="window.lastCommentedFileId = {{ $file->id }}"
+                                                                        class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
+                                                                        title="Delete reply">
+                                                                        <flux:icon name="x-mark" size="xs" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
+                                                                    </button>
+                                                                @endif
                                                             </div>
                                                             <flux:text size="xs" class="text-gray-700 dark:text-gray-300 mt-1">
                                                                 {{ $reply->comment }}
@@ -654,7 +698,10 @@
                         Cancel
                     </flux:button>
                 </flux:modal.close>
-                <flux:button wire:click="deleteComment" variant="danger" icon="trash" wire:loading.attr="disabled" wire:target="deleteComment">
+                <flux:button
+                    x-data=""
+                    @click="window.lastCommentedFileId = {{ \Illuminate\Support\Js::from($commentFileIdPendingDeletion) }}"
+                    wire:click="deleteComment" variant="danger" icon="trash" wire:loading.attr="disabled" wire:target="deleteComment">
                     <span wire:loading.remove wire:target="deleteComment">Delete Comment</span>
                     <span wire:loading wire:target="deleteComment">Deleting...</span>
                 </flux:button>

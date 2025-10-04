@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Components;
 
+use App\Models\FileComment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 use Livewire\Attributes\Computed;
@@ -88,6 +89,8 @@ class FileList extends Component
     public bool $enableCommentCreation = false;
 
     public ?int $commentToDelete = null;
+
+    public ?int $commentFileIdPendingDeletion = null;
 
     public function mount(
         ?Collection $files = null,
@@ -652,13 +655,16 @@ class FileList extends Component
     }
 
     /**
-     * Handle comment updates
+     * Handle comment updates by requesting fresh data from parent
      */
     #[On('commentsUpdated')]
     public function handleCommentsUpdated(): void
     {
-        // Force component refresh to get updated comments data from parent
-        $this->dispatch('$refresh');
+        // Request fresh comments data from parent component rather than self-refreshing
+        $this->dispatch('requestCommentsRefresh', [
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
     }
 
     /**
@@ -671,6 +677,11 @@ class FileList extends Component
         }
 
         return $this->commentsData->filter(function ($comment) use ($fileId) {
+            // Only include parent comments (not replies) - replies are displayed nested within parents
+            if (isset($comment->parent_id) && $comment->parent_id !== null) {
+                return false; // Exclude replies from main comment list
+            }
+
             // Support both old metadata structure and new commentable_id structure
             $commentFileId = null;
 
@@ -688,11 +699,55 @@ class FileList extends Component
     }
 
     /**
-     * Get comment count for a specific file
+     * Get comment count for a specific file (includes both parent comments and replies)
      */
     public function getFileCommentCount(int $fileId): int
     {
-        return $this->getFileComments($fileId)->count();
+        if (! $this->showComments || ! $this->commentsData) {
+            return 0;
+        }
+
+        // Get all comments for this file (parent comments and replies)
+        $allComments = $this->commentsData->filter(function ($comment) use ($fileId) {
+            // Support both old metadata structure and new commentable_id structure
+            $commentFileId = null;
+
+            // New FileComment structure
+            if (isset($comment->commentable_id)) {
+                $commentFileId = (int) $comment->commentable_id;
+            }
+            // Fallback to old metadata structure for backward compatibility
+            elseif (isset($comment->metadata['file_id'])) {
+                $commentFileId = (int) $comment->metadata['file_id'];
+            }
+
+            return $commentFileId === (int) $fileId;
+        });
+
+        $totalCount = 0;
+
+        // Count parent comments
+        $parentComments = $allComments->filter(function ($comment) {
+            return ! isset($comment->parent_id) || $comment->parent_id === null;
+        });
+
+        $totalCount += $parentComments->count();
+
+        // Count replies - check both the replies property and direct replies in the collection
+        foreach ($parentComments as $parentComment) {
+            // First, try counting from the replies relationship if it's loaded
+            if (isset($parentComment->replies) && $parentComment->replies instanceof \Illuminate\Support\Collection) {
+                $totalCount += $parentComment->replies->count();
+            } else {
+                // Fallback: count replies directly from the collection
+                $directReplies = $allComments->filter(function ($comment) use ($parentComment) {
+                    return isset($comment->parent_id) && $comment->parent_id === $parentComment->id;
+                });
+                $totalCount += $directReplies->count();
+            }
+        }
+
+        return $totalCount;
     }
 
     /**
@@ -760,6 +815,7 @@ class FileList extends Component
     public function confirmDeleteComment(int $commentId): void
     {
         $this->commentToDelete = $commentId;
+        $this->commentFileIdPendingDeletion = $this->determineCommentFileId($commentId);
         $this->dispatch('modal-show', name: 'delete-comment');
     }
 
@@ -769,6 +825,7 @@ class FileList extends Component
     public function cancelDeleteComment(): void
     {
         $this->commentToDelete = null;
+        $this->commentFileIdPendingDeletion = null;
         $this->dispatch('modal-close', name: 'delete-comment');
     }
 
@@ -789,9 +846,68 @@ class FileList extends Component
         ]);
 
         $this->commentToDelete = null;
+        $this->commentFileIdPendingDeletion = null;
 
         // Close the modal after successful deletion
         $this->dispatch('modal-close', name: 'delete-comment');
+    }
+
+    protected function determineCommentFileId(int $commentId): ?int
+    {
+        if ($this->commentsData instanceof Collection && $this->commentsData->isNotEmpty()) {
+            $comment = $this->commentsData->firstWhere('id', $commentId);
+
+            if ($comment) {
+                $fileId = $this->extractFileIdFromComment($comment);
+
+                if ($fileId !== null) {
+                    return $fileId;
+                }
+            }
+
+            foreach ($this->commentsData as $parentComment) {
+                if (! isset($parentComment->replies) || ! ($parentComment->replies instanceof Collection)) {
+                    continue;
+                }
+
+                $reply = $parentComment->replies->firstWhere('id', $commentId);
+
+                if ($reply) {
+                    $fileId = $this->extractFileIdFromComment($reply) ?? $this->extractFileIdFromComment($parentComment);
+
+                    if ($fileId !== null) {
+                        return $fileId;
+                    }
+                }
+            }
+        }
+
+        return FileComment::query()->whereKey($commentId)->value('commentable_id');
+    }
+
+    protected function extractFileIdFromComment($comment): ?int
+    {
+        if (is_array($comment)) {
+            if (isset($comment['commentable_id'])) {
+                return (int) $comment['commentable_id'];
+            }
+
+            if (isset($comment['metadata']['file_id'])) {
+                return (int) $comment['metadata']['file_id'];
+            }
+
+            return null;
+        }
+
+        if (isset($comment->commentable_id)) {
+            return (int) $comment->commentable_id;
+        }
+
+        if (isset($comment->metadata['file_id'])) {
+            return (int) $comment->metadata['file_id'];
+        }
+
+        return null;
     }
 
     public function render()

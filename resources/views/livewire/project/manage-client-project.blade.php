@@ -94,7 +94,7 @@
                                 <!-- Main Content Area (70% width on large screens) -->
                                 <div class="space-y-2 lg:col-span-2">
                                     <!-- File Management Tabs -->
-                                    <div x-data="{ activeTab: 'client-files' }" class="mb-6">
+                                    <div x-data="{ activeTab: 'deliverables' }" class="mb-6">
                                         <!-- Tab Navigation -->
                                         <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
                                             <nav class="-mb-px flex space-x-8">
@@ -243,7 +243,7 @@
                                                         'emptyStateSubMessage' => 'Use the upload area above to add files',
                                                         'showFileCount' => false,
                                                     ],
-                                                    key('producer-files-list-' . $pitch->id)
+                                                    key('producer-files-list-' . $pitch->id . '-' . $refreshKey)
                                                 )
                                             </flux:card>
                                         </div>

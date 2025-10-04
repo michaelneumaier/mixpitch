@@ -83,8 +83,8 @@ class ManageClientProject extends Component
         'fileDeleted' => '$refresh',
         'milestonesUpdated' => '$refresh',
         'refreshClientFiles' => '$refresh',
-        'commentsUpdated' => '$refresh',
         'pitchStatusChanged' => 'refreshPitchStatus',
+        'requestCommentsRefresh' => 'refreshCommentsForFileList',
     ];
 
     protected $rules = [
@@ -135,6 +135,58 @@ class ManageClientProject extends Component
     {
         $this->pitch->refresh();
         $this->loadStatusFeedback();
+    }
+
+    /**
+     * Handle file list comment refresh requests
+     */
+    public function refreshCommentsForFileList($data)
+    {
+        // Verify the request is for our pitch files
+        if ($data['modelType'] === 'pitch' && $data['modelId'] === $this->pitch->id) {
+            \Illuminate\Support\Facades\Log::info('🔄 Refreshing comments for FileList', [
+                'pitch_id' => $this->pitch->id,
+                'refresh_key_before' => $this->refreshKey,
+            ]);
+
+            // Clear all comment-related cached properties to force fresh data
+            unset($this->fileCommentsData);
+            unset($this->fileCommentsSummary);
+            unset($this->fileCommentsTotals);
+
+            // Refresh the pitch to get latest data
+            $this->pitch->refresh();
+
+            // Increment refresh key to force FileList component re-render
+            $this->refreshKey++;
+
+            \Illuminate\Support\Facades\Log::info('🔄 Comment refresh completed', [
+                'pitch_id' => $this->pitch->id,
+                'refresh_key_after' => $this->refreshKey,
+            ]);
+
+            // Force component re-render by dispatching refresh to self
+            $this->dispatch('$refresh');
+        }
+    }
+
+    /**
+     * Refresh only comment data without full component refresh to preserve Alpine.js state
+     */
+    public function refreshCommentsOnly(): void
+    {
+        // Clear comment-related cached properties to force fresh data
+        unset($this->fileCommentsData);
+        unset($this->fileCommentsSummary);
+        unset($this->fileCommentsTotals);
+
+        // Refresh the pitch to get latest comment data
+        $this->pitch->refresh();
+
+        // Increment refresh key to force FileList component re-render and preserve Alpine.js state
+        $this->refreshKey++;
+
+        // This preserves Alpine.js state including comment expansion
     }
 
     public function render()
@@ -875,8 +927,10 @@ class ManageClientProject extends Component
         $pitchFileIds = $this->pitch->files()->pluck('id')->toArray();
 
         // Get comments for all pitch files using the new file_comments system
+        // Only fetch parent comments (not replies) - replies are loaded via the 'replies.user' relationship
         return \App\Models\FileComment::where('commentable_type', \App\Models\PitchFile::class)
             ->whereIn('commentable_id', $pitchFileIds)
+            ->whereNull('parent_id') // Only parent comments, not replies
             ->with(['user', 'replies.user'])
             ->orderBy('created_at', 'asc')
             ->get()
@@ -939,7 +993,7 @@ class ManageClientProject extends Component
     public function getFileCommentsTotalsProperty()
     {
         $summary = $this->fileCommentsSummary;
-        
+
         return [
             'unresolved' => $summary->sum('unresolved_count'),
             'total' => $summary->sum('total_comments'),
@@ -1354,8 +1408,11 @@ class ManageClientProject extends Component
             // Force refresh by clearing cached properties
             unset($this->fileCommentsData);
 
-            // Dispatch event to refresh the file-list component
-            $this->dispatch('commentsUpdated');
+            // Dispatch event to refresh the file-list component using consistent refresh mechanism
+            $this->dispatch('requestCommentsRefresh', [
+                'modelType' => 'pitch',
+                'modelId' => $this->pitch->id,
+            ]);
 
             Toaster::success('Comment marked as addressed.');
         } catch (\Exception $e) {
@@ -1405,8 +1462,11 @@ class ManageClientProject extends Component
             // Force refresh by clearing cached properties
             unset($this->fileCommentsData);
 
-            // Dispatch event to refresh the file-list component
-            $this->dispatch('commentsUpdated');
+            // Dispatch event to refresh the file-list component using consistent refresh mechanism
+            $this->dispatch('requestCommentsRefresh', [
+                'modelType' => 'pitch',
+                'modelId' => $this->pitch->id,
+            ]);
 
             Toaster::success('Response sent successfully.');
         } catch (\Exception $e) {
@@ -1448,8 +1508,14 @@ class ManageClientProject extends Component
 
             $this->pitch->refresh();
 
-            // Force refresh by clearing cached properties and triggering re-render
+            // Force refresh by clearing cached properties
             unset($this->fileCommentsData);
+
+            // Dispatch event to update comments display using consistent refresh mechanism
+            $this->dispatch('requestCommentsRefresh', [
+                'modelType' => 'pitch',
+                'modelId' => $this->pitch->id,
+            ]);
 
             Toaster::success('Comment added successfully.');
         } catch (\Exception $e) {
@@ -1489,8 +1555,11 @@ class ManageClientProject extends Component
             // Force refresh by clearing cached properties
             unset($this->fileCommentsData);
 
-            // Dispatch event to update comments display
-            $this->dispatch('commentsUpdated');
+            // Dispatch event to update comments display using same refresh mechanism as reply creation
+            $this->dispatch('requestCommentsRefresh', [
+                'modelType' => 'pitch',
+                'modelId' => $this->pitch->id,
+            ]);
 
             Toaster::success('Comment deleted successfully.');
         } catch (\Exception $e) {

@@ -48,6 +48,9 @@ class FileManager extends Component
 
     public string $emptyStateSubMessage = 'Files will appear here when uploaded';
 
+    // Component refresh control
+    public int $refreshKey = 0;
+
     protected $rules = [
         'newFileComment.*' => 'required|string|max:2000',
     ];
@@ -97,8 +100,10 @@ class FileManager extends Component
         }
 
         // Get comments for all pitch files using the new file_comments system
+        // Only fetch parent comments (not replies) - replies are loaded via the 'replies.user' relationship
         return FileComment::where('commentable_type', PitchFile::class)
             ->whereIn('commentable_id', $pitchFileIds)
+            ->whereNull('parent_id') // Only parent comments, not replies
             ->with(['user', 'replies.user'])
             ->orderBy('created_at', 'asc')
             ->get()
@@ -364,6 +369,36 @@ class FileManager extends Component
                 // Other actions might be handled by parent component or routes
                 break;
         }
+    }
+
+    /**
+     * Handle comment updates by refreshing the component
+     */
+    #[On('commentsUpdated')]
+    public function handleCommentsUpdated(): void
+    {
+        Log::info('🔄 Client portal refreshing comments', [
+            'project_id' => $this->project->id,
+            'refresh_key_before' => $this->refreshKey,
+        ]);
+
+        // Clear cached comment data to force refresh
+        unset($this->fileCommentsData);
+
+        // Refresh models to get latest data
+        $this->project->refresh();
+        $this->pitch->refresh();
+
+        // Increment refresh key to force component re-render
+        $this->refreshKey++;
+
+        Log::info('🔄 Client portal comment refresh completed', [
+            'project_id' => $this->project->id,
+            'refresh_key_after' => $this->refreshKey,
+        ]);
+
+        // Force component re-render
+        $this->dispatch('$refresh');
     }
 
     public function render()

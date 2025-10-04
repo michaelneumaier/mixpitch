@@ -651,3 +651,185 @@ test('component handles file-deleted event', function () {
         'source' => 'file_deleted',
     ]);
 });
+
+// Comment functionality tests
+
+test('getFileCommentCount correctly counts parent comments and replies', function () {
+    $files = collect([
+        (object) ['id' => 1, 'file_name' => 'test1.mp3', 'created_at' => now()],
+        (object) ['id' => 2, 'file_name' => 'test2.mp3', 'created_at' => now()],
+    ]);
+
+    // Create test comments with nested replies
+    $commentsData = collect([
+        // Parent comment for file 1
+        (object) [
+            'id' => 101,
+            'commentable_id' => 1,
+            'parent_id' => null,
+            'comment' => 'Parent comment 1',
+            'created_at' => now(),
+            'replies' => collect([
+                (object) [
+                    'id' => 102,
+                    'parent_id' => 101,
+                    'comment' => 'Reply to parent 1',
+                    'created_at' => now(),
+                ],
+                (object) [
+                    'id' => 103,
+                    'parent_id' => 101,
+                    'comment' => 'Another reply to parent 1',
+                    'created_at' => now(),
+                ],
+            ]),
+        ],
+        // Another parent comment for file 1
+        (object) [
+            'id' => 104,
+            'commentable_id' => 1,
+            'parent_id' => null,
+            'comment' => 'Parent comment 2',
+            'created_at' => now(),
+            'replies' => collect([
+                (object) [
+                    'id' => 105,
+                    'parent_id' => 104,
+                    'comment' => 'Reply to parent 2',
+                    'created_at' => now(),
+                ],
+            ]),
+        ],
+        // Parent comment for file 2
+        (object) [
+            'id' => 106,
+            'commentable_id' => 2,
+            'parent_id' => null,
+            'comment' => 'Parent comment for file 2',
+            'created_at' => now(),
+            'replies' => collect([]),
+        ],
+    ]);
+
+    $component = Livewire::test(FileList::class, [
+        'files' => $files,
+        'showComments' => true,
+        'commentsData' => $commentsData,
+    ]);
+
+    $instance = $component->instance();
+
+    // File 1 should have 2 parent comments + 3 replies = 5 total
+    expect($instance->getFileCommentCount(1))->toBe(5);
+
+    // File 2 should have 1 parent comment + 0 replies = 1 total
+    expect($instance->getFileCommentCount(2))->toBe(1);
+
+    // File 3 (doesn't exist) should have 0 comments
+    expect($instance->getFileCommentCount(3))->toBe(0);
+});
+
+test('getFileCommentCount handles legacy metadata structure', function () {
+    $files = collect([
+        (object) ['id' => 1, 'file_name' => 'test1.mp3', 'created_at' => now()],
+    ]);
+
+    // Create test comments using old metadata structure
+    $commentsData = collect([
+        (object) [
+            'id' => 101,
+            'metadata' => ['file_id' => 1],
+            'parent_id' => null,
+            'comment' => 'Legacy parent comment',
+            'created_at' => now(),
+            'replies' => collect([
+                (object) [
+                    'id' => 102,
+                    'parent_id' => 101,
+                    'comment' => 'Legacy reply',
+                    'created_at' => now(),
+                ],
+            ]),
+        ],
+    ]);
+
+    $component = Livewire::test(FileList::class, [
+        'files' => $files,
+        'showComments' => true,
+        'commentsData' => $commentsData,
+    ]);
+
+    $instance = $component->instance();
+
+    // Should count 1 parent + 1 reply = 2 total
+    expect($instance->getFileCommentCount(1))->toBe(2);
+});
+
+test('getFileCommentCount returns zero when comments disabled', function () {
+    $files = collect([
+        (object) ['id' => 1, 'file_name' => 'test1.mp3', 'created_at' => now()],
+    ]);
+
+    $commentsData = collect([
+        (object) [
+            'id' => 101,
+            'commentable_id' => 1,
+            'parent_id' => null,
+            'comment' => 'This comment should not be counted',
+            'created_at' => now(),
+            'replies' => collect([]),
+        ],
+    ]);
+
+    $component = Livewire::test(FileList::class, [
+        'files' => $files,
+        'showComments' => false, // Comments disabled
+        'commentsData' => $commentsData,
+    ]);
+
+    $instance = $component->instance();
+
+    // Should return 0 when comments are disabled
+    expect($instance->getFileCommentCount(1))->toBe(0);
+});
+
+test('getFileComments still filters correctly for display', function () {
+    $files = collect([
+        (object) ['id' => 1, 'file_name' => 'test1.mp3', 'created_at' => now()],
+    ]);
+
+    $commentsData = collect([
+        // Parent comment
+        (object) [
+            'id' => 101,
+            'commentable_id' => 1,
+            'parent_id' => null,
+            'comment' => 'Parent comment',
+            'created_at' => now(),
+        ],
+        // Reply (should be filtered out from getFileComments but counted in getFileCommentCount)
+        (object) [
+            'id' => 102,
+            'commentable_id' => 1,
+            'parent_id' => 101,
+            'comment' => 'Reply comment',
+            'created_at' => now(),
+        ],
+    ]);
+
+    $component = Livewire::test(FileList::class, [
+        'files' => $files,
+        'showComments' => true,
+        'commentsData' => $commentsData,
+    ]);
+
+    $instance = $component->instance();
+
+    // getFileComments should only return parent comments (1)
+    $fileComments = $instance->getFileComments(1);
+    expect($fileComments->count())->toBe(1);
+    expect($fileComments->first()->id)->toBe(101);
+
+    // But getFileCommentCount should count both (1 parent + 1 reply = 2)
+    expect($instance->getFileCommentCount(1))->toBe(2);
+});

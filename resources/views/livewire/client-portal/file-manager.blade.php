@@ -16,5 +16,5 @@
         'isClientPortal' => $isClientPortal,
         'clientPortalProjectId' => $project->id,
         'colorScheme' => $colorScheme,
-    ])
+    ], key('client-portal-file-list-' . $project->id . '-' . $refreshKey))
 </div>
