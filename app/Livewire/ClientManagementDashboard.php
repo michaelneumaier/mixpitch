@@ -82,9 +82,6 @@ class ClientManagementDashboard extends Component
 
     public string $newClientName = '';
 
-    // Client selection for project creation
-    public ?int $selectedClientForProject = null;
-
     protected $queryString = [
         'search' => ['except' => ''],
         'statusFilter' => ['except' => 'all'],
@@ -764,41 +761,6 @@ class ClientManagementDashboard extends Component
 
             session()->flash('error', 'Failed to create client. Please try again.');
         }
-    }
-
-    // --- Client Selection for Project Creation ---
-    public function openClientSelectionModal(): void
-    {
-        // Reset selection
-        $this->selectedClientForProject = null;
-
-        // Show the modal
-        $this->dispatch('modal-show', name: 'client-selection');
-    }
-
-    public function createProjectForSelectedClient()
-    {
-        $this->validate([
-            'selectedClientForProject' => 'required|exists:clients,id',
-        ], [
-            'selectedClientForProject.required' => 'Please select a client.',
-        ]);
-
-        $client = Client::where('user_id', $this->userId ?? Auth::id())
-            ->findOrFail($this->selectedClientForProject);
-
-        // Close modal
-        $this->dispatch('modal-close', name: 'client-selection');
-
-        // Reset selection
-        $this->selectedClientForProject = null;
-
-        // Redirect to create project with client pre-filled
-        return redirect()->route('projects.create', [
-            'workflow_type' => 'client_management',
-            'client_email' => $client->email,
-            'client_name' => $client->name,
-        ]);
     }
 
     public function render()

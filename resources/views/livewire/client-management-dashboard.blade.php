@@ -247,7 +247,7 @@
                     <flux:button wire:click="openAddClientModal()" variant="filled" size="sm" icon="user-plus">
                         Add Client
                     </flux:button>
-                    <flux:button wire:click="openClientSelectionModal()" variant="primary" size="sm" icon="plus">
+                    <flux:button wire:click="$dispatch('openClientSelectionModal')" variant="primary" size="sm" icon="plus">
                         Create Project
                     </flux:button>
                     <flux:button wire:click="openReminderModal()" variant="ghost" size="sm" icon="bell">
@@ -533,44 +533,6 @@
                 </flux:modal.close>
                 <flux:button wire:click="saveNewClient" variant="primary" icon="plus">
                     Add Client
-                </flux:button>
-            </div>
-        </div>
-    </flux:modal>
-
-    <!-- Client Selection Modal -->
-    <flux:modal name="client-selection" class="max-w-lg">
-        <div class="space-y-6">
-            <div class="flex items-center gap-3">
-                <flux:icon.folder-plus class="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <flux:heading size="lg">Create Project for Client</flux:heading>
-            </div>
-            
-            <flux:subheading class="text-gray-600 dark:text-gray-400">
-                Select which client you'd like to create a new project for.
-            </flux:subheading>
-
-            <div class="space-y-4">
-                <!-- Client Selection -->
-                <div>
-                    <flux:field>
-                        <flux:label>Client</flux:label>
-                        <flux:select wire:model="selectedClientForProject" placeholder="Select a client">
-                            @foreach($this->clientsForSelect as $client)
-                                <option value="{{ $client['id'] }}">{{ $client['label'] }}</option>
-                            @endforeach
-                        </flux:select>
-                        <flux:error name="selectedClientForProject" />
-                    </flux:field>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-4">
-                <flux:modal.close>
-                    <flux:button variant="ghost">Cancel</flux:button>
-                </flux:modal.close>
-                <flux:button wire:click="createProjectForSelectedClient" variant="primary" icon="plus">
-                    Create Project
                 </flux:button>
             </div>
         </div>

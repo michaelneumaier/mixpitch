@@ -2,7 +2,7 @@
 
 <div x-data="versionComparison" class="version-comparison-container">
     {{-- Version Comparison Section --}}
-    <div id="version-comparison" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 hidden overflow-y-auto" x-show="showComparison" x-transition>
+    <div id="version-comparison" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 overflow-y-auto" style="display: none;">
         <div class="min-h-screen flex items-start justify-center p-4 pt-8">
             <div class="w-full max-w-6xl" id="comparison-content">
                 {{-- Comparison content will be loaded here --}}
@@ -53,12 +53,19 @@ document.addEventListener('alpine:init', () => {
 
     hideComparison() {
         const checkboxes = document.querySelectorAll('.comparison-checkbox');
+        const modalOverlay = document.getElementById('version-comparison');
+
         checkboxes.forEach(cb => {
             cb.classList.add('hidden');
             cb.checked = false;
         });
         this.showComparison = false;
         this.selectedSnapshots = [];
+
+        // Manually hide the modal
+        if (modalOverlay) {
+            modalOverlay.style.display = 'none';
+        }
     },
 
     selectSnapshot(snapshotId) {
@@ -88,25 +95,42 @@ document.addEventListener('alpine:init', () => {
     updateComparison() {
         const checkedBoxes = document.querySelectorAll('.comparison-checkbox:checked');
         const comparisonContent = document.getElementById('comparison-content');
+        const modalOverlay = document.getElementById('version-comparison');
 
         this.selectedSnapshots = Array.from(checkedBoxes).map(cb => cb.dataset.snapshotId);
 
         if (this.selectedSnapshots.length === 2) {
             this.showComparison = true;
+
+            // Manually show the modal
+            if (modalOverlay) {
+                modalOverlay.style.display = 'block';
+            }
+
             comparisonContent.innerHTML = '<div class="flex items-center justify-center py-8"><div class="text-blue-600">Loading comparison...</div></div>';
 
-            const leftSnapshot = this.snapshotData.find(s => s.id == this.selectedSnapshots[0]);
-            const rightSnapshot = this.snapshotData.find(s => s.id == this.selectedSnapshots[1]);
+            // Find both snapshots
+            const snapshot1 = this.snapshotData.find(s => s.id == this.selectedSnapshots[0]);
+            const snapshot2 = this.snapshotData.find(s => s.id == this.selectedSnapshots[1]);
 
-            if (leftSnapshot && rightSnapshot) {
-                comparisonContent.innerHTML = this.buildComparisonView(leftSnapshot, rightSnapshot);
+            if (snapshot1 && snapshot2) {
+                // Sort snapshots by version number (old to new)
+                // Lower version = older snapshot (left side)
+                // Higher version = newer snapshot (right side)
+                const oldSnapshot = snapshot1.version < snapshot2.version ? snapshot1 : snapshot2;
+                const newSnapshot = snapshot1.version < snapshot2.version ? snapshot2 : snapshot1;
+
+                const html = this.buildComparisonView(oldSnapshot, newSnapshot);
+                comparisonContent.innerHTML = html;
             } else {
                 comparisonContent.innerHTML = `
-                    <flux:card class="text-center">
-                        <flux:icon.exclamation-triangle class="mx-auto mb-4 text-red-500" size="xl" />
-                        <flux:heading size="lg" class="mb-2">Error</flux:heading>
-                        <flux:text>Could not find the selected versions for comparison.</flux:text>
-                    </flux:card>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Error</h2>
+                        <p class="text-gray-600 dark:text-gray-400">Could not find the selected versions for comparison.</p>
+                    </div>
                 `;
             }
         } else if (this.selectedSnapshots.length > 2) {
@@ -115,49 +139,58 @@ document.addEventListener('alpine:init', () => {
             this.selectedSnapshots.pop();
         } else {
             this.showComparison = false;
+
+            // Manually hide the modal
+            if (modalOverlay) {
+                modalOverlay.style.display = 'none';
+            }
         }
     },
 
     buildComparisonView(leftSnapshot, rightSnapshot) {
         return `
-            <flux:card>
-                <div class="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-b rounded-t-xl p-4 -m-6 mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div class="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-b border-gray-200 dark:border-gray-700 rounded-t-xl p-4 -m-6 mb-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <flux:heading size="lg" class="mb-2">Version Comparison</flux:heading>
-                            <flux:subheading>
-                                Comparing Version ${leftSnapshot.version} 
-                                <span class="mx-2 text-blue-500">vs</span> 
+                            <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Version Comparison</h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                Comparing Version ${leftSnapshot.version}
+                                <span class="mx-2 text-blue-500">vs</span>
                                 Version ${rightSnapshot.version}
-                            </flux:subheading>
+                            </p>
                         </div>
-                        <flux:button variant="ghost" @click="hideComparison()" size="sm">
-                            <flux:icon.x-mark />
-                        </flux:button>
+                        <button onclick="window.hideVersionComparison()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     </div>
-                    
+
                     <div class="mt-3 flex items-center space-x-4 text-sm">
                         ${this.buildDifferencesSummary(leftSnapshot, rightSnapshot)}
                     </div>
                 </div>
-                
+
                 <div class="space-y-6">
                     <!-- File Differences Section -->
-                    <flux:card>
-                        <flux:heading size="md" class="mb-4">
-                            <flux:icon.document class="mr-2 text-blue-500" />
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 p-6">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
                             File Changes
-                        </flux:heading>
+                        </h3>
                         ${this.buildFileDiffSection(leftSnapshot, rightSnapshot)}
-                    </flux:card>
-                    
+                    </div>
+
                     <!-- Version Details Side by Side -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         ${this.buildSnapshotColumn(leftSnapshot, 'left', leftSnapshot, rightSnapshot)}
                         ${this.buildSnapshotColumn(rightSnapshot, 'right', leftSnapshot, rightSnapshot)}
                     </div>
                 </div>
-            </flux:card>
+            </div>
         `;
     },
 
@@ -185,32 +218,34 @@ document.addEventListener('alpine:init', () => {
     buildFileDiffSection(left, right) {
         const leftFiles = left.files || [];
         const rightFiles = right.files || [];
-        
+
         // Get all unique files
         const allFileIds = [...new Set([...leftFiles.map(f => f.id), ...rightFiles.map(f => f.id)])];
-        
+
         if (allFileIds.length === 0) {
-            return '<flux:text class="text-center py-4">No files in either version</flux:text>';
+            return '<p class="text-center py-4 text-gray-600 dark:text-gray-400">No files in either version</p>';
         }
 
         let html = '<div class="space-y-3">';
-        
+
         allFileIds.forEach(fileId => {
             const leftFile = leftFiles.find(f => f.id === fileId);
             const rightFile = rightFiles.find(f => f.id === fileId);
-            
+
             if (!leftFile && rightFile) {
                 // Added file
                 html += `
                     <div class="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500">
                         <div class="flex items-center space-x-3">
-                            <flux:icon.plus class="text-green-600" />
+                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
                             <div>
-                                <flux:text class="font-medium">${rightFile.file_name}</flux:text>
-                                <flux:subheading>Added • ${(rightFile.size / 1024).toFixed(1)} KB</flux:subheading>
+                                <p class="font-medium text-gray-900 dark:text-gray-100">${rightFile.file_name}</p>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">Added • ${(rightFile.size / 1024).toFixed(1)} KB</p>
                             </div>
                         </div>
-                        <flux:badge variant="success" size="sm">Added</flux:badge>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Added</span>
                     </div>
                 `;
             } else if (leftFile && !rightFile) {
@@ -218,38 +253,42 @@ document.addEventListener('alpine:init', () => {
                 html += `
                     <div class="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500">
                         <div class="flex items-center space-x-3">
-                            <flux:icon.minus class="text-red-600" />
+                            <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                            </svg>
                             <div>
-                                <flux:text class="font-medium">${leftFile.file_name}</flux:text>
-                                <flux:subheading>Removed • ${(leftFile.size / 1024).toFixed(1)} KB</flux:subheading>
+                                <p class="font-medium text-gray-900 dark:text-gray-100">${leftFile.file_name}</p>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">Removed • ${(leftFile.size / 1024).toFixed(1)} KB</p>
                             </div>
                         </div>
-                        <flux:badge variant="danger" size="sm">Removed</flux:badge>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Removed</span>
                     </div>
                 `;
             } else if (leftFile && rightFile) {
                 // File exists in both - check for changes
                 const changed = leftFile.file_name !== rightFile.file_name || leftFile.size !== rightFile.size;
-                const borderClass = changed ? 'border-l-4 border-yellow-500' : 'border-l-4 border-gray-300';
+                const borderClass = changed ? 'border-l-4 border-yellow-500' : 'border-l-4 border-gray-300 dark:border-gray-700';
                 const bgClass = changed ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-gray-50 dark:bg-gray-800/50';
-                
+
                 html += `
                     <div class="flex items-center justify-between p-3 ${bgClass} rounded-lg ${borderClass}">
                         <div class="flex items-center space-x-3">
-                            <flux:icon.document class="${changed ? 'text-yellow-600' : 'text-gray-500'}" />
+                            <svg class="w-5 h-5 ${changed ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
                             <div>
-                                <flux:text class="font-medium">${rightFile.file_name}</flux:text>
-                                <flux:subheading>
+                                <p class="font-medium text-gray-900 dark:text-gray-100">${rightFile.file_name}</p>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">
                                     ${changed ? 'Modified • ' : 'Unchanged • '}${(rightFile.size / 1024).toFixed(1)} KB
-                                </flux:subheading>
+                                </p>
                             </div>
                         </div>
-                        ${changed ? '<flux:badge variant="warning" size="sm">Modified</flux:badge>' : '<flux:badge variant="ghost" size="sm">Unchanged</flux:badge>'}
+                        ${changed ? '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Modified</span>' : '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">Unchanged</span>'}
                     </div>
                 `;
             }
         });
-        
+
         html += '</div>';
         return html;
     },
@@ -257,37 +296,38 @@ document.addEventListener('alpine:init', () => {
     buildSnapshotColumn(snapshot, side, leftSnapshot, rightSnapshot) {
         const files = snapshot.files || [];
         const isLeft = side === 'left';
-        
+
         return `
-            <flux:card>
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 p-6">
                 <div class="mb-4">
-                    <flux:heading size="md">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
                         Version ${snapshot.version}
-                        ${isLeft ? '' : ''}
-                    </flux:heading>
-                    <flux:subheading>
-                        Created ${new Date(snapshot.created_at).toLocaleDateString()}
-                        ${snapshot.summary ? ' • ' + snapshot.summary.substring(0, 50) + (snapshot.summary.length > 50 ? '...' : '') : ''}
-                    </flux:subheading>
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Created ${new Date(snapshot.submitted_at).toLocaleDateString()}
+                        ${snapshot.response_to_feedback ? ' • ' + snapshot.response_to_feedback.substring(0, 50) + (snapshot.response_to_feedback.length > 50 ? '...' : '') : ''}
+                    </p>
                 </div>
-                
+
                 <div class="space-y-2">
-                    ${files.length === 0 ? 
-                        '<flux:text class="text-center py-4">No files in this version</flux:text>' :
+                    ${files.length === 0 ?
+                        '<p class="text-center py-4 text-gray-600 dark:text-gray-400">No files in this version</p>' :
                         files.map(file => `
-                            <div class="flex items-center justify-between p-2 rounded-lg border">
+                            <div class="flex items-center justify-between p-2 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <div class="flex items-center space-x-2">
-                                    <flux:icon.document class="text-blue-500" size="sm" />
+                                    <svg class="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
                                     <div>
-                                        <flux:text size="sm" class="font-medium">${file.file_name}</flux:text>
-                                        <flux:subheading>${(file.size / 1024).toFixed(1)} KB</flux:subheading>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">${file.file_name}</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400">${(file.size / 1024).toFixed(1)} KB</p>
                                     </div>
                                 </div>
                             </div>
                         `).join('')
                     }
                 </div>
-            </flux:card>
+            </div>
         `;
     }
     }));

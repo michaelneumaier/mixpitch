@@ -92,6 +92,10 @@ class FileList extends Component
 
     public ?int $commentFileIdPendingDeletion = null;
 
+    public ?int $commentToUnresolve = null;
+
+    public ?int $commentFileIdPendingUnresolve = null;
+
     public function mount(
         ?Collection $files = null,
         string $modelType = 'project',
@@ -850,6 +854,49 @@ class FileList extends Component
 
         // Close the modal after successful deletion
         $this->dispatch('modal-close', name: 'delete-comment');
+    }
+
+    /**
+     * Confirm unresolving a comment
+     */
+    public function confirmUnresolveComment(int $commentId): void
+    {
+        $this->commentToUnresolve = $commentId;
+        $this->commentFileIdPendingUnresolve = $this->determineCommentFileId($commentId);
+        $this->dispatch('modal-show', name: 'unresolve-comment');
+    }
+
+    /**
+     * Cancel comment unresolve
+     */
+    public function cancelUnresolveComment(): void
+    {
+        $this->commentToUnresolve = null;
+        $this->commentFileIdPendingUnresolve = null;
+        $this->dispatch('modal-close', name: 'unresolve-comment');
+    }
+
+    /**
+     * Unresolve a comment
+     */
+    public function unresolveComment(): void
+    {
+        if (! $this->commentToUnresolve) {
+            return;
+        }
+
+        $this->dispatch('commentAction', [
+            'action' => 'unresolveFileComment',
+            'commentId' => $this->commentToUnresolve,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+
+        $this->commentToUnresolve = null;
+        $this->commentFileIdPendingUnresolve = null;
+
+        // Close the modal after successful unresolve
+        $this->dispatch('modal-close', name: 'unresolve-comment');
     }
 
     protected function determineCommentFileId(int $commentId): ?int

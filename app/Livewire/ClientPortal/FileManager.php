@@ -148,6 +148,9 @@ class FileManager extends Component
             case 'deleteFileComment':
                 $this->deleteFileComment($commentId);
                 break;
+            case 'unresolveFileComment':
+                $this->unresolveFileComment($commentId);
+                break;
         }
     }
 
@@ -311,6 +314,41 @@ class FileManager extends Component
 
         } catch (\Exception $e) {
             Log::error('Client portal: Failed to delete file comment', [
+                'comment_id' => $commentId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Unresolve a file comment (clients can unresolve their own comments)
+     */
+    public function unresolveFileComment($commentId)
+    {
+        try {
+            $comment = FileComment::findOrFail($commentId);
+
+            // Verify the comment belongs to a file in this pitch
+            $pitchFileIds = $this->files->pluck('id')->toArray();
+            if ($comment->commentable_type !== PitchFile::class ||
+                ! in_array($comment->commentable_id, $pitchFileIds)) {
+                throw new \Exception('Comment does not belong to this pitch');
+            }
+
+            // Mark as unresolved
+            $comment->update(['resolved' => false]);
+
+            Log::info('Client portal: File comment marked as unresolved', [
+                'comment_id' => $commentId,
+                'project_id' => $this->project->id,
+                'pitch_id' => $this->pitch->id,
+                'client_email' => $this->project->client_email,
+            ]);
+
+            $this->dispatch('commentsUpdated');
+
+        } catch (\Exception $e) {
+            Log::error('Client portal: Failed to unresolve file comment', [
                 'comment_id' => $commentId,
                 'error' => $e->getMessage(),
             ]);

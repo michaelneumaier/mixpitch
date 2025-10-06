@@ -695,35 +695,88 @@ class GlobalAudioPlayer extends Component
         $this->calculateCommentMarkers();
     }
 
+    /**
+     * Group comments by rounded timestamp (to nearest second)
+     * This prevents stacking of markers when multiple comments exist at the same time
+     */
+    public function getGroupedComments()
+    {
+        $grouped = [];
+
+        foreach ($this->comments as $comment) {
+            // Round timestamp to nearest second
+            $roundedTimestamp = round($comment['timestamp'] ?? 0);
+
+            if (! isset($grouped[$roundedTimestamp])) {
+                $grouped[$roundedTimestamp] = [
+                    'timestamp' => $roundedTimestamp,
+                    'comments' => [],
+                    'count' => 0,
+                    'resolved' => true, // Will be set to false if any comment is unresolved
+                ];
+            }
+
+            $grouped[$roundedTimestamp]['comments'][] = $comment;
+            $grouped[$roundedTimestamp]['count']++;
+
+            // If any comment in the group is unresolved, mark the group as unresolved
+            if (! ($comment['resolved'] ?? false)) {
+                $grouped[$roundedTimestamp]['resolved'] = false;
+            }
+        }
+
+        // Sort by timestamp and return as indexed array
+        ksort($grouped);
+
+        return array_values($grouped);
+    }
+
     public function calculateCommentMarkers()
     {
         $this->commentMarkers = [];
 
         if ($this->duration > 0 && ! empty($this->comments)) {
-            foreach ($this->comments as $comment) {
+            // Use grouped comments to prevent marker stacking
+            $groupedComments = $this->getGroupedComments();
+
+            foreach ($groupedComments as $group) {
                 $marker = [
-                    'id' => $comment['id'],
-                    'timestamp' => $comment['timestamp'],
-                    'position' => ($comment['timestamp'] / $this->duration) * 100,
-                    'resolved' => $comment['resolved'] ?? false,
-                    'comment' => $comment['comment'] ?? '',
-                    'formatted_timestamp' => $this->formatTime($comment['timestamp'] ?? 0),
+                    'timestamp' => $group['timestamp'],
+                    'position' => ($group['timestamp'] / $this->duration) * 100,
+                    'resolved' => $group['resolved'],
+                    'count' => $group['count'],
+                    'formatted_timestamp' => $this->formatTime($group['timestamp']),
+                    'comments' => [], // Array of all comments at this timestamp
                 ];
-                if (! empty($comment['user'])) {
-                    $marker['user'] = ['name' => $comment['user']['name'] ?? null];
-                } elseif (! empty($comment['client_email'])) {
-                    $marker['client_email'] = $comment['client_email'];
+
+                // Add all comments in the group
+                foreach ($group['comments'] as $comment) {
+                    $commentData = [
+                        'id' => $comment['id'],
+                        'comment' => $comment['comment'] ?? '',
+                        'resolved' => $comment['resolved'] ?? false,
+                    ];
+
+                    if (! empty($comment['user'])) {
+                        $commentData['user'] = ['name' => $comment['user']['name'] ?? null];
+                    } elseif (! empty($comment['client_email'])) {
+                        $commentData['client_email'] = $comment['client_email'];
+                    }
+
+                    if (! empty($comment['replies'])) {
+                        $commentData['replies'] = array_map(function ($reply) {
+                            return [
+                                'comment' => $reply['comment'] ?? '',
+                                'created_at_human' => isset($reply['created_at']) ? \Carbon\Carbon::parse($reply['created_at'])->diffForHumans() : '',
+                                'user' => ! empty($reply['user']) ? ['name' => $reply['user']['name'] ?? null] : null,
+                                'client_email' => $reply['client_email'] ?? null,
+                            ];
+                        }, $comment['replies']);
+                    }
+
+                    $marker['comments'][] = $commentData;
                 }
-                if (! empty($comment['replies'])) {
-                    $marker['replies'] = array_map(function ($reply) {
-                        return [
-                            'comment' => $reply['comment'] ?? '',
-                            'created_at_human' => isset($reply['created_at']) ? \Carbon\Carbon::parse($reply['created_at'])->diffForHumans() : '',
-                            'user' => ! empty($reply['user']) ? ['name' => $reply['user']['name'] ?? null] : null,
-                            'client_email' => $reply['client_email'] ?? null,
-                        ];
-                    }, $comment['replies']);
-                }
+
                 $this->commentMarkers[] = $marker;
             }
         }

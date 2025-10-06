@@ -339,7 +339,23 @@ class ClientPortalController extends Controller
         }
 
         try {
-            // Check if payment is required
+            // Check if milestones exist
+            $hasMilestones = $pitch->milestones()->exists();
+
+            if ($hasMilestones) {
+                // When milestones exist: approval is separate from payment
+                // Payment happens through individual milestone payments
+                Log::info('Client approving pitch with milestones. Payment handled separately.', [
+                    'pitch_id' => $pitch->id,
+                    'project_id' => $project->id,
+                ]);
+
+                $this->pitchWorkflowService->clientApprovePitch($pitch, $project->client_email);
+
+                return back()->with('success', 'Project approved successfully! Please complete milestone payments below.');
+            }
+
+            // No milestones - check if payment is required
             $needsPayment = $pitch->payment_amount > 0 && $pitch->payment_status !== Pitch::PAYMENT_STATUS_PAID;
 
             if ($needsPayment) {
@@ -420,6 +436,30 @@ class ClientPortalController extends Controller
         $pitch = $project->pitches()->with('user')->firstOrFail();
         if ($milestone->pitch_id !== $pitch->id) {
             abort(404, 'Milestone not found for this project.');
+        }
+
+        // Validation: Check if this is the next payable milestone (sequential payment enforcement)
+        $allMilestones = $pitch->milestones()->orderBy('sort_order')->get();
+        $nextPayableMilestone = $allMilestones
+            ->where('payment_status', '!=', \App\Models\Pitch::PAYMENT_STATUS_PAID)
+            ->where('payment_status', '!=', \App\Models\Pitch::PAYMENT_STATUS_PROCESSING)
+            ->first();
+
+        if ($nextPayableMilestone && $nextPayableMilestone->id !== $milestone->id) {
+            Log::warning('Client attempted to pay out-of-order milestone.', [
+                'project_id' => $project->id,
+                'attempted_milestone_id' => $milestone->id,
+                'expected_milestone_id' => $nextPayableMilestone->id,
+            ]);
+
+            return back()->withErrors([
+                'payment' => 'Please complete milestone payments in order. Next milestone: "'.$nextPayableMilestone->name.'"',
+            ]);
+        }
+
+        // Check if already paid
+        if ($milestone->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PAID) {
+            return back()->with('info', 'This milestone has already been paid.');
         }
 
         // Approve milestone
@@ -534,6 +574,64 @@ class ClientPortalController extends Controller
         }
 
         return back()->with('success', 'All files approved.');
+    }
+
+    /**
+     * Client unapproves a specific file in the portal.
+     */
+    public function unapproveFile(Project $project, \App\Models\PitchFile $pitchFile, Request $request)
+    {
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
+
+        $pitch = $project->pitches()->firstOrFail();
+        if ($pitchFile->pitch_id !== $pitch->id) {
+            abort(404, 'File not found for this project.');
+        }
+
+        $pitchFile->update([
+            'client_approval_status' => null,
+            'client_approved_at' => null,
+        ]);
+
+        if ($request->expectsJson() || $request->boolean('ajax')) {
+            return response()->json([
+                'success' => true,
+                'file_id' => $pitchFile->id,
+                'status' => 'unapproved',
+            ]);
+        }
+
+        return back()->with('success', 'File unapproved.');
+    }
+
+    /**
+     * Client unapproves all files for the current visible snapshot/pitch.
+     */
+    public function unapproveAllFiles(Project $project, Request $request)
+    {
+        if (! $project->isClientManagement()) {
+            abort(403);
+        }
+
+        $pitch = $project->pitches()->firstOrFail();
+        // Unapprove all approved files on the pitch
+        $updated = $pitch->files()
+            ->where('client_approval_status', 'approved')
+            ->update([
+                'client_approval_status' => null,
+                'client_approved_at' => null,
+            ]);
+
+        if ($request->expectsJson() || $request->boolean('ajax')) {
+            return response()->json([
+                'success' => true,
+                'updated_count' => $updated,
+            ]);
+        }
+
+        return back()->with('success', 'All files unapproved.');
     }
 
     /**

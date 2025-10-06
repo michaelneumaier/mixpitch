@@ -39,8 +39,6 @@ class ManageClientProject extends Component
     public $showProjectDeleteModal = false;
 
     // Workflow management
-    public $responseToFeedback = '';
-
     public $statusFeedbackMessage = null;
 
     public $canResubmit = false; // Track if files have changed since last submission
@@ -78,6 +76,15 @@ class ManageClientProject extends Component
 
     public int $splitCount = 2;
 
+    public string $splitTemplate = 'equal'; // equal, percentage, custom
+
+    public array $percentageSplit = []; // For percentage template
+
+    // Budget editing
+    public bool $showBudgetEditForm = false;
+
+    public ?float $editableBudget = null;
+
     protected $listeners = [
         'filesUploaded' => '$refresh',
         'fileDeleted' => '$refresh',
@@ -88,12 +95,15 @@ class ManageClientProject extends Component
     ];
 
     protected $rules = [
-        'responseToFeedback' => 'nullable|string|max:5000',
         'newComment' => 'required|string|max:2000',
         'milestoneName' => 'nullable|string|max:255',
         'milestoneDescription' => 'nullable|string|max:2000',
         'milestoneAmount' => 'nullable|numeric|min:0',
         'milestoneSortOrder' => 'nullable|integer|min:0',
+        'editableBudget' => 'nullable|numeric|min:0|max:1000000',
+        'splitTemplate' => 'nullable|string|in:equal,percentage,custom',
+        'percentageSplit' => 'nullable|array',
+        'percentageSplit.*' => 'nullable|numeric|min:0|max:100',
     ];
 
     public function mount(Project $project)
@@ -319,7 +329,6 @@ class ManageClientProject extends Component
     public function submitForReview(PitchWorkflowService $pitchWorkflowService)
     {
         $this->authorize('submitForReview', $this->pitch);
-        $this->validateOnly('responseToFeedback');
 
         try {
             // Update watermarking preference before submission
@@ -327,10 +336,10 @@ class ManageClientProject extends Component
                 'watermarking_enabled' => $this->watermarkingEnabled,
             ]);
 
-            $pitchWorkflowService->submitPitchForReview($this->pitch, Auth::user(), $this->responseToFeedback);
+            // No response to feedback on submission - that's handled separately
+            $pitchWorkflowService->submitPitchForReview($this->pitch, Auth::user(), '');
 
             Toaster::success('Pitch submitted for client review successfully.');
-            $this->responseToFeedback = '';
             $this->pitch->refresh();
             $this->loadStatusFeedback();
 
@@ -341,51 +350,6 @@ class ManageClientProject extends Component
                 'error' => $e->getMessage(),
             ]);
             Toaster::error($e->getMessage());
-        }
-    }
-
-    /**
-     * Send a response to client feedback without changing pitch status
-     */
-    public function sendFeedbackResponse()
-    {
-        $this->validate(['responseToFeedback' => 'required|string|max:5000']);
-
-        try {
-            \Illuminate\Support\Facades\DB::transaction(function () {
-                // Create producer comment event for feedback response
-                $this->pitch->events()->create([
-                    'event_type' => 'producer_comment',
-                    'comment' => $this->responseToFeedback,
-                    'status' => $this->pitch->status,
-                    'created_by' => auth()->id(),
-                    'metadata' => [
-                        'visible_to_client' => true,
-                        'comment_type' => 'feedback_response',
-                        'responding_to_feedback' => true,
-                    ],
-                ]);
-
-                // Notify client if project has client email
-                if ($this->project->client_email) {
-                    app(NotificationService::class)->notifyClientProducerCommented(
-                        $this->pitch,
-                        $this->responseToFeedback
-                    );
-                }
-            });
-
-            $this->responseToFeedback = '';
-            $this->pitch->refresh();
-
-            Toaster::success('Response sent to client successfully.');
-
-        } catch (\Exception $e) {
-            Log::error('Failed to send feedback response', [
-                'pitch_id' => $this->pitch->id,
-                'error' => $e->getMessage(),
-            ]);
-            Toaster::error('Failed to send response. Please try again.');
         }
     }
 
@@ -528,6 +492,7 @@ class ManageClientProject extends Component
             $fileManagementService->deletePitchFile($file);
 
             Toaster::success("File '{$file->file_name}' deleted successfully.");
+            $this->dispatch('fileDeleted');
             $this->cancelDeleteFile();
 
         } catch (FileDeletionException $e) {
@@ -1011,6 +976,180 @@ class ManageClientProject extends Component
         return (float) ($this->project->budget ?? 0);
     }
 
+    // ----- Budget Management -----
+    public function toggleBudgetEdit(): void
+    {
+        $this->authorize('update', $this->project);
+
+        if ($this->showBudgetEditForm) {
+            // Cancel edit
+            $this->cancelBudgetEdit();
+        } else {
+            // Begin edit
+            $this->editableBudget = $this->getBaseClientBudget();
+            $this->showBudgetEditForm = true;
+        }
+    }
+
+    public function saveBudget(): void
+    {
+        $this->authorize('update', $this->project);
+        $this->validate([
+            'editableBudget' => 'required|numeric|min:0|max:1000000',
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () {
+                // Update pitch payment_amount (primary source of truth for milestones)
+                $this->pitch->update([
+                    'payment_amount' => $this->editableBudget,
+                ]);
+
+                // Optionally sync to project budget to keep consistent
+                $this->project->update([
+                    'budget' => $this->editableBudget,
+                ]);
+
+                // Create audit event
+                $this->pitch->events()->create([
+                    'event_type' => 'budget_updated',
+                    'comment' => 'Total budget updated to $'.number_format($this->editableBudget, 2),
+                    'status' => $this->pitch->status,
+                    'created_by' => auth()->id(),
+                    'metadata' => [
+                        'old_amount' => $this->getBaseClientBudget(),
+                        'new_amount' => $this->editableBudget,
+                    ],
+                ]);
+            });
+
+            $this->pitch->refresh();
+            $this->project->refresh();
+            $this->showBudgetEditForm = false;
+            $this->editableBudget = null;
+
+            Toaster::success('Budget updated successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to update budget', [
+                'pitch_id' => $this->pitch->id,
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update budget. Please try again.');
+        }
+    }
+
+    public function cancelBudgetEdit(): void
+    {
+        $this->showBudgetEditForm = false;
+        $this->editableBudget = null;
+        $this->resetErrorBag('editableBudget');
+    }
+
+    /**
+     * Get allocation status with real-time calculations
+     */
+    public function getAllocationStatusProperty(): array
+    {
+        $budget = $this->getBaseClientBudget();
+        $allocated = (float) $this->pitch->milestones()->sum('amount');
+        $remaining = $budget - $allocated;
+        $percentage = $budget > 0 ? ($allocated / $budget * 100) : 0;
+
+        // Determine status (with small tolerance for floating point precision)
+        $status = 'perfect';
+        if (abs($budget - $allocated) > 0.01) {
+            $status = $allocated < $budget ? 'under' : 'over';
+        }
+
+        return [
+            'budget' => $budget,
+            'allocated' => $allocated,
+            'remaining' => $remaining,
+            'percentage' => min($percentage, 100), // Cap at 100% for display
+            'status' => $status,
+            'color' => $this->getAllocationStatusColor($status),
+            'message' => $this->getAllocationStatusMessage($status, $remaining),
+        ];
+    }
+
+    private function getAllocationStatusColor(string $status): array
+    {
+        return match ($status) {
+            'perfect' => [
+                'bg' => 'bg-green-100 dark:bg-green-900/20',
+                'border' => 'border-green-300 dark:border-green-700',
+                'text' => 'text-green-800 dark:text-green-200',
+                'icon' => 'text-green-600 dark:text-green-400',
+                'bar' => 'bg-green-500',
+            ],
+            'under' => [
+                'bg' => 'bg-amber-100 dark:bg-amber-900/20',
+                'border' => 'border-amber-300 dark:border-amber-700',
+                'text' => 'text-amber-800 dark:text-amber-200',
+                'icon' => 'text-amber-600 dark:text-amber-400',
+                'bar' => 'bg-amber-500',
+            ],
+            'over' => [
+                'bg' => 'bg-red-100 dark:bg-red-900/20',
+                'border' => 'border-red-300 dark:border-red-700',
+                'text' => 'text-red-800 dark:text-red-200',
+                'icon' => 'text-red-600 dark:text-red-400',
+                'bar' => 'bg-red-500',
+            ],
+            default => [
+                'bg' => 'bg-gray-100 dark:bg-gray-900/20',
+                'border' => 'border-gray-300 dark:border-gray-700',
+                'text' => 'text-gray-800 dark:text-gray-200',
+                'icon' => 'text-gray-600 dark:text-gray-400',
+                'bar' => 'bg-gray-500',
+            ],
+        };
+    }
+
+    private function getAllocationStatusMessage(string $status, float $remaining): string
+    {
+        return match ($status) {
+            'perfect' => 'All budget allocated to milestones',
+            'under' => '$'.number_format(abs($remaining), 2).' remaining to allocate',
+            'over' => '$'.number_format(abs($remaining), 2).' over budget',
+            default => '',
+        };
+    }
+
+    /**
+     * Get remaining budget for the milestone form
+     */
+    public function getRemainingBudgetForFormProperty(): float
+    {
+        $allocationStatus = $this->allocationStatus;
+        $remainingBudget = $allocationStatus['remaining'];
+
+        // If editing, add back the current milestone's amount to remaining
+        if ($this->editingMilestoneId) {
+            $editingMilestone = $this->pitch->milestones()->find($this->editingMilestoneId);
+            $remainingBudget += $editingMilestone ? $editingMilestone->amount : 0;
+        }
+
+        return $remainingBudget;
+    }
+
+    /**
+     * Get total of percentage split array
+     */
+    public function getPercentageTotalProperty(): float
+    {
+        return array_sum($this->percentageSplit);
+    }
+
+    /**
+     * Get ordered milestones
+     */
+    public function getMilestonesProperty()
+    {
+        return $this->pitch->milestones()->orderBy('sort_order')->get();
+    }
+
     // ----- Milestones management -----
     public function beginAddMilestone(): void
     {
@@ -1132,14 +1271,18 @@ class ManageClientProject extends Component
     {
         $this->authorize('update', $this->project);
         $this->showSplitForm = ! $this->showSplitForm;
+
+        if ($this->showSplitForm) {
+            // Reset form state
+            $this->splitTemplate = 'equal';
+            $this->splitCount = 2;
+            $this->percentageSplit = [];
+        }
     }
 
     public function splitBudgetIntoMilestones(): void
     {
         $this->authorize('update', $this->project);
-        $this->validate([
-            'splitCount' => 'required|integer|min:2|max:20',
-        ]);
 
         $budget = $this->getBaseClientBudget();
         if ($budget <= 0) {
@@ -1148,13 +1291,43 @@ class ManageClientProject extends Component
             return;
         }
 
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($budget) {
+                if ($this->splitTemplate === 'equal') {
+                    $this->createEqualMilestones($budget);
+                } elseif ($this->splitTemplate === 'percentage') {
+                    $this->createPercentageMilestones($budget);
+                } elseif ($this->splitTemplate === 'deposit_structure') {
+                    $this->createDepositStructureMilestones($budget);
+                }
+            });
+
+            $this->showSplitForm = false;
+            $this->dispatch('milestonesUpdated');
+            $this->pitch->refresh();
+            Toaster::success('Milestones created successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to create milestones', [
+                'pitch_id' => $this->pitch->id,
+                'template' => $this->splitTemplate,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to create milestones: '.$e->getMessage());
+        }
+    }
+
+    private function createEqualMilestones(float $budget): void
+    {
+        $this->validate([
+            'splitCount' => 'required|integer|min:2|max:20',
+        ]);
+
         // Calculate equal parts, last milestone gets the remainder cents
         $cents = (int) round($budget * 100);
         $base = intdiv($cents, $this->splitCount);
         $remainder = $cents % $this->splitCount;
 
-        // Optional: clear existing pending milestones
-        // $this->pitch->milestones()->whereNull('payment_status')->delete();
+        $maxSortOrder = $this->pitch->milestones()->max('sort_order') ?? 0;
 
         for ($i = 1; $i <= $this->splitCount; $i++) {
             $amountCents = $base + ($i === $this->splitCount ? $remainder : 0);
@@ -1162,16 +1335,95 @@ class ManageClientProject extends Component
                 'name' => 'Milestone '.$i,
                 'description' => null,
                 'amount' => $amountCents / 100,
-                'sort_order' => ($this->pitch->milestones()->max('sort_order') ?? 0) + $i,
+                'sort_order' => $maxSortOrder + $i,
                 'status' => 'pending',
                 'payment_status' => null,
             ]);
         }
+    }
 
-        $this->showSplitForm = false;
-        $this->dispatch('milestonesUpdated');
-        $this->pitch->refresh();
-        Toaster::success('Budget split into milestones');
+    private function createPercentageMilestones(float $budget): void
+    {
+        $this->validate([
+            'percentageSplit' => 'required|array|min:2',
+            'percentageSplit.*' => 'required|numeric|min:0|max:100',
+        ]);
+
+        // Validate that percentages sum to 100
+        $totalPercentage = array_sum($this->percentageSplit);
+        if (abs($totalPercentage - 100) > 0.01) {
+            throw new \Exception('Percentages must sum to 100%. Current total: '.number_format($totalPercentage, 2).'%');
+        }
+
+        $maxSortOrder = $this->pitch->milestones()->max('sort_order') ?? 0;
+        $cents = (int) round($budget * 100);
+        $allocatedCents = 0;
+
+        foreach ($this->percentageSplit as $index => $percentage) {
+            $isLast = $index === count($this->percentageSplit) - 1;
+
+            if ($isLast) {
+                // Last milestone gets the remaining cents to avoid rounding errors
+                $amountCents = $cents - $allocatedCents;
+            } else {
+                $amountCents = (int) round($cents * ($percentage / 100));
+                $allocatedCents += $amountCents;
+            }
+
+            $this->pitch->milestones()->create([
+                'name' => 'Milestone '.($index + 1),
+                'description' => number_format($percentage, 1).'% of total budget',
+                'amount' => $amountCents / 100,
+                'sort_order' => $maxSortOrder + $index + 1,
+                'status' => 'pending',
+                'payment_status' => null,
+            ]);
+        }
+    }
+
+    private function createDepositStructureMilestones(float $budget): void
+    {
+        // Common deposit structure: 30% deposit, 40% progress, 30% final
+        $structure = [
+            ['name' => 'Initial Deposit', 'percentage' => 30],
+            ['name' => 'Progress Payment', 'percentage' => 40],
+            ['name' => 'Final Payment', 'percentage' => 30],
+        ];
+
+        $maxSortOrder = $this->pitch->milestones()->max('sort_order') ?? 0;
+        $cents = (int) round($budget * 100);
+        $allocatedCents = 0;
+
+        foreach ($structure as $index => $milestone) {
+            $isLast = $index === count($structure) - 1;
+
+            if ($isLast) {
+                $amountCents = $cents - $allocatedCents;
+            } else {
+                $amountCents = (int) round($cents * ($milestone['percentage'] / 100));
+                $allocatedCents += $amountCents;
+            }
+
+            $this->pitch->milestones()->create([
+                'name' => $milestone['name'],
+                'description' => $milestone['percentage'].'% of total budget',
+                'amount' => $amountCents / 100,
+                'sort_order' => $maxSortOrder + $index + 1,
+                'status' => 'pending',
+                'payment_status' => null,
+            ]);
+        }
+    }
+
+    public function addPercentageInput(): void
+    {
+        $this->percentageSplit[] = 0;
+    }
+
+    public function removePercentageInput(int $index): void
+    {
+        unset($this->percentageSplit[$index]);
+        $this->percentageSplit = array_values($this->percentageSplit); // Re-index array
     }
 
     /**
@@ -1381,6 +1633,9 @@ class ManageClientProject extends Component
             case 'deleteFileComment':
                 $this->deleteFileComment($commentId);
                 break;
+            case 'unresolveFileComment':
+                $this->unresolveFileComment($commentId);
+                break;
         }
     }
 
@@ -1569,6 +1824,47 @@ class ManageClientProject extends Component
                 'error' => $e->getMessage(),
             ]);
             Toaster::error('Failed to delete comment.');
+        }
+    }
+
+    /**
+     * Unresolve a file comment using the new FileComment system
+     */
+    public function unresolveFileComment($commentId)
+    {
+        try {
+            $comment = \App\Models\FileComment::findOrFail($commentId);
+
+            // Verify the comment belongs to a file in this pitch
+            $pitchFileIds = $this->pitch->files()->pluck('id')->toArray();
+
+            if ($comment->commentable_type !== \App\Models\PitchFile::class ||
+                ! in_array($comment->commentable_id, $pitchFileIds)) {
+                throw new \Exception('Comment does not belong to this pitch');
+            }
+
+            // Mark the comment as unresolved
+            $comment->update(['resolved' => false]);
+
+            $this->pitch->refresh();
+
+            // Force refresh by clearing cached properties
+            unset($this->fileCommentsData);
+
+            // Dispatch event to update comments display using same refresh mechanism
+            $this->dispatch('requestCommentsRefresh', [
+                'modelType' => 'pitch',
+                'modelId' => $this->pitch->id,
+            ]);
+
+            Toaster::success('Comment marked as unresolved.');
+        } catch (\Exception $e) {
+            Log::error('Failed to unresolve file comment', [
+                'comment_id' => $commentId,
+                'pitch_id' => $this->pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to unresolve comment.');
         }
     }
 

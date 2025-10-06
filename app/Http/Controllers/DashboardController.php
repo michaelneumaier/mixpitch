@@ -314,17 +314,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * Show the full client management dashboard for all registered users.
-     */
-    public function clientManagement()
-    {
-        $user = Auth::user();
-
-        // Client management is now available to all registered users
-        return view('producer.client-management');
-    }
-
-    /**
      * Show individual client detail dashboard.
      */
     public function clientDetail(\App\Models\Client $client)

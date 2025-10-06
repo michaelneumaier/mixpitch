@@ -21,7 +21,7 @@
 <flux:card class="mb-6">
     <!-- Header -->
     <div class="mb-6 flex items-start justify-between">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col items-center gap-3">
             <flux:icon.chat-bubble-left-ellipsis class="text-blue-600 h-8 w-8" />
             <div>
                 <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">

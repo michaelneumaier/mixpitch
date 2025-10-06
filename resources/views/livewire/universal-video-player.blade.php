@@ -16,9 +16,6 @@
                     </div>
                 </flux:card>
             </div>
-
-            <flux:card class="p-4 mb-2 lg:p-6 xl:p-8">
-
                 <!-- Video Container -->
                 <div class="mb-4">
                     <div id="video-container-universal-player"
@@ -39,55 +36,73 @@
                         </video>
                     </div>
 
-                    <!-- Comment Markers - Separate from video container -->
+                    <!-- Comment Markers (Grouped by Timestamp) - Separate from video container -->
                     @if($duration > 0 && count($comments) > 0)
                         <div class="relative w-full h-6 bg-gradient-to-r from-gray-800/90 to-gray-900/90 rounded-xl border border-gray-200 dark:border-gray-700">
-                            @foreach($comments as $comment)
+                            @foreach($this->getGroupedComments() as $group)
                                 @php
-                                    $position = ($comment->timestamp / max(0.1, $duration)) * 100;
+                                    $position = ($group['timestamp'] / max(0.1, $duration)) * 100;
                                     $position = min(max($position, 0), 100);
                                 @endphp
                                 <div class="absolute top-1 h-4 w-2 cursor-pointer group transform hover:scale-110 transition-transform duration-200"
-                                     style="left: {{ $position }}%; background: {{ $comment->resolved ? 'linear-gradient(to bottom, #10b981, #059669)' : 'linear-gradient(to bottom, #8b5cf6, #7c3aed)' }}; box-shadow: 0 0 8px {{ $comment->resolved ? 'rgba(16, 185, 129, 0.6)' : 'rgba(139, 92, 246, 0.6)' }};"
-                                     x-data="{ showTooltip: false }" 
+                                     style="left: {{ $position }}%; background: {{ $group['resolved'] ? 'linear-gradient(to bottom, #10b981, #059669)' : 'linear-gradient(to bottom, #8b5cf6, #7c3aed)' }}; box-shadow: 0 0 8px {{ $group['resolved'] ? 'rgba(16, 185, 129, 0.6)' : 'rgba(139, 92, 246, 0.6)' }};"
+                                     x-data="{ showTooltip: false }"
                                      @mouseenter="showTooltip = true"
                                      @mouseleave="showTooltip = false"
-                                     @click="seekTo({{ $comment->timestamp }})">
-                                    
-                                    <!-- Marker Indicator -->
-                                    <div class="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 rounded-full border-2 border-white {{ $comment->resolved ? 'bg-emerald-500' : 'bg-violet-500' }} shadow-lg group-hover:scale-125 transition-transform duration-200"></div>
-                                    
-                                    <!-- Comment Tooltip -->
+                                     @click="seekTo({{ $group['timestamp'] }})">
+
+                                    <!-- Marker Indicator with Count Badge -->
+                                    <div class="relative absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 rounded-full border-2 border-white {{ $group['resolved'] ? 'bg-emerald-500' : 'bg-violet-500' }} shadow-lg group-hover:scale-125 transition-transform duration-200">
+                                        @if($group['count'] > 1)
+                                            <div class="absolute -top-1 -right-1 h-3 w-3 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white shadow-md">
+                                                {{ $group['count'] }}
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <!-- Comment Tooltip (shows all comments in group) -->
                                     <div x-show="showTooltip" x-cloak
-                                        class="absolute -top-64 p-4 bg-white/98 backdrop-blur-sm rounded-xl shadow-2xl border-2 {{ $comment->resolved ? 'border-emerald-200' : 'border-violet-200' }} w-80 max-h-48 overflow-y-auto z-50 {{ $position < 15 ? 'left-0' : ($position > 85 ? 'right-0' : 'left-1/2 transform -translate-x-1/2') }}"
+                                        class="absolute -top-64 p-4 bg-white/98 backdrop-blur-sm rounded-xl shadow-2xl border-2 {{ $group['resolved'] ? 'border-emerald-200' : 'border-violet-200' }} w-80 max-h-64 overflow-y-auto z-[9999] {{ $position < 15 ? 'left-0' : ($position > 85 ? 'right-0' : 'left-1/2 transform -translate-x-1/2') }}"
                                         style="filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.2));"
                                         @click.stop>
                                         
                                         <!-- Tooltip Arrow pointing down -->
-                                        <div class="absolute -bottom-2 {{ $position < 15 ? 'left-4' : ($position > 85 ? 'right-4' : 'left-1/2 transform -translate-x-1/2') }} w-4 h-4 {{ $comment->resolved ? 'bg-emerald-200' : 'bg-violet-200' }} rotate-45 border-r-2 border-b-2 {{ $comment->resolved ? 'border-emerald-200' : 'border-violet-200' }}"></div>
-                                        
-                                        <div class="flex items-center mb-3">
-                                            @if($comment->user)
-                                                <img src="{{ $comment->user->profile_photo_url }}" alt="{{ $comment->user->name }}" class="h-8 w-8 rounded-full mr-3 border-2 {{ $comment->resolved ? 'border-emerald-200' : 'border-violet-200' }}">
-                                            @else
-                                                <div class="h-8 w-8 rounded-full {{ $comment->resolved ? 'bg-emerald-500' : 'bg-violet-500' }} flex items-center justify-center mr-3 border-2 border-white shadow">
-                                                    <flux:icon.user class="text-white text-sm" />
-                                                </div>
-                                            @endif
-                                            <div class="flex-1">
-                                                <div class="text-sm font-bold text-gray-900">
-                                                    {{ $comment->user ? $comment->user->name : ($comment->client_email ?? 'Client') }}
-                                                </div>
-                                                <div class="text-xs font-semibold {{ $comment->resolved ? 'text-emerald-600' : 'text-violet-600' }}">
-                                                    {{ $this->formatTime($comment->timestamp) }}
-                                                </div>
-                                            </div>
-                                            @if($comment->resolved)
-                                                <flux:badge color="green" size="xs" icon="check-circle">Resolved</flux:badge>
+                                        <div class="absolute -bottom-2 {{ $position < 15 ? 'left-4' : ($position > 85 ? 'right-4' : 'left-1/2 transform -translate-x-1/2') }} w-4 h-4 {{ $group['resolved'] ? 'bg-emerald-200' : 'bg-violet-200' }} rotate-45 border-r-2 border-b-2 {{ $group['resolved'] ? 'border-emerald-200' : 'border-violet-200' }}"></div>
+
+                                        <!-- Group Header -->
+                                        <div class="flex items-center justify-between mb-3 pb-2 border-b {{ $group['resolved'] ? 'border-emerald-200' : 'border-violet-200' }}">
+                                            <div class="text-xs font-semibold {{ $group['resolved'] ? 'text-emerald-600' : 'text-violet-600' }}">{{ $this->formatTime($group['timestamp']) }}</div>
+                                            @if($group['count'] > 1)
+                                                <div class="text-xs text-gray-600">{{ $group['count'] }} comments</div>
                                             @endif
                                         </div>
-                                        <div class="text-sm text-gray-800 leading-relaxed font-medium">
-                                            {{ \Illuminate\Support\Str::limit($comment->comment, 120) }}
+
+                                        <!-- All Comments in Group -->
+                                        <div class="space-y-3">
+                                            @foreach($group['comments'] as $comment)
+                                                <div class="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                                                    <div class="flex items-center mb-2">
+                                                        @if($comment->user ?? null)
+                                                            <img src="{{ $comment->user->profile_photo_url ?? '' }}" alt="{{ $comment->user->name ?? '' }}" class="h-6 w-6 rounded-full mr-2 border {{ $comment->resolved ? 'border-emerald-200' : 'border-violet-200' }}">
+                                                        @else
+                                                            <div class="h-6 w-6 rounded-full {{ $comment->resolved ? 'bg-emerald-500' : 'bg-violet-500' }} flex items-center justify-center mr-2 border border-white shadow-sm">
+                                                                <i class="fas fa-user text-white text-[10px]"></i>
+                                                            </div>
+                                                        @endif
+                                                        <div class="flex-1">
+                                                            <div class="text-xs font-bold text-gray-900">
+                                                                {{ $comment->user->name ?? $comment->client_email ?? 'Client' }}
+                                                            </div>
+                                                        </div>
+                                                        @if($comment->resolved ?? false)
+                                                            <div class="text-[9px] text-green-600 font-medium">✓ Resolved</div>
+                                                        @endif
+                                                    </div>
+                                                    <div class="text-xs text-gray-800 leading-relaxed font-medium">
+                                                        {{ \Illuminate\Support\Str::limit($comment->comment ?? '', 120) }}
+                                                    </div>
+                                                </div>
+                                            @endforeach
                                         </div>
                                     </div>
                                 </div>
@@ -101,7 +116,7 @@
                 <flux:card class="mb-2">
                     <div class="flex items-center justify-between">
                         <div>
-                            <flux:heading size="lg">
+                            <flux:heading size="base">
                                 {{ $file->original_name ?? $file->file_name ?? 'Video File' }}
                             </flux:heading>
                             <flux:subheading>
@@ -126,7 +141,7 @@
                 <!-- Comments Section -->
                 <div x-show="showComments" x-transition>
                     <flux:card class="p-4">
-                        <flux:heading size="lg" class="mb-4 flex items-center gap-2">
+                        <flux:heading size="base" class="mb-4 flex items-center gap-2">
                             <flux:icon.chat-bubble-left class="text-green-600 dark:text-green-400" />
                             Comments
                             @if(count($comments) > 0)
@@ -155,7 +170,7 @@
                         @if($showAddCommentForm)
                             <div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
                                 <div class="mb-3">
-                                    <flux:heading size="sm">Add Comment at {{ $this->formatTime($commentTimestamp) }}</flux:heading>
+                                    <flux:subheading>Add Comment at {{ $this->formatTime($commentTimestamp) }}</flux:subheading>
                                 </div>
                                 
                                 <form wire:submit.prevent="addComment">
@@ -188,11 +203,11 @@
                                         <div class="flex items-start justify-between mb-3">
                                             <div class="flex items-center gap-3">
                                                 @if($comment->user)
-                                                    <img src="{{ $comment->user->profile_photo_url }}" 
-                                                         alt="{{ $comment->user->name }}" 
+                                                    <img src="{{ $comment->user->profile_photo_url }}"
+                                                         alt="{{ $comment->user->name }}"
                                                          class="h-8 w-8 rounded-full">
                                                     <div>
-                                                        <div class="font-medium text-gray-900 dark:text-gray-100">{{ $comment->user->name }}</div>
+                                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $comment->user->name }}</div>
                                                         <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at->diffForHumans() }}</div>
                                                     </div>
                                                 @else
@@ -200,7 +215,7 @@
                                                         <flux:icon.user class="text-white" size="sm" />
                                                     </div>
                                                     <div>
-                                                        <div class="font-medium text-gray-900 dark:text-gray-100">{{ $comment->client_email ?? 'Client' }}</div>
+                                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $comment->client_email ?? 'Client' }}</div>
                                                         <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at->diffForHumans() }}</div>
                                                     </div>
                                                 @endif
@@ -218,7 +233,7 @@
 
                                         <!-- Comment Content -->
                                         <div class="mb-3">
-                                            <p class="text-gray-800 dark:text-gray-200 whitespace-pre-line">{{ $comment->comment }}</p>
+                                            <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line">{{ $comment->comment }}</p>
                                         </div>
 
                                         <!-- Resolved Badge (for pitch files only) -->
@@ -379,7 +394,6 @@
                         </div>
                     </div>
                 @endif
-            </flux:card>
         </div>
     </div>
 

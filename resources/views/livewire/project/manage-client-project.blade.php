@@ -90,30 +90,30 @@
                             <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true"
                                 :showWorkflowStatus="true" />
 
-                            <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+                            <div class="grid grid-cols-1 lg:gap-2 lg:grid-cols-3">
                                 <!-- Main Content Area (70% width on large screens) -->
                                 <div class="space-y-2 lg:col-span-2">
                                     <!-- File Management Tabs -->
-                                    <div x-data="{ activeTab: 'deliverables' }" class="mb-6">
+                                    <div x-data="{ activeTab: 'deliverables' }" class="mb-2">
                                         <!-- Tab Navigation -->
-                                        <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-                                            <nav class="-mb-px flex space-x-8">
-                                                <button @click="activeTab = 'client-files'"
-                                                    :class="activeTab === 'client-files' ? 'border-purple-500 text-purple-600' :
-                                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                                                    class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
-                                                    <flux:icon.folder-open class="mr-2 inline h-4 w-4" />
-                                                    Client Reference Files
-                                                </button>
+                                        <div class="mb-2 border-b border-gray-200 dark:border-gray-700">
+                                            <nav class="-mb-px flex space-x-1 md:space-x-8">
                                                 <button @click="activeTab = 'deliverables'"
                                                     :class="activeTab === 'deliverables' ? 'border-purple-500 text-purple-600' :
                                                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                                     class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
-                                                    <flux:icon.musical-note class="mr-2 inline h-4 w-4" />
-                                                    Your Deliverables
-                                                    <flux:badge variant="outline" size="sm" class="ml-2">
+                                                    <flux:icon.musical-note class="mr-1 inline h-4 w-4" />
+                                                    <span class="hidden md:inline">Your</span> Deliverables
+                                                    <flux:badge variant="outline" size="sm" class="ml-1">
                                                         {{ $this->producerFiles->count() }} files
                                                     </flux:badge>
+                                                </button>
+                                                <button @click="activeTab = 'client-files'"
+                                                    :class="activeTab === 'client-files' ? 'border-purple-500 text-purple-600' :
+                                                        'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                                    class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
+                                                    <flux:icon.folder-open class="mr-1 inline h-4 w-4" />
+                                                    Client <span class="hidden md:inline">Reference</span> Files
                                                 </button>
                                             </nav>
                                         </div>
@@ -254,157 +254,15 @@
                                             \App\Models\Pitch::STATUS_REVISIONS_REQUESTED,
                                             \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
                                         ]))
-                                        <flux:card class="mb-2 border-amber-200 bg-amber-50">
-                                            <div>
-                                                <flux:heading size="lg">
-                                                    <flux:icon name="arrow-uturn-left" class="mr-2" />
-                                                    Respond to Feedback
-                                                </flux:heading>
-                                            </div>
-                                            <div>
-                                                <!-- Client Feedback Display -->
-                                                @if ($statusFeedbackMessage)
-                                                    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                                                        <div class="flex items-start gap-3">
-                                                            <div
-                                                                class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
-                                                                <flux:icon name="chat-bubble-left-ellipsis"
-                                                                    class="h-4 w-4 text-white" />
-                                                            </div>
-                                                            <div class="flex-1">
-                                                                <div class="mb-2 flex items-center gap-2">
-                                                                    <flux:heading size="sm" class="text-blue-900">
-                                                                        Client Feedback
-                                                                    </flux:heading>
-                                                                    @if ($this->getLatestFeedbackEvent())
-                                                                        <flux:text size="xs" class="text-blue-600">
-                                                                            {{ $this->getLatestFeedbackEvent()->created_at->diffForHumans() }}
-                                                                        </flux:text>
-                                                                    @endif
-                                                                </div>
-                                                                <div
-                                                                    class="rounded bg-white p-3 text-sm text-gray-800 shadow-sm">
-                                                                    {{ $statusFeedbackMessage }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-
-                                                <!-- File Comments Summary -->
-                                                @if ($this->fileCommentsSummary->count() > 0)
-                                                    <div
-                                                        class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                                                        <div class="flex items-start gap-3">
-                                                            <div
-                                                                class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500">
-                                                                <flux:icon name="document-text"
-                                                                    class="h-4 w-4 text-white" />
-                                                            </div>
-                                                            <div class="flex-1">
-                                                                <div class="mb-3 flex items-center gap-2">
-                                                                    <flux:heading size="sm" class="text-amber-900">
-                                                                        File Comments Overview
-                                                                    </flux:heading>
-                                                                    <flux:badge variant="warning" size="xs">
-                                                                        {{ $this->fileCommentsTotals['unresolved'] }}
-                                                                        unresolved of
-                                                                        {{ $this->fileCommentsTotals['total'] }} total
-                                                                    </flux:badge>
-                                                                </div>
-
-                                                                <div class="space-y-2">
-                                                                    @foreach ($this->fileCommentsSummary as $summary)
-                                                                        <div class="rounded bg-white p-3 shadow-sm">
-                                                                            <div
-                                                                                class="flex items-start justify-between">
-                                                                                <div class="flex-1">
-                                                                                    <div
-                                                                                        class="mb-1 flex items-center gap-2">
-                                                                                        <flux:text weight="medium"
-                                                                                            size="sm"
-                                                                                            class="text-gray-900">
-                                                                                            {{ $summary['file']->file_name }}
-                                                                                        </flux:text>
-                                                                                        @if ($summary['needs_attention'])
-                                                                                            <flux:badge
-                                                                                                variant="warning"
-                                                                                                size="xs">
-                                                                                                {{ $summary['unresolved_count'] }}
-                                                                                                need attention
-                                                                                            </flux:badge>
-                                                                                        @else
-                                                                                            <flux:badge
-                                                                                                variant="success"
-                                                                                                size="xs">
-                                                                                                All resolved
-                                                                                            </flux:badge>
-                                                                                        @endif
-                                                                                    </div>
-
-                                                                                    @if ($summary['latest_unresolved'])
-                                                                                        <flux:text size="xs"
-                                                                                            class="line-clamp-2 text-gray-600">
-                                                                                            Latest:
-                                                                                            "{{ Str::limit($summary['latest_unresolved']->comment, 80) }}"
-                                                                                        </flux:text>
-                                                                                        <flux:text size="xs"
-                                                                                            class="text-gray-500">
-                                                                                            —
-                                                                                            {{ $summary['latest_unresolved']->is_client_comment ? ($this->project->client_name ?: 'Client') : 'Producer' }},
-                                                                                            {{ $summary['latest_unresolved']->created_at->diffForHumans() }}
-                                                                                        </flux:text>
-                                                                                    @endif
-                                                                                </div>
-
-                                                                                <div class="text-right">
-                                                                                    <flux:text size="xs"
-                                                                                        class="text-gray-500">
-                                                                                        {{ $summary['total_comments'] }}
-                                                                                        total
-                                                                                    </flux:text>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    @endforeach
-                                                                </div>
-
-                                                                <div class="mt-3 text-center">
-                                                                    <flux:text size="xs" class="text-amber-700">
-                                                                        💡 Navigate to individual files below to respond
-                                                                        to
-                                                                        specific comments
-                                                                    </flux:text>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-
-                                                <flux:field>
-                                                    <flux:label>Your Response to Client Feedback</flux:label>
-                                                    <flux:textarea wire:model.lazy="responseToFeedback" rows="4"
-                                                        placeholder="Explain what changes you've made in response to the feedback..." />
-                                                    <flux:error name="responseToFeedback" />
-
-                                                    <!-- Send Response Button -->
-                                                    @if ($statusFeedbackMessage || $this->fileCommentsSummary->count() > 0)
-                                                        <div class="mt-3">
-                                                            <flux:button wire:click="sendFeedbackResponse"
-                                                                variant="primary" size="sm"
-                                                                icon="paper-airplane" wire:loading.attr="disabled">
-                                                                <span wire:loading.remove>Send Response</span>
-                                                                <span wire:loading>Sending...</span>
-                                                            </flux:button>
-                                                            <flux:text size="xs" class="ml-2 text-gray-600">
-                                                                This will notify the client without changing project
-                                                                status
-                                                            </flux:text>
-                                                        </div>
-                                                    @endif
-                                                </flux:field>
-                                            </div>
-                                        </flux:card>
+                                        @livewire(
+                                            'project.component.response-to-feedback',
+                                            [
+                                                'pitch' => $pitch,
+                                                'project' => $project,
+                                                'workflowColors' => $workflowColors,
+                                            ],
+                                            key('response-feedback-' . $pitch->id . '-' . $pitch->updated_at->timestamp)
+                                        )
                                     @endif
 
                                     <!-- Submit/Recall Section -->
@@ -421,63 +279,126 @@
                                 <!-- Sidebar (30% width on large screens) -->
                                 <div class="space-y-4 lg:col-span-1">
                                     <!-- Client Communication Hub -->
-                                    <div class="mb-4">
+
                                         <x-client-project.client-communication-hub :component="$this" :project="$project"
                                             :conversationItems="$this->conversationItems" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
-                                    </div>
 
                                     <!-- Milestones Section -->
                                     <flux:card class="mb-4">
+                                        <!-- Header -->
                                         <div class="mb-4 flex items-center justify-between">
                                             <div class="flex items-center gap-2">
                                                 <flux:icon.flag variant="solid"
                                                     class="{{ $workflowColors['icon'] }} h-6 w-6" />
                                                 <div>
                                                     <flux:heading size="base"
-                                                        class="{{ $workflowColors['text_primary'] }}">Milestones
+                                                        class="{{ $workflowColors['text_primary'] }}">Milestone Payments
                                                     </flux:heading>
                                                     <flux:text size="xs"
                                                         class="{{ $workflowColors['text_muted'] }}">
-                                                        Payments & approvals
+                                                        Split payments & budget
                                                     </flux:text>
                                                 </div>
                                             </div>
-                                            <flux:button wire:click="beginAddMilestone" variant="primary"
-                                                size="sm" icon="plus">
-                                                Add
+                                        </div>
+
+                                        <!-- Budget Header Section -->
+                                        <div class="mb-4 rounded-lg border-2 border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex-1">
+                                                    <flux:text size="sm" class="mb-1 font-medium text-purple-700 dark:text-purple-300">
+                                                        Total Budget
+                                                    </flux:text>
+                                                    @if (!$showBudgetEditForm)
+                                                        <div class="flex items-baseline gap-2">
+                                                            <flux:heading size="2xl" class="font-bold text-purple-900 dark:text-purple-100">
+                                                                ${{ number_format($this->getBaseClientBudget(), 2) }}
+                                                            </flux:heading>
+                                                        </div>
+                                                    @else
+                                                        <!-- Budget Edit Form -->
+                                                        <div class="mt-2 flex items-center gap-2">
+                                                            <div class="flex-1">
+                                                                <flux:input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    wire:model.defer="editableBudget"
+                                                                    placeholder="0.00"
+                                                                    size="sm"
+                                                                />
+                                                            </div>
+                                                            <div class="flex gap-1">
+                                                                <flux:button wire:click="saveBudget" variant="primary" color="green" size="xs">
+                                                                    <flux:icon.check class="h-3 w-3" />
+                                                                </flux:button>
+                                                                <flux:button wire:click="cancelBudgetEdit" variant="ghost" size="xs">
+                                                                    <flux:icon.x-mark class="h-3 w-3" />
+                                                                </flux:button>
+                                                            </div>
+                                                        </div>
+                                                        @error('editableBudget')
+                                                            <flux:text size="xs" class="mt-1 text-red-600 dark:text-red-400">
+                                                                {{ $message }}
+                                                            </flux:text>
+                                                        @enderror
+                                                    @endif
+                                                </div>
+                                                @if (!$showBudgetEditForm)
+                                                    <flux:button wire:click="toggleBudgetEdit" variant="ghost" size="xs">
+                                                        <flux:icon.pencil class="h-4 w-4" />
+                                                    </flux:button>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <!-- Allocation Tracker -->
+                                        @php
+                                            $allocationStatus = $this->allocationStatus;
+                                        @endphp
+                                        <div class="mb-4 rounded-lg border-2 p-3 {{ $allocationStatus['color']['border'] }} {{ $allocationStatus['color']['bg'] }}">
+                                            <div class="mb-2 flex items-center justify-between">
+                                                <flux:text size="sm" class="font-medium {{ $allocationStatus['color']['text'] }}">
+                                                    Allocation Status
+                                                </flux:text>
+                                                <flux:text size="sm" class="font-semibold {{ $allocationStatus['color']['text'] }}">
+                                                    ${{ number_format($allocationStatus['allocated'], 2) }} / ${{ number_format($allocationStatus['budget'], 2) }}
+                                                </flux:text>
+                                            </div>
+
+                                            <!-- Progress Bar -->
+                                            <div class="mb-2 h-2 w-full overflow-hidden rounded-full bg-white/50 dark:bg-gray-800/50">
+                                                <div class="h-2 rounded-full transition-all duration-300 {{ $allocationStatus['color']['bar'] }}"
+                                                    style="width: {{ min($allocationStatus['percentage'], 100) }}%"></div>
+                                            </div>
+
+                                            <div class="flex items-center justify-between">
+                                                <flux:text size="xs" class="{{ $allocationStatus['color']['text'] }}">
+                                                    {{ $allocationStatus['message'] }}
+                                                </flux:text>
+                                                @if ($allocationStatus['status'] === 'perfect')
+                                                    <flux:icon.check-circle class="h-4 w-4 {{ $allocationStatus['color']['icon'] }}" />
+                                                @elseif ($allocationStatus['status'] === 'under')
+                                                    <flux:icon.exclamation-triangle class="h-4 w-4 {{ $allocationStatus['color']['icon'] }}" />
+                                                @elseif ($allocationStatus['status'] === 'over')
+                                                    <flux:icon.exclamation-circle class="h-4 w-4 {{ $allocationStatus['color']['icon'] }}" />
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <!-- Action Buttons -->
+                                        <div class="mb-4 flex flex-wrap gap-2">
+                                            <flux:button wire:click="beginAddMilestone" variant="primary" size="sm" icon="plus">
+                                                Add Milestone
+                                            </flux:button>
+                                            <flux:button wire:click="toggleSplitForm" variant="outline" size="sm" icon="scissors">
+                                                Split Budget
                                             </flux:button>
                                         </div>
 
-                                        @php($milestones = $pitch->milestones()->get())
-                                        @php($milestoneTotal = $milestones->sum('amount'))
-                                        @php($milestonePaid = $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->sum('amount'))
-
-                                        <!-- Quick Stats -->
-                                        <div class="mb-4 space-y-2">
-                                            <div class="flex items-center justify-between text-sm">
-                                                <span class="{{ $workflowColors['text_secondary'] }}">Progress</span>
-                                                <span class="{{ $workflowColors['text_primary'] }} font-medium">
-                                                    ${{ number_format($milestonePaid, 2) }} /
-                                                    ${{ number_format($milestoneTotal, 2) }}
-                                                </span>
-                                            </div>
-                                            @if ($milestoneTotal > 0)
-                                                @php($percentPaid = round(($milestonePaid / max($milestoneTotal, 0.01)) * 100))
-                                                <div
-                                                    class="{{ $workflowColors['accent_bg'] }} h-1.5 w-full overflow-hidden rounded-full">
-                                                    <div class="h-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-300"
-                                                        style="width: {{ $percentPaid }}%"></div>
-                                                </div>
-                                                <div class="{{ $workflowColors['text_muted'] }} text-xs">
-                                                    {{ $percentPaid }}% completed
-                                                </div>
-                                            @endif
-                                        </div>
-
                                         <!-- Milestones List -->
-                                        @if ($milestones->count())
+                                        @if ($this->milestones->count())
                                             <div class="max-h-64 space-y-2 overflow-y-auto">
-                                                @foreach ($milestones as $m)
+                                                @foreach ($this->milestones as $m)
                                                     <div
                                                         class="{{ $workflowColors['accent_bg'] }} rounded-lg p-3 text-sm">
                                                         <div class="flex items-start justify-between">
@@ -495,7 +416,7 @@
                                                                         <flux:badge variant="success" size="xs">
                                                                             Paid
                                                                         </flux:badge>
-                                                                    @elseif($m->status === 'approved')
+                                                                    @elseif ($m->status === 'approved')
                                                                         <flux:badge variant="primary" size="xs">
                                                                             Approved</flux:badge>
                                                                     @else
@@ -530,6 +451,16 @@
                                                     class="{{ $workflowColors['text_primary'] }} mb-3">
                                                     {{ $editingMilestoneId ? 'Edit Milestone' : 'Add Milestone' }}
                                                 </flux:heading>
+
+                                                <!-- Remaining Budget Helper -->
+                                                <div class="mb-3 rounded-lg border p-2 text-center
+                                                    {{ $this->remainingBudgetForForm > 0 ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20' : 'border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/20' }}">
+                                                    <flux:text size="xs" class="{{ $this->remainingBudgetForForm > 0 ? 'text-blue-800 dark:text-blue-200' : 'text-gray-700 dark:text-gray-300' }}">
+                                                        <span class="font-medium">Budget Available:</span>
+                                                        ${{ number_format($this->remainingBudgetForForm, 2) }}
+                                                    </flux:text>
+                                                </div>
+
                                                 <div class="space-y-3">
                                                     <flux:field>
                                                         <flux:label>Name</flux:label>
@@ -538,13 +469,27 @@
                                                         <flux:error name="milestoneName" />
                                                     </flux:field>
                                                     <flux:field>
-                                                        <flux:label>Amount</flux:label>
+                                                        <div class="flex items-center justify-between">
+                                                            <flux:label>Amount</flux:label>
+                                                            @if (!$editingMilestoneId && $this->remainingBudgetForForm > 0)
+                                                                <flux:button wire:click="$set('milestoneAmount', {{ $this->remainingBudgetForForm }})"
+                                                                    variant="ghost" size="xs">
+                                                                    <flux:icon.calculator class="h-3 w-3 mr-1" />
+                                                                    Use Remaining
+                                                                </flux:button>
+                                                            @endif
+                                                        </div>
                                                         <flux:input type="number" step="0.01" size="sm"
                                                             wire:model.defer="milestoneAmount" placeholder="0.00" />
+                                                        @if ($milestoneAmount && $this->allocationStatus['budget'] > 0)
+                                                            <flux:text size="xs" class="{{ $workflowColors['text_muted'] }} mt-1">
+                                                                {{ number_format(($milestoneAmount / $this->allocationStatus['budget']) * 100, 1) }}% of total budget
+                                                            </flux:text>
+                                                        @endif
                                                         <flux:error name="milestoneAmount" />
                                                     </flux:field>
                                                     <flux:field>
-                                                        <flux:label>Description</flux:label>
+                                                        <flux:label>Description (Optional)</flux:label>
                                                         <flux:textarea rows="2" size="sm"
                                                             wire:model.defer="milestoneDescription"
                                                             placeholder="Optional details..." />
@@ -553,9 +498,21 @@
                                                 </div>
                                                 <div class="mt-4 flex flex-wrap items-center gap-2">
                                                     <flux:button wire:click="saveMilestone" variant="primary"
-                                                        size="sm">Save</flux:button>
+                                                        size="sm" icon="check">Save</flux:button>
                                                     <flux:button wire:click="cancelMilestoneForm" variant="outline"
                                                         size="sm">Cancel</flux:button>
+                                                    @if ($editingMilestoneId)
+                                                        @php
+                                                            $editingMilestone = $pitch->milestones()->find($editingMilestoneId);
+                                                        @endphp
+                                                        @if ($editingMilestone && $editingMilestone->payment_status !== \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                                                            <flux:button wire:click="deleteMilestone({{ $editingMilestoneId }})"
+                                                                variant="danger" size="sm" class="ml-auto">
+                                                                <flux:icon.trash class="h-3 w-3 mr-1" />
+                                                                Delete
+                                                            </flux:button>
+                                                        @endif
+                                                    @endif
                                                 </div>
                                             </div>
                                         @endif
@@ -565,17 +522,131 @@
                                                 class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} mt-4 rounded-lg border p-4">
                                                 <flux:heading size="sm"
                                                     class="{{ $workflowColors['text_primary'] }} mb-3">
-                                                    Split Budget
+                                                    Split Budget into Milestones
                                                 </flux:heading>
-                                                <div class="space-y-3">
+                                                <div class="space-y-4">
+                                                    <!-- Template Selection -->
                                                     <flux:field>
-                                                        <flux:label>Number of milestones</flux:label>
-                                                        <flux:input type="number" min="2" max="20"
-                                                            size="sm" wire:model.defer="splitCount" />
+                                                        <flux:label>Split Template</flux:label>
+                                                        <div class="space-y-2">
+                                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                                <input type="radio" wire:model.live="splitTemplate" value="equal"
+                                                                    class="text-purple-600 focus:ring-purple-500">
+                                                                <div>
+                                                                    <flux:text size="sm" class="font-medium {{ $workflowColors['text_primary'] }}">
+                                                                        Equal Split
+                                                                    </flux:text>
+                                                                    <flux:text size="xs" class="{{ $workflowColors['text_muted'] }}">
+                                                                        Divide budget evenly across milestones
+                                                                    </flux:text>
+                                                                </div>
+                                                            </label>
+                                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                                <input type="radio" wire:model.live="splitTemplate" value="deposit_structure"
+                                                                    class="text-purple-600 focus:ring-purple-500">
+                                                                <div>
+                                                                    <flux:text size="sm" class="font-medium {{ $workflowColors['text_primary'] }}">
+                                                                        Deposit Structure
+                                                                    </flux:text>
+                                                                    <flux:text size="xs" class="{{ $workflowColors['text_muted'] }}">
+                                                                        30% deposit / 40% progress / 30% final
+                                                                    </flux:text>
+                                                                </div>
+                                                            </label>
+                                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                                <input type="radio" wire:model.live="splitTemplate" value="percentage"
+                                                                    class="text-purple-600 focus:ring-purple-500">
+                                                                <div>
+                                                                    <flux:text size="sm" class="font-medium {{ $workflowColors['text_primary'] }}">
+                                                                        Custom Percentages
+                                                                    </flux:text>
+                                                                    <flux:text size="xs" class="{{ $workflowColors['text_muted'] }}">
+                                                                        Define your own percentage split
+                                                                    </flux:text>
+                                                                </div>
+                                                            </label>
+                                                        </div>
                                                     </flux:field>
+
+                                                    <!-- Equal Split Options -->
+                                                    @if ($splitTemplate === 'equal')
+                                                        <flux:field>
+                                                            <flux:label>Number of milestones</flux:label>
+                                                            <flux:input type="number" min="2" max="20"
+                                                                size="sm" wire:model.defer="splitCount" />
+                                                            <flux:error name="splitCount" />
+                                                        </flux:field>
+                                                    @endif
+
+                                                    <!-- Percentage Split Options -->
+                                                    @if ($splitTemplate === 'percentage')
+                                                        <div class="space-y-2">
+                                                            <div class="flex items-center justify-between">
+                                                                <flux:label>Percentages (must sum to 100%)</flux:label>
+                                                                <flux:button wire:click="addPercentageInput" variant="ghost" size="xs">
+                                                                    <flux:icon.plus class="h-3 w-3" />
+                                                                </flux:button>
+                                                            </div>
+                                                            @foreach ($percentageSplit as $index => $percentage)
+                                                                <div class="flex items-center gap-2">
+                                                                    <flux:text size="sm" class="w-24 {{ $workflowColors['text_secondary'] }}">
+                                                                        Milestone {{ $index + 1 }}:
+                                                                    </flux:text>
+                                                                    <flux:input type="number" step="0.1" min="0" max="100"
+                                                                        size="sm" wire:model.defer="percentageSplit.{{ $index }}"
+                                                                        placeholder="0.0" class="flex-1" />
+                                                                    <flux:text size="sm" class="{{ $workflowColors['text_muted'] }}">%</flux:text>
+                                                                    @if (count($percentageSplit) > 2)
+                                                                        <flux:button wire:click="removePercentageInput({{ $index }})"
+                                                                            variant="ghost" size="xs">
+                                                                            <flux:icon.trash class="h-3 w-3 text-red-500" />
+                                                                        </flux:button>
+                                                                    @endif
+                                                                </div>
+                                                            @endforeach
+                                                            @if (count($percentageSplit) === 0)
+                                                                <div class="text-center py-2">
+                                                                    <flux:button wire:click="addPercentageInput" variant="outline" size="sm">
+                                                                        Add First Percentage
+                                                                    </flux:button>
+                                                                </div>
+                                                            @endif
+                                                            @if (count($percentageSplit) > 0)
+                                                                <div class="mt-2 rounded-lg border p-2 text-center
+                                                                    {{ abs($this->percentageTotal - 100) < 0.01 ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20' }}">
+                                                                    <flux:text size="sm" class="font-medium
+                                                                        {{ abs($this->percentageTotal - 100) < 0.01 ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200' }}">
+                                                                        Total: {{ number_format($this->percentageTotal, 1) }}%
+                                                                        @if (abs($this->percentageTotal - 100) < 0.01)
+                                                                            <flux:icon.check-circle class="ml-1 inline h-4 w-4" />
+                                                                        @endif
+                                                                    </flux:text>
+                                                                </div>
+                                                            @endif
+                                                            <flux:error name="percentageSplit" />
+                                                        </div>
+                                                    @endif
+
+                                                    <!-- Deposit Structure Preview -->
+                                                    @if ($splitTemplate === 'deposit_structure')
+                                                        <div class="rounded-lg border bg-white/50 p-3 dark:bg-gray-800/50 {{ $workflowColors['accent_border'] }}">
+                                                            <flux:text size="sm" class="mb-2 font-medium {{ $workflowColors['text_primary'] }}">
+                                                                Preview:
+                                                            </flux:text>
+                                                            <div class="space-y-1 text-xs {{ $workflowColors['text_secondary'] }}">
+                                                                <div>• Initial Deposit: ${{ number_format($this->getBaseClientBudget() * 0.30, 2) }} (30%)</div>
+                                                                <div>• Progress Payment: ${{ number_format($this->getBaseClientBudget() * 0.40, 2) }} (40%)</div>
+                                                                <div>• Final Payment: ${{ number_format($this->getBaseClientBudget() * 0.30, 2) }} (30%)</div>
+                                                            </div>
+                                                        </div>
+                                                    @endif
+
+                                                    <!-- Action Buttons -->
                                                     <div class="flex gap-2">
                                                         <flux:button wire:click="splitBudgetIntoMilestones"
-                                                            variant="primary" size="sm">Create</flux:button>
+                                                            variant="primary" size="sm" icon="check">
+                                                            Create Milestones
+                                                        </flux:button>
                                                         <flux:button wire:click="toggleSplitForm" variant="outline"
                                                             size="sm">Cancel</flux:button>
                                                     </div>

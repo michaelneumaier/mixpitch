@@ -59,7 +59,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-    Route::get('/producer/client-management', [DashboardController::class, 'clientManagement'])->name('producer.client-management');
+    Route::get('/producer/client-management', App\Livewire\ClientManagementPage::class)->name('producer.client-management');
     Route::get('/producer/clients/{client}', [DashboardController::class, 'clientDetail'])->name('producer.client-detail');
 });
 
@@ -1039,6 +1039,14 @@ Route::post('/client-portal/project/{project:id}/files/{pitchFile:id}/approve', 
 
 Route::post('/client-portal/project/{project:id}/files/approve-all', [ClientPortalController::class, 'approveAllFiles'])
     ->name('client.portal.files.approve_all')
+    ->middleware(['signed_or_client']);
+
+Route::post('/client-portal/project/{project:id}/files/{pitchFile:id}/unapprove', [ClientPortalController::class, 'unapproveFile'])
+    ->name('client.portal.files.unapprove')
+    ->middleware(['signed_or_client']);
+
+Route::post('/client-portal/project/{project:id}/files/unapprove-all', [ClientPortalController::class, 'unapproveAllFiles'])
+    ->name('client.portal.files.unapprove_all')
     ->middleware(['signed_or_client']);
 
 Route::post('/client-portal/project/{project:id}/request-revisions', [ClientPortalController::class, 'requestRevisions'])

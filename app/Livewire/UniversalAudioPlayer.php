@@ -267,6 +267,42 @@ class UniversalAudioPlayer extends Component
         $this->calculateCommentMarkers();
     }
 
+    /**
+     * Group comments by rounded timestamp (to nearest second)
+     * This prevents stacking of markers when multiple comments exist at the same time
+     */
+    public function getGroupedComments()
+    {
+        $grouped = [];
+
+        foreach ($this->comments as $comment) {
+            // Round timestamp to nearest second
+            $roundedTimestamp = round($comment->timestamp ?? 0);
+
+            if (! isset($grouped[$roundedTimestamp])) {
+                $grouped[$roundedTimestamp] = [
+                    'timestamp' => $roundedTimestamp,
+                    'comments' => [],
+                    'count' => 0,
+                    'resolved' => true, // Will be set to false if any comment is unresolved
+                ];
+            }
+
+            $grouped[$roundedTimestamp]['comments'][] = $comment;
+            $grouped[$roundedTimestamp]['count']++;
+
+            // If any comment in the group is unresolved, mark the group as unresolved
+            if (! ($comment->resolved ?? false)) {
+                $grouped[$roundedTimestamp]['resolved'] = false;
+            }
+        }
+
+        // Sort by timestamp and return as indexed array
+        ksort($grouped);
+
+        return array_values($grouped);
+    }
+
     public function calculateCommentMarkers()
     {
         $this->commentMarkers = [];

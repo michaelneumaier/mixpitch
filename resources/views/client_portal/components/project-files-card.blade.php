@@ -17,13 +17,10 @@
 
     @include('client_portal.components.project-files-client-list', ['project' => $project])
 
-    @include('client_portal.components.producer-deliverables', [
+    @livewire('client-portal.producer-deliverables', [
         'project' => $project,
         'pitch' => $pitch,
-        'currentSnapshot' => $currentSnapshot,
-        'snapshotHistory' => $snapshotHistory,
         'branding' => $branding,
-        'milestones' => $milestones,
         'isPreview' => $isPreview,
     ])
 </flux:card>

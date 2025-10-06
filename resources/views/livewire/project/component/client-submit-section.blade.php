@@ -11,7 +11,7 @@
 <div>
     @if($isReadyForReview)
         <!-- Recall Submission Section -->
-        <flux:card class="mb-2">
+        <flux:card>
             <div class="mb-6 flex items-center gap-3">
                 <flux:icon.arrow-uturn-left variant="solid"
                     class="{{ $workflowColors['icon'] }} h-8 w-8" />
@@ -72,7 +72,7 @@
                 <button wire:click="recallSubmission" 
                         wire:confirm="Are you sure you want to recall this submission? The client will be notified that you're making changes."
                         wire:loading.attr="disabled"
-                        class="relative inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 text-lg font-bold text-white transition-transform duration-200 hover:from-amber-700 hover:to-orange-700 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100">
+                        class="relative inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4 text-lg font-bold text-white transition-transform duration-200 hover:from-amber-700 hover:to-orange-700 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100">
                     <span wire:loading wire:target="recallSubmission"
                         class="mr-3 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
                     <flux:icon.arrow-uturn-left wire:loading.remove wire:target="recallSubmission" class="mr-3 h-5 w-5" />
@@ -205,7 +205,7 @@
             <div class="flex flex-col gap-3 sm:flex-row">
                 @if ($this->producerFiles->count() > 0)
                     <button wire:click="submitForReview" wire:loading.attr="disabled"
-                        class="relative inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-lg font-bold text-white transition-transform duration-200 hover:from-purple-700 hover:to-indigo-700 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100">
+                        class="relative inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-lg font-bold text-white transition-transform duration-200 hover:from-purple-700 hover:to-indigo-700 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100">
                         <span wire:loading wire:target="submitForReview"
                             class="mr-3 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
                         <i wire:loading.remove wire:target="submitForReview" class="fas fa-paper-plane mr-3"></i>
@@ -230,7 +230,7 @@
 
                 <button
                     onclick="window.scrollTo({top: document.querySelector('[data-section=producer-deliverables]').offsetTop - 100, behavior: 'smooth'})"
-                    class="inline-flex flex-1 items-center justify-center rounded-xl border border-purple-300 bg-gradient-to-r from-purple-100 to-indigo-100 px-6 py-4 font-medium text-purple-800 duration-200 hover:from-purple-200 hover:to-indigo-200 hover:shadow-md">
+                    class="inline-flex flex-1 items-center justify-center rounded-xl border border-purple-300 bg-gradient-to-r from-purple-100 to-indigo-100 px-6 py-4 font-medium text-purple-800 transition-transform duration-200 hover:from-purple-200 hover:to-indigo-200 hover:shadow-md">
                     <i class="fas fa-upload mr-3"></i>Upload More Files
                 </button>
             </div>

@@ -2,37 +2,65 @@
 
 <flux:card class="mb-2">
     <!-- Header with Client Information -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between">
+    <div class="mb-6 flex items-start justify-between gap-3">
         <!-- Title and Icon Section -->
-        <div class="flex items-center gap-3 mb-4 sm:mb-0">
-            <flux:icon.chat-bubble-left-ellipsis variant="solid"
-                class="{{ $workflowColors['icon'] }} h-8 w-8" />
+        <div class="flex items-center gap-3">
+            <!-- Client Info Avatar with Popover -->
+            @if ($project->client_name || $project->client_email)
+                <flux:dropdown position="bottom end">
+                    <flux:avatar
+                        as="button"
+                        circle
+                        size="sm"
+                        :name="$project->client_name ?: 'Client'"
+                        class="shrink-0 ring-2 {{ str_replace('text-', 'ring-', $workflowColors['icon']) }} hover:ring-opacity-70 transition-all"
+                        title="View client info" />
+
+                    <flux:popover class="w-64">
+                        <div class="flex items-center gap-3 mb-3">
+                            <flux:avatar
+                                circle
+                                size="xl"
+                                :name="$project->client_name ?: 'Client'" />
+
+                            <div class="flex-1 min-w-0">
+                                <flux:badge color="purple" size="sm" variant="solid">
+                                    Client
+                                </flux:badge>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            @if ($project->client_name)
+                                <div>
+                                    <flux:text size="xs" class="text-gray-500 dark:text-gray-400">Name</flux:text>
+                                    <flux:heading size="sm" class="break-words">{{ $project->client_name }}</flux:heading>
+                                </div>
+                            @endif
+
+                            @if ($project->client_email)
+                                <div>
+                                    <flux:text size="xs" class="text-gray-500 dark:text-gray-400">Email</flux:text>
+                                    <flux:text size="sm" class="break-all">{{ $project->client_email }}</flux:text>
+                                </div>
+                            @endif
+                        </div>
+                    </flux:popover>
+                </flux:dropdown>
+            @else
+                <flux:icon.chat-bubble-left-ellipsis variant="solid"
+                    class="{{ $workflowColors['icon'] }} h-8 w-8" />
+            @endif
+
             <div>
                 <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">
                     Client Communication
                 </flux:heading>
-                <flux:subheading class="{{ $workflowColors['text_muted'] }} hidden sm:block">
+                <flux:subheading class="{{ $workflowColors['text_muted'] }} hidden md:block">
                     Connect with your client and track project conversations
                 </flux:subheading>
             </div>
         </div>
-        
-        <!-- Client Info Badge -->
-        @if ($project->client_name || $project->client_email)
-            <div class="{{ $workflowColors['accent_bg'] }} {{ $workflowColors['accent_border'] }} rounded-lg border p-3 sm:flex-shrink-0">
-                <div class="flex items-center gap-2 text-sm">
-                    <flux:icon.user-circle class="{{ $workflowColors['icon'] }} h-4 w-4" />
-                    <div class="text-left sm:text-right">
-                        @if ($project->client_name)
-                            <div class="{{ $workflowColors['text_primary'] }} font-medium">{{ $project->client_name }}</div>
-                        @endif
-                        @if ($project->client_email)
-                            <div class="{{ $workflowColors['text_muted'] }} text-xs">{{ $project->client_email }}</div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        @endif
     </div>
 
     <!-- Integrated Communication View -->

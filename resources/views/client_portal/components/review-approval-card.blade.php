@@ -1,17 +1,93 @@
-@props(['project', 'pitch', 'currentSnapshot'])
+@props(['project', 'pitch', 'currentSnapshot', 'milestones'])
 
-@if ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
+@php
+    // Extract the most recent client feedback event if in revisions requested state
+    $latestFeedbackEvent = null;
+    if ($pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED) {
+        $latestFeedbackEvent = $pitch->events()
+            ->where('event_type', 'client_revisions_requested')
+            ->orderBy('created_at', 'desc')
+            ->first();
+    }
+
+    // Check if milestones exist for this pitch
+    $milestones = $milestones ?? collect();
+    $hasMilestones = $milestones->count() > 0;
+    $allMilestonesPaid = $hasMilestones &&
+        $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->count() === $milestones->count();
+@endphp
+
+@if (in_array($pitch->status, [\App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
     <flux:card class="mb-6">
-        <div class="mb-6 flex items-center gap-3">
-            <flux:icon.clipboard-document-check class="animate-pulse text-green-500" />
-            <div>
-                <flux:heading size="lg">Review &amp; Approval</flux:heading>
-                <flux:subheading>The project is ready for your review. Please approve or request revisions.</flux:subheading>
-            </div>
-        </div>
+        @if ($pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED && $latestFeedbackEvent)
+            {{-- Feedback Sent Confirmation State --}}
+            <div class="mb-6 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 p-6 dark:from-amber-900/20 dark:to-orange-900/20">
+                <div class="mb-4 flex items-start gap-3">
+                    <flux:icon.check-circle class="mt-1 text-green-500" />
+                    <div class="flex-1">
+                        <flux:heading size="lg" class="mb-2">Feedback Sent Successfully!</flux:heading>
+                        <flux:subheading class="mb-4">Your revision request has been delivered to the producer. They'll review your feedback and submit an updated version soon.</flux:subheading>
+                    </div>
+                </div>
 
-        {{-- Payment Information Banner --}}
-        @if ($pitch->payment_amount > 0)
+                {{-- Display the feedback that was sent --}}
+                <div class="mb-4 rounded-lg border border-amber-200 bg-white/80 p-4 dark:border-amber-800 dark:bg-gray-800/80">
+                    <div class="mb-2 flex items-center gap-2">
+                        <flux:icon.pencil class="text-amber-500" />
+                        <flux:heading size="sm">Your Feedback:</flux:heading>
+                    </div>
+                    <flux:text size="sm" class="text-gray-700 dark:text-gray-300">
+                        {{ $latestFeedbackEvent->comment }}
+                    </flux:text>
+                    <div class="mt-3 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <flux:icon.clock class="h-3 w-3" />
+                        <span>Sent {{ $latestFeedbackEvent->created_at->diffForHumans() }}</span>
+                    </div>
+                </div>
+
+                {{-- Producer reviewing indicator --}}
+                <div class="flex items-center gap-2 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+                    <flux:icon.user-circle class="text-blue-500" />
+                    <flux:text size="sm" class="text-blue-700 dark:text-blue-300">
+                        <strong>{{ $pitch->user->name }}</strong> is reviewing your feedback and preparing the next version
+                    </flux:text>
+                </div>
+            </div>
+
+            {{-- Changed Your Mind Section --}}
+            <div class="mb-6">
+                <div class="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <div class="mb-3 flex items-center gap-2">
+                        <flux:icon.light-bulb class="text-yellow-500" />
+                        <flux:heading size="sm">Changed Your Mind?</flux:heading>
+                    </div>
+                    <flux:text size="sm" class="mb-4 text-gray-600 dark:text-gray-400">
+                        If you'd like to approve this current version instead of waiting for revisions, you can still do so below.
+                    </flux:text>
+                </div>
+            </div>
+        @else
+            {{-- Original Ready for Review State --}}
+            <div class="mb-6 flex items-center gap-3">
+                <flux:icon.clipboard-document-check class="animate-pulse text-green-500" />
+                <div>
+                    <flux:heading size="lg">Review &amp; Approval</flux:heading>
+                    <flux:subheading>The project is ready for your review. Please approve or request revisions.</flux:subheading>
+                </div>
+            </div>
+        @endif
+
+        {{-- Milestone Payment Section (if milestones exist) --}}
+        @if ($hasMilestones)
+            <div class="mb-6">
+                @include('client_portal.components.milestone-payment-section', [
+                    'project' => $project,
+                    'pitch' => $pitch,
+                    'milestones' => $milestones,
+                ])
+            </div>
+        @elseif ($pitch->payment_amount > 0)
+            {{-- Single Payment Information Banner (no milestones) --}}
             <flux:callout variant="info" class="mb-6">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -29,7 +105,7 @@
             </flux:callout>
         @endif
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div class="grid grid-cols-1 gap-6 {{ $pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED ? 'lg:grid-cols-1' : 'lg:grid-cols-2' }}">
             {{-- Approve Form --}}
             <div class="rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
                 <div class="mb-4 flex items-center gap-2">
@@ -37,7 +113,9 @@
                     <flux:heading size="sm">Approve Project</flux:heading>
                 </div>
                 <flux:text size="sm" class="mb-4">
-                    @if ($pitch->payment_amount > 0)
+                    @if ($hasMilestones)
+                        Approve this submission to indicate you're satisfied with the work. Payment is handled separately through the milestone system above.
+                    @elseif ($pitch->payment_amount > 0)
                         Clicking approve will redirect you to secure payment processing. You'll be charged ${{ number_format($pitch->payment_amount, 2) }} and the producer will be notified of completion.
                     @else
                         Clicking approve will notify the producer that the project is complete and satisfactory.
@@ -47,7 +125,9 @@
                 <form action="{{ URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
                     @csrf
                     <flux:button type="submit" variant="primary" icon="check-circle" class="w-full">
-                        @if ($pitch->payment_amount > 0)
+                        @if ($hasMilestones)
+                            Approve Submission
+                        @elseif ($pitch->payment_amount > 0)
                             Approve &amp; Pay ${{ number_format($pitch->payment_amount, 2) }}
                         @else
                             Approve Project
@@ -55,7 +135,7 @@
                     </flux:button>
                 </form>
 
-                @if ($pitch->payment_amount > 0)
+                @if (!$hasMilestones && $pitch->payment_amount > 0)
                     <div class="mt-3 flex items-center justify-center gap-1">
                         <flux:icon.lock-closed class="h-3 w-3 text-green-600" />
                         <flux:text size="xs" class="text-green-600">Powered by Stripe • SSL Encrypted</flux:text>
@@ -63,8 +143,9 @@
                 @endif
             </div>
 
-            {{-- Request Revisions Form --}}
-            <div class="rounded-xl bg-amber-50 p-6 dark:bg-amber-900/20">
+            {{-- Request Revisions Form - Only show in READY_FOR_REVIEW state --}}
+            @if ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
+                <div class="rounded-xl bg-amber-50 p-6 dark:bg-amber-900/20">
                 <div class="mb-4 flex items-center gap-2">
                     <flux:icon.pencil class="text-amber-500" />
                     <flux:heading size="sm">Request Revisions</flux:heading>
@@ -98,7 +179,8 @@
                         </flux:button>
                     </form>
                 </div>
-            </div>
+                </div>
+            @endif
         </div>
     </flux:card>
 @endif

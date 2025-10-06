@@ -354,16 +354,48 @@
 
                                         <div class="flex items-center gap-2">
                                             @if($comment->resolved ?? false)
-                                                <flux:badge variant="success" size="xs">
-                                                    <flux:icon name="check" size="xs" class="mr-1" />Resolved
-                                                </flux:badge>
+                                                @php
+                                                    $canUnresolveThisComment = false;
+                                                    if ($isClientPortal ?? false) {
+                                                        // In client portal, only allow unresolving client's own comments
+                                                        $canUnresolveThisComment = ($comment->is_client_comment ?? false) &&
+                                                                                  isset($clientPortalProjectId) &&
+                                                                                  ($comment->client_email ?? null) === (\App\Models\Project::find($clientPortalProjectId)->client_email ?? null);
+                                                    } else {
+                                                        // In main app, check if current user can unresolve
+                                                        $canUnresolveThisComment = Auth::check() && (
+                                                            // User can unresolve their own comments
+                                                            (($comment->user_id ?? null) === Auth::id()) ||
+                                                            // Or if they have admin/project owner permissions
+                                                            (Auth::user()->role === 'admin') ||
+                                                            // Or if this is the project owner (for producer comments)
+                                                            (isset($modelId) && Auth::user()->projects()->where('id', $modelId)->exists())
+                                                        );
+                                                    }
+                                                @endphp
+
+                                                @if($canUnresolveThisComment)
+                                                    <button
+                                                        wire:click="confirmUnresolveComment({{ $comment->id }})"
+                                                        @click="window.lastCommentedFileId = {{ $file->id }}"
+                                                        class="inline-flex items-center transition-opacity hover:opacity-70 cursor-pointer"
+                                                        title="Click to mark as unresolved">
+                                                        <flux:badge variant="success" size="sm">
+                                                            <flux:icon name="check" variant="micro" class="mr-1" />Resolved
+                                                        </flux:badge>
+                                                    </button>
+                                                @else
+                                                    <flux:badge variant="success" size="sm">
+                                                        <flux:icon name="check" variant="micro" class="mr-1" />Resolved
+                                                    </flux:badge>
+                                                @endif
                                             @elseif(($comment->metadata['type'] ?? null) === 'revision_request' || ($comment->is_client_comment ?? false))
-                                                <flux:badge variant="warning" size="xs">
-                                                    <flux:icon name="pencil" size="xs" class="mr-1" />Needs Response
+                                                <flux:badge variant="warning" size="sm">
+                                                    <flux:icon name="pencil" variant="micro" class="mr-1" />Needs Response
                                                 </flux:badge>
                                             @elseif(($comment->metadata['type'] ?? null) === 'approval')
-                                                <flux:badge variant="success" size="xs">
-                                                    <flux:icon name="check" size="xs" class="mr-1" />Approved
+                                                <flux:badge variant="success" size="sm">
+                                                    <flux:icon name="check" variant="micro" class="mr-1" />Approved
                                                 </flux:badge>
                                             @endif
                                             
@@ -389,12 +421,12 @@
                                             @endphp
                                             
                                             @if ($canDeleteThisComment)
-                                                <button 
+                                                <button
                                                     wire:click="confirmDeleteComment({{ $comment->id }})"
                                                     @click="window.lastCommentedFileId = {{ $file->id }}"
-                                                    class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
+                                                    class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
                                                     title="Delete comment">
-                                                    <flux:icon name="x-mark" size="xs" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
+                                                    <flux:icon name="x-mark" variant="micro" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
                                                 </button>
                                             @endif
                                         </div>
@@ -406,13 +438,15 @@
 
                                     {{-- Quick Response for Unresolved Comments --}}
                                     @if (!($comment->resolved ?? false) && (
-                                        ($comment->is_client_comment ?? false) || 
+                                        ($comment->is_client_comment ?? false) ||
                                         ($comment->metadata['type'] ?? null) === 'revision_request' ||
-                                        (($isClientPortal ?? false) && !($comment->is_client_comment ?? false))
+                                        (($isClientPortal ?? false) && !($comment->is_client_comment ?? false)) ||
+                                        (!($isClientPortal ?? false) && !($comment->is_client_comment ?? false))
                                     ))
                                         <div class="mt-3 border-t border-blue-200 pt-3" x-data="{ showResponse: false }">
                                             <div class="flex gap-2">
                                                 <button
+                                                    @click="window.lastCommentedFileId = {{ $file->id }}"
                                                     wire:click="markFileCommentResolved({{ $comment->id }})"
                                                     wire:loading.attr="disabled"
                                                     wire:target="markFileCommentResolved({{ $comment->id }})"
@@ -515,12 +549,12 @@
                                                                 @endphp
                                                                 
                                                                 @if ($canDeleteThisReply)
-                                                                    <button 
+                                                                    <button
                                                                         wire:click="confirmDeleteComment({{ $reply->id }})"
                                                                         @click="window.lastCommentedFileId = {{ $file->id }}"
                                                                         class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors group"
                                                                         title="Delete reply">
-                                                                        <flux:icon name="x-mark" size="xs" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
+                                                                        <flux:icon name="x-mark" variant="micro" class="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300" />
                                                                     </button>
                                                                 @endif
                                                             </div>
@@ -687,7 +721,7 @@
                 <flux:icon.exclamation-triangle class="w-6 h-6 text-red-600 dark:text-red-400" />
                 <flux:heading size="lg">Delete Comment</flux:heading>
             </div>
-            
+
             <flux:subheading class="text-gray-600 dark:text-gray-400">
                 Are you sure you want to delete this comment? This action cannot be undone.
             </flux:subheading>
@@ -704,6 +738,40 @@
                     wire:click="deleteComment" variant="danger" icon="trash" wire:loading.attr="disabled" wire:target="deleteComment">
                     <span wire:loading.remove wire:target="deleteComment">Delete Comment</span>
                     <span wire:loading wire:target="deleteComment">Deleting...</span>
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <!-- Unresolve Comment Confirmation Modal -->
+    <flux:modal name="unresolve-comment" class="max-w-md">
+        <div class="space-y-6">
+            <div class="flex items-center gap-3">
+                <flux:icon.arrow-path class="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <flux:heading size="lg">Mark as Unresolved</flux:heading>
+            </div>
+
+            <flux:subheading class="text-gray-600 dark:text-gray-400">
+                Are you sure you want to mark this comment as unresolved? This will move it back to the active feedback list.
+            </flux:subheading>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:modal.close>
+                    <flux:button variant="ghost" wire:click="cancelUnresolveComment">
+                        Cancel
+                    </flux:button>
+                </flux:modal.close>
+                <flux:button
+                    x-data=""
+                    @click="window.lastCommentedFileId = {{ \Illuminate\Support\Js::from($commentFileIdPendingUnresolve) }}"
+                    wire:click="unresolveComment"
+                    variant="primary"
+                    color="amber"
+                    icon="arrow-path"
+                    wire:loading.attr="disabled"
+                    wire:target="unresolveComment">
+                    <span wire:loading.remove wire:target="unresolveComment">Mark as Unresolved</span>
+                    <span wire:loading wire:target="unresolveComment">Marking...</span>
                 </flux:button>
             </div>
         </div>

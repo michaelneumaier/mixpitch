@@ -1,5 +1,7 @@
 @php
     $branding = $branding ?? [];
+    $milestones = $milestones ?? collect();
+    $hasMilestones = $milestones->count() > 0;
     $statusVariant = 'ghost';
     switch ($pitch->status) {
         case \App\Models\Pitch::STATUS_PENDING:
@@ -39,6 +41,7 @@
             $progressWidth = '25%';
             break;
         case \App\Models\Pitch::STATUS_READY_FOR_REVIEW:
+        case \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED:
             $progressWidth = '50%';
             break;
         case \App\Models\Pitch::STATUS_APPROVED:
@@ -105,6 +108,7 @@
                 ],
                 'Review' => [
                     \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+                    \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
                     \App\Models\Pitch::STATUS_APPROVED,
                     \App\Models\Pitch::STATUS_COMPLETED,
                 ],
@@ -166,6 +170,10 @@
                         <i class="fas fa-bell mr-2 animate-pulse text-amber-500"></i>
                         <strong>Action Required:</strong> Your project is ready for review! Please check the deliverables below and approve or request revisions.
                         @break
+                    @case(\App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED)
+                        <i class="fas fa-sync-alt mr-2 text-amber-500"></i>
+                        <strong>Revisions Requested:</strong> The producer is reviewing your feedback and will submit an updated version soon. You'll be notified when the next version is ready.
+                        @break
                     @case(\App\Models\Pitch::STATUS_APPROVED)
                         <i class="fas fa-check-circle mr-2 text-green-500"></i>
                         Great! You've approved the project.
@@ -200,7 +208,45 @@
             </div>
         </div>
 
-        @if ($pitch->payment_amount > 0)
+        @if ($hasMilestones)
+            {{-- Milestone-based payment progress --}}
+            @php
+                $paidMilestones = $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->count();
+                $totalMilestones = $milestones->count();
+                $paidAmount = $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->sum('amount');
+                $totalAmount = $milestones->sum('amount');
+                $allMilestonesPaid = $paidMilestones === $totalMilestones;
+            @endphp
+            <div class="rounded-xl bg-purple-50 p-4 dark:bg-purple-900/20">
+                <div class="flex items-center justify-between">
+                    <div class="flex min-w-0 flex-1 items-center gap-3">
+                        <flux:icon.flag class="flex-shrink-0 text-purple-500" />
+                        <div class="min-w-0 flex-1">
+                            <flux:heading size="sm">
+                                {{ $paidMilestones }} of {{ $totalMilestones }} Milestones
+                            </flux:heading>
+                            <flux:subheading>${{ number_format($paidAmount, 2) }} / ${{ number_format($totalAmount, 2) }} Paid</flux:subheading>
+                        </div>
+                    </div>
+                    <div class="ml-2 flex-shrink-0 text-right">
+                        @if ($allMilestonesPaid)
+                            <flux:badge variant="success" size="sm">
+                                <flux:icon.check-circle class="mr-1" />
+                                <span class="hidden sm:inline">Complete</span>
+                                <span class="sm:hidden">✓</span>
+                            </flux:badge>
+                        @else
+                            <flux:badge variant="warning" size="sm">
+                                <flux:icon.clock class="mr-1" />
+                                <span class="hidden sm:inline">In Progress</span>
+                                <span class="sm:hidden">{{ $paidMilestones }}/{{ $totalMilestones }}</span>
+                            </flux:badge>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @elseif ($pitch->payment_amount > 0)
+            {{-- Single payment display (no milestones) --}}
             <div class="rounded-xl bg-green-50 p-4 dark:bg-green-900/20">
                 <div class="flex items-center justify-between">
                     <div class="flex min-w-0 flex-1 items-center gap-3">

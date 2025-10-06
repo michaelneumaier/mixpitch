@@ -1427,112 +1427,149 @@ class GlobalAudioManager {
             waveformContainer.appendChild(markersOverlay);
         }
 
-        // Create markers for each comment
-        comments.forEach(comment => {
-            const position = (comment.timestamp / duration) * 100;
+        // Create markers for each grouped comment (supports both old single comment format and new grouped format)
+        comments.forEach(markerData => {
+            // Handle both old format (single comment) and new format (grouped comments)
+            const isGrouped = markerData.comments && Array.isArray(markerData.comments);
+            const timestamp = markerData.timestamp;
+            const position = (timestamp / duration) * 100;
             const clampedPosition = Math.min(Math.max(position, 0), 100);
+            const resolved = markerData.resolved;
+            const count = markerData.count || 1;
 
             const marker = document.createElement('div');
             marker.className = 'comment-marker absolute h-full w-1 cursor-pointer group';
             marker.style.left = `${clampedPosition}%`;
-            marker.style.background = comment.resolved
+            marker.style.background = resolved
                 ? 'linear-gradient(to bottom, #22c55e, #10b981)'
                 : 'linear-gradient(to bottom, #7c3aed, #4f46e5)';
             marker.style.pointerEvents = 'auto';
             marker.style.zIndex = '10';
 
-            // Create marker dot
+            // Create marker dot with count badge
             const markerDot = document.createElement('div');
-            markerDot.className = `h-4 w-4 rounded-full -ml-1.5 ${comment.resolved ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600'} border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200`;
+            markerDot.className = `h-4 w-4 rounded-full -ml-1.5 ${resolved ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600'} border-2 border-white shadow-lg absolute -top-1 group-hover:scale-125 transition-all duration-200`;
 
             const pulse = document.createElement('div');
             pulse.className = 'absolute inset-0 rounded-full bg-white/30 animate-pulse';
             markerDot.appendChild(pulse);
+
+            // Add count badge if multiple comments
+            if (count > 1) {
+                const countBadge = document.createElement('div');
+                countBadge.className = 'absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white shadow-md';
+                countBadge.textContent = count;
+                markerDot.appendChild(countBadge);
+            }
+
             marker.appendChild(markerDot);
 
             // Tooltip container above the marker (bounded size)
             const tooltip = document.createElement('div');
-            tooltip.className = 'comment-tooltip hidden absolute mb-2';
+            tooltip.className = 'comment-tooltip absolute mb-2 bg-white';
             // Place above the marker head
             tooltip.style.bottom = '1.75rem';
             // Position defaults; will be refined based on container width
             tooltip.style.left = '50%';
             tooltip.style.transform = 'translateX(-50%)';
             tooltip.style.width = '20rem';
-            tooltip.style.maxHeight = '16rem';
+            tooltip.style.maxHeight = '20rem';
             tooltip.style.overflowY = 'auto';
-            tooltip.style.background = 'rgba(255,255,255,0.95)';
-            tooltip.style.backdropFilter = 'blur(6px)';
-            tooltip.style.border = '1px solid rgba(255,255,255,0.2)';
+            tooltip.style.border = '1px solid #e5e7eb';
             tooltip.style.borderRadius = '0.75rem';
             tooltip.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
             tooltip.style.padding = '0.75rem';
             tooltip.style.zIndex = '50';
+            tooltip.style.display = 'none';
 
-            // Tooltip content header
-            const header = document.createElement('div');
-            header.className = 'flex items-center mb-2';
-            const title = document.createElement('div');
-            title.className = 'text-sm font-semibold text-gray-900';
-            title.textContent = comment.user?.name || comment.client_email || 'Client';
-            const ts = document.createElement('div');
-            ts.className = 'ml-2 text-xs text-purple-600 font-medium';
-            ts.textContent = comment.formatted_timestamp || '';
-            header.appendChild(title);
-            header.appendChild(ts);
-            tooltip.appendChild(header);
+            // Group header (timestamp and count)
+            const groupHeader = document.createElement('div');
+            groupHeader.className = 'flex items-center justify-between mb-3 pb-2 border-b border-gray-200';
+            const timestampEl = document.createElement('div');
+            timestampEl.className = 'text-xs font-semibold text-purple-600';
+            timestampEl.textContent = markerData.formatted_timestamp || this.formatTime(timestamp);
+            groupHeader.appendChild(timestampEl);
 
-            // Main comment
-            const body = document.createElement('div');
-            body.className = 'text-sm text-gray-800 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg p-2';
-            body.textContent = (comment.comment || '').slice(0, 160);
-            tooltip.appendChild(body);
-
-            // Replies (up to 3)
-            if (Array.isArray(comment.replies) && comment.replies.length) {
-                const repliesWrap = document.createElement('div');
-                repliesWrap.className = 'mt-3';
-                const repliesTitle = document.createElement('div');
-                repliesTitle.className = 'text-xs font-semibold text-gray-500 mb-2';
-                repliesTitle.textContent = 'Recent replies';
-                repliesWrap.appendChild(repliesTitle);
-
-                const list = document.createElement('div');
-                list.className = 'space-y-2';
-                comment.replies.slice(0, 3).forEach(r => {
-                    const item = document.createElement('div');
-                    item.className = 'rounded-md border border-gray-100 bg-gray-50 p-2';
-                    const head = document.createElement('div');
-                    head.className = 'flex items-center gap-2 mb-1';
-                    const name = document.createElement('div');
-                    name.className = 'text-xs font-medium text-gray-700';
-                    name.textContent = (r.user?.name) || (r.client_email || 'Client');
-                    const when = document.createElement('div');
-                    when.className = 'text-[10px] text-gray-400';
-                    when.textContent = r.created_at_human || '';
-                    head.appendChild(name);
-                    head.appendChild(when);
-                    const text = document.createElement('div');
-                    text.className = 'text-xs text-gray-700';
-                    text.textContent = (r.comment || '').slice(0, 120);
-                    item.appendChild(head);
-                    item.appendChild(text);
-                    list.appendChild(item);
-                });
-                if (comment.replies.length > 3) {
-                    const more = document.createElement('div');
-                    more.className = 'text-[11px] text-gray-500';
-                    more.textContent = `+${comment.replies.length - 3} more replies`;
-                    list.appendChild(more);
-                }
-                repliesWrap.appendChild(list);
-                tooltip.appendChild(repliesWrap);
+            if (count > 1) {
+                const countEl = document.createElement('div');
+                countEl.className = 'text-xs text-gray-500';
+                countEl.textContent = `${count} comments`;
+                groupHeader.appendChild(countEl);
             }
+            tooltip.appendChild(groupHeader);
+
+            // All comments in group
+            const commentsContainer = document.createElement('div');
+            commentsContainer.className = 'space-y-3';
+
+            const commentsToShow = isGrouped ? markerData.comments : [markerData];
+            commentsToShow.forEach((comment, idx) => {
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'border-b border-gray-100 last:border-0 pb-3 last:pb-0';
+
+                // Comment header
+                const commentHeader = document.createElement('div');
+                commentHeader.className = 'flex items-center mb-2';
+                const userName = document.createElement('div');
+                userName.className = 'text-xs font-semibold text-gray-900 flex-1';
+                userName.textContent = comment.user?.name || comment.client_email || 'Client';
+                commentHeader.appendChild(userName);
+
+                if (comment.resolved) {
+                    const resolvedBadge = document.createElement('div');
+                    resolvedBadge.className = 'text-[9px] text-green-600 font-medium';
+                    resolvedBadge.textContent = '✓ Resolved';
+                    commentHeader.appendChild(resolvedBadge);
+                }
+                commentDiv.appendChild(commentHeader);
+
+                // Comment content
+                const commentBody = document.createElement('div');
+                commentBody.className = 'text-xs text-gray-800 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 rounded-lg p-2';
+                commentBody.textContent = (comment.comment || '').slice(0, 140);
+                commentDiv.appendChild(commentBody);
+
+                // Replies preview
+                if (Array.isArray(comment.replies) && comment.replies.length) {
+                    const repliesDiv = document.createElement('div');
+                    repliesDiv.className = 'mt-2 pl-3 border-l-2 border-purple-200';
+
+                    const repliesLabel = document.createElement('div');
+                    repliesLabel.className = 'text-[10px] text-gray-500 mb-1';
+                    repliesLabel.textContent = `${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`;
+                    repliesDiv.appendChild(repliesLabel);
+
+                    comment.replies.slice(0, 2).forEach(r => {
+                        const replyDiv = document.createElement('div');
+                        replyDiv.className = 'text-[10px] text-gray-600 mb-1';
+                        const replyName = document.createElement('span');
+                        replyName.className = 'font-medium';
+                        replyName.textContent = (r.user?.name || r.client_email || 'Client') + ': ';
+                        replyDiv.appendChild(replyName);
+                        replyDiv.appendChild(document.createTextNode((r.comment || '').slice(0, 80)));
+                        repliesDiv.appendChild(replyDiv);
+                    });
+
+                    commentDiv.appendChild(repliesDiv);
+                }
+
+                commentsContainer.appendChild(commentDiv);
+            });
+
+            tooltip.appendChild(commentsContainer);
 
             marker.appendChild(tooltip);
 
-            // Hover handlers for tooltip
+            // Hover handlers for tooltip with delay
+            let hideTimeout = null;
+
             marker.addEventListener('mouseenter', () => {
+                // Clear any pending hide timeout
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                    hideTimeout = null;
+                }
+
                 // Edge-aware horizontal placement so it doesn't clip
                 try {
                     const containerRect = waveformContainer.getBoundingClientRect();
@@ -1559,19 +1596,35 @@ class GlobalAudioManager {
                     }
                 } catch (_) { }
 
-                tooltip.classList.remove('hidden');
+                tooltip.style.display = 'block';
             });
-            marker.addEventListener('mouseleave', () => { tooltip.classList.add('hidden'); });
+
+            marker.addEventListener('mouseleave', () => {
+                // Delay hiding tooltip by 1 second to allow moving to tooltip
+                hideTimeout = setTimeout(() => {
+                    tooltip.style.display = 'none';
+                }, 1000);
+            });
+
+            // Keep tooltip visible when hovering over it
+            tooltip.addEventListener('mouseenter', () => {
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                    hideTimeout = null;
+                }
+            });
+
+            // Hide tooltip immediately when leaving it
+            tooltip.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
 
             // Add click handler for seeking
             marker.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.seekToCommentTimestamp(comment.timestamp);
+                this.seekToCommentTimestamp(timestamp);
             });
-
-            // Add tooltip with comment preview
-            marker.title = `${this.formatTime(comment.timestamp)} - ${comment.comment.substring(0, 50)}${comment.comment.length > 50 ? '...' : ''}`;
 
             markersOverlay.appendChild(marker);
         });

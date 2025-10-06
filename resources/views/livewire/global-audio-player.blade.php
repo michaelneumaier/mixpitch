@@ -194,7 +194,7 @@
                     {{-- Waveform container for WaveSurfer --}}
                     <div wire:ignore 
                          id="global-waveform" 
-                         class="w-full h-8 cursor-pointer hover:opacity-90 transition-opacity duration-150"
+                         class="w-full h-8 cursor-pointer"
                          @click="handleWaveformClick($event)"
                          style="min-height: 32px;">
                     </div>
@@ -391,7 +391,7 @@
                     
                     <div wire:ignore 
                          id="global-waveform-full" 
-                         class="w-full mb-6 cursor-pointer hover:opacity-90 transition-opacity duration-150 relative"
+                         class="w-full mb-6 cursor-pointer duration-150 relative"
                          @click="handleWaveformClick($event, true)"
                          style="min-height: 120px; height: 120px;">
                         <!-- Overlay for loop/comment markers -->

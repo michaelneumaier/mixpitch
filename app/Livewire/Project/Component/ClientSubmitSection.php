@@ -31,6 +31,11 @@ class ClientSubmitSection extends Component
 
     public $showWatermarkingInfo = false;
 
+    protected $listeners = [
+        'filesUploaded' => '$refresh',
+        'fileDeleted' => '$refresh',
+    ];
+
     protected $rules = [
         'responseToFeedback' => 'nullable|string|max:5000',
     ];
