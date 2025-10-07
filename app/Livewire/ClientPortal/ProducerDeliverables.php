@@ -108,6 +108,8 @@ class ProducerDeliverables extends Component
 
                 public $created_at;
 
+                public $created_at_for_user;
+
                 public $snapshot_data;
 
                 public $status;
@@ -127,6 +129,8 @@ class ProducerDeliverables extends Component
             $virtualSnapshot->id = 'current';
             $virtualSnapshot->pitch_id = $this->pitch->id;
             $virtualSnapshot->created_at = $this->pitch->updated_at;
+            $virtualSnapshot->created_at_for_user = app(\App\Services\TimezoneService::class)
+                ->convertToUserTimezone($this->pitch->updated_at);
             $virtualSnapshot->snapshot_data = [
                 'version' => 1,
                 'file_ids' => $this->pitch->files->pluck('id')->toArray(),
