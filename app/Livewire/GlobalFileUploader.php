@@ -111,20 +111,27 @@ class GlobalFileUploader extends Component
         if ($modelType === Project::class) {
             $project = Project::findOrFail($modelId);
 
-            // Special handling for client portal uploads
-            if ($context === 'client_portal' && $project->isClientManagement()) {
-                // For client portal uploads, we don't need auth check as the signed URL is the authorization
+            // Check if authenticated user is the client for this project
+            $isAuthenticatedClient = auth()->check() &&
+                ($project->client_user_id === auth()->id() ||
+                 $project->client_email === auth()->user()->email);
+
+            // Special handling for client portal uploads (authenticated or unauthenticated)
+            if ($project->isClientManagement() && ($context === 'client_portal' || $isAuthenticatedClient)) {
+                // For client portal uploads, authorization is via signed URL (unauthenticated)
+                // or via client relationship (authenticated)
                 $this->fileManagementService->createProjectFileFromS3(
                     $project,
                     $s3Key,
                     $filename,
                     $size,
                     $type,
-                    null, // No authenticated user for client portal uploads
+                    auth()->check() ? auth()->user() : null, // Pass auth user if authenticated
                     [
                         'uploaded_by_client' => true,
-                        'client_email' => $project->client_email,
+                        'client_email' => auth()->check() ? auth()->user()->email : $project->client_email,
                         'upload_context' => 'client_portal',
+                        'authenticated_client' => auth()->check(),
                     ]
                 );
 
