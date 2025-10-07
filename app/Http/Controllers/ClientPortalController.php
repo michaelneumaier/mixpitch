@@ -261,6 +261,8 @@ class ClientPortalController extends Controller
 
                 public $created_at;
 
+                public $created_at_for_user;
+
                 public $snapshot_data;
 
                 public $status;
@@ -280,6 +282,8 @@ class ClientPortalController extends Controller
             $virtualSnapshot->id = 'current';
             $virtualSnapshot->pitch_id = $pitch->id;
             $virtualSnapshot->created_at = $pitch->updated_at;
+            $virtualSnapshot->created_at_for_user = app(\App\Services\TimezoneService::class)
+                ->convertToUserTimezone($pitch->updated_at);
             $virtualSnapshot->snapshot_data = [
                 'version' => 1,
                 'file_ids' => $pitch->files->pluck('id')->toArray(),
