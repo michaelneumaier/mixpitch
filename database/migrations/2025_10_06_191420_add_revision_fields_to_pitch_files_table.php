@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::table('pitch_files', function (Blueprint $table) {
             // Track which revision round this file belongs to
-            $table->integer('revision_round')->default(1)->after('file_type');
+            $table->integer('revision_round')->default(1);
             // Mark if file has been superseded by a newer revision
-            $table->boolean('superseded_by_revision')->default(false)->after('revision_round');
+            $table->boolean('superseded_by_revision')->default(false);
 
             $table->index(['revision_round', 'superseded_by_revision']);
         });
