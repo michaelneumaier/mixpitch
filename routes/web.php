@@ -1083,7 +1083,7 @@ Route::post('/client-portal/presigned-upload/generate', [\App\Http\Controllers\A
     ->middleware(['signed_or_client', 'upload.validate:auto']);
 Route::post('/client-portal/presigned-upload/complete', [\App\Http\Controllers\Api\PresignedUploadController::class, 'completeUpload'])
     ->name('client.portal.presigned.complete')
-    ->middleware('signed');
+    ->middleware(['signed_or_client']);
 
 // Client Project File Download route (needs signed middleware) - NEW
 Route::get('/client-portal/project/{project:id}/project-file/{projectFile:id}', [ClientPortalController::class, 'downloadProjectFile'])

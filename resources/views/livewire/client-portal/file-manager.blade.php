@@ -15,7 +15,7 @@
         'emptyStateSubMessage' => $emptyStateSubMessage,
         'isClientPortal' => $isClientPortal,
         'clientPortalProjectId' => $project->id,
-        'currentSnapshot' => $currentSnapshot,
+        'currentSnapshotId' => $currentSnapshotId,
         'colorScheme' => $colorScheme,
     ], key('client-portal-file-list-' . $project->id . '-' . $refreshKey))
 

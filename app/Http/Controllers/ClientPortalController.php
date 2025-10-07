@@ -199,8 +199,15 @@ class ClientPortalController extends Controller
             });
         }
 
-        // Fallback: If no snapshots but files exist, create virtual snapshot history
-        if ($pitch->files->count() > 0) {
+        // Fallback: If no snapshots but files exist AND pitch is in client-viewable status,
+        // create virtual snapshot history for backward compatibility
+        $clientViewableStatuses = [
+            Pitch::STATUS_READY_FOR_REVIEW,
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+            Pitch::STATUS_COMPLETED,
+        ];
+
+        if ($pitch->files->count() > 0 && in_array($pitch->status, $clientViewableStatuses)) {
             $files = $pitch->files->map(function ($file) {
                 return [
                     'id' => $file->id,
@@ -227,7 +234,7 @@ class ClientPortalController extends Controller
             ]]);
         }
 
-        // No snapshots and no files
+        // No snapshots, or pitch not in client-viewable status
         return collect();
     }
 
@@ -251,7 +258,14 @@ class ClientPortalController extends Controller
         }
 
         // Fallback: Create a virtual snapshot from current pitch files for backward compatibility
-        if ($pitch->files->count() > 0) {
+        // ONLY if pitch is in a client-viewable status
+        $clientViewableStatuses = [
+            Pitch::STATUS_READY_FOR_REVIEW,
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+            Pitch::STATUS_COMPLETED,
+        ];
+
+        if ($pitch->files->count() > 0 && in_array($pitch->status, $clientViewableStatuses)) {
             // Create a dynamic class that mimics PitchSnapshot behavior
             $virtualSnapshot = new class
             {
@@ -319,7 +333,7 @@ class ClientPortalController extends Controller
                 'comment' => $request->input('comment'),
                 'status' => $pitch->status,
                 'created_by' => null, // Indicate client origin
-                'metadata' => ['client_email' => $project->client_email], // Store identifier
+                'metadata' => ['client_email' => auth()->check() ? auth()->user()->email : $project->client_email], // Store identifier
             ]);
 
             // Notify producer
@@ -367,7 +381,8 @@ class ClientPortalController extends Controller
                     'project_id' => $project->id,
                 ]);
 
-                $this->pitchWorkflowService->clientApprovePitch($pitch, $project->client_email);
+                $clientIdentifier = auth()->check() ? auth()->user()->email : $project->client_email;
+                $this->pitchWorkflowService->clientApprovePitch($pitch, $clientIdentifier);
 
                 return back()->with('success', 'Project approved successfully! Please complete milestone payments below.');
             }
@@ -419,7 +434,8 @@ class ClientPortalController extends Controller
                 // --- No Payment Required ---
                 Log::info('Client approval does not require payment. Proceeding with approval workflow.', ['pitch_id' => $pitch->id]);
                 // The service method needs to handle authorization (status check)
-                $this->pitchWorkflowService->clientApprovePitch($pitch, $project->client_email);
+                $clientIdentifier = auth()->check() ? auth()->user()->email : $project->client_email;
+                $this->pitchWorkflowService->clientApprovePitch($pitch, $clientIdentifier);
 
                 return back()->with('success', 'Pitch approved successfully.');
             }
@@ -665,7 +681,8 @@ class ClientPortalController extends Controller
 
         try {
             // Service method handles authorization (status check)
-            $this->pitchWorkflowService->clientRequestRevisions($pitch, $request->input('feedback'), $project->client_email);
+            $clientIdentifier = auth()->check() ? auth()->user()->email : $project->client_email;
+            $this->pitchWorkflowService->clientRequestRevisions($pitch, $request->input('feedback'), $clientIdentifier);
 
             return back()->with('success', 'Revision request submitted successfully.');
         } catch (\App\Exceptions\Pitch\InvalidStatusTransitionException $e) {

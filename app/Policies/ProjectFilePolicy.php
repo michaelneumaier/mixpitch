@@ -9,7 +9,7 @@ class ProjectFilePolicy
 {
     /**
      * Determine whether the user can view the project file.
-     * This is used for general file access within the producer interface.
+     * This is used for general file access within the producer interface and client portal.
      */
     public function view(User $user, ProjectFile $projectFile): bool
     {
@@ -19,11 +19,35 @@ class ProjectFilePolicy
             'project_id' => $projectFile->project_id,
             'project_user_id' => $projectFile->project?->user_id,
             'project_loaded' => $projectFile->relationLoaded('project'),
-            'auth_result' => $user->id === $projectFile->project?->user_id,
         ]);
 
-        // Only the project owner (producer) can view project files in the management interface
-        return $user->id === $projectFile->project->user_id;
+        // Project owner (producer) can always view project files
+        if ($user->id === $projectFile->project->user_id) {
+            \Log::info('ProjectFile authorization: allowed (project owner)');
+
+            return true;
+        }
+
+        // For client management projects, allow the client to view their own reference files
+        if ($projectFile->project->isClientManagement()) {
+            $isClient = $projectFile->project->client_user_id === $user->id ||
+                       $projectFile->project->client_email === $user->email;
+
+            \Log::info('ProjectFile authorization check (client management)', [
+                'is_client_management' => true,
+                'client_user_id' => $projectFile->project->client_user_id,
+                'user_id' => $user->id,
+                'client_email' => $projectFile->project->client_email,
+                'user_email' => $user->email,
+                'auth_result' => $isClient,
+            ]);
+
+            return $isClient;
+        }
+
+        \Log::info('ProjectFile authorization: denied');
+
+        return false;
     }
 
     /**

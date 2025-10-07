@@ -53,8 +53,15 @@ class ProducerDeliverables extends Component
             });
         }
 
-        // Fallback: If no snapshots but files exist, create virtual snapshot history
-        if ($this->pitch->files->count() > 0) {
+        // Fallback: If no snapshots but files exist AND pitch is in client-viewable status,
+        // create virtual snapshot history for backward compatibility
+        $clientViewableStatuses = [
+            Pitch::STATUS_READY_FOR_REVIEW,
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+            Pitch::STATUS_COMPLETED,
+        ];
+
+        if ($this->pitch->files->count() > 0 && in_array($this->pitch->status, $clientViewableStatuses)) {
             return collect([[
                 'id' => 'current',
                 'version' => 1,
@@ -66,7 +73,7 @@ class ProducerDeliverables extends Component
             ]]);
         }
 
-        // No snapshots and no files
+        // No snapshots, or pitch not in client-viewable status
         return collect();
     }
 
@@ -99,7 +106,14 @@ class ProducerDeliverables extends Component
         }
 
         // Fallback: Create a virtual snapshot from current pitch files for backward compatibility
-        if ($this->pitch->files->count() > 0) {
+        // ONLY if pitch is in a client-viewable status
+        $clientViewableStatuses = [
+            Pitch::STATUS_READY_FOR_REVIEW,
+            Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+            Pitch::STATUS_COMPLETED,
+        ];
+
+        if ($this->pitch->files->count() > 0 && in_array($this->pitch->status, $clientViewableStatuses)) {
             $virtualSnapshot = new class
             {
                 public $id;

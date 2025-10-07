@@ -254,7 +254,11 @@
                                         $clientPortalProject = isset($clientPortalProjectId)
                                             ? \App\Models\Project::find($clientPortalProjectId)
                                             : null;
-                                        $shouldShowWatermarkBadge = $file->shouldServeWatermarked(Auth::user(), $clientPortalProject, $currentSnapshot ?? null);
+                                        // Fetch snapshot if we have an ID, otherwise pass null (virtual snapshots are null)
+                                        $currentSnapshot = isset($currentSnapshotId) && $currentSnapshotId
+                                            ? \App\Models\PitchSnapshot::find($currentSnapshotId)
+                                            : null;
+                                        $shouldShowWatermarkBadge = $file->shouldServeWatermarked(Auth::user(), $clientPortalProject, $currentSnapshot);
                                     } elseif (Auth::check()) {
                                         // In main app, check Gate permission
                                         $shouldShowWatermarkBadge = Gate::allows('receivesWatermarked', $file);
@@ -292,8 +296,12 @@
                         $canDownloadThisFile = $canDownload;
 
                         // In client portal with snapshot context, check file-level access
-                        if ($isClientPortal && $currentSnapshot && $canDownload) {
+                        if ($isClientPortal && isset($currentSnapshotId) && $currentSnapshotId && $canDownload) {
                             $clientPortalProject = \App\Models\Project::find($clientPortalProjectId);
+                            // Fetch snapshot if not already fetched
+                            $currentSnapshot = isset($currentSnapshot) && $currentSnapshot
+                                ? $currentSnapshot
+                                : \App\Models\PitchSnapshot::find($currentSnapshotId);
                             $canDownloadThisFile = $file->canAccessOriginalFile(null, $clientPortalProject, $currentSnapshot);
                         }
                     }

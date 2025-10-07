@@ -20,7 +20,7 @@ class FileManager extends Component
 
     public Collection $files;
 
-    public $currentSnapshot = null; // For revision-based access control
+    public ?int $currentSnapshotId = null; // For revision-based access control
 
     // Comment management
     public array $newFileComment = [];
@@ -61,6 +61,7 @@ class FileManager extends Component
         Project $project,
         Pitch $pitch,
         ?Collection $files = null,
+        ?int $currentSnapshotId = null,
         bool $canPlay = true,
         bool $canDownload = false,
         bool $canDelete = false,
@@ -75,6 +76,7 @@ class FileManager extends Component
         $this->project = $project;
         $this->pitch = $pitch;
         $this->files = $files ?? collect();
+        $this->currentSnapshotId = $currentSnapshotId;
         $this->canPlay = $canPlay;
         $this->canDownload = $canDownload;
         $this->canDelete = $canDelete;
@@ -111,7 +113,7 @@ class FileManager extends Component
             ->get()
             ->map(function ($comment) {
                 // Map to match expected structure for backward compatibility
-                $comment->client_name = $this->project->client_name ?: 'Client';
+                $comment->client_name = $this->getClientName();
                 $comment->producer_name = $comment->user->name ?? 'Producer';
                 $comment->metadata = [
                     'file_id' => $comment->commentable_id,
@@ -177,7 +179,7 @@ class FileManager extends Component
                 'comment_id' => $commentId,
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
             ]);
 
             $this->dispatch('commentsUpdated');
@@ -215,7 +217,7 @@ class FileManager extends Component
                 'commentable_id' => $parentComment->commentable_id,
                 'comment' => $response,
                 'is_client_comment' => true, // This is a client response
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
                 'parent_id' => $parentComment->id,
                 'timestamp' => 0.0, // Default timestamp for non-audio-specific replies
             ]);
@@ -224,7 +226,7 @@ class FileManager extends Component
                 'parent_comment_id' => $commentId,
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
             ]);
 
             $this->dispatch('commentsUpdated');
@@ -259,7 +261,7 @@ class FileManager extends Component
                 'commentable_id' => $fileId,
                 'comment' => trim($comment),
                 'is_client_comment' => true, // This is a client comment
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
                 'timestamp' => 0.0, // Default timestamp for general comments
             ]);
 
@@ -267,7 +269,7 @@ class FileManager extends Component
                 'file_id' => $fileId,
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
             ]);
 
             // Clear the comment input
@@ -299,7 +301,7 @@ class FileManager extends Component
             }
 
             // Verify this is a client comment and matches the current client
-            if (! $comment->is_client_comment || $comment->client_email !== $this->project->client_email) {
+            if (! $comment->is_client_comment || $comment->client_email !== $this->getClientEmail()) {
                 throw new \Exception('Unauthorized to delete this comment');
             }
 
@@ -309,7 +311,7 @@ class FileManager extends Component
                 'comment_id' => $commentId,
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
             ]);
 
             $this->dispatch('commentsUpdated');
@@ -344,7 +346,7 @@ class FileManager extends Component
                 'comment_id' => $commentId,
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
             ]);
 
             $this->dispatch('commentsUpdated');
@@ -411,7 +413,7 @@ class FileManager extends Component
                 [
                     'project' => $this->project->id,
                     'pitchFile' => $fileId,
-                    'snapshot' => $this->currentSnapshot?->id,
+                    'snapshot' => $this->currentSnapshotId,
                 ]
             );
 
@@ -422,7 +424,7 @@ class FileManager extends Component
                 'file_id' => $fileId,
                 'project_id' => $this->project->id,
                 'pitch_id' => $this->pitch->id,
-                'client_email' => $this->project->client_email,
+                'client_email' => $this->getClientEmail(),
             ]);
 
         } catch (\Exception $e) {
@@ -451,7 +453,7 @@ class FileManager extends Component
                 // Dispatch to global audio player with snapshot context for revision-based access control
                 $this->dispatch('playClientPortalFile', [
                     'fileId' => $fileId,
-                    'snapshotId' => $this->currentSnapshot?->id,
+                    'snapshotId' => $this->currentSnapshotId,
                 ]);
                 break;
             case 'downloadFile':
@@ -491,6 +493,22 @@ class FileManager extends Component
 
         // Force component re-render
         $this->dispatch('$refresh');
+    }
+
+    /**
+     * Get the client email for the current context (authenticated or unauthenticated)
+     */
+    protected function getClientEmail(): string
+    {
+        return auth()->check() ? auth()->user()->email : $this->project->client_email;
+    }
+
+    /**
+     * Get the client name for the current context (authenticated or unauthenticated)
+     */
+    protected function getClientName(): string
+    {
+        return auth()->check() ? auth()->user()->name : ($this->project->client_name ?: 'Client');
     }
 
     public function render()

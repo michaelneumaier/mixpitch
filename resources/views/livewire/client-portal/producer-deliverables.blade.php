@@ -160,7 +160,7 @@
                 'project' => $project,
                 'pitch' => $pitch,
                 'files' => $this->currentFiles,
-                'currentSnapshot' => $this->currentSnapshot,
+                'currentSnapshotId' => is_numeric($this->currentSnapshot->id ?? null) ? (int) $this->currentSnapshot->id : null,
                 'canPlay' => true,
                 'canDownload' => $this->canDownloadFiles,
                 'canDelete' => false,

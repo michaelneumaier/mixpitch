@@ -346,9 +346,9 @@ class PitchFile extends Model
      *
      * @param  User|null  $user  The authenticated user (or null for client portal signed URL access)
      * @param  Project|null  $project  The project context (for client portal access without authentication)
-     * @param  PitchSnapshot|null  $snapshot  The snapshot context (for revision-based access control)
+     * @param  mixed  $snapshot  The snapshot context (PitchSnapshot model or virtual snapshot, for revision-based access control)
      */
-    public function canAccessOriginalFile(?User $user = null, ?Project $project = null, ?PitchSnapshot $snapshot = null): bool
+    public function canAccessOriginalFile(?User $user = null, ?Project $project = null, mixed $snapshot = null): bool
     {
         // For authenticated users, use existing logic
         if ($user) {
@@ -424,10 +424,10 @@ class PitchFile extends Model
      * This allows granular access where files from paid revision rounds remain
      * accessible even when viewing a snapshot that contains unpaid files.
      *
-     * @param  PitchSnapshot  $snapshot  The snapshot being viewed
+     * @param  mixed  $snapshot  The snapshot being viewed (PitchSnapshot model or virtual snapshot)
      * @param  Project  $project  The project context
      */
-    private function canAccessSnapshotFile(PitchSnapshot $snapshot, Project $project): bool
+    private function canAccessSnapshotFile(mixed $snapshot, Project $project): bool
     {
         // Verify this file belongs to the project's pitch
         if ($this->pitch->project_id !== $project->id) {

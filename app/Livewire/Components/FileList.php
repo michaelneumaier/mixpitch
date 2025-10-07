@@ -42,7 +42,7 @@ class FileList extends Component
 
     public ?int $clientPortalProjectId = null;
 
-    public $currentSnapshot = null; // For snapshot-aware watermark badge logic
+    public ?int $currentSnapshotId = null; // For snapshot-aware watermark badge logic
 
     // Display options
     public bool $showFileCount = true;
@@ -128,7 +128,7 @@ class FileList extends Component
         bool $enableCommentCreation = false,
         bool $isClientPortal = false,
         ?int $clientPortalProjectId = null,
-        $currentSnapshot = null
+        ?int $currentSnapshotId = null
     ) {
         $this->files = $files ?? collect();
 
@@ -160,7 +160,7 @@ class FileList extends Component
         $this->enableCommentCreation = $enableCommentCreation;
         $this->isClientPortal = $isClientPortal;
         $this->clientPortalProjectId = $clientPortalProjectId;
-        $this->currentSnapshot = $currentSnapshot;
+        $this->currentSnapshotId = $currentSnapshotId;
     }
 
     /**
