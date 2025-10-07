@@ -1,31 +1,35 @@
 /**
  * MixPitch Service Worker
  * Implements PWA caching strategies for music collaboration platform
+ *
+ * IMPORTANT: This service worker does NOT cache HTML pages to prevent stale content.
+ * It only caches: audio files, static assets, and the offline fallback page.
+ * Page navigation is handled by Livewire's wire:navigate for fresh content on every load.
  */
 
-const CACHE_NAME = 'mixpitch-v1.0.0';
+const CACHE_NAME = 'mixpitch-v2.0.0'; // Bumped to force cache clear
 const OFFLINE_PAGE = '/offline';
 
-// Assets to cache immediately
+// Assets to cache immediately - only offline page and manifest
+// DO NOT cache home page or other HTML pages here
 const STATIC_CACHE_FILES = [
-  '/',
   '/offline',
-  '/css/app.css',
-  '/css/custom.css',
-  '/css/homepage.css',
-  '/js/app.js',
-  '/logo.svg',
-  '/logo.png',
   '/site.webmanifest'
 ];
 
-// Network-first routes (dynamic content)
-const NETWORK_FIRST_ROUTES = [
+// These routes should NEVER be cached - always fetch fresh from network
+// This includes all HTML pages to prevent stale content issues
+const NEVER_CACHE_ROUTES = [
   '/api/',
   '/livewire/',
   '/dashboard',
   '/projects',
-  '/pitches'
+  '/pitches',
+  '/login',
+  '/logout',
+  '/register',
+  '/billing',
+  '/profile'
 ];
 
 // Audio-related URLs that should be cached for PWA playback
@@ -102,57 +106,59 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
   }
-  
+
   // Skip chrome-extension and other non-http(s) schemes
   if (!url.protocol.startsWith('http')) {
     return;
   }
 
+  // CRITICAL: Never cache HTML navigation requests to prevent stale pages
+  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(networkOnlyStrategy(request));
+    return;
+  }
+
   // Handle different route types with appropriate strategies
-  if (isAudioRoute(url.pathname)) {
+  if (isNeverCacheRoute(url.pathname)) {
+    // Always fetch fresh - no caching for dynamic content
+    event.respondWith(networkOnlyStrategy(request));
+  } else if (isAudioRoute(url.pathname)) {
+    // Cache audio files for offline playback
     event.respondWith(audioCacheStrategy(request));
-  } else if (isNetworkFirstRoute(url.pathname)) {
-    event.respondWith(networkFirstStrategy(request));
   } else if (isCacheFirstRoute(url.pathname)) {
+    // Cache static assets (CSS, JS, images, fonts)
     event.respondWith(cacheFirstStrategy(request));
   } else {
-    event.respondWith(staleWhileRevalidateStrategy(request));
+    // Default: try network first, but don't cache HTML
+    event.respondWith(networkOnlyStrategy(request));
   }
 });
 
 /**
- * Network First Strategy - For dynamic content
- * Good for API calls, user-specific data
+ * Network Only Strategy - Always fetch from network, never cache
+ * Used for HTML pages and dynamic content to ensure fresh data
  */
-async function networkFirstStrategy(request) {
+async function networkOnlyStrategy(request) {
   try {
     const networkResponse = await fetch(request);
-    
-    // Cache successful responses
-    if (networkResponse.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, networkResponse.clone());
-    }
-    
     return networkResponse;
   } catch (error) {
-    console.log('Network first failed, trying cache:', error);
-    const cachedResponse = await caches.match(request);
-    
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // Return offline page for navigation requests
+    console.log('Network request failed:', error);
+
+    // Only return offline page for navigation requests
     if (request.mode === 'navigate') {
-      return caches.match(OFFLINE_PAGE);
+      const offlinePage = await caches.match(OFFLINE_PAGE);
+      if (offlinePage) {
+        return offlinePage;
+      }
     }
-    
+
+    // For all other requests, just fail
     throw error;
   }
 }
@@ -183,42 +189,8 @@ async function cacheFirstStrategy(request) {
   }
 }
 
-/**
- * Stale While Revalidate Strategy - For general content
- * Serves cached content immediately, updates in background
- */
-async function staleWhileRevalidateStrategy(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cachedResponse = await cache.match(request);
-  
-  // Fetch from network in background
-  const fetchPromise = fetch(request)
-    .then(networkResponse => {
-      if (networkResponse.ok) {
-        cache.put(request, networkResponse.clone());
-      }
-      return networkResponse;
-    })
-    .catch(error => {
-      console.log('Background fetch failed:', error);
-    });
-  
-  // Return cached version immediately if available
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-  
-  // Otherwise wait for network
-  try {
-    return await fetchPromise;
-  } catch (error) {
-    // Return offline page for navigation requests
-    if (request.mode === 'navigate') {
-      return cache.match(OFFLINE_PAGE);
-    }
-    throw error;
-  }
-}
+// Stale While Revalidate strategy removed - was causing stale page issues
+// All HTML pages now use networkOnlyStrategy for guaranteed fresh content
 
 /**
  * Audio Caching Strategy - For audio files with range request support
@@ -288,13 +260,13 @@ async function audioCacheStrategy(request) {
  * Route checking helpers
  */
 function isAudioRoute(pathname) {
-  return AUDIO_CACHE_ROUTES.some(route => 
+  return AUDIO_CACHE_ROUTES.some(route =>
     pathname.startsWith(route) || pathname.includes(route)
   );
 }
 
-function isNetworkFirstRoute(pathname) {
-  return NETWORK_FIRST_ROUTES.some(route => pathname.startsWith(route));
+function isNeverCacheRoute(pathname) {
+  return NEVER_CACHE_ROUTES.some(route => pathname.startsWith(route));
 }
 
 function isCacheFirstRoute(pathname) {
@@ -393,21 +365,40 @@ self.addEventListener('notificationclick', event => {
  */
 self.addEventListener('message', event => {
   console.log('Service Worker: Message received', event.data);
-  
+
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
+
   if (event.data && event.data.type === 'CACHE_URLS') {
     const urls = event.data.payload;
     caches.open(CACHE_NAME).then(cache => {
       cache.addAll(urls);
     });
   }
-  
+
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     caches.delete(CACHE_NAME).then(() => {
       console.log('Service Worker: Cache cleared');
+    });
+  }
+
+  // Authentication-aware cache invalidation
+  if (event.data && event.data.type === 'AUTH_STATE_CHANGED') {
+    // Clear all caches when user logs in or out to prevent stale data
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          console.log('Service Worker: Clearing cache due to auth change:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      console.log('Service Worker: All caches cleared after auth change');
+      // Re-cache essential offline assets
+      return caches.open(CACHE_NAME).then(cache => {
+        return cache.addAll(STATIC_CACHE_FILES);
+      });
     });
   }
   

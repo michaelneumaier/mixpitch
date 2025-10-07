@@ -38,26 +38,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if service workers are supported
     if ('serviceWorker' in navigator) {
         console.log('Service Worker: Browser support detected');
-        
+
         window.addEventListener('load', function() {
             navigator.serviceWorker.register('/sw.js', {
                 scope: '/'
             })
             .then(function(registration) {
                 console.log('Service Worker: Registration successful', registration);
-                
+
                 // Check for updates
                 registration.addEventListener('updatefound', function() {
                     console.log('Service Worker: Update found');
                     const newWorker = registration.installing;
-                    
+
                     newWorker.addEventListener('statechange', function() {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // Show update available notification
-                            showUpdateAvailableNotification();
+                            // Show update available notification and activate immediately
+                            showUpdateAvailableNotification(newWorker);
                         }
                     });
                 });
+
+                // Force update check on page load
+                registration.update();
             })
             .catch(function(error) {
                 console.error('Service Worker: Registration failed', error);
@@ -125,32 +128,63 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Show update notification
-    function showUpdateAvailableNotification() {
-        // Create a simple notification
+    // Show update notification and activate new service worker
+    function showUpdateAvailableNotification(newWorker) {
+        // Tell the new service worker to skip waiting and activate immediately
+        if (newWorker) {
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        // Notify user and reload to use new service worker
         if (window.Livewire) {
             // Use Livewire notification if available
             window.Livewire.dispatch('notify', {
                 type: 'info',
                 title: 'App Update Available',
-                message: 'A new version of MixPitch is available. Refresh to update.',
-                actions: [
-                    {
-                        label: 'Refresh',
-                        action: function() {
-                            window.location.reload();
-                        }
-                    }
-                ]
+                message: 'A new version of MixPitch is available. Refreshing now...',
             });
+            // Auto-refresh after brief delay
+            setTimeout(() => window.location.reload(), 1500);
         } else {
-            // Fallback notification
-            if (confirm('A new version of MixPitch is available. Would you like to refresh to update?')) {
-                window.location.reload();
-            }
+            // Auto-refresh for non-Livewire pages
+            window.location.reload();
         }
     }
-    
+
+    // Listen for service worker controller change (new SW activated)
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+        console.log('Service Worker: Controller changed, reloading page for fresh content');
+        window.location.reload();
+    });
+
+    // Authentication state change detection
+    // Notify service worker when user logs in or out to clear caches
+    function notifyAuthStateChange() {
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'AUTH_STATE_CHANGED'
+            });
+            console.log('Service Worker: Auth state change notification sent');
+        }
+    }
+
+    // Listen for Livewire navigation events that might indicate auth changes
+    document.addEventListener('livewire:navigated', function() {
+        // Check if we navigated to/from login/logout pages
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/login') || currentPath.includes('/logout') ||
+            currentPath.includes('/register') || currentPath === '/') {
+            notifyAuthStateChange();
+        }
+    });
+
+    // Also listen for storage events (in case of multi-tab scenarios)
+    window.addEventListener('storage', function(e) {
+        if (e.key && (e.key.includes('auth') || e.key.includes('token') || e.key.includes('session'))) {
+            notifyAuthStateChange();
+        }
+    });
+
     // Network status detection
     function updateNetworkStatus() {
         if (navigator.onLine) {
