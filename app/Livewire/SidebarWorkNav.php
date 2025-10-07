@@ -23,26 +23,16 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        // Count active projects (excluding contest and client management projects)
+        // Count all projects (excluding contest and client management projects)
         $projectsCount = Project::where('user_id', $user->id)
             ->whereNotIn('workflow_type', [
                 Project::WORKFLOW_TYPE_CONTEST,
                 Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             ])
-            ->whereIn('status', [
-                Project::STATUS_UNPUBLISHED,
-                Project::STATUS_OPEN,
-                Project::STATUS_IN_PROGRESS,
-            ])
             ->count();
 
-        // Count active pitches (excluding contest and client management pitches)
+        // Count all pitches (excluding contest and client management pitches)
         $pitchesCount = Pitch::where('user_id', $user->id)
-            ->whereIn('status', [
-                Pitch::STATUS_PENDING, Pitch::STATUS_IN_PROGRESS, Pitch::STATUS_READY_FOR_REVIEW,
-                Pitch::STATUS_REVISIONS_REQUESTED, Pitch::STATUS_AWAITING_ACCEPTANCE,
-                Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, Pitch::STATUS_APPROVED,
-            ])
             ->whereHas('project', function ($query) {
                 $query->whereNotIn('workflow_type', [
                     Project::WORKFLOW_TYPE_CONTEST,
@@ -51,35 +41,23 @@ class SidebarWorkNav extends Component
             })
             ->count();
 
-        // Count contest entries (pitches) and contest projects (created by user)
+        // Count all contest entries (pitches) and contest projects (created by user)
         $contestPitchesCount = Pitch::where('user_id', $user->id)
-            ->whereIn('status', [
-                Pitch::STATUS_CONTEST_ENTRY,
-                Pitch::STATUS_CONTEST_WINNER,
-                Pitch::STATUS_CONTEST_RUNNER_UP,
-            ])
+            ->whereHas('project', function ($query) {
+                $query->where('workflow_type', Project::WORKFLOW_TYPE_CONTEST);
+            })
             ->count();
 
         $contestProjectsCount = Project::where('user_id', $user->id)
             ->where('workflow_type', Project::WORKFLOW_TYPE_CONTEST)
-            ->whereIn('status', [
-                Project::STATUS_UNPUBLISHED,
-                Project::STATUS_OPEN,
-                Project::STATUS_IN_PROGRESS,
-            ])
             ->count();
 
         $contestsCount = $contestPitchesCount + $contestProjectsCount;
 
-        // Count client projects (where user is the producer working on client projects
+        // Count all client projects (where user is the producer working on client projects
         // OR where user is a registered client)
         $clientProjectsAsProducerCount = Project::where('user_id', $user->id)
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
-            ->whereIn('status', [
-                Project::STATUS_UNPUBLISHED,
-                Project::STATUS_OPEN,
-                Project::STATUS_IN_PROGRESS,
-            ])
             ->count();
 
         $clientProjectsAsClientCount = Project::where(function ($query) use ($user) {
@@ -87,11 +65,6 @@ class SidebarWorkNav extends Component
                 ->orWhere('client_email', $user->email);
         })
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
-            ->whereIn('status', [
-                Project::STATUS_UNPUBLISHED,
-                Project::STATUS_OPEN,
-                Project::STATUS_IN_PROGRESS,
-            ])
             ->count();
 
         $clientProjectsCount = $clientProjectsAsProducerCount + $clientProjectsAsClientCount;
@@ -120,11 +93,6 @@ class SidebarWorkNav extends Component
                 Project::WORKFLOW_TYPE_CONTEST,
                 Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT,
             ])
-            ->whereIn('status', [
-                Project::STATUS_UNPUBLISHED,
-                Project::STATUS_OPEN,
-                Project::STATUS_IN_PROGRESS,
-            ])
             ->orderBy('updated_at', 'desc')
             ->take($limit)
             ->get();
@@ -139,15 +107,6 @@ class SidebarWorkNav extends Component
         $user = Auth::user();
 
         return Pitch::where('user_id', $user->id)
-            ->whereIn('status', [
-                Pitch::STATUS_PENDING,
-                Pitch::STATUS_IN_PROGRESS,
-                Pitch::STATUS_READY_FOR_REVIEW,
-                Pitch::STATUS_REVISIONS_REQUESTED,
-                Pitch::STATUS_AWAITING_ACCEPTANCE,
-                Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-                Pitch::STATUS_APPROVED,
-            ])
             ->whereHas('project', function ($query) {
                 $query->whereNotIn('workflow_type', [
                     Project::WORKFLOW_TYPE_CONTEST,
@@ -168,13 +127,11 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        // Get contest pitches (entries by this user)
+        // Get all contest pitches (entries by this user)
         $contestPitches = Pitch::where('user_id', $user->id)
-            ->whereIn('status', [
-                Pitch::STATUS_CONTEST_ENTRY,
-                Pitch::STATUS_CONTEST_WINNER,
-                Pitch::STATUS_CONTEST_RUNNER_UP,
-            ])
+            ->whereHas('project', function ($query) {
+                $query->where('workflow_type', Project::WORKFLOW_TYPE_CONTEST);
+            })
             ->with('project')
             ->get()
             ->map(function ($pitch) {
@@ -190,14 +147,9 @@ class SidebarWorkNav extends Component
                 ];
             });
 
-        // Get contest projects (created by this user)
+        // Get all contest projects (created by this user)
         $contestProjects = Project::where('user_id', $user->id)
             ->where('workflow_type', Project::WORKFLOW_TYPE_CONTEST)
-            ->whereIn('status', [
-                Project::STATUS_UNPUBLISHED,
-                Project::STATUS_OPEN,
-                Project::STATUS_IN_PROGRESS,
-            ])
             ->get()
             ->map(function ($project) {
                 return (object) [
@@ -228,7 +180,7 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        // Fetch client projects where user is EITHER the producer OR the registered client
+        // Fetch all client projects where user is EITHER the producer OR the registered client
         return Project::where(function ($query) use ($user) {
             $query->where('user_id', $user->id) // Producer
                 ->orWhere(function ($subQuery) use ($user) {
@@ -237,11 +189,6 @@ class SidebarWorkNav extends Component
                 });
         })
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
-            ->whereIn('status', [
-                Project::STATUS_UNPUBLISHED,
-                Project::STATUS_OPEN,
-                Project::STATUS_IN_PROGRESS,
-            ])
             ->orderBy('updated_at', 'desc')
             ->take($limit)
             ->get();
