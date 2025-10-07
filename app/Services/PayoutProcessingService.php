@@ -114,6 +114,131 @@ class PayoutProcessingService
     }
 
     /**
+     * Schedule payout for a completed milestone payment
+     * Called from webhook handlers and manual payment flows
+     *
+     * @param  \App\Models\PitchMilestone  $milestone  The paid milestone
+     * @param  string  $stripeInvoiceId  Stripe invoice/session ID or manual payment ID
+     * @param  bool  $isManualPayment  Whether this was a manually marked payment
+     */
+    public function schedulePayoutForMilestone(\App\Models\PitchMilestone $milestone, string $stripeInvoiceId, bool $isManualPayment = false): PayoutSchedule
+    {
+        Log::info('Scheduling payout for milestone', [
+            'milestone_id' => $milestone->id,
+            'pitch_id' => $milestone->pitch_id,
+            'stripe_invoice_id' => $stripeInvoiceId,
+            'is_manual' => $isManualPayment,
+        ]);
+
+        return DB::transaction(function () use ($milestone, $stripeInvoiceId, $isManualPayment) {
+            // Load relationships
+            $pitch = $milestone->pitch;
+            $project = $pitch->project;
+            $producer = $pitch->user; // Pitch creator is the producer
+            $workflowType = $project->workflow_type;
+
+            // Calculate payout details
+            $payoutAmount = (float) $milestone->amount;
+
+            // Manual payments bypass commission and hold periods
+            // (payment happened outside MixPitch, so we don't process it)
+            if ($isManualPayment) {
+                $commissionRate = 0;
+                $commissionAmount = 0;
+                $netAmount = $payoutAmount;
+                $holdReleaseDate = now(); // No hold for manual payments
+            } else {
+                $commissionRate = $producer->getPlatformCommissionRate();
+                $commissionAmount = $payoutAmount * ($commissionRate / 100);
+                $netAmount = $payoutAmount - $commissionAmount;
+                $holdReleaseDate = $this->calculateHoldReleaseDate($workflowType);
+            }
+
+            // Create transaction record
+            $transaction = Transaction::createForPitch(
+                $producer, // Producer receives the payout
+                $project,
+                $pitch,
+                $payoutAmount,
+                [
+                    'type' => Transaction::TYPE_PAYMENT,
+                    'status' => Transaction::STATUS_PENDING,
+                    'external_transaction_id' => $stripeInvoiceId,
+                    'workflow_type' => $workflowType,
+                    'description' => "Milestone payout: {$milestone->name}".($isManualPayment ? ' (Manual)' : ''),
+                    'metadata' => [
+                        'milestone_id' => $milestone->id,
+                        'milestone_name' => $milestone->name,
+                        'is_revision_milestone' => $milestone->is_revision_milestone ?? false,
+                        'revision_round_number' => $milestone->revision_round_number,
+                        'stripe_invoice_id' => $stripeInvoiceId,
+                        'hold_release_date' => $holdReleaseDate->toISOString(),
+                        'workflow_type' => $workflowType,
+                        'is_manual_payment' => $isManualPayment,
+                    ],
+                ]
+            );
+
+            // Prepare metadata for payout schedule
+            $payoutMetadata = [
+                'milestone_id' => $milestone->id,
+                'milestone_name' => $milestone->name,
+                'milestone_sort_order' => $milestone->sort_order,
+                'is_revision_milestone' => $milestone->is_revision_milestone ?? false,
+                'pitch_title' => $pitch->title,
+                'project_name' => $project->name,
+                'client_email' => $project->client_email,
+                'is_manual_payment' => $isManualPayment,
+            ];
+
+            // Add revision details if applicable
+            if ($milestone->is_revision_milestone) {
+                $payoutMetadata['revision_round_number'] = $milestone->revision_round_number;
+                $payoutMetadata['revision_request_details'] = $milestone->revision_request_details;
+            }
+
+            // Create payout schedule
+            // Manual payments are marked as completed (already paid outside MixPitch)
+            $payoutSchedule = PayoutSchedule::create([
+                'producer_user_id' => $producer->id,
+                'producer_stripe_account_id' => $producer->stripe_account_id,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'pitch_milestone_id' => $milestone->id,
+                'transaction_id' => $transaction->id,
+                'workflow_type' => $workflowType,
+                'gross_amount' => $payoutAmount,
+                'commission_rate' => $commissionRate,
+                'commission_amount' => $commissionAmount,
+                'net_amount' => $netAmount,
+                'currency' => $project->prize_currency ?? 'USD',
+                'status' => $isManualPayment ? PayoutSchedule::STATUS_COMPLETED : PayoutSchedule::STATUS_SCHEDULED,
+                'completed_at' => $isManualPayment ? now() : null,
+                'hold_release_date' => $holdReleaseDate,
+                'stripe_payment_intent_id' => $stripeInvoiceId,
+                'metadata' => $payoutMetadata,
+            ]);
+
+            // Link transaction to payout schedule
+            $transaction->update(['payout_schedule_id' => $payoutSchedule->id]);
+
+            Log::info('Milestone payout scheduled successfully', [
+                'payout_schedule_id' => $payoutSchedule->id,
+                'transaction_id' => $transaction->id,
+                'milestone_id' => $milestone->id,
+                'net_amount' => $netAmount,
+                'hold_release_date' => $holdReleaseDate->toISOString(),
+                'is_manual' => $isManualPayment,
+            ]);
+
+            // Send notification to producer
+            $this->notificationService->notifyPayoutScheduled($producer, $payoutSchedule);
+
+            return $payoutSchedule;
+        });
+    }
+
+    /**
      * Schedule payouts for contest winners
      * Called when contest prizes are awarded
      *

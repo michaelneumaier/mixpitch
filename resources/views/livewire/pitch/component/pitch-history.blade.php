@@ -45,7 +45,7 @@
                                             @endif
                                         </span>
                                         <span class="text-xs text-gray-500">
-                                            {{ $event->created_at->format('M j, Y g:i A') }}
+                                            {{ $event->created_at_for_user->format('M j, Y g:i A') }}
                                         </span>
                                     </div>
                                     

@@ -350,7 +350,7 @@
                                                     </flux:text>
                                                     <flux:text size="xs"
                                                         class="mt-1 text-gray-500 dark:text-gray-400">
-                                                        {{ $event->created_at->diffForHumans() }}</flux:text>
+                                                        {{ $event->created_at_for_user->diffForHumans() }}</flux:text>
                                                 </div>
                                             </div>
                                         @empty

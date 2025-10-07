@@ -403,7 +403,7 @@
                                                 @else
                                                     <span class="text-gray-500 dark:text-gray-400">Not submitted</span>
                                                     <div class="text-xs text-gray-400 dark:text-gray-500">
-                                                        Created {{ $entry->created_at->format('M d, Y') }}
+                                                        Created {{ $entry->created_at_for_user->format('M d, Y') }}
                                                     </div>
                                                 @endif
                                             </td>

@@ -71,8 +71,9 @@ class SidebarWorkNav extends Component
 
         $contestsCount = $contestPitchesCount + $contestProjectsCount;
 
-        // Count client projects (where user is the producer working on client projects)
-        $clientProjectsCount = Project::where('user_id', $user->id)
+        // Count client projects (where user is the producer working on client projects
+        // OR where user is a registered client)
+        $clientProjectsAsProducerCount = Project::where('user_id', $user->id)
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->whereIn('status', [
                 Project::STATUS_UNPUBLISHED,
@@ -80,6 +81,20 @@ class SidebarWorkNav extends Component
                 Project::STATUS_IN_PROGRESS,
             ])
             ->count();
+
+        $clientProjectsAsClientCount = Project::where(function ($query) use ($user) {
+            $query->where('client_user_id', $user->id)
+                ->orWhere('client_email', $user->email);
+        })
+            ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
+            ->whereIn('status', [
+                Project::STATUS_UNPUBLISHED,
+                Project::STATUS_OPEN,
+                Project::STATUS_IN_PROGRESS,
+            ])
+            ->count();
+
+        $clientProjectsCount = $clientProjectsAsProducerCount + $clientProjectsAsClientCount;
 
         $total = $projectsCount + $pitchesCount + $contestsCount + $clientProjectsCount;
 
@@ -213,7 +228,14 @@ class SidebarWorkNav extends Component
 
         $user = Auth::user();
 
-        return Project::where('user_id', $user->id)
+        // Fetch client projects where user is EITHER the producer OR the registered client
+        return Project::where(function ($query) use ($user) {
+            $query->where('user_id', $user->id) // Producer
+                ->orWhere(function ($subQuery) use ($user) {
+                    $subQuery->where('client_user_id', $user->id) // Registered client by ID
+                        ->orWhere('client_email', $user->email); // Registered client by email
+                });
+        })
             ->where('workflow_type', Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT)
             ->whereIn('status', [
                 Project::STATUS_UNPUBLISHED,

@@ -450,7 +450,7 @@
                             <!-- Timestamp row -->
                             <div class="flex items-center text-sm text-gray-600 min-w-0">
                                 <i class="fas fa-clock text-purple-500 mr-1 flex-shrink-0"></i>
-                                <span class="truncate">{{ $comment->created_at->diffForHumans() }}</span>
+                                <span class="truncate">{{ $comment->created_at_for_user->diffForHumans() }}</span>
                                 <span class="mx-2 flex-shrink-0">•</span>
                                 <button type="button" 
                                         @click="$wire.seekTo({{ $comment->timestamp }})"

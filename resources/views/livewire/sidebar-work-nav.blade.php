@@ -1,10 +1,11 @@
 <div x-data="{
     expandedSection: @js(
         request()->routeIs('projects.manage') && optional(request()->route('project'))->workflow_type === 'contest' ? 'contests' :
-        (request()->routeIs('projects.manage') ? 'projects' : 
-        (request()->routeIs('projects.manage-client') ? 'client' : 
+        (request()->routeIs('projects.manage') ? 'projects' :
+        (request()->routeIs('projects.manage-client') ? 'client' :
+        (request()->routeIs('client.portal.view') ? 'client' :
         (request()->routeIs('projects.pitches.show') && optional(optional(request()->route('pitch'))->project)->workflow_type === 'contest' ? 'contests' :
-        (request()->routeIs('projects.pitches.show') ? 'pitches' : 'none'))))
+        (request()->routeIs('projects.pitches.show') ? 'pitches' : 'none')))))
     ),
     expandTimeout: null,
     dragExpandSection: null,
@@ -315,11 +316,33 @@ x-on:drag-expand-section.window="
     <div x-show="expandedSection === 'client'" x-transition x-cloak class="ml-4 mt-1 space-y-1">
         @foreach($clientProjects as $clientProject)
         @php
-            // For client management, find the producer's pitch to upload deliverables
-            $producerPitch = $clientProject->pitches()->where('user_id', auth()->id())->first();
+            // Determine if current user is the client or the producer
+            $isClient = $clientProject->client_user_id === auth()->id() ||
+                        $clientProject->client_email === auth()->user()->email;
+            $isProducer = $clientProject->user_id === auth()->id();
+
+            // For producers: find their pitch to upload deliverables
+            $producerPitch = null;
+            if ($isProducer) {
+                $producerPitch = $clientProject->pitches()->where('user_id', auth()->id())->first();
+            }
+
+            // Determine the correct route
+            if ($isClient) {
+                // Registered clients go to client portal (with app-sidebar layout)
+                $clientProjectUrl = route('client.portal.view', $clientProject);
+            } elseif ($isProducer && $producerPitch) {
+                // Producers go to manage-client page
+                $clientProjectUrl = route('projects.manage-client', $clientProject);
+            } else {
+                // Fallback
+                $clientProjectUrl = route('projects.manage-client', $clientProject);
+            }
         @endphp
-        @if($producerPitch)
-        <a href="{{ route('projects.manage-client', $clientProject) }}" wire:navigate 
+
+        @if($isProducer && $producerPitch)
+        {{-- Producer view with drag & drop for pitch files --}}
+        <a href="{{ $clientProjectUrl }}" wire:navigate
            class="sidebar-drop-zone block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('project')?->id == $clientProject->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}"
            x-data="{
                clientProjectMeta: {
@@ -347,10 +370,13 @@ x-on:drag-expand-section.window="
             <span class="block truncate max-w-full overflow-hidden">{{ $clientProject->name ?? 'Untitled' }}</span>
         </a>
         @else
-        {{-- If no pitch exists, just show the link without drag & drop --}}
-        <a href="{{ route('projects.manage-client', $clientProject) }}" wire:navigate 
+        {{-- Client view or producer without pitch --}}
+        <a href="{{ $clientProjectUrl }}" wire:navigate
            class="block px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors {{ request()->route('project')?->id == $clientProject->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : '' }}">
             <span class="block truncate max-w-full overflow-hidden">{{ $clientProject->name ?? 'Untitled' }}</span>
+            @if($isClient)
+            <span class="text-xs text-gray-500 dark:text-gray-400">(Client View)</span>
+            @endif
         </a>
         @endif
         @endforeach

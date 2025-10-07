@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasTimezoneDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PitchEvent extends Model
 {
     use HasFactory;
+    use HasTimezoneDisplay;
 
     protected $fillable = [
         'pitch_id',

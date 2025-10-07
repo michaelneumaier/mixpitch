@@ -20,6 +20,7 @@
     @livewire('client-portal.producer-deliverables', [
         'project' => $project,
         'pitch' => $pitch,
+        'milestones' => $milestones,
         'branding' => $branding,
         'isPreview' => $isPreview,
     ])

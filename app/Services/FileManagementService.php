@@ -523,11 +523,21 @@ class FileManagementService
         try {
             return DB::transaction(function () use ($pitch, $s3Key, $fileName, $fileSize, $mimeType, $uploader, $metadata) {
                 $uploaderInfo = $uploader ? ['uploader_id' => $uploader->id] : ['client_upload' => true];
+
+                // Determine revision round for this file
+                // For client management projects with revisions, tag new files with current revision round
+                $revisionRound = 1; // Default for first submission
+                if ($pitch->project->isClientManagement() && $pitch->revisions_used > 0) {
+                    // Use current revisions_used count as the revision round
+                    $revisionRound = $pitch->revisions_used;
+                }
+
                 Log::info('Creating PitchFile record from S3 upload', array_merge([
                     'filename' => $fileName,
                     's3_key' => $s3Key,
                     'pitch_id' => $pitch->id,
                     'file_size' => $fileSize,
+                    'revision_round' => $revisionRound,
                 ], $uploaderInfo, $metadata));
 
                 $pitchFile = $pitch->files()->create([
@@ -539,6 +549,8 @@ class FileManagementService
                     'user_id' => $uploader?->id,
                     'mime_type' => $mimeType,
                     'metadata' => ! empty($metadata) ? json_encode($metadata) : null,
+                    'revision_round' => $revisionRound,
+                    'superseded_by_revision' => false,
                 ]);
 
                 // Atomically update user storage usage instead of pitch storage

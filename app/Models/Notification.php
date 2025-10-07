@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasTimezoneDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -12,6 +13,7 @@ use Illuminate\Support\Str;
 class Notification extends Model
 {
     use HasFactory;
+    use HasTimezoneDisplay;
 
     /**
      * The attributes that are mass assignable.

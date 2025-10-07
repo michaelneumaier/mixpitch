@@ -42,7 +42,7 @@
                 <i class="fas fa-clock text-indigo-600 text-xs"></i>
                 <span class="text-xs text-indigo-700 font-medium">Activity</span>
             </div>
-            <span class="text-xs font-semibold text-indigo-800">{{ $pitch->events->first()?->created_at?->diffForHumans() ?? 'None' }}</span>
+            <span class="text-xs font-semibold text-indigo-800">{{ $pitch->events->first()?->created_at_for_user?->diffForHumans() ?? 'None' }}</span>
         </div>
     </div>
 </div> 

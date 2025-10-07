@@ -47,6 +47,9 @@ class PitchFile extends Model
         'processed_bitrate',
         'processing_metadata',
         'processing_error',
+        // Revision tracking fields
+        'revision_round',
+        'superseded_by_revision',
     ];
 
     protected $casts = [
@@ -61,6 +64,8 @@ class PitchFile extends Model
         'client_approved_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'superseded_by_revision' => 'boolean',
+        'revision_round' => 'integer',
     ];
 
     /**
@@ -307,9 +312,9 @@ class PitchFile extends Model
     /**
      * Get the appropriate streaming URL based on user permissions
      */
-    public function getStreamingUrl(?User $user = null, int $expiration = 7200): ?string
+    public function getStreamingUrl(?User $user = null, ?Project $project = null, int $expiration = 7200): ?string
     {
-        if ($this->shouldServeWatermarked($user)) {
+        if ($this->shouldServeWatermarked($user, $project)) {
             $processedUrl = $this->getProcessedFileUrl($expiration);
 
             // Fallback to original if no processed version available
@@ -321,53 +326,193 @@ class PitchFile extends Model
 
     /**
      * Determine if watermarked version should be served to user
+     *
+     * @param  User|null  $user  The authenticated user (or null for client portal access)
+     * @param  Project|null  $project  The project context (for client portal access without authentication)
      */
-    public function shouldServeWatermarked(?User $user = null): bool
+    public function shouldServeWatermarked(?User $user = null, ?Project $project = null, ?PitchSnapshot $snapshot = null): bool
     {
-        // If no user provided, serve watermarked version
-        if (! $user) {
-            return true;
-        }
-
         // If file is not processed or watermarked, serve original
         if (! $this->audio_processed || ! $this->is_watermarked) {
             return false;
         }
 
-        // Check if user can access original file
-        return ! $this->canAccessOriginalFile($user);
+        // Check if user/client can access original file
+        return ! $this->canAccessOriginalFile($user, $project, $snapshot);
     }
 
     /**
      * Check if user can access the original (non-watermarked) file
+     *
+     * @param  User|null  $user  The authenticated user (or null for client portal signed URL access)
+     * @param  Project|null  $project  The project context (for client portal access without authentication)
+     * @param  PitchSnapshot|null  $snapshot  The snapshot context (for revision-based access control)
      */
-    public function canAccessOriginalFile(?User $user = null): bool
+    public function canAccessOriginalFile(?User $user = null, ?Project $project = null, ?PitchSnapshot $snapshot = null): bool
     {
-        if (! $user) {
+        // For authenticated users, use existing logic
+        if ($user) {
+            // Pitch owner can always access original
+            if ($user->id === $this->pitch->user_id) {
+                return true;
+            }
+
+            // Project owner can access original if fully paid either via full payment or all milestones paid
+            if ($user->id === $this->pitch->project->user_id) {
+                $fullyPaid = $this->pitch->isAcceptedCompletedAndPaid();
+                if (! $fullyPaid) {
+                    // Allow originals when all milestones with positive amounts are paid
+                    // Note: Must check for both != 'paid' AND NULL since unpaid milestones have null payment_status
+                    $unpaidMilestones = $this->pitch->milestones()
+                        ->where('amount', '>', 0)
+                        ->where(function ($query) {
+                            $query->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+                                ->orWhereNull('payment_status');
+                        })
+                        ->count();
+                    $fullyPaid = $unpaidMilestones === 0 && $this->pitch->milestones()->exists();
+                }
+
+                return $fullyPaid;
+            }
+
             return false;
         }
 
-        // Pitch owner can always access original
-        if ($user->id === $this->pitch->user_id) {
-            return true;
+        // For client portal access with snapshot context (revision-based access control)
+        if ($project && $project->isClientManagement() && $snapshot) {
+            return $this->canAccessSnapshotFile($snapshot, $project);
         }
 
-        // Project owner can access original if fully paid either via full payment or all milestones paid
-        if ($user->id === $this->pitch->project->user_id) {
+        // For client portal access without snapshot (legacy/fallback)
+        if ($project && $project->isClientManagement()) {
+            // Verify this file belongs to the project's pitch
+            if ($this->pitch->project_id !== $project->id) {
+                return false;
+            }
+
+            // Check if project is fully paid
             $fullyPaid = $this->pitch->isAcceptedCompletedAndPaid();
+
             if (! $fullyPaid) {
-                // Allow originals when all milestones with positive amounts are paid
+                // Check if all milestones with positive amounts are paid
+                // Note: Must check for both != 'paid' AND NULL since unpaid milestones have null payment_status
                 $unpaidMilestones = $this->pitch->milestones()
                     ->where('amount', '>', 0)
-                    ->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+                    ->where(function ($query) {
+                        $query->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+                            ->orWhereNull('payment_status');
+                    })
                     ->count();
-                $fullyPaid = $unpaidMilestones === 0 && $this->pitch->milestones()->exists();
+                $milestonesExist = $this->pitch->milestones()->exists();
+
+                $fullyPaid = $unpaidMilestones === 0 && $milestonesExist;
             }
 
             return $fullyPaid;
         }
 
+        // No user and no project context - deny access to original
         return false;
+    }
+
+    /**
+     * Check if this file can be accessed within a specific snapshot context.
+     * Implements FILE-LEVEL revision-based access control: each file is accessible
+     * if all milestones up to and including the FILE's revision round are paid.
+     *
+     * This allows granular access where files from paid revision rounds remain
+     * accessible even when viewing a snapshot that contains unpaid files.
+     *
+     * @param  PitchSnapshot  $snapshot  The snapshot being viewed
+     * @param  Project  $project  The project context
+     */
+    private function canAccessSnapshotFile(PitchSnapshot $snapshot, Project $project): bool
+    {
+        // Verify this file belongs to the project's pitch
+        if ($this->pitch->project_id !== $project->id) {
+            return false;
+        }
+
+        // Verify this file belongs to this snapshot
+        $snapshotFileIds = $snapshot->snapshot_data['file_ids'] ?? [];
+        if (! in_array($this->id, $snapshotFileIds)) {
+            return false;
+        }
+
+        // Get THIS FILE's revision round (not the snapshot's!)
+        // Files without revision_round are treated as initial (round 0)
+        $fileRevisionRound = $this->revision_round ?? 0;
+
+        // For round 0 (initial submission), only check initial milestones
+        if ($fileRevisionRound === 0) {
+            $unpaidInitialMilestones = $this->pitch->milestones()
+                ->where('amount', '>', 0)
+                ->whereNull('revision_round_number')
+                ->where('is_revision_milestone', false)
+                ->where(function ($query) {
+                    $query->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+                        ->orWhereNull('payment_status');
+                })
+                ->count();
+
+            return $unpaidInitialMilestones === 0 && $this->pitch->milestones()->exists();
+        }
+
+        // For revision rounds, check initial milestones + revision milestones up to THIS FILE's round
+        $unpaidRevisionMilestones = $this->pitch->milestones()
+            ->where('amount', '>', 0)
+            ->where('revision_round_number', '<=', $fileRevisionRound)
+            ->where(function ($query) {
+                $query->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+                    ->orWhereNull('payment_status');
+            })
+            ->count();
+
+        $unpaidInitialMilestones = $this->pitch->milestones()
+            ->where('amount', '>', 0)
+            ->whereNull('revision_round_number')
+            ->where('is_revision_milestone', false)
+            ->where(function ($query) {
+                $query->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+                    ->orWhereNull('payment_status');
+            })
+            ->count();
+
+        $totalUnpaid = $unpaidRevisionMilestones + $unpaidInitialMilestones;
+
+        return $totalUnpaid === 0 && $this->pitch->milestones()->exists();
+    }
+
+    /**
+     * Determine the revision round number for a given snapshot.
+     * This is used for snapshot-based access control to determine which milestones
+     * must be paid to access files in this snapshot.
+     *
+     * Revision rounds:
+     * - V1: Round 0 (initial submission, covered by initial milestones)
+     * - V2: Round 1 (first revision, covered if included_revisions >= 1)
+     * - V3: Round 2 (second revision, covered if included_revisions >= 2)
+     *
+     * @param  PitchSnapshot  $snapshot  The snapshot to check
+     */
+    private function getRevisionRoundForSnapshot(PitchSnapshot $snapshot): int
+    {
+        // First, check if there's a milestone directly linked to this snapshot
+        $milestone = $snapshot->milestone;
+        if ($milestone && $milestone->revision_round_number) {
+            return $milestone->revision_round_number;
+        }
+
+        // Fallback: Calculate based on snapshot version
+        // V1 is the initial submission (round 0)
+        if ($snapshot->version == 1) {
+            return 0;
+        }
+
+        // V2+ are revisions: revision number = version - 1
+        // V2 = revision 1, V3 = revision 2, etc.
+        return $snapshot->version - 1;
     }
 
     /**

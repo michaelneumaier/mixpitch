@@ -588,19 +588,74 @@ class WebhookController extends CashierWebhookController
                         'status' => $milestone->status === 'approved' ? 'approved' : 'approved',
                     ]);
 
-                    // Optionally, add an event to the pitch timeline
-                    try {
-                        $milestone->pitch?->events()->create([
-                            'event_type' => 'milestone_paid',
-                            'comment' => 'Milestone "'.$milestone->name.'" payment received.',
-                            'status' => $milestone->pitch?->status,
-                            'metadata' => [
+                    // If this is a revision milestone with a linked snapshot, approve it automatically
+                    if ($milestone->is_revision_milestone && $milestone->pitch_snapshot_id) {
+                        $snapshot = \App\Models\PitchSnapshot::find($milestone->pitch_snapshot_id);
+
+                        if ($snapshot && $snapshot->status === \App\Models\PitchSnapshot::STATUS_PENDING) {
+                            $snapshot->update(['status' => \App\Models\PitchSnapshot::STATUS_APPROVED]);
+
+                            Log::info('Auto-approved revision snapshot after milestone payment', [
                                 'milestone_id' => $milestone->id,
-                                'amount' => (string) $milestone->amount,
-                                'stripe_checkout_session_id' => $sessionId,
-                                'payment_intent_id' => $paymentIntentId,
-                            ],
-                        ]);
+                                'snapshot_id' => $snapshot->id,
+                                'revision_round' => $milestone->revision_round_number,
+                            ]);
+
+                            // Create event for snapshot approval
+                            $milestone->pitch?->events()->create([
+                                'event_type' => 'snapshot_approved',
+                                'comment' => "Revision snapshot V{$snapshot->version} auto-approved after milestone payment.",
+                                'status' => $milestone->pitch?->status,
+                                'metadata' => [
+                                    'milestone_id' => $milestone->id,
+                                    'snapshot_id' => $snapshot->id,
+                                    'revision_round' => $milestone->revision_round_number,
+                                    'auto_approved_via' => 'milestone_payment',
+                                    'amount_paid' => (string) $milestone->amount,
+                                ],
+                            ]);
+                        }
+                    }
+
+                    // Schedule payout for the producer
+                    $payoutService = app(\App\Services\PayoutProcessingService::class);
+                    $payoutSchedule = $payoutService->schedulePayoutForMilestone($milestone, $sessionId, false);
+
+                    Log::info('Payout scheduled for milestone payment', [
+                        'milestone_id' => $milestone->id,
+                        'payout_schedule_id' => $payoutSchedule->id,
+                        'net_amount' => $payoutSchedule->net_amount,
+                    ]);
+
+                    // Optionally, add an event to the pitch timeline (with idempotency check)
+                    try {
+                        // Check if event already exists for this session to prevent duplicates on webhook retries
+                        $existingEvent = $milestone->pitch?->events()
+                            ->where('event_type', 'milestone_paid')
+                            ->where(function ($query) use ($sessionId) {
+                                $query->whereJsonContains('metadata->stripe_checkout_session_id', $sessionId)
+                                    ->orWhereJsonContains('metadata->stripe_checkout_session_id', (string) $sessionId);
+                            })
+                            ->first();
+
+                        if (! $existingEvent) {
+                            $milestone->pitch?->events()->create([
+                                'event_type' => 'milestone_paid',
+                                'comment' => 'Milestone "'.$milestone->name.'" payment received.',
+                                'status' => $milestone->pitch?->status,
+                                'metadata' => [
+                                    'milestone_id' => $milestone->id,
+                                    'amount' => (string) $milestone->amount,
+                                    'stripe_checkout_session_id' => $sessionId,
+                                    'payment_intent_id' => $paymentIntentId,
+                                ],
+                            ]);
+                        } else {
+                            Log::info('Milestone payment event already exists, skipping duplicate creation', [
+                                'milestone_id' => $milestoneId,
+                                'session_id' => $sessionId,
+                            ]);
+                        }
                     } catch (\Throwable $e) {
                         Log::warning('Failed to create pitch event for milestone payment.', [
                             'milestone_id' => $milestoneId,

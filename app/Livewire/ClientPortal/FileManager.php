@@ -20,6 +20,8 @@ class FileManager extends Component
 
     public Collection $files;
 
+    public $currentSnapshot = null; // For revision-based access control
+
     // Comment management
     public array $newFileComment = [];
 
@@ -388,6 +390,52 @@ class FileManager extends Component
     }
 
     /**
+     * Download a file by generating a temporary signed URL
+     */
+    public function downloadFile(int $fileId): void
+    {
+        try {
+            // Verify the file belongs to this pitch
+            $file = $this->files->where('id', $fileId)->first();
+            if (! $file) {
+                $this->dispatch('notify', type: 'error', message: 'File not found.');
+
+                return;
+            }
+
+            // Generate a temporary signed URL for the file download
+            // Include snapshot parameter for revision-based access control
+            $downloadUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'client.portal.download_file',
+                now()->addMinutes(5),
+                [
+                    'project' => $this->project->id,
+                    'pitchFile' => $fileId,
+                    'snapshot' => $this->currentSnapshot?->id,
+                ]
+            );
+
+            // Dispatch browser event to trigger download
+            $this->dispatch('download-file', url: $downloadUrl);
+
+            Log::info('Client portal: File download initiated', [
+                'file_id' => $fileId,
+                'project_id' => $this->project->id,
+                'pitch_id' => $this->pitch->id,
+                'client_email' => $this->project->client_email,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Client portal: Failed to initiate file download', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->dispatch('notify', type: 'error', message: 'Failed to download file.');
+        }
+    }
+
+    /**
      * Handle file actions (play/download/delete) - delegate to parent or handle here
      */
     #[On('fileAction')]
@@ -400,8 +448,14 @@ class FileManager extends Component
         // Download and delete are typically handled by the controller routes
         switch ($action) {
             case 'playFile':
-                // Could dispatch to global audio player or handle play action
-                $this->dispatch('playClientPortalFile', fileId: $fileId);
+                // Dispatch to global audio player with snapshot context for revision-based access control
+                $this->dispatch('playClientPortalFile', [
+                    'fileId' => $fileId,
+                    'snapshotId' => $this->currentSnapshot?->id,
+                ]);
+                break;
+            case 'downloadFile':
+                $this->downloadFile($fileId);
                 break;
             default:
                 // Other actions might be handled by parent component or routes

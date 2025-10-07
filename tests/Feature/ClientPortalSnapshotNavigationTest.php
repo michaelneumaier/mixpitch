@@ -218,4 +218,100 @@ class ClientPortalSnapshotNavigationTest extends TestCase
         $response->assertDontSee('versions available'); // Single version
         $response->assertDontSee('Submission History'); // No navigation for single version
     }
+
+    /** @test */
+    public function client_can_see_historical_snapshots_after_producer_recalls_later_version()
+    {
+        // Create V1 with files
+        $v1File = PitchFile::factory()->create([
+            'pitch_id' => $this->pitch->id,
+            'user_id' => $this->producer->id,
+            'file_name' => 'version1.mp3',
+        ]);
+
+        $v1Snapshot = PitchSnapshot::create([
+            'pitch_id' => $this->pitch->id,
+            'project_id' => $this->project->id,
+            'user_id' => $this->producer->id,
+            'snapshot_data' => [
+                'version' => 1,
+                'file_ids' => [$v1File->id],
+            ],
+            'status' => PitchSnapshot::STATUS_ACCEPTED,
+        ]);
+
+        // Producer recalls their V2 submission (simulated - snapshot already deleted)
+        // Pitch is now IN_PROGRESS but V1 still exists
+        $this->pitch->update([
+            'status' => Pitch::STATUS_IN_PROGRESS,
+            'current_snapshot_id' => null,
+        ]);
+
+        // Generate signed URL for client portal
+        $signedUrl = URL::temporarySignedRoute(
+            'client.portal.view',
+            now()->addDays(7),
+            ['project' => $this->project->id]
+        );
+
+        // Client views the portal after recall
+        $response = $this->get($signedUrl);
+
+        // Client should STILL see V1 (historical snapshot) even though pitch is IN_PROGRESS
+        $response->assertStatus(200);
+        $response->assertSee('Producer Deliverables'); // Section is visible
+        $response->assertSee('version1.mp3'); // V1 file visible
+        $response->assertDontSee('Producer is working on your project'); // Should NOT show empty state
+    }
+
+    /** @test */
+    public function client_sees_empty_state_when_producer_recalls_only_version()
+    {
+        // Create V1 with files (only version)
+        $v1File = PitchFile::factory()->create([
+            'pitch_id' => $this->pitch->id,
+            'user_id' => $this->producer->id,
+            'file_name' => 'version1.mp3',
+        ]);
+
+        $v1Snapshot = PitchSnapshot::create([
+            'pitch_id' => $this->pitch->id,
+            'project_id' => $this->project->id,
+            'user_id' => $this->producer->id,
+            'snapshot_data' => [
+                'version' => 1,
+                'file_ids' => [$v1File->id],
+            ],
+            'status' => PitchSnapshot::STATUS_PENDING,
+        ]);
+
+        // Set pitch to READY_FOR_REVIEW with V1
+        $this->pitch->update([
+            'status' => Pitch::STATUS_READY_FOR_REVIEW,
+            'current_snapshot_id' => $v1Snapshot->id,
+        ]);
+
+        // Generate signed URL
+        $signedUrl = URL::temporarySignedRoute(
+            'client.portal.view',
+            now()->addDays(7),
+            ['project' => $this->project->id]
+        );
+
+        // Producer recalls V1 (the only version)
+        $v1Snapshot->delete();
+        $this->pitch->update([
+            'status' => Pitch::STATUS_IN_PROGRESS,
+            'current_snapshot_id' => null,
+        ]);
+
+        // Client refreshes the portal
+        $response = $this->get($signedUrl);
+
+        // Client should see empty state (no snapshots exist)
+        $response->assertStatus(200);
+        $response->assertSee('Producer is working on your project');
+        $response->assertSee('Files will appear here when the producer submits them for your review');
+        $response->assertDontSee('version1.mp3');
+    }
 }

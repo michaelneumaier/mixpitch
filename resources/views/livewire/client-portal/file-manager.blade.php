@@ -15,6 +15,16 @@
         'emptyStateSubMessage' => $emptyStateSubMessage,
         'isClientPortal' => $isClientPortal,
         'clientPortalProjectId' => $project->id,
+        'currentSnapshot' => $currentSnapshot,
         'colorScheme' => $colorScheme,
     ], key('client-portal-file-list-' . $project->id . '-' . $refreshKey))
+
+    {{-- JavaScript to handle file downloads --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('download-file', (event) => {
+                window.location.href = event.url;
+            });
+        });
+    </script>
 </div>

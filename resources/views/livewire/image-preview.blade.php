@@ -125,7 +125,7 @@
                                 <div>
                                     <strong>{{ $comment->user->name ?? 'Client' }}</strong>
                                     <span class="text-sm text-gray-500 ml-2">
-                                        {{ $comment->created_at->diffForHumans() }}
+                                        {{ $comment->created_at_for_user->diffForHumans() }}
                                     </span>
                                 </div>
                                 @if($this->canAddComments())

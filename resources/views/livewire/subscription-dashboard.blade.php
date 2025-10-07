@@ -186,7 +186,7 @@
                                 @foreach($recentActivity['transactions']->take(3) as $transaction)
                                     <div class="flex items-center justify-between">
                                         <flux:text size="sm" class="text-gray-600 dark:text-gray-400">
-                                            {{ $transaction->type }} • {{ $transaction->created_at->format('M j') }}
+                                            {{ $transaction->type }} • {{ $transaction->created_at_for_user->format('M j') }}
                                         </flux:text>
                                         <flux:text size="sm" class="font-medium text-gray-900 dark:text-gray-100">
                                             ${{ number_format($transaction->net_amount, 2) }}
@@ -205,7 +205,7 @@
                                 @foreach($recentActivity['visibility_boosts']->take(3) as $boost)
                                     <div class="flex items-center justify-between">
                                         <flux:text size="sm" class="text-gray-600 dark:text-gray-400">
-                                            {{ ucfirst($boost->boost_type) }} boost • {{ $boost->created_at->format('M j') }}
+                                            {{ ucfirst($boost->boost_type) }} boost • {{ toUserTimezone($boost->created_at)->format('M j') }}
                                         </flux:text>
                                         <flux:badge :color="$boost->status === 'active' ? 'green' : 'gray'" size="sm">
                                             {{ ucfirst($boost->status) }}

@@ -31,7 +31,7 @@ class PayoutController extends Controller
 
         // Get payout history with filters
         $payoutsQuery = PayoutSchedule::where('producer_user_id', $user->id)
-            ->with(['project', 'pitch', 'contestPrize', 'transaction', 'refundRequests'])
+            ->with(['project', 'pitch', 'milestone', 'contestPrize', 'transaction', 'refundRequests'])
             ->orderBy('created_at', 'desc');
 
         // Apply filters
@@ -78,7 +78,7 @@ class PayoutController extends Controller
             abort(403, 'Unauthorized access to payout information.');
         }
 
-        $payout->load(['project', 'pitch', 'contestPrize', 'transaction', 'refundRequests']);
+        $payout->load(['project', 'pitch', 'milestone', 'contestPrize', 'transaction', 'refundRequests']);
 
         return view('payouts.show', [
             'payout' => $payout,

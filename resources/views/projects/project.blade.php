@@ -173,7 +173,7 @@
                             <!-- Created Date -->
                             <div class="flex items-center justify-between">
                                 <flux:text size="sm" class="font-medium text-slate-700 dark:text-slate-300">Created</flux:text>
-                                <flux:text size="sm" class="font-semibold text-slate-900 dark:text-slate-100">{{ $project->created_at->format('M d, Y') }}</flux:text>
+                                <flux:text size="sm" class="font-semibold text-slate-900 dark:text-slate-100">{{ toUserTimezone($project->created_at)->format('M d, Y') }}</flux:text>
                             </div>
 
                             <!-- Deadline -->

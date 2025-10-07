@@ -28,16 +28,13 @@ class EnsureSignedOrClientAccess
             return $next($request);
         }
 
-        // Allow if authenticated client matches this project
+        // Allow if authenticated user matches this project's client (by ID or email)
         if (auth()->check()) {
             /** @var User $user */
             $user = auth()->user();
 
-            $isClient = method_exists($user, 'hasRole')
-                ? $user->hasRole(User::ROLE_CLIENT)
-                : ($user->role ?? null) === User::ROLE_CLIENT;
-
-            if ($isClient && ($project->client_user_id === $user->id || $project->client_email === $user->email)) {
+            // Check if user is the registered client for this project
+            if ($project->client_user_id === $user->id || $project->client_email === $user->email) {
                 return $next($request);
             }
         }

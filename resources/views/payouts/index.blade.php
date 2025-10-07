@@ -195,6 +195,23 @@
                                                 <div class="text-sm text-slate-600 dark:text-slate-400 truncate">
                                                     {{ $payout->pitch->title ?? 'Unknown Pitch' }}
                                                 </div>
+                                                @if($payout->milestone)
+                                                    <div class="text-xs text-purple-600 dark:text-purple-400 mt-1 flex items-center gap-1">
+                                                        <flux:icon name="check-badge" size="xs" />
+                                                        Milestone: {{ $payout->milestone->name }}
+                                                        @if($payout->milestone->is_revision_milestone)
+                                                            <span class="text-amber-600 dark:text-amber-400">(Revision #{{ $payout->milestone->revision_round_number }})</span>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                                @if($payout->metadata['is_manual_payment'] ?? false)
+                                                    <div class="text-xs mt-1">
+                                                        <flux:badge color="slate" size="xs">
+                                                            <flux:icon name="hand-raised" size="xs" />
+                                                            Paid Outside MixPitch
+                                                        </flux:badge>
+                                                    </div>
+                                                @endif
                                                 @if($payout->status === 'scheduled')
                                                     <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
                                                         Releases {{ $payout->hold_release_date->format('M j, Y') }}
@@ -231,14 +248,18 @@
                                         <div>
                                             <div class="font-semibold text-slate-900 dark:text-slate-100">${{ number_format($payout->net_amount, 2) }}</div>
                                             <div class="text-sm text-slate-600 dark:text-slate-400">Net amount</div>
-                                            <div class="text-xs text-slate-500 dark:text-slate-500">Gross: ${{ number_format($payout->gross_amount, 2) }}</div>
+                                            @if($payout->metadata['is_manual_payment'] ?? false)
+                                                <div class="text-xs text-slate-500 dark:text-slate-500">No commission (external payment)</div>
+                                            @else
+                                                <div class="text-xs text-slate-500 dark:text-slate-500">Gross: ${{ number_format($payout->gross_amount, 2) }}</div>
+                                            @endif
                                         </div>
                                     </flux:table.cell>
                                     <flux:table.cell class="hidden md:table-cell">
                                         <div class="text-sm text-slate-700 dark:text-slate-300">{{ $payout->commission_rate }}%</div>
                                     </flux:table.cell>
                                     <flux:table.cell class="hidden lg:table-cell">
-                                        <div class="text-sm text-slate-700 dark:text-slate-300">{{ $payout->created_at->format('M j, Y') }}</div>
+                                        <div class="text-sm text-slate-700 dark:text-slate-300">{{ toUserTimezone($payout->created_at)->format('M j, Y') }}</div>
                                         @if($payout->stripe_transfer_id)
                                             <div class="text-xs text-slate-500 dark:text-slate-500 mt-1">ID: {{ Str::limit($payout->stripe_transfer_id, 12) }}</div>
                                         @endif
@@ -321,7 +342,7 @@
                     <div class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800">
                         <div>
                             <div class="font-medium text-slate-900 dark:text-slate-100">{{ $request->pitch->project->name ?? 'Unknown Project' }}</div>
-                            <div class="text-sm text-slate-600 dark:text-slate-400">{{ $request->created_at->format('M j, Y') }} • {{ ucfirst($request->status) }}</div>
+                            <div class="text-sm text-slate-600 dark:text-slate-400">{{ toUserTimezone($request->created_at)->format('M j, Y') }} • {{ ucfirst($request->status) }}</div>
                         </div>
                         <flux:badge color="red" size="sm">
                             Refund Request

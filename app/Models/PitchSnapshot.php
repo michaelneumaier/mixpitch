@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasTimezoneDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PitchSnapshot extends Model
 {
     use HasFactory;
+    use HasTimezoneDisplay;
 
     // Status Constants
     const STATUS_PENDING = 'pending';
@@ -51,6 +53,11 @@ class PitchSnapshot extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function milestone()
+    {
+        return $this->hasOne(PitchMilestone::class, 'pitch_snapshot_id');
     }
 
     /**
@@ -158,6 +165,7 @@ class PitchSnapshot extends Model
             self::STATUS_ACCEPTED => 'Accepted',
             self::STATUS_DENIED => 'Denied',
             self::STATUS_REVISIONS_REQUESTED => 'Revisions Requested',
+            self::STATUS_REVISION_ADDRESSED => 'Revision Addressed',
             self::STATUS_CANCELLED => 'Cancelled',
         ];
     }

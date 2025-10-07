@@ -29,17 +29,10 @@ document.addEventListener('alpine:init', () => {
             this.snapshotData = JSON.parse(dataElement.textContent);
         }
 
-        // Listen for checkbox changes
-        document.addEventListener('change', (e) => {
-            if (e.target.matches('.comparison-checkbox')) {
-                this.updateComparison();
-            }
-        });
-
         // Set up global functions for backward compatibility
         window.toggleVersionComparison = () => this.toggleComparison();
         window.hideVersionComparison = () => this.hideComparison();
-        window.selectSnapshot = (id) => this.selectSnapshot(id);
+        window.selectSnapshot = (id, event) => this.selectSnapshot(id, event);
     },
 
     toggleComparison() {
@@ -52,12 +45,23 @@ document.addEventListener('alpine:init', () => {
     },
 
     hideComparison() {
-        const checkboxes = document.querySelectorAll('.comparison-checkbox');
+        const indicators = document.querySelectorAll('.comparison-checkbox');
         const modalOverlay = document.getElementById('version-comparison');
 
-        checkboxes.forEach(cb => {
-            cb.classList.add('hidden');
-            cb.checked = false;
+        indicators.forEach(ind => {
+            // Hide the indicator
+            ind.classList.add('hidden');
+
+            // Reset selection state
+            ind.classList.remove('selected', 'bg-blue-500');
+            ind.classList.add('bg-white', 'dark:bg-gray-700');
+
+            // Reset check icon
+            const checkIcon = ind.querySelector('.comparison-check-icon');
+            if (checkIcon) {
+                checkIcon.classList.remove('opacity-100', 'text-white');
+                checkIcon.classList.add('opacity-0', 'text-blue-500');
+            }
         });
         this.showComparison = false;
         this.selectedSnapshots = [];
@@ -68,36 +72,69 @@ document.addEventListener('alpine:init', () => {
         }
     },
 
-    selectSnapshot(snapshotId) {
-        // Only navigate if not in comparison mode
+    selectSnapshot(snapshotId, event) {
         const checkboxes = document.querySelectorAll('.comparison-checkbox');
-        if (checkboxes[0] && checkboxes[0].classList.contains('hidden')) {
-            // In preview mode, do not navigate
-            if (typeof window.isPortalPreview !== 'undefined' && window.isPortalPreview) {
-                console.log('Preview mode: Snapshot navigation disabled');
-                return;
+        const areCheckboxesVisible = checkboxes[0] && !checkboxes[0].classList.contains('hidden');
+
+        // If in comparison mode (checkboxes visible), toggle the visual selection
+        if (areCheckboxesVisible) {
+            // Prevent navigation when in comparison mode
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
             }
 
-            const snapshotElement = document.querySelector(`[data-snapshot-id="${snapshotId}"]`);
-            if (snapshotElement && snapshotElement.dataset.snapshotUrl) {
-                window.location.href = snapshotElement.dataset.snapshotUrl;
-            } else if (snapshotId === 'current') {
-                const deliverables = document.getElementById('producer-deliverables');
-                if (deliverables) {
-                    deliverables.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const indicator = document.querySelector(`.comparison-checkbox[data-snapshot-id="${snapshotId}"]`);
+            if (indicator) {
+                const checkIcon = indicator.querySelector('.comparison-check-icon');
+                const isSelected = indicator.classList.contains('selected');
+
+                if (isSelected) {
+                    // Deselect
+                    indicator.classList.remove('selected', 'bg-blue-500');
+                    indicator.classList.add('bg-white', 'dark:bg-gray-700');
+                    if (checkIcon) checkIcon.classList.remove('opacity-100');
+                    if (checkIcon) checkIcon.classList.add('opacity-0');
+                } else {
+                    // Select
+                    indicator.classList.add('selected', 'bg-blue-500');
+                    indicator.classList.remove('bg-white', 'dark:bg-gray-700');
+                    if (checkIcon) checkIcon.classList.add('opacity-100', 'text-white');
+                    if (checkIcon) checkIcon.classList.remove('opacity-0', 'text-blue-500');
                 }
-            } else {
-                console.warn('No signed URL found for snapshot:', snapshotId);
+
+                // Trigger the update comparison function
+                this.updateComparison();
             }
+            return;
+        }
+
+        // Otherwise, navigate to the snapshot (normal mode)
+        // In preview mode, do not navigate
+        if (typeof window.isPortalPreview !== 'undefined' && window.isPortalPreview) {
+            console.log('Preview mode: Snapshot navigation disabled');
+            return;
+        }
+
+        const snapshotElement = document.querySelector(`[data-snapshot-id="${snapshotId}"]`);
+        if (snapshotElement && snapshotElement.dataset.snapshotUrl) {
+            window.location.href = snapshotElement.dataset.snapshotUrl;
+        } else if (snapshotId === 'current') {
+            const deliverables = document.getElementById('producer-deliverables');
+            if (deliverables) {
+                deliverables.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        } else {
+            console.warn('No signed URL found for snapshot:', snapshotId);
         }
     },
 
     updateComparison() {
-        const checkedBoxes = document.querySelectorAll('.comparison-checkbox:checked');
+        const selectedIndicators = document.querySelectorAll('.comparison-checkbox.selected');
         const comparisonContent = document.getElementById('comparison-content');
         const modalOverlay = document.getElementById('version-comparison');
 
-        this.selectedSnapshots = Array.from(checkedBoxes).map(cb => cb.dataset.snapshotId);
+        this.selectedSnapshots = Array.from(selectedIndicators).map(ind => ind.dataset.snapshotId);
 
         if (this.selectedSnapshots.length === 2) {
             this.showComparison = true;
@@ -134,8 +171,17 @@ document.addEventListener('alpine:init', () => {
                 `;
             }
         } else if (this.selectedSnapshots.length > 2) {
-            // Limit to 2 selections
-            checkedBoxes[checkedBoxes.length - 1].checked = false;
+            // Limit to 2 selections - deselect the last one
+            const lastSelected = selectedIndicators[selectedIndicators.length - 1];
+            if (lastSelected) {
+                const checkIcon = lastSelected.querySelector('.comparison-check-icon');
+                lastSelected.classList.remove('selected', 'bg-blue-500');
+                lastSelected.classList.add('bg-white', 'dark:bg-gray-700');
+                if (checkIcon) {
+                    checkIcon.classList.remove('opacity-100', 'text-white');
+                    checkIcon.classList.add('opacity-0', 'text-blue-500');
+                }
+            }
             this.selectedSnapshots.pop();
         } else {
             this.showComparison = false;

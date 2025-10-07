@@ -63,7 +63,7 @@
                                 @endif
                             </flux:heading>
                             <flux:text size="xs" class="text-gray-500">
-                                {{ $event->created_at->diffForHumans() }}</flux:text>
+                                {{ toUserTimezone($event->created_at)->diffForHumans() }}</flux:text>
                         </div>
 
                         @if ($event->comment)

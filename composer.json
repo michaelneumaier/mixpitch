@@ -59,7 +59,8 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
-            "app/Helpers/RouteHelpers.php"
+            "app/Helpers/RouteHelpers.php",
+            "app/helpers.php"
         ]
     },
     "autoload-dev": {

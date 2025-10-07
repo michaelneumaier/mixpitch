@@ -18,7 +18,7 @@
     
     // Quick Stats data
     $messagesCount = $pitch->events->whereIn('event_type', ['client_comment', 'producer_comment'])->count();
-    $lastActivity = $pitch->events->first()?->created_at?->diffForHumans();
+    $lastActivity = $pitch->events->first()?->created_at_for_user?->diffForHumans();
     
     // Status and next action logic
     $nextAction = 'Awaiting updates';

@@ -91,14 +91,21 @@
                 $isProcessing = $milestone->payment_status === \App\Models\Pitch::PAYMENT_STATUS_PROCESSING;
                 $isNextPayable = $nextPayableMilestone && $nextPayableMilestone->id === $milestone->id;
                 $isFuture = !$isPaid && !$isProcessing && !$isNextPayable;
+                $isRevisionMilestone = $milestone->is_revision_milestone ?? false;
 
                 // Determine card styling
                 if ($isPaid) {
                     $borderClass = 'border-green-200 dark:border-green-800';
                     $bgClass = 'bg-green-50/50 dark:bg-green-900/10';
                 } elseif ($isNextPayable) {
-                    $borderClass = 'border-purple-300 dark:border-purple-700 ring-2 ring-purple-200 dark:ring-purple-800';
-                    $bgClass = 'bg-white dark:bg-gray-800';
+                    // Revision milestones get amber/orange accent, regular milestones get purple
+                    if ($isRevisionMilestone) {
+                        $borderClass = 'border-amber-300 dark:border-amber-700 ring-2 ring-amber-200 dark:ring-amber-800';
+                        $bgClass = 'bg-white dark:bg-gray-800';
+                    } else {
+                        $borderClass = 'border-purple-300 dark:border-purple-700 ring-2 ring-purple-200 dark:ring-purple-800';
+                        $bgClass = 'bg-white dark:bg-gray-800';
+                    }
                 } else {
                     $borderClass = 'border-gray-200 dark:border-gray-700';
                     $bgClass = 'bg-white/70 dark:bg-gray-800/70';
@@ -132,9 +139,19 @@
                             </div>
 
                             <div class="min-w-0 flex-1">
-                                <flux:heading size="sm" class="break-words leading-snug">
-                                    {{ $milestone->name }}
-                                </flux:heading>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <flux:heading size="sm" class="break-words leading-snug">
+                                        {{ $milestone->name }}
+                                    </flux:heading>
+
+                                    {{-- Revision Badge - Show for revision milestones --}}
+                                    @if ($isRevisionMilestone)
+                                        <flux:badge variant="warning" size="xs">
+                                            <flux:icon.arrow-path class="mr-1" />
+                                            Revision
+                                        </flux:badge>
+                                    @endif
+                                </div>
 
                                 {{-- Next Badge - Show on separate line on mobile --}}
                                 @if ($isNextPayable)
@@ -152,6 +169,21 @@
                             <flux:text size="sm" class="mb-2 line-clamp-3 text-gray-600 md:line-clamp-none dark:text-gray-400">
                                 {{ $milestone->description }}
                             </flux:text>
+                        @endif
+
+                        {{-- Revision Details - Show for revision milestones --}}
+                        @if ($isRevisionMilestone && $milestone->revision_request_details)
+                            <div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-800 dark:bg-amber-900/20">
+                                <div class="mb-1 flex items-center gap-1">
+                                    <flux:icon.chat-bubble-left-right class="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                                    <flux:text size="xs" class="font-medium text-amber-900 dark:text-amber-200">
+                                        Your Feedback:
+                                    </flux:text>
+                                </div>
+                                <flux:text size="xs" class="italic text-amber-800 dark:text-amber-300">
+                                    "{{ Str::limit($milestone->revision_request_details, 150) }}"
+                                </flux:text>
+                            </div>
                         @endif
 
                         {{-- Status & Payment Info --}}
@@ -229,15 +261,27 @@
 
                 {{-- Next Milestone Indicator --}}
                 @if ($isNextPayable)
-                    <div class="mt-3 rounded-lg bg-purple-100 p-2.5 sm:p-3 dark:bg-purple-900/30">
-                        <div class="flex items-start gap-2">
-                            <flux:icon.information-circle class="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-600 dark:text-purple-400" />
-                            <flux:text size="xs" class="text-purple-800 dark:text-purple-300">
-                                <span class="hidden sm:inline">This is your next milestone payment. Complete this payment to proceed with the project.</span>
-                                <span class="inline sm:hidden">Next milestone - complete payment to continue.</span>
-                            </flux:text>
+                    @if ($isRevisionMilestone)
+                        <div class="mt-3 rounded-lg bg-amber-100 p-2.5 sm:p-3 dark:bg-amber-900/30">
+                            <div class="flex items-start gap-2">
+                                <flux:icon.exclamation-triangle class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                                <flux:text size="xs" class="text-amber-800 dark:text-amber-300">
+                                    <span class="hidden sm:inline">Additional revision payment required. You've used all {{ $pitch->included_revisions ?? 2 }} included revisions. Complete this payment for Revision Round {{ $milestone->revision_round_number ?? 'N/A' }}.</span>
+                                    <span class="inline sm:hidden">Additional revision payment - {{ $milestone->revision_round_number ?? 'N/A' }}</span>
+                                </flux:text>
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        <div class="mt-3 rounded-lg bg-purple-100 p-2.5 sm:p-3 dark:bg-purple-900/30">
+                            <div class="flex items-start gap-2">
+                                <flux:icon.information-circle class="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+                                <flux:text size="xs" class="text-purple-800 dark:text-purple-300">
+                                    <span class="hidden sm:inline">This is your next milestone payment. Complete this payment to proceed with the project.</span>
+                                    <span class="inline sm:hidden">Next milestone - complete payment to continue.</span>
+                                </flux:text>
+                            </div>
+                        </div>
+                    @endif
                 @endif
             </div>
         @endforeach

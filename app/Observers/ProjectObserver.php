@@ -135,6 +135,24 @@ class ProjectObserver
                     throw new \Exception('Pitch::create returned null or false for Client Management.');
                 }
 
+                // Create initial milestone if payment amount is set and greater than $0
+                if ($paymentAmount > 0) {
+                    $pitch->milestones()->create([
+                        'name' => 'Project Payment',
+                        'description' => 'Full payment for project deliverables',
+                        'amount' => $paymentAmount,
+                        'sort_order' => 1,
+                        'status' => 'pending',
+                        'payment_status' => null, // Will be set when client pays
+                    ]);
+
+                    Log::info('Created initial milestone for client management project', [
+                        'project_id' => $project->id,
+                        'pitch_id' => $pitch->id,
+                        'milestone_amount' => $paymentAmount,
+                    ]);
+                }
+
                 // Create initial event
                 $pitch->events()->create([
                     'event_type' => 'client_project_created',

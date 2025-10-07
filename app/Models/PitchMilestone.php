@@ -11,6 +11,7 @@ class PitchMilestone extends Model
 
     protected $fillable = [
         'pitch_id',
+        'pitch_snapshot_id',
         'name',
         'description',
         'amount',
@@ -20,6 +21,9 @@ class PitchMilestone extends Model
         'stripe_invoice_id',
         'approved_at',
         'payment_completed_at',
+        'is_revision_milestone',
+        'revision_round_number',
+        'revision_request_details',
     ];
 
     protected $casts = [
@@ -31,5 +35,10 @@ class PitchMilestone extends Model
     public function pitch()
     {
         return $this->belongsTo(Pitch::class);
+    }
+
+    public function snapshot()
+    {
+        return $this->belongsTo(PitchSnapshot::class, 'pitch_snapshot_id');
     }
 }

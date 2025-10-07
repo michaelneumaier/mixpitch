@@ -208,7 +208,7 @@
                                                          class="h-8 w-8 rounded-full">
                                                     <div>
                                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $comment->user->name }}</div>
-                                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at->diffForHumans() }}</div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at_for_user->diffForHumans() }}</div>
                                                     </div>
                                                 @else
                                                     <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
@@ -216,7 +216,7 @@
                                                     </div>
                                                     <div>
                                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $comment->client_email ?? 'Client' }}</div>
-                                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at->diffForHumans() }}</div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ $comment->created_at_for_user->diffForHumans() }}</div>
                                                     </div>
                                                 @endif
                                             </div>

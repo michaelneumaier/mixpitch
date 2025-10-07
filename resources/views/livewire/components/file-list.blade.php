@@ -207,6 +207,14 @@
                     
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
+                            {{-- Client Approval Indicator --}}
+                            @if(isset($file->client_approval_status) && $file->client_approval_status === 'approved')
+                                <flux:icon.check-circle
+                                    variant="solid"
+                                    class="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0"
+                                    title="Approved by client" />
+                            @endif
+
                             @php
                                 $audioPlayerUrl = $canPlay ? $this->getUniversalAudioPlayerUrl($file) : null;
                                 $videoPlayerUrl = $canPlay ? $this->getUniversalVideoPlayerUrl($file) : null;
@@ -214,7 +222,7 @@
                                 $playerType = $audioPlayerUrl ? 'audio' : 'video';
                             @endphp
                             @if($playerUrl)
-                                <a href="{{ $playerUrl }}" 
+                                <a href="{{ $playerUrl }}"
                                    class="truncate text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
                                    id="file-{{ $file->id }}-info"
                                    title="Open {{ $file->file_name }} in full {{ $playerType }} player">
@@ -227,14 +235,14 @@
                                 </span>
                             @endif
                         </div>
-                        <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center justify-between md:justify-start gap-2 md:gap-4 text-xs text-gray-500 dark:text-gray-400">
                             <div class="flex items-center gap-1">
-                                <flux:icon.calendar class="w-3 h-3" />
+                                <flux:icon.calendar class="w-3 h-3 hidden md:inline" />
                                 <span>{{ $file->created_at->format('M d, Y') }}</span>
                             </div>
                             @if (isset($file->size))
                                 <div class="flex items-center gap-1">
-                                    <flux:icon.scale class="w-3 h-3" />
+                                    <flux:icon.scale class="w-3 h-3 hidden md:inline" />
                                     <span>{{ isset($file->formatted_size) ? $file->formatted_size : $this->formatFileSize($file->size) }}</span>
                                 </div>
                             @endif
@@ -242,8 +250,11 @@
                                 @php
                                     $shouldShowWatermarkBadge = false;
                                     if ($isClientPortal ?? false) {
-                                        // In client portal, always show badge for watermarked files
-                                        $shouldShowWatermarkBadge = true;
+                                        // In client portal, check if watermarked version should be served based on payment
+                                        $clientPortalProject = isset($clientPortalProjectId)
+                                            ? \App\Models\Project::find($clientPortalProjectId)
+                                            : null;
+                                        $shouldShowWatermarkBadge = $file->shouldServeWatermarked(Auth::user(), $clientPortalProject, $currentSnapshot ?? null);
                                     } elseif (Auth::check()) {
                                         // In main app, check Gate permission
                                         $shouldShowWatermarkBadge = Gate::allows('receivesWatermarked', $file);
@@ -257,7 +268,7 @@
                             @endif
                             @if ($showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
                                 <div class="flex items-center gap-1">
-                                    <flux:icon.chat-bubble-left-ellipsis class="w-3 h-3" />
+                                    <flux:icon.chat-bubble-left-ellipsis class="w-3 h-3 hidden md:inline" />
                                     <button 
                                         @click="showComments = !showComments"
                                         class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">
@@ -274,13 +285,30 @@
                 </div>
                 
                 <!-- Actions -->
-                @if($canDownload || $canDelete)
+                @php
+                    // Determine available actions for THIS specific file
+                    $canDownloadThisFile = false;
+                    if ($canDownload) {
+                        $canDownloadThisFile = $canDownload;
+
+                        // In client portal with snapshot context, check file-level access
+                        if ($isClientPortal && $currentSnapshot && $canDownload) {
+                            $clientPortalProject = \App\Models\Project::find($clientPortalProjectId);
+                            $canDownloadThisFile = $file->canAccessOriginalFile(null, $clientPortalProject, $currentSnapshot);
+                        }
+                    }
+
+                    // Show dropdown only if at least one action is available for this file
+                    $hasAnyAction = $canDownloadThisFile || $canDelete;
+                @endphp
+
+                @if($hasAnyAction)
                     <div class="track-actions flex items-center">
                         <flux:dropdown>
                             <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
                             </flux:button>
                             <flux:menu>
-                                @if($canDownload)
+                                @if($canDownloadThisFile)
                                     <flux:menu.item wire:click="downloadFile({{ $file->id }})" icon="arrow-down-tray">
                                         Download
                                     </flux:menu.item>
@@ -338,7 +366,7 @@
                                                 </flux:text>
                                                 <div class="flex items-center gap-2">
                                                     <flux:text size="xs" class="text-gray-600 dark:text-gray-400">
-                                                        {{ $comment->created_at->diffForHumans() }}
+                                                        {{ $comment->created_at_for_user->diffForHumans() }}
                                                     </flux:text>
                                                     @if(isset($comment->timestamp) && $comment->timestamp)
                                                         @php

@@ -31,7 +31,7 @@
         <!-- Last Activity -->
         <div class="flex items-center justify-between bg-indigo-50 rounded-md px-2 py-1 border border-indigo-100">
             <span class="text-xs text-indigo-700 font-medium">Last Activity</span>
-            <span class="text-xs font-semibold text-indigo-800">{{ $pitch->events->first()?->created_at?->diffForHumans() ?? 'None' }}</span>
+            <span class="text-xs font-semibold text-indigo-800">{{ $pitch->events->first()?->created_at_for_user?->diffForHumans() ?? 'None' }}</span>
         </div>
     </div>
 </div> 

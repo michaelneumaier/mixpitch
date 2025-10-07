@@ -130,7 +130,7 @@
                                                         2nd Place
                                                     </div>
                                                     <h4 class="text-xl font-bold text-gray-900 mb-2">{{ $secondPlace->user->name }}</h4>
-                                                    <p class="text-sm text-gray-600">{{ $secondPlace->created_at->format('M d, Y') }}</p>
+                                                    <p class="text-sm text-gray-600">{{ $secondPlace->created_at_for_user->format('M d, Y') }}</p>
                                                     @can('viewContestEntry', $secondPlace)
                                                         @if($secondPlace->currentSnapshot)
                                                             <a href="{{ route('projects.pitches.snapshots.show', [$project, $secondPlace, $secondPlace->currentSnapshot]) }}" 
@@ -164,7 +164,7 @@
                                                         🏆 1st Place Winner
                                                     </div>
                                                     <h4 class="text-2xl font-bold text-gray-900 mb-2">{{ $firstPlace->user->name }}</h4>
-                                                    <p class="text-gray-600 mb-3">{{ $firstPlace->created_at->format('M d, Y') }}</p>
+                                                    <p class="text-gray-600 mb-3">{{ $firstPlace->created_at_for_user->format('M d, Y') }}</p>
                                                     @if($project->hasPrizes())
                                                         @php $firstPrize = $project->getPrizeForPlacement('1st'); @endphp
                                                         @if($firstPrize)
@@ -210,7 +210,7 @@
                                                         3rd Place
                                                     </div>
                                                     <h4 class="text-xl font-bold text-gray-900 mb-2">{{ $thirdPlace->user->name }}</h4>
-                                                    <p class="text-sm text-gray-600">{{ $thirdPlace->created_at->format('M d, Y') }}</p>
+                                                    <p class="text-sm text-gray-600">{{ $thirdPlace->created_at_for_user->format('M d, Y') }}</p>
                                                     @can('viewContestEntry', $thirdPlace)
                                                         @if($thirdPlace->currentSnapshot)
                                                             <a href="{{ route('projects.pitches.snapshots.show', [$project, $thirdPlace, $thirdPlace->currentSnapshot]) }}" 
@@ -257,7 +257,7 @@
                                                     </div>
                                                     <div class="flex-1 min-w-0">
                                                         <h4 class="text-lg font-medium text-gray-900 truncate">{{ $runnerUp->user->name }}</h4>
-                                                        <p class="text-sm text-gray-600">{{ $runnerUp->created_at->format('M d, Y') }}</p>
+                                                        <p class="text-sm text-gray-600">{{ $runnerUp->created_at_for_user->format('M d, Y') }}</p>
                                                         @can('viewContestEntry', $runnerUp)
                                                             @if($runnerUp->currentSnapshot)
                                                                 <a href="{{ route('projects.pitches.snapshots.show', [$project, $runnerUp, $runnerUp->currentSnapshot]) }}" 
@@ -336,9 +336,9 @@
                                                     </div>
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {{ $entry->created_at->format('M d, Y') }}
+                                                    {{ $entry->created_at_for_user->format('M d, Y') }}
                                                     <div class="text-xs text-gray-500">
-                                                        {{ $entry->created_at->format('g:i A') }}
+                                                        {{ $entry->created_at_for_user->format('g:i A') }}
                                                     </div>
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap">

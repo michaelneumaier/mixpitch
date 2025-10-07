@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PayoutSchedule extends Model
 {
@@ -29,6 +28,7 @@ class PayoutSchedule extends Model
 
     protected $fillable = [
         'pitch_id',
+        'pitch_milestone_id',
         'contest_prize_id',
         'project_id',
         'transaction_id',
@@ -86,6 +86,14 @@ class PayoutSchedule extends Model
         return $this->belongsTo(Pitch::class);
     }
 
+    /**
+     * Get the milestone associated with this payout (for milestone-based payments)
+     */
+    public function milestone(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\PitchMilestone::class, 'pitch_milestone_id');
+    }
+
     public function producer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'producer_user_id');
@@ -115,9 +123,9 @@ class PayoutSchedule extends Model
     /**
      * Get the transaction associated with this payout
      */
-    public function transaction(): HasOne
+    public function transaction(): BelongsTo
     {
-        return $this->hasOne(Transaction::class);
+        return $this->belongsTo(Transaction::class);
     }
 
     /**

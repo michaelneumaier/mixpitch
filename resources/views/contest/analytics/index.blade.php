@@ -389,9 +389,9 @@
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ $entry->created_at->format('M d, Y') }}
+                                                {{ $entry->created_at_for_user->format('M d, Y') }}
                                                 <div class="text-xs text-gray-500">
-                                                    {{ $entry->created_at->format('g:i A') }}
+                                                    {{ $entry->created_at_for_user->format('g:i A') }}
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">

@@ -22,7 +22,7 @@ use App\Models\OrderFile;
                         </h1>
                         <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                             <span>Status: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $order->readable_status }}</span></span>
-                            <span>Ordered: {{ $order->created_at->format('M d, Y') }}</span>
+                            <span>Ordered: {{ $order->created_at_for_user->format('M d, Y') }}</span>
                             <span>Amount: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ Number::currency($order->price, $order->currency) }}</span></span>
                             <span>Payment: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ $order->readable_payment_status }}</span></span>
                             @if (Auth::id() === $order->client_user_id)
@@ -143,7 +143,7 @@ use App\Models\OrderFile;
                                             <li>
                                                 <a href="{{ route('orders.files.download', ['order' => $order, 'file' => $file]) }}" class="text-indigo-600 hover:underline dark:text-indigo-400">{{ $file->file_name }}</a> 
                                                 ({{ $file->formatted_size }}) 
-                                                <span class="text-xs text-gray-500">({{ $file->created_at->format('M d, Y H:i') }})</span>
+                                                <span class="text-xs text-gray-500">({{ toUserTimezone($file->created_at)->format('M d, Y H:i') }})</span>
                                             </li>
                                         @endforeach
                                     </ul>
@@ -219,7 +219,7 @@ use App\Models\OrderFile;
                                         <div class="text-sm">
                                             <p class="text-gray-800 dark:text-gray-200">{{ $event->comment ?? ucfirst(str_replace('_', ' ', $event->event_type)) }}</p>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $event->user->name ?? 'System' }} - {{ $event->created_at->diffForHumans() }}
+                                                {{ $event->user->name ?? 'System' }} - {{ $event->created_at_for_user->diffForHumans() }}
                                                 @if($event->status_to)
                                                  (Status: {{ ucwords(str_replace('_', ' ', $event->status_to)) }})
                                                 @endif

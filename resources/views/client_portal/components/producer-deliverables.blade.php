@@ -145,7 +145,7 @@
                     Files in Version {{ $currentSnapshot->version ?? 1 }}
                 </h5>
                 <span class="text-sm text-green-600">
-                    Submitted {{ $currentSnapshot->created_at->format('M j, Y g:i A') }}
+                    Submitted {{ $currentSnapshot->created_at_for_user->format('M j, Y g:i A') }}
                 </span>
             </div>
 

@@ -88,6 +88,17 @@ class ClientPortalController extends Controller
         // Pass enhanced data to view
         $branding = app(\App\Services\BrandingResolver::class)->forProducer($pitch->user);
 
+        // Detect if user is authenticated (vs. accessing via signed URL)
+        $isAuthenticated = auth()->check() &&
+            auth()->user() &&
+            (
+                $project->client_user_id === auth()->id() ||
+                $project->client_email === auth()->user()->email
+            );
+
+        // Authenticated clients should use the app-sidebar layout for consistent UX
+        $useAppSidebar = $isAuthenticated;
+
         return view('client_portal.show', [
             'project' => $project,
             'pitch' => $pitch,
@@ -95,6 +106,8 @@ class ClientPortalController extends Controller
             'currentSnapshot' => $currentSnapshot,
             'branding' => $branding,
             'milestones' => $pitch->milestones()->get(),
+            'isAuthenticated' => $isAuthenticated,
+            'useAppSidebar' => $useAppSidebar,
         ]);
     }
 
@@ -936,11 +949,42 @@ class ClientPortalController extends Controller
             abort(403, 'Access denied to this file.');
         }
 
-        // TODO: Add more granular permissions? E.g., only allow download if pitch is in specific statuses?
+        // Get current snapshot for revision-based access control
+        $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
 
         try {
+            // Determine which file to download based on watermarking logic and payment status
+            // Pass project context and snapshot for revision-based access control
+            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(auth()->user(), $project, $currentSnapshot);
+
+            if ($shouldServeWatermarked && $pitchFile->processed_file_path && $pitchFile->is_watermarked) {
+                // Download the processed (watermarked) version
+                $filePath = $pitchFile->processed_file_path;
+                $fileName = pathinfo($pitchFile->file_name, PATHINFO_FILENAME).'_watermarked.'.pathinfo($pitchFile->file_name, PATHINFO_EXTENSION);
+
+                Log::info('Client portal downloading watermarked version', [
+                    'project_id' => $project->id,
+                    'file_id' => $pitchFile->id,
+                    'processed_path' => $filePath,
+                    'original_path' => $pitchFile->file_path,
+                ]);
+            } else {
+                // Download the original version (either not watermarked or payment allows access)
+                $filePath = $pitchFile->file_path;
+                $fileName = $pitchFile->file_name;
+
+                Log::info('Client portal downloading original version', [
+                    'project_id' => $project->id,
+                    'file_id' => $pitchFile->id,
+                    'should_watermark' => $shouldServeWatermarked,
+                    'has_processed' => ! empty($pitchFile->processed_file_path),
+                    'is_watermarked' => $pitchFile->is_watermarked,
+                    'payment_allows_access' => ! $shouldServeWatermarked,
+                ]);
+            }
+
             // Stream the download for broad driver compatibility
-            $stream = Storage::disk($pitchFile->disk)->readStream($pitchFile->file_path);
+            $stream = Storage::disk($pitchFile->disk)->readStream($filePath);
             if (! $stream) {
                 abort(404, 'File not found.');
             }
@@ -950,7 +994,7 @@ class ClientPortalController extends Controller
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
-            }, $pitchFile->file_name);
+            }, $fileName);
         } catch (\Exception $e) {
             Log::error('Client portal download failed: Generic error.', [
                 'project_id' => $project->id,
@@ -1182,10 +1226,13 @@ class ClientPortalController extends Controller
             abort(403, 'Files are not available for streaming at this time.');
         }
 
+        // Get current snapshot for revision-based access control
+        $currentSnapshot = $this->getCurrentSnapshot($pitch, $request);
+
         try {
             // Determine which file to stream based on watermarking logic
-            // Client portal users (null user) should receive watermarked versions when available
-            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(null);
+            // Pass project context and snapshot for revision-based access control
+            $shouldServeWatermarked = $pitchFile->shouldServeWatermarked(auth()->user(), $project, $currentSnapshot);
 
             if ($shouldServeWatermarked && $pitchFile->processed_file_path && $pitchFile->is_watermarked) {
                 // Stream the processed (watermarked) version
@@ -1210,9 +1257,6 @@ class ClientPortalController extends Controller
                 Log::info('Client portal streaming original version', [
                     'project_id' => $project->id,
                     'file_id' => $pitchFile->id,
-                    'should_watermark' => $shouldServeWatermarked,
-                    'has_processed' => ! empty($pitchFile->processed_file_path),
-                    'is_watermarked' => $pitchFile->is_watermarked,
                 ]);
             }
 

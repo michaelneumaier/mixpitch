@@ -10,6 +10,54 @@ use Illuminate\Support\Str;
 class RouteHelpers
 {
     /**
+     * Generate the URL for a project based on the current user's relationship to it
+     * Routes to the appropriate view (manage, client portal, etc.) based on user role
+     *
+     * @param  Project  $project  The project model
+     * @param  array  $params  Additional route parameters
+     * @return string The generated URL
+     */
+    public static function projectUrl(Project $project, array $params = [])
+    {
+        // Check if project is valid
+        if (! $project || ! $project->id) {
+            Log::error('Invalid project object in projectUrl');
+            throw new \Exception('Missing required parameter: project');
+        }
+
+        // Get the current authenticated user
+        $user = auth()->user();
+
+        // If user is not authenticated, return the basic manage route
+        if (! $user) {
+            return route('projects.manage', array_merge([$project], $params));
+        }
+
+        // Client Management workflow: Route based on user role
+        if ($project->isClientManagement()) {
+            // Check if user is the client (registered)
+            $isClient = $project->client_user_id === $user->id ||
+                       $project->client_email === $user->email;
+
+            if ($isClient) {
+                // Registered clients go to client portal (with app-sidebar layout)
+                return route('client.portal.view', array_merge([$project], $params));
+            }
+
+            // Check if user is the producer
+            $isProducer = $project->user_id === $user->id;
+
+            if ($isProducer) {
+                // Producers go to manage-client page
+                return route('projects.manage-client', array_merge([$project], $params));
+            }
+        }
+
+        // Default: Standard project management route
+        return route('projects.manage', array_merge([$project], $params));
+    }
+
+    /**
      * Generate the URL for a pitch using the new URL pattern
      * This is a helper function to ease the transition from the old routes to the new routes
      *

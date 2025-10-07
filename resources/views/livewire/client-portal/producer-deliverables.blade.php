@@ -45,7 +45,18 @@
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" id="snapshot-grid">
                     @foreach ($this->snapshotHistory as $snapshot)
                         <div
-                            wire:click="switchSnapshot({{ $snapshot['id'] === 'current' ? 'null' : $snapshot['id'] }})"
+                            @click="
+                                let checkboxes = document.querySelectorAll('.comparison-checkbox');
+                                let inComparisonMode = checkboxes[0] && !checkboxes[0].classList.contains('hidden');
+
+                                if (inComparisonMode) {
+                                    if (typeof window.selectSnapshot === 'function') {
+                                        window.selectSnapshot('{{ $snapshot['id'] }}', $event);
+                                    }
+                                } else {
+                                    $wire.switchSnapshot({{ $snapshot['id'] === 'current' ? 'null' : $snapshot['id'] }});
+                                }
+                            "
                             class="snapshot-item {{ $this->currentSnapshot && $this->currentSnapshot->id === $snapshot['id']
                                 ? 'bg-green-100 border-green-300 ring-2 ring-green-500 dark:bg-green-900/50 dark:border-green-700 dark:ring-green-600'
                                 : 'bg-white border-gray-200 hover:border-green-300 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-green-600' }} group cursor-pointer rounded-lg border p-3 transition-all duration-200 hover:shadow-md"
@@ -68,18 +79,26 @@
                                     </div>
                                 </div>
 
-                                <div
-                                    class="{{ $snapshot['status'] === 'accepted'
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                        : ($snapshot['status'] === 'pending'
-                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300') }} rounded-lg px-2 py-1 text-xs">
-                                    {{ ucfirst($snapshot['status']) }}
+                                @php
+                                    $statusColors = match($snapshot['status']) {
+                                        'accepted' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                        'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                        'revisions_requested' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                                        'cancelled' => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+                                        'revision_addressed' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                        'denied' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                        default => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+                                    };
+                                @endphp
+                                <div class="{{ $statusColors }} rounded-lg px-2 py-1 text-xs">
+                                    {{ $snapshot['status_label'] ?? ucfirst($snapshot['status']) }}
                                 </div>
 
-                                {{-- Comparison Checkbox --}}
-                                <input type="checkbox" class="comparison-checkbox ml-2 hidden"
+                                {{-- Comparison Visual Indicator --}}
+                                <div class="comparison-checkbox ml-2 hidden flex items-center justify-center w-6 h-6 rounded border-2 border-blue-500 bg-white dark:bg-gray-700 cursor-pointer transition-all"
                                     data-snapshot-id="{{ $snapshot['id'] }}">
+                                    <i class="fas fa-check text-blue-500 text-xs opacity-0 transition-opacity comparison-check-icon"></i>
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -121,7 +140,7 @@
                     Files in Version {{ $this->currentSnapshot->version ?? 1 }}
                 </h5>
                 <span class="text-sm text-green-600">
-                    Submitted {{ $this->currentSnapshot->created_at->format('M j, Y g:i A') }}
+                    Submitted {{ $this->currentSnapshot->created_at_for_user->format('M j, Y g:i A') }}
                 </span>
             </div>
 
@@ -141,8 +160,9 @@
                 'project' => $project,
                 'pitch' => $pitch,
                 'files' => $this->currentFiles,
+                'currentSnapshot' => $this->currentSnapshot,
                 'canPlay' => true,
-                'canDownload' => false,
+                'canDownload' => $this->canDownloadFiles,
                 'canDelete' => false,
                 'enableBulkActions' => false,
                 'showComments' => true,
@@ -171,66 +191,87 @@
                     </flux:heading>
 
                     @if ($this->unapprovedFiles->count() > 0)
-                        <flux:text size="sm" class="mb-4 text-green-600 dark:text-green-400">
-                            {{ $this->unapprovedFiles->count() }} file{{ $this->unapprovedFiles->count() > 1 ? 's' : '' }} pending your approval
-                        </flux:text>
+                        <div x-data="{ showUnapproved: false }" class="mb-6">
+                            {{-- Summary Header with Approve All Button --}}
+                            <div class="flex items-center justify-between mb-3">
+                                <button
+                                    @click="showUnapproved = !showUnapproved"
+                                    class="flex items-center gap-2 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors">
+                                    <flux:icon.chevron-right
+                                        class="w-4 h-4 transition-transform"
+                                        x-bind:class="showUnapproved ? 'rotate-90' : ''" />
+                                    <flux:text size="sm" class="font-medium">
+                                        {{ $this->unapprovedFiles->count() }} file{{ $this->unapprovedFiles->count() > 1 ? 's' : '' }} pending approval
+                                    </flux:text>
+                                </button>
 
-                        <div class="space-y-3 mb-6">
-                            @foreach ($this->unapprovedFiles as $file)
-                                <div class="flex items-center justify-between p-3 bg-white border border-green-200 rounded-lg dark:bg-gray-800 dark:border-green-700">
-                                    <div class="flex items-center gap-2">
-                                        @if (in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
-                                            <flux:icon.musical-note class="text-green-500 dark:text-green-400" />
-                                        @else
-                                            <flux:icon.document class="text-green-500 dark:text-green-400" />
-                                        @endif
-                                        <flux:text size="sm" class="font-medium dark:text-gray-200">{{ $file->file_name }}</flux:text>
+                                <flux:button
+                                    wire:click="approveAllFiles"
+                                    variant="primary"
+                                    size="sm"
+                                    icon="check-circle"
+                                    wire:loading.attr="disabled"
+                                    wire:target="approveAllFiles">
+                                    <span wire:loading.remove wire:target="approveAllFiles">Approve All</span>
+                                    <span wire:loading wire:target="approveAllFiles">
+                                        Approving...
+                                    </span>
+                                </flux:button>
+                            </div>
+
+                            {{-- Collapsible File List --}}
+                            <div x-show="showUnapproved" x-collapse class="space-y-2">
+                                @foreach ($this->unapprovedFiles as $file)
+                                    <div class="flex items-center justify-between p-3 bg-white border border-green-200 rounded-lg dark:bg-gray-800 dark:border-green-700">
+                                        <div class="flex items-center gap-2">
+                                            @if (in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
+                                                <flux:icon.musical-note class="text-green-500 dark:text-green-400" />
+                                            @else
+                                                <flux:icon.document class="text-green-500 dark:text-green-400" />
+                                            @endif
+                                            <flux:text size="sm" class="font-medium dark:text-gray-200">{{ $file->file_name }}</flux:text>
+                                        </div>
+                                        <flux:button
+                                            wire:click="approveFile({{ $file->id }})"
+                                            variant="primary"
+                                            size="sm"
+                                            icon="check-circle"
+                                            wire:loading.attr="disabled"
+                                            wire:target="approveFile({{ $file->id }})">
+                                            <span wire:loading.remove wire:target="approveFile({{ $file->id }})">Approve</span>
+                                            <span wire:loading wire:target="approveFile({{ $file->id }})">
+                                                Approving...
+                                            </span>
+                                        </flux:button>
                                     </div>
-                                    <flux:button
-                                        wire:click="approveFile({{ $file->id }})"
-                                        variant="primary"
-                                        size="sm"
-                                        icon="check-circle"
-                                        wire:loading.attr="disabled"
-                                        wire:target="approveFile({{ $file->id }})">
-                                        <span wire:loading.remove wire:target="approveFile({{ $file->id }})">Approve</span>
-                                        <span wire:loading wire:target="approveFile({{ $file->id }})">
-                                            Approving...
-                                        </span>
-                                    </flux:button>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        {{-- Approve All Button --}}
-                        <div class="mb-4">
-                            <flux:button
-                                wire:click="approveAllFiles"
-                                variant="primary"
-                                icon="check-circle"
-                                wire:loading.attr="disabled"
-                                wire:target="approveAllFiles">
-                                <span wire:loading.remove wire:target="approveAllFiles">Approve All Files</span>
-                                <span wire:loading wire:target="approveAllFiles">
-                                    Approving...
-                                </span>
-                            </flux:button>
+                                @endforeach
+                            </div>
                         </div>
                     @endif
 
                     @if ($this->approvedFiles->count() > 0)
-                        <div class="pt-4 border-t border-green-200 dark:border-green-700">
+                        <div x-data="{ showApproved: false }" class="pt-4 border-t border-green-200 dark:border-green-700">
+                            {{-- Summary Header with Unapprove All Button --}}
                             <div class="flex items-center justify-between mb-3">
-                                <flux:text size="sm" class="text-green-700 font-medium dark:text-green-300">
-                                    <flux:icon.check-circle class="mr-1" />
-                                    {{ $this->approvedFiles->count() }} file{{ $this->approvedFiles->count() > 1 ? 's' : '' }} approved
-                                </flux:text>
+                                <button
+                                    @click="showApproved = !showApproved"
+                                    class="flex items-center gap-2 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors">
+                                    <flux:icon.chevron-right
+                                        class="w-4 h-4 transition-transform"
+                                        x-bind:class="showApproved ? 'rotate-90' : ''" />
+                                    <div class="flex items-center gap-1">
+                                        <flux:icon.check-circle class="w-4 h-4" />
+                                        <flux:text size="sm" class="font-medium">
+                                            {{ $this->approvedFiles->count() }} file{{ $this->approvedFiles->count() > 1 ? 's' : '' }} approved
+                                        </flux:text>
+                                    </div>
+                                </button>
 
                                 {{-- Unapprove All Button --}}
                                 <flux:button
                                     wire:click="unapproveAllFiles"
                                     variant="ghost"
-                                    size="xs"
+                                    size="sm"
                                     icon="x-circle"
                                     wire:loading.attr="disabled"
                                     wire:target="unapproveAllFiles">
@@ -241,7 +282,8 @@
                                 </flux:button>
                             </div>
 
-                            <div class="mt-2 space-y-2">
+                            {{-- Collapsible Approved Files List --}}
+                            <div x-show="showApproved" x-collapse class="space-y-2">
                                 @foreach ($this->approvedFiles as $file)
                                     <div class="flex items-center justify-between p-2 bg-green-50 border border-green-100 rounded-lg dark:bg-green-900/10 dark:border-green-800/30">
                                         <div class="flex items-center gap-2">

@@ -64,6 +64,8 @@ class GlobalAudioPlayer extends Component
 
     public string $clientEmail = '';
 
+    public ?int $snapshotId = null; // For snapshot-aware access control
+
     public bool $showResolved = false;
 
     public int $resolvedCount = 0;
@@ -72,6 +74,7 @@ class GlobalAudioPlayer extends Component
         'playTrack' => 'handlePlayTrack',
         'playPitchFile' => 'playPitchFile',
         'playProjectFile' => 'playProjectFile',
+        'playClientPortalFile' => 'handlePlayClientPortalFile',
         'togglePlayback' => 'togglePlayback',
         'nextTrack' => 'nextTrack',
         'previousTrack' => 'previousTrack',
@@ -97,7 +100,7 @@ class GlobalAudioPlayer extends Component
     /**
      * Play a PitchFile in the global player
      */
-    public function playPitchFile($pitchFileId, $clientMode = false, $clientEmail = '')
+    public function playPitchFile($pitchFileId, $clientMode = false, $clientEmail = '', $snapshotId = null)
     {
         if (! is_numeric($pitchFileId)) {
             return;
@@ -119,14 +122,18 @@ class GlobalAudioPlayer extends Component
 
         $this->clientMode = $clientMode;
         $this->clientEmail = $clientEmail;
+        $this->snapshotId = $snapshotId;
 
         // Generate appropriate streaming URL based on context
         $streamingUrl = $clientMode
             ? URL::signedRoute('client.portal.audio.stream', [
                 'project' => $pitchFile->pitch->project_id,
                 'pitchFile' => $pitchFile->id,
+                'snapshot' => $snapshotId, // Include snapshot for context and cache-busting
+                // Cache-busting parameter based on payment status for specific snapshot
+                'v' => $this->generateCacheBustingHash($pitchFile, $snapshotId),
             ])
-            : $pitchFile->getStreamingUrl(Auth::user());
+            : $pitchFile->getStreamingUrl(Auth::user(), $pitchFile->pitch->project);
 
         $this->currentTrack = [
             'type' => 'pitch_file',
@@ -158,6 +165,67 @@ class GlobalAudioPlayer extends Component
 
         $this->dispatch('globalPlayerTrackChanged', track: $this->currentTrack, queue: $this->queue, queuePosition: $this->queuePosition);
         $this->dispatch('startPersistentAudio', track: $this->currentTrack);
+    }
+
+    /**
+     * Generate cache-busting hash for client portal streaming URLs.
+     * Hash changes when payment status changes for files in the snapshot.
+     *
+     * @param  PitchFile  $pitchFile  The file being played
+     * @param  int|null  $snapshotId  The snapshot ID (if viewing a specific snapshot)
+     */
+    private function generateCacheBustingHash(PitchFile $pitchFile, ?int $snapshotId): string
+    {
+        $pitch = $pitchFile->pitch;
+
+        if ($snapshotId) {
+            // Snapshot-specific cache busting
+            $snapshot = \App\Models\PitchSnapshot::find($snapshotId);
+            if ($snapshot) {
+                // Determine revision round for this snapshot
+                $milestone = $snapshot->milestone;
+                $revisionRound = 1; // Default
+
+                if ($milestone && $milestone->revision_round_number) {
+                    $revisionRound = $milestone->revision_round_number;
+                } else {
+                    // Fallback: calculate from snapshot version and included revisions
+                    $includedRevisions = $pitch->included_revisions ?? 0;
+                    if ($snapshot->version > ($includedRevisions + 1)) {
+                        $revisionRound = $snapshot->version - $includedRevisions;
+                    }
+                }
+
+                // Count unpaid milestones up to this revision round
+                $unpaidCount = $pitch->milestones()
+                    ->where('amount', '>', 0)
+                    ->where(function ($query) use ($revisionRound) {
+                        $query->where('revision_round_number', '<=', $revisionRound)
+                            ->orWhere(function ($q) {
+                                $q->whereNull('revision_round_number')
+                                    ->where('is_revision_milestone', false);
+                            });
+                    })
+                    ->where(function ($query) {
+                        $query->where('payment_status', '!=', \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                            ->orWhereNull('payment_status');
+                    })
+                    ->count();
+
+                return md5($pitchFile->id.':'.$snapshotId.':'.$unpaidCount);
+            }
+        }
+
+        // Fallback: count all unpaid milestones
+        $unpaidCount = $pitch->milestones()
+            ->where('amount', '>', 0)
+            ->where(function ($query) {
+                $query->where('payment_status', '!=', \App\Models\Pitch::PAYMENT_STATUS_PAID)
+                    ->orWhereNull('payment_status');
+            })
+            ->count();
+
+        return md5($pitchFile->pitch_id.':'.$unpaidCount);
     }
 
     /**
@@ -244,6 +312,20 @@ class GlobalAudioPlayer extends Component
         }
 
         $this->playTrack($track);
+    }
+
+    /**
+     * Handle play action from client portal with snapshot context
+     */
+    public function handlePlayClientPortalFile($data)
+    {
+        $fileId = $data['fileId'] ?? ($data[0]['fileId'] ?? null);
+        $snapshotId = $data['snapshotId'] ?? ($data[0]['snapshotId'] ?? null);
+
+        if ($fileId) {
+            // Play in client mode with snapshot context
+            $this->playPitchFile($fileId, true, '', $snapshotId);
+        }
     }
 
     /**
@@ -488,8 +570,11 @@ class GlobalAudioPlayer extends Component
                 ? URL::signedRoute('client.portal.audio.stream', [
                     'project' => $file->pitch->project_id,
                     'pitchFile' => $file->id,
+                    'snapshot' => $this->snapshotId, // Include snapshot for context
+                    // Cache-busting parameter based on payment status for specific snapshot
+                    'v' => $this->generateCacheBustingHash($file, $this->snapshotId),
                 ])
-                : $file->getStreamingUrl(Auth::user());
+                : $file->getStreamingUrl(Auth::user(), $file->pitch->project);
 
             $track = [
                 'type' => 'pitch_file',

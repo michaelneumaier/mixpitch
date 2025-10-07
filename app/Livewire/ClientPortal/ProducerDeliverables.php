@@ -8,7 +8,6 @@ use App\Models\Project;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
-use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class ProducerDeliverables extends Component
@@ -16,6 +15,8 @@ class ProducerDeliverables extends Component
     public Project $project;
 
     public Pitch $pitch;
+
+    public Collection $milestones;
 
     public array $branding = [];
 
@@ -44,6 +45,7 @@ class ProducerDeliverables extends Component
                     'version' => $snapshot->snapshot_data['version'] ?? ($snapshots->count() - $index),
                     'submitted_at' => $snapshot->created_at,
                     'status' => $snapshot->status,
+                    'status_label' => $snapshot->status_label,
                     'file_count' => count($fileIds),
                     'response_to_feedback' => $snapshot->snapshot_data['response_to_feedback'] ?? null,
                     'files' => $files,
@@ -184,22 +186,69 @@ class ProducerDeliverables extends Component
 
         // For client management workflow, show deliverables when producer has submitted files for review
         if ($this->project->isClientManagement()) {
-            $statusAllowed = in_array($this->pitch->status, [
-                Pitch::STATUS_READY_FOR_REVIEW,
-                Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
-                Pitch::STATUS_COMPLETED,
-            ]);
-            $hasCurrentSnapshot = $snapshot ? true : false;
+            // Check if there are any historical snapshots with files
+            // This allows clients to see previous submissions even when producer recalls later versions
+            $hasAnySnapshot = $this->snapshotHistory->count() > 0;
             $hasFiles = false;
             if ($snapshot) {
                 $hasFiles = method_exists($snapshot, 'hasFiles') ? $snapshot->hasFiles() : ($snapshot->files ?? collect())->count() > 0;
             }
 
-            return $statusAllowed && $hasCurrentSnapshot && $hasFiles;
+            // If we have any snapshots with files, show them (allows viewing historical versions)
+            if ($hasAnySnapshot && $hasFiles) {
+                return true;
+            }
+
+            // Otherwise check status (for first submission or when no snapshots exist)
+            $statusAllowed = in_array($this->pitch->status, [
+                Pitch::STATUS_READY_FOR_REVIEW,
+                Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+                Pitch::STATUS_COMPLETED,
+            ]);
+
+            return $statusAllowed && $snapshot && $hasFiles;
         } else {
             // For other workflows, use the original logic
             return $snapshot && (method_exists($snapshot, 'hasFiles') ? $snapshot->hasFiles() : ($snapshot->files ?? collect())->count() > 0);
         }
+    }
+
+    /**
+     * Check if all milestones are paid.
+     */
+    #[Computed]
+    public function allMilestonesPaid(): bool
+    {
+        if ($this->milestones->isEmpty()) {
+            return false;
+        }
+
+        $unpaidMilestones = $this->milestones
+            ->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)
+            ->count();
+
+        return $unpaidMilestones === 0;
+    }
+
+    /**
+     * Determine if files can be downloaded.
+     *
+     * With revision-based access control, downloads are controlled at the individual
+     * file level in the file-list component. Each file checks if its revision round
+     * milestones are paid before showing the download button.
+     *
+     * This method enables the download feature at the component level, allowing
+     * the per-file access logic to determine which files are actually downloadable.
+     */
+    #[Computed]
+    public function canDownloadFiles(): bool
+    {
+        // Enable downloads at component level
+        // Actual per-file access is determined by file-list component based on:
+        // - File's revision round
+        // - Payment status of milestones up to that round
+        // - Current snapshot context
+        return true;
     }
 
     /**

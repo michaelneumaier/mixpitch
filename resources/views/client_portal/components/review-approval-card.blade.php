@@ -150,6 +150,50 @@
                     <flux:icon.pencil class="text-amber-500" />
                     <flux:heading size="sm">Request Revisions</flux:heading>
                 </div>
+
+                {{-- Revision Status Information --}}
+                @php
+                    $revisionsUsed = $pitch->revisions_used ?? 0;
+                    $includedRevisions = $pitch->included_revisions ?? 2;
+                    $additionalRevisionPrice = $pitch->additional_revision_price ?? 0;
+                    $revisionsRemaining = max(0, $includedRevisions - $revisionsUsed);
+                    $nextRevisionIsFree = $revisionsUsed < $includedRevisions;
+                @endphp
+
+                <div class="mb-4 rounded-lg border-2 {{ $nextRevisionIsFree ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : 'border-amber-300 bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30' }} p-4">
+                    <div class="flex items-start gap-3">
+                        @if ($nextRevisionIsFree)
+                            <flux:icon.check-circle class="mt-0.5 h-5 w-5 text-green-600 dark:text-green-400" />
+                        @else
+                            <flux:icon.exclamation-triangle class="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        @endif
+                        <div class="flex-1">
+                            <flux:text size="sm" class="font-medium {{ $nextRevisionIsFree ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200' }}">
+                                @if ($nextRevisionIsFree)
+                                    <strong>{{ $revisionsRemaining }}</strong> {{ Str::plural('revision', $revisionsRemaining) }} remaining (included)
+                                @else
+                                    Additional revision required - <strong>${{ number_format($additionalRevisionPrice, 2) }}</strong>
+                                @endif
+                            </flux:text>
+                            <flux:text size="xs" class="{{ $nextRevisionIsFree ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300' }} mt-1">
+                                @if ($nextRevisionIsFree)
+                                    You have {{ $revisionsRemaining }} free {{ Str::plural('revision', $revisionsRemaining) }} included with this project.
+                                    @if ($additionalRevisionPrice > 0)
+                                        <br>Additional revisions beyond {{ $includedRevisions }}: <strong>${{ number_format($additionalRevisionPrice, 2) }}</strong> each
+                                    @endif
+                                @else
+                                    You've used all {{ $includedRevisions }} included revisions. Additional revisions require payment before the producer can deliver.
+                                @endif
+                            </flux:text>
+                            @if ($pitch->revision_scope_guidelines)
+                                <flux:text size="xs" class="mt-2 italic {{ $nextRevisionIsFree ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                    Note: {{ $pitch->revision_scope_guidelines }}
+                                </flux:text>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
                 <flux:text size="sm" class="mb-4">
                     Use our structured feedback system to provide specific, organized feedback about what needs to be changed.
                 </flux:text>

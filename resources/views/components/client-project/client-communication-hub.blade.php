@@ -138,7 +138,7 @@
                                 @if($item['user'])
                                     <span class="{{ $workflowColors['text_muted'] }} text-xs">by {{ $item['user']->name }}</span>
                                 @endif
-                                <span class="{{ $workflowColors['text_muted'] }} text-xs">{{ $item['date']->diffForHumans() }}</span>
+                                <span class="{{ $workflowColors['text_muted'] }} text-xs">{{ toUserTimezone($item['date'])->diffForHumans() }}</span>
                             </div>
                             
                             <!-- Message Content (if exists) -->

@@ -597,6 +597,29 @@ class PitchWorkflowService
                     'new_snapshot_pitch_id' => $snapshot->pitch_id, // Explicitly log the pitch_id (using $snapshot)
                 ]);
 
+                // Link snapshot to pending revision milestone (if exists)
+                // This happens when producer uploads revision after client requested paid revision
+                if ($pitch->project->isClientManagement()) {
+                    $revisionRound = $newVersion - 1; // V2 = round 1, V3 = round 2, etc.
+                    $pendingMilestone = $pitch->milestones()
+                        ->where('is_revision_milestone', true)
+                        ->where('revision_round_number', $revisionRound)
+                        ->whereNull('pitch_snapshot_id')
+                        ->first();
+
+                    if ($pendingMilestone) {
+                        $pendingMilestone->pitch_snapshot_id = $snapshot->id;
+                        $pendingMilestone->save();
+
+                        Log::info('Linked revision milestone to new snapshot', [
+                            'pitch_id' => $pitch->id,
+                            'milestone_id' => $pendingMilestone->id,
+                            'snapshot_id' => $snapshot->id,
+                            'revision_round' => $revisionRound,
+                        ]);
+                    }
+                }
+
                 // Update Pitch Status
                 $pitch->status = Pitch::STATUS_READY_FOR_REVIEW;
                 $pitch->current_snapshot_id = $snapshot->id; // Link the new snapshot
@@ -1309,6 +1332,17 @@ class PitchWorkflowService
                 $pitch->completed_at = now();
                 $pitch->save();
 
+                // Update current snapshot status to ACCEPTED
+                $currentSnapshot = $pitch->currentSnapshot;
+                if ($currentSnapshot) {
+                    $currentSnapshot->status = PitchSnapshot::STATUS_ACCEPTED;
+                    $currentSnapshot->save();
+                    Log::info('Updated snapshot status to ACCEPTED after client approval.', [
+                        'pitch_id' => $pitch->id,
+                        'snapshot_id' => $currentSnapshot->id,
+                    ]);
+                }
+
                 // Complete the project
                 $this->completeClientManagementProject($pitch, $clientIdentifier);
 
@@ -1438,15 +1472,47 @@ class PitchWorkflowService
         if (! $pitch->project->isClientManagement()) {
             throw new UnauthorizedActionException('Client revisions are only applicable for client management projects.');
         }
-        if ($pitch->status !== Pitch::STATUS_READY_FOR_REVIEW) {
-            throw new InvalidStatusTransitionException($pitch->status, Pitch::STATUS_CLIENT_REVISIONS_REQUESTED, 'Pitch must be ready for review to request client revisions.');
+
+        // Allow revisions from READY_FOR_REVIEW or COMPLETED status
+        // COMPLETED allows clients to change their mind after approval
+        $allowedStatuses = [Pitch::STATUS_READY_FOR_REVIEW, Pitch::STATUS_COMPLETED];
+        if (! in_array($pitch->status, $allowedStatuses)) {
+            throw new InvalidStatusTransitionException(
+                $pitch->status,
+                Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+                'Pitch must be ready for review or completed to request client revisions.'
+            );
         }
 
         return DB::transaction(function () use ($pitch, $feedback, $clientIdentifier) {
+            // Check if this exceeds included revisions
+            $revisionIsFree = $this->isRevisionFree($pitch);
+
+            // Increment revision counter FIRST (before creating milestone)
+            $pitch->revisions_used = ($pitch->revisions_used ?? 0) + 1;
+
+            if (! $revisionIsFree) {
+                // Create a paid revision milestone (after incrementing)
+                // This ensures the milestone uses the correct revision round number
+                $this->createRevisionMilestone($pitch, $feedback);
+            }
+
             $pitch->status = Pitch::STATUS_CLIENT_REVISIONS_REQUESTED; // Use the new status
             // Note: Does not use standard snapshots/revision cycles. Status change drives the flow.
             $pitch->revisions_requested_at = now(); // Use standard field
             $pitch->save();
+
+            // Update current snapshot status to REVISIONS_REQUESTED
+            $currentSnapshot = $pitch->currentSnapshot;
+            if ($currentSnapshot) {
+                $currentSnapshot->status = PitchSnapshot::STATUS_REVISIONS_REQUESTED;
+                $currentSnapshot->save();
+                Log::info('Updated snapshot status to REVISIONS_REQUESTED after client feedback.', [
+                    'pitch_id' => $pitch->id,
+                    'snapshot_id' => $currentSnapshot->id,
+                    'revision_number' => $pitch->revisions_used,
+                ]);
+            }
 
             // Create event with feedback
             $pitch->events()->create([
@@ -1454,7 +1520,11 @@ class PitchWorkflowService
                 'comment' => $feedback, // Store client feedback here
                 'status' => $pitch->status,
                 'created_by' => null, // Client action
-                'metadata' => ['client_email' => $clientIdentifier],
+                'metadata' => [
+                    'client_email' => $clientIdentifier,
+                    'revision_number' => $pitch->revisions_used,
+                    'is_paid_revision' => ! $revisionIsFree,
+                ],
             ]);
 
             // Notify producer
@@ -1462,6 +1532,106 @@ class PitchWorkflowService
 
             return $pitch;
         });
+    }
+
+    /**
+     * Check if the upcoming revision will be free (covered by included revisions).
+     * This should be called BEFORE incrementing revisions_used.
+     */
+    private function isRevisionFree(Pitch $pitch): bool
+    {
+        $revisionsUsed = $pitch->revisions_used ?? 0;
+        $includedRevisions = $pitch->included_revisions ?? 0;
+
+        // Check if the NEXT revision (after incrementing) will be within included revisions
+        // Example: 1 included revision means revisions 1 is free
+        // revisions_used=0 → next=1 → 1 <= 1 = true (free)
+        // revisions_used=1 → next=2 → 2 <= 1 = false (paid)
+        return ($revisionsUsed + 1) <= $includedRevisions;
+    }
+
+    /**
+     * Create a paid revision milestone.
+     *
+     * Note: The milestone is created when the client requests a paid revision,
+     * but it is NOT linked to a snapshot at this time. The snapshot link
+     * will be established when the producer uploads the revision files.
+     */
+    private function createRevisionMilestone(Pitch $pitch, string $feedback): void
+    {
+        // Guard: Don't create milestone if additional_revision_price is $0 or not set
+        $additionalRevisionPrice = $pitch->additional_revision_price ?? 0;
+        if ($additionalRevisionPrice == 0) {
+            Log::info('Skipping revision milestone creation - additional_revision_price is $0', [
+                'pitch_id' => $pitch->id,
+                'revision_round' => ($pitch->revisions_used ?? 0) + 1,
+            ]);
+
+            return;
+        }
+
+        // Mark all previous files as superseded
+        $this->markFilesAsSuperseded($pitch);
+
+        // Revision round = revisions_used (which was just incremented)
+        // This represents the round number for the UPCOMING revision
+        $revisionRound = $pitch->revisions_used ?? 1;
+
+        // Get the highest sort order to append this milestone at the end
+        $maxSortOrder = $pitch->milestones()->max('sort_order') ?? 0;
+
+        $milestone = $pitch->milestones()->create([
+            'name' => "Revision Round {$revisionRound}",
+            'description' => 'Additional revision requested beyond included revisions',
+            'amount' => $pitch->additional_revision_price ?? 0,
+            'sort_order' => $maxSortOrder + 1,
+            'payment_status' => \App\Models\Pitch::PAYMENT_STATUS_PENDING,
+            'is_revision_milestone' => true,
+            'revision_round_number' => $revisionRound,
+            'revision_request_details' => $feedback,
+            // DO NOT link snapshot here - it will be linked when producer uploads the revision
+            'pitch_snapshot_id' => null,
+        ]);
+
+        Log::info('Created revision milestone', [
+            'pitch_id' => $pitch->id,
+            'milestone_id' => $milestone->id,
+            'revision_round' => $revisionRound,
+            'amount' => $milestone->amount,
+            'note' => 'Snapshot will be linked when producer uploads revision',
+        ]);
+    }
+
+    /**
+     * Mark all current pitch files as superseded by the upcoming revision
+     */
+    private function markFilesAsSuperseded(Pitch $pitch): void
+    {
+        $pitch->files()
+            ->where('superseded_by_revision', false)
+            ->update(['superseded_by_revision' => true]);
+
+        Log::info('Marked pitch files as superseded', [
+            'pitch_id' => $pitch->id,
+        ]);
+    }
+
+    /**
+     * Associate new files with the current revision round
+     */
+    public function associateFilesWithRevision(Pitch $pitch, array $fileIds): void
+    {
+        $currentRevisionRound = $pitch->revisions_used ?? 1;
+
+        $pitch->files()
+            ->whereIn('id', $fileIds)
+            ->update(['revision_round' => $currentRevisionRound]);
+
+        Log::info('Associated files with revision round', [
+            'pitch_id' => $pitch->id,
+            'revision_round' => $currentRevisionRound,
+            'file_count' => count($fileIds),
+        ]);
     }
 
     /**

@@ -94,7 +94,7 @@
                                 <div class="flex items-center mt-2">
                                     <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                                         <i class="fas fa-clock mr-1"></i>
-                                        {{ $notification->created_at->diffForHumans() }}
+                                        {{ $notification->created_at_for_user->diffForHumans() }}
                                     </p>
                                     @if(!$notification->read_at)
                                     <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white">

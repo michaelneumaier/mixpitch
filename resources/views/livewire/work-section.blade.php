@@ -91,15 +91,18 @@
                                 $itemIcon = 'fa-question';
                                 $itemBadgeColor = 'zinc';
 
-                                if ($item instanceof \App\Models\Project) { 
+                                if ($item instanceof \App\Models\Project) {
                                     if ($item->isClientManagement() && ($item->client_user_id === auth()->id() || $item->client_email === auth()->user()->email)) {
                                         $itemType = 'client';
+                                        // Route registered clients to the client portal (which will use app-sidebar layout)
+                                        $itemUrl = route('client.portal.view', $item);
                                     } elseif ($item->isContest()) {
                                         $itemType = 'contest';
+                                        $itemUrl = route('projects.manage', $item);
                                     } else {
-                                        $itemType = 'project'; 
+                                        $itemType = 'project';
+                                        $itemUrl = route('projects.manage', $item);
                                     }
-                                    $itemUrl = route('projects.manage', $item);
                                     $itemName = $item->name;
                                     $itemStatus = $item->status;
                                     $itemAmount = $item->budget;

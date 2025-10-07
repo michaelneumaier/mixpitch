@@ -20,7 +20,7 @@
                             </flux:heading>
                             @if ($this->latestFeedbackEvent)
                                 <flux:text size="xs" class="text-blue-600">
-                                    {{ $this->latestFeedbackEvent->created_at->diffForHumans() }}
+                                    {{ $this->latestFeedbackEvent->created_at_for_user->diffForHumans() }}
                                 </flux:text>
                             @endif
                         </div>
@@ -80,7 +80,7 @@
                                                 <flux:text size="xs" class="text-gray-500">
                                                     —
                                                     {{ $summary['latest_unresolved']->is_client_comment ? ($this->project->client_name ?: 'Client') : 'Producer' }},
-                                                    {{ $summary['latest_unresolved']->created_at->diffForHumans() }}
+                                                    {{ $summary['latest_unresolved']->created_at_for_user->diffForHumans() }}
                                                 </flux:text>
                                             @endif
                                         </div>
@@ -125,10 +125,10 @@
                         <div class="rounded bg-white p-3 shadow-sm">
                             <div class="mb-2 flex items-center gap-2">
                                 <flux:text size="xs" class="text-purple-600">
-                                    {{ $response->created_at->format('M j, Y g:i A') }}
+                                    {{ $response->created_at_for_user->format('M j, Y g:i A') }}
                                 </flux:text>
                                 <flux:text size="xs" class="text-gray-500">
-                                    ({{ $response->created_at->diffForHumans() }})
+                                    ({{ $response->created_at_for_user->diffForHumans() }})
                                 </flux:text>
                             </div>
                             <flux:text size="sm" class="text-gray-800">

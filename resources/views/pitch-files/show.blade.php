@@ -83,7 +83,7 @@
                                         <i class="fas fa-calendar text-purple-600 mr-2"></i>
                                         <div>
                                             <div class="font-medium text-gray-700">Uploaded</div>
-                                            <div class="text-gray-600">{{ $file->created_at->format('M j, Y') }}</div>
+                                            <div class="text-gray-600">{{ toUserTimezone($file->created_at)->format('M j, Y') }}</div>
                                         </div>
                                     </div>
                                     <div class="flex items-center">

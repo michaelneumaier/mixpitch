@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasTimezoneDisplay;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Pitch extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, Sluggable, SoftDeletes;
+    use HasFactory, HasTimezoneDisplay, InteractsWithMedia, Sluggable, SoftDeletes;
 
     const STATUS_PENDING = 'pending';
 
@@ -111,6 +112,10 @@ class Pitch extends Model implements HasMedia
         'submitted_at',
         'closed_at',
         'rank', // Add rank for contests (optional)
+        'included_revisions',
+        'additional_revision_price',
+        'revisions_used',
+        'revision_scope_guidelines',
         'amount',
         'currency',
         'contest_ranking', // e.g., 1 for winner, 2 for runner-up
@@ -813,5 +818,45 @@ class Pitch extends Model implements HasMedia
                    self::PAYMENT_STATUS_PAID,
                    self::PAYMENT_STATUS_NOT_REQUIRED,
                ]);
+    }
+
+    /**
+     * Check if there are unpaid revision milestones blocking access
+     */
+    public function hasUnpaidRevisionMilestones(): bool
+    {
+        return $this->milestones()
+            ->where('is_revision_milestone', true)
+            ->where('payment_status', '!=', self::PAYMENT_STATUS_PAID)
+            ->exists();
+    }
+
+    /**
+     * Get files accessible to the client based on revision milestone payment status
+     */
+    public function getAccessibleFilesForClient()
+    {
+        // If there are unpaid revision milestones, only show files from paid revisions
+        if ($this->hasUnpaidRevisionMilestones()) {
+            // Get the last paid revision milestone
+            $lastPaidRevisionMilestone = $this->milestones()
+                ->where('is_revision_milestone', true)
+                ->where('payment_status', self::PAYMENT_STATUS_PAID)
+                ->orderBy('revision_round_number', 'desc')
+                ->first();
+
+            $maxRevisionRound = $lastPaidRevisionMilestone ? $lastPaidRevisionMilestone->revision_round_number : 0;
+
+            // Return files from revisions up to and including the last paid revision
+            return $this->files()
+                ->where('revision_round', '<=', $maxRevisionRound)
+                ->where('superseded_by_revision', false)
+                ->get();
+        }
+
+        // No unpaid revision milestones - show all non-superseded files
+        return $this->files()
+            ->where('superseded_by_revision', false)
+            ->get();
     }
 }

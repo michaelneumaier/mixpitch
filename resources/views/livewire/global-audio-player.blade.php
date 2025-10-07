@@ -46,10 +46,14 @@
                                 if ($currentTrack['type'] === 'pitch_file') {
                                     $fileForGateCheck = \App\Models\PitchFile::find($currentTrack['id']);
                                 }
-                                
+
                                 if (isset($currentTrack['client_mode']) && $currentTrack['client_mode']) {
-                                    // In client portal mode, always show badge for watermarked files
-                                    $shouldShowWatermarkBadge = true;
+                                    // In client portal mode, check if watermarked version should be served based on payment
+                                    if ($fileForGateCheck) {
+                                        $clientPortalProject = $fileForGateCheck->pitch->project;
+                                        $snapshot = $this->snapshotId ? \App\Models\PitchSnapshot::find($this->snapshotId) : null;
+                                        $shouldShowWatermarkBadge = $fileForGateCheck->shouldServeWatermarked(Auth::user(), $clientPortalProject, $snapshot);
+                                    }
                                 } elseif (Auth::check() && $fileForGateCheck) {
                                     // In main app, check Gate permission
                                     $shouldShowWatermarkBadge = Gate::allows('receivesWatermarked', $fileForGateCheck);
@@ -333,10 +337,14 @@
                                     if ($currentTrack['type'] === 'pitch_file') {
                                         $fileForGateCheck = \App\Models\PitchFile::find($currentTrack['id']);
                                     }
-                                    
+
                                     if (isset($currentTrack['client_mode']) && $currentTrack['client_mode']) {
-                                        // In client portal mode, always show badge for watermarked files
-                                        $shouldShowWatermarkBadge = true;
+                                        // In client portal mode, check if watermarked version should be served based on payment
+                                        if ($fileForGateCheck) {
+                                            $clientPortalProject = $fileForGateCheck->pitch->project;
+                                            $snapshot = $this->snapshotId ? \App\Models\PitchSnapshot::find($this->snapshotId) : null;
+                                            $shouldShowWatermarkBadge = $fileForGateCheck->shouldServeWatermarked(Auth::user(), $clientPortalProject, $snapshot);
+                                        }
                                     } elseif (Auth::check() && $fileForGateCheck) {
                                         // In main app, check Gate permission
                                         $shouldShowWatermarkBadge = Gate::allows('receivesWatermarked', $fileForGateCheck);

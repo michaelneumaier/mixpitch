@@ -254,7 +254,7 @@
                                     <div class="font-medium text-slate-900 dark:text-slate-100 truncate">{{ $payout->project->name ?? 'Unknown Project' }}</div>
                                     <div class="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
                                         <flux:icon name="calendar" size="xs" />
-                                        <span>{{ $payout->created_at->format('M j, Y') }}</span>
+                                        <span>{{ toUserTimezone($payout->created_at)->format('M j, Y') }}</span>
                                     </div>
                                 </div>
                             </div>

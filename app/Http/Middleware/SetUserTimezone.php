@@ -12,8 +12,11 @@ class SetUserTimezone
     {
         if ($user = $request->user()) {
             $timezone = $user->timezone ?? config('timezone.default');
+
+            // IMPORTANT: Only set config for display purposes
+            // DO NOT call date_default_timezone_set() as it affects database storage
+            // All timestamps should be stored in UTC per Laravel best practices
             config(['app.timezone' => $timezone]);
-            date_default_timezone_set($timezone);
         }
 
         return $next($request);

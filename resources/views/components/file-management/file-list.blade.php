@@ -30,7 +30,7 @@
                 <div class="min-w-0 flex-1">
                     <div class="font-medium truncate text-sm sm:text-base">{{ $file->file_name }}</div>
                     <div class="flex items-center text-xs text-gray-500">
-                        <span>{{ $file->created_at->format('M d, Y') }}</span>
+                        <span>{{ toUserTimezone($file->created_at)->format('M d, Y') }}</span>
                         <span class="mx-1.5">•</span>
                         <span>{{ $formatFileSize($file->size) }}</span>
                     </div>

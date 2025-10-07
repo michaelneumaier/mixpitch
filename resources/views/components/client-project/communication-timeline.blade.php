@@ -31,10 +31,10 @@
                                 </flux:text>
                                 @endif
                                 <flux:text size="xs" class="text-gray-500">
-                                    {{ $item['date']->diffForHumans() }}
+                                    {{ toUserTimezone($item['date'])->diffForHumans() }}
                                 </flux:text>
                                 <flux:text size="xs" class="text-gray-400">
-                                    {{ $item['date']->format('M d, Y \a\t g:i A') }}
+                                    {{ toUserTimezone($item['date'])->format('M d, Y \a\t g:i A') }}
                                 </flux:text>
                             </div>
                         </div>
