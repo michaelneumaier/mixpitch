@@ -1,6 +1,6 @@
 @props(['project', 'pitch'])
 
-<flux:card class="mb-6">
+<flux:card class="mb-2">
     <div class="mb-6 flex items-center gap-3">
         <flux:icon.chat-bubble-left-right class="text-purple-500" />
         <div>

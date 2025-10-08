@@ -1325,11 +1325,30 @@ class PitchWorkflowService
                     return $pitch;
                 }
 
-                // For client management, we go directly to COMPLETED status
-                // This skips the intermediate APPROVED status since client approval = completion
-                $pitch->status = Pitch::STATUS_COMPLETED;
-                $pitch->approved_at = now();
-                $pitch->completed_at = now();
+                // Check if milestones exist and require payment
+                $hasMilestones = $pitch->milestones()->exists();
+                $allMilestonesPaid = $hasMilestones &&
+                    $pitch->milestones()->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)->count() === 0;
+
+                if ($hasMilestones && ! $allMilestonesPaid) {
+                    // Milestones exist with pending payments - set to APPROVED, not COMPLETED
+                    // Client can approve the work, but completion requires payment
+                    $pitch->status = Pitch::STATUS_APPROVED;
+                    $pitch->approved_at = now();
+                    Log::info('Client approved pitch with unpaid milestones. Status set to APPROVED.', [
+                        'pitch_id' => $pitch->id,
+                        'unpaid_milestones' => $pitch->milestones()->where('payment_status', '!=', Pitch::PAYMENT_STATUS_PAID)->count(),
+                    ]);
+                } else {
+                    // No milestones OR all milestones paid OR no payment required - proceed to COMPLETED
+                    $pitch->status = Pitch::STATUS_COMPLETED;
+                    $pitch->approved_at = now();
+                    $pitch->completed_at = now();
+                    Log::info('Client approved pitch. No payment required or all milestones paid. Status set to COMPLETED.', [
+                        'pitch_id' => $pitch->id,
+                        'has_milestones' => $hasMilestones,
+                    ]);
+                }
                 $pitch->save();
 
                 // Update current snapshot status to ACCEPTED
@@ -1343,10 +1362,30 @@ class PitchWorkflowService
                     ]);
                 }
 
-                // Complete the project
-                $this->completeClientManagementProject($pitch, $clientIdentifier);
+                // Only complete the project if status is COMPLETED
+                if ($pitch->status === Pitch::STATUS_COMPLETED) {
+                    $this->completeClientManagementProject($pitch, $clientIdentifier);
 
-                // Create approval event
+                    // Create completion event
+                    $pitch->events()->create([
+                        'event_type' => 'client_completed',
+                        'comment' => 'Project automatically completed after client approval.',
+                        'status' => $pitch->status,
+                        'created_by' => null, // System action
+                        'metadata' => ['client_email' => $clientIdentifier],
+                    ]);
+
+                    // Notify producer of approval AND completion
+                    $this->notificationService->notifyProducerClientApprovedAndCompleted($pitch);
+                    Log::info('Producer notified of client approval and completion.', ['pitch_id' => $pitch->id]);
+                } else {
+                    // Status is APPROVED - awaiting payment
+                    // Just notify about approval, not completion
+                    $this->notificationService->notifyProducerOfClientApproval($pitch);
+                    Log::info('Producer notified of client approval. Awaiting milestone payments.', ['pitch_id' => $pitch->id]);
+                }
+
+                // Always create approval event
                 $pitch->events()->create([
                     'event_type' => 'client_approved',
                     'comment' => 'Client approved the submission.',
@@ -1354,19 +1393,6 @@ class PitchWorkflowService
                     'created_by' => null, // Client action (via system/webhook)
                     'metadata' => ['client_email' => $clientIdentifier],
                 ]);
-
-                // Create completion event
-                $pitch->events()->create([
-                    'event_type' => 'client_completed',
-                    'comment' => 'Project automatically completed after client approval.',
-                    'status' => $pitch->status,
-                    'created_by' => null, // System action
-                    'metadata' => ['client_email' => $clientIdentifier],
-                ]);
-
-                // Notify producer of approval AND completion
-                $this->notificationService->notifyProducerClientApprovedAndCompleted($pitch);
-                Log::info('Producer notified of client approval and completion.', ['pitch_id' => $pitch->id]);
 
                 return $pitch;
             });

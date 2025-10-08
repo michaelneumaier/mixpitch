@@ -6,7 +6,7 @@
     $isPreview = $isPreview ?? false;
 @endphp
 
-<flux:card class="mb-6">
+<flux:card class="mb-2">
     <div class="mb-6 flex items-center gap-2">
         <flux:icon.folder-open class="text-purple-500" />
         <div>

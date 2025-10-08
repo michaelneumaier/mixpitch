@@ -1,5 +1,5 @@
 @if ($project->description)
-    <flux:card class="mb-6">
+    <flux:card class="mb-2">
         <div class="mb-4 flex items-center gap-3">
             <flux:icon.document-text class="text-blue-500" />
             <flux:heading size="lg">Project Brief</flux:heading>

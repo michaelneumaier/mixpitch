@@ -2,6 +2,8 @@
     $branding = $branding ?? [];
     $milestones = $milestones ?? collect();
     $hasMilestones = $milestones->count() > 0;
+    $allMilestonesPaid = $hasMilestones &&
+        $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->count() === $milestones->count();
     $statusVariant = 'ghost';
     switch ($pitch->status) {
         case \App\Models\Pitch::STATUS_PENDING:
@@ -53,7 +55,7 @@
     }
 @endphp
 
-<flux:card class="mb-6">
+<flux:card class="mb-2">
     <div class="mb-6 flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div class="flex items-center gap-4">
             @if (!empty($branding['logo_url']))
@@ -182,8 +184,30 @@
                         @endif
                         @break
                     @case(\App\Models\Pitch::STATUS_COMPLETED)
+                        @php
+                            // Determine if deliverables are actually accessible
+                            $deliverablesAccessible = true;
+
+                            // Check milestone payment status
+                            if ($hasMilestones && !$allMilestonesPaid) {
+                                $deliverablesAccessible = false;
+                            }
+
+                            // Check single payment status (for non-milestone projects)
+                            if (!$hasMilestones && $pitch->payment_amount > 0) {
+                                $deliverablesAccessible = in_array($pitch->payment_status, [
+                                    \App\Models\Pitch::PAYMENT_STATUS_PAID,
+                                    \App\Models\Pitch::PAYMENT_STATUS_NOT_REQUIRED,
+                                ]);
+                            }
+                        @endphp
+
                         <i class="fas fa-star mr-2 text-emerald-500"></i>
-                        🎉 Project completed successfully! All deliverables are available below.
+                        @if ($deliverablesAccessible)
+                            🎉 Project completed successfully! All deliverables are available below.
+                        @else
+                            🎉 Project completed! Complete all payments to access your deliverables.
+                        @endif
                         @break
                     @default
                         <i class="fas fa-question-circle mr-2 text-gray-500"></i>

@@ -690,16 +690,45 @@
                 $pitch = $workflowStatusData['pitch'];
                 $workflowType = $workflowStatusData['type'];
                 
-                // Get status info based on workflow type
+                // Get status info based on workflow type and payment/milestone status
                 $statusInfo = match($pitch->status) {
                     'pending' => ['text' => 'Awaiting Approval', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'clock'],
+                    'awaiting_acceptance' => ['text' => 'Awaiting Your Response', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'bell'],
                     'in_progress' => ['text' => 'Work in Progress', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => 'cog-6-tooth'],
                     'ready_for_review' => ['text' => 'Submitted for Review', 'color' => 'text-purple-600 dark:text-purple-400', 'icon' => 'eye'],
-                    'approved' => ['text' => 'Work Approved', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle'],
-                    'completed' => ['text' => 'Completed', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle'],
+                    'pending_review' => ['text' => 'Under Review', 'color' => 'text-purple-600 dark:text-purple-400', 'icon' => 'magnifying-glass'],
+                    'approved' => (function() use ($pitch) {
+                        // Check payment status for approved work
+                        if ($pitch->payment_amount > 0 && !in_array($pitch->payment_status, ['paid', 'payment_not_required'])) {
+                            return ['text' => 'Approved - Payment Pending', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'credit-card'];
+                        }
+                        return ['text' => 'Work Approved', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle'];
+                    })(),
+                    'completed' => (function() use ($pitch) {
+                        // Check milestone and payment status for completed work
+                        $hasMilestones = $pitch->milestones()->count() > 0;
+
+                        if ($hasMilestones) {
+                            $allMilestonesPaid = $pitch->milestones()
+                                ->where('payment_status', '!=', 'paid')
+                                ->count() === 0;
+
+                            if (!$allMilestonesPaid) {
+                                return ['text' => 'Completed - Milestones Pending', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'flag'];
+                            }
+                            return ['text' => 'Completed - Deliverables Available', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle'];
+                        }
+
+                        if ($pitch->payment_amount > 0 && !in_array($pitch->payment_status, ['paid', 'payment_not_required'])) {
+                            return ['text' => 'Completed - Payment Pending', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'credit-card'];
+                        }
+
+                        return ['text' => 'Completed - Deliverables Available', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle'];
+                    })(),
                     'revisions_requested' => ['text' => 'Revisions Requested', 'color' => 'text-orange-600 dark:text-orange-400', 'icon' => 'arrow-path'],
                     'client_revisions_requested' => ['text' => 'Client Revisions Requested', 'color' => 'text-orange-600 dark:text-orange-400', 'icon' => 'pencil'],
                     'denied' => ['text' => 'Not Approved', 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'x-circle'],
+                    'closed' => ['text' => 'Closed', 'color' => 'text-gray-600 dark:text-gray-400', 'icon' => 'lock-closed'],
                     'contest_entry' => ['text' => 'Contest Entry', 'color' => 'text-orange-600 dark:text-orange-400', 'icon' => 'trophy'],
                     'contest_winner' => ['text' => 'Contest Winner! 🏆', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'trophy'],
                     'contest_runner_up' => ['text' => 'Runner-Up', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => 'star'],
@@ -750,8 +779,16 @@
                     if ($completedPitch) {
                         $currentFocus = ['text' => 'Project Delivered', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle', 'urgency' => 'normal'];
                     } elseif ($approvedPitch) {
-                        $workSubmitted = $approvedPitch->status === 'submitted_for_review';
-                        $currentFocus = ['text' => $workSubmitted ? 'Client Review Pending' : 'Work in Progress', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => $workSubmitted ? 'eye' : 'cog-6-tooth', 'urgency' => 'normal'];
+                        $workSubmitted = $approvedPitch->status === 'ready_for_review';
+                        $revisionsRequested = $approvedPitch->status === 'client_revisions_requested';
+
+                        if ($revisionsRequested) {
+                            $currentFocus = ['text' => 'Addressing Client Revisions', 'color' => 'text-orange-600 dark:text-orange-400', 'icon' => 'pencil', 'urgency' => 'normal'];
+                        } elseif ($workSubmitted) {
+                            $currentFocus = ['text' => 'Client Review Pending', 'color' => 'text-purple-600 dark:text-purple-400', 'icon' => 'eye', 'urgency' => 'normal'];
+                        } else {
+                            $currentFocus = ['text' => 'Work in Progress', 'color' => 'text-blue-600 dark:text-blue-400', 'icon' => 'cog-6-tooth', 'urgency' => 'normal'];
+                        }
                     } else {
                         $currentFocus = ['text' => 'Setup Client Review', 'color' => 'text-amber-600 dark:text-amber-400', 'icon' => 'user-group', 'urgency' => 'warning'];
                     }
@@ -769,9 +806,9 @@
                             $currentFocus = ['text' => 'Project Complete', 'color' => 'text-green-600 dark:text-green-400', 'icon' => 'check-circle', 'urgency' => 'normal'];
                         }
                     } elseif ($approvedPitch) {
-                        $workSubmitted = $approvedPitch->status === 'submitted_for_review';
-                        $revisionRequested = $approvedPitch->status === 'revision_requested';
-                        
+                        $workSubmitted = $approvedPitch->status === 'ready_for_review';
+                        $revisionRequested = $approvedPitch->status === 'revisions_requested';
+
                         if ($workSubmitted) {
                             $currentFocus = ['text' => 'Review Submitted Work', 'color' => 'text-red-600 dark:text-red-400', 'icon' => 'eye', 'urgency' => 'urgent'];
                         } elseif ($revisionRequested) {

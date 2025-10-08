@@ -114,6 +114,9 @@
                                                     class="border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-200">
                                                     <flux:icon.folder-open class="mr-1 inline h-4 w-4" />
                                                     Client <span class="hidden md:inline">Reference</span> Files
+                                                    <flux:badge variant="outline" size="sm" class="ml-1">
+                                                        {{ $this->clientFiles->count() }} files
+                                                    </flux:badge>
                                                 </button>
                                             </nav>
                                         </div>

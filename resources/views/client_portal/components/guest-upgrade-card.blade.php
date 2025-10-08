@@ -1,5 +1,5 @@
 @guest
-    <flux:card class="mb-6 bg-purple-50 dark:bg-purple-900/20">
+    <flux:card class="mb-2 bg-purple-50 dark:bg-purple-900/20">
         <div class="mb-6 flex items-start justify-between">
             <div class="flex items-center gap-3">
                 <flux:icon.user-plus class="text-purple-500" />

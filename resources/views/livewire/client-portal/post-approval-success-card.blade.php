@@ -1,4 +1,4 @@
-<div>
+<div class="mb-2">
     @if (in_array($pitch->status, [\App\Models\Pitch::STATUS_APPROVED, \App\Models\Pitch::STATUS_COMPLETED]))
         <flux:callout variant="success">
             <div class="text-center">

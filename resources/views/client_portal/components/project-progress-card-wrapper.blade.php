@@ -30,7 +30,7 @@
     }
 @endphp
 
-<flux:card class="mb-6">
+<flux:card class="mb-2">
     <div class="mb-6 flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div class="flex items-center gap-4">
             @if (!empty($branding['logo_url']))

@@ -1,4 +1,4 @@
-<div id="producer-deliverables" class="mb-6 rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
+<div id="producer-deliverables" class="mb-2 rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
 
     {{-- Header with Version Info --}}
     <div class="mb-6 flex items-center justify-between">

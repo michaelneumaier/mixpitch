@@ -17,8 +17,22 @@
         $milestones->where('payment_status', \App\Models\Pitch::PAYMENT_STATUS_PAID)->count() === $milestones->count();
 @endphp
 
-@if (in_array($pitch->status, [\App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
-    <flux:card class="mb-6">
+@php
+    // Check if we should show this card
+    $shouldShowCard = in_array($pitch->status, [
+        \App\Models\Pitch::STATUS_READY_FOR_REVIEW,
+        \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED,
+        \App\Models\Pitch::STATUS_APPROVED
+    ]);
+
+    // Also show for COMPLETED if milestones exist and aren't all paid
+    if ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $hasMilestones && !$allMilestonesPaid) {
+        $shouldShowCard = true;
+    }
+@endphp
+
+@if ($shouldShowCard)
+    <flux:card class="mb-2">
         @if ($pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED && $latestFeedbackEvent)
             {{-- Feedback Sent Confirmation State --}}
             <div class="mb-6 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 p-6 dark:from-amber-900/20 dark:to-orange-900/20">
@@ -66,6 +80,28 @@
                     </flux:text>
                 </div>
             </div>
+        @elseif ($pitch->status === \App\Models\Pitch::STATUS_APPROVED)
+            {{-- Approved State - Payment Pending --}}
+            <div class="mb-6 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 p-6 dark:from-green-900/20 dark:to-emerald-900/20">
+                <div class="mb-4 flex items-start gap-3">
+                    <flux:icon.check-circle class="mt-1 text-green-500" />
+                    <div class="flex-1">
+                        <flux:heading size="lg" class="mb-2">Project Approved!</flux:heading>
+                        <flux:subheading class="mb-4">You've approved this work. Please complete the payment below to finalize and receive your deliverables.</flux:subheading>
+                    </div>
+                </div>
+            </div>
+        @elseif ($pitch->status === \App\Models\Pitch::STATUS_COMPLETED && $hasMilestones && !$allMilestonesPaid)
+            {{-- Completed but Unpaid Milestones - Payment Required --}}
+            <div class="mb-6 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 p-6 dark:from-amber-900/20 dark:to-orange-900/20">
+                <div class="mb-4 flex items-start gap-3">
+                    <flux:icon.exclamation-triangle class="mt-1 text-amber-500" />
+                    <div class="flex-1">
+                        <flux:heading size="lg" class="mb-2">Payment Required</flux:heading>
+                        <flux:subheading class="mb-4">The project is complete, but milestone payments are pending. Please complete all milestone payments below to access your deliverables.</flux:subheading>
+                    </div>
+                </div>
+            </div>
         @else
             {{-- Original Ready for Review State --}}
             <div class="mb-6 flex items-center gap-3">
@@ -105,46 +141,47 @@
             </flux:callout>
         @endif
 
-        <div class="grid grid-cols-1 gap-6 {{ $pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED ? 'lg:grid-cols-1' : 'lg:grid-cols-2' }}">
-            {{-- Approve Form --}}
-            <div class="rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
-                <div class="mb-4 flex items-center gap-2">
-                    <flux:icon.check-circle class="text-green-500" />
-                    <flux:heading size="sm">Approve Project</flux:heading>
-                </div>
-                <flux:text size="sm" class="mb-4">
-                    @if ($hasMilestones)
-                        Approve this submission to indicate you're satisfied with the work. Payment is handled separately through the milestone system above.
-                    @elseif ($pitch->payment_amount > 0)
-                        Clicking approve will redirect you to secure payment processing. You'll be charged ${{ number_format($pitch->payment_amount, 2) }} and the producer will be notified of completion.
-                    @else
-                        Clicking approve will notify the producer that the project is complete and satisfactory.
-                    @endif
-                </flux:text>
-
-                <form action="{{ URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
-                    @csrf
-                    <flux:button type="submit" variant="primary" icon="check-circle" class="w-full">
-                        @if ($hasMilestones)
-                            Approve Submission
-                        @elseif ($pitch->payment_amount > 0)
-                            Approve &amp; Pay ${{ number_format($pitch->payment_amount, 2) }}
-                        @else
-                            Approve Project
-                        @endif
-                    </flux:button>
-                </form>
-
-                @if (!$hasMilestones && $pitch->payment_amount > 0)
-                    <div class="mt-3 flex items-center justify-center gap-1">
-                        <flux:icon.lock-closed class="h-3 w-3 text-green-600" />
-                        <flux:text size="xs" class="text-green-600">Powered by Stripe • SSL Encrypted</flux:text>
+        @if (in_array($pitch->status, [\App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
+            <div class="grid grid-cols-1 gap-6 {{ $pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED ? 'lg:grid-cols-1' : 'lg:grid-cols-2' }}">
+                {{-- Approve Form --}}
+                <div class="rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
+                    <div class="mb-4 flex items-center gap-2">
+                        <flux:icon.check-circle class="text-green-500" />
+                        <flux:heading size="sm">Approve Project</flux:heading>
                     </div>
-                @endif
-            </div>
+                    <flux:text size="sm" class="mb-4">
+                        @if ($hasMilestones)
+                            Approve this submission to indicate you're satisfied with the work. Payment is handled separately through the milestone system above.
+                        @elseif ($pitch->payment_amount > 0)
+                            Clicking approve will redirect you to secure payment processing. You'll be charged ${{ number_format($pitch->payment_amount, 2) }} and the producer will be notified of completion.
+                        @else
+                            Clicking approve will notify the producer that the project is complete and satisfactory.
+                        @endif
+                    </flux:text>
 
-            {{-- Request Revisions Form - Only show in READY_FOR_REVIEW state --}}
-            @if ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
+                    <form action="{{ URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
+                        @csrf
+                        <flux:button type="submit" variant="primary" icon="check-circle" class="w-full">
+                            @if ($hasMilestones)
+                                Approve Submission
+                            @elseif ($pitch->payment_amount > 0)
+                                Approve &amp; Pay ${{ number_format($pitch->payment_amount, 2) }}
+                            @else
+                                Approve Project
+                            @endif
+                        </flux:button>
+                    </form>
+
+                    @if (!$hasMilestones && $pitch->payment_amount > 0)
+                        <div class="mt-3 flex items-center justify-center gap-1">
+                            <flux:icon.lock-closed class="h-3 w-3 text-green-600" />
+                            <flux:text size="xs" class="text-green-600">Powered by Stripe • SSL Encrypted</flux:text>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Request Revisions Form - Only show in READY_FOR_REVIEW state --}}
+                @if ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
                 <div class="rounded-xl bg-amber-50 p-6 dark:bg-amber-900/20">
                 <div class="mb-4 flex items-center gap-2">
                     <flux:icon.pencil class="text-amber-500" />
@@ -224,7 +261,8 @@
                     </form>
                 </div>
                 </div>
-            @endif
-        </div>
+                @endif
+            </div>
+        @endif
     </flux:card>
 @endif

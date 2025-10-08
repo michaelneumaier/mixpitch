@@ -42,7 +42,6 @@
             <div class="flex flex-col items-center gap-2">
                 <flux:icon.arrow-up-tray class="text-gray-400 dark:text-gray-500" />
                 <div class="text-sm text-gray-700 dark:text-gray-300">Drag & drop files here or click to select</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">Files will upload immediately and appear in the global uploader</div>
             </div>
         </div>
     </div>
