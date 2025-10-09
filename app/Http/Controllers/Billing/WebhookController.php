@@ -539,6 +539,77 @@ class WebhookController extends CashierWebhookController
                     Log::info('Successfully processed Client Pitch Payment via webhook.', ['pitch_id' => $pitchId, 'invoice_id' => $invoice->id]);
                 });
 
+                // Send payment confirmation emails after successful transaction
+                try {
+                    $pitch = Pitch::find($pitchId); // Reload pitch after transaction
+                    if ($pitch) {
+                        $emailService = app(EmailService::class);
+                        $project = $pitch->project;
+                        $invoice = Invoice::where('pitch_id', $pitch->id)->first();
+
+                        // Send client payment receipt
+                        if ($project->client_email && $invoice) {
+                            $invoiceUrl = route('billing.invoice.show', $invoice);
+                            $portalUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                                'client.portal.view',
+                                now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7)),
+                                ['project' => $project->id]
+                            );
+
+                            $emailService->sendClientPaymentReceipt(
+                                $project->client_email,
+                                $project->client_name,
+                                $project,
+                                $invoice->amount,
+                                $invoice->currency,
+                                $invoice->stripe_payment_intent_id ?? 'N/A',
+                                $invoiceUrl,
+                                $portalUrl
+                            );
+
+                            Log::info('Sent client payment receipt email', [
+                                'pitch_id' => $pitch->id,
+                                'invoice_id' => $invoice->id,
+                            ]);
+                        }
+
+                        // Send producer payment received email
+                        $producer = $pitch->user;
+                        if ($producer && $invoice) {
+                            // Calculate platform fee and net amount
+                            $platformFeePercentage = config('business.platform_fee_percentage', 10);
+                            $grossAmount = $invoice->amount;
+                            $platformFee = ($grossAmount * $platformFeePercentage) / 100;
+                            $netAmount = $grossAmount - $platformFee;
+
+                            // Get payout date (immediate for client management)
+                            $payoutDate = \Carbon\Carbon::now();
+
+                            $emailService->sendProducerPaymentReceived(
+                                $producer,
+                                $project,
+                                $pitch,
+                                $grossAmount,
+                                $platformFee,
+                                $netAmount,
+                                $invoice->currency,
+                                $payoutDate
+                            );
+
+                            Log::info('Sent producer payment received email', [
+                                'pitch_id' => $pitch->id,
+                                'producer_id' => $producer->id,
+                            ]);
+                        }
+                    }
+                } catch (\Exception $emailException) {
+                    // Log but don't fail the webhook processing
+                    Log::error('Failed to send payment confirmation emails', [
+                        'pitch_id' => $pitchId,
+                        'error' => $emailException->getMessage(),
+                    ]);
+                }
+
             } catch (\Exception $e) {
                 Log::error('Error processing checkout.session.completed for Client Pitch: '.$e->getMessage(), [
                     'session_id' => $sessionId,

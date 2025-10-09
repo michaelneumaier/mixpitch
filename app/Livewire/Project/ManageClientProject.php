@@ -63,6 +63,9 @@ class ManageClientProject extends Component
 
     public bool $viewingHistory = false; // Flag for UI indicators
 
+    // Email preferences
+    public array $producerEmailPreferences = [];
+
     protected $listeners = [
         'filesUploaded' => '$refresh',
         'fileDeleted' => '$refresh',
@@ -104,6 +107,9 @@ class ManageClientProject extends Component
 
         $this->loadStatusFeedback();
         $this->checkResubmissionEligibility();
+
+        // Initialize email preferences
+        $this->producerEmailPreferences = $this->project->producer_email_preferences ?? $this->project->getDefaultEmailPreferences();
 
         // Initialize watermarking preference
         $this->watermarkingEnabled = $this->pitch->watermarking_enabled ?? false;
@@ -1491,5 +1497,25 @@ class ManageClientProject extends Component
 
         // Increment refresh key to force file-list component to re-render
         $this->refreshKey++;
+    }
+
+    /**
+     * Update a specific producer email preference.
+     */
+    public function updateProducerEmailPreference(string $type, bool $enabled): void
+    {
+        try {
+            $this->project->updateProducerEmailPreference($type, $enabled);
+            $this->producerEmailPreferences[$type] = $enabled;
+
+            Toaster::success('Email preference updated');
+        } catch (\Exception $e) {
+            Log::error('Failed to update producer email preference', [
+                'error' => $e->getMessage(),
+                'project_id' => $this->project->id,
+                'type' => $type,
+            ]);
+            Toaster::error('Failed to update email preference');
+        }
     }
 }

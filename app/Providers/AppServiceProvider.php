@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\EmailService;
 use App\Services\NotificationService;
 use App\Services\PitchWorkflowService;
 use App\View\Components\DateTimeFixed;
@@ -19,10 +20,11 @@ class AppServiceProvider extends ServiceProvider
         // Explicitly bind PitchWorkflowService - Laravel should normally auto-resolve this,
         // but let's try forcing it to debug the controller DI issue.
         $this->app->bind(PitchWorkflowService::class, function ($app) {
-            // Manually resolve NotificationService first (which should also be auto-resolvable)
+            // Manually resolve NotificationService and EmailService
             $notificationService = $app->make(NotificationService::class);
+            $emailService = $app->make(EmailService::class);
 
-            return new PitchWorkflowService($notificationService);
+            return new PitchWorkflowService($notificationService, $emailService);
         });
     }
 

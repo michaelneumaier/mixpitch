@@ -1,21 +1,24 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+<x-layouts.app-sidebar>
+
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center flex-wrap gap-2">
+            <flux:heading size="xl" class="text-gray-900 dark:text-gray-100">
                 {{ __('Invoice Details') }}
-            </h2>
+            </flux:heading>
             <div class="flex gap-2">
-                <a href="{{ route('billing.invoices') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium rounded-md transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i> Back to Invoices
-                </a>
-                <a href="{{ route('billing.invoice.download', $invoice->id) }}" class="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary-focus text-white text-sm font-medium rounded-md transition-colors">
-                    <i class="fas fa-download mr-2"></i> Download PDF
-                </a>
+                <flux:button href="{{ route('billing.invoices') }}" wire:navigate icon="arrow-left" variant="outline" size="sm">
+                    Back to Invoices
+                </flux:button>
+                <flux:button href="{{ route('billing.invoice.download', $invoice->id) }}" icon="arrow-down-tray" variant="filled" size="sm">
+                    Download PDF
+                </flux:button>
             </div>
         </div>
-    </x-slot>
+    </div>
 
-    <div class="py-12">
+    <div>
         <div class="mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                 <div class="p-6 sm:p-8">
@@ -223,4 +226,6 @@
             </div>
         </div>
     </div>
-</x-app-layout> 
+</div>
+
+</x-layouts.app-sidebar> 

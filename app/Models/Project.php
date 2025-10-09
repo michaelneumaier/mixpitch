@@ -121,6 +121,8 @@ class Project extends Model
         'client_email',
         'client_name',
         'client_user_id',
+        'producer_email_preferences',
+        'client_email_preferences',
         'payment_amount',
         'completed_at',
         // License fields
@@ -149,6 +151,8 @@ class Project extends Model
         'is_private' => 'boolean',
         'privacy_set_at' => 'datetime',
         'privacy_settings' => 'array',
+        'producer_email_preferences' => 'array',
+        'client_email_preferences' => 'array',
         'completed_at' => 'datetime',
         'deadline' => 'datetime',
         'target_producer_id' => 'integer',
@@ -1650,5 +1654,98 @@ class Project extends Model
             'winners_with_status' => $winnersWithStatus,
             'summary' => $summary,
         ];
+    }
+
+    /**
+     * Get the default email notification preferences (all enabled).
+     */
+    public function getDefaultEmailPreferences(): array
+    {
+        return [
+            'revision_confirmation' => true,
+            'producer_resubmitted' => true,
+            'producer_revisions_requested' => true,
+            'producer_client_commented' => true,
+            'payment_receipt' => true,
+            'payment_received' => true,
+        ];
+    }
+
+    /**
+     * Check if a specific producer email notification should be sent.
+     *
+     * @param  string  $type  Email type (e.g., 'producer_revisions_requested')
+     */
+    public function shouldSendProducerEmail(string $type): bool
+    {
+        // If global config disables this email type, respect that
+        if (! config("business.email_notifications.client_management.{$type}", true)) {
+            return false;
+        }
+
+        // Get producer preferences (default to all enabled)
+        $preferences = $this->producer_email_preferences ?? $this->getDefaultEmailPreferences();
+
+        // Return preference for this specific email type (default true if not set)
+        return $preferences[$type] ?? true;
+    }
+
+    /**
+     * Check if a specific client email notification should be sent.
+     *
+     * @param  string  $type  Email type (e.g., 'revision_confirmation')
+     */
+    public function shouldSendClientEmail(string $type): bool
+    {
+        // If global config disables this email type, respect that
+        if (! config("business.email_notifications.client_management.{$type}", true)) {
+            return false;
+        }
+
+        // Get client preferences (default to all enabled)
+        $preferences = $this->client_email_preferences ?? $this->getDefaultEmailPreferences();
+
+        // Return preference for this specific email type (default true if not set)
+        return $preferences[$type] ?? true;
+    }
+
+    /**
+     * Update a specific producer email preference.
+     *
+     * @param  string  $type  Email type
+     * @param  bool  $enabled  Whether to enable or disable
+     */
+    public function updateProducerEmailPreference(string $type, bool $enabled): void
+    {
+        $preferences = $this->producer_email_preferences ?? $this->getDefaultEmailPreferences();
+        $preferences[$type] = $enabled;
+        $this->producer_email_preferences = $preferences;
+        $this->save();
+
+        Log::info('Producer email preference updated', [
+            'project_id' => $this->id,
+            'type' => $type,
+            'enabled' => $enabled,
+        ]);
+    }
+
+    /**
+     * Update a specific client email preference.
+     *
+     * @param  string  $type  Email type
+     * @param  bool  $enabled  Whether to enable or disable
+     */
+    public function updateClientEmailPreference(string $type, bool $enabled): void
+    {
+        $preferences = $this->client_email_preferences ?? $this->getDefaultEmailPreferences();
+        $preferences[$type] = $enabled;
+        $this->client_email_preferences = $preferences;
+        $this->save();
+
+        Log::info('Client email preference updated', [
+            'project_id' => $this->id,
+            'type' => $type,
+            'enabled' => $enabled,
+        ]);
     }
 }

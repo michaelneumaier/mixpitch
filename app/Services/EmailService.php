@@ -570,5 +570,384 @@ class EmailService
         }
     }
 
+    // --- Client Management Workflow Emails ---
+
+    /**
+     * Send revision request confirmation email to client.
+     */
+    public function sendClientRevisionRequestConfirmation(
+        string $clientEmail,
+        ?string $clientName,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        string $feedback,
+        string $signedUrl
+    ): void {
+        // Check if email notifications are enabled
+        if (! config('business.email_notifications.client_management.enabled')) {
+            Log::info('Client management emails disabled, skipping revision confirmation');
+
+            return;
+        }
+
+        if (! config('business.email_notifications.client_management.revision_confirmation')) {
+            Log::info('Revision confirmation emails disabled, skipping');
+
+            return;
+        }
+
+        // Check per-project client email preference
+        if (! $project->shouldSendClientEmail('revision_confirmation')) {
+            Log::info('Revision confirmation email disabled by client preference', [
+                'project_id' => $project->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $mailable = new \App\Mail\Client\RevisionRequestConfirmation(
+                $project,
+                $pitch,
+                $feedback,
+                $signedUrl,
+                $clientName
+            );
+
+            $metadata = [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'client_email' => $clientEmail,
+                'client_name' => $clientName,
+            ];
+
+            $this->queue($mailable, $clientEmail, 'client_revision_confirmation', $metadata);
+
+            Log::info('Client revision confirmation email queued', $metadata);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send client revision confirmation email', [
+                'error' => $e->getMessage(),
+                'client_email' => $clientEmail,
+                'project_id' => $project->id,
+            ]);
+        }
+    }
+
+    /**
+     * Send notification to client when producer resubmits updated work.
+     */
+    public function sendClientProducerResubmitted(
+        string $clientEmail,
+        ?string $clientName,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        string $signedUrl,
+        int $fileCount = 0,
+        ?string $producerNote = null
+    ): void {
+        if (! config('business.email_notifications.client_management.enabled')) {
+            Log::info('Client management emails disabled, skipping producer resubmission');
+
+            return;
+        }
+
+        if (! config('business.email_notifications.client_management.producer_resubmitted')) {
+            Log::info('Producer resubmission emails disabled, skipping');
+
+            return;
+        }
+
+        // Check per-project client email preference
+        if (! $project->shouldSendClientEmail('producer_resubmitted')) {
+            Log::info('Producer resubmission email disabled by client preference', [
+                'project_id' => $project->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $mailable = new \App\Mail\Client\ProducerResubmitted(
+                $project,
+                $pitch,
+                $signedUrl,
+                $clientName,
+                $fileCount,
+                $producerNote
+            );
+
+            $metadata = [
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'client_email' => $clientEmail,
+                'client_name' => $clientName,
+                'file_count' => $fileCount,
+            ];
+
+            $this->queue($mailable, $clientEmail, 'client_producer_resubmitted', $metadata);
+
+            Log::info('Client producer resubmitted email queued', $metadata);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send client producer resubmitted email', [
+                'error' => $e->getMessage(),
+                'client_email' => $clientEmail,
+                'project_id' => $project->id,
+            ]);
+        }
+    }
+
+    /**
+     * Send notification to producer when client requests revisions.
+     */
+    public function sendProducerClientRevisionsRequested(
+        \App\Models\User $producer,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        string $feedback
+    ): void {
+        if (! config('business.email_notifications.client_management.enabled')) {
+            Log::info('Client management emails disabled, skipping producer revisions requested');
+
+            return;
+        }
+
+        if (! config('business.email_notifications.client_management.producer_revisions_requested')) {
+            Log::info('Producer revisions requested emails disabled, skipping');
+
+            return;
+        }
+
+        // Check per-project producer email preference
+        if (! $project->shouldSendProducerEmail('producer_revisions_requested')) {
+            Log::info('Producer revisions requested email disabled by producer preference', [
+                'project_id' => $project->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $mailable = new \App\Mail\Producer\ClientRevisionsRequested(
+                $producer,
+                $project,
+                $pitch,
+                $feedback
+            );
+
+            $metadata = [
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'feedback_length' => strlen($feedback),
+            ];
+
+            $this->queue($mailable, $producer->email, 'producer_client_revisions_requested', $metadata);
+
+            Log::info('Producer client revisions requested email queued', $metadata);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer client revisions requested email', [
+                'error' => $e->getMessage(),
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+            ]);
+        }
+    }
+
+    /**
+     * Send notification to producer when client adds a comment.
+     */
+    public function sendProducerClientCommented(
+        \App\Models\User $producer,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        string $comment
+    ): void {
+        if (! config('business.email_notifications.client_management.enabled')) {
+            Log::info('Client management emails disabled, skipping producer client commented');
+
+            return;
+        }
+
+        if (! config('business.email_notifications.client_management.producer_client_commented')) {
+            Log::info('Producer client commented emails disabled, skipping');
+
+            return;
+        }
+
+        // Check per-project producer email preference
+        if (! $project->shouldSendProducerEmail('producer_client_commented')) {
+            Log::info('Producer client commented email disabled by producer preference', [
+                'project_id' => $project->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $mailable = new \App\Mail\Producer\ClientCommented(
+                $producer,
+                $project,
+                $pitch,
+                $comment
+            );
+
+            $metadata = [
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'comment_length' => strlen($comment),
+            ];
+
+            $this->queue($mailable, $producer->email, 'producer_client_commented', $metadata);
+
+            Log::info('Producer client commented email queued', $metadata);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer client commented email', [
+                'error' => $e->getMessage(),
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+            ]);
+        }
+    }
+
+    /**
+     * Send payment receipt email to client.
+     */
+    public function sendClientPaymentReceipt(
+        \App\Models\Project $project,
+        ?string $clientName,
+        float $amount,
+        string $currency,
+        string $transactionId,
+        string $invoiceUrl,
+        string $portalUrl
+    ): void {
+        if (! config('business.email_notifications.client_management.enabled')) {
+            Log::info('Client management emails disabled, skipping client payment receipt');
+
+            return;
+        }
+
+        if (! config('business.email_notifications.client_management.payment_receipt')) {
+            Log::info('Client payment receipt emails disabled, skipping');
+
+            return;
+        }
+
+        // Check per-project client email preference
+        if (! $project->shouldSendClientEmail('payment_receipt')) {
+            Log::info('Client payment receipt email disabled by client preference', [
+                'project_id' => $project->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $mailable = new \App\Mail\Payment\ClientPaymentReceipt(
+                $project,
+                $clientName,
+                $amount,
+                $currency,
+                $transactionId,
+                $invoiceUrl,
+                $portalUrl
+            );
+
+            $metadata = [
+                'project_id' => $project->id,
+                'client_email' => $project->client_email,
+                'client_name' => $clientName,
+                'amount' => $amount,
+                'currency' => $currency,
+                'transaction_id' => $transactionId,
+            ];
+
+            $this->queue($mailable, $project->client_email, 'client_payment_receipt', $metadata);
+
+            Log::info('Client payment receipt email queued', $metadata);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send client payment receipt email', [
+                'error' => $e->getMessage(),
+                'project_id' => $project->id,
+            ]);
+        }
+    }
+
+    /**
+     * Send payment received notification to producer.
+     */
+    public function sendProducerPaymentReceived(
+        \App\Models\User $producer,
+        \App\Models\Project $project,
+        \App\Models\Pitch $pitch,
+        float $grossAmount,
+        float $platformFee,
+        float $netAmount,
+        string $currency,
+        \Carbon\Carbon $payoutDate
+    ): void {
+        if (! config('business.email_notifications.client_management.enabled')) {
+            Log::info('Client management emails disabled, skipping producer payment received');
+
+            return;
+        }
+
+        if (! config('business.email_notifications.client_management.producer_payment_received')) {
+            Log::info('Producer payment received emails disabled, skipping');
+
+            return;
+        }
+
+        // Check per-project producer email preference
+        if (! $project->shouldSendProducerEmail('payment_received')) {
+            Log::info('Producer payment received email disabled by producer preference', [
+                'project_id' => $project->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $mailable = new \App\Mail\Producer\PaymentReceived(
+                $producer,
+                $project,
+                $pitch,
+                $grossAmount,
+                $platformFee,
+                $netAmount,
+                $currency,
+                $payoutDate
+            );
+
+            $metadata = [
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+                'pitch_id' => $pitch->id,
+                'gross_amount' => $grossAmount,
+                'platform_fee' => $platformFee,
+                'net_amount' => $netAmount,
+                'currency' => $currency,
+                'payout_date' => $payoutDate->toDateString(),
+            ];
+
+            $this->queue($mailable, $producer->email, 'producer_payment_received', $metadata);
+
+            Log::info('Producer payment received email queued', $metadata);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer payment received email', [
+                'error' => $e->getMessage(),
+                'producer_id' => $producer->id,
+                'project_id' => $project->id,
+            ]);
+        }
+    }
+
     // --- Generic/Other Emails ---
 }

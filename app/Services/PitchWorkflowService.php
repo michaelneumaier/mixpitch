@@ -21,13 +21,16 @@ class PitchWorkflowService
 {
     protected $notificationService;
 
+    protected $emailService;
+
     // Inject other services like NotificationService if needed
     // Note: Assumes an App\\Services\\NotificationService exists, responsible for
     // queuing and dispatching application notifications via appropriate channels
     // (e.g., mail, database) based on user preferences and event types.
-    public function __construct(NotificationService $notificationService)
+    public function __construct(NotificationService $notificationService, EmailService $emailService)
     {
         $this->notificationService = $notificationService;
+        $this->emailService = $emailService;
     }
 
     /**
@@ -687,6 +690,33 @@ class PitchWorkflowService
                             'error' => $notificationException->getMessage(),
                         ]);
                         // Continue execution - notification failure shouldn't fail the whole operation
+                    }
+
+                    // Send producer resubmission email if this is a resubmission (not first submission)
+                    if ($newVersion > 1) {
+                        try {
+                            $fileCount = $pitch->files()->count();
+                            $this->emailService->sendClientProducerResubmitted(
+                                $pitch->project->client_email,
+                                $pitch->project->client_name,
+                                $pitch->project,
+                                $pitch,
+                                $signedUrl,
+                                $fileCount,
+                                $responseToFeedback
+                            );
+                            Log::info('Sent client producer resubmitted email', [
+                                'pitch_id' => $pitch->id,
+                                'client_email' => $pitch->project->client_email,
+                                'version' => $newVersion,
+                            ]);
+                        } catch (\Exception $e) {
+                            // Log but don't fail the workflow
+                            Log::error('Failed to send client producer resubmitted email', [
+                                'pitch_id' => $pitch->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
                     }
                 } else {
                     // Standard notification to project owner
@@ -1555,6 +1585,33 @@ class PitchWorkflowService
 
             // Notify producer
             $this->notificationService->notifyProducerClientRevisionsRequested($pitch, $feedback); // Requires implementation
+
+            // Send client confirmation email
+            try {
+                $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                    'client.portal.view',
+                    now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7)),
+                    ['project' => $pitch->project_id]
+                );
+                $this->emailService->sendClientRevisionRequestConfirmation(
+                    $pitch->project->client_email,
+                    $pitch->project->client_name,
+                    $pitch->project,
+                    $pitch,
+                    $feedback,
+                    $signedUrl
+                );
+                Log::info('Sent client revision request confirmation email', [
+                    'pitch_id' => $pitch->id,
+                    'client_email' => $pitch->project->client_email,
+                ]);
+            } catch (\Exception $e) {
+                // Log but don't fail the workflow
+                Log::error('Failed to send client revision request confirmation email', [
+                    'pitch_id' => $pitch->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return $pitch;
         });

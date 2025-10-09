@@ -1790,6 +1790,26 @@ class NotificationService
             return null;
         }
 
+        // Send email notification
+        try {
+            $this->emailService->sendProducerClientCommented(
+                $producer,
+                $pitch->project,
+                $pitch,
+                $commentContent
+            );
+            Log::info('Sent producer client commented email', [
+                'producer_id' => $producer->id,
+                'pitch_id' => $pitch->id,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer client commented email', [
+                'producer_id' => $producer->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return $this->createNotification(
             $producer,
             Notification::TYPE_CLIENT_COMMENT_ADDED,
@@ -1838,6 +1858,26 @@ class NotificationService
         $producer = $pitch->user;
         if (! $producer) {
             return null;
+        }
+
+        // Send email notification
+        try {
+            $this->emailService->sendProducerClientRevisionsRequested(
+                $producer,
+                $pitch->project,
+                $pitch,
+                $feedback
+            );
+            Log::info('Sent producer client revisions requested email', [
+                'producer_id' => $producer->id,
+                'pitch_id' => $pitch->id,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer client revisions requested email', [
+                'producer_id' => $producer->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return $this->createNotification(

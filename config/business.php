@@ -65,6 +65,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Email Notification Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for email notifications across different workflow types.
+    | These settings allow granular control over which emails are sent.
+    |
+    */
+    'email_notifications' => [
+        'client_management' => [
+            // Master enable/disable switch for all client management emails
+            'enabled' => env('CLIENT_MGMT_EMAILS_ENABLED', true),
+
+            // Individual email type toggles (for future preference system)
+            'revision_confirmation' => env('CLIENT_REVISION_CONFIRM_EMAIL', true),
+            'producer_resubmitted' => env('CLIENT_RESUBMIT_EMAIL', true),
+            'payment_receipt' => env('CLIENT_PAYMENT_RECEIPT_EMAIL', true),
+
+            'producer_revisions_requested' => env('PRODUCER_REVISIONS_EMAIL', true),
+            'producer_client_commented' => env('PRODUCER_COMMENT_EMAIL', true),
+            'producer_payment_received' => env('PRODUCER_PAYMENT_EMAIL', true),
+        ],
+
+        // Email metadata tracking (for future analytics)
+        'track_opens' => env('EMAIL_TRACK_OPENS', false),
+        'track_clicks' => env('EMAIL_TRACK_CLICKS', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Other Business Settings
     |--------------------------------------------------------------------------
     |

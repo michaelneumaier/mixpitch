@@ -1450,4 +1450,32 @@ class ClientPortalController extends Controller
             'milestones' => $pitch->milestones()->get(),
         ]);
     }
+
+    /**
+     * Update client email preferences for this project.
+     */
+    public function updateEmailPreferences(Project $project, Request $request)
+    {
+        if (! $project->isClientManagement()) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|string|in:revision_confirmation,producer_resubmitted,payment_receipt',
+            'enabled' => 'required|boolean',
+        ]);
+
+        try {
+            $project->updateClientEmailPreference($validated['type'], $validated['enabled']);
+
+            return response()->json(['success' => true, 'message' => 'Email preference updated']);
+        } catch (\Exception $e) {
+            Log::error('Failed to update client email preference', [
+                'error' => $e->getMessage(),
+                'project_id' => $project->id,
+            ]);
+
+            return response()->json(['success' => false, 'message' => 'Failed to update preference'], 500);
+        }
+    }
 }

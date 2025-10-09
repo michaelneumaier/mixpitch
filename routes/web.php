@@ -1053,6 +1053,10 @@ Route::post('/client-portal/project/{project:id}/request-revisions', [ClientPort
     ->name('client.portal.revisions')
     ->middleware(['signed_or_client']);
 
+Route::post('/client-portal/project/{project:id}/email-preferences', [ClientPortalController::class, 'updateEmailPreferences'])
+    ->name('client.portal.update-email-prefs')
+    ->middleware(['signed_or_client']);
+
 // Producer ACTION route (needs auth middleware)
 Route::post('/client-portal/project/{project:id}/resend-invite', [ClientPortalController::class, 'resendInvite'])
     ->name('client.portal.resend_invite')
