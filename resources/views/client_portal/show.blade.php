@@ -49,31 +49,63 @@
                     ])
 
                     {{-- Email Notification Preferences --}}
-                    <div class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Email Preferences</h3>
-                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Control which email notifications you receive for this project</p>
-
-                        <div class="mt-4 space-y-3">
-                            @foreach([
-                                'revision_confirmation' => ['label' => 'Revision request confirmations', 'description' => 'Receive confirmation when you request revisions'],
-                                'producer_resubmitted' => ['label' => 'Producer file updates', 'description' => 'Get notified when updated work is ready for review'],
-                                'payment_receipt' => ['label' => 'Payment receipts', 'description' => 'Receive confirmation emails after making payments']
-                            ] as $type => $info)
-                                <label class="flex items-start">
-                                    <input
-                                        type="checkbox"
-                                        checked="{{ ($project->client_email_preferences[$type] ?? true) ? 'checked' : '' }}"
-                                        onchange="updateClientEmailPref('{{ $type }}', this.checked)"
-                                        class="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
-                                    >
-                                    <div class="ml-3">
-                                        <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">{{ $info['label'] }}</span>
-                                        <span class="block text-xs text-gray-600 dark:text-gray-400">{{ $info['description'] }}</span>
+                    <flux:card class="mt-6" x-data="{
+                        preferences: {
+                            revision_confirmation: {{ json_encode($project->client_email_preferences['revision_confirmation'] ?? true) }},
+                            producer_resubmitted: {{ json_encode($project->client_email_preferences['producer_resubmitted'] ?? true) }},
+                            payment_receipt: {{ json_encode($project->client_email_preferences['payment_receipt'] ?? true) }}
+                        }
+                    }">
+                        <flux:accordion>
+                            <flux:accordion.item>
+                                <flux:accordion.heading>
+                                    <div class="flex items-center gap-2">
+                                        <flux:icon name="bell" variant="mini" />
+                                        <span>Email Preferences</span>
                                     </div>
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
+                                </flux:accordion.heading>
+
+                                <flux:accordion.content>
+                                    <flux:subheading>Control which email notifications you receive for this project</flux:subheading>
+
+                                    <div class="mt-4 space-y-3">
+                                        <label class="flex items-center justify-between">
+                                            <div>
+                                                <div class="font-medium text-sm">Revision request confirmations</div>
+                                                <div class="text-xs text-gray-600 dark:text-gray-400">Receive confirmation when you request revisions</div>
+                                            </div>
+                                            <flux:switch
+                                                x-model="preferences.revision_confirmation"
+                                                @change="updateClientEmailPref('revision_confirmation', preferences.revision_confirmation)"
+                                            />
+                                        </label>
+
+                                        <label class="flex items-center justify-between">
+                                            <div>
+                                                <div class="font-medium text-sm">Producer file updates</div>
+                                                <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when updated work is ready for review</div>
+                                            </div>
+                                            <flux:switch
+                                                x-model="preferences.producer_resubmitted"
+                                                @change="updateClientEmailPref('producer_resubmitted', preferences.producer_resubmitted)"
+                                            />
+                                        </label>
+
+                                        <label class="flex items-center justify-between">
+                                            <div>
+                                                <div class="font-medium text-sm">Payment receipts</div>
+                                                <div class="text-xs text-gray-600 dark:text-gray-400">Receive confirmation emails after making payments</div>
+                                            </div>
+                                            <flux:switch
+                                                x-model="preferences.payment_receipt"
+                                                @change="updateClientEmailPref('payment_receipt', preferences.payment_receipt)"
+                                            />
+                                        </label>
+                                    </div>
+                                </flux:accordion.content>
+                            </flux:accordion.item>
+                        </flux:accordion>
+                    </flux:card>
 
                     {{-- Version Comparison Component --}}
                     @include('client_portal.components.version-comparison', [

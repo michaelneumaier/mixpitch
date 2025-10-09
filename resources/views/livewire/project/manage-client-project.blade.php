@@ -485,43 +485,55 @@
 
                                     <!-- Email Notification Preferences -->
                                     <flux:card class="mt-4">
-                                        <flux:heading size="lg">Email Notifications</flux:heading>
-                                        <flux:subheading>Control which email notifications you receive for this project</flux:subheading>
+                                        <flux:accordion>
+                                            <flux:accordion.item>
+                                                <flux:accordion.heading>
+                                                    <div class="flex items-center gap-2">
+                                                        <flux:icon name="bell" variant="mini" />
+                                                        <span>Email Notifications</span>
+                                                    </div>
+                                                </flux:accordion.heading>
 
-                                        <div class="mt-4 space-y-3">
-                                            <label class="flex items-center justify-between">
-                                                <div>
-                                                    <div class="font-medium text-sm">Client requests revisions</div>
-                                                    <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client asks for changes</div>
-                                                </div>
-                                                <flux:switch
-                                                    wire:model.live="producerEmailPreferences.producer_revisions_requested"
-                                                    wire:change="updateProducerEmailPreference('producer_revisions_requested', $event.target.checked)"
-                                                />
-                                            </label>
+                                                <flux:accordion.content>
+                                                    <flux:subheading>Control which email notifications you receive for this project</flux:subheading>
 
-                                            <label class="flex items-center justify-between">
-                                                <div>
-                                                    <div class="font-medium text-sm">Client adds comments</div>
-                                                    <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client leaves a message</div>
-                                                </div>
-                                                <flux:switch
-                                                    wire:model.live="producerEmailPreferences.producer_client_commented"
-                                                    wire:change="updateProducerEmailPreference('producer_client_commented', $event.target.checked)"
-                                                />
-                                            </label>
+                                                    <div class="mt-4 space-y-3">
+                                                        <label class="flex items-center justify-between">
+                                                            <div>
+                                                                <div class="font-medium text-sm">Client requests revisions</div>
+                                                                <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client asks for changes</div>
+                                                            </div>
+                                                            <flux:switch
+                                                                wire:model.live="producerEmailPreferences.producer_revisions_requested"
+                                                                wire:change="updateProducerEmailPreference('producer_revisions_requested', $event.target.checked)"
+                                                            />
+                                                        </label>
 
-                                            <label class="flex items-center justify-between">
-                                                <div>
-                                                    <div class="font-medium text-sm">Payment confirmation</div>
-                                                    <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when you receive payment with payout details</div>
-                                                </div>
-                                                <flux:switch
-                                                    wire:model.live="producerEmailPreferences.payment_received"
-                                                    wire:change="updateProducerEmailPreference('payment_received', $event.target.checked)"
-                                                />
-                                            </label>
-                                        </div>
+                                                        <label class="flex items-center justify-between">
+                                                            <div>
+                                                                <div class="font-medium text-sm">Client adds comments</div>
+                                                                <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when the client leaves a message</div>
+                                                            </div>
+                                                            <flux:switch
+                                                                wire:model.live="producerEmailPreferences.producer_client_commented"
+                                                                wire:change="updateProducerEmailPreference('producer_client_commented', $event.target.checked)"
+                                                            />
+                                                        </label>
+
+                                                        <label class="flex items-center justify-between">
+                                                            <div>
+                                                                <div class="font-medium text-sm">Payment confirmation</div>
+                                                                <div class="text-xs text-gray-600 dark:text-gray-400">Get notified when you receive payment with payout details</div>
+                                                            </div>
+                                                            <flux:switch
+                                                                wire:model.live="producerEmailPreferences.payment_received"
+                                                                wire:change="updateProducerEmailPreference('payment_received', $event.target.checked)"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                </flux:accordion.content>
+                                            </flux:accordion.item>
+                                        </flux:accordion>
                                     </flux:card>
                                 </div>
                             </div>
