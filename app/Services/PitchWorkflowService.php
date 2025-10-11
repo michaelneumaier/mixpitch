@@ -541,7 +541,7 @@ class PitchWorkflowService
         // <<< END PHASE 3 GUARD >>>
 
         // Authorization check (Is the submitter the pitch owner?)
-        if ($pitch->user_id !== $submitter->id) {
+        if ((int) $pitch->user_id !== (int) $submitter->id) {
             throw new UnauthorizedActionException('submit this pitch for review');
         }
         // Policy: if ($submitter->cannot('submitForReview', $pitch)) { throw new UnauthorizedActionException('You are not authorized to submit this pitch.'); }
