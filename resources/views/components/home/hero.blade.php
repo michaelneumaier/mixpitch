@@ -29,6 +29,7 @@
             <div class="mt-2 mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-sm font-medium">
                     <div class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                    <flux:calendar />
                     <span>Collaboration Platform</span>
                     <div class="ml-2 px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full text-xs font-bold">
                         NEW
