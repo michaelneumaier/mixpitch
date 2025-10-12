@@ -8,7 +8,6 @@ Key technical direction:
 - Direct-to-S3 multipart uploads for imports (no buffering full files on app servers)
 - WeTransfer-first support (no official API), with other providers leveraging official APIs in later phases
 - Robust security (SSRF protections, redirect validation), private broadcasting for progress, and DB portability
-
 ## UX/UI Implementation
 
 ### Client Portal Integration
