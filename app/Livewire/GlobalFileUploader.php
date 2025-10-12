@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Services\FileManagementService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Masmerise\Toaster\Toaster;
 
@@ -117,9 +118,9 @@ class GlobalFileUploader extends Component
             // Dispatch browser CustomEvent to notify UploadVersionModal
             $this->js("
                 window.dispatchEvent(new CustomEvent('version-file-uploaded', {
-                    detail: ".json_encode($eventPayload)."
+                    detail: ".json_encode($eventPayload).'
                 }));
-            ");
+            ');
 
             return; // Early return - don't create file record
         }
@@ -211,6 +212,86 @@ class GlobalFileUploader extends Component
         }
 
         throw new \InvalidArgumentException('Unsupported modelType for upload: '.$modelType);
+    }
+
+    /**
+     * Process bulk version uploads in background
+     * Called via Livewire.dispatch from JavaScript when uploads complete
+     */
+    #[On('processBulkVersionsBackground')]
+    public function processBulkVersions(int $pitchId, array $files, array $manualOverrides): void
+    {
+        Log::info('Processing bulk versions in background', [
+            'pitch_id' => $pitchId,
+            'file_count' => count($files),
+            'overrides_count' => count($manualOverrides),
+        ]);
+
+        try {
+            $pitch = Pitch::findOrFail($pitchId);
+
+            // Authorization check
+            if (! Gate::allows('uploadFile', $pitch)) {
+                Log::warning('Unauthorized bulk version upload attempt', [
+                    'pitch_id' => $pitchId,
+                    'user_id' => auth()->id(),
+                ]);
+                Toaster::error('Not authorized to upload to this pitch');
+
+                return;
+            }
+
+            // Convert overrides format: [index => fileId] + files → [fileId => fileData]
+            $manualMatches = [];
+            foreach ($manualOverrides as $index => $fileId) {
+                if ($fileId && isset($files[$index])) {
+                    $manualMatches[$fileId] = $files[$index];
+                }
+            }
+
+            // Use existing service method
+            $result = $this->fileManagementService->bulkUploadFileVersions(
+                $pitch,
+                $files,
+                auth()->user(),
+                $manualMatches
+            );
+
+            $versionCount = count($result['created_versions']);
+            $newFileCount = count($result['new_files']);
+
+            $messages = [];
+            if ($versionCount > 0) {
+                $messages[] = "{$versionCount} new version".($versionCount !== 1 ? 's' : '');
+            }
+            if ($newFileCount > 0) {
+                $messages[] = "{$newFileCount} new file".($newFileCount !== 1 ? 's' : '');
+            }
+
+            Toaster::success('Uploaded '.implode(' and ', $messages));
+
+            // Dispatch events for UI refresh
+            $this->dispatch('filesUploaded', [
+                'count' => $versionCount + $newFileCount,
+                'model_type' => Pitch::class,
+                'model_id' => $pitchId,
+            ]);
+            $this->dispatch('refreshFiles');
+
+            Log::info('Bulk versions processed successfully in background', [
+                'pitch_id' => $pitchId,
+                'versions_created' => $versionCount,
+                'new_files' => $newFileCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error processing bulk versions in background', [
+                'pitch_id' => $pitchId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            Toaster::error('Failed to process files: '.$e->getMessage());
+        }
     }
 
     public function render()

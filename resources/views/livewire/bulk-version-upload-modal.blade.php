@@ -123,7 +123,7 @@
                                      style="width: {{ $summary['percentComplete'] }}%"></div>
                             </div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                You can start matching files now. The "Confirm & Upload" button will enable when all files finish uploading.
+                                You can start matching files now. Click "Confirm & Upload" anytime - if uploads are still in progress, they'll continue in the background.
                             </p>
                         </div>
                     </flux:callout>
@@ -374,13 +374,8 @@
                         type="button"
                         wire:click="confirmAndUpload"
                         variant="primary"
-                        icon="arrow-up-tray"
-                        :disabled="!$this->allFilesUploaded()">
-                        @if($isUploadingToS3)
-                            Waiting for uploads...
-                        @else
-                            Confirm & Upload
-                        @endif
+                        icon="arrow-up-tray">
+                        Confirm & Upload
                     </flux:button>
                 @endif
             </div>
@@ -394,6 +389,39 @@
     (function() {
         // Track if uploads are active for beforeunload handler
         let hasActiveUploads = false;
+
+        // Create bulk upload store immediately (available before Alpine loads)
+        const bulkUploadStore = {
+            pitchId: null,
+            manualOverrides: [],
+            isActive: false,
+
+            start(pitchId, manualOverrides) {
+                this.pitchId = pitchId;
+                this.manualOverrides = manualOverrides;
+                this.isActive = true;
+                console.log('[Alpine Store] Background bulk upload started', {
+                    pitchId,
+                    overridesCount: Object.keys(manualOverrides).length
+                });
+            },
+
+            clear() {
+                this.pitchId = null;
+                this.manualOverrides = [];
+                this.isActive = false;
+                console.log('[Alpine Store] Background state cleared');
+            },
+
+            hasActiveUpload() {
+                return this.isActive && this.pitchId !== null;
+            }
+        };
+
+        // Safe accessor for store (always available)
+        function getBulkUploadStore() {
+            return bulkUploadStore;
+        }
 
         // Prevent navigation while uploads are in progress
         const beforeUnloadHandler = (e) => {
@@ -433,6 +461,9 @@
                 window.GlobalUploader.cancelAll();
             }
 
+            // Clear store if active
+            getBulkUploadStore().clear();
+
             // Allow navigation
             hasActiveUploads = false;
 
@@ -465,10 +496,38 @@
             $wire.call('handleFileUploaded', event.detail);
         });
 
-        // LEGACY: Keep existing listener for backward compatibility
+        // Listen for when ALL bulk version files finish uploading
         window.addEventListener('bulk-version-files-uploaded', (event) => {
-            console.log('[BulkUpload] All files uploaded (legacy event)', event.detail);
+            console.log('[BulkUpload] All files uploaded', event.detail);
 
+            // Check store for background mode
+            const store = getBulkUploadStore();
+
+            if (store.hasActiveUpload()) {
+                console.log('[BulkUpload] Processing in background mode via Livewire');
+
+                // Format files for Livewire
+                const formattedFiles = event.detail.map(file => ({
+                    name: file.name,
+                    s3_key: file.key,
+                    size: file.size,
+                    type: file.type,
+                    id: file.id
+                }));
+
+                // Dispatch to GlobalFileUploader component
+                Livewire.dispatch('processBulkVersionsBackground', {
+                    pitchId: store.pitchId,
+                    files: formattedFiles,
+                    manualOverrides: store.manualOverrides
+                });
+
+                // Clear store
+                store.clear();
+                return;
+            }
+
+            // Normal mode - modal is still open
             if (event.detail && Array.isArray(event.detail)) {
                 // Format file data for Livewire (convert 'key' to 's3_key')
                 const formattedFiles = event.detail.map(file => ({
@@ -504,6 +563,28 @@
         // Cleanup on component destroy (optional but good practice)
         window.addEventListener('beforeunload', () => {
             document.removeEventListener('keydown', preventEscapeKey, true);
+        });
+
+        // ============================================
+        // BACKGROUND UPLOAD PROCESSING (ALPINE STORE)
+        // ============================================
+
+        // Register existing store with Alpine when it initializes
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('bulkVersionUpload', bulkUploadStore);
+            console.log('[BulkUpload] Store registered with Alpine');
+        });
+
+        // Listen for startBackgroundUpload event from Livewire
+        window.addEventListener('startBackgroundUpload', (event) => {
+            console.log('[BulkUpload] Starting background upload', event.detail);
+
+            // Livewire wraps dispatch data in an array
+            const { pitchId, manualOverrides } = event.detail[0];
+
+            // Save to store (available immediately)
+            const store = getBulkUploadStore();
+            store.start(pitchId, manualOverrides);
         });
     })();
 </script>

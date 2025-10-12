@@ -44,11 +44,6 @@ class BulkVersionUploadModal extends Component
 
     public bool $cancelling = false; // Track if cancellation is in progress (prevents race conditions)
 
-    // Background processing support - allow modal to close before uploads complete
-    public bool $isBackgroundProcessing = false; // True when processing uploads in background
-
-    public ?string $backgroundSessionId = null; // Unique ID for localStorage key
-
     protected \App\Services\FileManagementService $fileManagementService;
 
     public function __construct()
@@ -398,13 +393,34 @@ class BulkVersionUploadModal extends Component
 
     public function confirmAndUpload(): void
     {
-        // Ensure all files have been uploaded before proceeding
-        if (! $this->allFilesUploaded()) {
-            Toaster::error('Please wait for all files to finish uploading.');
+        // Check if all files have been uploaded
+        $allUploaded = $this->allFilesUploaded();
+
+        if (! $allUploaded) {
+            // Files still uploading - enable background mode
+            Log::info('Enabling background processing mode', [
+                'pitch_id' => $this->pitch->id,
+                'pending_files_count' => count($this->pendingFiles),
+                'upload_progress' => $this->uploadProgressSummary(),
+            ]);
+
+            // Dispatch event to JavaScript to save state globally
+            // GlobalUploader will handle the rest when uploads complete
+            $this->dispatch('startBackgroundUpload', [
+                'pitchId' => $this->pitch->id,
+                'manualOverrides' => $this->manualOverrides,
+            ]);
+
+            Toaster::info('Files are uploading in the background. You\'ll be notified when complete.');
+
+            // Close modal UI only - DON'T call close() which would cancel uploads
+            // Just setting isOpen = false closes the modal without triggering cancellation logic
+            $this->isOpen = false;
 
             return;
         }
 
+        // All files uploaded - process immediately
         $this->currentStep = 3;
         $this->uploading = true;
         $this->uploadProgress = 10;
