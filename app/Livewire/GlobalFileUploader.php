@@ -221,12 +221,6 @@ class GlobalFileUploader extends Component
     #[On('processBulkVersionsBackground')]
     public function processBulkVersions(int $pitchId, array $files, array $manualOverrides): void
     {
-        Log::info('Processing bulk versions in background', [
-            'pitch_id' => $pitchId,
-            'file_count' => count($files),
-            'overrides_count' => count($manualOverrides),
-        ]);
-
         try {
             $pitch = Pitch::findOrFail($pitchId);
 
@@ -277,12 +271,6 @@ class GlobalFileUploader extends Component
                 'model_id' => $pitchId,
             ]);
             $this->dispatch('refreshFiles');
-
-            Log::info('Bulk versions processed successfully in background', [
-                'pitch_id' => $pitchId,
-                'versions_created' => $versionCount,
-                'new_files' => $newFileCount,
-            ]);
         } catch (\Exception $e) {
             Log::error('Error processing bulk versions in background', [
                 'pitch_id' => $pitchId,
@@ -292,6 +280,94 @@ class GlobalFileUploader extends Component
 
             Toaster::error('Failed to process files: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Process a single file version in background (incremental processing)
+     * Called as each individual file completes uploading
+     */
+    #[On('processSingleVersionBackground')]
+    public function processSingleVersion(int $pitchId, array $fileData, int $fileIndex, array $manualOverrides): void
+    {
+        try {
+            $pitch = Pitch::findOrFail($pitchId);
+
+            // Authorization check
+            if (! Gate::allows('uploadFile', $pitch)) {
+                Log::warning('Unauthorized single version upload attempt', [
+                    'pitch_id' => $pitchId,
+                    'user_id' => auth()->id(),
+                ]);
+
+                $this->dispatch('singleFileProcessed', [
+                    'fileId' => $fileData['id'],
+                    'success' => false,
+                    'versionsCreated' => 0,
+                    'newFilesCreated' => 0,
+                ]);
+
+                return;
+            }
+
+            // Check if this file should be matched to an existing file
+            $manualMatches = [];
+            if (isset($manualOverrides[$fileIndex]) && $manualOverrides[$fileIndex]) {
+                $matchedFileId = $manualOverrides[$fileIndex];
+                $manualMatches[$matchedFileId] = $fileData;
+            }
+
+            // Process single file (pass as 1-item array to existing service method)
+            $result = $this->fileManagementService->bulkUploadFileVersions(
+                $pitch,
+                [$fileData], // Single file in array
+                auth()->user(),
+                $manualMatches
+            );
+
+            $versionCount = count($result['created_versions']);
+            $newFileCount = count($result['new_files']);
+
+            // Dispatch result event (no toaster - would be spammy)
+            $this->dispatch('singleFileProcessed', [
+                'fileId' => $fileData['id'],
+                'success' => true,
+                'versionsCreated' => $versionCount,
+                'newFilesCreated' => $newFileCount,
+            ]);
+
+            // Quiet refresh (no toaster notification)
+            $this->dispatch('filesUploaded', [
+                'count' => $versionCount + $newFileCount,
+                'model_type' => Pitch::class,
+                'model_id' => $pitchId,
+                'quiet' => true, // Signal to skip toaster
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error processing single version in background', [
+                'pitch_id' => $pitchId,
+                'file_id' => $fileData['id'] ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->dispatch('singleFileProcessed', [
+                'fileId' => $fileData['id'],
+                'success' => false,
+                'versionsCreated' => 0,
+                'newFilesCreated' => 0,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Show bulk upload success toaster
+     * Called from JavaScript after incremental processing completes
+     */
+    #[On('showBulkUploadSuccess')]
+    public function showBulkUploadSuccess(string $message): void
+    {
+        Toaster::success($message);
     }
 
     public function render()

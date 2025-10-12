@@ -91,12 +91,6 @@ class BulkVersionUploadModal extends Component
             return;
         }
 
-        Log::info('File selected for bulk upload', [
-            'file_id' => $fileData['id'],
-            'file_name' => $fileData['name'],
-            'file_size' => $fileData['size'],
-        ]);
-
         // Add to pending files with numeric index (not file ID as key)
         // This ensures consistency with manualOverrides which uses numeric indices
         $this->pendingFiles[] = [
@@ -165,12 +159,6 @@ class BulkVersionUploadModal extends Component
 
         $fileId = $fileData['id'];
 
-        Log::info('File uploaded to S3', [
-            'file_id' => $fileId,
-            'file_name' => $fileData['name'],
-            's3_key' => $fileData['key'],
-        ]);
-
         // Find and update file in pendingFiles array (using numeric indices)
         foreach ($this->pendingFiles as $index => $file) {
             if ($file['id'] === $fileId) {
@@ -206,9 +194,6 @@ class BulkVersionUploadModal extends Component
 
         if ($allComplete && count($this->pendingFiles) > 0) {
             $this->isUploadingToS3 = false;
-            Log::info('All files uploaded to S3', [
-                'file_count' => count($this->pendingFiles),
-            ]);
         }
     }
 
@@ -229,12 +214,6 @@ class BulkVersionUploadModal extends Component
             // Auto-match by name only (S3 keys will be added later)
             $matchResult = $this->fileManagementService->matchFilesByName($existingFiles, $filesToMatch);
 
-            Log::info('Early matching results', [
-                'matched_count' => count($matchResult['matched']),
-                'unmatched_count' => count($matchResult['unmatched']),
-                'pending_files_count' => count($this->pendingFiles),
-            ]);
-
             // Convert matched array to use numeric indices as keys
             $autoMatches = [];
             foreach ($filesToMatch as $index => $fileData) {
@@ -245,12 +224,6 @@ class BulkVersionUploadModal extends Component
                             // Store the matched file ID (latest version) directly
                             // Backend will automatically get root when creating version
                             $autoMatches[$index] = $matchedFile->id;
-                            Log::info('Early match found', [
-                                'numeric_index' => $index,
-                                'file_name' => $fileData['name'],
-                                'matched_file_id' => $matchedFile->id,
-                                'file_version' => $matchedFile->getVersionLabel() ?? 'V1',
-                            ]);
                         }
                         break;
                     }
@@ -264,11 +237,6 @@ class BulkVersionUploadModal extends Component
                     $newFiles[] = $index;
                 }
             }
-
-            Log::info('Early matching complete', [
-                'autoMatches' => $autoMatches,
-                'newFiles' => $newFiles,
-            ]);
 
             $this->autoMatches = $autoMatches;
             $this->newFiles = $newFiles;
@@ -292,55 +260,24 @@ class BulkVersionUploadModal extends Component
     public function previewMatches(): void
     {
         try {
-            Log::info('Preview matches called', [
-                'uploaded_files_count' => count($this->uploadedFilesData),
-                'uploaded_files_data' => $this->uploadedFilesData,
-            ]);
-
             // Get existing files for matching
             $existingFiles = $this->pitch->files()->latestVersions()->get();
 
             // Auto-match uploaded files to existing files
             $matchResult = $this->fileManagementService->matchFilesByName($existingFiles, $this->uploadedFilesData);
 
-            Log::info('Service matching results', [
-                'matched_count' => count($matchResult['matched']),
-                'matched_structure' => $matchResult['matched'],
-                'unmatched_count' => count($matchResult['unmatched']),
-                'unmatched_structure' => $matchResult['unmatched'],
-            ]);
-
             // Convert matched array to use file array indices instead of IDs as keys
             // Service returns: matched[existingFileId] = uploadedFileData
             // Store matched file ID (latest version) - backend will get root when creating version
             $autoMatches = [];
             foreach ($this->uploadedFilesData as $index => $fileData) {
-                Log::info('Checking uploaded file for match', [
-                    'index' => $index,
-                    'file_name' => $fileData['name'],
-                    's3_key' => $fileData['s3_key'],
-                ]);
-
                 foreach ($matchResult['matched'] as $fileId => $matchedData) {
-                    Log::info('Comparing with matched data', [
-                        'existing_file_id' => $fileId,
-                        'matched_name' => $matchedData['name'],
-                        'matched_s3_key' => $matchedData['s3_key'],
-                        'names_match' => $matchedData['name'] === $fileData['name'],
-                        's3_keys_match' => $matchedData['s3_key'] === $fileData['s3_key'],
-                    ]);
-
                     if ($matchedData['name'] === $fileData['name'] && $matchedData['s3_key'] === $fileData['s3_key']) {
                         // Store the matched file ID (latest version) directly
                         // Backend will automatically get root when creating version
                         $matchedFile = \App\Models\PitchFile::find($fileId);
                         if ($matchedFile) {
                             $autoMatches[$index] = $matchedFile->id;
-                            Log::info('Found match!', [
-                                'index' => $index,
-                                'matched_file_id' => $matchedFile->id,
-                                'file_version' => $matchedFile->getVersionLabel() ?? 'V1',
-                            ]);
                         }
                         break;
                     }
@@ -354,11 +291,6 @@ class BulkVersionUploadModal extends Component
                     $newFiles[] = $index;
                 }
             }
-
-            Log::info('Final conversion results', [
-                'autoMatches' => $autoMatches,
-                'newFiles' => $newFiles,
-            ]);
 
             $this->autoMatches = $autoMatches;
             $this->newFiles = $newFiles;
@@ -406,9 +338,12 @@ class BulkVersionUploadModal extends Component
 
             // Dispatch event to JavaScript to save state globally
             // GlobalUploader will handle the rest when uploads complete
+            $fileIds = array_map(fn ($file) => $file['id'], $this->pendingFiles);
+
             $this->dispatch('startBackgroundUpload', [
                 'pitchId' => $this->pitch->id,
                 'manualOverrides' => $this->manualOverrides,
+                'fileIds' => $fileIds,
             ]);
 
             Toaster::info('Files are uploading in the background. You\'ll be notified when complete.');
@@ -576,11 +511,6 @@ class BulkVersionUploadModal extends Component
                 try {
                     if (\Storage::disk('s3')->exists($file['s3_key'])) {
                         \Storage::disk('s3')->delete($file['s3_key']);
-                        Log::info('Deleted orphaned S3 file from cancelled upload', [
-                            'file_name' => $file['name'],
-                            's3_key' => $file['s3_key'],
-                            'pitch_id' => $this->pitch?->id,
-                        ]);
                     }
                 } catch (\Exception $e) {
                     Log::error('Failed to delete orphaned S3 file', [

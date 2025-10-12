@@ -394,21 +394,45 @@
         const bulkUploadStore = {
             pitchId: null,
             manualOverrides: [],
+            pendingFileIds: [],
+            processedFileIds: new Set(),
+            results: { versions: 0, newFiles: 0 },
             isActive: false,
 
-            start(pitchId, manualOverrides) {
+            start(pitchId, manualOverrides, fileIds) {
                 this.pitchId = pitchId;
                 this.manualOverrides = manualOverrides;
+                this.pendingFileIds = fileIds || [];
+                this.processedFileIds = new Set();
+                this.results = { versions: 0, newFiles: 0 };
                 this.isActive = true;
-                console.log('[Alpine Store] Background bulk upload started', {
-                    pitchId,
-                    overridesCount: Object.keys(manualOverrides).length
-                });
+            },
+
+            markFileProcessed(fileId, versionsCreated, newFilesCreated) {
+                this.processedFileIds.add(fileId);
+                this.results.versions += versionsCreated;
+                this.results.newFiles += newFilesCreated;
+            },
+
+            isFileProcessed(fileId) {
+                return this.processedFileIds.has(fileId);
+            },
+
+            allFilesProcessed() {
+                return this.pendingFileIds.length > 0 &&
+                       this.processedFileIds.size === this.pendingFileIds.length;
+            },
+
+            getResults() {
+                return { ...this.results };
             },
 
             clear() {
                 this.pitchId = null;
                 this.manualOverrides = [];
+                this.pendingFileIds = [];
+                this.processedFileIds = new Set();
+                this.results = { versions: 0, newFiles: 0 };
                 this.isActive = false;
                 console.log('[Alpine Store] Background state cleared');
             },
@@ -472,7 +496,6 @@
 
         // Listen for early file selection (files selected, not yet uploaded)
         window.addEventListener('bulk-version-file-selected', (event) => {
-            console.log('[BulkUpload] File selected', event.detail);
             hasActiveUploads = true;
             $wire.dispatch('uploadsStarted');
 
@@ -482,45 +505,91 @@
 
         // Listen for upload progress updates
         window.addEventListener('bulk-version-upload-progress', (event) => {
-            console.log('[BulkUpload] Upload progress', event.detail);
-
             // Update progress in Livewire
             $wire.call('handleUploadProgress', event.detail);
         });
 
         // Listen for individual file upload completion (with S3 key)
         window.addEventListener('bulk-version-file-uploaded', (event) => {
-            console.log('[BulkUpload] File uploaded to S3', event.detail);
+            const fileData = event.detail;
+            const store = getBulkUploadStore();
 
-            // Update file with S3 key in Livewire
-            $wire.call('handleFileUploaded', event.detail);
+            // Always update Livewire state
+            $wire.call('handleFileUploaded', fileData);
+
+            // Check if background mode is active and file hasn't been processed yet
+            if (store.hasActiveUpload() && !store.isFileProcessed(fileData.id)) {
+
+                // Find file index in pending files
+                const fileIndex = store.pendingFileIds.indexOf(fileData.id);
+
+                if (fileIndex !== -1) {
+                    // Format file data for Livewire
+                    const formattedFile = {
+                        id: fileData.id,
+                        name: fileData.name,
+                        s3_key: fileData.key,
+                        size: fileData.size,
+                        type: fileData.type
+                    };
+
+                    // Process this single file immediately
+                    Livewire.dispatch('processSingleVersionBackground', {
+                        pitchId: store.pitchId,
+                        fileData: formattedFile,
+                        fileIndex: fileIndex,
+                        manualOverrides: store.manualOverrides
+                    });
+                } else {
+                    console.warn('[BulkUpload] File ID not found in pending files', { fileId: fileData.id });
+                }
+            }
+        });
+
+        // Listen for single file processing completion
+        window.addEventListener('singleFileProcessed', (event) => {
+            const { fileId, success, versionsCreated, newFilesCreated, error } = event.detail[0];
+            const store = getBulkUploadStore();
+
+            if (success) {
+                // Mark file as processed and accumulate results
+                store.markFileProcessed(fileId, versionsCreated, newFilesCreated);
+            } else {
+                console.error('[BulkUpload] File processing failed', { fileId, error });
+                // Still mark as processed to avoid retry loops
+                store.markFileProcessed(fileId, 0, 0);
+            }
         });
 
         // Listen for when ALL bulk version files finish uploading
         window.addEventListener('bulk-version-files-uploaded', (event) => {
-            console.log('[BulkUpload] All files uploaded', event.detail);
-
             // Check store for background mode
             const store = getBulkUploadStore();
 
             if (store.hasActiveUpload()) {
-                console.log('[BulkUpload] Processing in background mode via Livewire');
+                console.log('[BulkUpload] Background processing complete');
 
-                // Format files for Livewire
-                const formattedFiles = event.detail.map(file => ({
-                    name: file.name,
-                    s3_key: file.key,
-                    size: file.size,
-                    type: file.type,
-                    id: file.id
-                }));
+                // Files have been processed incrementally as they uploaded
+                // Just show final summary with aggregated results
+                const results = store.getResults();
+                const messages = [];
 
-                // Dispatch to GlobalFileUploader component
-                Livewire.dispatch('processBulkVersionsBackground', {
-                    pitchId: store.pitchId,
-                    files: formattedFiles,
-                    manualOverrides: store.manualOverrides
-                });
+                if (results.versions > 0) {
+                    messages.push(`${results.versions} new version${results.versions !== 1 ? 's' : ''}`);
+                }
+                if (results.newFiles > 0) {
+                    messages.push(`${results.newFiles} new file${results.newFiles !== 1 ? 's' : ''}`);
+                }
+
+                if (messages.length > 0) {
+                    // Dispatch success toaster via Livewire
+                    Livewire.dispatch('showBulkUploadSuccess', {
+                        message: 'Uploaded ' + messages.join(' and ')
+                    });
+                }
+
+                // Dispatch final refresh event
+                Livewire.dispatch('refreshFiles');
 
                 // Clear store
                 store.clear();
@@ -577,14 +646,12 @@
 
         // Listen for startBackgroundUpload event from Livewire
         window.addEventListener('startBackgroundUpload', (event) => {
-            console.log('[BulkUpload] Starting background upload', event.detail);
-
             // Livewire wraps dispatch data in an array
-            const { pitchId, manualOverrides } = event.detail[0];
+            const { pitchId, manualOverrides, fileIds } = event.detail[0];
 
             // Save to store (available immediately)
             const store = getBulkUploadStore();
-            store.start(pitchId, manualOverrides);
+            store.start(pitchId, manualOverrides, fileIds);
         });
     })();
 </script>
