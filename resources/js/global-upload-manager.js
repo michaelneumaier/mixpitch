@@ -18,6 +18,7 @@ const GlobalUploadManager = (() => {
             activeMeta: null,
             livewire: null,
             wasOffline: false,
+            bulkVersionUploads: [], // Track bulk version uploads
         };
 
         function broadcast() {
@@ -140,29 +141,49 @@ const GlobalUploadManager = (() => {
                     file.id = `uppy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                     console.warn('File missing ID, generated:', file.id);
                 }
-                
+
                 // Check if file already exists in queue
                 const existingIndex = state.queue.findIndex(item => item.id === file.id);
                 if (existingIndex >= 0) {
                     console.warn('File already in queue, updating:', file.id);
-                    state.queue[existingIndex] = { 
-                        id: file.id, 
-                        name: file.name, 
-                        size: file.size, 
-                        meta: file.meta, 
-                        progress: 0, 
-                        status: 'queued' 
+                    state.queue[existingIndex] = {
+                        id: file.id,
+                        name: file.name,
+                        size: file.size,
+                        meta: file.meta,
+                        progress: 0,
+                        status: 'queued'
                     };
                 } else {
-                    state.queue.push({ 
-                        id: file.id, 
-                        name: file.name, 
-                        size: file.size, 
-                        meta: file.meta, 
-                        progress: 0, 
-                        status: 'queued' 
+                    state.queue.push({
+                        id: file.id,
+                        name: file.name,
+                        size: file.size,
+                        meta: file.meta,
+                        progress: 0,
+                        status: 'queued'
                     });
                 }
+
+                // For bulk version uploads, dispatch early file selection event
+                // This allows UI to start matching immediately without waiting for upload
+                const isBulkVersionUpload = file.meta?.isBulkVersionUpload === true;
+                if (isBulkVersionUpload) {
+                    const fileData = {
+                        id: file.id,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        status: 'queued',
+                        progress: 0,
+                    };
+
+                    // Dispatch individual file selection event
+                    window.dispatchEvent(new CustomEvent('bulk-version-file-selected', {
+                        detail: fileData
+                    }));
+                }
+
                 broadcast();
             });
 
@@ -173,6 +194,20 @@ const GlobalUploadManager = (() => {
                     state.queue[idx].status = (file.progress?.uploadComplete ? 'complete' : 'uploading');
                     state.queue[idx].progress = pct;
                     broadcast();
+                }
+
+                // For bulk version uploads, dispatch progress updates
+                const isBulkVersionUpload = file.meta?.isBulkVersionUpload === true;
+                if (isBulkVersionUpload) {
+                    const pct = Math.min(100, Math.round((file.progress?.percentage ?? 0)));
+                    window.dispatchEvent(new CustomEvent('bulk-version-upload-progress', {
+                        detail: {
+                            id: file.id,
+                            name: file.name,
+                            progress: pct,
+                            status: file.progress?.uploadComplete ? 'complete' : 'uploading'
+                        }
+                    }));
                 }
             });
 
@@ -206,23 +241,57 @@ const GlobalUploadManager = (() => {
                     state.queue[idx].response = response;
                     broadcast();
                 }
-                // Immediately process this file on the server rather than waiting for the whole batch
-                if (state.livewire) {
-                    const single = [{
+
+                // Handle version upload flows differently
+                const isVersionUpload = file.meta?.isVersionUpload === true;
+                const isBulkVersionUpload = file.meta?.isBulkVersionUpload === true;
+
+                if (isVersionUpload) {
+                    // Single version upload - dispatch browser event immediately
+                    const fileData = {
                         name: file.name,
                         size: file.size,
                         type: file.type,
                         key: file.response?.body?.Key || file.meta?.key || file.s3Multipart?.key,
-                        meta: file.meta || {},
-                    }];
-                    try {
-                        // Invoke via Livewire emit to avoid batching debounce issues
-                        if (typeof state.livewire.call === 'function') {
-                            state.livewire.call('handleGlobalUploadSuccess', single);
-                        } else if (typeof state.livewire.handleGlobalUploadSuccess === 'function') {
-                            state.livewire.handleGlobalUploadSuccess(single);
-                        }
-                    } catch (e) { /* no-op */ }
+                    };
+                    window.dispatchEvent(new CustomEvent('version-file-uploaded', {
+                        detail: fileData
+                    }));
+                } else if (isBulkVersionUpload) {
+                    // Bulk version upload - collect files and dispatch individual completion event
+                    const fileData = {
+                        id: file.id,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        key: file.response?.body?.Key || file.meta?.key || file.s3Multipart?.key,
+                    };
+                    state.bulkVersionUploads.push(fileData);
+
+                    // Dispatch individual file uploaded event with S3 key
+                    window.dispatchEvent(new CustomEvent('bulk-version-file-uploaded', {
+                        detail: fileData
+                    }));
+                    // Note: Will also dispatch collection on 'complete' event
+                } else {
+                    // Regular file upload - use existing Livewire handler
+                    if (state.livewire) {
+                        const single = [{
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            key: file.response?.body?.Key || file.meta?.key || file.s3Multipart?.key,
+                            meta: file.meta || {},
+                        }];
+                        try {
+                            // Invoke via Livewire emit to avoid batching debounce issues
+                            if (typeof state.livewire.call === 'function') {
+                                state.livewire.call('handleGlobalUploadSuccess', single);
+                            } else if (typeof state.livewire.handleGlobalUploadSuccess === 'function') {
+                                state.livewire.handleGlobalUploadSuccess(single);
+                            }
+                        } catch (e) { /* no-op */ }
+                    }
                 }
             });
 
@@ -236,6 +305,15 @@ const GlobalUploadManager = (() => {
             });
 
             state.uppy.on('complete', () => {
+                // If bulk version uploads are collected, dispatch them now
+                if (state.bulkVersionUploads.length > 0) {
+                    window.dispatchEvent(new CustomEvent('bulk-version-files-uploaded', {
+                        detail: state.bulkVersionUploads
+                    }));
+                    // Clear the array for next batch
+                    state.bulkVersionUploads = [];
+                }
+
                 // Batch complete: we already processed per-file successes; just refresh UI
                 broadcast();
             });
@@ -263,6 +341,13 @@ const GlobalUploadManager = (() => {
             },
             openFileDialog(meta) {
                 state.activeMeta = { ...meta };
+
+                // Clear bulk version uploads array if this is a bulk version upload
+                // This prevents accumulation from previous selections
+                if (meta?.isBulkVersionUpload) {
+                    state.bulkVersionUploads = [];
+                }
+
                 ensureUppy().getPlugin('Dashboard')?.openModal?.();
                 // Fallback: programmatically create a hidden input via FileInput if needed
                 const input = document.createElement('input');
@@ -305,9 +390,15 @@ const GlobalUploadManager = (() => {
                 broadcast();
             },
             cancelAll() {
+                console.log('[GlobalUploader] Cancelling all uploads');
+                const uploadingFiles = state.queue.filter(i => i.status === 'uploading');
+                console.log('[GlobalUploader] Cancelling', uploadingFiles.length, 'active uploads');
+
                 ensureUppy().cancelAll();
                 state.queue = state.queue.filter(i => i.status !== 'uploading');
                 broadcast();
+
+                console.log('[GlobalUploader] Upload cancellation complete');
             },
             togglePause(id) {
                 const item = state.queue.find(i => i.id === id);
@@ -444,7 +535,7 @@ const GlobalUploadManager = (() => {
                 const uploadingFiles = state.queue.filter(item => item.status === 'uploading').length;
                 const queuedFiles = state.queue.filter(item => item.status === 'queued').length;
                 const errorFiles = state.queue.filter(item => item.status === 'error').length;
-                
+
                 return {
                     total: totalFiles,
                     completed: completedFiles,
@@ -453,6 +544,12 @@ const GlobalUploadManager = (() => {
                     errors: errorFiles,
                     isPaused: state.isPaused
                 };
+            },
+
+            // Clear bulk version uploads array
+            clearBulkVersionUploads() {
+                console.log('[GlobalUploader] Clearing bulkVersionUploads array, had:', state.bulkVersionUploads.length, 'files');
+                state.bulkVersionUploads = [];
             },
         };
     }

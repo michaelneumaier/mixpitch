@@ -741,4 +741,382 @@ class FileManagementService
 
         return 'client-uploads/';
     }
+
+    /**
+     * Upload a new version of an existing pitch file
+     * Authorization should be checked before calling this method
+     *
+     * @param  PitchFile  $existingFile  The file to create a new version of
+     * @param  string  $s3Key  S3 key where file was uploaded
+     * @param  string  $fileName  Original filename
+     * @param  int  $fileSize  File size in bytes
+     * @param  string  $mimeType  File MIME type
+     * @param  User  $uploader  User uploading the version
+     * @return PitchFile The newly created version
+     *
+     * @throws FileUploadException
+     */
+    public function uploadFileVersion(
+        PitchFile $existingFile,
+        string $s3Key,
+        string $fileName,
+        int $fileSize,
+        string $mimeType,
+        User $uploader
+    ): PitchFile {
+        try {
+            return DB::transaction(function () use ($existingFile, $s3Key, $fileName, $fileSize, $mimeType, $uploader) {
+                // Get root file (in case existingFile is already a version)
+                $rootFile = $existingFile->getRootFile();
+                $pitch = $rootFile->pitch;
+
+                // Calculate next version number - find first available number
+                // Get all existing version numbers (including soft-deleted)
+                $existingVersionNumbers = $rootFile->versions()
+                    ->withTrashed()
+                    ->pluck('file_version_number')
+                    ->push($rootFile->file_version_number ?? 1)
+                    ->sort()
+                    ->values();
+
+                // Find first available version number (start from V2)
+                $newVersionNumber = 2;
+                while ($existingVersionNumbers->contains($newVersionNumber)) {
+                    $newVersionNumber++;
+                }
+
+                Log::info('Creating new file version', [
+                    'root_file_id' => $rootFile->id,
+                    'existing_file_id' => $existingFile->id,
+                    'new_version_number' => $newVersionNumber,
+                    's3_key' => $s3Key,
+                    'filename' => $fileName,
+                ]);
+
+                // Create new file record
+                $newFile = $pitch->files()->create([
+                    'storage_path' => $s3Key,
+                    'file_path' => $s3Key,
+                    'file_name' => $fileName,
+                    'original_file_name' => $fileName,
+                    'size' => $fileSize,
+                    'user_id' => $uploader->id,
+                    'mime_type' => $mimeType,
+                    'parent_file_id' => $rootFile->id,
+                    'file_version_number' => $newVersionNumber,
+                    'included_in_working_version' => true,
+                    'revision_round' => $pitch->revisions_used ?? 1,
+                    'superseded_by_revision' => false,
+                ]);
+
+                // Update user storage usage
+                $this->userStorageService->incrementUserStorage($uploader, $fileSize);
+
+                // Trigger waveform generation for audio files
+                if (str_starts_with($newFile->mime_type, 'audio/')) {
+                    dispatch(new \App\Jobs\GenerateAudioWaveform($newFile));
+                }
+
+                // Exclude all other versions from working version
+                $rootFile->getAllVersionsWithSelf()
+                    ->where('id', '!=', $newFile->id)
+                    ->each(fn ($v) => $v->excludeFromWorkingVersion());
+
+                // Clear cached relationships
+                $pitch->unsetRelation('files');
+
+                Log::info('File version created successfully', [
+                    'new_file_id' => $newFile->id,
+                    'version_number' => $newVersionNumber,
+                ]);
+
+                return $newFile;
+            });
+        } catch (\Exception $e) {
+            Log::error('Error creating file version', [
+                'existing_file_id' => $existingFile->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw new FileUploadException("Failed to create new version of file '{$fileName}'.", 0, $e);
+        }
+    }
+
+    /**
+     * Bulk upload new versions for multiple files with auto-matching
+     *
+     * @param  Pitch  $pitch  The pitch to upload files to
+     * @param  array  $uploadedFiles  Array of uploaded file data ['name' => ..., 's3_key' => ..., 'size' => ..., 'type' => ...]
+     * @param  User  $uploader  User uploading the versions
+     * @param  array|null  $manualMatches  Optional manual overrides [existing_file_id => uploaded_file_data]
+     * @return array Results with 'created_versions' and 'new_files' keys
+     */
+    public function bulkUploadFileVersions(
+        Pitch $pitch,
+        array $uploadedFiles,
+        User $uploader,
+        ?array $manualMatches = null
+    ): array {
+        $createdVersions = [];
+        $newFiles = [];
+
+        // Get existing files for matching
+        $existingFiles = $pitch->files()->latestVersions()->get();
+
+        // Use manual matches if provided, otherwise auto-match
+        if ($manualMatches !== null) {
+            $matched = $manualMatches;
+
+            // Calculate which uploaded files are NOT in manual matches
+            // Files not matched should be created as new PitchFiles
+            $matchedS3Keys = array_column($manualMatches, 's3_key');
+            $unmatched = array_filter($uploadedFiles, function ($file) use ($matchedS3Keys) {
+                return ! in_array($file['s3_key'], $matchedS3Keys);
+            });
+
+            Log::info('Bulk upload with manual matches', [
+                'total_uploaded' => count($uploadedFiles),
+                'manual_matched' => count($manualMatches),
+                'calculated_unmatched' => count($unmatched),
+                'matched_s3_keys' => $matchedS3Keys,
+                'unmatched_files' => array_column($unmatched, 'name'),
+            ]);
+        } else {
+            $matchResult = $this->matchFilesByName($existingFiles, $uploadedFiles);
+            $matched = $matchResult['matched'];
+            $unmatched = $matchResult['unmatched'];
+        }
+
+        // Create versions for matched files
+        foreach ($matched as $existingFileId => $uploadData) {
+            try {
+                $existingFile = PitchFile::findOrFail($existingFileId);
+
+                $newVersion = $this->uploadFileVersion(
+                    $existingFile,
+                    $uploadData['s3_key'],
+                    $uploadData['name'],
+                    $uploadData['size'],
+                    $uploadData['type'],
+                    $uploader
+                );
+
+                $createdVersions[] = $newVersion;
+            } catch (\Exception $e) {
+                Log::error('Error creating file version in bulk upload', [
+                    'existing_file_id' => $existingFileId,
+                    'filename' => $uploadData['name'] ?? 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Create new PitchFile records for unmatched files
+        $createdNewFiles = [];
+        foreach ($unmatched as $uploadData) {
+            try {
+                $newFile = $this->createPitchFileFromS3(
+                    $pitch,
+                    $uploadData['s3_key'],
+                    $uploadData['name'],
+                    $uploadData['size'],
+                    $uploadData['type'] ?? 'application/octet-stream',
+                    $uploader
+                );
+
+                $createdNewFiles[] = $newFile;
+
+                Log::info('Created new PitchFile from unmatched upload', [
+                    'pitch_id' => $pitch->id,
+                    'file_id' => $newFile->id,
+                    'filename' => $uploadData['name'],
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error creating new file in bulk upload', [
+                    'pitch_id' => $pitch->id,
+                    'filename' => $uploadData['name'] ?? 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return [
+            'created_versions' => $createdVersions,
+            'new_files' => $createdNewFiles,
+        ];
+    }
+
+    /**
+     * Auto-match uploaded files to existing files by filename
+     * Returns suggested mapping and unmatched files
+     *
+     * @param  \Illuminate\Support\Collection  $existingFiles  Collection of existing PitchFile models
+     * @param  array  $uploadedFiles  Array of uploaded file data ['name' => ..., 's3_key' => ..., etc]
+     * @return array ['matched' => [...], 'unmatched' => [...]]
+     */
+    public function matchFilesByName(\Illuminate\Support\Collection $existingFiles, array $uploadedFiles): array
+    {
+        $matched = [];
+        $unmatched = [];
+
+        foreach ($uploadedFiles as $uploaded) {
+            $uploadedBasic = $this->normalizeFilename($uploaded['name']);
+            $uploadedFuzzy = $this->fuzzyNormalizeFilename($uploaded['name']);
+            $matchFound = false;
+            $bestMatch = null;
+            $bestScore = 0.0;
+
+            foreach ($existingFiles as $existing) {
+                // Skip files that are already matched
+                if (isset($matched[$existing->id])) {
+                    continue;
+                }
+
+                $existingBasic = $this->normalizeFilename($existing->file_name);
+
+                // Try exact match first (fast path)
+                if ($uploadedBasic === $existingBasic) {
+                    $matched[$existing->id] = $uploaded;
+                    $matchFound = true;
+                    break;
+                }
+
+                // Try fuzzy match
+                $existingFuzzy = $this->fuzzyNormalizeFilename($existing->file_name);
+                $similarity = $this->calculateFileSimilarity($uploadedFuzzy, $existingFuzzy);
+
+                // Threshold: 65% similarity (allows for one extra descriptor word difference)
+                if ($similarity >= 0.65 && $similarity > $bestScore) {
+                    $bestMatch = $existing;
+                    $bestScore = $similarity;
+                }
+            }
+
+            if (! $matchFound && $bestMatch) {
+                $matched[$bestMatch->id] = $uploaded;
+                $matchFound = true;
+
+                Log::info('Fuzzy file match found', [
+                    'uploaded' => $uploaded['name'],
+                    'matched_to' => $bestMatch->file_name,
+                    'similarity_score' => round($bestScore * 100, 2).'%',
+                ]);
+            }
+
+            if (! $matchFound) {
+                $unmatched[] = $uploaded;
+            }
+        }
+
+        Log::info('File matching results', [
+            'total_uploaded' => count($uploadedFiles),
+            'matched' => count($matched),
+            'unmatched' => count($unmatched),
+        ]);
+
+        return compact('matched', 'unmatched');
+    }
+
+    /**
+     * Normalize filename for matching (removes extension, lowercases, trims)
+     */
+    protected function normalizeFilename(string $filename): string
+    {
+        $nameWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+
+        return strtolower(trim($nameWithoutExt));
+    }
+
+    /**
+     * Aggressively normalize filename for fuzzy matching
+     * Strips track numbers, version indicators, artist prefixes, and descriptors
+     *
+     * @return array{normalized: string, tokens: array}
+     */
+    protected function fuzzyNormalizeFilename(string $filename): array
+    {
+        // Remove extension, lowercase, trim
+        $name = strtolower(trim(pathinfo($filename, PATHINFO_FILENAME)));
+
+        // Strip leading track numbers: 01, 02, 1., 2-, etc.
+        $name = preg_replace('/^\d+[\.\-\s]*/', '', $name);
+
+        // Strip version indicators at end: v1, v2, 1a, 1b
+        $name = preg_replace('/\s*[_\-\s]*(v\d+|\d+[a-z])\s*$/i', '', $name);
+
+        // Extract song name from "Artist - Song" format
+        if (str_contains($name, ' - ')) {
+            $parts = explode(' - ', $name, 2);
+            $name = $parts[1] ?? $parts[0];
+        }
+
+        // Remove common descriptors at the end
+        $descriptors = [
+            // Quality/stage descriptors
+            'rough', 'final', 'master', 'demo', 'draft',
+            // Version descriptors
+            'mix', 'version', 'edit', 'alt', 'alternate',
+            // Length descriptors
+            'extended', 'short', 'long', 'full',
+            // Content descriptors
+            'clean', 'dirty', 'explicit', 'radio', 'club',
+            'instrumental', 'acapella', 'vocals', 'beat',
+            // Copy indicators
+            'copy', 'backup', 'old', 'new', 'latest', 'test',
+        ];
+        $pattern = '/\s+('.implode('|', $descriptors).')\s*$/i';
+        $name = preg_replace($pattern, '', $name);
+
+        // Normalize separators and whitespace
+        $name = str_replace(['_', '-'], ' ', $name);
+        $name = preg_replace('/\s+/', ' ', $name);
+        $name = trim($name);
+
+        // Tokenize
+        $tokens = array_filter(explode(' ', $name), fn ($t) => strlen($t) > 0);
+
+        return [
+            'normalized' => $name,
+            'tokens' => $tokens,
+        ];
+    }
+
+    /**
+     * Calculate similarity between two normalized file info arrays
+     * Uses combination of token-based (Jaccard) and string similarity
+     *
+     * @param  array{normalized: string, tokens: array}  $info1
+     * @param  array{normalized: string, tokens: array}  $info2
+     * @return float Similarity score from 0.0 to 1.0
+     */
+    protected function calculateFileSimilarity(array $info1, array $info2): float
+    {
+        // Token-based similarity (Jaccard coefficient)
+        $tokens1 = $info1['tokens'];
+        $tokens2 = $info2['tokens'];
+
+        if (empty($tokens1) || empty($tokens2)) {
+            return 0.0;
+        }
+
+        $intersection = array_intersect($tokens1, $tokens2);
+
+        // Check if one token set is a complete subset of the other
+        // If all tokens from one file exist in the other, it's a perfect match
+        $isSubset = (count($intersection) === count($tokens1)) || (count($intersection) === count($tokens2));
+        if ($isSubset && count($intersection) > 0) {
+            return 1.0; // Perfect match if one is subset of other
+        }
+
+        $union = array_unique(array_merge($tokens1, $tokens2));
+        $tokenSimilarity = count($intersection) / count($union);
+
+        // String-based similarity
+        $str1 = $info1['normalized'];
+        $str2 = $info2['normalized'];
+        similar_text($str1, $str2, $stringSimilarity);
+        $stringSimilarity = $stringSimilarity / 100; // Convert to 0-1 range
+
+        // Weighted combination (tokens more important)
+        return ($tokenSimilarity * 0.7) + ($stringSimilarity * 0.3);
+    }
 }

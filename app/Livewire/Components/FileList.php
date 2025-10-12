@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\URL;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Masmerise\Toaster\Toaster;
 
 class FileList extends Component
 {
@@ -98,6 +99,18 @@ class FileList extends Component
 
     public ?int $commentFileIdPendingUnresolve = null;
 
+    // Version deletion support
+    public ?int $versionIdPendingDeletion = null;
+
+    public ?int $deleteAllVersionsFileId = null;
+
+    // Version switching support
+    public bool $enableVersionSwitching = false;
+
+    public bool $showBulkUploadVersions = false;
+
+    public string $deleteAllConfirmationInput = '';
+
     public function mount(
         ?Collection $files = null,
         string $modelType = 'project',
@@ -128,7 +141,9 @@ class FileList extends Component
         bool $enableCommentCreation = false,
         bool $isClientPortal = false,
         ?int $clientPortalProjectId = null,
-        ?int $currentSnapshotId = null
+        ?int $currentSnapshotId = null,
+        bool $enableVersionSwitching = false,
+        bool $showBulkUploadVersions = false
     ) {
         $this->files = $files ?? collect();
 
@@ -161,6 +176,8 @@ class FileList extends Component
         $this->isClientPortal = $isClientPortal;
         $this->clientPortalProjectId = $clientPortalProjectId;
         $this->currentSnapshotId = $currentSnapshotId;
+        $this->enableVersionSwitching = $enableVersionSwitching;
+        $this->showBulkUploadVersions = $showBulkUploadVersions;
     }
 
     /**
@@ -318,6 +335,50 @@ class FileList extends Component
             'modelType' => $this->modelType,
             'modelId' => $this->modelId,
         ]);
+    }
+
+    /**
+     * Delegate exclude from version action to parent component
+     */
+    public function excludeFileFromVersion(int $fileId): void
+    {
+        $this->dispatch('fileAction', [
+            'action' => 'excludeFileFromVersion',
+            'fileId' => $fileId,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+    }
+
+    /**
+     * Delegate include in version action to parent component
+     */
+    public function includeFileInVersion(int $fileId): void
+    {
+        $this->dispatch('fileAction', [
+            'action' => 'includeFileInVersion',
+            'fileId' => $fileId,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+    }
+
+    /**
+     * Trigger upload new version action
+     */
+    public function uploadNewVersion(int $fileId): void
+    {
+        $this->dispatch('openUploadVersionModal', fileId: $fileId);
+    }
+
+    /**
+     * Trigger bulk version upload modal
+     */
+    public function openBulkVersionUpload(): void
+    {
+        if ($this->modelType === 'pitch' && $this->modelId) {
+            $this->dispatch('openBulkVersionUploadModal', pitchId: $this->modelId);
+        }
     }
 
     /**
@@ -578,6 +639,48 @@ class FileList extends Component
     }
 
     /**
+     * Bulk exclude files from working version
+     */
+    public function bulkExcludeFromVersion(): void
+    {
+        if (! $this->enableBulkActions || ! in_array('removeFromVersion', $this->bulkActions) || ! $this->canDelete) {
+            return;
+        }
+
+        if (empty($this->selectedFileIds)) {
+            return;
+        }
+
+        $this->dispatch('bulkFileAction', [
+            'action' => 'bulkExcludeFromVersion',
+            'fileIds' => $this->selectedFileIds,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+    }
+
+    /**
+     * Bulk include files back in working version
+     */
+    public function bulkIncludeInVersion(): void
+    {
+        if (! $this->enableBulkActions || ! in_array('addToVersion', $this->bulkActions) || ! $this->canDelete) {
+            return;
+        }
+
+        if (empty($this->selectedFileIds)) {
+            return;
+        }
+
+        $this->dispatch('bulkFileAction', [
+            'action' => 'bulkIncludeInVersion',
+            'fileIds' => $this->selectedFileIds,
+            'modelType' => $this->modelType,
+            'modelId' => $this->modelId,
+        ]);
+    }
+
+    /**
      * Handle file upload events to refresh the file list
      */
     #[On('filesUploaded')]
@@ -599,6 +702,19 @@ class FileList extends Component
                 $this->reloadFiles();
             }
         }
+    }
+
+    /**
+     * Handle bulk version upload completion
+     */
+    #[On('bulkVersionsUploaded')]
+    public function handleBulkVersionsUploaded(): void
+    {
+        // Clear selection when files are refreshed
+        $this->clearSelection();
+
+        // Reload the files directly
+        $this->reloadFiles();
     }
 
     /**
@@ -628,7 +744,10 @@ class FileList extends Component
         if ($modelClass && $this->modelId) {
             $model = $modelClass::find($this->modelId);
             if ($model) {
-                $this->files = $model->files()->orderBy('created_at', 'desc')->get();
+                $this->files = $model->files()
+                    ->whereNull('parent_file_id')  // Exclude versions, show only root files
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             }
         }
     }
@@ -959,6 +1078,197 @@ class FileList extends Component
         }
 
         return null;
+    }
+
+    /**
+     * Handle confirm delete version event from dropdown
+     */
+    #[On('confirmDeleteVersion')]
+    public function confirmDeleteVersion(int $versionId): void
+    {
+        $version = \App\Models\PitchFile::withTrashed()->find($versionId);
+
+        if (! $version) {
+            return;
+        }
+
+        $versionRootFile = $version->getRootFile();
+
+        // Check if any file in this FileList is part of the same file family
+        $hasFileInFamily = $this->files->contains(function ($file) use ($versionRootFile) {
+            return $file->getRootFile()->id === $versionRootFile->id;
+        });
+
+        if ($hasFileInFamily) {
+            $this->versionIdPendingDeletion = $versionId;
+            $this->dispatch('modal-show', name: 'delete-version-confirmation-'.$this->getId());
+        }
+    }
+
+    /**
+     * Cancel version deletion
+     */
+    public function cancelDeleteVersion(): void
+    {
+        $this->versionIdPendingDeletion = null;
+        $this->dispatch('modal-close', name: 'delete-version-confirmation-'.$this->getId());
+    }
+
+    /**
+     * Delete a file version with intelligent deletion logic
+     * - Soft delete if version was in any snapshot (preserves history)
+     * - Hard delete if never submitted, renumber remaining unsubmitted versions
+     */
+    public function deleteFileVersion(): void
+    {
+        if (! $this->versionIdPendingDeletion) {
+            return;
+        }
+
+        try {
+            $version = \App\Models\PitchFile::withTrashed()->findOrFail($this->versionIdPendingDeletion);
+
+            $this->authorize('deleteVersion', $version);
+
+            $versionLabel = $version->getVersionLabel();
+            $rootFile = $version->getRootFile();
+
+            // If deleting the current version, promote a replacement to keep file in deliverables
+            $wasCurrentVersion = $version->isInWorkingVersion();
+            if ($wasCurrentVersion) {
+                // Find the next best non-deleted version
+                $replacement = $rootFile->getAllVersionsWithSelf()
+                    ->filter(function ($v) use ($version) {
+                        return $v->id !== $version->id  // Not the one being deleted
+                            && ! $v->trashed();           // Not already deleted
+                    })
+                    ->sortByDesc('file_version_number')
+                    ->first();
+
+                // Promote the replacement (or root if no versions left)
+                if ($replacement) {
+                    $replacement->includeInWorkingVersion();
+                }
+            }
+
+            // Check if this version was in any snapshot
+            if ($version->wasInSnapshot()) {
+                // Soft delete - keep for submission history
+                $version->delete();
+                Toaster::success("$versionLabel marked as deleted (preserved in submission history)");
+            } else {
+                // Hard delete - remove completely and renumber
+                $deletedVersionNumber = $version->file_version_number;
+                $version->forceDelete();
+
+                // Renumber remaining unsubmitted versions
+                $this->renumberVersionsAfterDeletion($rootFile, $deletedVersionNumber);
+
+                Toaster::success("$versionLabel deleted");
+            }
+
+            $this->dispatch('fileDeleted');
+            $this->dispatch('fileVersionChanged');
+            $this->versionIdPendingDeletion = null;
+            $this->dispatch('modal-close', name: 'delete-version-confirmation-'.$this->getId());
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error deleting file version', [
+                'version_id' => $this->versionIdPendingDeletion,
+                'error' => $e->getMessage(),
+            ]);
+
+            Toaster::error('Failed to delete version: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Renumber versions after deleting an unsubmitted version
+     * Decrements version numbers for all higher-numbered unsubmitted versions
+     */
+    protected function renumberVersionsAfterDeletion($rootFile, int $deletedVersionNumber): void
+    {
+        // Get all versions with higher numbers that weren't in snapshots
+        $versionsToRenumber = $rootFile->versions()
+            ->where('file_version_number', '>', $deletedVersionNumber)
+            ->get()
+            ->filter(function ($v) {
+                return ! $v->wasInSnapshot();
+            });
+
+        // Decrement each version number by 1
+        foreach ($versionsToRenumber as $versionFile) {
+            $versionFile->update([
+                'file_version_number' => $versionFile->file_version_number - 1,
+            ]);
+        }
+    }
+
+    /**
+     * Open delete all versions modal
+     */
+    public function confirmDeleteAllVersions(int $fileId): void
+    {
+        $this->deleteAllVersionsFileId = $fileId;
+        $this->deleteAllConfirmationInput = '';
+    }
+
+    /**
+     * Cancel delete all versions
+     */
+    public function cancelDeleteAllVersions(): void
+    {
+        $this->deleteAllVersionsFileId = null;
+        $this->deleteAllConfirmationInput = '';
+    }
+
+    /**
+     * Delete all versions of a file (keeps only the root file)
+     */
+    public function deleteAllFileVersions(): void
+    {
+        if (! $this->deleteAllVersionsFileId) {
+            return;
+        }
+
+        try {
+            $file = \App\Models\PitchFile::findOrFail($this->deleteAllVersionsFileId);
+
+            // Verify filename confirmation
+            if ($this->deleteAllConfirmationInput !== $file->file_name) {
+                Toaster::error('File name does not match. Please type the exact file name to confirm deletion.');
+
+                return;
+            }
+
+            $this->authorize('delete', $file);
+
+            // Get all versions except the root
+            $versions = $file->getAllVersionsWithSelf()->filter(function ($version) {
+                return $version->parent_file_id !== null;
+            });
+
+            $count = $versions->count();
+
+            // Delete all versions
+            foreach ($versions as $version) {
+                $version->delete();
+            }
+
+            Toaster::success("Deleted {$count} version".($count !== 1 ? 's' : '').' successfully');
+
+            $this->dispatch('refreshFiles');
+            $this->deleteAllVersionsFileId = null;
+            $this->deleteAllConfirmationInput = '';
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error deleting all file versions', [
+                'file_id' => $this->deleteAllVersionsFileId,
+                'error' => $e->getMessage(),
+            ]);
+
+            Toaster::error('Failed to delete versions: '.$e->getMessage());
+        }
     }
 
     public function render()

@@ -138,6 +138,17 @@ Route::middleware(['auth'])->group(function () {
         ->name('pitch-files.download')
         ->middleware(['auth', 'pitch.file.access']);
 
+    // File versioning routes
+    Route::post('/pitch-files/{file:uuid}/versions', [PitchFileController::class, 'uploadVersion'])
+        ->name('pitch-files.uploadVersion')
+        ->middleware(['auth']);
+    Route::post('/pitches/{pitch}/files/versions/bulk', [PitchFileController::class, 'bulkUploadVersions'])
+        ->name('pitch.files.bulkUploadVersions')
+        ->middleware(['auth']);
+    Route::get('/pitch-files/{file:uuid}/compare', [PitchFileController::class, 'compareVersions'])
+        ->name('pitch-files.compare')
+        ->middleware(['auth']);
+
     // Universal Audio Player routes
     Route::get('/audio/pitch/{file:uuid}', [App\Http\Controllers\UniversalAudioController::class, 'showPitchFile'])
         ->name('audio.pitch-file.show')

@@ -54,7 +54,10 @@ class PitchFilePolicyTest extends TestCase
         $this->pitchApproved = Pitch::factory()
             ->for($this->project)
             ->for($this->pitchCreator, 'user')
-            ->create(['status' => Pitch::STATUS_APPROVED]);
+            ->create([
+                'status' => Pitch::STATUS_APPROVED,
+                'payment_status' => Pitch::PAYMENT_STATUS_PAID,
+            ]);
 
         $this->pitchFileOnInProgress = PitchFile::factory()
             ->for($this->pitchInProgress, 'pitch')
@@ -130,7 +133,12 @@ class PitchFilePolicyTest extends TestCase
     /** @test */
     public function project_owner_can_download_pitch_file()
     {
-        $this->assertTrue($this->projectOwner->can('downloadFile', $this->pitchFileOnInProgress));
+        // Project owners can only download files from accepted, completed, and paid pitches
+        // They cannot download from IN_PROGRESS pitches per policy
+        $this->assertFalse($this->projectOwner->can('downloadFile', $this->pitchFileOnInProgress));
+
+        // But they CAN download from approved pitches (after payment)
+        $this->assertTrue($this->projectOwner->can('downloadFile', $this->pitchFileOnApproved));
     }
 
     /** @test */

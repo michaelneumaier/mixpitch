@@ -35,6 +35,11 @@ class ManageClientProject extends Component
 
     public $clientFileNameToDelete = '';
 
+    // Bulk file management
+    public $showBulkDeleteModal = false;
+
+    public array $fileIdsToBulkDelete = [];
+
     // Project management
     public $showProjectDeleteModal = false;
 
@@ -67,13 +72,15 @@ class ManageClientProject extends Component
     public array $producerEmailPreferences = [];
 
     protected $listeners = [
-        'filesUploaded' => '$refresh',
-        'fileDeleted' => '$refresh',
+        'filesUploaded' => 'handleFilesUploaded',
+        'fileDeleted' => 'handleFileDeleted',
+        'bulkFileAction' => 'handleBulkFileAction',
         'milestonesUpdated' => '$refresh',
         'budgetUpdated' => '$refresh',
         'refreshClientFiles' => '$refresh',
         'pitchStatusChanged' => 'refreshPitchStatus',
         'requestCommentsRefresh' => 'refreshCommentsForFileList',
+        'swapToFileVersion' => 'handleSwapToFileVersion',
     ];
 
     protected $rules = [
@@ -494,6 +501,297 @@ class ManageClientProject extends Component
     }
 
     /**
+     * Show bulk delete confirmation modal
+     */
+    public function confirmBulkDeleteFiles(array $fileIds): void
+    {
+        try {
+            // Verify all files exist and user has permission
+            foreach ($fileIds as $fileId) {
+                $file = $this->pitch->files()->findOrFail($fileId);
+                $this->authorize('deleteFile', $file);
+            }
+
+            $this->fileIdsToBulkDelete = $fileIds;
+            $this->showBulkDeleteModal = true;
+        } catch (\Exception $e) {
+            Toaster::error('You are not authorized to delete one or more files.');
+        }
+    }
+
+    /**
+     * Cancel bulk delete
+     */
+    public function cancelBulkDeleteFiles(): void
+    {
+        $this->showBulkDeleteModal = false;
+        $this->fileIdsToBulkDelete = [];
+    }
+
+    /**
+     * Execute bulk delete
+     */
+    public function bulkDeleteFiles(FileManagementService $fileManagementService): void
+    {
+        if (empty($this->fileIdsToBulkDelete)) {
+            return;
+        }
+
+        $deletedCount = 0;
+        $errors = [];
+
+        foreach ($this->fileIdsToBulkDelete as $fileId) {
+            try {
+                $file = $this->pitch->files()->findOrFail($fileId);
+                $this->authorize('deleteFile', $file);
+                $fileManagementService->deletePitchFile($file);
+                $deletedCount++;
+            } catch (\Exception $e) {
+                $errors[] = "File ID {$fileId}: ".$e->getMessage();
+                Log::error('Error deleting file in bulk', [
+                    'file_id' => $fileId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Show results
+        if ($deletedCount > 0) {
+            Toaster::success("{$deletedCount} file(s) deleted successfully.");
+            $this->dispatch('fileDeleted');
+        }
+
+        if (! empty($errors)) {
+            Toaster::error('Some files could not be deleted.');
+        }
+
+        $this->cancelBulkDeleteFiles();
+    }
+
+    /**
+     * Bulk download files (basic implementation)
+     */
+    public function bulkDownloadFiles(array $fileIds): void
+    {
+        // For now, show message that feature is coming soon
+        // Future: implement ZIP archive creation
+        Toaster::info('Bulk download feature coming soon. Please download files individually.');
+    }
+
+    /**
+     * Bulk exclude files from working version
+     */
+    public function bulkExcludeFromVersion(array $fileIds): void
+    {
+        if (empty($fileIds)) {
+            return;
+        }
+
+        $excludedCount = 0;
+        $errors = [];
+
+        foreach ($fileIds as $fileId) {
+            try {
+                $file = $this->pitch->files()->findOrFail($fileId);
+                $this->authorize('deleteFile', $file);
+                $file->excludeFromWorkingVersion();
+                $excludedCount++;
+            } catch (\Exception $e) {
+                $errors[] = "File ID {$fileId}: ".$e->getMessage();
+                Log::error('Error excluding file from version in bulk', [
+                    'file_id' => $fileId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Refresh
+        if ($excludedCount > 0) {
+            $this->pitch->unsetRelation('files');
+            $this->pitch->refresh();
+            $this->refreshKey++;
+            $this->dispatch('fileVersionChanged');
+
+            Toaster::success("{$excludedCount} file(s) removed from version. They can be added back from File Library.");
+        }
+
+        if (! empty($errors)) {
+            Toaster::error('Some files could not be removed from version.');
+        }
+    }
+
+    /**
+     * Bulk include files back in working version
+     */
+    public function bulkIncludeInVersion(array $fileIds): void
+    {
+        if (empty($fileIds)) {
+            return;
+        }
+
+        $includedCount = 0;
+        $errors = [];
+
+        foreach ($fileIds as $fileId) {
+            try {
+                $file = $this->pitch->files()->withTrashed()->findOrFail($fileId);
+                $this->authorize('deleteFile', $file);
+                $file->includeInWorkingVersion();
+                $includedCount++;
+            } catch (\Exception $e) {
+                $errors[] = "File ID {$fileId}: ".$e->getMessage();
+                Log::error('Error including file in version in bulk', [
+                    'file_id' => $fileId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Refresh
+        if ($includedCount > 0) {
+            $this->pitch->unsetRelation('files');
+            $this->pitch->refresh();
+            $this->refreshKey++;
+            $this->dispatch('fileVersionChanged');
+
+            Toaster::success("{$includedCount} file(s) added back to version.");
+        }
+
+        if (! empty($errors)) {
+            Toaster::error('Some files could not be added to version.');
+        }
+    }
+
+    /**
+     * Exclude a file from the working version (keeps file, removes from next snapshot)
+     */
+    public function excludeFileFromVersion($fileId)
+    {
+        try {
+            $file = $this->pitch->files()->findOrFail($fileId);
+            $this->authorize('deleteFile', $file); // Reuse same policy as delete
+
+            $file->excludeFromWorkingVersion();
+
+            // Clear relationship cache and force refresh
+            $this->pitch->unsetRelation('files');
+            $this->pitch->refresh();
+            $this->refreshKey++; // Force child components to re-render
+
+            // Dispatch event to refresh other components
+            $this->dispatch('fileVersionChanged');
+
+            Toaster::success("File '{$file->file_name}' removed from working version. It can be added back from the File Library.");
+
+        } catch (\Exception $e) {
+            Log::error('Error excluding file from version', ['file_id' => $fileId, 'error' => $e->getMessage()]);
+            Toaster::error('Failed to remove file from version.');
+        }
+    }
+
+    /**
+     * Include a file back in the working version
+     */
+    public function includeFileInVersion($fileId)
+    {
+        try {
+            $file = $this->pitch->files()->withTrashed()->findOrFail($fileId);
+            $this->authorize('deleteFile', $file); // Reuse same policy as delete
+
+            $file->includeInWorkingVersion();
+
+            // Clear relationship cache and force refresh
+            $this->pitch->unsetRelation('files');
+            $this->pitch->refresh();
+            $this->refreshKey++; // Force child components to re-render
+
+            // Dispatch event to refresh other components
+            $this->dispatch('fileVersionChanged');
+
+            Toaster::success("File '{$file->file_name}' added back to working version.");
+
+        } catch (\Exception $e) {
+            Log::error('Error including file in version', ['file_id' => $fileId, 'error' => $e->getMessage()]);
+            Toaster::error('Failed to add file to version.');
+        }
+    }
+
+    /**
+     * Handle files uploaded event - clear relationship cache and force refresh
+     */
+    public function handleFilesUploaded()
+    {
+        // Clear relationship cache to ensure fresh data
+        $this->pitch->unsetRelation('files');
+        $this->pitch->refresh();
+
+        // Increment refresh key to force child components to re-render
+        $this->refreshKey++;
+
+        // Dispatch to refresh other components like ClientSubmitSection
+        $this->dispatch('fileVersionChanged');
+    }
+
+    /**
+     * Handle file deleted event - clear relationship cache and force refresh
+     */
+    public function handleFileDeleted()
+    {
+        // Clear relationship cache to ensure fresh data
+        $this->pitch->unsetRelation('files');
+        $this->pitch->refresh();
+
+        // Increment refresh key to force child components to re-render
+        $this->refreshKey++;
+
+        // Dispatch to refresh other components like ClientSubmitSection
+        $this->dispatch('fileVersionChanged');
+    }
+
+    /**
+     * Handle file version swap - update database and refresh components
+     */
+    public function handleSwapToFileVersion(array $data): void
+    {
+        $rootFileId = $data['rootFileId'];
+        $newVersionId = $data['newVersionId'];
+
+        // Find the selected version
+        $selectedVersion = \App\Models\PitchFile::find($newVersionId);
+
+        if (! $selectedVersion) {
+            return;
+        }
+
+        // Authorize the action
+        $this->authorize('switchVersion', $selectedVersion);
+
+        // Get the root file
+        $rootFile = \App\Models\PitchFile::find($rootFileId);
+
+        if (! $rootFile) {
+            return;
+        }
+
+        // Exclude all versions (including root) from working version
+        $rootFile->getAllVersionsWithSelf()
+            ->each(fn ($v) => $v->excludeFromWorkingVersion());
+
+        // Include only the selected version in working version
+        $selectedVersion->includeInWorkingVersion();
+
+        // Clear relationship cache to ensure fresh data
+        $this->pitch->unsetRelation('files');
+        $this->pitch->refresh();
+
+        // Increment refresh key to force child components to re-render
+        $this->refreshKey++;
+
+        // Dispatch to refresh other components like ClientSubmitSection
+        $this->dispatch('fileVersionChanged');
+    }
+
+    /**
      * Resend client invite
      */
     public function resendClientInvite(NotificationService $notificationService)
@@ -873,6 +1171,22 @@ class ManageClientProject extends Component
     }
 
     /**
+     * Get files in the working version (will be included in next snapshot)
+     */
+    public function getWorkingVersionFilesProperty()
+    {
+        return $this->pitch->files()->inWorkingVersion()->with('pitch')->get();
+    }
+
+    /**
+     * Get files excluded from the working version (File Library)
+     */
+    public function getExcludedFilesProperty()
+    {
+        return $this->pitch->files()->excludedFromWorkingVersion()->with('pitch')->get();
+    }
+
+    /**
      * Get snapshot history for version navigation
      */
     public function getSnapshotHistoryProperty()
@@ -900,19 +1214,19 @@ class ManageClientProject extends Component
      */
     public function getDisplayFilesProperty()
     {
-        // If viewing a historical snapshot, return files from that snapshot
+        // If viewing a historical snapshot, return files from that snapshot (including deleted files for history transparency)
         if ($this->selectedSnapshotId !== null) {
             $snapshot = $this->pitch->snapshots()->find($this->selectedSnapshotId);
 
             if ($snapshot) {
                 $fileIds = $snapshot->snapshot_data['file_ids'] ?? [];
 
-                return $this->pitch->files()->whereIn('id', $fileIds)->with('pitch')->get();
+                return $this->pitch->files()->withTrashed()->whereIn('id', $fileIds)->with('pitch')->get();
             }
         }
 
-        // Default: return all current files (working version)
-        return $this->producerFiles;
+        // Default: return working version files (files that will be included in next snapshot)
+        return $this->workingVersionFiles;
     }
 
     /**
@@ -1166,11 +1480,16 @@ class ManageClientProject extends Component
      * Handle file action events from file-list component
      */
     #[On('fileAction')]
-    public function handleFileAction($data)
+    public function handleFileAction($data = [])
     {
-        $action = $data['action'];
-        $fileId = $data['fileId'];
+        $action = $data['action'] ?? null;
+        $fileId = $data['fileId'] ?? null;
         $modelType = $data['modelType'] ?? null;
+
+        // Guard clause: if no action or fileId, do nothing
+        if (! $action || ! $fileId) {
+            return;
+        }
 
         // Route to appropriate handler based on action and model type
         if ($modelType === 'project') {
@@ -1198,6 +1517,44 @@ class ManageClientProject extends Component
                 case 'confirmDeleteFile':
                     $this->confirmDeleteFile($fileId);
                     break;
+                case 'excludeFileFromVersion':
+                    $this->excludeFileFromVersion($fileId);
+                    break;
+                case 'includeFileInVersion':
+                    $this->includeFileInVersion($fileId);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Handle bulk file action events from file-list component
+     */
+    #[On('bulkFileAction')]
+    public function handleBulkFileAction($data = [])
+    {
+        $action = $data['action'] ?? null;
+        $fileIds = $data['fileIds'] ?? [];
+        $modelType = $data['modelType'] ?? null;
+
+        if (! $action || empty($fileIds)) {
+            return;
+        }
+
+        if ($modelType === 'pitch') {
+            switch ($action) {
+                case 'confirmBulkDeleteFiles':
+                    $this->confirmBulkDeleteFiles($fileIds);
+                    break;
+                case 'bulkDownloadFiles':
+                    $this->bulkDownloadFiles($fileIds);
+                    break;
+                case 'bulkExcludeFromVersion':
+                    $this->bulkExcludeFromVersion($fileIds);
+                    break;
+                case 'bulkIncludeInVersion':
+                    $this->bulkIncludeInVersion($fileIds);
+                    break;
             }
         }
     }
@@ -1206,7 +1563,7 @@ class ManageClientProject extends Component
      * Handle file list refresh requests from file-list component
      */
     #[On('fileListRefreshRequested')]
-    public function handleFileListRefresh($data)
+    public function handleFileListRefresh($data = [])
     {
         $modelType = $data['modelType'] ?? null;
         $source = $data['source'] ?? 'unknown';
@@ -1229,9 +1586,9 @@ class ManageClientProject extends Component
      * Handle comment action events from file-list component
      */
     #[On('commentAction')]
-    public function handleCommentAction($data)
+    public function handleCommentAction($data = [])
     {
-        $action = $data['action'];
+        $action = $data['action'] ?? null;
         $commentId = $data['commentId'] ?? null;
         $response = $data['response'] ?? null;
         $modelType = $data['modelType'] ?? null;

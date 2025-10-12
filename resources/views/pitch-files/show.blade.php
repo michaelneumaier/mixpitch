@@ -244,4 +244,8 @@
 </script>
 @endpush
 
+{{-- Version Modals (page-level, not inside FileList to avoid duplicates) --}}
+<livewire:upload-version-modal />
+<livewire:bulk-version-upload-modal />
+
 </x-layouts.app-sidebar>

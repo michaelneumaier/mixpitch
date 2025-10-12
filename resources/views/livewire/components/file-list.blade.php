@@ -30,20 +30,36 @@
 
         <flux:icon name="{{ $headerIcon }}" variant="solid" class="w-6 h-6 {{ $this->resolvedColorScheme['icon'] }}" />
         <div class="flex items-center justify-between w-full">
-            @if($showFileCount)
-                <flux:heading size="base" class="!mb-0 {{ $this->resolvedColorScheme['text_primary'] }}">
-                    Files ({{ $files->count() }})
-                </flux:heading>
-            @else
-                <flux:heading size="base" class="!mb-0 {{ $this->resolvedColorScheme['text_primary'] }}">
-                    Files
-                </flux:heading>
-            @endif
-            
-            @if ($showTotalSize && $files->count() > 0)
-                <flux:subheading class="{{ $this->resolvedColorScheme['text_muted'] }}">
-                    Total: {{ $this->formatFileSize($this->totalFileSize) }}
-                </flux:subheading>
+            <div class="flex items-center gap-3">
+                @if($showFileCount)
+                    <flux:heading size="base" class="!mb-0 {{ $this->resolvedColorScheme['text_primary'] }}">
+                        Files ({{ $files->count() }})
+                    </flux:heading>
+                @else
+                    <flux:heading size="base" class="!mb-0 {{ $this->resolvedColorScheme['text_primary'] }}">
+                        Files
+                    </flux:heading>
+                @endif
+
+                @if ($showTotalSize && $files->count() > 0)
+                    <flux:subheading class="{{ $this->resolvedColorScheme['text_muted'] }}">
+                        Total: {{ $this->formatFileSize($this->totalFileSize) }}
+                    </flux:subheading>
+                @endif
+            </div>
+
+            {{-- Bulk Upload Button (only for pitch files) --}}
+            @if($modelType === 'pitch' && $files->count() > 0 && !$isClientPortal && $showBulkUploadVersions)
+                <flux:button
+                    type="button"
+                    wire:click="openBulkVersionUpload"
+                    variant="ghost"
+                    size="sm"
+                    icon="arrow-up-tray"
+                    class="flex-shrink-0">
+                    <span class="hidden sm:inline">Bulk Upload Versions</span>
+                    <span class="sm:hidden">Bulk Upload</span>
+                </flux:button>
             @endif
         </div>
     </div>
@@ -80,12 +96,32 @@
                         @endif
 
                         @if(in_array('delete', $bulkActions) && $canDelete)
-                            <flux:button 
-                                wire:click="bulkDeleteSelected" 
-                                variant="danger" 
+                            <flux:button
+                                wire:click="bulkDeleteSelected"
+                                variant="danger"
                                 size="sm"
                                 icon="trash">
                                 Delete
+                            </flux:button>
+                        @endif
+
+                        @if(in_array('removeFromVersion', $bulkActions) && $canDelete)
+                            <flux:button
+                                wire:click="bulkExcludeFromVersion"
+                                variant="outline"
+                                size="sm"
+                                icon="minus-circle">
+                                Move to File Library
+                            </flux:button>
+                        @endif
+
+                        @if(in_array('addToVersion', $bulkActions) && $canDelete)
+                            <flux:button
+                                wire:click="bulkIncludeInVersion"
+                                variant="outline"
+                                size="sm"
+                                icon="plus-circle">
+                                Move to Deliverables
                             </flux:button>
                         @endif
 
@@ -100,21 +136,47 @@
                         </flux:button>
                     </div>
 
-                    <!-- Mobile Actions - Bottom Sheet Trigger -->
+                    <!-- Mobile Actions - Dropdown -->
                     <div class="sm:hidden flex items-center gap-2">
-                        <flux:button 
-                            x-data=""
-                            @click="$dispatch('show-bulk-actions-sheet')" 
-                            variant="outline" 
-                            size="sm"
-                            icon="ellipsis-horizontal">
-                            Actions
-                        </flux:button>
-                        
+                        <flux:dropdown>
+                            <flux:button
+                                variant="outline"
+                                size="sm"
+                                icon="ellipsis-horizontal">
+                                Actions
+                            </flux:button>
+
+                            <flux:menu>
+                                @if(in_array('download', $bulkActions) && $canDownload)
+                                    <flux:menu.item wire:click="bulkDownloadSelected" icon="arrow-down-tray">
+                                        Download Files
+                                    </flux:menu.item>
+                                @endif
+
+                                @if(in_array('delete', $bulkActions) && $canDelete)
+                                    <flux:menu.item wire:click="bulkDeleteSelected" icon="trash" variant="danger">
+                                        Delete Files
+                                    </flux:menu.item>
+                                @endif
+
+                                @if(in_array('removeFromVersion', $bulkActions) && $canDelete)
+                                    <flux:menu.item wire:click="bulkExcludeFromVersion" icon="minus-circle">
+                                        Move to File Library
+                                    </flux:menu.item>
+                                @endif
+
+                                @if(in_array('addToVersion', $bulkActions) && $canDelete)
+                                    <flux:menu.item wire:click="bulkIncludeInVersion" icon="plus-circle">
+                                        Move to Deliverables
+                                    </flux:menu.item>
+                                @endif
+                            </flux:menu>
+                        </flux:dropdown>
+
                         <!-- Clear Selection -->
-                        <flux:button 
-                            wire:click="clearSelection" 
-                            variant="ghost" 
+                        <flux:button
+                            wire:click="clearSelection"
+                            variant="ghost"
                             size="sm"
                             icon="x-mark">
                             <span class="sr-only">Clear selection</span>
@@ -151,8 +213,9 @@
                          }
                      }
                  }"
-                 class="track-item @if ($showAnimations && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif 
+                 class="track-item @if ($showAnimations && in_array($file->id, $newlyUploadedFileIds)) animate-fade-in @endif
                         @if($enableBulkActions && $this->isFileSelected($file->id)) {{ $this->resolvedColorScheme['accent_bg'] }} border-l-4 {{ $this->resolvedColorScheme['accent_border'] }} @endif
+                        @if(!empty($file->deleted_at)) opacity-60 @endif
                         group transition-colors duration-200">
                 
                 <!-- Main File Display Row -->
@@ -183,7 +246,12 @@
                 @endif
 
                 <div class="track-info flex flex-1 items-center overflow-hidden pr-4">
-                    @if ($canPlay && $this->isAudioFile($file))
+                    @if (!empty($file->deleted_at))
+                        {{-- Deleted File Indicator --}}
+                        <div class="mx-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30" title="This file was deleted">
+                            <flux:icon.x-mark class="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                    @elseif ($canPlay && $this->isAudioFile($file))
                         <button wire:click="playFile({{ $file->id }})" class="{{ $this->resolvedColorScheme['accent_bg'] }} {{ $this->resolvedColorScheme['icon'] }} mx-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg hover:bg-opacity-80 transition-colors cursor-pointer">
                             <flux:icon.play class="w-5 h-5" />
                         </button>
@@ -223,16 +291,41 @@
                             @endphp
                             @if($playerUrl)
                                 <a href="{{ $playerUrl }}"
-                                   class="truncate text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                                   class="truncate text-base font-semibold {{ !empty($file->deleted_at) ? 'line-through text-gray-500 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400' }} transition-colors cursor-pointer"
                                    id="file-{{ $file->id }}-info"
                                    title="Open {{ $file->file_name }} in full {{ $playerType }} player">
                                     {{ $file->file_name }}
                                 </a>
                             @else
-                                <span class="truncate text-base font-semibold text-gray-900 dark:text-gray-100"
+                                <span class="truncate text-base font-semibold {{ !empty($file->deleted_at) ? 'line-through text-gray-500 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100' }}"
                                       id="file-{{ $file->id }}-info">
                                     {{ $file->file_name }}
                                 </span>
+                            @endif
+
+                            {{-- Version Badge --}}
+                            @if($file->hasMultipleVersions())
+                                <div class="ml-2 flex-shrink-0">
+                                    @if($enableVersionSwitching)
+                                        {{-- Interactive dropdown for version switching --}}
+                                        <livewire:components.version-history-dropdown
+                                            :file="$file"
+                                            :triggerType="'badge'"
+                                            :key="'version-badge-' . $file->id" />
+                                    @else
+                                        {{-- Static badge (non-interactive) --}}
+                                        <flux:badge size="sm" color="indigo">
+                                            {{ $file->getVersionLabel() }}
+                                        </flux:badge>
+                                    @endif
+                                </div>
+                            @endif
+
+                            {{-- Deleted Badge --}}
+                            @if(!empty($file->deleted_at))
+                                <flux:badge variant="danger" size="sm" class="ml-2 flex-shrink-0">
+                                    Deleted
+                                </flux:badge>
                             @endif
                         </div>
                         <div class="flex items-center justify-between md:justify-start gap-2 md:gap-4 text-xs text-gray-500 dark:text-gray-400">
@@ -270,10 +363,10 @@
                                     </span>
                                 @endif
                             @endif
-                            @if ($showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
+                            @if (empty($file->deleted_at) && $showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
                                 <div class="flex items-center gap-1">
                                     <flux:icon.chat-bubble-left-ellipsis class="w-3 h-3 hidden md:inline" />
-                                    <button 
+                                    <button
                                         @click="showComments = !showComments"
                                         class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">
                                         @if ($this->getFileCommentCount($file->id) > 0)
@@ -310,30 +403,61 @@
                     $hasAnyAction = $canDownloadThisFile || $canDelete;
                 @endphp
 
-                @if($hasAnyAction)
-                    <div class="track-actions flex items-center">
-                        <flux:dropdown>
-                            <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
-                            </flux:button>
-                            <flux:menu>
-                                @if($canDownloadThisFile)
-                                    <flux:menu.item wire:click="downloadFile({{ $file->id }})" icon="arrow-down-tray">
-                                        Download
-                                    </flux:menu.item>
-                                @endif
-                                @if($canDelete)
-                                    <flux:menu.item wire:click="confirmDeleteFile({{ $file->id }})" variant="danger" icon="trash">
-                                        Delete
-                                    </flux:menu.item>
-                                @endif
-                            </flux:menu>
-                        </flux:dropdown>
+                @if(empty($file->deleted_at) && $hasAnyAction)
+                    <div class="track-actions flex items-center gap-2">
+
+                        {{-- File Actions Dropdown --}}
+                        @if($hasAnyAction || Gate::allows('uploadVersion', $file))
+                            <flux:dropdown>
+                                <flux:button variant="ghost" size="xs" icon="ellipsis-vertical">
+                                </flux:button>
+                                <flux:menu>
+                                    {{-- Upload New Version --}}
+                                    @can('uploadVersion', $file)
+                                        <flux:menu.item wire:click="uploadNewVersion({{ $file->id }})" icon="arrow-up-tray" class="text-indigo-600 dark:text-indigo-400">
+                                            Upload New Version
+                                        </flux:menu.item>
+
+                                        {{-- Delete All Versions (only show if file has versions) --}}
+                                        @if($file->hasMultipleVersions())
+                                            <flux:menu.item wire:click="confirmDeleteAllVersions({{ $file->id }})" variant="danger" icon="trash">
+                                                Delete All Versions
+                                            </flux:menu.item>
+                                        @endif
+
+                                        <flux:menu.separator />
+                                    @endcan
+
+                                    @if($canDownloadThisFile)
+                                        <flux:menu.item wire:click="downloadFile({{ $file->id }})" icon="arrow-down-tray">
+                                            Download
+                                        </flux:menu.item>
+                                    @endif
+                                    @if($canDelete && isset($file->included_in_working_version))
+                                        @if($file->included_in_working_version)
+                                            <flux:menu.item wire:click="excludeFileFromVersion({{ $file->id }})" icon="minus-circle">
+                                                Move to File Library
+                                            </flux:menu.item>
+                                        @else
+                                            <flux:menu.item wire:click="includeFileInVersion({{ $file->id }})" icon="plus-circle">
+                                                Move to Deliverables
+                                            </flux:menu.item>
+                                        @endif
+                                    @endif
+                                    @if($canDelete)
+                                        <flux:menu.item wire:click="confirmDeleteFile({{ $file->id }})" variant="danger" icon="trash">
+                                            Delete Permanently
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
+                        @endif
                     </div>
                 @endif
                 </div>
 
                 <!-- Comments Section -->
-                @if ($showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
+                @if (empty($file->deleted_at) && $showComments && ($this->getFileCommentCount($file->id) > 0 || $enableCommentCreation))
                     <div x-show="showComments" x-collapse
                          class="border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
                         <div class="mb-3">
@@ -667,89 +791,6 @@
         @endforelse
     </div>
 
-    <!-- Mobile Bulk Actions Bottom Sheet -->
-    @if($enableBulkActions)
-        <div x-data="{ showBulkSheet: false }" 
-             @show-bulk-actions-sheet.window="showBulkSheet = true"
-             @keydown.escape.window="showBulkSheet = false">
-            
-            <!-- Backdrop -->
-            <div x-show="showBulkSheet" 
-                 x-transition:enter="transition-opacity ease-out duration-300"
-                 x-transition:enter-start="opacity-0"
-                 x-transition:enter-end="opacity-100"
-                 x-transition:leave="transition-opacity ease-in duration-200"
-                 x-transition:leave-start="opacity-100"
-                 x-transition:leave-end="opacity-0"
-                 @click="showBulkSheet = false"
-                 class="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden">
-            </div>
-
-            <!-- Bottom Sheet -->
-            <div x-show="showBulkSheet"
-                 x-transition:enter="transition-transform ease-out duration-300"
-                 x-transition:enter-start="translate-y-full"
-                 x-transition:enter-end="translate-y-0"
-                 x-transition:leave="transition-transform ease-in duration-200"
-                 x-transition:leave-start="translate-y-0"
-                 x-transition:leave-end="translate-y-full"
-                 class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-xl shadow-xl z-50 sm:hidden">
-                
-                <!-- Handle -->
-                <div class="flex justify-center pt-3 pb-2">
-                    <div class="w-8 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                </div>
-
-                <!-- Content -->
-                <div class="p-4 pb-safe">
-                    <div class="mb-4">
-                        <flux:heading size="lg" class="text-gray-900 dark:text-gray-100">
-                            Bulk Actions
-                        </flux:heading>
-                        <flux:subheading class="text-gray-600 dark:text-gray-400">
-                            {{ $this->selectedFileCount }} file{{ $this->selectedFileCount !== 1 ? 's' : '' }} selected
-                        </flux:subheading>
-                    </div>
-
-                    <div class="space-y-3">
-                        @if(in_array('download', $bulkActions) && $canDownload)
-                            <button 
-                                wire:click="bulkDownloadSelected"
-                                @click="showBulkSheet = false"
-                                class="w-full flex items-center gap-3 p-4 text-left bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                                <flux:icon.arrow-down-tray class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                <div>
-                                    <div class="font-medium text-gray-900 dark:text-gray-100">Download Files</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">Download selected files as archive</div>
-                                </div>
-                            </button>
-                        @endif
-
-                        @if(in_array('delete', $bulkActions) && $canDelete)
-                            <button 
-                                wire:click="bulkDeleteSelected"
-                                @click="showBulkSheet = false"
-                                class="w-full flex items-center gap-3 p-4 text-left bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-                                <flux:icon.trash class="w-5 h-5 text-red-600 dark:text-red-400" />
-                                <div>
-                                    <div class="font-medium text-red-900 dark:text-red-100">Delete Files</div>
-                                    <div class="text-sm text-red-600 dark:text-red-400">Permanently delete selected files</div>
-                                </div>
-                            </button>
-                        @endif
-
-                        <!-- Cancel -->
-                        <button 
-                            @click="showBulkSheet = false"
-                            class="w-full flex items-center justify-center gap-3 p-4 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
     <!-- Delete Comment Confirmation Modal -->
     <flux:modal name="delete-comment" class="max-w-md">
         <div class="space-y-6">
@@ -808,6 +849,113 @@
                     wire:target="unresolveComment">
                     <span wire:loading.remove wire:target="unresolveComment">Mark as Unresolved</span>
                     <span wire:loading wire:target="unresolveComment">Marking...</span>
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- Delete Version Confirmation Modal --}}
+    <flux:modal name="delete-version-confirmation-{{ $this->getId() }}" class="max-w-md">
+        <div class="space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <flux:icon.exclamation-triangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div class="flex-1">
+                    <flux:heading size="lg" class="!mb-0">Delete Version</flux:heading>
+                </div>
+            </div>
+
+            <flux:subheading class="text-gray-600 dark:text-gray-400">
+                Are you sure you want to delete this version? This action cannot be undone.
+            </flux:subheading>
+
+            <flux:callout variant="warning">
+                <div class="flex items-start gap-2">
+                    <flux:icon.information-circle class="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div class="text-sm">
+                        Only this specific version will be deleted. The root file and other versions will remain intact.
+                    </div>
+                </div>
+            </flux:callout>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:button
+                    type="button"
+                    wire:click="cancelDeleteVersion"
+                    variant="ghost">
+                    Cancel
+                </flux:button>
+                <flux:button
+                    type="button"
+                    wire:click="deleteFileVersion"
+                    variant="primary"
+                    color="red"
+                    icon="trash">
+                    Delete Version
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- Delete All Versions Modal --}}
+    <flux:modal name="delete-all-versions-confirmation" :open="$deleteAllVersionsFileId !== null" wire:model="deleteAllVersionsFileId" class="max-w-md">
+        <div class="space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <flux:icon.exclamation-triangle class="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div class="flex-1">
+                    <flux:heading size="lg" class="!mb-0">Delete All Versions</flux:heading>
+                </div>
+            </div>
+
+            <flux:callout variant="danger">
+                <div class="flex items-start gap-2">
+                    <flux:icon.exclamation-triangle class="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div class="text-sm">
+                        <div class="font-medium mb-1">Warning: Permanent Deletion</div>
+                        <div>This will permanently delete ALL versions of this file except the original. This action cannot be undone.</div>
+                    </div>
+                </div>
+            </flux:callout>
+
+            @if($deleteAllVersionsFileId)
+                @php
+                    $fileToDelete = $files->firstWhere('id', $deleteAllVersionsFileId);
+                @endphp
+                @if($fileToDelete)
+                    <div>
+                        <flux:field>
+                            <flux:label for="deleteAllConfirmation">
+                                Type <strong>{{ $fileToDelete->file_name }}</strong> to confirm
+                            </flux:label>
+                            <flux:input
+                                type="text"
+                                wire:model.live="deleteAllConfirmationInput"
+                                id="deleteAllConfirmation"
+                                placeholder="Type file name here"
+                                class="font-mono" />
+                        </flux:field>
+                    </div>
+                @endif
+            @endif
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+                <flux:button
+                    type="button"
+                    wire:click="cancelDeleteAllVersions"
+                    variant="ghost">
+                    Cancel
+                </flux:button>
+                <flux:button
+                    type="button"
+                    wire:click="deleteAllFileVersions"
+                    variant="primary"
+                    color="red"
+                    icon="trash"
+                    :disabled="!$deleteAllVersionsFileId || $deleteAllConfirmationInput !== ($files->firstWhere('id', $deleteAllVersionsFileId)->file_name ?? '')">
+                    Delete All Versions
                 </flux:button>
             </div>
         </div>

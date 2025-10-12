@@ -36,9 +36,9 @@ class ProducerDeliverables extends Component
         // If we have real snapshots, use them
         if ($snapshots->count() > 0) {
             return $snapshots->map(function ($snapshot, $index) {
-                // Get files for this snapshot
+                // Get files for this snapshot (including soft-deleted files for history transparency)
                 $fileIds = $snapshot->snapshot_data['file_ids'] ?? [];
-                $files = $this->pitch->files()->whereIn('id', $fileIds)->get();
+                $files = $this->pitch->files()->withTrashed()->whereIn('id', $fileIds)->get();
 
                 return [
                     'id' => $snapshot->id,
@@ -86,10 +86,7 @@ class ProducerDeliverables extends Component
         if ($this->selectedSnapshotId) {
             $snapshot = $this->pitch->snapshots->find($this->selectedSnapshotId);
             if ($snapshot) {
-                // Hydrate files from snapshot data
-                $fileIds = $snapshot->snapshot_data['file_ids'] ?? [];
-                $snapshot->files = $this->pitch->files()->whereIn('id', $fileIds)->get();
-
+                // Files are loaded via PitchSnapshot accessor which includes withTrashed()
                 return $snapshot;
             }
         }
@@ -98,10 +95,7 @@ class ProducerDeliverables extends Component
         $latestSnapshot = $this->pitch->snapshots->sortByDesc('created_at')->first();
 
         if ($latestSnapshot) {
-            // Hydrate files from snapshot data
-            $fileIds = $latestSnapshot->snapshot_data['file_ids'] ?? [];
-            $latestSnapshot->files = $this->pitch->files()->whereIn('id', $fileIds)->get();
-
+            // Files are loaded via PitchSnapshot accessor which includes withTrashed()
             return $latestSnapshot;
         }
 

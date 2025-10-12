@@ -237,11 +237,17 @@
 
                 {{-- Structured Feedback Form --}}
                 <div class="mb-4 rounded-lg bg-white p-4 dark:bg-gray-700">
-                    @livewire('structured-feedback-form', [
-                        'pitch' => $pitch,
-                        'pitchFile' => ($currentSnapshot->files ?? collect())->first(),
-                        'clientEmail' => $project->client_email,
-                    ])
+                    @if(($currentSnapshot->files ?? collect())->isNotEmpty())
+                        @livewire('structured-feedback-form', [
+                            'pitch' => $pitch,
+                            'pitchFile' => ($currentSnapshot->files ?? collect())->first(),
+                            'clientEmail' => $project->client_email,
+                        ])
+                    @else
+                        <flux:text size="sm" class="text-gray-600 dark:text-gray-400">
+                            No files available for structured feedback.
+                        </flux:text>
+                    @endif
                 </div>
 
                 {{-- Traditional Text Feedback --}}

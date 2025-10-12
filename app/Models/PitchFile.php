@@ -8,6 +8,8 @@ use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -50,6 +52,11 @@ class PitchFile extends Model
         // Revision tracking fields
         'revision_round',
         'superseded_by_revision',
+        // Version management fields
+        'included_in_working_version',
+        // File versioning fields
+        'parent_file_id',
+        'file_version_number',
     ];
 
     protected $casts = [
@@ -66,6 +73,9 @@ class PitchFile extends Model
         'updated_at' => 'datetime',
         'superseded_by_revision' => 'boolean',
         'revision_round' => 'integer',
+        'included_in_working_version' => 'boolean',
+        'parent_file_id' => 'integer',
+        'file_version_number' => 'integer',
     ];
 
     /**
@@ -86,6 +96,20 @@ class PitchFile extends Model
         static::creating(function ($model) {
             if (empty($model->uuid)) {
                 $model->uuid = Str::uuid();
+            }
+        });
+
+        // Cascade soft deletes to versions
+        static::deleting(function ($model) {
+            if ($model->isForceDeleting()) {
+                return; // Don't cascade on force delete
+            }
+
+            // If this is a root file, soft delete all versions
+            if ($model->parent_file_id === null) {
+                $model->versions()->each(function ($version) {
+                    $version->delete();
+                });
             }
         });
     }
@@ -264,6 +288,24 @@ class PitchFile extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the parent file (for file versions)
+     * Returns null for root/original files
+     */
+    public function parent()
+    {
+        return $this->belongsTo(PitchFile::class, 'parent_file_id');
+    }
+
+    /**
+     * Get all child versions of this file
+     * Only meaningful for root files (where parent_file_id is null)
+     */
+    public function versions()
+    {
+        return $this->hasMany(PitchFile::class, 'parent_file_id')->orderBy('file_version_number');
     }
 
     /**
@@ -685,5 +727,217 @@ class PitchFile extends Model
             'audio_processed' => false,
             'processing_error' => $error,
         ]);
+    }
+
+    /**
+     * Scope query to only include files in the working version
+     */
+    public function scopeInWorkingVersion($query)
+    {
+        return $query->where('included_in_working_version', true);
+    }
+
+    /**
+     * Scope query to only include files excluded from the working version
+     * Shows single files OR latest version of file families where all are excluded
+     */
+    public function scopeExcludedFromWorkingVersion($query)
+    {
+        // Part 1: Single files (no versions) that are excluded
+        $singleExcludedFiles = $query->getModel()->newQuery()
+            ->select('pitch_files.*')
+            ->where('included_in_working_version', false)
+            ->whereNull('parent_file_id')
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('pitch_files as children')
+                    ->whereColumn('children.parent_file_id', 'pitch_files.id');
+            });
+
+        // Part 2: Latest version of file families where ALL versions (including root) are excluded
+        $latestVersionsAllExcluded = $query->getModel()->newQuery()
+            ->whereNotNull('parent_file_id')
+            ->where('included_in_working_version', false)
+            ->whereIn('id', function ($subquery) {
+                $subquery->selectRaw('id')
+                    ->from('pitch_files as pf1')
+                    ->whereNotNull('pf1.parent_file_id')
+                    // Get highest version number for each family (excluding deleted versions)
+                    ->whereRaw('pf1.file_version_number = (
+                        SELECT MAX(pf2.file_version_number)
+                        FROM pitch_files pf2
+                        WHERE pf2.parent_file_id = pf1.parent_file_id
+                        AND pf2.deleted_at IS NULL
+                    )')
+                    // Only include if root file is also excluded
+                    ->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('pitch_files as root')
+                            ->whereColumn('root.id', 'pf1.parent_file_id')
+                            ->where('root.included_in_working_version', false);
+                    })
+                    // Only include if no sibling version is included
+                    ->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('pitch_files as siblings')
+                            ->whereColumn('siblings.parent_file_id', 'pf1.parent_file_id')
+                            ->where('siblings.included_in_working_version', true);
+                    });
+            });
+
+        return $query->fromSub(
+            $singleExcludedFiles->union($latestVersionsAllExcluded),
+            'pitch_files'
+        );
+    }
+
+    /**
+     * Exclude this file from the working version (keeps file but removes from next snapshot)
+     */
+    public function excludeFromWorkingVersion(): bool
+    {
+        return $this->update(['included_in_working_version' => false]);
+    }
+
+    /**
+     * Include this file in the working version (adds back to next snapshot)
+     */
+    public function includeInWorkingVersion(): bool
+    {
+        return $this->update(['included_in_working_version' => true]);
+    }
+
+    /**
+     * Check if this file is included in the working version
+     */
+    public function isInWorkingVersion(): bool
+    {
+        return $this->included_in_working_version === true;
+    }
+
+    /**
+     * Check if this file is excluded from the working version
+     */
+    public function isExcludedFromWorkingVersion(): bool
+    {
+        return $this->included_in_working_version === false;
+    }
+
+    /**
+     * Get the root file (self if already root, or parent if this is a version)
+     */
+    public function getRootFile(): PitchFile
+    {
+        if ($this->parent_file_id) {
+            return $this->parent()->withTrashed()->first() ?? $this;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Check if this file has multiple versions
+     */
+    public function hasMultipleVersions(): bool
+    {
+        $root = $this->getRootFile();
+
+        // Check if this root has any child versions, or if this file itself is a version
+        return $root->versions()->count() > 0 || $this->parent_file_id !== null;
+    }
+
+    /**
+     * Get all versions of this file including the root
+     * Returns collection sorted by version number (descending - latest first)
+     */
+    public function getAllVersionsWithSelf(): Collection
+    {
+        $root = $this->getRootFile();
+        $versions = $root->versions()->withTrashed()->get();
+
+        // Include root file and sort descending (latest first)
+        return collect([$root])->merge($versions)->sortByDesc('file_version_number');
+    }
+
+    /**
+     * Get version label for display (e.g., "V2", "V3")
+     * Returns null if file doesn't have multiple versions
+     */
+    public function getVersionLabel(): ?string
+    {
+        if (! $this->hasMultipleVersions()) {
+            return null; // Don't show "V1" for single-version files
+        }
+
+        return 'V'.$this->file_version_number;
+    }
+
+    /**
+     * Check if this is the latest version in its family
+     */
+    public function isLatestVersion(): bool
+    {
+        $root = $this->getRootFile();
+        $latestVersion = $root->versions()->withTrashed()->max('file_version_number') ?? 1;
+
+        return $this->file_version_number >= $latestVersion;
+    }
+
+    /**
+     * Check if this file version was included in any snapshot
+     * Used to determine if version should be soft-deleted (in snapshot) or hard-deleted (never submitted)
+     */
+    public function wasInSnapshot(): bool
+    {
+        if (! $this->pitch) {
+            return false;
+        }
+
+        $snapshots = $this->pitch->snapshots;
+
+        foreach ($snapshots as $snapshot) {
+            $fileIds = $snapshot->snapshot_data['file_ids'] ?? [];
+            if (in_array($this->id, $fileIds)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Scope to get only latest versions of each file family
+     * Returns either the root file (if no versions) or the latest version child
+     */
+    public function scopeLatestVersions($query)
+    {
+        // Get root files that have no versions (single files)
+        $rootsWithoutVersions = $query->getModel()->newQuery()
+            ->select('pitch_files.*')
+            ->whereNull('parent_file_id')
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('pitch_files as children')
+                    ->whereColumn('children.parent_file_id', 'pitch_files.id');
+            });
+
+        // Get latest versions of files that have versions
+        $latestVersions = $query->getModel()->newQuery()
+            ->whereNotNull('parent_file_id')
+            ->whereIn('id', function ($subquery) {
+                $subquery->selectRaw('id')
+                    ->from('pitch_files as pf1')
+                    ->whereNotNull('pf1.parent_file_id')
+                    ->whereRaw('pf1.file_version_number = (
+                        SELECT MAX(pf2.file_version_number)
+                        FROM pitch_files pf2
+                        WHERE pf2.parent_file_id = pf1.parent_file_id
+                    )');
+            });
+
+        return $query->fromSub(
+            $rootsWithoutVersions->union($latestVersions),
+            'pitch_files'
+        );
     }
 }

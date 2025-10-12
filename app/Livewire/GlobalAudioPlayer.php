@@ -317,7 +317,7 @@ class GlobalAudioPlayer extends Component
     /**
      * Handle play action from client portal with snapshot context
      */
-    public function handlePlayClientPortalFile($data)
+    public function handlePlayClientPortalFile($data = [])
     {
         $fileId = $data['fileId'] ?? ($data[0]['fileId'] ?? null);
         $snapshotId = $data['snapshotId'] ?? ($data[0]['snapshotId'] ?? null);
@@ -331,7 +331,7 @@ class GlobalAudioPlayer extends Component
     /**
      * Handle file actions dispatched from the FileList component
      */
-    public function handleFileAction($data)
+    public function handleFileAction($data = [])
     {
         $action = $data['action'] ?? null;
         $fileId = $data['fileId'] ?? null;
@@ -993,7 +993,7 @@ class GlobalAudioPlayer extends Component
         $this->dispatch('trackEnded');
     }
 
-    public function handlePersistentAudioUpdate($data)
+    public function handlePersistentAudioUpdate($data = [])
     {
         if (! isset($data['property']) || ! isset($data['value'])) {
             return;

@@ -571,7 +571,7 @@ class PitchWorkflowService
 
                 $snapshotData = [
                     'version' => $newVersion,
-                    'file_ids' => $pitch->files->pluck('id')->toArray(), // Ensure files are loaded
+                    'file_ids' => $pitch->files()->inWorkingVersion()->pluck('id')->toArray(), // Only include files in working version
                     'response_to_feedback' => $responseToFeedback,
                     'previous_snapshot_id' => $previousSnapshot?->id,
                 ];

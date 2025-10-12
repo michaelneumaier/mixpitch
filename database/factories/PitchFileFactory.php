@@ -32,6 +32,8 @@ class PitchFileFactory extends Factory
             'storage_path' => $storagePath,
             'file_path' => $storagePath,
             'size' => $this->faker->numberBetween(1000, 5000000),
+            'file_version_number' => 1,
+            'parent_file_id' => null,
         ];
     }
 }

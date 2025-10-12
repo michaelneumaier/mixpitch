@@ -79,7 +79,8 @@ class PitchSnapshot extends Model
         }
 
         // Load files with proper relationships for client portal compatibility
-        $files = PitchFile::whereIn('id', $fileIds)
+        // Include soft-deleted files for history transparency
+        $files = PitchFile::withTrashed()->whereIn('id', $fileIds)
             ->with(['pitch', 'pitch.project'])
             ->orderBy('created_at')
             ->get()

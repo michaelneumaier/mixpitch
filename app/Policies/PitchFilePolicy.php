@@ -164,4 +164,61 @@ class PitchFilePolicy
             Pitch::STATUS_REVISIONS_REQUESTED,
         ]);
     }
+
+    /**
+     * Determine whether the user can upload a new version of this file.
+     * Only file owner can upload new versions, and only when pitch is in editable state.
+     */
+    public function uploadVersion(User $user, PitchFile $file): bool
+    {
+        // Only file owner can upload new versions
+        if ($user->id !== $file->user_id) {
+            return false;
+        }
+
+        // Check if uploads are allowed for the pitch (reuse existing logic)
+        return $this->uploadFile($user, $file->pitch);
+    }
+
+    /**
+     * Determine whether the user can delete a specific version.
+     * Can delete version if:
+     * - User owns the file
+     * - File is not the root file (can't delete root without deleting all)
+     * - Pitch is in editable state
+     */
+    public function deleteVersion(User $user, PitchFile $file): bool
+    {
+        // User must own the file
+        if ($user->id !== $file->user_id) {
+            return false;
+        }
+
+        // Cannot delete root file using deleteVersion (use deleteFile instead)
+        if ($file->parent_file_id === null) {
+            return false;
+        }
+
+        // Check if file operations are allowed for the pitch
+        return $this->deleteFile($user, $file);
+    }
+
+    /**
+     * Determine whether the user can switch between versions of a file.
+     * Can switch versions if:
+     * - User owns the pitch (is the producer)
+     * - Pitch is in a state where file management is allowed
+     */
+    public function switchVersion(User $user, PitchFile $file): bool
+    {
+        $pitch = $file->pitch;
+
+        // Only pitch owner can switch versions
+        if ($user->id !== $pitch->user_id) {
+            return false;
+        }
+
+        // Use same logic as uploadFile - if you can manage files, you can switch versions
+        return $this->uploadFile($user, $pitch);
+    }
 }

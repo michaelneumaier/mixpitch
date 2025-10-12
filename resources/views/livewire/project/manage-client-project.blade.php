@@ -208,7 +208,11 @@
                                                                 Your Deliverables
                                                                 <flux:badge variant="outline" size="sm"
                                                                     class="ml-2">
-                                                                    {{ $this->displayFiles->count() }} files
+                                                                    @if(!$viewingHistory && $this->excludedFiles->count() > 0)
+                                                                        {{ $this->displayFiles->count() }} of {{ $this->producerFiles->count() }} files in version
+                                                                    @else
+                                                                        {{ $this->displayFiles->count() }} files
+                                                                    @endif
                                                                 </flux:badge>
                                                             </flux:heading>
                                                             <flux:subheading
@@ -420,9 +424,66 @@
                                                         'emptyStateMessage' => 'No deliverables uploaded yet',
                                                         'emptyStateSubMessage' => 'Use the upload area above to add files',
                                                         'showFileCount' => false,
+                                                        'enableBulkActions' => true,
+                                                        'bulkActions' => !$viewingHistory ? ['download', 'delete', 'removeFromVersion'] : ['download', 'delete'],
+                                                        'enableVersionSwitching' => !$viewingHistory,
+                                                        'showBulkUploadVersions' => true,
                                                     ],
                                                     key('producer-files-list-' . $pitch->id . '-' . $refreshKey)
                                                 )
+
+                                                <!-- File Library (Excluded Files) -->
+                                                @if(!$viewingHistory)
+                                                    <div class="mt-6">
+                                                        <flux:card class="{{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
+                                                            <div class="mb-4">
+                                                                <div class="flex items-center gap-3">
+                                                                    <flux:icon.archive-box variant="solid"
+                                                                        class="{{ $workflowColors['icon'] }} h-6 w-6" />
+                                                                    <div>
+                                                                        <flux:heading size="base" class="{{ $workflowColors['text_primary'] }}">
+                                                                            File Library
+                                                                            @if($this->excludedFiles->count() > 0)
+                                                                                <flux:badge variant="outline" size="sm" class="ml-2">
+                                                                                    {{ $this->excludedFiles->count() }} files
+                                                                                </flux:badge>
+                                                                            @endif
+                                                                        </flux:heading>
+                                                                        <flux:subheading class="{{ $workflowColors['text_muted'] }}">
+                                                                            Files removed from version will appear here and can be added back anytime
+                                                                        </flux:subheading>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            @livewire(
+                                                                'components.file-list',
+                                                                [
+                                                                    'files' => $this->excludedFiles,
+                                                                    'modelType' => 'pitch',
+                                                                    'modelId' => $pitch->id,
+                                                                    'colorScheme' => 'default',
+                                                                    'canPlay' => true,
+                                                                    'canDownload' => true,
+                                                                    'canDelete' => true,
+                                                                    'playMethod' => 'playPitchFile',
+                                                                    'downloadMethod' => 'downloadFile',
+                                                                    'deleteMethod' => 'confirmDeleteFile',
+                                                                    'showComments' => false,
+                                                                    'headerIcon' => 'archive-box',
+                                                                    'emptyStateMessage' => 'No excluded files',
+                                                                    'emptyStateSubMessage' => 'Files removed from your working version will appear here',
+                                                                    'showFileCount' => false,
+                                                                    'showTotalSize' => false,
+                                                                    'enableBulkActions' => true,
+                                                                    'bulkActions' => ['addToVersion', 'delete'],
+                                                                    'enableVersionSwitching' => !$viewingHistory,
+                                                                ],
+                                                                key('excluded-files-list-' . $pitch->id . '-' . $refreshKey)
+                                                            )
+                                                        </flux:card>
+                                                    </div>
+                                                @endif
                                             </flux:card>
                                         </div>
                                     </div>
@@ -552,6 +613,29 @@
                         <div class="flex justify-end space-x-3">
                             <button wire:click="cancelDeleteFile" class="btn btn-outline">Cancel</button>
                             <button wire:click="deleteFile" class="btn btn-error">Delete File</button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Bulk Delete Confirmation Modal -->
+            @if ($showBulkDeleteModal)
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div class="mx-4 w-full max-w-md rounded-lg bg-white dark:bg-gray-800 p-6">
+                        <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Confirm Bulk File Deletion
+                        </h3>
+                        <p class="mb-6 text-gray-600 dark:text-gray-400">
+                            Are you sure you want to delete {{ count($fileIdsToBulkDelete) }} file(s)?
+                            This action cannot be undone.
+                        </p>
+                        <div class="flex justify-end space-x-3">
+                            <flux:button wire:click="cancelBulkDeleteFiles" variant="ghost">
+                                Cancel
+                            </flux:button>
+                            <flux:button wire:click="bulkDeleteFiles" variant="danger">
+                                Delete {{ count($fileIdsToBulkDelete) }} File(s)
+                            </flux:button>
                         </div>
                     </div>
                 </div>
@@ -813,4 +897,9 @@
                 }
             </script>
         </div>
+
+{{-- Version Modals --}}
+<livewire:upload-version-modal />
+<livewire:bulk-version-upload-modal />
+
 </x-draggable-upload-page>

@@ -104,6 +104,26 @@ class GlobalFileUploader extends Component
         $modelId = isset($meta['modelId']) ? (int) $meta['modelId'] : null;
         $context = $meta['context'] ?? null;
 
+        // Special handling for version uploads - don't process, just notify modal
+        if (isset($meta['isVersionUpload']) && $meta['isVersionUpload']) {
+            $eventPayload = [
+                'name' => $filename,
+                'key' => $s3Key,
+                'size' => $size,
+                'type' => $type,
+                'meta' => $meta,
+            ];
+
+            // Dispatch browser CustomEvent to notify UploadVersionModal
+            $this->js("
+                window.dispatchEvent(new CustomEvent('version-file-uploaded', {
+                    detail: ".json_encode($eventPayload)."
+                }));
+            ");
+
+            return; // Early return - don't create file record
+        }
+
         if (! $s3Key || ! $modelType || ! $modelId) {
             throw new \InvalidArgumentException('Missing required upload metadata.');
         }

@@ -227,11 +227,14 @@ class PitchFileCommentTest extends TestCase
             'resolved' => true,
         ]);
 
-        // Test filtering
-        $allComments = PitchFileComment::where('pitch_file_id', $this->pitchFile->id)->get();
-        $clientComments = PitchFileComment::where('pitch_file_id', $this->pitchFile->id)
+        // Test filtering (using polymorphic columns)
+        $allComments = PitchFileComment::where('commentable_type', 'App\Models\PitchFile')
+            ->where('commentable_id', $this->pitchFile->id)->get();
+        $clientComments = PitchFileComment::where('commentable_type', 'App\Models\PitchFile')
+            ->where('commentable_id', $this->pitchFile->id)
             ->where('is_client_comment', true)->get();
-        $unresolvedClientComments = PitchFileComment::where('pitch_file_id', $this->pitchFile->id)
+        $unresolvedClientComments = PitchFileComment::where('commentable_type', 'App\Models\PitchFile')
+            ->where('commentable_id', $this->pitchFile->id)
             ->where('is_client_comment', true)
             ->where('resolved', false)->get();
 

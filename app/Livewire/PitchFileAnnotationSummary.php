@@ -65,7 +65,8 @@ class PitchFileAnnotationSummary extends Component
 
     public function resolveComment(int $commentId)
     {
-        $comment = PitchFileComment::where('pitch_file_id', $this->pitchFile->id)
+        $comment = PitchFileComment::where('commentable_type', 'App\Models\PitchFile')
+            ->where('commentable_id', $this->pitchFile->id)
             ->findOrFail($commentId);
 
         $comment->update(['resolved' => true]);

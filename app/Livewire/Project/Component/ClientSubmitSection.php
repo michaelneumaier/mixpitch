@@ -34,6 +34,7 @@ class ClientSubmitSection extends Component
     protected $listeners = [
         'filesUploaded' => '$refresh',
         'fileDeleted' => '$refresh',
+        'fileVersionChanged' => '$refresh',
     ];
 
     protected $rules = [
@@ -51,12 +52,22 @@ class ClientSubmitSection extends Component
     }
 
     /**
-     * Get producer-uploaded files (pitch files)
+     * Get producer-uploaded files based on pitch status
+     * - READY_FOR_REVIEW: Show files from current snapshot (already submitted)
+     * - IN_PROGRESS/REVISIONS: Show working version files (will be submitted)
      */
     #[Computed]
     public function producerFiles()
     {
-        return $this->pitch->files()->with('pitch')->get();
+        // If already submitted for review, show files from the current snapshot
+        if ($this->pitch->status === Pitch::STATUS_READY_FOR_REVIEW && $this->pitch->currentSnapshot) {
+            $snapshotFileIds = $this->pitch->currentSnapshot->snapshot_data['file_ids'] ?? [];
+
+            return $this->pitch->files()->whereIn('id', $snapshotFileIds)->with('pitch')->get();
+        }
+
+        // Otherwise, show working version files (files that will be included in next submission)
+        return $this->pitch->files()->inWorkingVersion()->with('pitch')->get();
     }
 
     /**

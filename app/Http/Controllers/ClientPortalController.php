@@ -170,9 +170,9 @@ class ClientPortalController extends Controller
         // If we have real snapshots, use them
         if ($snapshots->count() > 0) {
             return $snapshots->map(function ($snapshot, $index) use ($pitch) {
-                // Get files for this snapshot
+                // Get files for this snapshot (including soft-deleted files for history transparency)
                 $fileIds = $snapshot->snapshot_data['file_ids'] ?? [];
-                $files = $pitch->files()->whereIn('id', $fileIds)->get()->map(function ($file) {
+                $files = $pitch->files()->withTrashed()->whereIn('id', $fileIds)->get()->map(function ($file) {
                     return [
                         'id' => $file->id,
                         'file_name' => $file->file_name,
@@ -184,6 +184,8 @@ class ClientPortalController extends Controller
                         'waveform_peaks' => $file->waveform_peaks,
                         'note' => $file->note,
                         'uuid' => $file->uuid,
+                        'deleted_at' => $file->deleted_at,
+                        'trashed' => $file->trashed(),
                     ];
                 });
 
