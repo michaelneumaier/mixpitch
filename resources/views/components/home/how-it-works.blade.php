@@ -8,174 +8,196 @@
         <div class="text-center mb-16 animate-fade-in-up">
             <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-sm font-medium mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Simple Process
+                Professional Workflow
             </div>
             <h2 class="text-4xl lg:text-5xl font-bold text-white mb-6">
-                How It 
+                How It
                 <span class="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                     Works
                 </span>
             </h2>
             <p class="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
-                A streamlined process that connects musical talent with technical expertise, creating magic through collaboration.
+                From project setup to final delivery, manage your entire client workflow with built-in policies and automated billing.
             </p>
         </div>
 
-        <div class="grid lg:grid-cols-2 gap-12 lg:gap-16">
-            <!-- For Artists Timeline -->
-            <div class="relative animate-fade-in-up" style="animation-delay: 0.2s;">
-                <div class="mb-8">
-                    <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/20 backdrop-blur-md border border-blue-400/30 text-blue-300 font-semibold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                        </svg>
-                        For Artists
-                    </div>
-                </div>
+        <!-- Professional Workflow Steps -->
+        <div class="max-w-4xl mx-auto">
+            <div class="relative space-y-8">
+                <!-- Timeline Line -->
+                <div class="absolute left-8 top-12 bottom-12 w-1 bg-gradient-to-b from-purple-400 via-blue-500 to-purple-600 opacity-20 hidden md:block"></div>
 
-                <div class="relative space-y-8">
-                    <!-- Timeline Line -->
-                    <div class="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 opacity-30"></div>
-                    
-                    <!-- Step 1 -->
-                    <div class="relative flex items-start group">
-                        <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            1
-                        </div>
-                        <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                    </svg>
-                                    Submit Your Track
-                                </h4>
-                                <p class="text-white/80 leading-relaxed">
-                                    Upload your music and provide details about your project's vision. Set your budget and timeline to attract the right professionals.
-                                </p>
-                            </div>
-                        </div>
+                <!-- Step 1: Set Up Project -->
+                <div class="relative flex items-start group animate-fade-in-up" style="animation-delay: 0.2s;">
+                    <div class="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-bold text-lg md:text-2xl shadow-lg z-10">
+                        1
                     </div>
-
-                    <!-- Step 2 -->
-                    <div class="relative flex items-start group">
-                        <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            2
-                        </div>
-                        <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                    Review Submissions
-                                </h4>
-                                <p class="text-white/80 leading-relaxed">
-                                    Listen to creative interpretations from talented professionals and provide feedback to guide the final result.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 3 -->
-                    <div class="relative flex items-start group">
-                        <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            3
-                        </div>
-                        <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="ml-4 md:ml-8 flex-1">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 md:p-8 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <h4 class="text-2xl font-bold text-white mb-4 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Set Up Project
+                            </h4>
+                            <p class="text-white/90 text-lg leading-relaxed mb-4">
+                                Create your project with professional policies built-in from the start.
+                            </p>
+                            <ul class="space-y-2 text-white/80 text-sm">
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
-                                    Select & Finalize
-                                </h4>
-                                <p class="text-white/80 leading-relaxed">
-                                    Choose the mix that perfectly captures your vision, complete secure payment, and download your professionally enhanced track.
-                                </p>
-                            </div>
+                                    Define budget and milestone structure
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Configure revision policy with automatic billing for extra rounds
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Add scope guidelines clients see in their portal
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- For Audio Professionals Timeline -->
-            <div class="relative animate-fade-in-up" style="animation-delay: 0.4s;">
-                <div class="mb-8">
-                    <div class="inline-flex items-center px-4 py-2 rounded-full bg-purple-500/20 backdrop-blur-md border border-purple-400/30 text-purple-300 font-semibold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
-                        For Audio Professionals
+                <!-- Step 2: Share Portal Link -->
+                <div class="relative flex items-start group animate-fade-in-up" style="animation-delay: 0.3s;">
+                    <div class="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-bold text-lg md:text-2xl shadow-lg z-10">
+                        2
+                    </div>
+                    <div class="ml-4 md:ml-8 flex-1">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 md:p-8 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <h4 class="text-2xl font-bold text-white mb-4 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                Share Portal Link
+                            </h4>
+                            <p class="text-white/90 text-lg leading-relaxed mb-4">
+                                Send your client a secure, branded portal—no account needed.
+                            </p>
+                            <ul class="space-y-2 text-white/80 text-sm">
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Client receives branded, secure link (7-day expiry)
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    No signup required—instant access
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Mobile-friendly playback and file management
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
-                <div class="relative space-y-8">
-                    <!-- Timeline Line -->
-                    <div class="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-purple-400 via-purple-500 to-purple-600 opacity-30"></div>
-                    
-                    <!-- Step 1 -->
-                    <div class="relative flex items-start group">
-                        <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            1
-                        </div>
-                        <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <!-- Step 3: Deliver & Collaborate -->
+                <div class="relative flex items-start group animate-fade-in-up" style="animation-delay: 0.4s;">
+                    <div class="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-bold text-lg md:text-2xl shadow-lg z-10">
+                        3
+                    </div>
+                    <div class="ml-4 md:ml-8 flex-1">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 md:p-8 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <h4 class="text-2xl font-bold text-white mb-4 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                </svg>
+                                Deliver & Collaborate
+                            </h4>
+                            <p class="text-white/90 text-lg leading-relaxed mb-4">
+                                Upload files and receive precise, time-stamped feedback in one place.
+                            </p>
+                            <ul class="space-y-2 text-white/80 text-sm">
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
-                                    Discover Projects
-                                </h4>
-                                <p class="text-white/80 leading-relaxed">
-                                    Browse exciting projects that match your skills and interests from our diverse global marketplace of musical talent.
-                                </p>
-                            </div>
+                                    Upload files individually or in bulk with intelligent name-matching
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Client leaves time-stamped feedback (MM:SS format)
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Track threaded conversations to resolution
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Update versions with complete history snapshots
+                                </li>
+                            </ul>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Step 2 -->
-                    <div class="relative flex items-start group">
-                        <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            2
-                        </div>
-                        <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                    </svg>
-                                    Create Your Version
-                                </h4>
-                                <p class="text-white/80 leading-relaxed">
-                                    Download the artist's files, apply your unique creative vision and technical expertise, then submit your professional interpretation.
-                                </p>
-                            </div>
-                        </div>
+                <!-- Step 4: Approvals & Payments -->
+                <div class="relative flex items-start group animate-fade-in-up" style="animation-delay: 0.5s;">
+                    <div class="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-bold text-lg md:text-2xl shadow-lg z-10">
+                        4
                     </div>
-
-                    <!-- Step 3 -->
-                    <div class="relative flex items-start group">
-                        <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            3
-                        </div>
-                        <div class="ml-6 flex-1">
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                <h4 class="text-xl font-semibold text-white mb-3 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    <div class="ml-4 md:ml-8 flex-1">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 md:p-8 group-hover:bg-white/15 transition-[transform,colors,shadow] duration-300 hover:shadow-2xl hover:-translate-y-1">
+                            <h4 class="text-2xl font-bold text-white mb-4 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                Approvals & Payments
+                            </h4>
+                            <p class="text-white/90 text-lg leading-relaxed mb-4">
+                                Get paid when clients approve—automatically or manually tracked.
+                            </p>
+                            <ul class="space-y-2 text-white/80 text-sm">
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
-                                    Get Selected & Paid
-                                </h4>
-                                <p class="text-white/80 leading-relaxed">
-                                    When your work resonates with the artist's vision, receive secure payment and build your professional reputation.
-                                </p>
-                            </div>
+                                    Client approves deliverables through portal
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Accept payments via Stripe, PayPal, or mark paid manually
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Watermarks automatically removed upon payment
+                                </li>
+                                <li class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Progress to next milestone or complete project
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -184,32 +206,32 @@
 
         <!-- Call to Action -->
         <div class="text-center mt-16 animate-fade-in-up" style="animation-delay: 0.6s;">
-            <div class="inline-flex items-center justify-center space-x-6">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 @auth
-                <a href="{{ route('projects.create') }}" 
+                <a href="{{ route('projects.create') }}"
                    class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        Start Your Project
+                        Get Started
                     </span>
                 </a>
                 @else
-                <a href="{{ route('register') }}" 
+                <a href="{{ route('register') }}"
                    class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                         </svg>
-                        Get Started Free
+                        Get Started
                     </span>
                 </a>
                 @endauth
-                
-                <a href="{{ route('projects.index') }}" 
+
+                <a href="{{ route('projects.index') }}"
                    class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-lg">
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Models\FileUploadSetting;
 use App\Models\PitchFile;
 use App\Services\FileManagementService;
 use Illuminate\Support\Facades\Auth;
@@ -114,7 +113,6 @@ class UploadVersionModal extends Component
             $this->uploadProgress = 0;
         }
     }
-
 
     public function close(): void
     {

@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-b85d186c.css",
+    "file": "assets/app-26cb5b80.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-ecf1987d.css",
+    "file": "assets/theme-16af16fb.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -41,7 +41,7 @@
     "src": "resources/js/global-drag-drop-manager.js"
   },
   "resources/js/hero.js": {
-    "file": "assets/hero-d7e26c1a.js",
+    "file": "assets/hero-49d440b0.js",
     "isEntry": true,
     "src": "resources/js/hero.js"
   }

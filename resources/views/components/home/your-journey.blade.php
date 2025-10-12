@@ -28,10 +28,12 @@
                 <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.168 18.477 18.582 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
+                        <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-green-500 to-emerald-500 p-[2px] mx-auto mb-4">
+                            <div class="w-full h-full rounded-full bg-white flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.168 18.477 18.582 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
                         </div>
                         <div class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,10 +97,12 @@
                 <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                            </svg>
+                        <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-blue-500 to-purple-500 p-[2px] mx-auto mb-4">
+                            <div class="w-full h-full rounded-full bg-white flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                </svg>
+                            </div>
                         </div>
                         <div class="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -162,14 +166,16 @@
                 <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
+                        <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-purple-500 to-indigo-500 p-[2px] mx-auto mb-4">
+                            <div class="w-full h-full rounded-full bg-white flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
                         </div>
                         <div class="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8m8 0v2a2 2 0 01-2 2H10a2 2 0 01-2-2V6m8 0H8" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                             For Studios & Pros
                         </div>
@@ -218,162 +224,6 @@
                             <span class="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">Client Portals</span>
                             <span class="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">No Client Accounts</span>
                             <span class="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">Pro Tools</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- More Ways to Grow - All 4 Workflow Types -->
-        <div class="mt-16 text-center">
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">More Ways to Grow</h3>
-            <p class="text-gray-600 mb-8">Explore all the ways you can collaborate and build your career</p>
-            
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-                <!-- Standard Project -->
-                <div class="group relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                                </svg>
-                            </div>
-                            <span class="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">Most Popular</span>
-                        </div>
-                        <h4 class="font-semibold text-gray-900 mb-2">Standard Project</h4>
-                        <p class="text-gray-600 text-sm mb-4">Open marketplace where artists receive multiple submissions</p>
-                        <div class="space-y-2">
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Multiple submissions
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Pay only if satisfied
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Global talent pool
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Contest Project -->
-                <div class="group relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                                </svg>
-                            </div>
-                            <span class="bg-amber-100 text-amber-700 text-xs font-medium px-2 py-1 rounded-full">High Engagement</span>
-                        </div>
-                        <h4 class="font-semibold text-gray-900 mb-2">Contest Project</h4>
-                        <p class="text-gray-600 text-sm mb-4">Competitive format with prizes and professional judging</p>
-                        <div class="space-y-2">
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Prize pools
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Professional judging
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Career visibility
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Direct Hire -->
-                <div class="group relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            </div>
-                            <span class="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">Exclusive</span>
-                        </div>
-                        <h4 class="font-semibold text-gray-900 mb-2">Direct Hire</h4>
-                        <p class="text-gray-600 text-sm mb-4">Private collaboration with trusted professionals</p>
-                        <div class="space-y-2">
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                One-on-one collaboration
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Trusted relationships
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Streamlined workflow
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Client Management -->
-                <div class="group relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                    <div class="relative bg-white rounded-xl p-6 shadow-lg border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-1 hover:shadow-xl">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                </svg>
-                            </div>
-                            <span class="bg-purple-100 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">Professional</span>
-                        </div>
-                        <h4 class="font-semibold text-gray-900 mb-2">Client Management</h4>
-                        <p class="text-gray-600 text-sm mb-4">Professional tools for managing your existing clients</p>
-                        <div class="space-y-2">
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Secure client portals
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Integrated payments
-                            </div>
-                            <div class="flex items-center text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                No client accounts needed
-                            </div>
                         </div>
                     </div>
                 </div>

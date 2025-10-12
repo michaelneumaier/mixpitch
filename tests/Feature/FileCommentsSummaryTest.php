@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Project\ManageClientProject;
 use App\Models\FileComment;
 use App\Models\Pitch;
 use App\Models\PitchFile;
@@ -17,8 +16,11 @@ class FileCommentsSummaryTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Project $project;
+
     protected Pitch $pitch;
+
     protected PitchFile $pitchFile;
 
     protected function setUp(): void

@@ -41,7 +41,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function getRootFile_returns_self_when_no_parent()
+    public function get_root_file_returns_self_when_no_parent()
     {
         $file = PitchFile::factory()->create(['parent_file_id' => null]);
 
@@ -49,7 +49,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function getRootFile_returns_parent_when_is_version()
+    public function get_root_file_returns_parent_when_is_version()
     {
         $parent = PitchFile::factory()->create(['parent_file_id' => null]);
         $child = PitchFile::factory()->create([
@@ -61,7 +61,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function hasMultipleVersions_returns_false_for_single_file()
+    public function has_multiple_versions_returns_false_for_single_file()
     {
         $file = PitchFile::factory()->create(['parent_file_id' => null]);
 
@@ -69,7 +69,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function hasMultipleVersions_returns_true_when_versions_exist()
+    public function has_multiple_versions_returns_true_when_versions_exist()
     {
         $parent = PitchFile::factory()->create(['parent_file_id' => null]);
         PitchFile::factory()->create([
@@ -81,7 +81,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function hasMultipleVersions_returns_true_when_file_is_a_version()
+    public function has_multiple_versions_returns_true_when_file_is_a_version()
     {
         $parent = PitchFile::factory()->create(['parent_file_id' => null]);
         $child = PitchFile::factory()->create([
@@ -93,7 +93,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function getAllVersionsWithSelf_returns_all_versions_sorted()
+    public function get_all_versions_with_self_returns_all_versions_sorted()
     {
         $pitch = Pitch::factory()->create();
         $parent = PitchFile::factory()->recycle($pitch)->create([
@@ -117,7 +117,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function getVersionLabel_returns_null_for_single_version_file()
+    public function get_version_label_returns_null_for_single_version_file()
     {
         $file = PitchFile::factory()->create(['parent_file_id' => null]);
 
@@ -125,7 +125,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function getVersionLabel_returns_formatted_label_when_multiple_versions()
+    public function get_version_label_returns_formatted_label_when_multiple_versions()
     {
         $parent = PitchFile::factory()->create([
             'parent_file_id' => null,
@@ -141,7 +141,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function isLatestVersion_returns_true_for_highest_version()
+    public function is_latest_version_returns_true_for_highest_version()
     {
         $parent = PitchFile::factory()->create([
             'parent_file_id' => null,
@@ -162,7 +162,7 @@ class PitchFileVersionTest extends TestCase
     }
 
     /** @test */
-    public function latestVersions_scope_returns_only_latest_versions()
+    public function latest_versions_scope_returns_only_latest_versions()
     {
         $pitch = Pitch::factory()->create();
 

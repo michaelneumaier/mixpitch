@@ -287,7 +287,7 @@ class PostApprovalDownloadModalTest extends TestCase
 
         $component->call('downloadFile', $file->id);
 
-        $component->assertDispatched('download-file', function ($name, $data) use ($file) {
+        $component->assertDispatched('download-file', function ($name, $data) {
             // Verify the URL contains the expected route signature
             return isset($data['url']) && (
                 str_contains($data['url'], 'client.portal.download_file') ||

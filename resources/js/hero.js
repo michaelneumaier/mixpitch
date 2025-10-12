@@ -15,12 +15,12 @@ function initHeroComponents() {
         // Set initial toggle state with improved sizing
         const updateToggleIndicator = () => {
             const activeToggle = document.querySelector('.role-toggle-btn.active');
-            if (activeToggle === artistToggle) {
+            if (activeToggle === producerToggle) {
                 toggleIndicator.style.transform = 'translateX(0)';
-                toggleIndicator.style.width = `${artistToggle.offsetWidth - 8}px`;
-            } else if (activeToggle === producerToggle) {
-                toggleIndicator.style.transform = `translateX(${artistToggle.offsetWidth}px)`;
                 toggleIndicator.style.width = `${producerToggle.offsetWidth - 8}px`;
+            } else if (activeToggle === artistToggle) {
+                toggleIndicator.style.transform = `translateX(${producerToggle.offsetWidth}px)`;
+                toggleIndicator.style.width = `${artistToggle.offsetWidth - 8}px`;
             }
         };
 
@@ -334,17 +334,6 @@ function initHeroComponents() {
     // Observe elements for scroll animations
     document.querySelectorAll('.animate-on-scroll').forEach(el => {
         observer.observe(el);
-    });
-
-    // Enhanced button hover effects
-    document.querySelectorAll('.group').forEach(button => {
-        button.addEventListener('mouseenter', function () {
-            this.style.transform = 'scale(1.05) translateY(-2px)';
-        });
-
-        button.addEventListener('mouseleave', function () {
-            this.style.transform = 'scale(1) translateY(0)';
-        });
     });
 
     // Performance optimization: Pause animations when not visible

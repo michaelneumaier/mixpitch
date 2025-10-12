@@ -164,7 +164,7 @@ class ClientCommentedTest extends TestCase
         );
 
         // Should use fallback "Client" in subject (includes project title)
-        $mailable->assertHasSubject('New Message from Client - ' . $project->title);
+        $mailable->assertHasSubject('New Message from Client - '.$project->title);
         // Should use "Your client" in body (use assertSeeInText for plain text match)
         $mailable->assertSeeInText('Your client');
     }

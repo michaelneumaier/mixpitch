@@ -7,7 +7,6 @@ use App\Models\Pitch;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 use Tests\TestCase;
 

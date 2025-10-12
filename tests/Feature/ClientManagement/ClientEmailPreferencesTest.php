@@ -5,9 +5,7 @@ namespace Tests\Feature\ClientManagement;
 use App\Models\Pitch;
 use App\Models\Project;
 use App\Models\User;
-use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 

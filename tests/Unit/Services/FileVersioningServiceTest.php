@@ -37,7 +37,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function normalizeFilename_removes_extension_and_lowercases()
+    public function normalize_filename_removes_extension_and_lowercases()
     {
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('normalizeFilename');
@@ -50,7 +50,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function normalizeFilename_handles_special_characters()
+    public function normalize_filename_handles_special_characters()
     {
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('normalizeFilename');
@@ -61,7 +61,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function matchFilesByName_matches_identical_names()
+    public function match_files_by_name_matches_identical_names()
     {
         $kick = PitchFile::factory()->recycle($this->pitch)->create();
         $kick->update(['original_file_name' => 'Kick.wav']);
@@ -86,7 +86,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function matchFilesByName_ignores_extensions()
+    public function match_files_by_name_ignores_extensions()
     {
         $kickFile = PitchFile::factory()->recycle($this->pitch)->create();
         $kickFile->update(['original_file_name' => 'Kick.wav']);
@@ -105,7 +105,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function matchFilesByName_is_case_insensitive()
+    public function match_files_by_name_is_case_insensitive()
     {
         $kickFile = PitchFile::factory()->recycle($this->pitch)->create();
         $kickFile->update(['original_file_name' => 'Kick.wav']);
@@ -123,7 +123,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function matchFilesByName_returns_unmatched_files()
+    public function match_files_by_name_returns_unmatched_files()
     {
         $kickFile = PitchFile::factory()->recycle($this->pitch)->create();
         $kickFile->update(['original_file_name' => 'Kick.wav']);
@@ -149,7 +149,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function matchFilesByName_handles_empty_existing_files()
+    public function match_files_by_name_handles_empty_existing_files()
     {
         $existingFiles = collect([]);
 
@@ -165,7 +165,7 @@ class FileVersioningServiceTest extends TestCase
     }
 
     /** @test */
-    public function matchFilesByName_handles_empty_uploaded_files()
+    public function match_files_by_name_handles_empty_uploaded_files()
     {
         $kick = PitchFile::factory()->recycle($this->pitch)->create();
         $kick->update(['original_file_name' => 'Kick.wav']);

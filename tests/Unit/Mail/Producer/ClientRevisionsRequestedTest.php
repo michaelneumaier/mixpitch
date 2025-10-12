@@ -163,7 +163,7 @@ class ClientRevisionsRequestedTest extends TestCase
         );
 
         // Should use fallback "Client" in subject (includes project title)
-        $mailable->assertHasSubject('[Action Required] Client Requested Revisions - ' . $project->title);
+        $mailable->assertHasSubject('[Action Required] Client Requested Revisions - '.$project->title);
         // Should use "Your client" in body (use assertSeeInText for plain text match)
         $mailable->assertSeeInText('Your client');
     }

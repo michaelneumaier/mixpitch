@@ -22,7 +22,6 @@
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="{{ asset('css/homepage.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/star-rating.css') }}">
 
     @livewireStyles
     
