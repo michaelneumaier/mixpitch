@@ -26,7 +26,7 @@
     <div class="relative z-10 flex items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
         <div class="mx-auto text-center">
             <!-- Animated Badge -->
-            <div class="mt-2 animate-fade-in-up" style="animation-delay: 0.2s;">
+            <div class="mt-4 animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-sm font-medium">
                     <div class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
                     <span>Professional Audio Platform</span>
@@ -37,8 +37,8 @@
             </div>
 
             <!-- Revolutionary Heading -->
-            <div class="mb-12 animate-fade-in-up" style="animation-delay: 0.4s;">
-                <h1 class="text-3xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 leading-tight">
+            <div class="mb-8 md:mb-12 animate-fade-in-up" style="animation-delay: 0.4s;">
+                <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mt-4 md:mt-0 mb-4 leading-tight">
                     <div class="grid grid-cols-2 gap-2 max-w-fit mx-auto">
                         <div class="text-right">
                             <div>Empower</div>
@@ -60,7 +60,7 @@
             </div>
 
             <!-- Interactive Role Selector with Glass Morphism -->
-            <div class="mb-12 animate-fade-in-up" style="animation-delay: 0.6s;">
+            <div class="mb-8 md:mb-12 animate-fade-in-up" style="animation-delay: 0.6s;">
                 <div class="inline-block p-1 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
                     <div class="relative flex">
                         <button id="producer-toggle"

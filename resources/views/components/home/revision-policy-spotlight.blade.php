@@ -161,7 +161,7 @@
 
         <!-- Benefits Section -->
         <div class="max-w-6xl mx-auto">
-            <h3 class="text-3xl font-bold text-center text-gray-900 mb-12 animate-fade-in-up">
+            <h3 class="text-3xl font-bold text-center text-gray-900 mb-6 md:mb-12 animate-fade-in-up">
                 Why This Changes Everything
             </h3>
 
