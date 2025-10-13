@@ -304,7 +304,7 @@
                             @endif
 
                             {{-- Version Badge --}}
-                            @if($file->hasMultipleVersions())
+                            @if(method_exists($file, 'hasMultipleVersions') && $file->hasMultipleVersions())
                                 <div class="ml-2 flex-shrink-0">
                                     @if($enableVersionSwitching)
                                         {{-- Interactive dropdown for version switching --}}
