@@ -12,7 +12,7 @@
         <!-- Logo Section -->
         <div class="relative z-10 mb-8">
             <a href="/" class="flex items-center group">
-                <img src="{{ asset('logo.png') }}" alt="MixPitch Logo" class="h-12 w-auto mr-3 transition-transform duration-300 group-hover:scale-105">
+                <img src="{{ asset('images/logo.png') }}" alt="MixPitch Logo" class="h-12 w-auto mr-3 transition-transform duration-300 group-hover:scale-105">
                 <div class="text-3xl font-bold">
                     <span class="text-gray-600 dark:text-gray-400">Mix</span><span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Pitch</span>
                 </div>

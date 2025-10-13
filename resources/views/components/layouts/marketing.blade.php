@@ -69,7 +69,7 @@
                 <!-- Logo -->
                 <div class="flex items-center">
                     <a href="{{ url('/') }}" class="flex items-center">
-                        <img src="{{ asset('logo.png') }}" alt="MixPitch" class="h-8 w-auto">
+                        <img src="{{ asset('images/logo.png') }}" alt="MixPitch" class="h-8 w-auto">
                     </a>
                 </div>
 
@@ -205,7 +205,7 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <!-- Company Info -->
                 <div class="col-span-1 md:col-span-2">
-                    <img src="{{ asset('logo.png') }}" alt="MixPitch" class="h-8 w-auto mb-4">
+                    <img src="{{ asset('images/logo.png') }}" alt="MixPitch" class="h-8 w-auto mb-4">
                     <p class="text-gray-400 max-w-md">
                         Connecting musicians and audio professionals to create amazing music together.
                     </p>

@@ -106,7 +106,7 @@
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="top" />
 
         <div class="relative flex items-center justify-between pl-4 py-3 max-lg:hidden">
-            <flux:brand href="{{ url('/') }}" logo="{{ asset('logo.png') }}" class="!p-0" />
+            <flux:brand href="{{ url('/') }}" logo="{{ asset('images/logo.png') }}" class="!p-0" />
             
             @auth
             <!-- Always visible notifications -->
@@ -256,7 +256,7 @@
             
             <!-- Logo for mobile -->
             <div class="flex-1 flex justify-center">
-                <flux:brand href="{{ url('/') }}" logo="{{ asset('logo.png') }}" class="!p-0" />
+                <flux:brand href="{{ url('/') }}" logo="{{ asset('images/logo.png') }}" class="!p-0" />
             </div>
             
             @auth
