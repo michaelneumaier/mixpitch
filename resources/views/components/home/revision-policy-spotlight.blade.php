@@ -1,5 +1,5 @@
 <!-- Revision Policy Spotlight Section -->
-<div class="py-20 bg-gradient-to-b from-purple-50 to-white">
+<div class="py-10 bg-gradient-to-b from-purple-100 to-white">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="text-center mb-16 animate-fade-in-up">
@@ -35,9 +35,9 @@
                                     <div class="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
                                         1
                                     </div>
-                                    <h3 class="ml-4 text-2xl font-bold text-gray-900">Set Policy at Project Creation</h3>
+                                    <h3 class="ml-4 text-xl font-bold text-gray-900">Set Policy at Project Creation</h3>
                                 </div>
-                                <p class="text-gray-600 leading-relaxed">
+                                <p class="text-gray-600 text-sm leading-relaxed">
                                     Define included revision rounds and pricing for additional rounds. Set scope guidelines that clients see in their portal from day one.
                                 </p>
                             </div>
@@ -61,9 +61,9 @@
                                     <div class="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
                                         2
                                     </div>
-                                    <h3 class="ml-4 text-2xl font-bold text-gray-900">Client Exceeds Included Revisions</h3>
+                                    <h3 class="ml-4 text-xl font-bold text-gray-900">Client Exceeds Included Revisions</h3>
                                 </div>
-                                <p class="text-gray-600 leading-relaxed">
+                                <p class="text-gray-600 text-sm leading-relaxed">
                                     When client requests round 4 after you included 3 rounds, the system recognizes this automatically. No manual tracking required.
                                 </p>
                             </div>
@@ -87,9 +87,9 @@
                                     <div class="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
                                         3
                                     </div>
-                                    <h3 class="ml-4 text-2xl font-bold text-gray-900">Automatic Milestone Generation</h3>
+                                    <h3 class="ml-4 text-xl font-bold text-gray-900">Automatic Milestone Generation</h3>
                                 </div>
-                                <p class="text-gray-600 leading-relaxed">
+                                <p class="text-gray-600 text-sm leading-relaxed">
                                     System creates a new payment milestone with your configured price—no manual invoicing, no awkward conversations about additional fees.
                                 </p>
                             </div>
@@ -113,9 +113,9 @@
                                     <div class="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
                                         4
                                     </div>
-                                    <h3 class="ml-4 text-2xl font-bold text-gray-900">Payment Required Before Continuing</h3>
+                                    <h3 class="ml-4 text-xl font-bold text-gray-900">Payment Required Before Continuing</h3>
                                 </div>
-                                <p class="text-gray-600 leading-relaxed">
+                                <p class="text-gray-600 text-sm leading-relaxed">
                                     Client must pay the additional milestone before submitting their next revision round. Clear boundaries, professional workflow.
                                 </p>
                             </div>
@@ -139,9 +139,9 @@
                                     <div class="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-pink-500 to-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
                                         5
                                     </div>
-                                    <h3 class="ml-4 text-2xl font-bold text-gray-900">Scope Guidelines Display</h3>
+                                    <h3 class="ml-4 text-xl font-bold text-gray-900">Scope Guidelines Display</h3>
                                 </div>
-                                <p class="text-gray-600 leading-relaxed">
+                                <p class="text-gray-600 text-sm leading-relaxed">
                                     Client sees revision policy and scope guidelines in their portal at all times. Transparency prevents disputes and sets professional expectations.
                                 </p>
                             </div>
@@ -178,7 +178,7 @@
                         </div>
                         <h4 class="text-xl font-bold text-gray-900 flex-1">Eliminates Awkward Money Conversations</h4>
                     </div>
-                    <p class="text-gray-600 leading-relaxed">
+                    <p class="text-gray-600 text-sm leading-relaxed">
                         No more uncomfortable discussions about extra fees. The system enforces boundaries automatically while you stay focused on the creative work.
                     </p>
                 </div>
@@ -195,7 +195,7 @@
                         </div>
                         <h4 class="text-xl font-bold text-gray-900 flex-1">Protects Your Time & Profitability</h4>
                     </div>
-                    <p class="text-gray-600 leading-relaxed">
+                    <p class="text-gray-600 text-sm leading-relaxed">
                         Stop losing money on endless revision cycles. Get paid fairly for every hour you invest in a project beyond the included rounds.
                     </p>
                 </div>
@@ -212,7 +212,7 @@
                         </div>
                         <h4 class="text-xl font-bold text-gray-900 flex-1">Clients Know the Rules Upfront</h4>
                     </div>
-                    <p class="text-gray-600 leading-relaxed">
+                    <p class="text-gray-600 text-sm leading-relaxed">
                         Transparent policies prevent disputes and set professional expectations from day one. No surprises, no confusion—just clear boundaries.
                     </p>
                 </div>

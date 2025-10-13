@@ -1,5 +1,5 @@
 <!-- Problem/Solution Section -->
-<div class="py-20 bg-gradient-to-b from-orange-50 via-red-50/30 to-white">
+<div class="py-10 bg-gradient-to-b from-orange-50 to-white">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="text-center mb-16 animate-fade-in-up">
@@ -24,7 +24,7 @@
         <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <!-- Problem 1: Email Chaos -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.1s;">
-                <div class="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-blue-300">
+                <div class="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-blue-300">
                     <!-- Problem Icon & Title -->
                     <div class="flex items-center gap-4 mb-4">
                         <div class="flex-shrink-0 w-14 h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-red-500 to-red-600 p-[2px]">
@@ -64,7 +64,7 @@
 
             <!-- Problem 2: Scope Creep -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.2s;">
-                <div class="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-purple-300">
+                <div class="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-purple-300">
                     <!-- Problem Icon & Title -->
                     <div class="flex items-center gap-4 mb-4">
                         <div class="flex-shrink-0 w-14 h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-red-500 to-orange-600 p-[2px]">
@@ -104,7 +104,7 @@
 
             <!-- Problem 3: File Protection -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.3s;">
-                <div class="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-green-300">
+                <div class="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-green-300">
                     <!-- Problem Icon & Title -->
                     <div class="flex items-center gap-4 mb-4">
                         <div class="flex-shrink-0 w-14 h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-red-500 to-pink-600 p-[2px]">
@@ -151,7 +151,7 @@
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 @auth
                 <a href="{{ route('projects.create') }}"
-                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -162,7 +162,7 @@
                 </a>
                 @else
                 <a href="{{ route('register') }}"
-                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

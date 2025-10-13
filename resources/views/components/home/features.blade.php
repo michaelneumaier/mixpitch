@@ -1,5 +1,5 @@
 <!-- Professional Features Section -->
-<div id="features" class="py-20 bg-gradient-to-b from-slate-50 to-white">
+<div id="features" class="py-10 bg-gradient-to-b from-slate-100 to-white">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="text-center mb-16 animate-fade-in-up">
@@ -25,7 +25,7 @@
             <!-- Feature 1: Revision Management -->
             <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <div class="flex items-center gap-4 mb-4">
                         <!-- Gradient Ring Icon -->
                         <div class="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-purple-500 to-indigo-500 p-[2px]">
@@ -52,7 +52,7 @@
             <!-- Feature 2: Milestone Payments -->
             <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
+                    <div class="relative h-full bg-white/90 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <div class="flex items-center gap-4 mb-4">
                         <!-- Gradient Ring Icon -->
                         <div class="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-blue-500 to-cyan-500 p-[2px]">
@@ -79,7 +79,7 @@
             <!-- Feature 3: Client Portal -->
             <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <div class="flex items-center gap-4 mb-4">
                         <!-- Gradient Ring Icon -->
                         <div class="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-green-500 to-emerald-500 p-[2px]">
@@ -106,7 +106,7 @@
             <!-- Feature 4: Bulk Version Upload -->
             <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <div class="flex items-center gap-4 mb-4">
                         <!-- Gradient Ring Icon -->
                         <div class="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-amber-500 to-orange-500 p-[2px]">
@@ -133,7 +133,7 @@
             <!-- Feature 5: Time-Stamped Comments -->
             <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-pink-600 to-rose-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <div class="flex items-center gap-4 mb-4">
                         <!-- Gradient Ring Icon -->
                         <div class="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-pink-500 to-rose-500 p-[2px]">
@@ -160,7 +160,7 @@
             <!-- Feature 6: Project Transparency -->
             <div class="group relative">
                 <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <div class="flex items-center gap-4 mb-4">
                         <!-- Gradient Ring Icon -->
                         <div class="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-transparent bg-gradient-to-r from-indigo-500 to-purple-500 p-[2px]">
@@ -179,7 +179,7 @@
 
                     <!-- Description Below -->
                     <p class="text-gray-600 text-sm leading-relaxed">
-                        Real-time payment tracking, revision monitoring, and complete audit trail. Zapier integration for workflow automation.
+                        Real-time payment tracking, revision monitoring, and complete audit trail. Zapier integration for workflow automation and seamless project oversight.
                     </p>
                 </div>
             </div>
@@ -201,7 +201,7 @@
                 </a>
                 @else
                 <a href="{{ route('register') }}"
-                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -211,16 +211,6 @@
                     </span>
                 </a>
                 @endauth
-
-                <a href="{{ route('projects.index') }}"
-                   class="group relative overflow-hidden bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-lg">
-                    <span class="relative flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        Explore Projects
-                    </span>
-                </a>
             </div>
         </div>
     </div>

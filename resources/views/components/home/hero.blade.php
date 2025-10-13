@@ -38,12 +38,19 @@
 
             <!-- Revolutionary Heading -->
             <div class="mb-12 animate-fade-in-up" style="animation-delay: 0.4s;">
-                <h1 class="text-3xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 leading-relaxed">
-                    <span class="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x">
-                        Where Audio Professionals
-                    </span>
-                    <br>
-                    <span class="text-white">Thrive</span>
+                <h1 class="text-3xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 leading-tight">
+                    <div class="grid grid-cols-2 gap-2 max-w-fit mx-auto">
+                        <div class="text-right">
+                            <div>Empower</div>
+                            <div>Elevate</div>
+                            <div>Unleash</div>
+                        </div>
+                        <div class="text-left">
+                            <div class="bg-blue-300 bg-clip-text text-transparent">Studios.</div>
+                            <div class="bg-pink-300 bg-clip-text text-transparent">Artists.</div>
+                            <div class="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x pb-2">Creativity.</div>
+                        </div>
+                    </div>
                 </h1>
                 <div class="max-w-4xl mx-auto">
                     <p class="text-lg md:text-2xl text-white/80 leading-relaxed font-light">
@@ -142,7 +149,7 @@
             </div>
 
             <!-- Enhanced Call to Action Buttons -->
-            <div class="animate-fade-in-up" style="animation-delay: 1s;">
+            <div class="animate-fade-in-up mb-10" style="animation-delay: 1s;">
                 <div class="flex flex-col sm:flex-row justify-center gap-6 max-w-2xl mx-auto">
                     @auth
                     <a href="{{ route('projects.create') }}"
@@ -180,28 +187,6 @@
                             Learn More
                         </span>
                     </a>
-                </div>
-
-                <!-- Trust indicators -->
-                <div class="mt-12 mb-4 flex flex-wrap justify-center items-center gap-8 text-white/60 text-sm">
-                    <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Secure payments
-                    </div>
-                    <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                        Pay only when satisfied
-                    </div>
-                    <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                        Copyright protected
-                    </div>
                 </div>
             </div>
         </div>

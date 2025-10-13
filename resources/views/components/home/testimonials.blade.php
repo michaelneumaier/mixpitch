@@ -1,5 +1,5 @@
 <!-- Next-Level Testimonials Section -->
-<div class="py-20 bg-gradient-to-b from-white to-slate-50 relative overflow-hidden">
+<div class="py-10 bg-gradient-to-b from-white to-slate-50 relative overflow-hidden">
     <!-- Background Effects -->
     <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5"></div>
     
@@ -28,7 +28,7 @@
             <!-- Testimonial 1 - Artist -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Quote Icon -->
                     <div class="absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@
             <!-- Testimonial 2 - Audio Professional -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.4s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Quote Icon -->
                     <div class="absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -140,7 +140,7 @@
             <!-- Testimonial 3 - Producer -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.6s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Quote Icon -->
                     <div class="absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">

@@ -1,5 +1,5 @@
 <!-- Workflow Types Section -->
-<div class="py-20 bg-gradient-to-b from-gray-50 to-white">
+<div class="py-10 bg-gradient-to-b from-gray-50 to-white">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="text-center mb-16 animate-fade-in-up">
@@ -25,7 +25,7 @@
             <!-- Client Management Workflow - FEATURED/PRIMARY -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.1s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Icon & Badge -->
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex-shrink-0 w-12 h-12 rounded-full border-2 border-transparent bg-gradient-to-r from-purple-500 to-indigo-500 p-[2px]">
@@ -75,7 +75,7 @@
             <!-- Standard Workflow -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Icon & Badge -->
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex-shrink-0 w-12 h-12 rounded-full border-2 border-transparent bg-gradient-to-r from-blue-500 to-blue-600 p-[2px]">
@@ -125,7 +125,7 @@
             <!-- Contest Workflow -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.3s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-6 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white/90 rounded-2xl p-6 shadow-xl border border-gray-100 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Icon & Badge -->
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex-shrink-0 w-12 h-12 rounded-full border-2 border-transparent bg-gradient-to-r from-amber-500 to-orange-500 p-[2px]">
@@ -181,7 +181,7 @@
             <div class="inline-flex items-center justify-center space-x-6">
                 @auth
                 <a href="{{ route('projects.create') }}" 
-                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -192,7 +192,7 @@
                 </a>
                 @else
                 <a href="{{ route('register') }}" 
-                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
+                   class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-xl">
                     <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -204,7 +204,7 @@
                 @endauth
                 
                 <a href="{{ route('projects.index') }}" 
-                   class="group relative overflow-hidden bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-lg">
+                   class="group relative overflow-hidden bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-lg">
                     <span class="relative flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

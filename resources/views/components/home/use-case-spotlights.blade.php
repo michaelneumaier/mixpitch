@@ -1,5 +1,5 @@
 <!-- Use Case Spotlights Section -->
-<div class="py-20 bg-gradient-to-b from-slate-200 via-slate-50 to-white">
+<div class="py-10 bg-gradient-to-b from-slate-200 via-slate-50 to-white">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="text-center mb-16 animate-fade-in-up">
@@ -16,7 +16,7 @@
                 </span>
             </h2>
             <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                See how audio professionals use MixPitch's client management workflow to streamline their businesses.
+                See how audio professionals can use MixPitch's client management workflow to streamline their businesses.
             </p>
         </div>
 
@@ -25,7 +25,7 @@
             <!-- Persona 1: Mixing Engineer -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.1s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl h-full">
+                <div class="relative h-full bg-white/90 rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <!-- Persona Icon & Title -->
                     <div class="flex items-center mb-6">
                         <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-blue-500 to-cyan-500 p-[2px]">
@@ -36,14 +36,14 @@
                             </div>
                         </div>
                         <div class="ml-4">
-                            <h3 class="text-2xl font-bold text-gray-900">Mixing Engineer</h3>
+                            <h3 class="text-xl font-bold text-gray-900">Mixing Engineer</h3>
                             <p class="text-gray-600 text-sm">High-volume client workload</p>
                         </div>
                     </div>
 
                     <!-- Scenario -->
                     <div class="mb-6">
-                        <p class="text-gray-700 leading-relaxed">
+                        <p class="text-gray-700 text-sm leading-relaxed">
                             <span class="font-semibold text-gray-900">Ideal for:</span> Engineers managing 15-20 simultaneous client projects who need clear revision boundaries and automated payment tracking across their entire workload.
                         </p>
                     </div>
@@ -75,7 +75,7 @@
             <!-- Persona 2: Mastering Studio -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl h-full">
+                <div class="relative h-full bg-white/90 rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <!-- Persona Icon & Title -->
                     <div class="flex items-center mb-6">
                         <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-purple-500 to-pink-500 p-[2px]">
@@ -86,14 +86,14 @@
                             </div>
                         </div>
                         <div class="ml-4">
-                            <h3 class="text-2xl font-bold text-gray-900">Mastering Studio</h3>
+                            <h3 class="text-xl font-bold text-gray-900">Mastering Studio</h3>
                             <p class="text-gray-600 text-sm">Album & EP projects</p>
                         </div>
                     </div>
 
                     <!-- Scenario -->
                     <div class="mb-6">
-                        <p class="text-gray-700 leading-relaxed">
+                        <p class="text-gray-700 text-sm leading-relaxed">
                             <span class="font-semibold text-gray-900">Ideal for:</span> Studios delivering album mastering projects with per-track approval workflows and efficient bulk file version management for multi-song releases.
                         </p>
                     </div>
@@ -125,7 +125,7 @@
             <!-- Persona 3: Podcast Producer -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.3s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl h-full">
+                <div class="relative h-full bg-white/90 rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <!-- Persona Icon & Title -->
                     <div class="flex items-center mb-6">
                         <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-green-500 to-emerald-500 p-[2px]">
@@ -136,14 +136,14 @@
                             </div>
                         </div>
                         <div class="ml-4">
-                            <h3 class="text-2xl font-bold text-gray-900">Podcast Producer</h3>
+                            <h3 class="text-xl font-bold text-gray-900">Podcast Producer</h3>
                             <p class="text-gray-600 text-sm">Recurring episode delivery</p>
                         </div>
                     </div>
 
                     <!-- Scenario -->
                     <div class="mb-6">
-                        <p class="text-gray-700 leading-relaxed">
+                        <p class="text-gray-700 text-sm leading-relaxed">
                             <span class="font-semibold text-gray-900">Ideal for:</span> Producers handling recurring monthly episodes who benefit from consistent client workflows and predictable billing cycles for regular content delivery.
                         </p>
                     </div>
@@ -175,7 +175,7 @@
             <!-- Persona 4: Music Producer -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.4s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl h-full">
+                <div class="relative h-full bg-white/90 rounded-2xl p-8 shadow-xl border border-gray-100 transition-shadow duration-300 hover:shadow-2xl">
                     <!-- Persona Icon & Title -->
                     <div class="flex items-center mb-6">
                         <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-orange-500 to-red-500 p-[2px]">
@@ -186,14 +186,14 @@
                             </div>
                         </div>
                         <div class="ml-4">
-                            <h3 class="text-2xl font-bold text-gray-900">Music Producer</h3>
+                            <h3 class="text-xl font-bold text-gray-900">Music Producer</h3>
                             <p class="text-gray-600 text-sm">Remote collaboration</p>
                         </div>
                     </div>
 
                     <!-- Scenario -->
                     <div class="mb-6">
-                        <p class="text-gray-700 leading-relaxed">
+                        <p class="text-gray-700 text-sm leading-relaxed">
                             <span class="font-semibold text-gray-900">Ideal for:</span> Producers collaborating remotely with artists on production packages who need multiple revision rounds with transparent version history and clear communication tools.
                         </p>
                     </div>

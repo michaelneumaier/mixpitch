@@ -1,5 +1,5 @@
 <!-- Next-Level FAQ Section -->
-<div class="py-20 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
+<div class="py-10 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
     <!-- Background Effects -->
     <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-gradient-x"></div>
 
@@ -85,7 +85,7 @@
                         x-transition:enter-start="opacity-0 transform -translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0" class="p-6 pt-0">
                         <p class="text-white/80 leading-relaxed">
-                            Yes! Your clients receive a secure, branded portal link that expires after 7 days—no account signup required. They can listen to files, leave time-stamped feedback, approve deliverables, upload their own files, and make payments all from a mobile-friendly interface. This makes the client experience seamless while you maintain full professional control over the project workflow.
+                            Yes! When using the client management workflow, your clients receive a secure, branded portal link that expires after 7 days—no account signup required. They can listen to files, leave time-stamped feedback, approve deliverables, upload their own files, and make payments all from a mobile-friendly interface. This makes the client experience seamless while you maintain full professional control over the project workflow.
                         </p>
                     </div>
                 </div>
@@ -184,7 +184,7 @@
                         x-transition:enter-start="opacity-0 transform -translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0" class="p-6 pt-0">
                         <p class="text-white/80 leading-relaxed">
-                            All preview files are automatically watermarked until payment is confirmed, preventing clients from downloading final deliverables before paying. Once a milestone is marked as paid (either through platform payment processing or manual confirmation), watermarks are removed instantly and clients gain access to the clean, professional files. This protects your work while maintaining a seamless approval workflow.
+                            You have full control over file watermarking. When enabled, preview files are watermarked to prevent clients from downloading final deliverables before paying. Once a milestone is marked as paid (either through platform payment processing or manual confirmation), watermarks are removed instantly and clients gain access to the clean, professional files. This optional protection safeguards your work while maintaining a seamless approval workflow.
                         </p>
                     </div>
                 </div>
@@ -283,7 +283,7 @@
                         x-transition:enter-start="opacity-0 transform -translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0" class="p-6 pt-0">
                         <p class="text-white/80 leading-relaxed">
-                            MixPitch connects artists with audio professionals for music mixing and mastering. Artists submit their tracks with project details and budget, audio professionals create their own interpretations, and artists choose the version that best captures their vision. Once selected, secure payment is processed and the artist receives their professionally enhanced track.
+                            MixPitch operates as both a marketplace and a client management platform. In our <strong>marketplace</strong> (Standard Projects), artists post their tracks publicly and multiple audio professionals compete by submitting their own mix interpretations. Artists review all submissions and choose the version that best captures their vision—paying only for the mix they select. Alternatively, studios and engineers can use our <strong>client management workflow</strong> to manage their existing clients with secure portals, revision policies, and milestone billing—without any marketplace involvement.
                         </p>
                     </div>
                 </div>
@@ -316,7 +316,7 @@
                         x-transition:enter-start="opacity-0 transform -translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0" class="p-6 pt-0">
                         <p class="text-white/80 leading-relaxed">
-                            Creating an account is completely free for both artists and audio professionals. Artists pay only when they select a professional mix they want to finalize. Prices vary based on project complexity and the audio professional's rate, typically ranging from $50-$500 per project. There are no hidden fees, subscription costs, or upfront charges.
+                            Creating an account is completely free for everyone. For <strong>marketplace projects</strong>, artists set their budget when posting a project, and audio professionals submit mixes within that budget—prices typically range from $50-$500 per project. For <strong>client management</strong>, studios and engineers set their own project prices and revision rates. Platform subscriptions unlock unlimited projects and advanced features, with pricing tiers designed to scale with your business needs.
                         </p>
                     </div>
                 </div>
@@ -349,7 +349,7 @@
                         x-transition:enter-start="opacity-0 transform -translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0" class="p-6 pt-0">
                         <p class="text-white/80 leading-relaxed">
-                            You retain 100% ownership of your music and all associated rights. When an audio professional creates a mix of your track, they're providing a technical service, not claiming ownership. The final mixed track belongs entirely to you, and you're free to release, sell, or distribute it however you choose. Our terms of service clearly outline these rights protections for your peace of mind.
+                            You retain 100% ownership of your music and all associated rights by default. When an audio professional creates a mix of your track, they're providing a technical service, not claiming ownership. However, MixPitch includes flexible license management tools that allow you and the professional to establish mutual agreements about licensing, credits, and ownership—whether that's work-for-hire, shared credits, or custom arrangements. The platform supports whatever licensing structure works for your collaboration.
                         </p>
                     </div>
                 </div>
@@ -382,7 +382,7 @@
                         x-transition:enter-start="opacity-0 transform -translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0" class="p-6 pt-0">
                         <p class="text-white/80 leading-relaxed">
-                            Audio professionals set their own rates when submitting a mix proposal. When an artist selects their work, payment is processed securely through our platform. Once the project is completed and finalized, the audio professional receives their payment minus a small platform fee. Payments are typically processed within 3-5 business days and can be withdrawn via PayPal, Stripe, or direct bank transfer.
+                            For <strong>marketplace projects</strong>, the artist sets a budget when creating the project, and audio professionals submit mixes within that budget. When an artist selects their work, payment is processed securely through the platform and the professional receives their payment. For <strong>client management projects</strong>, studios receive payments directly from their clients as milestone payments are completed. Payment processing times and withdrawal methods depend on your chosen payment platform (Stripe, PayPal, or manual payment tracking).
                         </p>
                     </div>
                 </div>
@@ -415,7 +415,7 @@
                         x-transition:enter-start="opacity-0 transform -translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0" class="p-6 pt-0">
                         <p class="text-white/80 leading-relaxed">
-                            You're under no obligation to select any mix if you're not completely satisfied. You can provide detailed feedback to audio professionals and request revisions before making your final decision. If you still don't find what you're looking for, you can extend the submission deadline or close the project without making a selection. Our goal is to ensure you're fully satisfied with the final product.
+                            For <strong>marketplace projects</strong>, you're under no obligation to select any mix if you're not completely satisfied. You can provide detailed feedback to audio professionals and request revisions before making your final decision. If you still don't find what you're looking for, you can extend the submission deadline or close the project without making a selection. For <strong>client management projects</strong>, revision policies are established upfront—included revisions allow for feedback and refinement, while additional rounds can be billed automatically based on your configured pricing.
                         </p>
                     </div>
                 </div>

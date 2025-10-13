@@ -1,5 +1,5 @@
 <!-- Your Journey Starts Here Section -->
-<div class="py-20 bg-gradient-to-b from-white via-gray-50 to-white">
+<div class="py-10 bg-gradient-to-b from-white via-gray-50 to-white">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="text-center mb-16 animate-fade-in-up">
@@ -25,7 +25,7 @@
             <!-- Path 1: New to Audio -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.1s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
                         <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-green-500 to-emerald-500 p-[2px] mx-auto mb-4">
@@ -41,8 +41,8 @@
                             </svg>
                             Perfect for Beginners
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Learning Path</h3>
-                        <p class="text-gray-600 leading-relaxed">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Learning Path</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">
                             Start your audio career with real projects. No experience required - learn by doing.
                         </p>
                     </div>
@@ -94,7 +94,7 @@
             <!-- Path 2: Artist Journey -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.2s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
                         <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-blue-500 to-purple-500 p-[2px] mx-auto mb-4">
@@ -110,8 +110,8 @@
                             </svg>
                             Most Popular
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Artist Journey</h3>
-                        <p class="text-gray-600 leading-relaxed">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Artist Journey</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">
                             Get your music professionally mixed by talented engineers worldwide.
                         </p>
                     </div>
@@ -163,7 +163,7 @@
             <!-- Path 3: Professional Journey -->
             <div class="group relative animate-fade-in-up" style="animation-delay: 0.3s;">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <div class="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-[transform,colors,shadow] duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <div class="relative h-full bg-white rounded-2xl p-8 shadow-xl border border-gray-100 transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
                     <!-- Path Header -->
                     <div class="text-center mb-6">
                         <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-transparent bg-gradient-to-r from-purple-500 to-indigo-500 p-[2px] mx-auto mb-4">
@@ -179,8 +179,8 @@
                             </svg>
                             For Studios & Pros
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Business Journey</h3>
-                        <p class="text-gray-600 leading-relaxed">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Business Journey</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">
                             Manage clients professionally with dedicated tools and secure portals.
                         </p>
                     </div>
@@ -235,21 +235,21 @@
             <p class="text-gray-600 mb-6 text-lg">
                 Ready to start your audio journey?
             </p>
-            <div class="inline-flex items-center justify-center space-x-6">
+            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-4 md:gap-6">
                 @auth
-                <a href="{{ route('projects.create') }}" 
-                   class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
+                <a href="{{ route('projects.create') }}"
+                   class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-xl text-center">
                     Start Your First Project
                 </a>
                 @else
-                <a href="{{ route('register') }}" 
-                   class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-xl">
+                <a href="{{ route('register') }}"
+                   class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-xl text-center">
                     Join Free Today
                 </a>
                 @endauth
-                
-                <a href="{{ route('projects.index') }}" 
-                   class="bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-lg">
+
+                <a href="{{ route('projects.index') }}"
+                   class="w-full md:w-auto bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 font-semibold py-3 px-8 rounded-xl transition-transform duration-300 transform hover:scale-105 hover:shadow-lg text-center">
                     Browse Projects
                 </a>
             </div>
