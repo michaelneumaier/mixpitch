@@ -12,12 +12,12 @@
         <div class="absolute bottom-1/3 right-1/2 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-float opacity-45" style="animation-delay: 4s;"></div>
     </div>
 
-    <!-- Decorative Sound Waves -->
+    <!-- Decorative Sound Waves with Flowing Animation (JS-powered) -->
     <div class="absolute inset-0 overflow-hidden opacity-10">
-        <svg class="absolute -bottom-10 left-0 w-full" viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg id="wave-bottom" class="absolute -bottom-10 left-0 w-full" viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M0,128L48,138.7C96,149,192,171,288,165.3C384,160,480,128,576,133.3C672,139,768,181,864,181.3C960,181,1056,139,1152,133.3C1248,128,1344,160,1392,176L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" fill="currentColor" class="text-white"></path>
         </svg>
-        <svg class="absolute -top-10 right-0 w-full transform rotate-180" viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg id="wave-top" class="absolute -top-10 right-0 w-full transform rotate-180" viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M0,128L48,138.7C96,149,192,171,288,165.3C384,160,480,128,576,133.3C672,139,768,181,864,181.3C960,181,1056,139,1152,133.3C1248,128,1344,160,1392,176L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" fill="currentColor" class="text-white"></path>
         </svg>
     </div>

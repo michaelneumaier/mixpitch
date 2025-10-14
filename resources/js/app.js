@@ -4,6 +4,7 @@ import './uppy-config';
 import './global-audio-manager';
 import './global-upload-manager';
 import './hero';
+import './wave-animation';
 
 // Load Stripe handler if available
 try {

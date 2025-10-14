@@ -85,16 +85,16 @@
                     <!-- Divider -->
                     <div class="border-t-2 border-gray-200 my-6"></div>
 
-                    <!-- Solution Icon -->
-                    <div class="flex items-start">
+                    <!-- Solution with Visual Flow -->
+                    <div class="flex items-start mb-4">
                         <div class="flex-shrink-0 w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center mr-3 mt-0.5">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
                         <div>
-                            <h4 class="font-semibold text-gray-900 mb-2">Solution:</h4>
-                            <p class="text-gray-600 text-sm leading-relaxed">
+                            <h4 class="font-semibold text-gray-900 mb-2">Solution: Automated Revision Policy</h4>
+                            <p class="text-gray-600 text-sm leading-relaxed mb-4">
                                 Built-in revision policy with automatic milestone generation for additional rounds. Set included revisions upfront—extra rounds trigger billing automatically.
                             </p>
                         </div>
