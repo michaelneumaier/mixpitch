@@ -1,5 +1,6 @@
 <x-layouts.marketing title="MixPitch - Where Audio Professionals Thrive" description="Manage clients, deliver projects, and get paid fairly. Professional tools with revision policies, milestone payments, and no-signup client portals for audio engineers.">
 
+<x-home.workflow-types />
 <x-home.problem-solution />
 <x-home.features />
 <x-home.revision-policy-spotlight />
