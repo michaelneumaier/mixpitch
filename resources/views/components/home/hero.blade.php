@@ -193,4 +193,3 @@
     </div>
 </div>
 
-@vite('resources/js/hero.js')
