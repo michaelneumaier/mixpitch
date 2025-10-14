@@ -20,7 +20,10 @@
     "dynamicImports": [
       "resources/js/filament/billing/stripe-handler.js"
     ],
-    "file": "assets/app-09e315bf.js",
+    "file": "assets/app-7887bc18.js",
+    "imports": [
+      "resources/js/hero.js"
+    ],
     "isEntry": true,
     "src": "resources/js/app.js"
   },

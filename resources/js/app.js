@@ -3,6 +3,7 @@ import '../../vendor/masmerise/livewire-toaster/resources/js';
 import './uppy-config';
 import './global-audio-manager';
 import './global-upload-manager';
+import './hero';
 
 // Load Stripe handler if available
 try {
