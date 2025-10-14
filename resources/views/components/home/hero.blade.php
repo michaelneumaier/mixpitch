@@ -153,7 +153,7 @@
                 <div class="flex flex-col sm:flex-row justify-center gap-6 max-w-2xl mx-auto">
                     @auth
                     <a href="{{ route('projects.create') }}"
-                        class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
+                        class="group relative isolate overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
                         <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         <span class="relative flex items-center justify-center text-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -165,7 +165,7 @@
                     </a>
                     @else
                     <a href="{{ route('register') }}"
-                        class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
+                        class="group relative isolate overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
                         <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         <span class="relative flex items-center justify-center text-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
