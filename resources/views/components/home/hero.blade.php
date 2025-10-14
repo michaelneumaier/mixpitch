@@ -36,7 +36,28 @@
                 </div>
             </div>
 
-
+            <!-- Revolutionary Heading -->
+            <div class="mb-8 md:mb-12 animate-fade-in-up" style="animation-delay: 0.4s;">
+                <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mt-4 md:mt-0 mb-4 leading-tight">
+                    <div class="grid grid-cols-2 gap-2 max-w-fit mx-auto">
+                        <div class="text-right">
+                            <div>Empower</div>
+                            <div>Elevate</div>
+                            <div>Unleash</div>
+                        </div>
+                        <div class="text-left">
+                            <div class="bg-blue-300 bg-clip-text text-transparent">Studios.</div>
+                            <div class="bg-pink-300 bg-clip-text text-transparent">Artists.</div>
+                            <div class="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x pb-2">Creativity.</div>
+                        </div>
+                    </div>
+                </h1>
+                <div class="max-w-4xl mx-auto">
+                    <p class="text-lg md:text-2xl text-white/80 leading-relaxed font-light">
+                        Manage clients, deliver projects, and get paid fairly—all from one professional platform.
+                    </p>
+                </div>
+            </div>
 
             <!-- Interactive Role Selector with Glass Morphism -->
             <div class="mb-8 md:mb-12 animate-fade-in-up" style="animation-delay: 0.6s;">
@@ -133,7 +154,6 @@
                     @auth
                     <a href="{{ route('projects.create') }}"
                         class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
-                        <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         <span class="relative flex items-center justify-center text-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -145,7 +165,6 @@
                     @else
                     <a href="{{ route('register') }}"
                         class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-[transform,colors,shadow] duration-300 transform hover:scale-105 hover:shadow-2xl">
-                        <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                         <span class="relative flex items-center justify-center text-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
