@@ -1,3 +1,4 @@
+@pure
 
 <template name="cursor">
     <line {{ $attributes->merge([

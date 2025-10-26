@@ -17,7 +17,7 @@
         <?php endif; ?>
 
         {{-- Hide this button on Firefox because we can't get rid of the default date input calendar icon, so hide ours instead... --}}
-        <flux:button size="sm" square variant="subtle" class="-me-1 [@supports(-moz-appearance:none)]:hidden [[disabled]_&]:pointer-events-none [&:hover>*]:text-zinc-800 dark:[&:hover>*]:text-white">
+        <flux:button size="sm" square variant="subtle" class="-me-2 [@supports(-moz-appearance:none)]:hidden [[disabled]_&]:pointer-events-none [&:hover>*]:text-zinc-800 dark:[&:hover>*]:text-white">
             <flux:icon.calendar variant="mini" class="text-zinc-300 [[disabled]_&]:text-zinc-200! dark:text-white/60 dark:[[disabled]_&]:text-white/40!" />
         </flux:button>
 

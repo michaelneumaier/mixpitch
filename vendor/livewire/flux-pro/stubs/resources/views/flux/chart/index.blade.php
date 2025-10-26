@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'tooltip' => null,
     'summary' => null,

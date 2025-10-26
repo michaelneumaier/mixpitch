@@ -1,3 +1,5 @@
+@pure
+
 @php
 $classes = Flux::classes()
     ->add('p-[.3125rem]')

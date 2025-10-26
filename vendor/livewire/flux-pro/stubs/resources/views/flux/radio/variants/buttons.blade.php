@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'accent' => true,
     'size' => 'base',
@@ -59,7 +61,7 @@ $iconAttributes = Flux::attributesAfter('icon:', $attributes, [
         {{ $icon }}
     <?php endif; ?>
 
-    @if ($label || $slot->isNotEmpty())
+    @if (isset($label) || $slot->isNotEmpty())
         <span>{{ $label ?? $slot }}</span>
     @endif
 </ui-radio>

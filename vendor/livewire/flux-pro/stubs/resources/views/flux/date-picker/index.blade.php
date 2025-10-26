@@ -4,9 +4,11 @@
     'weekNumbers' => null,
     'placeholder' => null,
     'withPresets' => null,
+    'unavailable' => null,
     'withInputs' => null,
     'clearable' => null,
     'withToday' => null,
+    'type' => 'button',
     'presets' => null,
     'trigger' => null,
     'invalid' => null,
@@ -43,7 +45,7 @@ $placeholder = $placeholder ?? ($range ? __('Select a date range') : __('Select 
 // Mark it invalid if the property or any of it's nested attributes have errors...
 $invalid ??= ($name && ($errors->has($name) || $errors->has($name . '.*')));
 
-$class= Flux::classes()
+$class = Flux::classes()
     ->add('block min-w-0')
     // The below reverts styles added by Tailwind Forms plugin...
     ->add('border-0 p-0 bg-transparent')
@@ -75,6 +77,10 @@ if (is_array($value)) {
         default => collect($value)->join(','),
     };
 }
+
+if (isset($unavailable)) {
+    $unavailable = collect($unavailable)->implode(',');
+}
 @endphp
 
 <flux:with-field :$attributes :$name>
@@ -85,11 +91,16 @@ if (is_array($value)) {
         @if ($mode) mode="{{ $mode }}" @endif
         months="1"
         sm:months="{{ $months }}"
+        @if (isset($unavailable) && $unavailable !== '') unavailable="{{ $unavailable }}" @endif
         @if ($showName) name="{{ $name }}" @endif
         @if (isset($value)) value="{{ $value }}" @endif
     >
         <?php if ($trigger === null): ?>
+            <?php if ($type === 'input'): ?>
+            <flux:date-picker.input :$placeholder :$invalid :$size :$clearable />
+            <?php else: ?>
             <flux:date-picker.button :$placeholder :$invalid :$size :$clearable />
+            <?php endif; ?>
         <?php else: ?>
             {{ $trigger }}
         <?php endif; ?>
@@ -115,8 +126,8 @@ if (is_array($value)) {
                     <ui-calendar-inputs class="flex items-center p-2 border-b border-zinc-200 dark:border-white/10">
                         <?php if ($range): ?>
                             <div class="sm:px-2 flex items-center gap-4">
-                                <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">Start</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
-                                <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">End</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
+                                <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('Start') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
+                                <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('End') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
                             </div>
                         <?php else: ?>
                             <flux:input type="date" class="w-full sm:w-[11.25rem]" />

@@ -17,7 +17,7 @@ if (! isset($name)) {
 
 $invalid ??= ($name && $errors->has($name));
 
-$class= Flux::classes()
+$class = Flux::classes()
     ->add('w-full');
 @endphp
 

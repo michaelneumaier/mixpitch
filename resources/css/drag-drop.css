@@ -33,6 +33,7 @@
 .section-header-drop-zone,
 aside .drag-drop-zone,
 aside [x-data*="sectionMeta"] {
+    transition: none;
     position: relative;
     z-index: 10000;
 }
@@ -121,7 +122,7 @@ tr.drag-drop-zone::before,
 
 .drag-drop-zone:hover {
     background-color: rgba(59, 130, 246, 0.03);
-    transform: translateY(-1px);
+    /* transform: translateY(-1px); */
 }
 
 /* =============================================================================
@@ -133,7 +134,8 @@ tr.drag-drop-zone::before,
     border-radius: 0.5rem;
     position: relative;
     overflow: hidden;
-    z-index: 10000; /* Ensure sidebar zones stay above partial overlay */
+    z-index: 10000;
+    /* Ensure sidebar zones stay above partial overlay */
 }
 
 .sidebar-drop-zone::after {

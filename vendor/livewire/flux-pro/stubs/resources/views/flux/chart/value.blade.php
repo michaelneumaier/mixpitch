@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'field' => null,
     'format' => null,

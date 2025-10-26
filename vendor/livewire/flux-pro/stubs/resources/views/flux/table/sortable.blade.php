@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'direction' => null,
     'sorted' => false,

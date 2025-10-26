@@ -1,3 +1,4 @@
+@pure
 
 <ui-empty class="data-hidden:hidden">
     <div class="flex items-center justify-center h-10">

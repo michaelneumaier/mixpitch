@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'axis' => 'x',
     'format' => null,

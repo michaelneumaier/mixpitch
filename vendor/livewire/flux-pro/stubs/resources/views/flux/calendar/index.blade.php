@@ -1,6 +1,7 @@
 @props([
     'selectableHeader' => null,
     'weekNumbers' => null,
+    'unavailable' => null,
     'withInputs' => null,
     'navigation' => null,
     'withToday' => null,
@@ -36,7 +37,7 @@ $range = $mode === 'range';
 // Mark it invalid if the property or any of it's nested attributes have errors...
 $invalid ??= ($name && ($errors->has($name) || $errors->has($name . '.*')));
 
-$class= Flux::classes()
+$class = Flux::classes()
     ->add('isolate relative')
     ;
 
@@ -57,15 +58,20 @@ if (is_array($value)) {
         default => collect($value)->join(','),
     };
 }
+
+if (isset($unavailable)) {
+    $unavailable = collect($unavailable)->implode(',');
+}
 @endphp
 
 <ui-calendar
-    wire:ignore
+    wire:ignore.children
     {{ $attributes->class($class) }}
     data-flux-calendar
     @if ($mode) mode="{{ $mode }}" @endif
     months="1"
     sm:months="{{ $months }}"
+    @if (isset($unavailable) && $unavailable !== '') unavailable="{{ $unavailable }}" @endif
     @if ($showName) name="{{ $name }}" @endif
     @if (isset($value)) value="{{ $value }}" @endif
 >
@@ -73,8 +79,8 @@ if (is_array($value)) {
         <ui-calendar-inputs class="flex items-center p-2 border-b border-zinc-200 dark:border-white/10">
             <?php if ($range): ?>
                 <div class="sm:px-2 flex items-center gap-4">
-                    <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">Start</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
-                    <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">End</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
+                    <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('Start') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
+                    <div class="flex items-center gap-2"><span class="max-sm:hidden text-sm font-medium text-zinc-800 dark:text-white">{{ __('End') }}</span> <flux:input type="date" class="w-[full] sm:w-[11.25rem]" /></div>
                 </div>
             <?php else: ?>
                 <flux:input type="date" class="w-full sm:w-[11.25rem]" />

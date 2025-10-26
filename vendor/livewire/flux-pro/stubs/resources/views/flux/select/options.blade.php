@@ -8,7 +8,7 @@
 
 @php
 $classes = Flux::classes()
-    ->add('[:where(&)]:min-w-48 [:where(&)]:max-h-[20rem] p-[.3125rem]')
+    ->add('[:where(&)]:min-w-48 [:where(&)]:max-h-[20rem] p-[.3125rem] scroll-py-[.3125rem]')
     ->add('rounded-lg shadow-xs')
     ->add('border border-zinc-200 dark:border-zinc-600')
     ->add('bg-white dark:bg-zinc-700')
@@ -28,7 +28,7 @@ if (is_object($searchable)) $search = $searchable;
             <flux:select.search />
         <?php endif; ?>
 
-        <ui-options class="max-h-[20rem] overflow-y-auto -me-[.3125rem] -mt-[.3125rem] pt-[.3125rem] pe-[.3125rem] -mb-[.3125rem] pb-[.3125rem]">
+        <ui-options class="max-h-[20rem] overflow-y-auto -me-[.3125rem] -mt-[.3125rem] pt-[.3125rem] pe-[.3125rem] -mb-[.3125rem] pb-[.3125rem] scroll-py-[.3125rem]">
             {{ $slot }}
 
             <?php if ($empty): ?>

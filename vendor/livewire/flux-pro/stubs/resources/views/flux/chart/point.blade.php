@@ -1,3 +1,4 @@
+@pure
 
 @props([
     'field' => 'value',

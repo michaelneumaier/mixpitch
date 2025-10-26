@@ -38,6 +38,9 @@ document.addEventListener("keydown", () => using = "keyboard", { capture: true }
 document.addEventListener("pointerdown", (e) => {
   using = e.pointerType === "mouse" ? "mouse" : "touch";
 }, { capture: true });
+document.addEventListener("pointermove", (e) => {
+  using = e.pointerType === "mouse" ? "mouse" : "touch";
+}, { capture: true });
 function dispenseId(el, prefix) {
   return "lofi-" + (prefix ? prefix + "-" : "") + Math.random().toString(16).slice(2);
 }
@@ -16534,7 +16537,7 @@ var Disableable = class extends Mixin {
     });
     if (this.el.hasAttribute("disabled")) {
       this.el.disabled = true;
-    } else if (this.options().disableWithParent && this.el.closest("[disabled]")) {
+    } else if (this.options().disableWithParent && this.el.parentElement?.closest("[disabled]")) {
       this.el.disabled = true;
     }
     let observer = new MutationObserver((mutations) => {

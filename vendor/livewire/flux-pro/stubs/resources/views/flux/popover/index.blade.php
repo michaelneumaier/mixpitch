@@ -1,3 +1,5 @@
+@pure
+
 @php
 $classes = Flux::classes()
     ->add('[:where(&)]:min-w-48 [:where(&)]:p-4')

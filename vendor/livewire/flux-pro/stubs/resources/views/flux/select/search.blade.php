@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'clearable' => true,
     'closable' => null,

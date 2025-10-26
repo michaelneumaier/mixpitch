@@ -1,3 +1,4 @@
+@pure
 
 <template name="summary">
     <div {{ $attributes }}>

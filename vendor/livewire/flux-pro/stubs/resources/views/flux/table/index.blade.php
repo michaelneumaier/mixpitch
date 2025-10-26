@@ -4,26 +4,30 @@
 
 @php
 $classes = Flux::classes()
-    ->add('[:where(&)]:min-w-full table-fixed')
+    ->add('[:where(&)]:min-w-full table-fixed border-separate border-spacing-0 isolate')
     ->add('text-zinc-800')
-    ->add('divide-y divide-zinc-800/10 dark:divide-white/20 text-zinc-800')
     // We want whitespace-nowrap for the table, but not for modals and dropdowns...
     ->add('whitespace-nowrap [&_dialog]:whitespace-normal [&_[popover]]:whitespace-normal')
     ;
+
+$containerClasses = Flux::classes()
+    ->add('flex flex-col')
+    ->add($attributes->pluck('container:class'))
+    ;
 @endphp
 
-<div>
+<div class="{{ $containerClasses }}">
     {{ $header ?? '' }}
 
-    <div class="overflow-x-auto">
+    <ui-table-scroll-area class="overflow-auto">
         <table {{ $attributes->class($classes) }} data-flux-table>
             {{ $slot }}
         </table>
-    </div>
+    </ui-table-scroll-area>
 
     {{ $footer ?? '' }}
 
     <?php if ($paginate): ?>
-        <flux:pagination :paginator="$paginate" />
+        <flux:pagination class="shrink-0" :paginator="$paginate" />
     <?php endif; ?>
 </div>

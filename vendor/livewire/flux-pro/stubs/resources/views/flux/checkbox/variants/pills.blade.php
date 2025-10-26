@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'accent' => true,
     'label' => null,

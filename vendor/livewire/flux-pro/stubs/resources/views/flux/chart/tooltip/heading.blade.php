@@ -1,3 +1,5 @@
+@pure
+
 @props([
     'field' => 'date',
     'format' => null,
