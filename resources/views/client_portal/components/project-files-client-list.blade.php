@@ -2,7 +2,7 @@
     $clientFiles = $project->files ?? collect();
 @endphp
 
-<div class="mb-2 rounded-xl bg-blue-50 p-2 md:p-6 dark:bg-blue-900/20" x-data="clientFileManager">
+<flux:card class="mb-2 rounded-xl !bg-blue-50 !p-2 md:!p-6 dark:!bg-blue-900/20" x-data="clientFileManager">
     <div class="mb-4 flex items-center gap-3">
         <flux:icon.cloud-arrow-up class="text-blue-500" />
         <flux:heading size="lg">Your Reference Files</flux:heading>
@@ -47,7 +47,7 @@
             'downloadMethod' => 'downloadClientFile'
         ])
     </div>
-</div>
+</flux:card>
 
 @push('scripts')
 <script>
