@@ -1,9 +1,9 @@
 <div class="relative">
-    <flux:card class="p-4 lg:p-6 xl:p-8">
+    <flux:card>
         <!-- Section Header -->
-        <div class="mb-6 lg:mb-8">
+        <div class="mb-4">
             <div class="flex items-center gap-3 mb-2">
-                <div class="p-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg shadow-md">
+                <div class="hidden p-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg shadow-md">
                     <flux:icon name="banknotes" class="text-white" size="lg" />
                 </div>
                 <flux:heading size="xl" class="bg-gradient-to-r from-gray-900 via-emerald-800 to-green-800 dark:from-gray-100 dark:via-emerald-300 dark:to-green-300 bg-clip-text text-transparent">

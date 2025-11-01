@@ -142,26 +142,68 @@
         @endif
 
         @if (in_array($pitch->status, [\App\Models\Pitch::STATUS_READY_FOR_REVIEW, \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED]))
-            <div class="grid grid-cols-1 gap-6 {{ $pitch->status === \App\Models\Pitch::STATUS_CLIENT_REVISIONS_REQUESTED ? 'lg:grid-cols-1' : 'lg:grid-cols-2' }}">
-                {{-- Approve Form --}}
-                <div class="rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
-                    <div class="mb-4 flex items-center gap-2">
-                        <flux:icon.check-circle class="text-green-500" />
-                        <flux:heading size="sm">Approve Project</flux:heading>
-                    </div>
-                    <flux:text size="sm" class="mb-4">
-                        @if ($hasMilestones)
-                            Approve this submission to indicate you're satisfied with the work. Payment is handled separately through the milestone system above.
-                        @elseif ($pitch->payment_amount > 0)
-                            Clicking approve will redirect you to secure payment processing. You'll be charged ${{ number_format($pitch->payment_amount, 2) }} and the producer will be notified of completion.
-                        @else
-                            Clicking approve will notify the producer that the project is complete and satisfactory.
-                        @endif
-                    </flux:text>
+            {{-- Revision Status Information --}}
+            @php
+                $revisionsUsed = $pitch->revisions_used ?? 0;
+                $includedRevisions = $pitch->included_revisions ?? 2;
+                $additionalRevisionPrice = $pitch->additional_revision_price ?? 0;
+                $revisionsRemaining = max(0, $includedRevisions - $revisionsUsed);
+                $nextRevisionIsFree = $revisionsUsed < $includedRevisions;
+            @endphp
 
-                    <form action="{{ URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
-                        @csrf
-                        <flux:button type="submit" variant="primary" icon="check-circle" class="w-full">
+            {{-- Show revision status info --}}
+            <div class="mb-6 rounded-lg border-2 {{ $nextRevisionIsFree ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : 'border-amber-300 bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30' }} p-4">
+                <div class="flex items-start gap-3">
+                    @if ($nextRevisionIsFree)
+                        <flux:icon.check-circle class="mt-0.5 h-5 w-5 text-green-600 dark:text-green-400" />
+                    @else
+                        <flux:icon.exclamation-triangle class="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    @endif
+                    <div class="flex-1">
+                        <flux:text size="sm" class="font-medium {{ $nextRevisionIsFree ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200' }}">
+                            @if ($nextRevisionIsFree)
+                                <strong>{{ $revisionsRemaining }}</strong> {{ Str::plural('revision', $revisionsRemaining) }} remaining (included)
+                            @else
+                                Additional revision required - <strong>${{ number_format($additionalRevisionPrice, 2) }}</strong>
+                            @endif
+                        </flux:text>
+                        <flux:text size="xs" class="{{ $nextRevisionIsFree ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300' }} mt-1">
+                            @if ($nextRevisionIsFree)
+                                You have {{ $revisionsRemaining }} free {{ Str::plural('revision', $revisionsRemaining) }} included with this project.
+                                @if ($additionalRevisionPrice > 0)
+                                    <br>Additional revisions beyond {{ $includedRevisions }}: <strong>${{ number_format($additionalRevisionPrice, 2) }}</strong> each
+                                @endif
+                            @else
+                                You've used all {{ $includedRevisions }} included revisions. Additional revisions require payment before the producer can deliver.
+                            @endif
+                        </flux:text>
+                        @if ($pitch->revision_scope_guidelines)
+                            <flux:text size="xs" class="mt-2 italic {{ $nextRevisionIsFree ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                Note: {{ $pitch->revision_scope_guidelines }}
+                            </flux:text>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Alpine.js component for managing state --}}
+            <div x-data="{
+                showApprovalModal: false,
+                showRevisionFormModal: false,
+                showRevisionConfirmModal: false,
+                traditionalFeedback: '',
+            }">
+                {{-- Action Buttons - Only show in READY_FOR_REVIEW state --}}
+                @if ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {{-- Approve Button --}}
+                        <flux:button
+                            @click="showApprovalModal = true"
+                            variant="primary"
+                            color="green"
+                            icon="check-circle"
+                            class="w-full"
+                        >
                             @if ($hasMilestones)
                                 Approve Submission
                             @elseif ($pitch->payment_amount > 0)
@@ -170,104 +212,165 @@
                                 Approve Project
                             @endif
                         </flux:button>
-                    </form>
 
-                    @if (!$hasMilestones && $pitch->payment_amount > 0)
-                        <div class="mt-3 flex items-center justify-center gap-1">
-                            <flux:icon.lock-closed class="h-3 w-3 text-green-600" />
-                            <flux:text size="xs" class="text-green-600">Powered by Stripe • SSL Encrypted</flux:text>
-                        </div>
-                    @endif
-                </div>
+                        {{-- Request Revisions Button --}}
+                        <flux:button
+                            @click="showRevisionFormModal = true"
+                            variant="primary"
+                            color="yellow"
+                            icon="pencil"
+                            class="w-full"
+                        >
+                            Request Revisions
+                        </flux:button>
+                    </div>
+                @endif
 
-                {{-- Request Revisions Form - Only show in READY_FOR_REVIEW state --}}
-                @if ($pitch->status === \App\Models\Pitch::STATUS_READY_FOR_REVIEW)
-                <div class="rounded-xl bg-amber-50 p-6 dark:bg-amber-900/20">
-                <div class="mb-4 flex items-center gap-2">
-                    <flux:icon.pencil class="text-amber-500" />
-                    <flux:heading size="sm">Request Revisions</flux:heading>
-                </div>
-
-                {{-- Revision Status Information --}}
-                @php
-                    $revisionsUsed = $pitch->revisions_used ?? 0;
-                    $includedRevisions = $pitch->included_revisions ?? 2;
-                    $additionalRevisionPrice = $pitch->additional_revision_price ?? 0;
-                    $revisionsRemaining = max(0, $includedRevisions - $revisionsUsed);
-                    $nextRevisionIsFree = $revisionsUsed < $includedRevisions;
-                @endphp
-
-                <div class="mb-4 rounded-lg border-2 {{ $nextRevisionIsFree ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : 'border-amber-300 bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30' }} p-4">
-                    <div class="flex items-start gap-3">
-                        @if ($nextRevisionIsFree)
-                            <flux:icon.check-circle class="mt-0.5 h-5 w-5 text-green-600 dark:text-green-400" />
-                        @else
-                            <flux:icon.exclamation-triangle class="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-400" />
-                        @endif
-                        <div class="flex-1">
-                            <flux:text size="sm" class="font-medium {{ $nextRevisionIsFree ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200' }}">
-                                @if ($nextRevisionIsFree)
-                                    <strong>{{ $revisionsRemaining }}</strong> {{ Str::plural('revision', $revisionsRemaining) }} remaining (included)
-                                @else
-                                    Additional revision required - <strong>${{ number_format($additionalRevisionPrice, 2) }}</strong>
-                                @endif
-                            </flux:text>
-                            <flux:text size="xs" class="{{ $nextRevisionIsFree ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300' }} mt-1">
-                                @if ($nextRevisionIsFree)
-                                    You have {{ $revisionsRemaining }} free {{ Str::plural('revision', $revisionsRemaining) }} included with this project.
-                                    @if ($additionalRevisionPrice > 0)
-                                        <br>Additional revisions beyond {{ $includedRevisions }}: <strong>${{ number_format($additionalRevisionPrice, 2) }}</strong> each
-                                    @endif
-                                @else
-                                    You've used all {{ $includedRevisions }} included revisions. Additional revisions require payment before the producer can deliver.
-                                @endif
-                            </flux:text>
-                            @if ($pitch->revision_scope_guidelines)
-                                <flux:text size="xs" class="mt-2 italic {{ $nextRevisionIsFree ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' }}">
-                                    Note: {{ $pitch->revision_scope_guidelines }}
+                {{-- Revision Form Modal --}}
+                <flux:modal name="revision-form" x-model="showRevisionFormModal">
+                    <div class="space-y-6 p-2">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-1">
+                                <flux:heading size="lg" class="mb-2 inline-flex items-center gap-2"><flux:icon.pencil class="mt-1 h-8 w-8 text-amber-500" />Request Revisions</flux:heading>
+                                <flux:text class="mb-4">
+                                    Provide detailed feedback about what needs to be changed. The producer will review your comments and submit an updated version.
                                 </flux:text>
-                            @endif
+
+                                {{-- Show revision cost if applicable --}}
+                                @if (!$nextRevisionIsFree && $additionalRevisionPrice > 0)
+                                    <div class="mb-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-900/30">
+                                        <flux:text size="sm" class="font-semibold text-amber-800 dark:text-amber-200">
+                                            <flux:icon.information-circle class="inline h-4 w-4" />
+                                            Additional Cost: ${{ number_format($additionalRevisionPrice, 2) }}
+                                        </flux:text>
+                                    </div>
+                                @endif
+
+                                <flux:textarea
+                                    x-model="traditionalFeedback"
+                                    rows="6"
+                                    placeholder="Describe what needs to be changed, adjusted, or improved..."
+                                    class="mb-3"
+                                ></flux:textarea>
+
+                                @error('feedback')
+                                    <flux:text size="sm" class="mb-2 text-red-600">{{ $message }}</flux:text>
+                                @enderror
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <flux:text size="sm" class="mb-4">
-                    Use our structured feedback system to provide specific, organized feedback about what needs to be changed.
-                </flux:text>
+                    <div class="flex justify-end gap-2 border-t border-gray-200 pt-2 dark:border-gray-700">
+                        <flux:button @click="showRevisionFormModal = false; traditionalFeedback = ''" variant="ghost">
+                            Cancel
+                        </flux:button>
+                        <flux:button
+                            @click="if (traditionalFeedback.trim()) { showRevisionFormModal = false; showRevisionConfirmModal = true; } else { alert('Please enter your feedback before continuing.'); }"
+                            variant="primary"
+                            color="yellow"
+                            icon="arrow-right"
+                        >
+                            Review Request
+                        </flux:button>
+                    </div>
+                </flux:modal>
 
-                {{-- Structured Feedback Form --}}
-                <div class="mb-4 rounded-lg bg-white p-4 dark:bg-gray-700">
-                    @if(($currentSnapshot->files ?? collect())->isNotEmpty())
-                        @livewire('structured-feedback-form', [
-                            'pitch' => $pitch,
-                            'pitchFile' => ($currentSnapshot->files ?? collect())->first(),
-                            'clientEmail' => $project->client_email,
-                        ])
-                    @else
-                        <flux:text size="sm" class="text-gray-600 dark:text-gray-400">
-                            No files available for structured feedback.
-                        </flux:text>
-                    @endif
-                </div>
+                {{-- Approval Confirmation Modal --}}
+                <flux:modal name="approval-confirmation" x-model="showApprovalModal">
+                    <form action="{{ URL::temporarySignedRoute('client.portal.approve', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
+                        @csrf
+                        <div class="space-y-6 p-2">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-1">
+                                    <flux:heading size="lg" class="mb-2 inline-flex items-center gap-2"><flux:icon.check-circle class="mt-1 h-8 w-8 text-green-500" />Confirm Approval</flux:heading>
+                                    <flux:text>
+                                        @if ($hasMilestones)
+                                            You're about to approve this submission. Payment will be handled separately through the milestone system.
+                                        @elseif ($pitch->payment_amount > 0)
+                                            You're about to approve this project and will be redirected to secure payment processing.
+                                            <div class="mt-3 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+                                                <div class="flex items-center gap-2">
+                                                    <flux:icon.credit-card class="text-blue-500" />
+                                                    <flux:text class="font-semibold text-blue-900 dark:text-blue-100">
+                                                        Payment Amount: ${{ number_format($pitch->payment_amount, 2) }}
+                                                    </flux:text>
+                                                </div>
+                                            </div>
+                                        @else
+                                            You're about to approve this project. The producer will be notified that the work is satisfactory.
+                                        @endif
+                                    </flux:text>
 
-                {{-- Traditional Text Feedback --}}
-                <div class="border-t border-amber-200 pt-4 dark:border-amber-800">
-                    <flux:heading size="sm" class="mb-3">Or send traditional feedback:</flux:heading>
+                                    @if (!$hasMilestones && $pitch->payment_amount > 0)
+                                        <div class="mt-3 flex items-center gap-1 text-green-600">
+                                            <flux:icon.shield-check class="h-4 w-4" />
+                                            <flux:text size="xs">Secure payment via Stripe • SSL Encrypted</flux:text>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-2 border-t border-gray-200 pt-2 dark:border-gray-700">
+                            <flux:button @click="showApprovalModal = false" variant="ghost">
+                                Cancel
+                            </flux:button>
+                            <flux:button type="submit" variant="primary" icon="check-circle">
+                                @if ($hasMilestones)
+                                    Confirm Approval
+                                @elseif ($pitch->payment_amount > 0)
+                                    Confirm &amp; Pay
+                                @else
+                                    Confirm Approval
+                                @endif
+                            </flux:button>
+                        </div>
+                    </form>
+                </flux:modal>
+
+                {{-- Revision Confirmation Modal --}}
+                <flux:modal name="revision-confirmation" x-model="showRevisionConfirmModal">
                     <form action="{{ URL::temporarySignedRoute('client.portal.revisions', now()->addHours(24), ['project' => $project->id]) }}" method="POST">
                         @csrf
-                        <flux:textarea name="feedback" rows="3"
-                            placeholder="Additional feedback or specific requests..."
-                            class="mb-3">{{ old('feedback') }}</flux:textarea>
-                        @error('feedback')
-                            <flux:text size="sm" class="mb-2 text-red-600">{{ $message }}</flux:text>
-                        @enderror
-                        <flux:button type="submit" variant="danger" size="sm" icon="paper-airplane" class="w-full">
-                            Send Traditional Feedback
-                        </flux:button>
+                        <input type="hidden" name="feedback" x-bind:value="traditionalFeedback">
+
+                        <div class="space-y-6 p-2">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-1">
+                                    <flux:heading size="lg" class="mb-2 inline-flex items-center gap-2"><flux:icon.pencil class="mt-1 h-8 w-8 text-amber-500" />Confirm Revision Request</flux:heading>
+                                    <flux:text class="mb-3">
+                                        You're about to request revisions from the producer. They will review your feedback and submit an updated version.
+                                    </flux:text>
+
+                                    {{-- Show revision cost if applicable --}}
+                                    @if (!$nextRevisionIsFree && $additionalRevisionPrice > 0)
+                                        <div class="rounded-lg border-2 border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-900/30">
+                                            <flux:text size="sm" class="font-semibold text-amber-800 dark:text-amber-200">
+                                                <flux:icon.information-circle class="inline h-4 w-4" />
+                                                Additional Cost: ${{ number_format($additionalRevisionPrice, 2) }}
+                                            </flux:text>
+                                        </div>
+                                    @endif
+
+                                    {{-- Preview feedback --}}
+                                    <div class="mt-4 rounded-lg bg-gray-100 p-3 dark:bg-gray-800">
+                                        <flux:text size="sm" class="font-medium text-gray-700 dark:text-gray-300">Your Feedback:</flux:text>
+                                        <flux:text size="sm" class="mt-1 whitespace-pre-wrap text-gray-600 dark:text-gray-400" x-text="traditionalFeedback"></flux:text>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-2 border-t border-gray-200 pt-2 dark:border-gray-700">
+                            <flux:button @click="showRevisionConfirmModal = false; showRevisionFormModal = true" variant="ghost" icon="arrow-left">
+                                Back
+                            </flux:button>
+                            <flux:button type="submit" variant="danger" icon="paper-airplane">
+                                Send Revision Request
+                            </flux:button>
+                        </div>
                     </form>
-                </div>
-                </div>
-                @endif
+                </flux:modal>
             </div>
         @endif
     </flux:card>

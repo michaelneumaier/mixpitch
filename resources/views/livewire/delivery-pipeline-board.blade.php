@@ -63,16 +63,16 @@
   </div>
 
   <!-- Kanban Board -->
-  <div class="space-y-4 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
+  <div class="space-y-2 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
     @foreach($columnTitles as $key => $label)
       <flux:card class="{{ match($key) {
-        'make' => 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
-        'review' => 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800',
-        'wrap' => 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800',
-        default => 'bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800'
+        'make' => '!p-3 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+        'review' => '!p-3 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800',
+        'wrap' => '!p-3 bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800',
+        default => '!p-3 bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800'
       } }}">
         <!-- Column Header -->
-        <div class="flex items-center justify-between mb-4 p-4 -m-4 mb-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between mb-4 p-4 -m-3 mb-4 border-b border-gray-200 dark:border-gray-700">
           <div class="flex items-center gap-3">
             <div class="w-3 h-3 rounded-full {{ match($key) {
               'make' => 'bg-indigo-500',
@@ -101,13 +101,12 @@
         <!-- Column Content -->
         <div class="space-y-3 min-h-[120px]">
           @forelse(($columns[$key] ?? []) as $card)
-            <flux:card class="kanban-card hover:shadow-md transition-shadow p-3 sm:p-4">
+            <flux:card class="kanban-card hover:shadow-md transition-shadow !p-3">
               <!-- Project Header -->
               <div class="flex items-center justify-between gap-2 mb-2">
                 <flux:subheading class="font-medium truncate min-w-0" title="{{ $card['project_name'] }}">
                   {{ $card['project_name'] }}
                 </flux:subheading>
-                <flux:badge variant="neutral" size="xs" class="flex-shrink-0">#{{ $card['project_id'] }}</flux:badge>
               </div>
               
               <div class="text-xs text-gray-500 dark:text-gray-400 mb-3 truncate min-w-0">{{ $card['client_email'] }}</div>

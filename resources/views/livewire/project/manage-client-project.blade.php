@@ -527,7 +527,7 @@
                                     )
                                 </div>
                                 <!-- Sidebar (30% width on large screens) -->
-                                <div class="space-y-4 lg:col-span-1">
+                                <div class="space-y-2 lg:col-span-1">
                                     <!-- Client Communication Hub -->
 
                                     <x-client-project.client-communication-hub :component="$this" :project="$project"
@@ -545,7 +545,7 @@
                                     )
 
                                     <!-- Email Notification Preferences -->
-                                    <flux:card class="mt-4">
+                                    <flux:card>
                                         <flux:accordion>
                                             <flux:accordion.item>
                                                 <flux:accordion.heading>

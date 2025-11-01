@@ -207,7 +207,8 @@ class ClientApprovalCompletionWorkflowTest extends TestCase
             }))
             ->andReturn(null);
 
-        $workflowService = new PitchWorkflowService($mockNotificationService);
+        $mockEmailService = $this->mock(\App\Services\EmailService::class);
+        $workflowService = new PitchWorkflowService($mockNotificationService, $mockEmailService);
 
         // Act: Client approves
         $workflowService->clientApprovePitch($this->pitch, $this->project->client_email);

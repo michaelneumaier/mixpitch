@@ -1,11 +1,11 @@
-<flux:card id="producer-deliverables" class="mb-2 rounded-xl !bg-green-50 !p-6 dark:!bg-green-900/20">
+<flux:card id="producer-deliverables" class="mb-2 rounded-xl !bg-green-50  dark:!bg-green-900/20">
 
     {{-- Header with Version Info --}}
     <div class="mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <flux:icon.clock class="text-green-500" />
             <div>
-                <flux:heading size="lg">Producer Deliverables</flux:heading>
+                <flux:heading size="lg" class="!mb-0">Producer Deliverables</flux:heading>
                 <flux:subheading>
                     @if ($this->currentSnapshot)
                         Version {{ $this->currentSnapshot->version ?? 1 }} of
@@ -16,12 +16,6 @@
                 </flux:subheading>
             </div>
         </div>
-
-        @if ($this->snapshotHistory->count() > 1)
-            <flux:badge variant="success" size="sm">
-                {{ $this->snapshotHistory->count() }} versions available
-            </flux:badge>
-        @endif
     </div>
 
     {{-- Enhanced Snapshot Navigation with Version Comparison --}}
@@ -124,7 +118,7 @@
 
     {{-- Enhanced Current Snapshot Files Display with Audio Player --}}
     @if ($this->shouldShowDeliverables)
-        <div class="mb-4" wire:loading.class="opacity-50" wire:target="switchSnapshot,approveFile,unapproveFile,approveAllFiles,unapproveAllFiles">
+        <div class="" wire:loading.class="opacity-50" wire:target="switchSnapshot,approveFile,unapproveFile,approveAllFiles,unapproveAllFiles">
             {{-- Response to Feedback (moved to top for better visibility) --}}
             @if ($this->currentSnapshot->response_to_feedback ?? false)
                 <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -135,7 +129,7 @@
                 </div>
             @endif
 
-            <div class="mb-3 flex items-center justify-between">
+            <div class="mb-3 flex flex-col md:flex-row justify-between">
                 <h5 class="font-semibold text-green-800">
                     Files in Version {{ $this->currentSnapshot->version ?? 1 }}
                 </h5>
@@ -184,16 +178,16 @@
 
             {{-- File Approval Section --}}
             @if ($this->currentFiles->count() > 0 && !$isPreview)
-                <div class="mt-6 rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
-                    <flux:heading size="md" class="mb-4 text-green-700 dark:text-green-300">
+                <div class="mt-4 rounded-xl bg-white p-2 dark:bg-gray-800">
+                    <flux:heading size="md" class="inline-flex items-center gap-2 mb-4 text-green-700 dark:text-green-300">
                         <flux:icon.check-circle class="mr-2" />
                         File Approval
                     </flux:heading>
 
                     @if ($this->unapprovedFiles->count() > 0)
-                        <div x-data="{ showUnapproved: false }" class="mb-6">
+                        <div x-data="{ showUnapproved: false }" class="">
                             {{-- Summary Header with Approve All Button --}}
-                            <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center justify-between">
                                 <button
                                     @click="showUnapproved = !showUnapproved"
                                     class="flex items-center gap-2 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors">
@@ -222,7 +216,7 @@
                             {{-- Collapsible File List --}}
                             <div x-show="showUnapproved" x-collapse class="space-y-2">
                                 @foreach ($this->unapprovedFiles as $file)
-                                    <div class="flex items-center justify-between p-3 bg-white border border-green-200 rounded-lg dark:bg-gray-800 dark:border-green-700">
+                                    <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-gray-800 dark:border-green-700">
                                         <div class="flex items-center gap-2">
                                             @if (in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['mp3', 'wav', 'm4a', 'aac', 'flac']))
                                                 <flux:icon.musical-note class="text-green-500 dark:text-green-400" />

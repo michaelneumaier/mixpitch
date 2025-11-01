@@ -7,7 +7,7 @@
 @endphp
 
 <flux:card class="mb-2 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-800">
-    <div class="flex flex-col lg:flex-row gap-6">
+    <div class="flex flex-col lg:flex-row gap-3">
         <!-- Header with Progress Circle -->
         <div class="flex items-start gap-4 lg:w-80 lg:flex-shrink-0">
             <!-- Circular Progress Indicator -->
@@ -28,19 +28,20 @@
             
             <!-- Title & Description -->
             <div class="flex-1 min-w-0">
-                <flux:heading size="lg" class="text-amber-800 dark:text-amber-200 mb-1">Complete Your Profile</flux:heading>
+                <flux:heading size="lg" class="text-amber-800 dark:text-amber-200 !mb-0">Complete Your Profile</flux:heading>
                 <flux:subheading class="text-amber-700 dark:text-amber-300">Set up your profile to get discovered and build your reputation</flux:subheading>
             </div>
         </div>
 
         <!-- Profile Completion Tasks -->
         <div class="flex-1 space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-2 gap-3">
                 <!-- Username -->
                 @if(empty($user->username))
                     <flux:badge color="amber" size="md" icon="at-symbol" class="justify-between">
                         <span>Username</span>
-                        <span class="text-xs">Missing</span>
+                        <span class="text-xs hidden md:inline">Missing</span>
+                        <span class="inline md:hidden">✕</span>
                     </flux:badge>
                 @else
                     <flux:badge color="emerald" size="md" icon="check" class="justify-between">
@@ -53,7 +54,8 @@
                 @if(empty($user->bio))
                     <flux:badge color="amber" size="md" icon="document-text" class="justify-between">
                         <span>Bio</span>
-                        <span class="text-xs">Missing</span>
+                        <span class="text-xs hidden md:inline">Missing</span>
+                        <span class="inline md:hidden">✕</span>
                     </flux:badge>
                 @else
                     <flux:badge color="emerald" size="md" icon="check" class="justify-between">
@@ -66,7 +68,8 @@
                 @if(empty($user->location))
                     <flux:badge color="amber" size="md" icon="map-pin" class="justify-between">
                         <span>Location</span>
-                        <span class="text-xs">Missing</span>
+                        <span class="text-xs hidden md:inline">Missing</span>
+                        <span class="inline md:hidden">✕</span>
                     </flux:badge>
                 @else
                     <flux:badge color="emerald" size="md" icon="check" class="justify-between">
@@ -90,9 +93,9 @@
             </div>
 
             <!-- Benefits -->
-            <flux:separator class="my-4" />
+            <flux:separator class="hidden my-4" />
             
-            <div class="grid grid-cols-2 gap-2 text-sm text-amber-700 dark:text-amber-300">
+            <div class="hidden grid grid-cols-2 gap-2 text-sm text-amber-700 dark:text-amber-300">
                 <div class="flex items-center gap-2">
                     <flux:icon name="magnifying-glass" size="sm" class="text-amber-600 dark:text-amber-400" />
                     <span>Get discovered</span>

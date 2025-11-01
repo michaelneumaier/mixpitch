@@ -387,8 +387,8 @@
 
 <!-- Enhanced Project Header with Image Support -->
 <flux:card class="mb-2">
-    <!-- Project Image Section (only show if image exists OR if user owns project) -->
-    @if($project->image_path || ($context === 'manage' && $project->user_id === auth()->id()))
+    <!-- Project Image Section (only show if image exists OR if user owns project and it's not client management) -->
+    @if($project->image_path || ($context === 'manage' && $project->user_id === auth()->id() && !$project->isClientManagement()))
         <div class="mb-6">
             @if($project->image_path)
                 <!-- Project has image - show with edit overlay for owners -->

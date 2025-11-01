@@ -1,5 +1,5 @@
 <div>
-    <flux:card class="mb-4">
+    <flux:card>
         <!-- Header -->
         <div class="mb-4 flex items-center justify-between">
         <div class="flex items-center gap-2">

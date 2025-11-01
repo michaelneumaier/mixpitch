@@ -4,17 +4,17 @@
             <!-- Compact Dashboard Header -->
             <flux:card class="mb-2 bg-white/50 dark:bg-gray-800/50">
                 <div class="flex items-center justify-between gap-3 mb-3">
-                    <flux:heading size="lg" class="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-gray-100 dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+                    <flux:heading size="xl" class="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-gray-100 dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
                         Discover Projects
                     </flux:heading>
                     
                     <div class="flex items-center gap-2">
                         @auth
-                            <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary" size="xs">
+                            <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary" color="amber" size="sm">
                                 Create
                             </flux:button>
                         @else
-                            <flux:button href="{{ route('login') }}" icon="arrow-right-end-on-rectangle" variant="primary" size="xs">
+                            <flux:button href="{{ route('login') }}" icon="arrow-right-end-on-rectangle" variant="primary" color="amber" size="sm">
                                 Login
                             </flux:button>
                         @endauth
@@ -26,13 +26,13 @@
                 </flux:subheading>
             </flux:card>
 
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-2">
+            <div class="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,320px)] gap-2">
 
 
                 <!-- Main Content Area -->
-                <div class="lg:col-span-3 space-y-2">
+                <div class="space-y-2">
                     <!-- Search and View Controls -->
-                    <flux:card>
+                    <flux:card class="!p-2">
                     
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <!-- Search Bar -->
@@ -76,6 +76,73 @@
                             </div>
                         </div>
                     </flux:card>
+
+                    <!-- Mobile Filters (shown under search on mobile) -->
+                    <div class="lg:hidden" x-data="{ mobileFiltersOpen: false }">
+                        <!-- Mobile Filter Toggle -->
+                        <div class="mb-2">
+                            <button @click="mobileFiltersOpen = !mobileFiltersOpen"
+                                    class="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <flux:icon name="funnel" size="sm" class="text-gray-600 dark:text-gray-300" />
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Filters</span>
+                                </div>
+                                <flux:icon name="chevron-down" size="sm" :class="mobileFiltersOpen ? 'rotate-180' : ''" class="transition-transform text-gray-600 dark:text-gray-300" />
+                            </button>
+                        </div>
+
+                        <!-- Mobile Filter Panel -->
+                        <div x-show="mobileFiltersOpen" x-transition.opacity class="mb-2">
+                            <flux:card>
+                                <!-- Filter Header -->
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-sm">
+                                            <flux:icon name="adjustments-horizontal" class="text-white" size="sm" />
+                                        </div>
+                                        <flux:heading size="lg" class="text-slate-800 dark:text-slate-200">Filter Projects</flux:heading>
+                                    </div>
+                                    <!-- Mobile Close Button -->
+                                    <button @click="mobileFiltersOpen = false" class="p-2 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300">
+                                        <flux:icon name="x-mark" size="sm" />
+                                    </button>
+                                </div>
+                                @livewire('filters-projects-component', [
+                                    'genres' => $genres,
+                                    'statuses' => $statuses,
+                                    'projectTypes' => $projectTypes,
+                                    'selected_collaboration_types' => $selected_collaboration_types,
+                                    'min_budget' => $min_budget,
+                                    'max_budget' => $max_budget,
+                                    'deadline_start' => $deadline_start,
+                                    'deadline_end' => $deadline_end,
+                                ])
+                            </flux:card>
+                        </div>
+
+                        <!-- Active Filters Summary (Mobile) -->
+                        @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes) || $min_budget || $max_budget || $deadline_start || $deadline_end || !empty($selected_collaboration_types))
+                        <flux:card class="mb-2 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-1.5 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg shadow-sm">
+                                    <flux:icon name="funnel" class="text-white" size="xs" />
+                                </div>
+                                <flux:heading size="sm" class="text-slate-800 dark:text-slate-200">Active Filters</flux:heading>
+                            </div>
+                            <div class="space-y-2 mb-4">
+                                @if($search)
+                                <div class="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-600">
+                                    <flux:text size="xs" class="font-medium text-gray-800 dark:text-gray-200">Search: "{{ $search }}"</flux:text>
+                                    <flux:button wire:click="$set('search', '')" icon="x-mark" variant="ghost" size="xs" />
+                                </div>
+                                @endif
+                            </div>
+                            <flux:button wire:click="clearFilters" icon="x-mark" variant="danger" size="sm" class="w-full">
+                                Clear All Filters
+                            </flux:button>
+                        </flux:card>
+                        @endif
+                    </div>
 
                     <!-- Results Header -->
                     <div class="flex items-center justify-between mb-1 ml-2">
@@ -156,48 +223,7 @@
                 </div>
 
                                 <!-- Filters Sidebar -->
-                <div class="lg:col-span-1" x-data="{ mobileFiltersOpen: false }">
-                    <!-- Mobile Filter Toggle -->
-                    <div class="lg:hidden mb-4">
-                        <button @click="mobileFiltersOpen = !mobileFiltersOpen" 
-                                class="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <flux:icon name="funnel" size="sm" class="text-gray-600 dark:text-gray-300" />
-                                <span class="font-medium text-gray-900 dark:text-gray-100">Filters</span>
-                            </div>
-                            <flux:icon name="chevron-down" size="sm" :class="mobileFiltersOpen ? 'rotate-180' : ''" class="transition-transform text-gray-600 dark:text-gray-300" />
-                        </button>
-                    </div>
-
-                    <!-- Mobile Filter Panel -->
-                    <div class="lg:hidden" x-show="mobileFiltersOpen" x-transition.opacity>
-                        <flux:card>
-                                <!-- Filter Header -->
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-sm">
-                                            <flux:icon name="adjustments-horizontal" class="text-white" size="sm" />
-                                        </div>
-                                        <flux:heading size="lg" class="text-slate-800 dark:text-slate-200">Filter Projects</flux:heading>
-                                    </div>
-                                    <!-- Mobile Close Button -->
-                                    <button @click="mobileFiltersOpen = false" class="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300">
-                                        <flux:icon name="x-mark" size="sm" />
-                                    </button>
-                                </div>
-                                @livewire('filters-projects-component', [
-                                    'genres' => $genres,
-                                    'statuses' => $statuses,
-                                    'projectTypes' => $projectTypes,
-                                    'selected_collaboration_types' => $selected_collaboration_types,
-                                    'min_budget' => $min_budget,
-                                    'max_budget' => $max_budget,
-                                    'deadline_start' => $deadline_start,
-                                    'deadline_end' => $deadline_end,
-                                ])
-                            </flux:card>
-                        </div>
-                    
+                <div>
                     <!-- Desktop Filter Panel -->
                     <div class="hidden lg:block">
                         <flux:card>
@@ -223,9 +249,10 @@
                         </flux:card>
                     </div>
 
-                    <!-- Active Filters Summary -->
-                    @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes) || $min_budget || $max_budget || $deadline_start || $deadline_end || !empty($selected_collaboration_types))
-                    <flux:card class="mt-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
+                    <!-- Active Filters Summary (Desktop) -->
+                    <div class="hidden lg:block">
+                        @if($search || !empty($genres) || !empty($statuses) || !empty($projectTypes) || $min_budget || $max_budget || $deadline_start || $deadline_end || !empty($selected_collaboration_types))
+                        <flux:card class="mt-4 bg-white/80 dark:bg-gray-800/80 border border-slate-200 dark:border-slate-700">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="p-1.5 bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg shadow-sm">
                                 <flux:icon name="funnel" class="text-white" size="xs" />
@@ -245,6 +272,7 @@
                         </flux:button>
                     </flux:card>
                     @endif
+                    </div>
                 </div>
             </div>
         </div>

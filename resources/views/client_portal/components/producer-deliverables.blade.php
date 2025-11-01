@@ -187,8 +187,8 @@
 
             {{-- File Approval Section --}}
             @if (($currentSnapshot->files ?? collect())->count() > 0 && (!isset($isPreview) || !$isPreview))
-                <div class="mt-6 rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
-                    <flux:heading size="md" class="mb-4 text-green-700 dark:text-green-300">
+                <div class="mt-6 rounded-xl bg-white p-6 dark:bg-gray-800">
+                    <flux:heading size="md" class="inline-flex items-center gap-2 mb-4 text-green-700 dark:text-green-300">
                         <flux:icon.check-circle class="mr-2" />
                         File Approval
                     </flux:heading>

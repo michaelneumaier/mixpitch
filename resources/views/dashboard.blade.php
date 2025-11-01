@@ -26,7 +26,7 @@
                 @endif
 
                 <!-- Compact Dashboard Header -->
-                <flux:card class="p-4 lg:p-6 xl:p-8 mb-2 bg-white/50">
+                <flux:card class="mb-2">
                     <!-- Top Row: Title + Primary Actions -->
                     <div class="flex items-center justify-between gap-3 mb-3">
                         <flux:heading size="xl" class="bg-gradient-to-r from-gray-900 to-purple-800 dark:from-blue-200 dark:to-purple-200 bg-clip-text text-transparent">
@@ -35,7 +35,7 @@
                         
                         <!-- Primary Actions -->
                         <div class="flex items-center gap-2">
-                            <flux:button href="{{ route('projects.create') }}" wire:navigate icon="plus" variant="primary" color="violet" size="xs" >
+                            <flux:button href="{{ route('projects.create') }}" wire:navigate icon="plus" variant="primary" color="amber" size="sm" >
                                 Create
                             </flux:button>
                         </div>

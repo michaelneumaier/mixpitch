@@ -131,7 +131,7 @@
             </flux:navlist.item>
 
             @if(Auth::check() && Auth::user()->canAccessPanel(\Filament\Panel::make()))
-            <flux:navlist.item wire:navigate icon="cog-6-tooth" href="{{ route('filament.admin.pages.dashboard') }}">
+            <flux:navlist.item icon="cog-6-tooth" href="{{ route('filament.admin.pages.dashboard') }}">
                 Admin Dashboard
             </flux:navlist.item>
             @endif

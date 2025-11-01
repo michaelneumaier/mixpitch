@@ -12,6 +12,9 @@
                         'milestones' => $milestones ?? collect(),
                     ])
 
+                    {{-- License Agreement Modal --}}
+                    @livewire('client-portal.license-agreement-modal', ['project' => $project])
+
                     {{-- Flash Messages --}}
                     @include('client_portal.components.flash-messages', [
                         'snapshotHistory' => $snapshotHistory,
@@ -49,7 +52,7 @@
                     ])
 
                     {{-- Email Notification Preferences --}}
-                    <flux:card class="mt-6" x-data="{
+                    <flux:card class="" x-data="{
                         preferences: {
                             revision_confirmation: {{ json_encode($project->client_email_preferences['revision_confirmation'] ?? true) }},
                             producer_resubmitted: {{ json_encode($project->client_email_preferences['producer_resubmitted'] ?? true) }},
@@ -314,6 +317,9 @@
                             'branding' => $branding,
                             'milestones' => $milestones ?? collect(),
                         ])
+
+                        {{-- License Agreement Modal --}}
+                        @livewire('client-portal.license-agreement-modal', ['project' => $project])
 
                         {{-- Flash Messages --}}
                         @include('client_portal.components.flash-messages', [

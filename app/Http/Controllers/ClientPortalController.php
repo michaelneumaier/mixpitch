@@ -775,13 +775,19 @@ class ClientPortalController extends Controller
             // Link existing projects to new user account
             Project::where('client_email', $user->email)->update(['client_user_id' => $user->id]);
 
+            // Link existing license signatures to new user account
+            $updatedSignatures = \App\Models\LicenseSignature::where('client_email', $user->email)
+                ->whereNull('user_id')
+                ->update(['user_id' => $user->id]);
+
             // Log the user in
             Auth::login($user);
 
-            Log::info('Client account created and linked to projects', [
+            Log::info('Client account created and linked to projects and license signatures', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'linked_projects' => Project::where('client_user_id', $user->id)->count(),
+                'linked_signatures' => $updatedSignatures,
             ]);
 
             return redirect()->route('dashboard')->with('success', 'Account created successfully! Welcome to MIXPITCH.');

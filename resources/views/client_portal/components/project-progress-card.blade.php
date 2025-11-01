@@ -72,6 +72,9 @@
                     {{ $project->name ?: 'Untitled Project' }}
                 </flux:heading>
                 <flux:subheading class="text-gray-600 dark:text-gray-400">
+                    @if ($project->client_name)
+                        For {{ $project->client_name }} •
+                    @endif
                     Managed by {{ $branding['brand_display'] ?? $pitch->user->name }}
                 </flux:subheading>
             </div>
@@ -83,8 +86,8 @@
         </flux:badge>
     </div>
 
-    <div class="mb-6 rounded-xl bg-gray-50 p-2 md:p-6 dark:bg-gray-800">
-        <div class="mb-4 flex items-center gap-2">
+    <div class="rounded-xl bg-gray-50 p-2 md:p-4 dark:bg-gray-800">
+        <div class="hidden mb-4 flex items-center gap-2">
             <flux:icon.map class="text-blue-500" />
             <flux:heading size="sm">Project Progress</flux:heading>
         </div>
@@ -156,8 +159,8 @@
                 </div>
             @endforeach
         </div>
-
-        <div class="mt-6 rounded-lg border border-white/40 bg-white/60 p-4 backdrop-blur-sm">
+    </div>
+    <div class="p-4">
             <p class="text-sm text-gray-700">
                 @switch($pitch->status)
                     @case(\App\Models\Pitch::STATUS_PENDING)
@@ -215,22 +218,61 @@
                 @endswitch
             </p>
         </div>
-    </div>
 
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800">
-            <div class="flex items-center gap-3">
-                <flux:icon.user-circle class="flex-shrink-0 text-blue-500" />
-                <div class="min-w-0 flex-1">
-                    @if ($project->client_name)
-                        <flux:heading size="sm" class="truncate">{{ $project->client_name }}</flux:heading>
-                        <flux:subheading class="truncate">{{ $project->client_email }}</flux:subheading>
-                    @else
-                        <flux:heading size="sm" class="truncate">{{ $project->client_email }}</flux:heading>
-                    @endif
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        @if($project->requires_license_agreement && $project->licenseTemplate)
+            <div class="rounded-xl bg-amber-50 p-4 dark:bg-amber-900/20" x-data>
+                <div class="flex items-center justify-between">
+                    <div class="flex min-w-0 flex-1 items-center gap-3">
+                        <flux:icon.document-text class="flex-shrink-0 text-amber-500" />
+                        <div class="min-w-0 flex-1">
+                            <flux:heading size="sm">License Agreement</flux:heading>
+                            <button
+                                type="button"
+                                @click="window.dispatchEvent(new CustomEvent('view-license-terms'))"
+                                class="text-left truncate text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer transition-all">
+                                {{ $project->licenseTemplate->name }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ml-2 flex-shrink-0 text-right">
+                        @php
+                            $user = auth()->check() ? auth()->user() : null;
+                            $clientEmail = $user ? null : $project->client_email;
+                            $hasSigned = \App\Models\LicenseSignature::hasClientSigned($project, $user, $clientEmail);
+                        @endphp
+
+                        @if($hasSigned)
+                            <flux:badge variant="success" size="sm">
+                                <flux:icon.check-circle class="mr-1" />
+                                <span class="hidden sm:inline">Signed</span>
+                                <span class="sm:hidden">✓</span>
+                            </flux:badge>
+                        @else
+                            <flux:badge variant="warning" size="sm">
+                                <flux:icon.exclamation-triangle class="mr-1" />
+                                <span class="hidden sm:inline">Pending</span>
+                                <span class="sm:hidden">!</span>
+                            </flux:badge>
+                        @endif
+                    </div>
                 </div>
+
+                {{-- Action button - only show when not signed --}}
+                @if(!$hasSigned)
+                    <div class="mt-3">
+                        <flux:button
+                            size="sm"
+                            variant="primary"
+                            @click="window.dispatchEvent(new CustomEvent('open-license-modal'))"
+                            class="w-full">
+                            <flux:icon.pencil-square class="mr-1" />
+                            Sign Agreement
+                        </flux:button>
+                    </div>
+                @endif
             </div>
-        </div>
+        @endif
 
         @if ($hasMilestones)
             {{-- Milestone-based payment progress --}}

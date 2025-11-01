@@ -1,7 +1,7 @@
 <div class="relative mb-2">
-    <flux:card class="p-4 lg:p-6 xl:p-8">
+    <flux:card>
         <!-- Section Header -->
-        <div class="mb-6 lg:mb-8">
+        <div class="mb-4">
             <flux:heading size="xl" class="mb-2">My Work</flux:heading>
             <flux:subheading>Track and manage all your active projects and collaborations</flux:subheading>
         </div>

@@ -74,10 +74,16 @@
                 </div>
 
                 <!-- Desktop Navigation -->
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="{{ url('/') }}" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->is('/') ? 'text-blue-600 dark:text-blue-400' : '' }}">
-                        Home
-                    </a>
+                <div class="hidden md:flex items-center space-x-4">
+                    @auth
+                        <a href="{{ route('dashboard') }}" wire:navigate class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('dashboard') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                            Dashboard
+                        </a>
+                    @else
+                        <a href="{{ url('/') }}" class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->is('/') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                            Home
+                        </a>
+                    @endauth
                     <a href="{{ route('projects.index') }}" wire:navigate class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition-colors {{ request()->routeIs('projects.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Projects
                     </a>
@@ -163,9 +169,15 @@
                         
                         <!-- Mobile Navigation Menu -->
                         <div x-show="open" @click.away="open = false" x-cloak class="absolute top-16 left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pb-4 space-y-2">
-                    <a href="{{ url('/') }}" class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->is('/') ? 'text-blue-600 dark:text-blue-400' : '' }}">
-                        Home
-                    </a>
+                    @auth
+                        <a href="{{ route('dashboard') }}" wire:navigate class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('dashboard') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                            Dashboard
+                        </a>
+                    @else
+                        <a href="{{ url('/') }}" class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->is('/') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+                            Home
+                        </a>
+                    @endauth
                     <a href="{{ route('projects.index') }}" wire:navigate class="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors {{ request()->routeIs('projects.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
                         Projects
                     </a>

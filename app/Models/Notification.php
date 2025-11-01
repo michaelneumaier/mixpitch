@@ -118,6 +118,8 @@ class Notification extends Model
 
     const TYPE_CLIENT_REQUESTED_REVISIONS = 'client_requested_revisions';
 
+    const TYPE_CLIENT_APPROVED_AWAITING_PAYMENT = 'client_approved_awaiting_payment';
+
     const TYPE_CLIENT_APPROVED_AND_COMPLETED = 'client_approved_and_completed';
 
     // Payout Notification Types
@@ -710,12 +712,16 @@ class Notification extends Model
                 $revisionNotes = isset($data['revision_notes']) && ! empty($data['revision_notes']) ? ': "'.Str::limit($data['revision_notes'], 100).'"' : '';
 
                 return $clientName.' requested revisions for project'.$projectName.$revisionNotes;
+            case self::TYPE_CLIENT_APPROVED_AWAITING_PAYMENT:
+                $clientName = $data['client_name'] ?? 'The client';
+
+                return $clientName.' approved your work for project'.$projectName.'! Complete the milestone payments to finalize the project.';
             case self::TYPE_CLIENT_APPROVED_AND_COMPLETED:
                 $clientName = $data['client_name'] ?? 'The client';
                 $hasPayment = $data['has_payment'] ?? false;
                 $paymentAmount = $data['payment_amount'] ?? 0;
                 if ($hasPayment && $paymentAmount > 0) {
-                    return $clientName.' approved and paid for project'.$projectName.'. Your payout of $'.number_format($paymentAmount, 2).' is being processed.';
+                    return $clientName.' approved project'.$projectName.' and payment is complete. Your payout of $'.number_format($paymentAmount, 2).' is being processed.';
                 } else {
                     return $clientName.' approved project'.$projectName.' and it\'s now complete!';
                 }

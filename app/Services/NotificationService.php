@@ -1848,6 +1848,56 @@ class NotificationService
     }
 
     /**
+     * Notify the producer that the client has approved their work (awaiting milestone payments).
+     * This is called when approval happens but milestone payments are still pending.
+     *
+     * @param  Pitch  $pitch  The approved pitch.
+     */
+    public function notifyProducerOfClientApproval(Pitch $pitch): ?Notification
+    {
+        $producer = $pitch->user;
+        if (! $producer) {
+            Log::warning('notifyProducerOfClientApproval: producer not found', ['pitch_id' => $pitch->id]);
+
+            return null;
+        }
+
+        $project = $pitch->project;
+
+        // Create in-app notification
+        $notification = $this->createNotification(
+            $producer,
+            Notification::TYPE_CLIENT_APPROVED_AWAITING_PAYMENT,
+            $pitch,
+            [
+                'project_id' => $project->id,
+                'project_title' => $project->title,
+                'client_name' => $project->client_name ?? 'Client',
+                'client_email' => $project->client_email,
+                'message' => "Great news! {$project->client_name} approved your work for '{$project->title}'. The client will complete milestone payments to finalize the project.",
+            ]
+        );
+
+        // Send email notification using EmailService
+        try {
+            $this->emailService->sendProducerClientApprovedEmail(
+                $producer,
+                $project,
+                $pitch,
+                false // hasPayment = false (awaiting milestone payments)
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to send producer client approved email', [
+                'producer_id' => $producer->id,
+                'pitch_id' => $pitch->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $notification;
+    }
+
+    /**
      * Notify the producer that the client has requested revisions.
      *
      * @param  Pitch  $pitch  The pitch requiring revisions.
@@ -1970,7 +2020,8 @@ class NotificationService
 
     /**
      * Notify the producer that the client has approved and the project is completed.
-     * This combines approval and completion notifications for client management workflow.
+     * This is called when the project moves to COMPLETED status (either with or without payment).
+     * For projects with milestones, this is only called after all milestones are paid.
      *
      * @param  Pitch  $pitch  The approved and completed pitch.
      */
@@ -1998,7 +2049,7 @@ class NotificationService
                 'payment_amount' => $paymentAmount,
                 'has_payment' => $hasPayment,
                 'message' => $hasPayment
-                    ? "Great news! {$project->client_name} has approved and paid for '{$project->title}'. Your payout is being processed."
+                    ? "Great news! {$project->client_name} approved '{$project->title}' and all payments are complete. Your payout of \$".number_format($paymentAmount, 2).' is being processed.'
                     : "Great news! {$project->client_name} has approved '{$project->title}' and the project is now complete!",
             ]
         );
