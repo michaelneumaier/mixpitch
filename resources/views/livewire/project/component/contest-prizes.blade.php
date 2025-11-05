@@ -1,21 +1,22 @@
 @props(['workflowColors' => [], 'semanticColors' => []])
 
-<flux:card class="bg-gradient-to-br {{ $workflowColors['bg'] ?? 'from-orange-50/30 to-amber-50/30 dark:from-orange-950/30 dark:to-amber-950/30' }} border {{ $workflowColors['border'] ?? 'border-orange-200/50 dark:border-orange-800/50' }}">
-    <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-            <flux:icon name="trophy" variant="solid" class="{{ $workflowColors['icon'] ?? 'text-orange-600 dark:text-orange-400' }} h-8 w-8" />
-            <div>
-                <div class="flex items-center gap-3">
-                    <flux:heading size="lg" class="{{ $workflowColors['text_primary'] ?? 'text-orange-900 dark:text-orange-100' }}">Contest Prizes</flux:heading>
-                    <x-contest.payment-status-badge :project="$project" compact="true" />
+<div>
+    <flux:card class="bg-gradient-to-br {{ $workflowColors['bg'] ?? 'from-orange-50/30 to-amber-50/30 dark:from-orange-950/30 dark:to-amber-950/30' }} border {{ $workflowColors['border'] ?? 'border-orange-200/50 dark:border-orange-800/50' }}">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <flux:icon name="trophy" variant="solid" class="{{ $workflowColors['icon'] ?? 'text-orange-600 dark:text-orange-400' }} h-8 w-8" />
+                <div>
+                    <div class="flex items-center gap-3">
+                        <flux:heading size="lg" class="{{ $workflowColors['text_primary'] ?? 'text-orange-900 dark:text-orange-100' }}">Contest Prizes</flux:heading>
+                        <x-contest.payment-status-badge :project="$project" compact="true" />
+                    </div>
+                    <flux:subheading class="{{ $workflowColors['text_muted'] ?? 'text-orange-600 dark:text-orange-400' }}">Rewards and incentives for winners</flux:subheading>
                 </div>
-                <flux:subheading class="{{ $workflowColors['text_muted'] ?? 'text-orange-600 dark:text-orange-400' }}">Rewards and incentives for winners</flux:subheading>
             </div>
+            <flux:button variant="outline" size="sm" icon="pencil" flux:modal="edit-prizes">
+                Edit Prizes
+            </flux:button>
         </div>
-        <flux:button variant="outline" size="sm" icon="pencil" href="{{ route('projects.edit', $project) }}">
-            Edit Prizes
-        </flux:button>
-    </div>
 
     @if ($project->hasPrizes())
         <!-- New Contest Prize System -->
@@ -104,7 +105,7 @@
             <flux:heading size="xl" class="text-green-900 mb-3">
                 {{ $project->prize_currency ?? '$' }}{{ number_format($project->prize_amount ?: 0, 2) }}
             </flux:heading>
-            <flux:button variant="outline" size="xs" icon="plus" href="{{ route('projects.edit', $project) }}">
+            <flux:button variant="outline" size="xs" icon="plus" flux:modal="edit-prizes">
                 Configure New Prizes
             </flux:button>
         </div>
@@ -116,9 +117,24 @@
                 <flux:heading size="base" class="text-gray-700">No Prizes Set</flux:heading>
             </div>
             <flux:text size="sm" class="text-gray-600 mb-3">This contest doesn't have any prizes configured yet.</flux:text>
-            <flux:button variant="outline" size="xs" icon="plus" href="{{ route('projects.edit', $project) }}">
+            <flux:button variant="outline" size="xs" icon="plus" flux:modal="edit-prizes">
                 Add Prizes
             </flux:button>
         </div>
     @endif
-</flux:card> 
+    </flux:card>
+
+    {{-- Prize Configuration Modal --}}
+    <flux:modal name="edit-prizes" variant="flyout" class="space-y-6">
+        <div>
+            <flux:heading size="lg">Edit Contest Prizes</flux:heading>
+            <flux:subheading>Configure cash prizes and other rewards for contest winners</flux:subheading>
+        </div>
+
+        <div
+            x-data
+            @prizes-saved.window="$flux.modal('edit-prizes').close(); $wire.$refresh()">
+            <livewire:contest-prize-configurator :project="$project" :key="'prize-config-'.$project->id" />
+        </div>
+    </flux:modal>
+</div>

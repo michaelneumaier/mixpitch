@@ -88,7 +88,11 @@
                         <div class="w-full">
                             <!-- Enhanced Project Header -->
                             <x-project.header :project="$project" context="manage" :showActions="true" :showEditButton="true"
-                                :showWorkflowStatus="true" />
+                                :showWorkflowStatus="true">
+                                <x-slot:checklist>
+                                    @livewire('client-project-setup-checklist', ['project' => $project, 'pitch' => $pitch, 'variant' => 'badge'], key('client-setup-checklist-' . $project->id))
+                                </x-slot:checklist>
+                            </x-project.header>
 
                             <div class="grid grid-cols-1 lg:grid-cols-3 lg:gap-2">
                                 <!-- Main Content Area (70% width on large screens) -->
@@ -528,6 +532,12 @@
                                 </div>
                                 <!-- Sidebar (30% width on large screens) -->
                                 <div class="space-y-2 lg:col-span-1">
+                                    {{-- Client Information Card --}}
+                                    <x-project.client-info-card :project="$project" :workflowColors="$workflowColors" />
+
+                                    {{-- Project Details Card --}}
+                                    <x-project.details-card :project="$project" :workflowColors="$workflowColors" />
+
                                     <!-- Client Communication Hub -->
 
                                     <x-client-project.client-communication-hub :component="$this" :project="$project"

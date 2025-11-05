@@ -132,6 +132,312 @@ class ManageClientProject extends Component
     }
 
     /**
+     * Update client information (email, name, payment amount)
+     */
+    public function updateClientInfo(array $updates): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Build validation rules dynamically
+            $rules = [];
+            $messages = [];
+
+            if (isset($updates['client_email'])) {
+                $rules['client_email'] = 'required|email|max:255';
+                $messages['client_email.required'] = 'Client email is required.';
+                $messages['client_email.email'] = 'Please enter a valid email address.';
+                $messages['client_email.max'] = 'Email cannot exceed 255 characters.';
+            }
+
+            if (isset($updates['client_name'])) {
+                $rules['client_name'] = 'nullable|string|max:255';
+                $messages['client_name.max'] = 'Client name cannot exceed 255 characters.';
+            }
+
+            if (isset($updates['payment_amount'])) {
+                $rules['payment_amount'] = 'required|numeric|min:0|max:999999.99';
+                $messages['payment_amount.required'] = 'Payment amount is required.';
+                $messages['payment_amount.numeric'] = 'Payment amount must be a number.';
+                $messages['payment_amount.min'] = 'Payment amount cannot be negative.';
+                $messages['payment_amount.max'] = 'Payment amount cannot exceed $999,999.99.';
+            }
+
+            // Validate
+            $validated = validator($updates, $rules, $messages)->validate();
+
+            // Check if email changed and try to link to existing user
+            if (isset($validated['client_email'])) {
+                $clientUser = \App\Models\User::where('email', $validated['client_email'])->first();
+                if ($clientUser) {
+                    $validated['client_user_id'] = $clientUser->id;
+                }
+            }
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update($validated);
+
+            // Success notification
+            Toaster::success('Client information updated successfully!');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating client information', [
+                'project_id' => $this->project->id,
+                'updates' => $updates,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update client information. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project details inline (artist name, genre, description, notes)
+     */
+    public function updateProjectDetailsInline(array $updates): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Build validation rules dynamically based on what's being updated
+            $rules = [];
+            $messages = [];
+
+            if (isset($updates['artist_name'])) {
+                $rules['artist_name'] = 'nullable|string|max:255';
+                $messages['artist_name.max'] = 'Artist name cannot exceed 255 characters.';
+            }
+
+            if (isset($updates['genre'])) {
+                $rules['genre'] = 'nullable|string|max:100';
+                $messages['genre.max'] = 'Genre cannot exceed 100 characters.';
+            }
+
+            if (isset($updates['description'])) {
+                $rules['description'] = 'nullable|string|max:5000';
+                $messages['description.max'] = 'Description cannot exceed 5000 characters.';
+            }
+
+            if (isset($updates['notes'])) {
+                $rules['notes'] = 'nullable|string|max:10000';
+                $messages['notes.max'] = 'Notes cannot exceed 10000 characters.';
+            }
+
+            // Validate
+            $validated = validator($updates, $rules, $messages)->validate();
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update($validated);
+
+            // Success notification
+            Toaster::success('Project details updated successfully!');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project details', [
+                'project_id' => $this->project->id,
+                'updates' => $updates,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update project details. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project title inline
+     */
+    public function updateProjectTitle(string $newTitle): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Validate the new title
+            $validated = validator(['title' => $newTitle], [
+                'title' => 'required|string|max:255|min:3',
+            ], [
+                'title.required' => 'Project title is required.',
+                'title.min' => 'Project title must be at least 3 characters.',
+                'title.max' => 'Project title cannot exceed 255 characters.',
+            ])->validate();
+
+            // Update the project directly in database without triggering Livewire property tracking
+            Project::where('id', $this->project->id)->update([
+                'name' => $validated['title'],
+                'title' => $validated['title'],
+            ]);
+
+            // Success notification
+            Toaster::success('Project title updated successfully!');
+
+            // Skip render to prevent component re-render which breaks nested components
+            $this->skipRender();
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Let Livewire handle displaying validation errors
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project title', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update project title. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project deadline inline
+     */
+    public function updateDeadline(?string $deadline): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // If deadline is null or empty string, clear it
+            if (empty($deadline)) {
+                Project::where('id', $this->project->id)->update(['deadline' => null]);
+                Toaster::success('Deadline cleared!');
+                $this->skipRender();
+
+                return;
+            }
+
+            // Convert from user timezone to UTC
+            $utcDeadline = $this->convertDateTimeToUtc($deadline);
+
+            // Validate that deadline is in the future
+            if ($utcDeadline->isPast()) {
+                Toaster::error('Deadline must be in the future.');
+                $this->skipRender();
+
+                return;
+            }
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update([
+                'deadline' => $utcDeadline->toDateTimeString(),
+            ]);
+
+            // Success notification
+            Toaster::success('Deadline updated successfully!');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Exception $e) {
+            Log::error('Error updating project deadline', [
+                'project_id' => $this->project->id,
+                'deadline' => $deadline,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update deadline. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Convert datetime-local input to UTC for database storage
+     * This method treats datetime-local inputs as being in the user's timezone
+     */
+    private function convertDateTimeToUtc(string $dateTime): \Carbon\Carbon
+    {
+        $userTimezone = auth()->user()->getTimezone();
+
+        // Handle datetime-local format: "2025-06-29T13:00"
+        if (str_contains($dateTime, 'T')) {
+            // Convert T to space and add seconds if needed
+            $formattedDateTime = str_replace('T', ' ', $dateTime);
+            if (substr_count($formattedDateTime, ':') === 1) {
+                $formattedDateTime .= ':00'; // Add seconds
+            }
+
+            // Create Carbon instance in user's timezone and convert to UTC
+            return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $formattedDateTime, $userTimezone)->utc();
+        }
+
+        // Fallback: assume it's already in UTC or parse as-is
+        return \Carbon\Carbon::parse($dateTime)->utc();
+    }
+
+    /**
+     * Update project license settings
+     */
+    public function updateLicense(array $updates): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Build validation rules
+            $rules = [
+                'license_template_id' => 'nullable|exists:license_templates,id',
+                'requires_license_agreement' => 'boolean',
+                'license_notes' => 'nullable|string|max:10000',
+            ];
+
+            $messages = [
+                'license_template_id.exists' => 'The selected license template is invalid.',
+                'license_notes.max' => 'License notes cannot exceed 10,000 characters.',
+            ];
+
+            // Validate
+            $validated = validator($updates, $rules, $messages)->validate();
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update($validated);
+
+            // Success notification
+            Toaster::success('License settings updated successfully!');
+
+            // Dispatch event for modal to listen to
+            $this->dispatch('license-updated');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project license', [
+                'project_id' => $this->project->id,
+                'updates' => $updates,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update license settings. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
      * Handle file list comment refresh requests
      */
     public function refreshCommentsForFileList($data)

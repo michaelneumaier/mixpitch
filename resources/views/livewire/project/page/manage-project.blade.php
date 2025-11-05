@@ -218,14 +218,19 @@
             <div class="flex justify-center">
                 <div class="w-full">
                     <!-- Enhanced Project Header -->
-                    <x-project.header 
-                        :project="$project" 
-                        context="manage" 
+                    <x-project.header
+                        :project="$project"
+                        context="manage"
                         :showActions="true"
                         :showEditButton="true"
                         :showWorkflowStatus="true"
                         :autoAllowAccess="$autoAllowAccess"
-                    />
+                    >
+                        <x-slot:checklist>
+                            @livewire('project-setup-checklist', ['project' => $project, 'variant' => 'badge'], key('project-setup-checklist-' . $project->id))
+                        </x-slot:checklist>
+                    </x-project.header>
+
                     <div class="grid grid-cols-1 gap-2 lg:grid-cols-3">
                         <!-- Main Content Area (2/3 width on large screens) -->
                         <div class="space-y-2 lg:col-span-2">
@@ -302,7 +307,7 @@
 
                             {{-- License Management Component --}}
                             <div class="mb-2">
-                                <x-project.license-management :project="$project" :workflowColors="$workflowColors" :semanticColors="$semanticColors" />
+                                @livewire('project.component.license-management', ['project' => $project, 'workflowColors' => $workflowColors, 'semanticColors' => $semanticColors], key('license-management-' . $project->id))
                             </div>
 
                             
@@ -310,6 +315,9 @@
 
                         <!-- Sidebar (1/3 width on large screens) -->
                         <div class="space-y-2 lg:col-span-1">
+                            {{-- Project Details Card --}}
+                            <x-project.details-card :project="$project" :workflowColors="$workflowColors" />
+
                             {{-- Workflow Type Specific Information --}}
                             @if ($project->isStandard())
                                 <flux:card class="mb-2 hidden lg:block {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">

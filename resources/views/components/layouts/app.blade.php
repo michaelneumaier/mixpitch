@@ -38,7 +38,7 @@
 
     <script>
         // Set default allowed file types from configuration
-        window.defaultAllowedFileTypes = @json(config('file-types.allowed_types', ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip']));
+        window.defaultAllowedFileTypes = ['audio/*', 'video/*', 'application/pdf', 'image/*', 'application/zip'];
     </script>
 
     <style>

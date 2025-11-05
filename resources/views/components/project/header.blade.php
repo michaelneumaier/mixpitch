@@ -455,17 +455,67 @@
             
             <!-- Project Info -->
             <div class="min-w-0 flex-1">
-                <flux:heading size="lg" class="text-slate-900 dark:text-slate-100 mb-2">
-                    @if($context === 'view')
-                        {{ $project->name }}
-                    @else
-                        <a href="{{ route('projects.show', $project) }}" 
-                           wire:navigate
-                           class="hover:text-blue-600 transition-colors duration-200">
+                @if($context === 'manage' && $project->user_id === auth()->id())
+                    {{-- Inline Title Editing for Project Owner --}}
+                    <div x-data="{
+                        editingTitle: false,
+                        tempTitle: '{{ addslashes($project->name) }}',
+                        originalTitle: '{{ addslashes($project->name) }}'
+                    }" class="mb-2">
+                        {{-- Display Mode --}}
+                        <div x-show="!editingTitle" class="flex items-center gap-2 group">
+                            <flux:heading size="lg" class="text-slate-900 dark:text-slate-100">
+                                <span x-text="originalTitle"></span>
+                            </flux:heading>
+                            <button
+                                @click="editingTitle = true; $nextTick(() => $refs.titleInput.focus())"
+                                class="min-w-11 min-h-11 flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md touch-manipulation"
+                                type="button"
+                                aria-label="Edit project title">
+                                <flux:icon.pencil class="w-4 h-4 text-slate-500" />
+                            </button>
+                        </div>
+
+                        {{-- Edit Mode --}}
+                        <div x-show="editingTitle" class="flex items-center gap-1.5 sm:gap-2 w-full max-w-full">
+                            <input
+                                x-ref="titleInput"
+                                type="text"
+                                x-model="tempTitle"
+                                @keydown.enter="$wire.updateProjectTitle(tempTitle).then(() => { editingTitle = false; originalTitle = tempTitle; })"
+                                @keydown.escape="tempTitle = originalTitle; editingTitle = false"
+                                class="flex-1 min-w-0 px-2 sm:px-3 py-2 text-base sm:text-lg font-bold border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button
+                                @click="$wire.updateProjectTitle(tempTitle).then(() => { editingTitle = false; originalTitle = tempTitle; })"
+                                class="shrink-0 p-2 sm:p-2.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 rounded-lg transition-colors touch-manipulation"
+                                type="button"
+                                aria-label="Save title">
+                                <flux:icon.check class="w-5 h-5" />
+                            </button>
+                            <button
+                                @click="tempTitle = originalTitle; editingTitle = false"
+                                class="shrink-0 p-2 sm:p-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors touch-manipulation"
+                                type="button"
+                                aria-label="Cancel editing">
+                                <flux:icon.x-mark class="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                @else
+                    {{-- Regular Display for View Context or Non-Owners --}}
+                    <flux:heading size="lg" class="text-slate-900 dark:text-slate-100 mb-2">
+                        @if($context === 'view')
                             {{ $project->name }}
-                        </a>
-                    @endif
-                </flux:heading>
+                        @else
+                            <a href="{{ route('projects.show', $project) }}"
+                               wire:navigate
+                               class="hover:text-blue-600 transition-colors duration-200">
+                                {{ $project->name }}
+                            </a>
+                        @endif
+                    </flux:heading>
+                @endif
                 
                 <div class="flex flex-wrap items-center gap-2 mb-1">
                     <!-- Status Badge -->
@@ -859,6 +909,11 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <!-- Stats -->
             <div class="flex flex-wrap items-center gap-4 text-sm">
+                <!-- Setup Checklist (injected via slot when in manage context) -->
+                @if(isset($checklist))
+                    {{ $checklist }}
+                @endif
+
                 <!-- Pitch Count (Not for Client Management) -->
                 @if(!$project->isClientManagement())
                     <div class="flex items-center gap-1.5">

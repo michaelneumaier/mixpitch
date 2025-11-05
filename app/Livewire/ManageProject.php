@@ -194,24 +194,371 @@ class ManageProject extends Component
 
         // Preview track logic
         $this->checkPreviewTrackStatus();
-
     }
 
     /**
      * Helper to map project collaboration types to form boolean properties.
      * This might need adjustment based on ProjectForm properties.
      */
-    private function mapCollaborationTypesToForm(?array $types): void
+    private function mapCollaborationTypesToForm(array|string|null $types): void
     {
-        if (empty($types)) {
+        // Handle if types is a JSON string (shouldn't happen with cast, but just in case)
+        if (is_string($types)) {
+            $types = json_decode($types, true);
+        }
+
+        if (empty($types) || ! is_array($types)) {
             return;
         }
+
         // Assuming ProjectForm has these boolean properties
         $this->form->collaborationTypeMixing = in_array('Mixing', $types);
         $this->form->collaborationTypeMastering = in_array('Mastering', $types);
         $this->form->collaborationTypeProduction = in_array('Production', $types);
         $this->form->collaborationTypeSongwriting = in_array('Songwriting', $types);
         $this->form->collaborationTypeVocalTuning = in_array('Vocal Tuning', $types);
+    }
+
+    /**
+     * Update project details inline (artist name, genre, description, notes)
+     */
+    public function updateProjectDetailsInline(array $updates): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Build validation rules dynamically based on what's being updated
+            $rules = [];
+            $messages = [];
+
+            if (isset($updates['artist_name'])) {
+                $rules['artist_name'] = 'nullable|string|max:255';
+                $messages['artist_name.max'] = 'Artist name cannot exceed 255 characters.';
+            }
+
+            if (isset($updates['genre'])) {
+                $rules['genre'] = 'nullable|string|max:100';
+                $messages['genre.max'] = 'Genre cannot exceed 100 characters.';
+            }
+
+            if (isset($updates['description'])) {
+                $rules['description'] = 'nullable|string|max:5000';
+                $messages['description.max'] = 'Description cannot exceed 5000 characters.';
+            }
+
+            if (isset($updates['notes'])) {
+                $rules['notes'] = 'nullable|string|max:10000';
+                $messages['notes.max'] = 'Notes cannot exceed 10000 characters.';
+            }
+
+            // Validate
+            $validated = validator($updates, $rules, $messages)->validate();
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update($validated);
+
+            // Success notification
+            Toaster::success('Project details updated successfully!');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project details', [
+                'project_id' => $this->project->id,
+                'updates' => $updates,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update project details. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project title inline
+     */
+    public function updateProjectTitle(string $newTitle): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Validate the new title
+            $validated = validator(['title' => $newTitle], [
+                'title' => 'required|string|max:255|min:3',
+            ], [
+                'title.required' => 'Project title is required.',
+                'title.min' => 'Project title must be at least 3 characters.',
+                'title.max' => 'Project title cannot exceed 255 characters.',
+            ])->validate();
+
+            // Update the project directly in database without triggering Livewire property tracking
+            Project::where('id', $this->project->id)->update([
+                'name' => $validated['title'],
+                'title' => $validated['title'],
+            ]);
+
+            // Success notification
+            Toaster::success('Project title updated successfully!');
+
+            // Skip render to prevent component re-render which breaks nested components
+            $this->skipRender();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Let Livewire handle displaying validation errors
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project title', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update project title. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update collaboration types inline
+     */
+    public function updateCollaborationTypes(array $types): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Validate that at least one type is selected (unless it's client management)
+            if (empty($types) && ! $this->project->isClientManagement()) {
+                Toaster::error('Please select at least one collaboration type.');
+                $this->skipRender();
+
+                return;
+            }
+
+            // Validate that each type is valid
+            $validTypes = ['Mixing', 'Mastering', 'Production', 'Songwriting', 'Vocal Tuning'];
+            foreach ($types as $type) {
+                if (! in_array($type, $validTypes)) {
+                    Toaster::error('Invalid collaboration type: '.$type);
+                    $this->skipRender();
+
+                    return;
+                }
+            }
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update([
+                'collaboration_type' => $types,
+            ]);
+
+            // Success notification
+            $count = count($types);
+            $message = $count === 0
+                ? 'Collaboration types cleared!'
+                : ($count === 1
+                    ? '1 collaboration type selected!'
+                    : $count.' collaboration types selected!');
+            Toaster::success($message);
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Exception $e) {
+            Log::error('Error updating collaboration types', [
+                'project_id' => $this->project->id,
+                'types' => $types,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update collaboration types. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project budget inline
+     */
+    public function updateBudget(array $updates): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Only allow budget updates for standard projects
+            if (! $this->project->isStandard()) {
+                Toaster::error('Budget can only be updated for standard projects.');
+                $this->skipRender();
+
+                return;
+            }
+
+            // Validate the budget data
+            $validated = validator($updates, [
+                'budget_type' => 'required|in:free,paid',
+                'budget' => 'nullable|numeric|min:0|max:999999.99',
+            ], [
+                'budget_type.required' => 'Budget type is required.',
+                'budget_type.in' => 'Budget type must be either free or paid.',
+                'budget.numeric' => 'Budget must be a valid number.',
+                'budget.min' => 'Budget cannot be negative.',
+                'budget.max' => 'Budget cannot exceed $999,999.99.',
+            ])->validate();
+
+            // Calculate final budget value
+            $budgetValue = ($validated['budget_type'] === 'free') ? 0 : (float) ($validated['budget'] ?? 0);
+
+            // Ensure paid projects have a budget > 0
+            if ($validated['budget_type'] === 'paid' && $budgetValue <= 0) {
+                Toaster::error('Paid projects must have a budget greater than $0.');
+                $this->skipRender();
+
+                return;
+            }
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update([
+                'budget' => $budgetValue,
+            ]);
+
+            // Success notification
+            $message = $validated['budget_type'] === 'free'
+                ? 'Project marked as free!'
+                : 'Budget updated to $'.number_format($budgetValue, 2).'!';
+            Toaster::success($message);
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project budget', [
+                'project_id' => $this->project->id,
+                'updates' => $updates,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update budget. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project deadline inline
+     */
+    public function updateDeadline(?string $deadline): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // If deadline is null or empty string, clear it
+            if (empty($deadline)) {
+                Project::where('id', $this->project->id)->update(['deadline' => null]);
+                Toaster::success('Deadline cleared!');
+                $this->skipRender();
+
+                return;
+            }
+
+            // Convert from user timezone to UTC
+            $utcDeadline = $this->convertDateTimeToUtc($deadline);
+
+            // Validate that deadline is in the future
+            if ($utcDeadline->isPast()) {
+                Toaster::error('Deadline must be in the future.');
+                $this->skipRender();
+
+                return;
+            }
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update([
+                'deadline' => $utcDeadline->toDateTimeString(),
+            ]);
+
+            // Success notification
+            Toaster::success('Deadline updated successfully!');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Exception $e) {
+            Log::error('Error updating project deadline', [
+                'project_id' => $this->project->id,
+                'deadline' => $deadline,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update deadline. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project license settings
+     */
+    public function updateLicense(array $updates): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Build validation rules
+            $rules = [
+                'license_template_id' => 'nullable|exists:license_templates,id',
+                'requires_license_agreement' => 'boolean',
+                'license_notes' => 'nullable|string|max:10000',
+            ];
+
+            $messages = [
+                'license_template_id.exists' => 'The selected license template is invalid.',
+                'license_notes.max' => 'License notes cannot exceed 10,000 characters.',
+            ];
+
+            // Validate
+            $validated = validator($updates, $rules, $messages)->validate();
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update($validated);
+
+            // Success notification
+            Toaster::success('License settings updated successfully!');
+
+            // Dispatch event for modal to listen to
+            $this->dispatch('license-updated');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project license', [
+                'project_id' => $this->project->id,
+                'updates' => $updates,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update license settings. Please try again.');
+            $this->skipRender();
+        }
     }
 
     /**

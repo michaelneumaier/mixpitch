@@ -35,9 +35,7 @@
                         
                         <!-- Primary Actions -->
                         <div class="flex items-center gap-2">
-                            <flux:button href="{{ route('projects.create') }}" wire:navigate icon="plus" variant="primary" color="amber" size="sm" >
-                                Create
-                            </flux:button>
+                            @livewire('workflow-dropdown', ['variant' => 'primary', 'color' => 'amber', 'size' => 'sm', 'label' => 'Create', 'fullWidth' => false])
                         </div>
                     </div>
 

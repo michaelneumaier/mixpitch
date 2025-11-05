@@ -411,5 +411,10 @@
         // Make toggle function global
         window.toggleDarkMode = toggleTheme;
     </script>
+
+    {{-- Quick Project Modal (available globally) --}}
+    @auth
+        @livewire('quick-project-modal')
+    @endauth
 </body>
 </html>

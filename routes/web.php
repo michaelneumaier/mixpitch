@@ -71,7 +71,10 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['subscription:create_project'])->group(function () {
         Route::post('/projects/store', [ProjectController::class, 'storeProject'])->name('projects.store');
         Route::get('/projects/upload', [ProjectController::class, 'createProject'])->name('projects.upload');
-        Route::get('/create-project', CreateProject::class)->name('projects.create');
+        // Redirect old create route to dashboard (dropdown handles creation now)
+        Route::get('/create-project', function () {
+            return redirect()->route('dashboard');
+        })->name('projects.create');
     });
 
     // Other project management routes (no subscription check needed)

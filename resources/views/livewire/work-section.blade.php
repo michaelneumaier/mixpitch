@@ -18,9 +18,7 @@
                     </flux:callout.text>
                     
                     <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-                        <flux:button href="{{ route('projects.create') }}" wire:navigate icon="plus" variant="primary">
-                            Create Project
-                        </flux:button>
+                        @livewire('workflow-dropdown', ['variant' => 'primary', 'label' => 'Create Project', 'fullWidth' => false])
                         <flux:button href="{{ route('projects.index') }}" wire:navigate icon="magnifying-glass" variant="outline">
                             Browse Projects
                         </flux:button>
@@ -67,11 +65,6 @@
                             </div>
                         </flux:table.column>
                         <flux:table.column class="w-auto">Name</flux:table.column>
-                        <flux:table.column class="hidden sm:table-cell">
-                            <div class="flex items-center justify-between">
-                                <span>Type</span>
-                            </div>
-                        </flux:table.column>
                         <flux:table.column class="w-24 sm:w-auto">Status</flux:table.column>
                         <flux:table.column class="hidden sm:table-cell">Amount</flux:table.column>
                         <flux:table.column class="hidden md:table-cell">Deadline</flux:table.column>
@@ -89,18 +82,22 @@
                                 $itemDeadline = null;
                                 $itemUpdated = null;
                                 $itemIcon = 'fa-question';
-                                $itemBadgeColor = 'zinc';
+                                $itemBadgeColor = 'zinc'; // For status column
+                                $itemTypeBadgeColor = 'zinc'; // For type column - based on workflow type
 
                                 if ($item instanceof \App\Models\Project) {
                                     if ($item->isClientManagement() && ($item->client_user_id === auth()->id() || $item->client_email === auth()->user()->email)) {
                                         $itemType = 'client';
+                                        $itemTypeBadgeColor = 'purple'; // Client management color
                                         // Route registered clients to the client portal (which will use app-sidebar layout)
                                         $itemUrl = route('client.portal.view', $item);
                                     } elseif ($item->isContest()) {
                                         $itemType = 'contest';
+                                        $itemTypeBadgeColor = 'yellow'; // Contest color
                                         $itemUrl = route('projects.manage', $item);
                                     } else {
                                         $itemType = 'project';
+                                        $itemTypeBadgeColor = 'blue'; // Standard project color
                                         $itemUrl = route('projects.manage', $item);
                                     }
                                     $itemName = $item->name;
@@ -117,16 +114,18 @@
                                         default => 'zinc'
                                     };
                                 }
-                                elseif ($item instanceof \App\Models\Pitch) { 
+                                elseif ($item instanceof \App\Models\Pitch) {
                                     if ($item->project && $item->project->isClientManagement()) {
                                         $itemType = 'client';
+                                        $itemTypeBadgeColor = 'purple'; // Client management color
                                     } else {
                                         $itemType = 'pitch';
+                                        $itemTypeBadgeColor = 'indigo'; // Pitch color
                                     }
                                     $itemUrl = \App\Helpers\RouteHelpers::pitchUrl($item);
                                     $itemName = $item->project ? $item->project->name : 'Pitch';
                                     $itemStatus = $item->status;
-                                    $itemAmount = $item->amount;
+                                    $itemAmount = $item->payment_amount;
                                     $itemDeadline = $item->project ? ($item->project->isContest() ? $item->project->submission_deadline : $item->project->deadline) : null;
                                     $itemUpdated = $item->updated_at;
                                     $itemIcon = $item->project && $item->project->isClientManagement() ? 'fa-briefcase' : 'fa-paper-plane';
@@ -139,8 +138,9 @@
                                         default => 'zinc'
                                     };
                                 }
-                                elseif ($item instanceof \App\Models\Order) { 
+                                elseif ($item instanceof \App\Models\Order) {
                                     $itemType = 'order';
+                                    $itemTypeBadgeColor = 'green'; // Order color
                                     $itemUrl = route('orders.show', $item);
                                     $itemName = $item->servicePackage ? $item->servicePackage->name : 'Order';
                                     $itemStatus = $item->status;
@@ -157,8 +157,9 @@
                                         default => 'zinc'
                                     };
                                 }
-                                elseif ($item instanceof \App\Models\ServicePackage) { 
+                                elseif ($item instanceof \App\Models\ServicePackage) {
                                     $itemType = 'service';
+                                    $itemTypeBadgeColor = 'emerald'; // Service color
                                     $itemUrl = route('services.show', $item);
                                     $itemName = $item->name;
                                     $itemStatus = $item->status ?? 'active';
@@ -247,9 +248,32 @@
                                            x-init="(() => { const ds = $el.dataset; const meta = { modelId: Number(ds.modelId), context: ds.context, modelLabel: ds.modelLabel, modelType: ds.modelType }; if (ds.projectTitle) meta.projectTitle = ds.projectTitle; if (ds.workflowType) meta.workflowType = ds.workflowType; if (ds.projectStatus) meta.projectStatus = ds.projectStatus; if (ds.pitchTitle) meta.pitchTitle = ds.pitchTitle; if (ds.pitchStatus) meta.pitchStatus = ds.pitchStatus; if (ds.isClientManagement && ds.isClientManagement !== 'false') meta.isClientManagement = ds.isClientManagement === 'true'; if (ds.clientName) meta.clientName = ds.clientName; if (window.GlobalDragDrop) window.GlobalDragDrop.registerDropZone($el, meta); })()"
                                            onclick="window.location.href='{{ $itemUrl }}'">
                                 <flux:table.cell class="w-10">
-                                    <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ $itemType === 'project' ? 'bg-blue-100 dark:bg-blue-900/30' : ($itemType === 'pitch' ? 'bg-indigo-100 dark:bg-indigo-900/30' : ($itemType === 'order' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-purple-100 dark:bg-purple-900/30')) }}">
-                                        <i class="fas {{ $itemIcon }} text-xs {{ $itemType === 'project' ? 'text-blue-600 dark:text-blue-400' : ($itemType === 'pitch' ? 'text-indigo-600 dark:text-indigo-400' : ($itemType === 'order' ? 'text-green-600 dark:text-green-400' : 'text-purple-600 dark:text-purple-400')) }}"></i>
-                                    </div>
+                                    @php
+                                        // Icon background and text colors based on item type
+                                        $iconBgClass = match($itemType) {
+                                            'project' => 'bg-blue-100 dark:bg-blue-900/30',
+                                            'pitch' => 'bg-indigo-100 dark:bg-indigo-900/30',
+                                            'contest' => 'bg-yellow-100 dark:bg-yellow-900/30',
+                                            'client' => 'bg-purple-100 dark:bg-purple-900/30',
+                                            'order' => 'bg-green-100 dark:bg-green-900/30',
+                                            'service' => 'bg-emerald-100 dark:bg-emerald-900/30',
+                                            default => 'bg-gray-100 dark:bg-gray-900/30'
+                                        };
+                                        $iconTextClass = match($itemType) {
+                                            'project' => 'text-blue-600 dark:text-blue-400',
+                                            'pitch' => 'text-indigo-600 dark:text-indigo-400',
+                                            'contest' => 'text-yellow-600 dark:text-yellow-400',
+                                            'client' => 'text-purple-600 dark:text-purple-400',
+                                            'order' => 'text-green-600 dark:text-green-400',
+                                            'service' => 'text-emerald-600 dark:text-emerald-400',
+                                            default => 'text-gray-600 dark:text-gray-400'
+                                        };
+                                    @endphp
+                                    <flux:tooltip :content="Str::title(str_replace('_', ' ', $itemType))">
+                                        <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ $iconBgClass }}">
+                                            <i class="fas {{ $itemIcon }} text-xs {{ $iconTextClass }}"></i>
+                                        </div>
+                                    </flux:tooltip>
                                 </flux:table.cell>
                                 <flux:table.cell class="max-w-0 w-full">
                                     <div class="min-w-0">
@@ -262,11 +286,6 @@
                                             </div>
                                         @endif
                                     </div>
-                                </flux:table.cell>
-                                <flux:table.cell class="hidden sm:table-cell">
-                                    <flux:badge size="sm" color="{{ $itemBadgeColor }}" class="capitalize">
-                                        {{ Str::title(str_replace('_', ' ', $itemType)) }}
-                                    </flux:badge>
                                 </flux:table.cell>
                                 <flux:table.cell class="w-24 sm:w-auto">
                                     @php
@@ -283,7 +302,7 @@
                                             default => strlen($fullStatus) > 8 ? Str::limit($fullStatus, 8, '') : $fullStatus
                                         };
                                     @endphp
-                                    <flux:badge size="sm" color="{{ $itemBadgeColor }}" variant="outline" class="capitalize whitespace-nowrap">
+                                    <flux:badge size="sm" color="{{ $itemBadgeColor }}" class="capitalize whitespace-nowrap">
                                         <span class="sm:hidden">{{ $mobileStatus }}</span>
                                         <span class="hidden sm:inline">{{ $fullStatus }}</span>
                                     </flux:badge>

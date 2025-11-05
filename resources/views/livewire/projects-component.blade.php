@@ -10,9 +10,7 @@
                     
                     <div class="flex items-center gap-2">
                         @auth
-                            <flux:button href="{{ route('projects.create') }}" icon="plus" variant="primary" color="amber" size="sm">
-                                Create
-                            </flux:button>
+                            @livewire('workflow-dropdown', ['variant' => 'primary', 'color' => 'amber', 'size' => 'sm', 'label' => 'Create', 'fullWidth' => false])
                         @else
                             <flux:button href="{{ route('login') }}" icon="arrow-right-end-on-rectangle" variant="primary" color="amber" size="sm">
                                 Login
