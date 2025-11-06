@@ -59,7 +59,7 @@ class ProjectForm extends Form
             'artistName' => 'nullable|string|max:30',
             'projectType' => ['required', 'string', 'max:50', ValidationRule::in($activeProjectTypeSlugs)],
             'description' => 'required|string|min:5|max:1000',
-            'genre' => 'required|in:Pop,Rock,Hip Hop,Electronic,R&B,Country,Jazz,Classical,Metal,Blues,Folk,Funk,Reggae,Soul,Punk',
+            'genre' => 'required|in:'.\App\Enums\Genre::validationString(),
             'projectImage' => 'nullable|image|max:2048',
             'collaborationTypeMixing' => 'boolean',
             'collaborationTypeMastering' => 'boolean',

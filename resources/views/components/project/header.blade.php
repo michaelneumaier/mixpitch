@@ -457,7 +457,7 @@
             <div class="min-w-0 flex-1">
                 @if($context === 'manage' && $project->user_id === auth()->id())
                     {{-- Inline Title Editing for Project Owner --}}
-                    <div x-data="{
+                    <div wire:ignore x-data="{
                         editingTitle: false,
                         tempTitle: '{{ addslashes($project->name) }}',
                         originalTitle: '{{ addslashes($project->name) }}'
@@ -469,7 +469,7 @@
                             </flux:heading>
                             <button
                                 @click="editingTitle = true; $nextTick(() => $refs.titleInput.focus())"
-                                class="min-w-11 min-h-11 flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md touch-manipulation"
+                                class="flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md touch-manipulation"
                                 type="button"
                                 aria-label="Edit project title">
                                 <flux:icon.pencil class="w-4 h-4 text-slate-500" />
@@ -484,21 +484,21 @@
                                 x-model="tempTitle"
                                 @keydown.enter="$wire.updateProjectTitle(tempTitle).then(() => { editingTitle = false; originalTitle = tempTitle; })"
                                 @keydown.escape="tempTitle = originalTitle; editingTitle = false"
-                                class="flex-1 min-w-0 px-2 sm:px-3 py-2 text-base sm:text-lg font-bold border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                class="flex-1 min-w-0 px-2 sm:px-3 py-1 text-base sm:text-lg font-bold border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                             <button
                                 @click="$wire.updateProjectTitle(tempTitle).then(() => { editingTitle = false; originalTitle = tempTitle; })"
-                                class="shrink-0 p-2 sm:p-2.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 rounded-lg transition-colors touch-manipulation"
+                                class="shrink-0 p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 rounded-lg transition-colors touch-manipulation"
                                 type="button"
                                 aria-label="Save title">
-                                <flux:icon.check class="w-5 h-5" />
+                                <flux:icon.check class="w-4 h-4" />
                             </button>
                             <button
                                 @click="tempTitle = originalTitle; editingTitle = false"
-                                class="shrink-0 p-2 sm:p-2.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors touch-manipulation"
+                                class="shrink-0 p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors touch-manipulation"
                                 type="button"
                                 aria-label="Cancel editing">
-                                <flux:icon.x-mark class="w-5 h-5" />
+                                <flux:icon.x-mark class="w-4 h-4" />
                             </button>
                         </div>
                     </div>

@@ -17,27 +17,42 @@ class LicenseManagement extends Component
 
     public Project $project;
 
+    public array $workflowColors = [];
+
+    public array $semanticColors = [];
+
     // Preview modal state
     public $showPreviewModal = false;
+
     public $currentPreviewTemplate = null;
 
     // Form state
     public $selectedTemplateId = null;
+
     public $requiresAgreement = false;
+
     public $licenseNotes = '';
 
     // Create template modal state
     public $showCreateModal = false;
+
     public $name = '';
+
     public $description = '';
+
     public $content = '';
+
     public $category = '';
+
     public $use_case = '';
+
     public $terms = [];
 
-    public function mount(Project $project)
+    public function mount(Project $project, array $workflowColors = [], array $semanticColors = [])
     {
         $this->project = $project;
+        $this->workflowColors = $workflowColors;
+        $this->semanticColors = $semanticColors;
 
         // Initialize form values from project
         $this->selectedTemplateId = $project->license_template_id;
@@ -131,6 +146,7 @@ class LicenseManagement extends Component
     {
         if (! $this->canUserCreateTemplates) {
             Toaster::error('You have reached your license template limit. Upgrade to Pro for unlimited templates.');
+
             return;
         }
 
@@ -181,7 +197,7 @@ class LicenseManagement extends Component
                 'error' => $e->getMessage(),
                 'user_id' => auth()->id(),
             ]);
-            Toaster::error('Error creating template: ' . $e->getMessage());
+            Toaster::error('Error creating template: '.$e->getMessage());
         }
     }
 

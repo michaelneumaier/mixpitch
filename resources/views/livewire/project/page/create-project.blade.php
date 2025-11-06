@@ -1,7 +1,7 @@
 <div>
 @php
-    // Define available genres
-    $genres = ['Pop', 'Rock', 'Hip Hop', 'Electronic', 'R&B', 'Country', 'Jazz', 'Classical', 'Metal', 'Blues', 'Folk', 'Funk', 'Reggae', 'Soul', 'Punk'];
+    // Define available genres from enum
+    $genres = \App\Models\Project::getGenres();
 
     // Unified Color System - Dynamic workflow-aware colors
     $workflowColors = match($workflow_type ?? 'standard') {

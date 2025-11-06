@@ -1,10 +1,8 @@
-@props(['workflowColors' => [], 'semanticColors' => []])
-
 @php
     $licenseTemplate = $project->license_template_id ? $project->licenseTemplate : null;
     $requiresAgreement = $project->requires_license_agreement ?? false;
     $hasLicenseNotes = !empty($project->license_notes);
-    
+
     // Get fresh license signatures for this project
     $licenseSignatures = $project->licenseSignatures()->get();
     $pendingSignatures = $licenseSignatures->where('status', 'pending');
@@ -54,19 +52,23 @@
         ]
     };
 
-    // Provide fallback colors if not passed from parent
-    $workflowColors = $workflowColors ?? [
-        'text_primary' => $gradientClasses['text_primary'],
-        'text_secondary' => $gradientClasses['text_secondary'],
-        'text_muted' => $gradientClasses['text_muted'],
-        'icon' => $gradientClasses['icon']
-    ];
+    // Provide fallback colors if not passed from parent or if empty
+    if (empty($workflowColors)) {
+        $workflowColors = [
+            'text_primary' => $gradientClasses['text_primary'],
+            'text_secondary' => $gradientClasses['text_secondary'],
+            'text_muted' => $gradientClasses['text_muted'],
+            'icon' => $gradientClasses['icon']
+        ];
+    }
 
-    $semanticColors = $semanticColors ?? [
-        'success' => ['bg' => 'bg-green-50 dark:bg-green-950', 'text' => 'text-green-800 dark:text-green-200', 'icon' => 'text-green-600 dark:text-green-400'],
-        'warning' => ['bg' => 'bg-amber-50 dark:bg-amber-950', 'text' => 'text-amber-800 dark:text-amber-200', 'icon' => 'text-amber-600 dark:text-amber-400'],
-        'danger' => ['bg' => 'bg-red-50 dark:bg-red-950', 'text' => 'text-red-800 dark:text-red-200', 'icon' => 'text-red-600 dark:text-red-400']
-    ];
+    if (empty($semanticColors)) {
+        $semanticColors = [
+            'success' => ['bg' => 'bg-green-50 dark:bg-green-950', 'text' => 'text-green-800 dark:text-green-200', 'icon' => 'text-green-600 dark:text-green-400'],
+            'warning' => ['bg' => 'bg-amber-50 dark:bg-amber-950', 'text' => 'text-amber-800 dark:text-amber-200', 'icon' => 'text-amber-600 dark:text-amber-400'],
+            'danger' => ['bg' => 'bg-red-50 dark:bg-red-950', 'text' => 'text-red-800 dark:text-red-200', 'icon' => 'text-red-600 dark:text-red-400']
+        ];
+    }
 @endphp
 <div>
 <!-- License Management Section -->
@@ -330,8 +332,8 @@
                                 <flux:button
                                     type="button"
                                     wire:click="createTemplate"
-                                    variant="primary">
-                                    <flux:icon.plus class="w-4 h-4 mr-2" />
+                                    variant="primary"
+                                    icon="plus">
                                     Create New Template
                                 </flux:button>
                             @else
@@ -339,8 +341,8 @@
                                     <p class="text-sm text-gray-500 mb-2">Template limit reached</p>
                                     <flux:button
                                         href="{{ route('subscription.index') }}"
-                                        variant="primary">
-                                        <flux:icon.star class="w-4 h-4 mr-2" />
+                                        variant="primary"
+                                        icon="star">
                                         Upgrade to Pro
                                     </flux:button>
                                 </div>

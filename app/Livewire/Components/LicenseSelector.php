@@ -19,6 +19,8 @@ class LicenseSelector extends Component
 
     public $projectType = null;
 
+    public $templatePickerOnly = false;
+
     public $showCustomTermsBuilder = false;
 
     public $showPreviewModal = false;
@@ -77,11 +79,12 @@ class LicenseSelector extends Component
         'terms' => 'array',
     ];
 
-    public function mount($selectedTemplateId = null, $projectType = null, $requiresAgreement = true)
+    public function mount($selectedTemplateId = null, $projectType = null, $requiresAgreement = true, $templatePickerOnly = false)
     {
         $this->selectedTemplateId = $selectedTemplateId;
         $this->projectType = $projectType;
         $this->requiresAgreement = $requiresAgreement;
+        $this->templatePickerOnly = $templatePickerOnly;
 
         // Initialize template form defaults
         $this->resetTemplateForm();

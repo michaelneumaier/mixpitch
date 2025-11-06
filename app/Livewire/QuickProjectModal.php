@@ -75,23 +75,7 @@ class QuickProjectModal extends Component
             'other' => 'Other',
         ];
 
-        $this->genres = [
-            'Pop',
-            'Rock',
-            'Hip Hop',
-            'Electronic',
-            'R&B',
-            'Country',
-            'Jazz',
-            'Classical',
-            'Metal',
-            'Blues',
-            'Folk',
-            'Funk',
-            'Reggae',
-            'Soul',
-            'Punk',
-        ];
+        $this->genres = Project::getGenres();
 
         $this->collaborationServices = [
             'Production' => 'Production',
@@ -272,7 +256,7 @@ class QuickProjectModal extends Component
                     'artist_name' => $this->artist_name ?: '',
                     'project_type' => $this->project_type ?: 'single',
                     'genre' => $this->genre ?: 'Pop',
-                    'description' => $this->description ?: $this->getDefaultDescription(),
+                    'description' => $this->description ?: '',
                     'collaboration_type' => ! empty($this->collaboration_types) ? $this->collaboration_types : ['Production'],
                     'budget' => 0, // Default free
                     'status' => Project::STATUS_UNPUBLISHED,
@@ -329,18 +313,6 @@ class QuickProjectModal extends Component
 
             Toaster::error('Failed to create project. Please try again.');
         }
-    }
-
-    /**
-     * Get default description based on workflow type
-     */
-    protected function getDefaultDescription(): string
-    {
-        return match ($this->workflow_type) {
-            Project::WORKFLOW_TYPE_CONTEST => 'Contest project - add details about prizes and judging criteria.',
-            Project::WORKFLOW_TYPE_CLIENT_MANAGEMENT => 'Client project - add details about client requirements and deliverables.',
-            default => 'Add details about your project to help producers understand what you\'re looking for.',
-        };
     }
 
     /**

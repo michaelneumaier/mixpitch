@@ -133,9 +133,9 @@
             <flux:button
                 wire:click="resendClientInvite"
                 variant="ghost"
+                icon="paper-airplane"
                 size="sm"
                 class="w-full">
-                <flux:icon.paper-airplane class="w-4 h-4" />
                 Resend Client Invite
             </flux:button>
         </div>

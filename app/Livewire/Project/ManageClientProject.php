@@ -386,7 +386,59 @@ class ManageClientProject extends Component
     }
 
     /**
-     * Update project license settings
+     * Update project license settings inline (from details-card)
+     */
+    public function updateLicenseSettings(array $settings): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Validate the license settings
+            $validated = validator($settings, [
+                'requires_agreement' => 'boolean',
+                'template_id' => 'nullable|exists:license_templates,id',
+                'license_notes' => 'nullable|string|max:10000',
+            ], [
+                'template_id.exists' => 'The selected license template is invalid.',
+                'license_notes.max' => 'License notes cannot exceed 10,000 characters.',
+            ])->validate();
+
+            // Update the project directly in database
+            Project::where('id', $this->project->id)->update([
+                'requires_license_agreement' => $validated['requires_agreement'],
+                'license_template_id' => $validated['template_id'],
+                'license_notes' => $validated['license_notes'],
+            ]);
+
+            // Refresh the project model
+            $this->project->refresh();
+
+            // Success notification
+            Toaster::success('License settings updated successfully!');
+
+            // Skip render to prevent component re-render
+            $this->skipRender();
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+            $this->skipRender();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Laravel will handle validation errors automatically
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating project license settings', [
+                'project_id' => $this->project->id,
+                'settings' => $settings,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update license settings. Please try again.');
+            $this->skipRender();
+        }
+    }
+
+    /**
+     * Update project license settings (legacy - from old license-management component)
      */
     public function updateLicense(array $updates): void
     {

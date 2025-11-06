@@ -304,113 +304,18 @@
                                     ], key('file-list-' . $project->id))
                                 </flux:card>
                             @endif
-
-                            {{-- License Management Component --}}
-                            <div class="mb-2">
-                                @livewire('project.component.license-management', ['project' => $project, 'workflowColors' => $workflowColors, 'semanticColors' => $semanticColors], key('license-management-' . $project->id))
-                            </div>
-
-                            
                         </div>
 
                         <!-- Sidebar (1/3 width on large screens) -->
                         <div class="space-y-2 lg:col-span-1">
                             {{-- Project Details Card --}}
-                            <x-project.details-card :project="$project" :workflowColors="$workflowColors" />
-
-                            {{-- Workflow Type Specific Information --}}
-                            @if ($project->isStandard())
-                                <flux:card class="mb-2 hidden lg:block {{ $workflowColors['bg'] }} {{ $workflowColors['border'] }}">
-                                    <div class="flex items-center gap-3 mb-6">
-                                        <flux:icon.users variant="solid" class="w-8 h-8 {{ $workflowColors['icon'] }}" />
-                                        <div>
-                                            <flux:heading size="lg" class="{{ $workflowColors['text_primary'] }}">Standard Project</flux:heading>
-                                            <flux:subheading class="{{ $workflowColors['text_muted'] }}">Open collaboration workflow</flux:subheading>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-4">
-                                        <div class="p-4 {{ $workflowColors['accent_bg'] }} rounded-xl border {{ $workflowColors['accent_border'] }}">
-                                            <div class="flex items-start gap-3">
-                                                <flux:icon.users class="w-6 h-6 {{ $workflowColors['icon'] }} flex-shrink-0 mt-0.5" />
-                                                <div>
-                                                    <flux:subheading class="{{ $workflowColors['text_primary'] }} font-semibold mb-1">Open Collaboration</flux:subheading>
-                                                    <p class="text-sm {{ $workflowColors['text_secondary'] }}">Any producer can submit a pitch for your project. Review and approve the best fit.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="p-4 {{ $workflowColors['accent_bg'] }} rounded-xl border {{ $workflowColors['accent_border'] }}">
-                                            <div class="flex items-start gap-3">
-                                                <flux:icon.chat-bubble-left-right class="w-6 h-6 {{ $workflowColors['icon'] }} flex-shrink-0 mt-0.5" />
-                                                <div>
-                                                    <flux:subheading class="{{ $workflowColors['text_primary'] }} font-semibold mb-1">Direct Communication</flux:subheading>
-                                                    <p class="text-sm {{ $workflowColors['text_secondary'] }}">Work directly with your chosen producer throughout the project lifecycle.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </flux:card>
-
-                                <!-- Project Insights -->
-                                <div class="mb-2 hidden lg:block">
-                                    <x-project.quick-stats :project="$project" />
-                                </div>
-
-
-                                <!-- Tips & Best Practices -->
-                                <flux:card class="mb-2 hidden lg:block {{ $semanticColors['success']['bg'] }} {{ $semanticColors['success']['border'] }}">
-                                    <div class="flex items-center gap-3 mb-6">
-                                        <flux:icon.light-bulb variant="solid" class="w-8 h-8 {{ $semanticColors['success']['icon'] }}" />
-                                        <div>
-                                            <flux:heading size="lg" class="{{ $semanticColors['success']['text'] }}">Tips for Success</flux:heading>
-                                            <flux:subheading class="{{ $semanticColors['success']['icon'] }}">Maximize your project potential</flux:subheading>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-3">
-                                        @if ($project->pitches->count() === 0)
-                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
-                                                <div class="flex items-start gap-3">
-                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
-                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Share your project on social media to attract more producers</span>
-                                                </div>
-                                            </div>
-                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
-                                                <div class="flex items-start gap-3">
-                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
-                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Add reference tracks to help producers understand your vision</span>
-                                                </div>
-                                            </div>
-                                        @elseif($project->pitches->where('status', 'approved')->count() === 0)
-                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
-                                                <div class="flex items-start gap-3">
-                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
-                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Review pitches carefully and communicate with producers</span>
-                                                </div>
-                                            </div>
-                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
-                                                <div class="flex items-start gap-3">
-                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
-                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Ask questions to ensure the producer understands your needs</span>
-                                                </div>
-                                            </div>
-                                        @else
-                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
-                                                <div class="flex items-start gap-3">
-                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
-                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Provide clear feedback to help your producer deliver the best results</span>
-                                                </div>
-                                            </div>
-                                            <div class="p-3 {{ $semanticColors['success']['bg'] }} rounded-xl {{ $semanticColors['success']['border'] }} border">
-                                                <div class="flex items-start gap-3">
-                                                    <flux:icon.check class="w-5 h-5 {{ $semanticColors['success']['icon'] }} flex-shrink-0 mt-0.5" />
-                                                    <span class="text-sm font-medium {{ $semanticColors['success']['text'] }}">Upload reference files to guide the production process</span>
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </flux:card>
+                            @livewire('project.component.project-details-card', [
+                                'project' => $project,
+                                'workflowColors' => $workflowColors
+                            ], key('project-details-card-' . $project->id))
 
                                 
-                            @elseif($project->isContest())
+                            @if($project->isContest())
                                 <!-- Contest Prizes Component -->
                                 @livewire('project.component.contest-prizes', ['project' => $project, 'workflowColors' => $workflowColors, 'semanticColors' => $semanticColors], key('contest-prizes-' . $project->id))
 
@@ -636,7 +541,6 @@
         });
     });
 </script>
-
 
 </div>
 </x-draggable-upload-page>

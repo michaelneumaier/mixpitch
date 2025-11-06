@@ -144,7 +144,7 @@ class CreateProject extends Component
             'form.artistName' => 'nullable|string|max:30',
             'form.projectType' => 'required|string|max:50',
             'form.description' => 'required|string|min:5|max:1000',
-            'form.genre' => 'required|in:Pop,Rock,Hip Hop,Electronic,R&B,Country,Jazz,Classical,Metal,Blues,Folk,Funk,Reggae,Soul,Punk',
+            'form.genre' => 'required|in:'.\App\Enums\Genre::validationString(),
             'form.budgetType' => 'required|in:free,paid',
             'form.budget' => 'nullable|numeric|min:0|max:999999.99',
             'form.deadline' => 'nullable|date',

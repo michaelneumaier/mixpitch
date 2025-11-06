@@ -1142,6 +1142,14 @@ class Project extends Model
     }
 
     /**
+     * Get an array of all valid genres.
+     */
+    public static function getGenres(): array
+    {
+        return \App\Enums\Genre::values();
+    }
+
+    /**
      * Get human-readable project type name.
      */
     public function getReadableWorkflowTypeAttribute(): string

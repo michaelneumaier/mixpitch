@@ -536,7 +536,10 @@
                                     <x-project.client-info-card :project="$project" :workflowColors="$workflowColors" />
 
                                     {{-- Project Details Card --}}
-                                    <x-project.details-card :project="$project" :workflowColors="$workflowColors" />
+                                    @livewire('project.component.project-details-card', [
+                                        'project' => $project,
+                                        'workflowColors' => $workflowColors
+                                    ], key('project-details-card-' . $project->id))
 
                                     <!-- Client Communication Hub -->
 
