@@ -532,10 +532,7 @@
                                 </div>
                                 <!-- Sidebar (30% width on large screens) -->
                                 <div class="space-y-2 lg:col-span-1">
-                                    {{-- Client Information Card --}}
-                                    <x-project.client-info-card :project="$project" :workflowColors="$workflowColors" />
-
-                                    {{-- Project Details Card --}}
+                                    {{-- Project Details Card (includes Client Information for client management projects) --}}
                                     @livewire('project.component.project-details-card', [
                                         'project' => $project,
                                         'workflowColors' => $workflowColors

@@ -55,6 +55,9 @@
 
         {{-- Alpine component for inline editing --}}
         <div x-data="{
+            showClientInfo: false,
+            editingClientEmail: false,
+            editingClientName: false,
             showBasicDetails: false,
             editingArtist: false,
             editingGenre: false,
@@ -70,6 +73,133 @@
             showNotes: false,
             editingNotes: false
         }" class="space-y-4">
+
+            {{-- Client Information (Client Management Projects Only) --}}
+            @if($project->isClientManagement())
+                <div class="pb-4 border-b {{ $colors['border'] }}">
+                    <button
+                        @click="showClientInfo = !showClientInfo"
+                        class="flex items-center justify-between w-full text-sm font-semibold {{ $colors['text_secondary'] }} hover:{{ $colors['text_primary'] }} transition-colors"
+                        type="button">
+                        <div class="flex items-center gap-2">
+                            <flux:icon.user-circle class="w-4 h-4" />
+                            <span>Client Information</span>
+                        </div>
+                        <flux:icon.chevron-down class="w-4 h-4 transition-transform" x-bind:class="showClientInfo ? 'rotate-180' : ''" />
+                    </button>
+
+                    <div x-show="showClientInfo" x-collapse class="mt-3 space-y-4">
+                        {{-- Client Email --}}
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2 group">
+                                <flux:icon.envelope class="w-4 h-4 {{ $colors['icon'] }}" />
+                                <span class="text-sm font-semibold {{ $colors['text_secondary'] }}">Client Email</span>
+                                <button
+                                    x-show="!editingClientEmail"
+                                    @click="editingClientEmail = true; $nextTick(() => $refs.clientEmailInput.focus())"
+                                    class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded touch-manipulation"
+                                    type="button"
+                                    aria-label="Edit client email">
+                                    <flux:icon.pencil class="w-3 h-3 text-slate-500" />
+                                </button>
+                            </div>
+
+                            <div x-show="!editingClientEmail">
+                                <span class="text-sm {{ $colors['text_primary'] }}" x-text="$wire.clientEmail || 'Not set'"></span>
+                            </div>
+
+                            <div x-show="editingClientEmail" x-cloak class="flex items-center gap-1.5">
+                                <input
+                                    x-ref="clientEmailInput"
+                                    type="email"
+                                    wire:model.blur="clientEmail"
+                                    @keydown.enter="$wire.updateClientInfo({ client_email: $wire.clientEmail }).then(() => editingClientEmail = false)"
+                                    @keydown.escape="$wire.$refresh(); editingClientEmail = false"
+                                    class="flex-1 min-w-0 px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                    placeholder="client@example.com"
+                                />
+                                <button
+                                    @click="$wire.updateClientInfo({ client_email: $wire.clientEmail }).then(() => editingClientEmail = false)"
+                                    class="shrink-0 p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 rounded-lg transition-colors touch-manipulation"
+                                    type="button">
+                                    <flux:icon.check class="w-4 h-4" />
+                                </button>
+                                <button
+                                    @click="$wire.$refresh(); editingClientEmail = false"
+                                    class="shrink-0 p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors touch-manipulation"
+                                    type="button">
+                                    <flux:icon.x-mark class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Client Name --}}
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2 group">
+                                <flux:icon.user class="w-4 h-4 {{ $colors['icon'] }}" />
+                                <span class="text-sm font-semibold {{ $colors['text_secondary'] }}">Client Name</span>
+                                <button
+                                    x-show="!editingClientName"
+                                    @click="editingClientName = true; $nextTick(() => $refs.clientNameInput.focus())"
+                                    class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded touch-manipulation"
+                                    type="button"
+                                    aria-label="Edit client name">
+                                    <flux:icon.pencil class="w-3 h-3 text-slate-500" />
+                                </button>
+                            </div>
+
+                            <div x-show="!editingClientName">
+                                <span class="text-sm {{ $colors['text_primary'] }}" x-text="$wire.clientName || 'Not set'"></span>
+                            </div>
+
+                            <div x-show="editingClientName" x-cloak class="flex items-center gap-1.5">
+                                <input
+                                    x-ref="clientNameInput"
+                                    type="text"
+                                    wire:model.blur="clientName"
+                                    @keydown.enter="$wire.updateClientInfo({ client_name: $wire.clientName }).then(() => editingClientName = false)"
+                                    @keydown.escape="$wire.$refresh(); editingClientName = false"
+                                    class="flex-1 min-w-0 px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                    placeholder="Client name"
+                                />
+                                <button
+                                    @click="$wire.updateClientInfo({ client_name: $wire.clientName }).then(() => editingClientName = false)"
+                                    class="shrink-0 p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950 rounded-lg transition-colors touch-manipulation"
+                                    type="button">
+                                    <flux:icon.check class="w-4 h-4" />
+                                </button>
+                                <button
+                                    @click="$wire.$refresh(); editingClientName = false"
+                                    class="shrink-0 p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors touch-manipulation"
+                                    type="button">
+                                    <flux:icon.x-mark class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Client Account Status --}}
+                        @if($project->client_user_id)
+                            <div class="flex items-center gap-2 text-sm {{ $colors['text_muted'] }}">
+                                <flux:icon.check-circle variant="solid" class="w-4 h-4 text-green-600 dark:text-green-400" />
+                                <span>Client has MixPitch account</span>
+                            </div>
+                        @endif
+
+                        {{-- Resend Invite Button --}}
+                        <div class="pt-2">
+                            <flux:button
+                                wire:click="resendClientInvite"
+                                variant="ghost"
+                                icon="paper-airplane"
+                                size="sm"
+                                class="w-full">
+                                Resend Client Invite
+                            </flux:button>
+                        </div>
+                    </div>
+                </div>
+
+            @endif
 
             {{-- Basic Details (Artist Name, Genre, Description) --}}
             <div>

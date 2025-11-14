@@ -25,6 +25,11 @@ class ProjectDetailsCard extends Component
 
     public string $notes = '';
 
+    // Client information (for client management projects)
+    public string $clientEmail = '';
+
+    public string $clientName = '';
+
     // Collaboration types
     public array $collaborationTypes = [];
 
@@ -62,6 +67,10 @@ class ProjectDetailsCard extends Component
         $this->genre = $project->genre ?? '';
         $this->description = $project->description ?? '';
         $this->notes = $project->notes ?? '';
+
+        // Initialize client information (for client management projects)
+        $this->clientEmail = $project->client_email ?? '';
+        $this->clientName = $project->client_name ?? '';
 
         // Initialize collaboration types
         $types = is_array($project->collaboration_type)
@@ -195,6 +204,120 @@ class ProjectDetailsCard extends Component
     public function updateNotes(): void
     {
         $this->updateProjectDetails(['notes' => $this->notes]);
+    }
+
+    /**
+     * Update client information (email and/or name)
+     */
+    public function updateClientInfo(array $updates): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Only allow for client management projects
+            if (! $this->project->isClientManagement()) {
+                Toaster::error('Client information can only be updated for client management projects.');
+
+                return;
+            }
+
+            // Build validation rules dynamically
+            $rules = [];
+            $messages = [];
+
+            if (isset($updates['client_email'])) {
+                $rules['client_email'] = 'required|email|max:255';
+                $messages['client_email.required'] = 'Client email is required.';
+                $messages['client_email.email'] = 'Please enter a valid email address.';
+                $messages['client_email.max'] = 'Email cannot exceed 255 characters.';
+            }
+
+            if (isset($updates['client_name'])) {
+                $rules['client_name'] = 'nullable|string|max:255';
+                $messages['client_name.max'] = 'Client name cannot exceed 255 characters.';
+            }
+
+            // Validate
+            $validated = validator($updates, $rules, $messages)->validate();
+
+            // Check if email changed and try to link to existing user
+            if (isset($validated['client_email'])) {
+                $clientUser = \App\Models\User::where('email', $validated['client_email'])->first();
+                if ($clientUser) {
+                    $validated['client_user_id'] = $clientUser->id;
+                }
+            }
+
+            // Update the project
+            Project::where('id', $this->project->id)->update($validated);
+
+            // Refresh project model
+            $this->project->refresh();
+
+            // Update local properties
+            if (isset($validated['client_email'])) {
+                $this->clientEmail = $validated['client_email'];
+            }
+            if (isset($validated['client_name'])) {
+                $this->clientName = $validated['client_name'];
+            }
+
+            // Success notification
+            Toaster::success('Client information updated successfully!');
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to update this project.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error updating client information', [
+                'project_id' => $this->project->id,
+                'updates' => $updates,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to update client information. Please try again.');
+        }
+    }
+
+    /**
+     * Resend client invite with new signed URL
+     */
+    public function resendClientInvite(): void
+    {
+        try {
+            // Authorization check
+            $this->authorize('update', $this->project);
+
+            // Only allow for client management projects
+            if (! $this->project->isClientManagement()) {
+                Toaster::error('Client invites are only available for client management projects.');
+
+                return;
+            }
+
+            // Generate new signed URL (7-day expiry)
+            $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'client.portal.view',
+                now()->addDays(config('mixpitch.client_portal_link_expiry_days', 7)),
+                ['project' => $this->project->id]
+            );
+
+            // Send notification
+            $notificationService = app(\App\Services\NotificationService::class);
+            $notificationService->notifyClientProjectInvite($this->project, $signedUrl);
+
+            Toaster::success('Client invite resent successfully.');
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            Toaster::error('You are not authorized to resend this invite.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error resending client invite', [
+                'project_id' => $this->project->id,
+                'error' => $e->getMessage(),
+            ]);
+            Toaster::error('Failed to resend client invite.');
+        }
     }
 
     /**
